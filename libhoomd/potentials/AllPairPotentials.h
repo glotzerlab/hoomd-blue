@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairZBL.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
+#include "EvaluatorPairMie.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -107,6 +108,8 @@ typedef PotentialPair<EvaluatorPairDPDLJThermo> PotentialPairDPDLJ;
 typedef PotentialPairDPDThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
 //! Pair potential force compute for force shifted LJ on the GPU
 typedef PotentialPair<EvaluatorPairForceShiftedLJ> PotentialPairForceShiftedLJ;
+//! Pair potential force compute for Mie potential
+typedef PotentialPair<EvaluatorPairMie> PotentialPairMie;
 
 
 
@@ -137,6 +140,8 @@ typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermo_force
 typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
 //! Pair potential force compute for force shifted LJ on the GPU
 typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_lj_forces> PotentialPairForceShiftedLJGPU;
+//! Pair potential force compute for Mie potential
+typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairMieGPU;
 
 #endif
 

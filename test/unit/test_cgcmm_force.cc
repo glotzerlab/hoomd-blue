@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -483,7 +479,7 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
@@ -622,8 +618,4 @@ BOOST_AUTO_TEST_CASE( CGCMMForceGPU_compare )
     cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

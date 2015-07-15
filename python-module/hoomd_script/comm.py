@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -54,59 +54,56 @@
 
 import hoomd;
 from hoomd_script import init;
-from hoomd_script import data;
 from hoomd_script import util;
 from hoomd_script import globals;
+import hoomd_script;
 
 import sys;
 
 ## Get the number of ranks
 # \returns the number of MPI ranks in this partition
+# context.initialize() must be called before get_num_ranks()
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
+    hoomd_script.context._verify_init();
     if hoomd.is_MPI_available():
-        if init.is_initialized():
-            return globals.exec_conf.getNRanks();
-        else:
-            if globals.options.nrank is not None:
-                return globals.options.nrank;
-            else:
-                return hoomd.ExecutionConfiguration.getNRanksGlobal()
+        return globals.exec_conf.getNRanks();
     else:
         return 1;
 
 ## Return the current rank
-# If HOOMD is already initialized, it returns the actual MPI rank.
-# If HOOMD is not yet initialized, it guesses the rank from environment
-# variables.
+# context.initialize() must be called before get_rank()
 # \note Always returns 0 in non-mpi builds
 def get_rank():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if init.is_initialized():
-            return globals.exec_conf.getRank()
-        else:
-            if globals.options.nrank is not None:
-                # recompute local rank
-                return int(hoomd.ExecutionConfiguration.getRankGlobal() % globals.options.nrank)
-            else:
-                return hoomd.ExecutionConfiguration.getRankGlobal()
+        return globals.exec_conf.getRank()
     else:
         return 0;
 
 ## Return the current partition
-# If HOOMD is already initialized, it returns the actual partition.
-# If HOOMD is not yet initialized, it guesses the partition id from environment
-# variables.
+# context.initialize() must be called before get_partition()
 # \note Always returns 0 in non-mpi builds
 def get_partition():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if init.is_initialized():
-            return globals.exec_conf.getPartition()
-        else:
-            if globals.options.nrank is not None:
-                # re-compute partition number
-                return int(hoomd.ExecutionConfiguration.getRankGlobal()/globals.options.nrank)
-            else:
-                return 0
+        return globals.exec_conf.getPartition()
     else:
         return 0;
+
+## Perform a MPI barrier synchronization inside a partition
+# \note does nothing in in non-MPI builds
+def barrier_all():
+    if hoomd.is_MPI_available():
+        hoomd.mpi_barrier_world();
+
+## Perform a MPI barrier synchronization inside a partition
+# context.initialize() must be called before barrier()
+# \note does nothing in in non-MPI builds
+def barrier():
+    hoomd_script.context._verify_init();
+
+    if hoomd.is_MPI_available():
+        globals.exec_conf.barrier()

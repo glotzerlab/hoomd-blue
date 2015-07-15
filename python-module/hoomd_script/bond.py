@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,6 +57,7 @@ from hoomd_script import tune;
 from hoomd_script import data;
 from hoomd_script import init;
 from hoomd_script import pair;
+from hoomd_script import meta;
 
 import math;
 import sys;
@@ -234,6 +235,11 @@ class coeff:
 
         return self.values[type][coeff_name];
 
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
+
 ## \internal
 # \brief Base class for bond potentials
 #
@@ -284,6 +290,16 @@ class _bond(force._force):
             param = self.process_coeff(coeff_dict);
             self.cpp_force.setParams(i, param);
 
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['bond_coeff'] = self.bond_coeff
+        return data
 
 ## Harmonic %bond force
 #

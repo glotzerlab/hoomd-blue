@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -128,6 +128,10 @@ class lj(force._force):
         self.particle_types_set = [];
 
         globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # store metadata
+        self.metadata_fields = ['r_cut']
+        self.r_cut = r_cut
 
     ## Sets the particle-wall interaction coefficients for a particular particle type
     #

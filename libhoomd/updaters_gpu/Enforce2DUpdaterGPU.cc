@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Enforce2DUpdaterGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Enforce2DUpdaterGPU.h"
 #include "Enforce2DUpdaterGPU.cuh"
@@ -74,7 +70,7 @@ using namespace std;
 Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
     // at least one GPU is needed
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
@@ -90,7 +86,7 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
     assert(m_pdata);
 
     if (m_prof)
-        m_prof->push(exec_conf, "Enforce2D");
+        m_prof->push(m_exec_conf, "Enforce2D");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -101,11 +97,11 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
                   d_vel.data,
                   d_accel.data);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_Enforce2DUpdaterGPU()
@@ -114,7 +110,3 @@ void export_Enforce2DUpdaterGPU()
     ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

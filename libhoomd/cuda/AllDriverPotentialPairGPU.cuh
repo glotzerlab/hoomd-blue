@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -112,4 +112,9 @@ cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
 //! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
                                                 const Scalar2 *d_params);
+
+//! Compute mie potential pair forces on the GPU with PairEvaluatorMie
+cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
+                                                const Scalar4 *d_params);
+
 #endif

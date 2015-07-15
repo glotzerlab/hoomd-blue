@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -101,6 +101,7 @@ from hoomd_script import util;
 from hoomd_script import variant;
 from hoomd_script import init;
 from hoomd_script import comm;
+from hoomd_script import meta;
 from hoomd_script import cite;
 
 ## \internal
@@ -111,7 +112,7 @@ from hoomd_script import cite;
 # writers. 1) The instance of the c++ integrator itself is tracked 2) All
 # forces created so far in the simulation are updated in the cpp_integrator
 # whenever run() is called.
-class _integrator:
+class _integrator(meta._metadata):
     ## \internal
     # \brief Constructs the integrator
     #
@@ -128,6 +129,9 @@ class _integrator:
 
         # save ourselves in the global variable
         globals.integrator = self;
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \var cpp_integrator
     # \internal
@@ -216,7 +220,7 @@ class _integrator:
 # being active for the next run()
 #
 # The design of integration_method exactly mirrors that of _force for consistency
-class _integration_method:
+class _integration_method(meta._metadata):
     ## \internal
     # \brief Constructs the integration_method
     #
@@ -231,6 +235,9 @@ class _integration_method:
 
         self.enabled = True;
         globals.integration_methods.append(self);
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -298,6 +305,14 @@ class _integration_method:
         self.enabled = True;
         globals.integration_methods.append(self);
 
+    ## \internal
+    # \brief Override get_metadata() to add 'enabled' field
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        return data
+
+
 ## Enables a variety of standard integration methods
 #
 # integrate.mode_standard performs a standard time step integration technique to move the system forward. At each time
@@ -336,6 +351,10 @@ class mode_standard(_integrator):
         # initialize base class
         _integrator.__init__(self);
 
+        # Store metadata
+        self.dt = dt
+        self.metadata_fields = ['dt']
+
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
@@ -361,6 +380,7 @@ class mode_standard(_integrator):
 
         # change the parameters
         if dt is not None:
+            self.dt = dt
             self.cpp_integrator.setDeltaT(dt);
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
@@ -428,6 +448,12 @@ class nvt(_integration_method):
         else:
             thermo = compute._get_unique_thermo(group=group);
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.tau = tau
+        self.metadata_fields = ['group', 'T', 'tau']
+
         # setup suffix
         suffix = '_' + group.name;
 
@@ -470,8 +496,11 @@ class nvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
+
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
 
 ## NPT Integration via MTK barostat-thermostat with triclinic unit cell
 #
@@ -661,6 +690,23 @@ class npt(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group  = group
+        self.T = T
+        self.tau = tau
+        self.P = P
+        self.tauP = tauP
+        self.couple = couple
+        self.rescale_all = rescale_all
+        self.all = all
+        self.x = x
+        self.y = y
+        self.z = z
+        self.xy = xy
+        self.xz = xz
+        self.yz = yz
+        self.nph = nph
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -687,18 +733,55 @@ class npt(_integration_method):
         if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
+            self.T = T
             self.cpp_method.setT(T.cpp_variant);
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
         if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
+            self.P = P
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+            self.tauP = tauP
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
+            self.rescale_all = rescale_all
 
+    ## \internal
+    # \brief Return information about this integration method
+    #
+    def get_metadata(self):
+        # Metadata output involves transforming some variables into human-readable
+        # form, so we override get_metadata()
+        data = _integration_method.get_metadata(self)
+        data['group'] = self.group.name
+        if not self.nph:
+            data['T'] = self.T
+            data['tau'] = self.tau
+        data['P'] = self.P
+        data['tauP'] = self.tauP
+
+        lengths = ''
+        if self.x or self.all:
+            lengths += 'x '
+        if self.y or self.all:
+            lengths += 'y '
+        if self.z or self.all:
+            lengths += 'z '
+        if self.xy or self.all:
+            lengths += 'xy '
+        if self.xz or self.all:
+            lengths += 'xz '
+        if self.yz or self.all:
+            lengths += 'yz '
+        data['lengths'] = lengths.rstrip()
+        if self.rescale_all is not None:
+            data['rescale_all'] = self.rescale_all
+
+        return data
 
 ## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #
@@ -802,6 +885,11 @@ class nve(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.limit = limit
+        self.metadata_fields = ['group', 'limit']
+
     ## Changes parameters of an existing integrator
     # \param limit (if set) New limit value to set. Removes the limit if limit is False
     # \param zero_force (if set) New value for the zero force option
@@ -827,10 +915,12 @@ class nve(_integration_method):
                 self.cpp_method.removeLimit();
             else:
                 self.cpp_method.setLimit(limit);
+            self.limit = limit
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
 
+#
 ## NVT integration via Brownian dynamics
 #
 # integrate.bdnvt performs constant volume, fixed average temperature simulation based on a
@@ -915,6 +1005,13 @@ class bdnvt(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.seed = seed
+        self.limit = limit
+        self.metadata_fields = ['group', 'T', 'seed', 'limit']
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
@@ -941,6 +1038,7 @@ class bdnvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
 
         if tally is not None:
             self.cpp_method.setTally(tally);
@@ -1038,6 +1136,10 @@ class nve_rigid(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.metadata_fields = ['group']
+
 ## NVT Integration for rigid bodies
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
@@ -1109,6 +1211,12 @@ class nvt_rigid(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.tau = tau
+        self.metadata_fields = ['group','T','tau']
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -1132,8 +1240,10 @@ class nvt_rigid(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
 
 ## NVT integration via Brownian dynamics for rigid bodies
 #
@@ -1211,6 +1321,12 @@ class bdnvt_rigid(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.seed = seed
+        self.metadata_fields = ['group','T','seed']
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     #
@@ -1233,6 +1349,7 @@ class bdnvt_rigid(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
 
     ## Sets gamma parameter for a particle type
     # \param a Particle type
@@ -1341,6 +1458,14 @@ class npt_rigid(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.tau = tau
+        self.P = P
+        self.tauP = tauP
+        self.metadata_fields = ['group','T','tau','P','tauP']
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -1366,14 +1491,18 @@ class npt_rigid(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
         if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
+            self.P = P
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+            self.tauP = tauP
 
 ## NPH Integration for rigid bodies
 #
@@ -1444,6 +1573,12 @@ class nph_rigid(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.P = P
+        self.tauP = tauP
+        self.metadata_fields = ['group','P','tauP']
+
     ## Changes parameters of an existing integrator
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New coupling constant (if set) (in time units)
@@ -1467,8 +1602,10 @@ class nph_rigid(_integration_method):
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
+            self.P = P
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+            self.tauP = tauP
 
 ## Energy Minimizer (FIRE)
 #
@@ -1551,22 +1688,40 @@ class mode_minimize_fire(_integrator):
         globals.system.setIntegrator(self.cpp_integrator);
 
         # change the set parameters if not None
+        self.dt = dt
+        self.metadata_fields = ['dt']
         if not(Nmin is None):
             self.cpp_integrator.setNmin(Nmin);
+            self.Nmin = Nmin
+            self.metadata_fields.append('Nmin')
         if not(finc is None):
             self.cpp_integrator.setFinc(finc);
+            self.finc = finc
+            self.metadata_fields.append('finc')
         if not(fdec is None):
             self.cpp_integrator.setFdec(fdec);
+            self.fdec = fdec
+            self.metadata_fields.append('fdec')
         if not(alpha_start is None):
             self.cpp_integrator.setAlphaStart(alpha_start);
+            self.alpha_start = alpha_start
+            self.metadata_fields.append('alpha_start')
         if not(falpha is None):
             self.cpp_integrator.setFalpha(falpha);
+            self.falpha = falpha
+            self.metadata_fields.append(falpha)
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
+            self.ftol = ftol
+            self.metadata_fields.append(ftol)
         if not(Etol is None):
             self.cpp_integrator.setEtol(Etol);
+            self.Etol = Etol
+            self.metadata_fields.append(Etol)
         if not(min_steps is None):
             self.cpp_integrator.setMinSteps(min_steps);
+            self.min_steps = min_steps
+            self.metadata_fields.append(min_steps)
 
     ## Asks if Energy Minimizer has converged
     #
@@ -1634,22 +1789,40 @@ class mode_minimize_rigid_fire(_integrator):
         globals.system.setIntegrator(self.cpp_integrator);
 
         # change the set parameters if not None
+        self.dt = dt
+        self.metadata_fields = ['dt']
         if not(Nmin is None):
             self.cpp_integrator.setNmin(Nmin);
+            self.Nmin = Nmin
+            self.metadata_fields.append('Nmin')
         if not(finc is None):
             self.cpp_integrator.setFinc(finc);
+            self.finc = finc
+            self.metadata_fields.append('finc')
         if not(fdec is None):
             self.cpp_integrator.setFdec(fdec);
+            self.fdec = fdec
+            self.metadata_fields.append('fdec')
         if not(alpha_start is None):
             self.cpp_integrator.setAlphaStart(alpha_start);
+            self.alpha_start = alpha_start
+            self.metadata_fields.append('alpha_start')
         if not(falpha is None):
             self.cpp_integrator.setFalpha(falpha);
+            self.falpha = falpha
+            self.metadata_fields.append(falpha)
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
+            self.ftol = ftol
+            self.metadata_fields.append(ftol)
         if not(wtol is None):
             self.cpp_integrator.setWtol(wtol);
+            self.wtol = wtol
+            self.metadata_fields.append(wtol)
         if not(Etol is None):
             self.cpp_integrator.setEtol(Etol);
+            self.Etol = Etol
+            self.metadata_fields.append(Etol)
 
     ## Asks if Energy Minimizer has converged
     #
@@ -1703,3 +1876,8 @@ class berendsen(_integration_method):
                                                         thermo.cpp_compute,
                                                         tau,
                                                         T.cpp_variant);
+
+        # store metadata
+        self.T = T
+        self.tau = tau
+        self.metadata_fields = ['T','tau']

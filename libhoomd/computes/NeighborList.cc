@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -155,21 +155,21 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_conditions.swap(conditions);
 
     // allocate m_last_pos
-    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
+    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), m_exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
-    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
 
     // reset exclusions
@@ -311,7 +311,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     buildNlist(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -324,7 +324,7 @@ double NeighborList::benchmark(unsigned int num_iters)
         buildNlist(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;

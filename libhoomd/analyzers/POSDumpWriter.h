@@ -1,23 +1,6 @@
-This work was packaged for Debian by:
-
-    Ross Smith <rjsm@umich.edu> on Thu, 24 Feb 2011 15:58:30 -0500
-
-It was downloaded from:
-
-    Http://codeblue.umich.edu/hoomd-blue/
-
-Upstream Author(s):
-
-    Joshua Anderson <joaander@umich.edu>
-
-Copyright:
-
-    Copyright 2008-2011 Ames Laboratory, Iowa State University and The Regents of the University of Michigan All rights
-reserved.
-
-License:
+/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
 reserved.
 
@@ -54,3 +37,57 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// Maintainer: harperic
+
+/*! \file POSDumpWriter.h
+    \brief Declares the POSDumpWriter class
+*/
+
+#include "Analyzer.h"
+
+#include <string>
+#include <fstream>
+#include <boost/shared_ptr.hpp>
+
+#ifndef __POS_DUMP_WRITER_H__
+#define __POS_DUMP_WRITER_H__
+
+//! Analyzer for writing out POS dump files
+/*! POSDumpWriter writes to a single .pos formatted dump file. Each time analyze() is called, a new frame is written
+    at the end of the file.
+
+    \ingroup analyzers
+*/
+class POSDumpWriter : public Analyzer
+    {
+    public:
+        //! Construct the writer
+        POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname);
+
+        //! Write out the data for the current timestep
+        void analyze(unsigned int timestep);
+
+        //! Set the def string for a shape
+        void setDef(unsigned int tid, std::string def);
+
+        //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
+        void setUnwrapRigid(bool enable)
+            {
+            m_unwrap_rigid = enable;
+            }
+
+    private:
+        std::ofstream m_file;    //!< File to write to
+
+        std::vector< std::string > m_defs;  //!< Shape defs
+
+        boost::shared_ptr<RigidData> m_rigid_data; //!< For accessing rigid body data
+        bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
+    };
+
+//! Exports the POSDumpWriter class to python
+void export_POSDumpWriter();
+
+#endif

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -1150,6 +1150,9 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
 void CommunicatorGPU::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
+
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
 
     if (m_prof)
         m_prof->push(m_exec_conf,"comm_migrate");

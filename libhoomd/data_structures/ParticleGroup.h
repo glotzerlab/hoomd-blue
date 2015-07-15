@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -360,6 +360,7 @@ class ParticleGroup
         boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
+        bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context

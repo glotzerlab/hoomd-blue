@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -11,10 +11,10 @@
  *     * Neither the name of the NVIDIA CORPORATION nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -67,7 +67,7 @@ Reduce(InputIt data_global, int count, CudaContext& context);
 template<MgpuScanType Type, typename DataIt, typename T, typename Op,
 	typename DestIt>
 MGPU_HOST void Scan(DataIt data_global, int count, T identity, Op op,
-	T* reduce_global, T* reduce_host, DestIt dest_global, 
+	T* reduce_global, T* reduce_host, DestIt dest_global,
 	CudaContext& context);
 
 // Exclusive scan with identity = 0 and op = mgpu::plus<T>.
@@ -105,13 +105,13 @@ MGPU_HOST void BulkRemove(InputIt source_global, int sourceCount,
 // Combine aCount elements in a_global with bCount elements in b_global.
 // Each element a_global[i] is inserted before position indices_global[i] and
 // stored to dest_global. The insertion indices are relative to the B array,
-// not the output. Indices must be sorted but not necessarily unique. 
+// not the output. Indices must be sorted but not necessarily unique.
 
 // If aCount = 5, bCount = 3, and indices = (1, 1, 2, 3, 3), the output is:
 // B0 A0 A1 B1 A2 B2 A3 A4.
 template<typename InputIt1, typename IndicesIt, typename InputIt2,
 	typename OutputIt>
-MGPU_HOST void BulkInsert(InputIt1 a_global, IndicesIt indices_global, 
+MGPU_HOST void BulkInsert(InputIt1 a_global, IndicesIt indices_global,
 	int aCount, InputIt2 b_global, int bCount, OutputIt dest_global,
 	CudaContext& context);
 
@@ -139,14 +139,14 @@ MGPU_HOST void MergeKeys(KeysIt1 aKeys_global, int aCount, KeysIt2 bKeys_global,
 // functions in Thrust.
 template<typename KeysIt1, typename KeysIt2, typename KeysIt3, typename ValsIt1,
 	typename ValsIt2, typename ValsIt3, typename Comp>
-MGPU_HOST void MergePairs(KeysIt1 aKeys_global, ValsIt1 aVals_global, 
+MGPU_HOST void MergePairs(KeysIt1 aKeys_global, ValsIt1 aVals_global,
 	int aCount, KeysIt2 bKeys_global, ValsIt2 bVals_global, int bCount,
 	KeysIt3 keys_global, ValsIt3 vals_global, Comp comp, CudaContext& context);
 
 // MergePairs specialized with Comp = mgpu::less<T>.
 template<typename KeysIt1, typename KeysIt2, typename KeysIt3, typename ValsIt1,
 	typename ValsIt2, typename ValsIt3>
-MGPU_HOST void MergePairs(KeysIt1 aKeys_global, ValsIt1 aVals_global, 
+MGPU_HOST void MergePairs(KeysIt1 aKeys_global, ValsIt1 aVals_global,
 	int aCount, KeysIt2 bKeys_global, ValsIt2 bVals_global, int bCount,
 	KeysIt3 keys_global, ValsIt3 vals_global, CudaContext& context);
 
@@ -165,7 +165,7 @@ MGPU_HOST void MergesortKeys(T* data_global, int count, Comp comp,
 template<typename T>
 MGPU_HOST void MergesortKeys(T* data_global, int count, CudaContext& context);
 
-// MergesortPairs sorts data by key, copying data. This corresponds to 
+// MergesortPairs sorts data by key, copying data. This corresponds to
 // sort_by_key in Thrust.
 template<typename KeyType, typename ValType, typename Comp>
 MGPU_HOST void MergesortPairs(KeyType* keys_global, ValType* values_global,
@@ -177,7 +177,7 @@ MGPU_HOST void MergesortPairs(KeyType* keys_global, ValType* values_global,
 	int count, CudaContext& context);
 
 // MergesortIndices is like MergesortPairs where values_global is treated as
-// if initialized with integers (0 ... count - 1). 
+// if initialized with integers (0 ... count - 1).
 template<typename KeyType, typename Comp>
 MGPU_HOST void MergesortIndices(KeyType* keys_global, int* values_global,
 	int count, Comp comp, CudaContext& context);
@@ -192,16 +192,16 @@ MGPU_HOST void MergesortIndices(KeyType* keys_global, int* values_global,
 // kernels/segmentedsort.cuh
 
 // Mergesort count items in-place in data_global. Keys are compared with Comp
-// (as they are in MergesortKeys), however keys remain inside the segments 
-// defined by flags_global. 
+// (as they are in MergesortKeys), however keys remain inside the segments
+// defined by flags_global.
 
-// flags_global is a bitfield cast to uint*. Each bit in flags_global is a 
+// flags_global is a bitfield cast to uint*. Each bit in flags_global is a
 // segment head flag. Only keys between segment head flags (inclusive on the
-// left and exclusive on the right) may be exchanged. The first element is 
+// left and exclusive on the right) may be exchanged. The first element is
 // assumed to start a segment, regardless of the value of bit 0.
 
 // Passing verbose=true causes the function to print mergepass statistics to the
-// console. This may be helpful for developers to understand the performance 
+// console. This may be helpful for developers to understand the performance
 // characteristics of the function and how effectively it early-exits merge
 // operations.
 template<typename T, typename Comp>
@@ -216,13 +216,13 @@ MGPU_HOST void SegSortKeysFromFlags(T* data_global, int count,
 
 // Segmented sort using head flags and supporting value exchange.
 template<bool Stable, typename KeyType, typename ValType, typename Comp>
-MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global, 
+MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global,
 	ValType* values_global, const uint* flags_global, int count,
 	CudaContext& context, Comp comp, bool verbose = false);
 
 // SegSortPairsFromFlags specialized with Comp = mgpu::less<T>.
 template<bool Stable, typename KeyType, typename ValType>
-MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global, 
+MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global,
 	ValType* values_global, const uint* flags_global, int count,
 	CudaContext& context, bool verbose = false);
 
@@ -243,26 +243,26 @@ MGPU_HOST void SegSortKeysFromIndices(T* data_global, int count,
 
 // Segmented sort using segment indices and supporting value exchange.
 template<typename KeyType, typename ValType, typename Comp>
-MGPU_HOST void SegSortPairsFromIndices(KeyType* keys_global, 
-	ValType* values_global, int count, const int* indices_global, 
+MGPU_HOST void SegSortPairsFromIndices(KeyType* keys_global,
+	ValType* values_global, int count, const int* indices_global,
 	int indicesCount, CudaContext& context, Comp comp, bool verbose = false);
 
 // SegSortPairsFromIndices specialized with Comp = mgpu::less<KeyType>.
 template<typename KeyType, typename ValType>
-MGPU_HOST void SegSortPairsFromIndices(KeyType* keys_global, 
-	ValType* values_global, int count, const int* indices_global, 
+MGPU_HOST void SegSortPairsFromIndices(KeyType* keys_global,
+	ValType* values_global, int count, const int* indices_global,
 	int indicesCount, CudaContext& context, bool verbose = false);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // kernels/localitysort.cuh
 
-// LocalitySortKeys is a version of MergesortKeys optimized for non-uniformly 
+// LocalitySortKeys is a version of MergesortKeys optimized for non-uniformly
 // random input arrays. If the keys begin close to their sorted destinations,
 // this function may exploit the structure to early-exit merge passes.
 
 // Passing verbose=true causes the function to print mergepass statistics to the
-// console. This may be helpful for developers to understand the performance 
+// console. This may be helpful for developers to understand the performance
 // characteristics of the function and how effectively it early-exits merge
 // operations.
 template<typename T, typename Comp>
@@ -292,10 +292,10 @@ MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 // Executes two simultaneous linear searches on two sorted inputs.
 
 // Bounds:
-//		MgpuBoundsLower - 
+//		MgpuBoundsLower -
 //			lower-bound search of A into B.
 //			upper-bound search of B into A.
-//		MgpuBoundsUpper - 
+//		MgpuBoundsUpper -
 //			upper-bound search of A into B.
 //			lower-bound search of B into A.
 // Type[A|B]:
@@ -308,21 +308,21 @@ MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 //				for element in B.
 //		MgpuSearchTypeIndexMatch - return search indices as integers. Most
 //			significant bit is match bit.
-//	aMatchCount, bMatchCount - If Type is Match or IndexMatch, return the total 
+//	aMatchCount, bMatchCount - If Type is Match or IndexMatch, return the total
 //		number of elements in A or B with matches in B or A, if the pointer is
 //		not null. This generates a synchronous cudaMemcpyDeviceToHost call that
 //		callers using streams should be aware of.
 template<MgpuBounds Bounds, MgpuSearchType TypeA, MgpuSearchType TypeB,
-	typename InputIt1, typename InputIt2, typename OutputIt1, 
+	typename InputIt1, typename InputIt2, typename OutputIt1,
 	typename OutputIt2, typename Comp>
 MGPU_HOST void SortedSearch(InputIt1 a_global, int aCount, InputIt2 b_global,
 	int bCount, OutputIt1 aIndices_global, OutputIt2 bIndices_global,
-	Comp comp, CudaContext& context, int* aMatchCount = 0, 
+	Comp comp, CudaContext& context, int* aMatchCount = 0,
 	int* bMatchCount = 0);
 
 // SortedSearch specialized with Comp = mgpu::less<T>.
 template<MgpuBounds Bounds, MgpuSearchType TypeA, MgpuSearchType TypeB,
-	typename InputIt1, typename InputIt2, typename OutputIt1, 
+	typename InputIt1, typename InputIt2, typename OutputIt1,
 	typename OutputIt2>
 MGPU_HOST void SortedSearch(InputIt1 a_global, int aCount, InputIt2 b_global,
 	int bCount, OutputIt1 aIndices_global, OutputIt2 bIndices_global,
@@ -350,7 +350,7 @@ MGPU_HOST void SortedSearch(InputIt1 a_global, int aCount, InputIt2 b_global,
 // The provided operator must have a method:
 //		int operator()(int lb, int ub) const;
 // It returns the count given the lower- and upper-bound indices.
-// 
+//
 // An object SortedEqualityOp is provided:
 //		struct SortedEqualityOp {
 //			MGPU_HOST_DEVICE int operator()(int lb, int ub) const {
@@ -360,14 +360,14 @@ MGPU_HOST void SortedSearch(InputIt1 a_global, int aCount, InputIt2 b_global,
 template<typename InputIt1, typename InputIt2, typename InputIt3,
 	typename OutputIt, typename Comp, typename Op>
 MGPU_HOST void SortedEqualityCount(InputIt1 a_global, int aCount,
-	InputIt2 b_global, int bCount, InputIt3 lb_global, OutputIt counts_global, 
+	InputIt2 b_global, int bCount, InputIt3 lb_global, OutputIt counts_global,
 	Comp comp, Op op, CudaContext& context);
 
 // Specialization of SortedEqualityCount with Comp = mgpu::less<T>.
 template<typename InputIt1, typename InputIt2, typename InputIt3,
 	typename OutputIt, typename Op>
 MGPU_HOST void SortedEqualityCount(InputIt1 a_global, int aCount,
-	InputIt2 b_global, int bCount, InputIt3 lb_global, OutputIt counts_global, 
+	InputIt2 b_global, int bCount, InputIt3 lb_global, OutputIt counts_global,
 	Op op, CudaContext& context);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -378,12 +378,12 @@ MGPU_HOST void SortedEqualityCount(InputIt1 a_global, int aCount,
 // items in total. The caller computes an exclusive scan of the work-item counts
 // into b_global.
 
-// indices_global has aCount outputs. indices_global[i] is the index of the 
+// indices_global has aCount outputs. indices_global[i] is the index of the
 // object that generated the i'th work item.
 // Eg:
 // work-item counts:  2,  5,  3,  0,  1.
 // scan counts:       0,  2,  7, 10, 10.   aCount = 11.
-// 
+//
 // LoadBalanceSearch computes the upper-bound of counting_iterator<int>(0) with
 // the scan of the work-item counts and subtracts 1:
 // LBS: 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 4.
@@ -401,7 +401,7 @@ MGPU_HOST void LoadBalanceSearch(int aCount, InputIt b_global, int bCount,
 
 // IntervalExpand duplicates intervalCount items in values_global.
 // indices_global is an intervalCount-sized array filled with the scan of item
-// expand counts. moveCount is the total number of outputs (sum of expand 
+// expand counts. moveCount is the total number of outputs (sum of expand
 // counts).
 
 // Eg:
@@ -409,9 +409,9 @@ MGPU_HOST void LoadBalanceSearch(int aCount, InputIt b_global, int bCount,
 //		counts  =  1,  2,  1,  0,  4,  2,  3,  0,  2
 //		indices =  0,  1,  3,  4,  4,  8, 10, 13, 13 (moveCount = 15).
 // Expand values[i] by counts[i]:
-// output  =  0, 1, 1, 2, 4, 4, 4, 4, 5, 5, 6, 6, 6, 8, 8 
+// output  =  0, 1, 1, 2, 4, 4, 4, 4, 5, 5, 6, 6, 6, 8, 8
 template<typename IndicesIt, typename ValuesIt, typename OutputIt>
-MGPU_HOST void IntervalExpand(int moveCount, IndicesIt indices_global, 
+MGPU_HOST void IntervalExpand(int moveCount, IndicesIt indices_global,
 	ValuesIt values_global, int intervalCount, OutputIt output_global,
 	CudaContext& context);
 
@@ -446,10 +446,10 @@ MGPU_HOST void IntervalExpand(int moveCount, IndicesIt indices_global,
 // move 7: (11, 13)->( 0,  3)       move 17: (60, 62)->(25, 27)
 // move 8: (95,100)->(36, 41)       move 18: (62, 67)->(61, 66)
 // move 9: (35, 37)->(13, 15)       move 19: (29, 35)->(55, 61)
-template<typename GatherIt, typename ScatterIt, typename IndicesIt, 
+template<typename GatherIt, typename ScatterIt, typename IndicesIt,
 	typename InputIt, typename OutputIt>
-MGPU_HOST void IntervalMove(int moveCount, GatherIt gather_global, 
-	ScatterIt scatter_global, IndicesIt indices_global, int intervalCount, 
+MGPU_HOST void IntervalMove(int moveCount, GatherIt gather_global,
+	ScatterIt scatter_global, IndicesIt indices_global, int intervalCount,
 	InputIt input_global, OutputIt output_global, CudaContext& context);
 
 // IntervalGather is a specialization of IntervalMove that stores output data
@@ -457,7 +457,7 @@ MGPU_HOST void IntervalMove(int moveCount, GatherIt gather_global,
 // scatter_global the same as indices_global.
 template<typename GatherIt, typename IndicesIt, typename InputIt,
 	typename OutputIt>
-MGPU_HOST void IntervalGather(int moveCount, GatherIt gather_global, 
+MGPU_HOST void IntervalGather(int moveCount, GatherIt gather_global,
 	IndicesIt indices_global, int intervalCount, InputIt input_global,
 	OutputIt output_global, CudaContext& context);
 
@@ -496,7 +496,7 @@ MGPU_HOST void IntervalScatter(int moveCount, ScatterIt scatter_global,
 // MgpuJoinKindInner drops both the left- and right-joins.
 
 // The caller passes MGPU_MEM(int) pointers to hold indices. Memory is allocated
-// by the join function using the allocator associated with the context. It 
+// by the join function using the allocator associated with the context. It
 // returns the number of outputs.
 
 // RelationalJoin performs one cudaMemcpyDeviceToHost to retrieve the size of
@@ -505,13 +505,13 @@ MGPU_HOST void IntervalScatter(int moveCount, ScatterIt scatter_global,
 template<MgpuJoinKind Kind, typename InputIt1, typename InputIt2,
 	typename Comp>
 MGPU_HOST int RelationalJoin(InputIt1 a_global, int aCount, InputIt2 b_global,
-	int bCount, MGPU_MEM(int)* ppAJoinIndices, MGPU_MEM(int)* ppBJoinIndices, 
+	int bCount, MGPU_MEM(int)* ppAJoinIndices, MGPU_MEM(int)* ppBJoinIndices,
 	Comp comp, CudaContext& context);
- 
+
 // Specialization of RelationJoil with Comp = mgpu::less<T>.
 template<MgpuJoinKind Kind, typename InputIt1, typename InputIt2>
 MGPU_HOST int RelationalJoin(InputIt1 a_global, int aCount, InputIt2 b_global,
-	int bCount, MGPU_MEM(int)* ppAJoinIndices, MGPU_MEM(int)* ppBJoinIndices, 
+	int bCount, MGPU_MEM(int)* ppAJoinIndices, MGPU_MEM(int)* ppBJoinIndices,
 	CudaContext& context);
 
 
@@ -525,11 +525,11 @@ MGPU_HOST int RelationalJoin(InputIt1 a_global, int aCount, InputIt2 b_global,
 //		MgpuSetOpDiff -				like std::set_difference
 //		MgpuSetOpSymDiff -			like std::set_symmetric_difference
 
-// Setting Duplicates to false increases performance for inputs with no 
+// Setting Duplicates to false increases performance for inputs with no
 // duplicate keys in either array.
 
 // The caller passes MGPU_MEM(T) pointers to hold outputs. Memory is allocated
-// by the multiset function using the allocator associated with the context. It 
+// by the multiset function using the allocator associated with the context. It
 // returns the number of outputs.
 
 // SetOpKeys performs one cudaMemcpyDeviceToHost to retrieve the size of
@@ -543,7 +543,7 @@ MGPU_HOST int RelationalJoin(InputIt1 a_global, int aCount, InputIt2 b_global,
 template<MgpuSetOp Op, bool Duplicates, typename It1, typename It2,
 	typename T, typename Comp>
 MGPU_HOST int SetOpKeys(It1 a_global, int aCount, It2 b_global, int bCount,
-	MGPU_MEM(T)* ppKeys_global, Comp comp, CudaContext& context, 
+	MGPU_MEM(T)* ppKeys_global, Comp comp, CudaContext& context,
 	bool compact = true);
 
 // Specialization of SetOpKeys with Comp = mgpu::less<T>.
@@ -557,7 +557,7 @@ template<MgpuSetOp Op, bool Duplicates, typename KeysIt1, typename KeysIt2,
 	typename Comp>
 MGPU_HOST int SetOpPairs(KeysIt1 aKeys_global, ValsIt1 aVals_global, int aCount,
 	KeysIt2 bKeys_global, ValsIt2 bVals_global, int bCount,
-	MGPU_MEM(KeyType)* ppKeys_global, MGPU_MEM(ValType)* ppVals_global, 
+	MGPU_MEM(KeyType)* ppKeys_global, MGPU_MEM(ValType)* ppVals_global,
 	Comp comp, CudaContext& context);
 
 // Specialization of SetOpPairs with Comp = mgpu::less<T>.
@@ -565,7 +565,7 @@ template<MgpuSetOp Op, bool Duplicates, typename KeysIt1, typename KeysIt2,
 	typename ValsIt1, typename ValsIt2, typename KeyType, typename ValType>
 MGPU_HOST int SetOpPairs(KeysIt1 aKeys_global, ValsIt1 aVals_global, int aCount,
 	KeysIt2 bKeys_global, ValsIt2 bVals_global, int bCount,
-	MGPU_MEM(KeyType)* ppKeys_global, MGPU_MEM(ValType)* ppVals_global, 
+	MGPU_MEM(KeyType)* ppKeys_global, MGPU_MEM(ValType)* ppVals_global,
 	CudaContext& context);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -578,67 +578,67 @@ MGPU_HOST int SetOpPairs(KeysIt1 aKeys_global, ValsIt1 aVals_global, int aCount,
 struct SegReducePreprocessData;
 
 // SegReduceCsr runs a segmented reduction given an input and a sorted list of
-// segment start offsets. This implementation requires operators support 
+// segment start offsets. This implementation requires operators support
 // commutative (a + b = b + a) and associative (a + (b + c) = (a + b) + c)
 // evaluation.
 
 // In the segmented reduction, reduce-by-key, and Spmv documentation, "segment"
-// and "row" are used interchangably. A 
-// 
+// and "row" are used interchangably. A
+//
 
 // InputIt data_global		- Data value input.
 // int count				- Size of input array data_global.
-// CsrIt csr_global			- List of integers for start of each segment. 
-//							  The first entry must be 0 (indicating that the 
+// CsrIt csr_global			- List of integers for start of each segment.
+//							  The first entry must be 0 (indicating that the
 //							  first segment starts at offset 0).
 //							  Equivalent to exc-scan of segment sizes.
 //							  If supportEmpty is false: must be ascending.
 //							  If supportEmpty is true: must be non-descending.
 // int numSegments			- Size of segment list csr_global. Must be >= 1.
-// bool supportEmpty		- Basic seg-reduce code does not support empty 
+// bool supportEmpty		- Basic seg-reduce code does not support empty
 //							  segments.
 //							  Set supportEmpty = true to add pre- and post-
 //							  processing to support empty segments.
 // OutputIt dest_global		- Output array for segmented reduction. Allocate
-//							  numSegments elements. Should be same data type as 
+//							  numSegments elements. Should be same data type as
 //							  InputIt and identity.
-// T identity				- Identity for reduction operation. Eg, use 0 for 
+// T identity				- Identity for reduction operation. Eg, use 0 for
 //							  addition or 1 for multiplication.
 // Op op					- Reduction operator. Model on std::plus<>. MGPU
-//							  provides operators mgpu::plus<>, minus<>, 
+//							  provides operators mgpu::plus<>, minus<>,
 //							  multiplies<>, modulus<>, bit_or<> bit_and<>,
 //							  bit_xor<>, maximum<>, and minimum<>.
-// CudaContext& context		- MGPU context support object. All kernels are 
+// CudaContext& context		- MGPU context support object. All kernels are
 //							  launched on the associated stream.
 template<typename InputIt, typename CsrIt, typename OutputIt, typename T,
 	typename Op>
-MGPU_HOST void SegReduceCsr(InputIt data_global, int count, CsrIt csr_global, 
-	int numSegments, bool supportEmpty, OutputIt dest_global, T identity, Op op, 
+MGPU_HOST void SegReduceCsr(InputIt data_global, int count, CsrIt csr_global,
+	int numSegments, bool supportEmpty, OutputIt dest_global, T identity, Op op,
 	CudaContext& context);
 
-// IndirectReduceCsr is like SegReduceCsr but with one level of source 
-// indirection. The start of each segment/row i in data_global starts at 
+// IndirectReduceCsr is like SegReduceCsr but with one level of source
+// indirection. The start of each segment/row i in data_global starts at
 // sources_global[i].
 // SourcesIt sources_global	- List of integers for source data of each segment.
 //							  Must be numSegments in size.
-template<typename InputIt, typename CsrIt, typename SourcesIt, 
+template<typename InputIt, typename CsrIt, typename SourcesIt,
 	typename OutputIt, typename T, typename Op>
 MGPU_HOST void IndirectReduceCsr(InputIt data_global, int count,
 	CsrIt csr_global, SourcesIt sources_global, int numSegments,
-	bool supportEmpty, OutputIt dest_global, T identity, Op op, 
+	bool supportEmpty, OutputIt dest_global, T identity, Op op,
 	CudaContext& context);
 
-// SegReduceCsrPreprocess accelerates multiple seg-reduce calls on different 
+// SegReduceCsrPreprocess accelerates multiple seg-reduce calls on different
 // data with the same segment geometry. Partitioning and CSR->CSR2 transform is
 // off-loaded to a preprocessing pass. The actual reduction is evaluated by
-// SegReduceApply. 
+// SegReduceApply.
 template<typename T, typename CsrIt>
-MGPU_HOST void SegReduceCsrPreprocess(int count, CsrIt csr_global, 
-	int numSegments, bool supportEmpty, 
+MGPU_HOST void SegReduceCsrPreprocess(int count, CsrIt csr_global,
+	int numSegments, bool supportEmpty,
 	std::auto_ptr<SegReducePreprocessData>* ppData, CudaContext& context);
 
 template<typename InputIt, typename DestIt, typename T, typename Op>
-MGPU_HOST void SegReduceApply(const SegReducePreprocessData& preprocess, 
+MGPU_HOST void SegReduceApply(const SegReducePreprocessData& preprocess,
 	InputIt data_global, T identity, Op op, DestIt dest_global,
 	CudaContext& context);
 
@@ -648,7 +648,7 @@ MGPU_HOST void SegReduceApply(const SegReducePreprocessData& preprocess,
 typedef SegReducePreprocessData ReduceByKeyPreprocessData;
 
 // ReduceByKey runs a segmented reduction given a data input and a matching set
-// of keys. This implementation requires operators support commutative 
+// of keys. This implementation requires operators support commutative
 // (a + b = b + a) and associative (a + (b + c) = (a + b) + c) evaluation.
 // It roughly matches the behavior of thrust::reduce_by_key.
 
@@ -656,14 +656,14 @@ typedef SegReducePreprocessData ReduceByKeyPreprocessData;
 // InputIt data_global		- Data value input.
 // int count				- Size of input arrays keys_global and
 //							  data_global.
-// ValType identity			- Identity for reduction operation. Eg, use 0 for 
+// ValType identity			- Identity for reduction operation. Eg, use 0 for
 //							  addition or 1 for multiplication.
 // Op op					- Reduction operator. Model on std::plus<>. MGPU
-//							  provides operators mgpu::plus<>, minus<>, 
+//							  provides operators mgpu::plus<>, minus<>,
 //							  multiplies<>, modulus<>, bit_or<> bit_and<>,
 //							  bit_xor<>, maximum<>, and minimum<>.
 // Comp comp				- Operator for comparing adjacent adjacent keys.
-//							  Must return true if two adjacent keys are in the 
+//							  Must return true if two adjacent keys are in the
 //							  same segment. Use mgpu::equal_to<KeyType>() by
 //							  default.
 // KeyType* keysDest_global	- If this pointer is not null, return the first
@@ -679,22 +679,22 @@ typedef SegReducePreprocessData ReduceByKeyPreprocessData;
 template<typename KeysIt, typename InputIt, typename DestIt,
 	typename KeyType, typename ValType, typename Op, typename Comp>
 MGPU_HOST void ReduceByKey(KeysIt keys_global, InputIt data_global, int count,
-	ValType identity, Op op, Comp comp, KeyType* keysDest_global, 
-	DestIt dest_global, int* count_host, int* count_global, 
+	ValType identity, Op op, Comp comp, KeyType* keysDest_global,
+	DestIt dest_global, int* count_host, int* count_global,
 	CudaContext& context);
 
 // ReduceByKeyPreprocess accelerates multiple reduce-by-key calls on different
 // data with the same segment geometry. The actual reduction is evaluated by
 // ReduceByKeyApply.
-// Note that the caller must explicitly specify the ValType argument. Kernel 
+// Note that the caller must explicitly specify the ValType argument. Kernel
 // tunings are based on the value type, not the key type.
 template<typename ValType, typename KeyType, typename KeysIt, typename Comp>
-MGPU_HOST void ReduceByKeyPreprocess(int count, KeysIt keys_global, 
+MGPU_HOST void ReduceByKeyPreprocess(int count, KeysIt keys_global,
 	KeyType* keysDest_global, Comp comp, int* count_host, int* count_global,
 	std::auto_ptr<ReduceByKeyPreprocessData>* ppData, CudaContext& context);
 
 template<typename InputIt, typename DestIt, typename T, typename Op>
-MGPU_HOST void ReduceByKeyApply(const ReduceByKeyPreprocessData& preprocess, 
+MGPU_HOST void ReduceByKeyApply(const ReduceByKeyPreprocessData& preprocess,
 	InputIt data_global, T identity, Op op, DestIt dest_global,
 	CudaContext& context);
 
@@ -704,7 +704,7 @@ MGPU_HOST void ReduceByKeyApply(const ReduceByKeyPreprocessData& preprocess,
 typedef SegReducePreprocessData SpmvPreprocessData;
 
 // SpmvCsr[Unary|Binary] evaluates the product of a sparse matrix (CSR format)
-// with a dense vector. 
+// with a dense vector.
 // SpmvCsrIndirect[Unary|Binary] uses indirection to lookup the start of each
 // matrix_global and cols_global on a per-row basis.
 
@@ -718,14 +718,14 @@ typedef SegReducePreprocessData SpmvPreprocessData;
 // ColsIt cols_global		- Row identifiers for the right-hand side of the
 //							  matrix/value products. If element i is the k'th
 //							  non-zero in row j, the product is formed as
-//							      matrix_global[i] * vec_global[cols_global[i]] 
+//							      matrix_global[i] * vec_global[cols_global[i]]
 //							  for direct indexing, or,
 //							      m = source_global[j] + k
 //							      matrix_global[m] * vec_global[cols_global[m]].
-// int nz					- Number of non-zeros in LHS matrix. Size of 
+// int nz					- Number of non-zeros in LHS matrix. Size of
 //							  matrix_global and cols_global.
-// CsrIt csr_global			- List of integers for start of each row. 
-//							  The first entry must be 0 (indicating that the 
+// CsrIt csr_global			- List of integers for start of each row.
+//							  The first entry must be 0 (indicating that the
 //							  first row starts at offset 0).
 //							  Equivalent to exc-scan of row sizes.
 //							  If supportEmpty is false: must be ascending.
@@ -742,55 +742,55 @@ typedef SegReducePreprocessData SpmvPreprocessData;
 // int numRows				- Size of segment list csr_global. Must be >= 1.
 // VecIt vec_global			- Input array. Size is the width of the matrix.
 //							  For unary Spmv, these values are reduced.
-//							  For binary Spmv, the products of the matrix and 
+//							  For binary Spmv, the products of the matrix and
 //							  vector values are reduced.
 // bool supportEmpty		- Basic seg-reduce code does not support empty rows.
 //							  Set supportEmpty = true to add pre- and post-
 //							  processing to support empty rows.
 // DestIt dest_global		- Output array. Must be numRows in size.
-// T identity				- Identity for reduction operation. Eg, use 0 for 
+// T identity				- Identity for reduction operation. Eg, use 0 for
 //							  addition or 1 for multiplication.
 // MulOp mulOp				- Reduction operator for combining matrix value with
 //							  vector value. Only defined for binary Spmv.
 //							  Use mgpu::multiplies<T>() for default behavior.
-// AddOp addOp				- Reduction operator for reducing vector values 
+// AddOp addOp				- Reduction operator for reducing vector values
 //						      (unary Spmv) or matrix-vector products (binary
 //							  Spmv). Use mgpu::plus<T>() for default behavior.
-// CudaContext& context		- MGPU context support object. All kernels are 
+// CudaContext& context		- MGPU context support object. All kernels are
 //							  launched on the associated stream.
 template<typename ColsIt, typename CsrIt, typename VecIt, typename DestIt,
 	typename T, typename AddOp>
-MGPU_HOST void SpmvCsrUnary(ColsIt cols_global, int nz, CsrIt csr_global, 
+MGPU_HOST void SpmvCsrUnary(ColsIt cols_global, int nz, CsrIt csr_global,
 	int numRows, VecIt vec_global, bool supportEmpty, DestIt dest_global,
 	T identity, AddOp addOp, CudaContext& context);
 
 template<typename MatrixIt, typename ColsIt, typename CsrIt, typename VecIt,
 	typename DestIt, typename T, typename MulOp, typename AddOp>
-MGPU_HOST void SpmvCsrBinary(MatrixIt matrix_global, ColsIt cols_global, 
-	int nz, CsrIt csr_global, int numRows, VecIt vec_global, 
-	bool supportEmpty, DestIt dest_global, T identity, MulOp mulOp, AddOp addOp, 
+MGPU_HOST void SpmvCsrBinary(MatrixIt matrix_global, ColsIt cols_global,
+	int nz, CsrIt csr_global, int numRows, VecIt vec_global,
+	bool supportEmpty, DestIt dest_global, T identity, MulOp mulOp, AddOp addOp,
 	CudaContext& context);
 
 template<typename ColsIt, typename CsrIt, typename SourcesIt, typename VecIt,
 	typename DestIt, typename T, typename AddOp>
-MGPU_HOST void SpmvCsrIndirectUnary(ColsIt cols_global, int nz, 
-	CsrIt csr_global, SourcesIt sources_global, int numRows, VecIt vec_global, 
-	bool supportEmpty, DestIt dest_global, T identity, AddOp addOp, 
+MGPU_HOST void SpmvCsrIndirectUnary(ColsIt cols_global, int nz,
+	CsrIt csr_global, SourcesIt sources_global, int numRows, VecIt vec_global,
+	bool supportEmpty, DestIt dest_global, T identity, AddOp addOp,
 	CudaContext& context);
 
-template<typename MatrixIt, typename ColsIt, typename CsrIt, typename SourcesIt, 
+template<typename MatrixIt, typename ColsIt, typename CsrIt, typename SourcesIt,
 	typename VecIt, typename DestIt, typename T, typename MulOp, typename AddOp>
 MGPU_HOST void SpmvCsrIndirectBinary(MatrixIt matrix_global, ColsIt cols_global,
 	int nz, CsrIt csr_global, SourcesIt sources_global, int numRows,
 	VecIt vec_global, bool supportEmpty, DestIt dest_global, T identity,
 	MulOp mulOp, AddOp addOp, CudaContext& context);
 
-// SpmvPreprocess[Unary|Binary] accelerates multiple Spmv calls on different 
+// SpmvPreprocess[Unary|Binary] accelerates multiple Spmv calls on different
 // matrix/vector pairs with the same matrix geometry. The actual reduction is
 // evaluated Spmv[Unary|Binary]Apply.
 template<typename T, typename CsrIt>
 MGPU_HOST void SpmvPreprocessUnary(int nz, CsrIt csr_global, int numRows,
-	bool supportEmpty, std::auto_ptr<SpmvPreprocessData>* ppData, 
+	bool supportEmpty, std::auto_ptr<SpmvPreprocessData>* ppData,
 	CudaContext& context);
 
 template<typename T, typename CsrIt>
@@ -801,15 +801,14 @@ MGPU_HOST void SpmvPreprocessBinary(int nz, CsrIt csr_global, int numRows,
 template<typename ColsIt, typename VecIt, typename DestIt, typename T,
 	typename MulOp, typename AddOp>
 MGPU_HOST void SpmvUnaryApply(const SpmvPreprocessData& preprocess,
-	ColsIt cols_global, VecIt vec_global, DestIt dest_global, T identity, 
+	ColsIt cols_global, VecIt vec_global, DestIt dest_global, T identity,
 	AddOp addOp, CudaContext& context);
 
-template<typename MatrixIt, typename ColsIt, typename VecIt, typename DestIt, 
+template<typename MatrixIt, typename ColsIt, typename VecIt, typename DestIt,
 	typename T, typename MulOp, typename AddOp>
 MGPU_HOST void SpmvBinaryApply(const SpmvPreprocessData& preprocess,
-	MatrixIt matrix_global, ColsIt cols_global, VecIt vec_global, 
+	MatrixIt matrix_global, ColsIt cols_global, VecIt vec_global,
 	DestIt dest_global, T identity, MulOp mulOp, AddOp addOp,
 	CudaContext& context);
 
 } // namespace mgpu
-

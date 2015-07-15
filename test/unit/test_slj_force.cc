@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -362,7 +358,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
-    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
@@ -493,8 +489,4 @@ BOOST_AUTO_TEST_CASE( SLJForceGPU_compare )
                                     boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

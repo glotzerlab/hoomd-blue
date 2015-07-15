@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepBDNVTRigidGPU.h"
 #include "TwoStepNVERigidGPU.cuh"
@@ -82,11 +79,13 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
     : TwoStepBDNVTRigid(sysdef, group, T, seed, gamma_diam)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepBDNVTRigidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepBDNVTRigidGPU");
         }
+
+    setup();
     }
 
 /*! \param timestep Current time step
@@ -95,12 +94,6 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
 */
 void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;
@@ -110,7 +103,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "BD NVT rigid step 1");
+        m_prof->push(m_exec_conf, "BD NVT rigid step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -174,12 +167,12 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -197,7 +190,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "BD NVT rigid step 2");
+        m_prof->push(m_exec_conf, "BD NVT rigid step 2");
 
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
@@ -282,7 +275,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     D);
 
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     gpu_rigid_force(d_rdata,
@@ -292,7 +285,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_net_torque.data,
                     box,
                     m_deltaT);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // perform the update on the GPU
@@ -304,12 +297,12 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepBDNVTRigidGPU()
@@ -322,7 +315,3 @@ void export_TwoStepBDNVTRigidGPU()
             bool >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

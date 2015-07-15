@@ -1,22 +1,20 @@
 # Maintainer: joaander
 
 ###############################
-# UNIX like OSes need a few settings for the unit test library
-if (NOT WIN32)
-    # first, they need the boost unit test framework added as a library
-    set(ADDITIONAL_LIBS libhoomd
-            ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-            )
+# need a few settings for the unit test library
+# first, they need the boost unit test framework added as a library
+set(ADDITIONAL_LIBS libhoomd
+        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+        )
 
-    # then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
 
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-endif (NOT WIN32)
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
 ####################################
 ## Setup valgrind options
@@ -68,6 +66,7 @@ set(TEST_LIST
     test_external_periodic
     test_neighborlist
     test_lj_force
+    test_mie_force
     test_table_potential
     test_bondtable_bond_force
     test_slj_force
@@ -119,6 +118,9 @@ if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
+    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
+    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc

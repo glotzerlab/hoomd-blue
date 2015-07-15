@@ -25,6 +25,10 @@ class dmp_xml_tests (unittest.TestCase):
     def test_variable(self):
         dump.xml(filename="dump_xml", period=lambda n: n*100);
 
+    # test with restart
+    def test_restart(self):
+        dump.xml(filename="restart.xml", period=100, restart=True);
+
     # test set_params
     def test_set_params(self):
         xml = dump.xml(filename="dump_xml", period=100);

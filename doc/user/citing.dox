@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,11 +49,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \page page_citing Citing HOOMD-blue
 
-<p>Include <b>both</b> of the following citations in any work that uses HOOMD-blue.</p>
+<p>Include <b>all</b> of the following citations in any work that uses HOOMD-blue.</p>
 <ul>
 <li>HOOMD-blue web page: http://codeblue.umich.edu/hoomd-blue</li>
 <li>J. A. Anderson, C. D. Lorenz, and A. Travesset. General purpose molecular dynamics simulations fully implemented on graphics processing units <em>Journal of Computational Physics</em> 227(10):5342-5359, May 2008.
 <a href="http://dx.doi.org/10.1016/j.jcp.2008.01.047">10.1016/j.jcp.2008.01.047</a></li>
+<li>
+J. Glaser, T. D. Nguyen, J. A. Anderson, P. Liu, F. Spiga, J. A. Millan, D. C. Morse, S. C. Glotzer. Strong scaling of general-purpose molecular dynamics simulations on GPUs <em>Computer Physics Communications</em> 192: 97-107, July 2015.
+<a href="http://dx.doi.org/10.1016/j.cpc.2015.02.028">10.1016/j.cpc.2015.02.028</a>
+</li>
 </ul>
 
 <p>If you utilize the rigid body functionality, also cite</p>
@@ -74,6 +78,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <a href="http://dx.doi.org/10.1016/j.cpc.2010.12.026">10.1016/j.cpc.2010.12.026</a></li>
 </ul>
 
-<p>If you utilize the PPPM functionality, acknowledge Stephen Barr and A.Z. Panagiotopoulos at
-   Princeton University and Philipp Mertmann from Ruhr University Bochum.</p>
+<p>If you utilize the PPPM functionality, also cite</p>
+<ul>
+<li>
+D. N. LeBard, B. G. Levine, P. Mertmann, S. A. Barr, A. Jusufi, S. Sanders, M. L. Klein, and A. Z. Panagiotopoulos. Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units <em>Soft Matter</em> 8: 2385-2397, 2012.
+<a href="http://dx.doi.org/10.1039/c1sm06787g">10.1039/c1sm06787g</a>
+</li>
+</ul>
+
+<p>If you utilize the CGCMM potential, also cite</p>
+<ul>
+<li>
+B. G. Levine, D. N. LeBard, R. DeVane, W. Shinoda, A. Kohlmeyer, and M. L. Klein. Micellization studied by GPU-accelerated coarse-grained molecular dynamics <em>Journal of Chemical Theory and Computation</em> 7(12): 4135-4145, Oct. 2011.
+<a href="http://dx.doi.org/10.1021/ct2005193">10.1021/ct2005193</a>
+</li>
+</ul>
 */

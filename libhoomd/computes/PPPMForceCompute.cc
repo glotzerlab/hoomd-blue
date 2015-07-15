@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: sbarr
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "PPPMForceCompute.h"
 
@@ -157,28 +154,28 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         throw std::runtime_error("Error initializing PPPMForceCompute");
         }
 
-    GPUArray<CUFFTCOMPLEX> n_rho_real_space(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_rho_real_space(Nx*Ny*Nz, m_exec_conf);
     m_rho_real_space.swap(n_rho_real_space);
-    GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, m_exec_conf);
     m_green_hat.swap(n_green_hat);
 
-    GPUArray<Scalar> n_vg(6*Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_vg(6*Nx*Ny*Nz, m_exec_conf);
     m_vg.swap(n_vg);
 
 
-    GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, m_exec_conf);
     m_kvec.swap(n_kvec);
-    GPUArray<CUFFTCOMPLEX> n_Ex(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ex(Nx*Ny*Nz, m_exec_conf);
     m_Ex.swap(n_Ex);
-    GPUArray<CUFFTCOMPLEX> n_Ey(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ey(Nx*Ny*Nz, m_exec_conf);
     m_Ey.swap(n_Ey);
-    GPUArray<CUFFTCOMPLEX> n_Ez(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ez(Nx*Ny*Nz, m_exec_conf);
     m_Ez.swap(n_Ez);
-    GPUArray<Scalar> n_gf_b(order, exec_conf);
+    GPUArray<Scalar> n_gf_b(order, m_exec_conf);
     m_gf_b.swap(n_gf_b);
-    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), exec_conf);
+    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), m_exec_conf);
     m_rho_coeff.swap(n_rho_coeff);
-    GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar3> n_field(Nx*Ny*Nz, m_exec_conf);
     m_field.swap(n_field);
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -204,7 +201,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
     Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getN()*m_rcut*L.x*L.y*L.z);
 
-    double RMS_error = MAX(lpr,spr);
+    double RMS_error = MAX_PPPM(lpr,spr);
     if(RMS_error > 0.1) {
         printf("!!!!!!!\n!!!!!!!\n!!!!!!!\nWARNING RMS error of %g is probably too high %f %f\n!!!!!!!\n!!!!!!!\n!!!!!!!\n", RMS_error, lpr, spr);
         }
