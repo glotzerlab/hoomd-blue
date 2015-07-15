@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -55,6 +55,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 import math;
 import sys;
@@ -220,6 +221,11 @@ class coeff:
             raise RuntimeError("Error setting dihedral coeff");
 
         return self.values[type][coeff_name];
+
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
 
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
@@ -521,6 +527,16 @@ class table(force._force):
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
 
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data
 
 ## OPLS %dihedral force
 #
@@ -604,3 +620,8 @@ class opls(force._force):
             if not cur_type in self.opls_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in dihedral.opls\n");
                 raise RuntimeError("Error updating coefficients");
+                
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        raise NotImplementedError()

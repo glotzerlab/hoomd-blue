@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -83,7 +83,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
     {
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a PPMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing PPMForceComputeGPU");
@@ -112,28 +112,28 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
     PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
     cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_TRANSFORM_TYPE);
 
-    GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, m_exec_conf);
     m_energy_sum.swap(n_energy_sum);
 
-    GPUArray<Scalar> n_v_xx_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_xx_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_xx_sum.swap(n_v_xx_sum);
 
-    GPUArray<Scalar> n_v_xy_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_xy_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_xy_sum.swap(n_v_xy_sum);
 
-    GPUArray<Scalar> n_v_xz_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_xz_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_xz_sum.swap(n_v_xz_sum);
 
-    GPUArray<Scalar> n_v_yy_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_yy_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_yy_sum.swap(n_v_yy_sum);
 
-    GPUArray<Scalar> n_v_yz_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_yz_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_yz_sum.swap(n_v_yz_sum);
 
-    GPUArray<Scalar> n_v_zz_sum(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_v_zz_sum(Nx*Ny*Nz, m_exec_conf);
     m_v_zz_sum.swap(n_v_zz_sum);
 
-    GPUArray<Scalar> n_o_data(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_o_data(Nx*Ny*Nz, m_exec_conf);
     o_data.swap(n_o_data);
 
 
@@ -162,7 +162,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         return;
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "PPPM");
+    if (m_prof) m_prof->push(m_exec_conf, "PPPM");
 
     assert(m_pdata);
 
@@ -252,7 +252,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                                 m_block_size,
                                 m_exec_conf->getComputeCapability());
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         // If there are exclusions, correct for the long-range part of the potential
@@ -277,7 +277,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                            group_size,
                            m_block_size,
                            m_exec_conf->getComputeCapability());
-            if (exec_conf->isCUDAErrorCheckingEnabled())
+            if(m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
         } // end ArrayHandle scope
@@ -338,7 +338,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
             h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
             }
         }
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_PPPMForceComputeGPU()

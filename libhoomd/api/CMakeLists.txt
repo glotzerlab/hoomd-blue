@@ -61,4 +61,3 @@ endif (ENABLE_CUDA)
 # configure the compiler options script and install it
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd-config.sh.in ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh DESTINATION ${BIN_INSTALL_DIR})
-

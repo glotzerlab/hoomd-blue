@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -180,7 +180,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     m_cl->compute(timestep);
 
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -219,7 +219,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         throw runtime_error("Error updating neighborlist bins");
         }
 
-    if (exec_conf->getComputeCapability() >= 200)
+    if(m_exec_conf->getComputeCapability() >= 200)
         {
         // we should not call the tuner with MPI sync enabled
         // if the kernel is launched more than once in the same timestep,
@@ -258,7 +258,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_diameter_shift,
                                  m_cl->getGhostWidth(),
                                  m_exec_conf->getComputeCapability()/10);
-        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         if (tune) this->m_tuner->end();
 
         m_last_tuned_timestep = timestep;
@@ -270,7 +270,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     	}
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 bool NeighborListGPUBinned::needReallocateCudaArrays()

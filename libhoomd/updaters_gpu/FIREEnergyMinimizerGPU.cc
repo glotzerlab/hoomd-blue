@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: askeys
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "FIREEnergyMinimizerGPU.h"
 #include "FIREEnergyMinimizerGPU.cuh"
@@ -62,12 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-// windows feels the need to #define min and max
-#ifdef WIN32
-#undef min
-#undef max
-#endif
 
 /*! \file FIREEnergyMinimizerGPU.h
     \brief Contains code for the FIREEnergyMinimizerGPU class
@@ -84,27 +75,27 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
     {
 
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizer with CUDA disabled" << endl;
         throw std::runtime_error("Error initializing FIREEnergyMinimizer");
         }
 
     // allocate the sum arrays
-    GPUArray<Scalar> sum(1, exec_conf);
+    GPUArray<Scalar> sum(1, m_exec_conf);
     m_sum.swap(sum);
-    GPUArray<Scalar> sum3(3, exec_conf);
+    GPUArray<Scalar> sum3(3, m_exec_conf);
     m_sum3.swap(sum3);
 
     // initialize the partial sum arrays
     m_block_size = 256; //128;
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<Scalar> partial_sum1(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
-    GPUArray<Scalar> partial_sum2(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum2(m_num_blocks, m_exec_conf);
     m_partial_sum2.swap(partial_sum2);
-    GPUArray<Scalar> partial_sum3(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum3(m_num_blocks, m_exec_conf);
     m_partial_sum3.swap(partial_sum3);
 
     reset();
@@ -139,7 +130,7 @@ void FIREEnergyMinimizerGPU::reset()
                     group_size);
 
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
     }
@@ -167,7 +158,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
 
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE compute total energy");
+        m_prof->push(m_exec_conf, "FIRE compute total energy");
 
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -185,7 +176,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                                 m_block_size,
                                 m_num_blocks);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
@@ -193,7 +184,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     energy = h_sumE.data[0]/Scalar(group_size);
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
 
 
 
@@ -206,7 +197,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     //sum P, vnorm, fnorm
 
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE P, vnorm, fnorm");
+        m_prof->push(m_exec_conf, "FIRE P, vnorm, fnorm");
 
         {
         ArrayHandle<Scalar> d_partial_sum_P(m_partial_sum1, access_location::device, access_mode::overwrite);
@@ -229,7 +220,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                                  m_block_size,
                                  m_num_blocks);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
@@ -239,7 +230,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     fnorm = sqrt(h_sum.data[2]);
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
 
 
     if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
@@ -251,7 +242,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     //update velocities
 
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE update velocities");
+        m_prof->push(m_exec_conf, "FIRE update velocities");
 
     Scalar invfnorm = 1.0/fnorm;
 
@@ -267,11 +258,11 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                       vnorm,
                       invfnorm);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
 
 
     if (P > Scalar(0.0))
@@ -289,17 +280,17 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
         if (m_prof)
-            m_prof->push(exec_conf, "FIRE zero velocities");
+            m_prof->push(m_exec_conf, "FIRE zero velocities");
 
         gpu_fire_zero_v(d_vel.data,
                         d_index_array.data,
                         group_size);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         if (m_prof)
-            m_prof->pop(exec_conf);
+            m_prof->pop(m_exec_conf);
         }
 
     m_n_since_start++;
@@ -313,7 +304,3 @@ void export_FIREEnergyMinimizerGPU()
         ("FIREEnergyMinimizerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

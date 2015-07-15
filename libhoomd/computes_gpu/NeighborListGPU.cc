@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -83,7 +83,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     filterNlist();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -96,7 +96,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
         filterNlist();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -120,7 +120,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
         return;
         }
     // scan through the particle data arrays and calculate distances
-    if (m_prof) m_prof->push(exec_conf, "dist-check");
+    if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -149,7 +149,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
                                      lambda,
                                      ++m_checkn);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_distcheck_scheduled = true;
@@ -158,7 +158,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     // record synchronization point
     cudaEventRecord(m_event);
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 bool NeighborListGPU::distanceCheck(unsigned int timestep)
@@ -203,7 +203,7 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
 void NeighborListGPU::filterNlist()
     {
     if (m_prof)
-        m_prof->push(exec_conf, "filter");
+        m_prof->push(m_exec_conf, "filter");
 
     // access data
 
@@ -226,7 +226,7 @@ void NeighborListGPU::filterNlist()
     m_tuner_filter->end();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 

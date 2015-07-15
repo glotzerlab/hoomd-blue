@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -87,7 +87,7 @@ class _citation(object):
         self.cite_key = cite_key
         self.feature = feature
         self.display = display
-        
+
         # author requires special handling for I/O
         self.author = None
         if author is not None:
@@ -95,10 +95,10 @@ class _citation(object):
                 self.author = [author]
             else:
                 self.author = author
-        
+
         self.required_entries = []
         self.bibtex_type = None
-        
+
         # initialize all standard keys as member variables
         for key in _citation.standard_keys:
             setattr(self,key,None)
@@ -106,7 +106,7 @@ class _citation(object):
         # doi and url require special handling for I/O
         self.doi = None
         self.url = None
-    
+
     ## \var cite_key
     # \internal
     # \brief Unique key identifying this reference
@@ -147,14 +147,14 @@ class _citation(object):
 
         wrapper = textwrap.TextWrapper(initial_indent = '* ', subsequent_indent = '  ', width = 80)
         return wrapper.fill(out) + '\n'
-    
+
     ## \internal
     # \brief Get the citation in human readable format
     # \note Deriving classes \b must implement this method themselves.
     def __str__(self):
         globals.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own string method\n')
         raise RuntimeError('Citation does not implement string method')
-    
+
     ## \internal
     # \brief Ensures that all required fields have been set
     def validate(self):
@@ -170,7 +170,7 @@ class _citation(object):
     def format_authors(self, fancy=False):
         if self.author is None:
             return None
-        
+
         if len(self.author) > 1:
             if not fancy:
                 return ' and '.join(self.author)
@@ -180,7 +180,7 @@ class _citation(object):
                 return '%s and %s' % tuple(self.author)
         else:
             return self.author[0]
-    
+
     ## \internal
     # \brief Converts the citation to a BibTeX record
     # \returns BibTeX record as a string
@@ -191,16 +191,16 @@ class _citation(object):
         if self.bibtex_type is None:
             globals.msg.error('Bug in hoomd_script.cite: BibTeX record type must be set, please report\n')
             raise RuntimeError()
-            
+
         lines = ['@%s{%s,' % (self.bibtex_type, self.cite_key)]
         if self.author is not None:
             lines += ['  author = {%s},' % self.format_authors(False)]
-            
+
         for key in _citation.standard_keys:
             val = getattr(self, key)
             if getattr(self, key) is not None:
                 lines += ['  %s = {%s},' % (key, val)]
-        
+
         # doi requires special handling because it is not "standard"
         if self.doi is not None:
             lines += ['  doi = {%s},' % self.doi]
@@ -209,17 +209,17 @@ class _citation(object):
             lines += ['  url = {http://dx.doi.org/%s},' % self.doi]
         elif self.url is not None:
             lines += ['  url = {%s},' % self.url]
-        
+
         # add note based on the feature if a note has not been set
         if self.feature is not None and self.note is None:
             lines += ['  note = {HOOMD-blue feature: %s},' % self.feature]
-        
+
         # remove trailing comma
         lines[-1] = lines[-1][:-1]
-        
+
         # close off record
         lines += ['}']
-        
+
         return '\n'.join(lines)
 ## \internal
 # List of standard BibTeX keys that citations may use
@@ -250,10 +250,10 @@ class article(_citation):
     # \param display Flag to automatically print the citation when adding to a bibliography
     def __init__(self, cite_key, author, title, journal, year, volume, pages, number=None, month=None, note=None, key=None, doi=None, feature=None, display=True):
         _citation.__init__(self, cite_key, feature, author, display)
-        
+
         self.required_entries = ['author', 'title', 'journal', 'year', 'volume', 'pages']
         self.bibtex_type = 'article'
-        
+
         self.title = title
         self.journal = journal
         self.year = year
@@ -293,7 +293,7 @@ class misc(_citation):
         _citation.__init__(self, cite_key, feature, author, display)
         self.required_entries = []
         self.bibtex_type = 'misc'
-        
+
         self.title = title
         self.howpublished = howpublished
         self.year = year
@@ -462,8 +462,28 @@ def _ensure_global_bib():
                         month = 'may',
                         doi = '10.1016/j.jcp.2008.01.047',
                         feature = 'HOOMD-blue')
+
+        hoomd_mpi = article(cite_key = 'glaser2015',
+                        author = ['J Glaser',
+                                  'T D Nguyen',
+                                  'J A Anderson',
+                                  'P Liu',
+                                  'F Spiga',
+                                  'J A Millan',
+                                  'D C Morse',
+                                  'S C Glotzer'],
+                        title = 'Strong scaling of general-purpose molecular dynamics simulations on GPUs',
+                        journal = 'Computer Physics Communications',
+                        volume = 192,
+                        pages = '97--107',
+                        year = 2015,
+                        month = 'july',
+                        doi = '10.1016/j.cpc.2015.02.028',
+                        feature = 'HOOMD-blue')
+
+
         hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', feature = 'HOOMD-blue')
-        globals.bib.add([hoomd, hoomd_web])
+        globals.bib.add([hoomd, hoomd_mpi, hoomd_web])
 
     return globals.bib
 
@@ -481,7 +501,7 @@ def _ensure_global_bib():
 # \endcode
 def save(file='hoomd.bib'):
     util.print_status_line()
-    
+
     # force a bibliography to exist
     bib = _ensure_global_bib()
 

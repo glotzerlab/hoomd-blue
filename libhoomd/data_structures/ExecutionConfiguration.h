@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -229,6 +229,12 @@ struct ExecutionConfiguration : boost::noncopyable
     void setMPICommunicator(const MPI_Comm mpi_comm)
         {
         m_mpi_comm = mpi_comm;
+        }
+
+    //! Perform a job-wide MPI barrier
+    void barrier()
+        {
+        MPI_Barrier(m_mpi_comm);
         }
     #endif
 

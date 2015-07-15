@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the IMDInterface class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "IMDInterface.h"
 #include "SignalHandler.h"
@@ -482,7 +478,7 @@ void IMDInterface::establishConnectionAttempt()
 void IMDInterface::sendCoords(unsigned int timestep)
     {
     // take a snapshot of the particle data
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
     m_pdata->takeSnapshot(snapshot);
 
 #ifdef ENABLE_MPI
@@ -537,7 +533,3 @@ void export_IMDInterface()
         ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int, boost::shared_ptr<ConstForceCompute> >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

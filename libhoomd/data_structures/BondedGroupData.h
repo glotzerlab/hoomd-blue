@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -182,6 +182,7 @@ class BondedGroupData : boost::noncopyable
                 {
                 // provide default type mapping for one type
                 type_mapping.push_back(std::string(name) + "A");
+                size = 0;
                 }
 
             //! Constructor
@@ -200,8 +201,13 @@ class BondedGroupData : boost::noncopyable
              */
             void resize(unsigned int n_groups)
                 {
-                type_id.resize(n_groups);
-                groups.resize(n_groups);
+                // zero the newly created bonds
+                group_storage<group_size> def;
+                memset(&def, 0, sizeof(def));
+
+                type_id.resize(n_groups, 0);
+                groups.resize(n_groups, def);
+                size = n_groups;
                 }
 
             //! Validate the snapshot
@@ -219,9 +225,19 @@ class BondedGroupData : boost::noncopyable
              */
             void replicate(unsigned int n, unsigned int old_n_particles);
 
+            //! Get type as a numpy array
+            boost::python::numeric::array getTypeNP();
+            //! Get bonded tags as a numpy array
+            boost::python::numeric::array getBondedTagsNP();
+            //! Get the type names for python
+            boost::python::list getTypes();
+            //! Set the type names from python
+            void setTypes(boost::python::list types);
+
             std::vector<unsigned int> type_id;             //!< Stores type for each group
-            std::vector<members_t> groups;     //!< Stores the data for each group
+            std::vector<members_t> groups;                 //!< Stores the data for each group
             std::vector<std::string> type_mapping;         //!< Names of group types
+            unsigned int size;                             //!< Number of bonds in the snapshot
             };
 
         //! Constructor for empty BondedGroupData

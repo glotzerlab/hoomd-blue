@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -51,12 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -96,12 +90,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
+#include "POSDumpWriter.h"
 #include "HOOMDBinaryDumpWriter.h"
 #include "PDBDumpWriter.h"
 #include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
 #include "Logger.h"
 #include "MSDAnalyzer.h"
+#include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
 #include "IntegratorTwoStep.h"
@@ -194,6 +190,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 #include "PathUtils.h"
 
+#include "num_util.h"
+
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -201,6 +199,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::filesystem;
 using namespace boost::python;
+namespace bnp=boost::python::numeric;
 
 #include <iostream>
 #include <sstream>
@@ -210,6 +209,31 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
+lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
+The following #defines help get around this
+*/
+
+#if PY_VERSION_HEX >= 0x03000000
+#define MY_PY_VER_3x
+#else
+#define MY_PY_VER_2x
+#endif
+
+#ifdef MY_PY_VER_3x
+void *my_import_array()
+    {
+    import_array();
+    return NULL;
+    }
+#endif
+#ifdef MY_PY_VER_2x
+void my_import_array()
+    {
+    import_array();
+    }
+#endif
 
 //! Function to export the tersoff parameter type to python
 void export_tersoff_params()
@@ -235,54 +259,6 @@ void export_tersoff_params()
 */
 string find_vmd()
     {
-#ifdef WIN32
-
-    // find VMD through the registry
-    vector<string> reg_paths;
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.1");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.0");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
-
-    vector<string>::iterator cur_path;
-    for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
-        {
-        string reg_path = *cur_path;
-
-        char *value = new char[1024];
-        DWORD value_size = 1024;
-        HKEY vmd_root_key;
-        LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ | KEY_WOW64_32KEY, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        delete[] value;
-        }
-
-#else
     // check some likely locations
     if (exists("/usr/bin/vmd"))
         return "/usr/bin/vmd";
@@ -296,7 +272,6 @@ string find_vmd()
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-#endif
 
     // return an empty string if we didn't find it
     return "";
@@ -341,12 +316,24 @@ object get_cuda_version_tuple()
 //! Get the compiler version
 string get_compiler_version()
     {
-    #ifdef __GNUC__
+    #if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
     ostringstream o;
     o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
     return o.str();
+
+    #elif defined(__clang__)
+    ostringstream o;
+    o << "clang " << __clang_major__ << "." << __clang_minor__ << "." <<  __clang_patchlevel__;
+    return o.str();
+
+    #elif defined(__INTEL_COMPILER)
+    ostringstream o;
+    o << "icc " << __INTEL_COMPILER;
+    return o.str();
+
     #else
     return string("unknown");
+
     #endif
     }
 
@@ -359,6 +346,13 @@ bool is_MPI_available()
 #else
        false;
 #endif
+    }
+
+void mpi_barrier_world()
+    {
+    #ifdef ENABLE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    #endif
     }
 
 //! Start the CUDA profiler
@@ -382,7 +376,6 @@ void cuda_profile_stop()
 // values used in measuring hoomd launch timing
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
-
 
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
@@ -433,7 +426,7 @@ void finalize_mpi()
 void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
-    if (exec_conf->getNRanksGlobal() > 1)
+    if(exec_conf->getNRanksGlobal() > 1)
         {
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }
@@ -454,8 +447,14 @@ BOOST_PYTHON_MODULE(hoomd)
     Py_AtExit(finalize_mpi);
     #endif
 
-    def("abort_mpi", abort_mpi);
+    // setup needed for numpy
+    my_import_array();
+    bnp::array::set_module_and_type("numpy", "ndarray");
 
+    def("abort_mpi", abort_mpi);
+    def("mpi_barrier_world", mpi_barrier_world);
+
+    def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
@@ -535,6 +534,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
+    export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
@@ -568,6 +568,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
+    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>("PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
@@ -594,12 +595,14 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Analyzer();
     export_IMDInterface();
     export_HOOMDDumpWriter();
+    export_POSDumpWriter();
     export_HOOMDBinaryDumpWriter();
     export_PDBDumpWriter();
     export_DCDDumpWriter();
     export_MOL2DumpWriter();
     export_Logger();
     export_MSDAnalyzer();
+    export_CallbackAnalyzer();
     export_ParticleGroup();
 
     // updaters
@@ -660,8 +663,4 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -128,7 +128,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Scalar3 ghost_width = m_cl->getGhostWidth();
 
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -273,7 +273,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         }
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListBinned()

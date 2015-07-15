@@ -58,7 +58,7 @@ static int32 imd_htonl(int32 h) {
   return n;
 }
 
-/// structure used to perform byte swapping operations 
+/// structure used to perform byte swapping operations
 typedef struct {
   unsigned int highest : 8;
   unsigned int high    : 8;
@@ -88,7 +88,7 @@ static void swap_header(IMDheader *header) {
 static int32 imd_readn(void *s, char *ptr, int32 n) {
   int32 nleft;
   int32 nread;
- 
+
   nleft = n;
   while (nleft > 0) {
     if ((nread = vmdsock_read(s, ptr, nleft)) < 0) {
@@ -121,7 +121,7 @@ static int32 imd_writen(void *s, const char *ptr, int32 n) {
   }
   return n;
 }
- 
+
 
 int imd_disconnect(void *s) {
   IMDheader header;
@@ -165,7 +165,7 @@ int imd_trate(void *s, int32 rate) {
 int imd_send_mdcomm(void *s,int32 n,const int32 *indices,const float *forces) {
   int rc;
   int32 size = HEADERSIZE+16*n;
-  char *buf = (char *) malloc(sizeof(char) * size); 
+  char *buf = (char *) malloc(sizeof(char) * size);
   fill_header((IMDheader *)buf, IMD_MDCOMM, n);
   memcpy(buf+HEADERSIZE, indices, 4*n);
   memcpy(buf+HEADERSIZE+4*n, forces, 12*n);
@@ -188,7 +188,7 @@ int imd_send_energies(void *s, const IMDEnergies *energies) {
 int imd_send_fcoords(void *s, int32 n, const float *coords) {
   int rc;
   int32 size = HEADERSIZE+12*n;
-  char *buf = (char *) malloc(sizeof(char) * size); 
+  char *buf = (char *) malloc(sizeof(char) * size);
   fill_header((IMDheader *)buf, IMD_FCOORDS, n);
   memcpy(buf+HEADERSIZE, coords, 12*n);
   rc = (imd_writen(s, buf, size) != size);
@@ -203,7 +203,7 @@ IMDType imd_recv_header_nolengthswap(void *s, int32 *length) {
     return IMD_IOERROR;
   *length = header.length;
   swap_header(&header);
-  return (IMDType) header.type; 
+  return (IMDType) header.type;
 }
 
 IMDType imd_recv_header(void *s, int32 *length) {
@@ -212,7 +212,7 @@ IMDType imd_recv_header(void *s, int32 *length) {
     return IMD_IOERROR;
   swap_header(&header);
   *length = header.length;
-  return (IMDType) header.type; 
+  return (IMDType) header.type;
 }
 
 int imd_recv_handshake(void *s) {
@@ -236,9 +236,9 @@ int imd_recv_handshake(void *s) {
   if (buf == IMDVERSION) {
     if (!imd_go(s)) return 1;
   }
-  
+
   /* We failed to determine endianness. */
-  return -1; 
+  return -1;
 }
 
 int imd_recv_mdcomm(void *s, int32 n, int32 *indices, float *forces) {
@@ -255,4 +255,3 @@ int imd_recv_energies(void *s, IMDEnergies *energies) {
 int imd_recv_fcoords(void *s, int32 n, float *coords) {
   return (imd_readn(s, (char *)coords, 12*n) != 12*n);
 }
-

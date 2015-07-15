@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -129,7 +129,7 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     rand_init.generate();
 
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
     boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
@@ -226,7 +226,7 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     rand_init.setSeed(12345);
     snap = rand_init.getSnapshot();
 

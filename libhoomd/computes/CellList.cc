@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -254,7 +254,7 @@ double CellList::benchmark(unsigned int num_iters)
     computeCellList();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -267,7 +267,7 @@ double CellList::benchmark(unsigned int num_iters)
         computeCellList();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -351,18 +351,18 @@ void CellList::initializeMemory()
     m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
     // allocate memory
-    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), exec_conf);
+    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
-    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), exec_conf);
+    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
     m_cell_adj.swap(cell_adj);
 
-    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), exec_conf);
+    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
 
     if (m_compute_tdb)
         {
-        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
         }
     else
@@ -374,7 +374,7 @@ void CellList::initializeMemory()
 
     if (m_compute_orientation)
         {
-        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
         }
     else
@@ -386,7 +386,7 @@ void CellList::initializeMemory()
 
     if (m_compute_idx || m_sort_cell_list)
         {
-        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
         }
     else
