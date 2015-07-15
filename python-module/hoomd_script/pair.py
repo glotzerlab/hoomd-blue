@@ -2992,8 +2992,7 @@ class mie(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
