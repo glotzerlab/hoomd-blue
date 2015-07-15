@@ -2,7 +2,7 @@
 
 [TOC]
 
-## Next feature release
+## v1.1.0
 
 *New features*
 
