@@ -128,6 +128,12 @@ struct SnapshotSystemData {
      *  \param nz Number of times to replicate the system along the z direction
      */
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
+
+    // Broadcast information from rank 0 to all ranks
+    /*! \param exec_conf The execution configuration
+        Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
+    */
+    void broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
 //! Export SnapshotParticleData to python

@@ -163,6 +163,26 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #endif
 
     #ifdef ENABLE_MPI
+    // ensure that all ranks are on the same execution configuration
+    if (getNRanks() > 1)
+        {
+        executionMode rank0_mode = exec_mode;
+        bcast(rank0_mode, 0, getMPICommunicator());
+
+        // ensure that all ranks terminate here
+        int errors = 0;
+        if (rank0_mode != exec_mode)
+            errors = 1;
+
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, getMPICommunicator());
+
+        if (errors != 0)
+            {
+            msg->error() << "Not all ranks have the same execution context (some are CPU and some are GPU)" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
+        }
+
     if (hoomd_launch_timing && getNRanksGlobal() > 1)
         {
         // compute the number of seconds to get an exec conf

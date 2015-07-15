@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
 reserved.
 
@@ -39,48 +39,55 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __HOOMD_VERSION_H__
-#define __HOOMD_VERSION_H__
+// Maintainer: harperic
 
-// Full text HOOMD version string
-#define HOOMD_VERSION "${HOOMD_VERSION}"
-// Full text HOOMD version string
-#define HOOMD_VERSION_LONG "${HOOMD_VERSION_LONG}"
-// Text string containing the date this build was configured
-#define COMPILE_DATE "${COMPILE_DATE}"
-// Set to the src dir to be used as the root to read data files from
-#define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
-// Set to the binary dir
-#define HOOMD_BINARY_DIR "${HOOMD_BINARY_DIR}"
-// Set the installation directory as a hint for locating libraries
-#define HOOMD_INSTALL_PREFIX "${HOOMD_INSTALL_PREFIX}"
-// Current git refspec checked out
-#define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
-// Current git hash
-#define HOOMD_GIT_SHA1 "${HOOMD_GIT_SHA1}"
-
-// hoomd major version
-#define HOOMD_VERSION_MAJOR ${HOOMD_VERSION_MAJOR}
-// hoomd minor version
-#define HOOMD_VERSION_MINOR ${HOOMD_VERSION_MINOR}
-// hoomd patch version
-#define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
-
-#include "ExecutionConfiguration.h"
-#include <string>
-
-/*! \file HOOMDVersion.h.in
-	\brief Functions and variables for printing compile time build information of HOOMD
-	\details This file is configured to HOOMDVersion.h by CMake, that is the file that should
-		be included in any code needing it.
-
-	\ingroup utils
+/*! \file POSDumpWriter.h
+    \brief Declares the POSDumpWriter class
 */
 
-//! Formats the HOOMD compile flags as a strong
-std::string hoomd_compile_flags();
+#include "Analyzer.h"
 
-//! Formats the HOOMD version info header as string
-std::string output_version_info();
+#include <string>
+#include <fstream>
+#include <boost/shared_ptr.hpp>
+
+#ifndef __POS_DUMP_WRITER_H__
+#define __POS_DUMP_WRITER_H__
+
+//! Analyzer for writing out POS dump files
+/*! POSDumpWriter writes to a single .pos formatted dump file. Each time analyze() is called, a new frame is written
+    at the end of the file.
+
+    \ingroup analyzers
+*/
+class POSDumpWriter : public Analyzer
+    {
+    public:
+        //! Construct the writer
+        POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname);
+
+        //! Write out the data for the current timestep
+        void analyze(unsigned int timestep);
+
+        //! Set the def string for a shape
+        void setDef(unsigned int tid, std::string def);
+
+        //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
+        void setUnwrapRigid(bool enable)
+            {
+            m_unwrap_rigid = enable;
+            }
+
+    private:
+        std::ofstream m_file;    //!< File to write to
+
+        std::vector< std::string > m_defs;  //!< Shape defs
+
+        boost::shared_ptr<RigidData> m_rigid_data; //!< For accessing rigid body data
+        bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
+    };
+
+//! Exports the POSDumpWriter class to python
+void export_POSDumpWriter();
 
 #endif

@@ -56,49 +56,40 @@ import hoomd;
 from hoomd_script import init;
 from hoomd_script import util;
 from hoomd_script import globals;
+import hoomd_script;
 
 import sys;
 
 ## Get the number of ranks
 # \returns the number of MPI ranks in this partition
+# context.initialize() must be called before get_num_ranks()
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
+    hoomd_script.context._verify_init();
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getNRanks();
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting num ranks");
+        return globals.exec_conf.getNRanks();
     else:
         return 1;
 
 ## Return the current rank
-# If HOOMD is already initialized, it returns the actual MPI rank.
-# If HOOMD is not yet initialized, it guesses the rank from environment
-# variables.
+# context.initialize() must be called before get_rank()
 # \note Always returns 0 in non-mpi builds
 def get_rank():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getRank()
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting rank");
+        return globals.exec_conf.getRank()
     else:
         return 0;
 
 ## Return the current partition
-# If HOOMD is already initialized, it returns the actual partition.
-# If HOOMD is not yet initialized, it guesses the partition id from environment
-# variables.
+# context.initialize() must be called before get_partition()
 # \note Always returns 0 in non-mpi builds
 def get_partition():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getPartition()
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting partition");
+        return globals.exec_conf.getPartition()
     else:
         return 0;
 
@@ -109,15 +100,10 @@ def barrier_all():
         hoomd.mpi_barrier_world();
 
 ## Perform a MPI barrier synchronization inside a partition
-#
-# If partitions have not been initialized yet via init.setup_exec_conf(),
-# this functions performs a global sync
-#
+# context.initialize() must be called before barrier()
 # \note does nothing in in non-MPI builds
 def barrier():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            globals.exec_conf.barrier()
-        else:
-            # perform a synchronization across all partitions
-            barrier_all()
+        globals.exec_conf.barrier()

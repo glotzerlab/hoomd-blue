@@ -129,6 +129,10 @@ class lj(force._force):
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
+        # store metadata
+        self.metadata_fields = ['r_cut']
+        self.r_cut = r_cut
+
     ## Sets the particle-wall interaction coefficients for a particular particle type
     #
     # \param particle_type Particle type to set coefficients for

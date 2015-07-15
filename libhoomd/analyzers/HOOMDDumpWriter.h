@@ -93,7 +93,7 @@ class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
+        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
 
         //! Destructor
         ~HOOMDDumpWriter();
@@ -161,6 +161,7 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_moment_inertia;  //!< true if moment_inertia should be written
         Scalar m_vizsigma;          //!< vizsigma value to write out to xml files
         bool m_vizsigma_set;        //!< true if vizsigma has been set
+        bool m_mode_restart;        //!< true if we are writing restart files
         };
 
 //! Exports the HOOMDDumpWriter class to python

@@ -66,6 +66,7 @@ set(TEST_LIST
     test_external_periodic
     test_neighborlist
     test_lj_force
+    test_mie_force
     test_table_potential
     test_bondtable_bond_force
     test_slj_force
@@ -117,6 +118,9 @@ if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
+    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
+    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc

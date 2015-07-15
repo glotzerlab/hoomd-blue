@@ -174,6 +174,8 @@ int main(int argc, char **argv)
         cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
         }
 
+    // set the _HOOMD_EXEC env var to indicate we are running as a hoomd invocation
+    python_cmds += string("import os; os.environ['_HOOMD_EXEC'] = '1';");
     PyRun_SimpleString(python_cmds.c_str());
 
 #if PY_MAJOR_VERSION >= 3

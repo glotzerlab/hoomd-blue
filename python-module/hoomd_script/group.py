@@ -55,6 +55,7 @@ from hoomd_script import util;
 from hoomd_script import globals;
 from hoomd_script import data;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -124,7 +125,7 @@ from hoomd_script import init;
 #
 # For more information and examples on accessing the %data in this way, see hoomd_script.data.
 #
-class group:
+class group(meta._metadata):
     ## \internal
     # \brief group iterator
     class group_iterator:
@@ -153,6 +154,10 @@ class group:
         # initialize the group
         self.name = name;
         self.cpp_group = cpp_group;
+
+        # base class constructor
+        meta._metadata.__init__(self)
+        self.metadata_fields = ['name']
 
     ## \internal
     # \brief Get a particle_proxy reference to the i'th particle in the group
@@ -480,6 +485,7 @@ def tag_list(name, tags):
 # \code
 # groupA = group.type(name='a-particles', type='A')
 # groupB = group.type(name='b-particles', type='B')
+# groupB = group.type(name='b-particles', type='B',update=True)
 # \endcode
 def type(type, name=None, update=False):
     util.print_status_line();

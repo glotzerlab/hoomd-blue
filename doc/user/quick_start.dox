@@ -52,14 +52,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 <h2>Example script</h2>
 
-So you have HOOMD-blue installed. <b>Now what!?</b> <br>
+So you have HOOMD-blue installed. Now what? <br>
 Let's start with the classic MD simulation, the Lennard-Jones liquid. Place \em N particles randomly
 in a box and allow them to interact with the following potential between pairs of particles:
 \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
                                 \left( \frac{\sigma}{r} \right)^{6} \right] \f]
-To configure HOOMD-blue to perform this simulation, a simple Python script must be written.
+To configure HOOMD-blue to perform this simulation, you need a simple python script.
 \code
 from hoomd_script import *
+context.initialize()
 
 # create 100 random particles of name A
 init.create_random(N=100, phi_p=0.01, name='A')
@@ -178,7 +179,11 @@ from hoomd_script import *
 This line takes the python code of hoomd_script, compiles it and loads it in so it can be used.
 hoomd_script contains the code for commands such as \link hoomd_script.init.create_random() init.create_random()\endlink which is why this line
 must be first.<br><br>
- -# After hoomd_script has been imported, the system must be initialized before any other command can be executed. In this example,
+ -# The next line initializes the execution context. This also parses command line arguments. The context must be initialized before any other command can be executed.
+\code
+context.initialize()
+\endcode
+ -# After the context is initialized, the system must be initialized. In this example,
  we create a 100 random particles named \b A.
 \code
 init.create_random(N=100, phi_p=0.01, name='A')

@@ -343,7 +343,8 @@ boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const b
     for every global particle should subscribe to this signal.
 
     Changes in global particle number imply a local change in particle number (on some processor),
-    and are indicated both by this signal, and notifyParticleSort().
+    and are indicated both by this signal, and notifyParticleSort(), which is triggered
+    *after* the global particle number change signal.
 
     The signal is to be triggered after all changes to the particle data are complete.
  */
@@ -1427,16 +1428,21 @@ int3 ParticleData::getImage(unsigned int tag) const
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
     int3 result = make_int3(0,0,0);
+    Scalar3 pos = make_scalar3(0,0,0);
     if (found)
         {
         ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
+        ArrayHandle< Scalar4 > h_postype(m_pos, access_location::host, access_mode::read);
         result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
+        pos = make_scalar3(h_postype.data[idx].x,h_postype.data[idx].y,h_postype.data[idx].z);
+        pos = pos - m_origin;
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
         bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(pos, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1446,6 +1452,10 @@ int3 ParticleData::getImage(unsigned int tag) const
     result.x-=m_o_image.x;
     result.y-=m_o_image.y;
     result.z-=m_o_image.z;
+
+    // wrap into correct image
+    m_global_box.wrap(pos, result);
+
     return result;
     }
 

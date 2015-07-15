@@ -290,6 +290,7 @@ Use `git checkout name` to switch to a different branch or tag.
 
 Valid names:
 - *maint* - includes bugfixes since the last release
+- *v1.1.0* - Release version 1.1.0
 - *v1.0.5* - Release version 1.0.5
 - *v1.0.4* - Release version 1.0.4
 - *etc...*

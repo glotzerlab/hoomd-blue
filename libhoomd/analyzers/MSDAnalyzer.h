@@ -66,6 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten
@@ -124,7 +125,9 @@ class MSDAnalyzer : public Analyzer
         std::vector<Scalar> m_initial_y;    //!< initial value of the y-component listed by tag
         std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
 
-        unsigned int m_nglobal; //!< Initial number of particles
+        std::vector<Scalar> m_initial_group_N; //!< initial value of number of group members
+
+        boost::signals2::connection m_ptls_sort_connection; //!< Connection to pdata particle sort signal
 
         //! struct for storing the particle group and name assocated with a column in the output
         struct column
@@ -147,6 +150,10 @@ class MSDAnalyzer : public Analyzer
         Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot);
         //! Helper function to write one row of output
         void writeRow(unsigned int timestep, const SnapshotParticleData<Scalar>& snapshot);
+
+        //! Method to be called when particles are added/removed/sorted
+        void slotParticleSort();
+
     };
 
 //! Exports the MSDAnalyzer class to python

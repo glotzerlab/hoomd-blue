@@ -50,7 +50,9 @@ endif (ENABLE_CUDA)
 # setup CUDA compile options
 if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
-    if (CUDA_VERSION VERSION_GREATER 4.99)
+    if (CUDA_VERSION VERSION_GREATER 5.99)
+        set(CUDA_ARCH_LIST 20 30 35 50 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    elseif (CUDA_VERSION VERSION_GREATER 4.99)
         set(CUDA_ARCH_LIST 20 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     elseif (CUDA_VERSION VERSION_GREATER 4.1)
         set(CUDA_ARCH_LIST 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")

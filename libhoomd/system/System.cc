@@ -651,8 +651,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // migrate particles back into domains and remove all ghost atoms
+        // migrate particles back into their domains
         m_comm->migrateParticles();
+        m_comm->exchangeGhosts();
         }
     #endif
 
