@@ -2,7 +2,18 @@
 
 [TOC]
 
+## v1.1.1
+
+**Not yet released**
+
+*Bug fixes*
+
+* `dump.xml(restart=True)` now works with MPI execution
+* Added missing documentation for `meta.dump_metadata`
+
 ## v1.1.0
+
+Released 2015/07/14
 
 *New features*
 
