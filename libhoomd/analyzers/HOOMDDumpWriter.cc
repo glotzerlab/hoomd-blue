@@ -577,6 +577,15 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
         {
         string tmp_file = m_base_fname + string(".tmp");
         writeFile(tmp_file, timestep);
+#ifdef ENABLE_MPI
+        // only the root processor writes the output file
+        if (m_pdata->getDomainDecomposition() && ! m_exec_conf->isRoot())
+            {
+            if (m_prof)
+                m_prof->pop();
+	    return;
+            }
+#endif
         if (rename(tmp_file.c_str(), m_base_fname.c_str()) != 0)
             {
             m_exec_conf->msg->error() << "dump.xml: Error renaming restart file." << endl;
