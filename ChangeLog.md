@@ -4,12 +4,14 @@
 
 ## v1.1.1
 
-**Not yet released**
+Released 2015/07/21
 
 *Bug fixes*
 
 * `dump.xml(restart=True)` now works with MPI execution
 * Added missing documentation for `meta.dump_metadata`
+* Build all unit tests by default
+* Run all script unit tests through `mpirun -n 1`
 
 ## v1.1.0
 
