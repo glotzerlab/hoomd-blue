@@ -26,7 +26,7 @@ class pair_set_energy_tests (unittest.TestCase):
         run(1, quiet=True);
 
         t1 = numpy.array([0], dtype=numpy.int32);
-        t2 = numpy.linspace(1, self.N-1, self.N-1, dtype=numpy.int32);
+        t2 = numpy.array(numpy.linspace(1, self.N-1, self.N-1), dtype=numpy.int32);
         eng = lj.compute_energy(t1, t2);
 
         # tags = numpy.linspace(0, self.N-1, self.N, dtype=numpy.int32);

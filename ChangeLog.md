@@ -2,6 +2,14 @@
 
 [TOC]
 
+## Next release
+
+Released TBD
+
+*Bug fixes*
+
+* Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
+
 ## v1.1.1
 
 Released 2015/07/21
