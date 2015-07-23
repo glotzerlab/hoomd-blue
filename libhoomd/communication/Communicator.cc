@@ -1092,6 +1092,12 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
+    if (m_ghost_layer_width_requests.num_slots())
+        {
+        // update the ghost layer width only if subscribers are avaiable
+        m_r_ghost = m_ghost_layer_width_requests();
+        }
+
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 
@@ -1249,12 +1255,6 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
-
-    if (m_ghost_layer_width_requests.num_slots())
-        {
-        // update the ghost layer width only if subscribers are avaiable
-        m_r_ghost = m_ghost_layer_width_requests();
-        }
 
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/box.getNearestPlaneDistance();
