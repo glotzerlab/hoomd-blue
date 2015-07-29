@@ -473,6 +473,53 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
             }
         }
     }
+
+//! Test neighborlist functionality with changing types
+template <class NL>
+void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    // separate the particles out, skipping type 0
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+        for (unsigned int cur_p=0; cur_p < 6; ++cur_p)
+            {
+            if (cur_p < 5)
+                {
+                h_pos.data[cur_p] = make_scalar4(-1.0, 0.0, 0.0, __int_as_scalar(1));
+                }
+            else
+                {
+                h_pos.data[cur_p] = make_scalar4(1.0, 0.0, 0.0, __int_as_scalar(2));
+                }
+            }
+        pdata_6->notifyParticleSort();
+        }
+
+    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
+    nlist_6->setStorageMode(NeighborList::full);
+    for (unsigned int cur_type=0; cur_type < 3; ++cur_type)
+        {
+        for (unsigned int alt_type=cur_type; alt_type < 3; ++alt_type)
+            {
+            nlist_6->setRCutPair(cur_type,alt_type,3.0);
+            }
+        }
+    nlist_6->compute(0);
+
+    // everybody should neighbor everybody else
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[1], 5);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[2], 5);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[3], 5);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[4], 5);
+        BOOST_CHECK_EQUAL(h_n_neigh.data[5], 5);
+        }
+    }
     
 //! Tests the ability of the neighbor list to exclude particle pairs
 template <class NL>
@@ -851,6 +898,11 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_type)
+    {
+    neighborlist_type_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
 
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
@@ -881,6 +933,11 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_diameter_shift )
 BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_type)
+    {
+    neighborlist_type_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! comparison test case for binned class
@@ -947,6 +1004,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type)
+    {
+    neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
     
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
@@ -977,6 +1039,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
+    {
+    neighborlist_type_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
     
 //! comparison test case for GPU class
