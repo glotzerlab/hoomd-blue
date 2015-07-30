@@ -380,10 +380,15 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_tree_aabbs,
         if (idx < total_bins)
             {
             leaf_type = cur_type;
-            if ( (cur_type + 1) < ntypes)
+            for (unsigned int next_type=cur_type+1; next_type < ntypes; ++next_type)
                 {
-                max_idx = d_type_head[cur_type + 1];
+                if (d_type_head[next_type])
+                    {
+                    max_idx = d_type_head[next_type] - 1;
+                    break; // quit out of this inner loop once a match is found
+                    }
                 }
+            break; // quit the outer loop
             }
         }
     
@@ -656,13 +661,14 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
                                                const uint32_t *d_morton_codes,
                                                const unsigned int *d_num_per_type,
                                                const unsigned int ntypes,
-                                               const unsigned int nleafs)
+                                               const unsigned int nleafs,
+                                               const unsigned int ninternal)
     {
     // compute the internal node index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     // one thread per internal node
-    if (idx >= (nleafs - ntypes))
+    if (idx >= ninternal)
         return;
     
     // get what type of leaf I am
@@ -674,21 +680,30 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
     unsigned int end = 0;
     
     unsigned int cur_type=0;
+    unsigned int active_types=0;
     for (cur_type=0; cur_type < ntypes; ++cur_type)
         {
         // current min index is the previous max index
         min_idx = max_idx;
         // max index adds the number of internal nodes in this type (nleaf - 1)
-        max_idx += (d_num_per_type[cur_type] + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF-1;
+        const unsigned int cur_nleaf = (d_num_per_type[cur_type] + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+        if (cur_nleaf > 0)
+            {
+            max_idx += cur_nleaf-1;
+            ++active_types;
+            }
         
         // we break the loop if we are in range
         if (idx < max_idx)
             {
+            // decrement by 1 to get this back into the number we really need
+            --active_types;
+
             // now, we repurpose the min and max index to now correspond to the *leaf* index.
             // the min index is the minimum *leaf* index
-            origin = min_idx + cur_type;
-            end = max_idx + cur_type;
-            node_idx += cur_type;
+            origin = min_idx + active_types;
+            end = max_idx + active_types;
+            node_idx += active_types;
             break;
             }
         }
@@ -703,8 +718,8 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
     // set the children, shifting ahead by nleafs - cur_type to account for leaf shifting
     // this factor comes out from resetting 0 = N_leaf,i each time, and then remapping this to
     // an internal node
-    children.x = (split == first) ? split : (nleafs - cur_type + split);
-    children.y = ((split + 1) == last) ? (split + 1) : nleafs + split - cur_type + 1;
+    children.x = (split == first) ? split : (nleafs - active_types + split);
+    children.y = ((split + 1) == last) ? (split + 1) : nleafs - active_types + split + 1;
     
     uint2 parent_sib;
     parent_sib.x = nleafs + idx;
@@ -746,6 +761,7 @@ cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
                                     const unsigned int nleafs,
+                                    const unsigned int ninternal,
                                     const unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
@@ -759,11 +775,12 @@ cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
     int run_block_size = min(block_size,max_block_size);
     
     // one thread per internal node
-    gpu_nlist_gen_hierarchy_kernel<<<(nleafs-ntypes)/run_block_size + 1, run_block_size>>>(d_tree_parent_sib,
-                                                                                           d_morton_codes,
-                                                                                           d_num_per_type,
-                                                                                           ntypes,
-                                                                                           nleafs);
+    gpu_nlist_gen_hierarchy_kernel<<<ninternal/run_block_size + 1, run_block_size>>>(d_tree_parent_sib,
+                                                                                     d_morton_codes,
+                                                                                     d_num_per_type,
+                                                                                     ntypes,
+                                                                                     nleafs,
+                                                                                     ninternal);
     return cudaSuccess;
     }
 
@@ -891,9 +908,10 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    const uint2 *d_tree_parent_sib,
                                    const unsigned int ntypes,
                                    const unsigned int nleafs,
+                                   const unsigned int ninternal,
                                    const unsigned int block_size)
     {
-    cudaMemset(d_node_locks, 0, sizeof(unsigned int)*(nleafs - ntypes));
+    cudaMemset(d_node_locks, 0, sizeof(unsigned int)*ninternal);
     
     gpu_nlist_bubble_aabbs_kernel<<<nleafs/block_size + 1, block_size>>>(d_node_locks,
                                                                          d_tree_aabbs,
@@ -1081,7 +1099,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     if (idx >= (N+nghosts))
         return;  
     
-    // read in the current position and orientation
+    // read in the current position
     unsigned int my_pidx = d_map_tree_pid[idx];
     // we only process particles owned by this processor for neighbors
     if (my_pidx >= N)
@@ -1113,6 +1131,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
             r_list_i += max_diam - Scalar(1.0);
         
         const unsigned int cur_tree_root = d_tree_roots[cur_pair_type];
+        // skip this type if we don't have it
+        if (cur_tree_root == NLIST_GPU_INVALID_NODE)
+            continue;
         
         for (unsigned int cur_image = 0; cur_image < nimages; ++cur_image)
             {
@@ -1471,8 +1492,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
  * \param N Total number of particles on rank (including ghosts)
  *
  * The starting index for each type of particles is the first particle where the left neighbor is not of the same type.
- * One thread per particle is needed to check this, skipping the thread for the first particle because 0 is trivially
- * the head index of the first type.
  */
 __global__ void gpu_nlist_get_divisions_kernel(unsigned int *d_type_head,
                                                const Scalar4 *d_pos,
@@ -1483,67 +1502,33 @@ __global__ void gpu_nlist_get_divisions_kernel(unsigned int *d_type_head,
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     
     // one thread per particle
-    if (idx >= N || !idx)
+    if (idx >= N)
         return; 
     
     const unsigned int cur_pidx = d_map_tree_pid[idx];
-    const unsigned int left_pidx = d_map_tree_pid[idx - 1];
-    
-    // get type of the particle to my left
-    const Scalar4 left_postype = d_pos[left_pidx];
-    const unsigned int left_type = __scalar_as_int(left_postype.w);
-    
     // get type of the current particle
     const Scalar4 cur_postype = d_pos[cur_pidx];
     const unsigned int cur_type = __scalar_as_int(cur_postype.w);
-    
-    // if the left has a different type, then this is a type boundary, and the type starts at the current thread index
-    if (left_type != cur_type)
+
+    // all particles except for the first one should look left
+    if (idx > 0)
         {
-        d_type_head[cur_type] = idx;
+        const unsigned int left_pidx = d_map_tree_pid[idx - 1];
+    
+        // get type of the particle to my left
+        const Scalar4 left_postype = d_pos[left_pidx];
+        const unsigned int left_type = __scalar_as_int(left_postype.w);
+    
+        // if the left has a different type, then this is a type boundary, and the type starts at the current thread index
+        if (left_type != cur_type)
+            {
+            d_type_head[cur_type] = idx + 1; // offset the index +1 so that we can use 0 to mean "none of this found"
+            }
         }
-    }
-
-//! Kernel to initialize type counting in parallel
-/*!
- * \param d_num_per_type Number of particles per type
- * \param d_leaf_offset Offset for reading particles out of leaf order
- * \param d_tree_roots Root node of each tree
- * \param d_type_head Index to first type in leaf ordered particles by type
- * \param N Total number of particles on rank (including ghosts)
- * \param ntypes Number of types
- *
- * Some type properties are easily initialized in parallel. The number of particles per type can be determined from
- * the difference in type head index. We initialize the tree roots with the number of leafs of each type. This is
- * later amended on the CPU to accumulate and fix instances where there is only one leaf in a tree. The leaf offset
- * based only on the current type is calculated, and then accumulated on the CPU to get the total offset.
- *
- * \sa countParticlesAndTrees
- */    
-__global__ void gpu_nlist_setup_types_kernel(unsigned int *d_num_per_type,
-                                             unsigned int *d_leaf_offset,
-                                             unsigned int *d_tree_roots,
-                                             const unsigned int *d_type_head,
-                                             const unsigned int N,
-                                             const unsigned int ntypes)
-    {
-    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    // one thread per type
-    if (idx >= ntypes)
-        return;
-
-    const unsigned int end_type = (idx != (ntypes - 1)) ? d_type_head[idx + 1] : N;
-    const unsigned int N_i = end_type - d_type_head[idx];
-    
-    d_num_per_type[idx] = N_i;
-    
-    // fill the tree roots with the number of leafs
-    d_tree_roots[idx] = (N_i + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
-    
-    // stash the current remainder per type
-    const unsigned int remainder = N_i % NLIST_PARTICLES_PER_LEAF;
-    d_leaf_offset[idx] = (remainder > 0) ? (NLIST_PARTICLES_PER_LEAF - remainder) : 0;
+    else // the first particle just sets its type to be 1
+        {
+        d_type_head[cur_type] = 1;
+        }
     }
 
 /*!
@@ -1560,9 +1545,6 @@ __global__ void gpu_nlist_setup_types_kernel(unsigned int *d_num_per_type,
  * \returns cudaSuccess on completion
  */
 cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
-                                 unsigned int *d_num_per_type,
-                                 unsigned int *d_leaf_offset,
-                                 unsigned int *d_tree_roots,
                                  const Scalar4 *d_pos,
                                  const unsigned int *d_map_tree_pid,
                                  const unsigned int N,
@@ -1585,14 +1567,6 @@ cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
     
     // get the head list divisions
     gpu_nlist_get_divisions_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_pid, N);
-    
-    // do some gpu setups while we have the data here that will be finished on the cpu
-    gpu_nlist_setup_types_kernel<<<ntypes/run_block_size + 1, run_block_size>>>(d_num_per_type,
-                                                                                d_leaf_offset,
-                                                                                d_tree_roots,
-                                                                                d_type_head,
-                                                                                N,
-                                                                                ntypes);
     
     return cudaSuccess;
     }

@@ -56,7 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-#define NLIST_PARTICLES_PER_LEAF 4        //!< Max number of particles in a leaf node
+#define NLIST_PARTICLES_PER_LEAF 4          //!< Max number of particles in a leaf node
+#define NLIST_GPU_INVALID_NODE 0xffffffff   //!< Sentinel for an invalid node
 
 #include <cuda_runtime.h>
 
@@ -108,9 +109,10 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
 cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const uint32_t *d_morton_codes,
-                                    const unsigned int *d_type_head,
+                                    const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
                                     const unsigned int nleafs,
+                                    const unsigned int ninternal,
                                     const unsigned int block_size);
 
 //! Kernel driver to form conservative AABBs for internal nodes
@@ -119,6 +121,7 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    const uint2 *d_tree_parent_sib,
                                    const unsigned int ntypes,
                                    const unsigned int nleafs,
+                                   const unsigned int ninternal,
                                    const unsigned int block_size);
 
 //! Kernel driver to rearrange particle data into leaf order
@@ -167,9 +170,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
 
 //! Kernel driver to initialize counting for types and nodes
 cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
-                                 unsigned int *d_num_per_type,
-                                 unsigned int *d_leaf_offset,
-                                 unsigned int *d_tree_roots,
                                  const Scalar4 *d_pos,
                                  const unsigned int *d_map_tree_pid,
                                  const unsigned int N,

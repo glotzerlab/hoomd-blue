@@ -469,7 +469,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         
         for (unsigned int i=0; i < 18; ++i)
             {
-                BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 17);
+            BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 17);
             }
         }
     }
@@ -478,9 +478,9 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 template <class NL>
 void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    // separate the particles out, skipping type 0
+    // test 1: 4 types, but missing two in the middle
         {
         ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -488,11 +488,11 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
             {
             if (cur_p < 5)
                 {
-                h_pos.data[cur_p] = make_scalar4(-1.0, 0.0, 0.0, __int_as_scalar(1));
+                h_pos.data[cur_p] = make_scalar4(-1.0, 0.0, 0.0, __int_as_scalar(3));
                 }
             else
                 {
-                h_pos.data[cur_p] = make_scalar4(1.0, 0.0, 0.0, __int_as_scalar(2));
+                h_pos.data[cur_p] = make_scalar4(1.0, 0.0, 0.0, __int_as_scalar(0));
                 }
             }
         pdata_6->notifyParticleSort();
@@ -500,9 +500,9 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
     nlist_6->setStorageMode(NeighborList::full);
-    for (unsigned int cur_type=0; cur_type < 3; ++cur_type)
+    for (unsigned int cur_type=0; cur_type < pdata_6->getNTypes(); ++cur_type)
         {
-        for (unsigned int alt_type=cur_type; alt_type < 3; ++alt_type)
+        for (unsigned int alt_type=cur_type; alt_type < pdata_6->getNTypes(); ++alt_type)
             {
             nlist_6->setRCutPair(cur_type,alt_type,3.0);
             }
@@ -512,12 +512,38 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // everybody should neighbor everybody else
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[0], 5);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[1], 5);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[2], 5);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[3], 5);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[4], 5);
-        BOOST_CHECK_EQUAL(h_n_neigh.data[5], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
+        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
+            {
+            vector<unsigned int> nbrs(5,0), check_nbrs;
+
+            // create the sorted list of computed neighbors
+            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
+                {
+                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
+                }
+            sort(nbrs.begin(), nbrs.end());
+            
+            // create the list of expected neighbors (everybody except for myself) 
+            check_nbrs.reserve(5);
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (i != cur_p)
+                    {
+                    check_nbrs.push_back(i);
+                    }
+                }
+            sort(check_nbrs.begin(), check_nbrs.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            }
         }
     }
     
