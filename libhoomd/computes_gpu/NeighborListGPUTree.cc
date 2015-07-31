@@ -100,6 +100,15 @@ NeighborListGPUTree::~NeighborListGPUTree()
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
     {
+    // kernels will crash in strange ways if there are no particles owned by the rank
+    // so the build should just be aborted here (there are no neighbors to compute if there are no particles)
+    if (!m_pdata->getN())
+        {
+        // maybe we should clear the arrays here, but really whoever's using the nlist should
+        // just be smart enough to not try to use something that shouldn't exist
+        return;
+        }
+
     // allocate the tree memory as needed based on the mapping
     setupTree();
 
@@ -246,19 +255,13 @@ void NeighborListGPUTree::countParticlesAndTrees()
     
     if (m_pdata->getNTypes() > 1)
         {
-        // first do the easily parallelized stuff on the gpu
+        // first do the stuff with the particle data on the GPU to avoid a costly copy
             {
             ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
             m_tuner_map->begin();
             gpu_nlist_init_count(d_type_head.data,
-                                 d_num_per_type.data,
-                                 d_leaf_offset.data,
-                                 d_tree_roots.data,
                                  d_pos.data,
                                  d_map_tree_pid.data,
                                  m_pdata->getN() + m_pdata->getNGhosts(),
@@ -270,43 +273,84 @@ void NeighborListGPUTree::countParticlesAndTrees()
             }
 
 
-        // then do the hard to parallelize stuff on the cpu because the number of types is usually small
-        // and you don't get much out of doing scans on the data
+        // then do the harder to parallelize stuff on the cpu because the number of types is usually small
+        // so what's the point of trying this in parallel to save a copy of a few bytes?
             {
             // the number of leafs is the first tree root
-            ArrayHandle<unsigned int> h_leaf_offset(m_leaf_offset, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::readwrite);
-    
-            // loop through types and get the total number of leafs
+            ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_leaf_offset(m_leaf_offset, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::overwrite);
+            
+            // loop through the type heads and figure out how many there are of each
             m_n_leaf = 0;
             unsigned int total_offset = 0;
+            unsigned int active_types = 0; // tracks the number of types that currently have particles
             for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
                 {
-                m_n_leaf += h_tree_roots.data[cur_type];
-        
-                // accumulate the offset of all types
-                const unsigned int cur_offset = h_leaf_offset.data[cur_type];
+                const unsigned int head_plus_1 = h_type_head.data[cur_type];
+                
+                unsigned int N_i = 0;
+                
+                if (head_plus_1 > 0) // there are particles of this type
+                    {
+                    // so loop over the types (we are ordered), and try to find a match
+                    unsigned int next_head_plus_1 = 0;
+                    for (unsigned int next_type = cur_type + 1; !next_head_plus_1 && next_type < m_pdata->getNTypes(); ++next_type)
+                        {
+                        if (h_type_head.data[next_type]) // this head exists
+                            {
+                            next_head_plus_1 = h_type_head.data[next_type];
+                            }
+                        }
+                    // if we still haven't found a match, then the end index (+1) should be the end of the list
+                    if (!next_head_plus_1)
+                        {
+                        next_head_plus_1 = m_pdata->getN() + m_pdata->getNGhosts() + 1;
+                        }
+                    N_i = next_head_plus_1 - head_plus_1;
+                    }
+                
+                // set the number per type
+                h_num_per_type.data[cur_type] = N_i;
+                if (N_i > 0) ++active_types;
+
+                // compute the number of leafs for this type, and accumulate it
+                // temporarily stash the number of leafs in the tree root array
+                unsigned int cur_n_leaf = (N_i + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
+                h_tree_roots.data[cur_type] = cur_n_leaf;
+                m_n_leaf += cur_n_leaf;
+
+                // compute the offset that is needed for this type, set and accumulate the total offset required
+                const unsigned int remainder = N_i % NLIST_GPU_PARTICLES_PER_LEAF;
+                const unsigned int cur_offset = (remainder > 0) ? (NLIST_GPU_PARTICLES_PER_LEAF - remainder) : 0;
                 h_leaf_offset.data[cur_type] = total_offset;
                 total_offset += cur_offset;
                 }
-    
+
             // each tree has Nleaf,i - 1 internal nodes
-            // a binary radix tree has N_leaf - N_types internal nodes
-            m_n_internal = m_n_leaf - m_pdata->getNTypes();
+            // so in total we have N_leaf - N_types internal nodes for each type that has at least one particle
+            m_n_internal = m_n_leaf - active_types;
             m_n_node = m_n_leaf + m_n_internal;
     
             // now loop over the roots one more time, and set each of them
             unsigned int leaf_head = 0;
+            unsigned int internal_head = m_n_leaf;
             for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
                 {
                 const unsigned int n_leaf_i = h_tree_roots.data[cur_type];
-                if (n_leaf_i == 1)
+                if (n_leaf_i == 0)
+                    {
+                    h_tree_roots.data[cur_type] = NLIST_GPU_INVALID_NODE;
+                    }
+                else if (n_leaf_i == 1)
                     {
                     h_tree_roots.data[cur_type] = leaf_head;
                     }
                 else
                     {
-                    h_tree_roots.data[cur_type] = m_n_leaf + (leaf_head - cur_type);
+                    h_tree_roots.data[cur_type] = internal_head;
+                    internal_head += n_leaf_i - 1;
                     }
                 leaf_head += n_leaf_i;
                 }
@@ -330,7 +374,7 @@ void NeighborListGPUTree::countParticlesAndTrees()
         h_leaf_offset.data[0] = 0;
         
         // number of leafs is for all particles
-        m_n_leaf = (m_pdata->getN() + m_pdata->getNGhosts() + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+        m_n_leaf = (m_pdata->getN() + m_pdata->getNGhosts() + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
         
         // number of internal nodes is one less than number of leafs
         m_n_internal = m_n_leaf - 1;
@@ -369,8 +413,8 @@ void NeighborListGPUTree::buildTree()
     m_node_locks.resize(m_n_internal);
     
     // step four: merge leaf particles into aabbs by morton code
-    mergeLeafParticles();   
-    
+    mergeLeafParticles();
+
     // step five: hierarchy generation from morton codes
     genTreeHierarchy();
     
@@ -578,6 +622,7 @@ void NeighborListGPUTree::genTreeHierarchy()
                             d_num_per_type.data,
                             m_pdata->getNTypes(),
                             m_n_leaf,
+                            m_n_internal,
                             m_tuner_hierarchy->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -605,6 +650,7 @@ void NeighborListGPUTree::bubbleAABBs()
                            d_tree_parent_sib.data,
                            m_pdata->getNTypes(),
                            m_n_leaf,
+                           m_n_internal,
                            m_tuner_bubble->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

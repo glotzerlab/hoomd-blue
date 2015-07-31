@@ -92,7 +92,7 @@ NeighborListTree::~NeighborListTree()
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)
-    {  
+    {
     // allocate the memory as needed and sort particles
     setupTree();
     
@@ -115,7 +115,12 @@ void NeighborListTree::setupTree()
     
     if (m_type_changed)
         {
+        // double corruption happens if we just resize due to the way the AABBNodes are allocated
+        // so first destroy all of the trees from the vector and then resize. could probably be fixed using scoped
+        // pointers as well
+        m_aabb_trees.clear();
         m_aabb_trees.resize(m_pdata->getNTypes());
+
         m_num_per_type.resize(m_pdata->getNTypes(), 0);
         m_type_head.resize(m_pdata->getNTypes(), 0);
         
@@ -268,7 +273,10 @@ void NeighborListTree::buildTree()
     // call the tree build routine, one tree per type
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i) 
         {
-        m_aabb_trees[i].buildTree(&m_aabbs[0] + m_type_head[i], m_num_per_type[i]);
+        if (m_num_per_type[i] > 0)
+            {
+            m_aabb_trees[i].buildTree(&m_aabbs[0] + m_type_head[i], m_num_per_type[i]);
+            }
         }
     if (this->m_prof) this->m_prof->pop();
     }
@@ -313,6 +321,10 @@ void NeighborListTree::traverseTree()
         unsigned int n_neigh_i = 0;
         for (unsigned int cur_pair_type=0; cur_pair_type < m_pdata->getNTypes(); ++cur_pair_type) // loop on pair types
             {
+            // pass on empty types
+            if (!m_num_per_type[cur_pair_type])
+                continue;
+
             // Check if this tree type should be excluded by r_cut(i,j) <= 0.0
             Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)];
             if (r_cut <= Scalar(0.0))

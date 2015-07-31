@@ -469,7 +469,213 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         
         for (unsigned int i=0; i < 18; ++i)
             {
-                BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 17);
+            BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 17);
+            }
+        }
+    }
+
+//! Test neighborlist functionality with changing types
+template <class NL>
+void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    // test 1: 4 types, but missing two in the middle
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+        for (unsigned int cur_p=0; cur_p < 6; ++cur_p)
+            {
+            if (cur_p < 5)
+                {
+                h_pos.data[cur_p] = make_scalar4(-1.0, 0.0, 0.0, __int_as_scalar(3));
+                }
+            else
+                {
+                h_pos.data[cur_p] = make_scalar4(1.0, 0.0, 0.0, __int_as_scalar(0));
+                }
+            }
+        pdata_6->notifyParticleSort();
+        }
+
+    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
+    nlist_6->setStorageMode(NeighborList::full);
+    nlist_6->compute(0);
+
+    // everybody should neighbor everybody else
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
+        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
+            {
+            vector<unsigned int> nbrs(5,0), check_nbrs;
+
+            // create the sorted list of computed neighbors
+            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
+                {
+                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
+                }
+            sort(nbrs.begin(), nbrs.end());
+            
+            // create the list of expected neighbors (everybody except for myself) 
+            check_nbrs.reserve(5);
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (i != cur_p)
+                    {
+                    check_nbrs.push_back(i);
+                    }
+                }
+            sort(check_nbrs.begin(), check_nbrs.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            }
+        }
+
+    // add a new type
+    pdata_6->addType("E");
+    nlist_6->setRCut(3.0, 0.1); // update the rcut for the new type
+    nlist_6->compute(10);
+    // result is unchanged
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
+        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
+            {
+            vector<unsigned int> nbrs(5,0), check_nbrs;
+
+            // create the sorted list of computed neighbors
+            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
+                {
+                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
+                }
+            sort(nbrs.begin(), nbrs.end());
+            
+            // create the list of expected neighbors (everybody except for myself) 
+            check_nbrs.reserve(5);
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (i != cur_p)
+                    {
+                    check_nbrs.push_back(i);
+                    }
+                }
+            sort(check_nbrs.begin(), check_nbrs.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            }
+        }
+
+    // add two more empty types
+    pdata_6->addType("F");
+    pdata_6->addType("G");
+    nlist_6->setRCut(3.0, 0.1); // update the rcut for the new type
+    nlist_6->compute(20);
+    // result is unchanged
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
+        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
+            {
+            vector<unsigned int> nbrs(5,0), check_nbrs;
+
+            // create the sorted list of computed neighbors
+            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
+                {
+                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
+                }
+            sort(nbrs.begin(), nbrs.end());
+            
+            // create the list of expected neighbors (everybody except for myself) 
+            check_nbrs.reserve(5);
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (i != cur_p)
+                    {
+                    check_nbrs.push_back(i);
+                    }
+                }
+            sort(check_nbrs.begin(), check_nbrs.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            }
+        }
+
+    pdata_6->addType("H");
+    nlist_6->setRCut(3.0,0.1);
+    // disable the interaction between type 6 and all other particles
+    for (unsigned int cur_type = 0; cur_type < pdata_6->getNTypes(); ++cur_type)
+        {
+        nlist_6->setRCutPair(6, cur_type, 0.001);
+        }
+    // shuffle all of the particle types and retest
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+        h_pos.data[0].w = __int_as_scalar(2);
+        h_pos.data[1].w = __int_as_scalar(4);
+        h_pos.data[2].w = __int_as_scalar(0);
+        h_pos.data[3].w = __int_as_scalar(1);
+        h_pos.data[4].w = __int_as_scalar(7);
+        h_pos.data[5].w = __int_as_scalar(6);
+        pdata_6->notifyParticleSort();
+        }
+    nlist_6->compute(30);
+    // particle 5 (type 6) should have no neighbors, all others have 4
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 4);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 4);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 4);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 4);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 4);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 0);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
+        // just check the first 5 particles, since the last has no neighbors
+        for (unsigned int cur_p = 0; cur_p < 5; ++cur_p)
+            {
+            vector<unsigned int> nbrs(4,0), check_nbrs;
+
+            // create the sorted list of computed neighbors
+            for (unsigned int cur_neigh = 0; cur_neigh < 4; ++cur_neigh)
+                {
+                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
+                }
+            sort(nbrs.begin(), nbrs.end());
+            
+            // create the list of expected neighbors (everybody except for myself) 
+            check_nbrs.reserve(5);
+            for (unsigned int i = 0; i < 5; ++i)
+                {
+                if (i != cur_p)
+                    {
+                    check_nbrs.push_back(i);
+                    }
+                }
+            sort(check_nbrs.begin(), check_nbrs.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
             }
         }
     }
@@ -944,6 +1150,11 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_cutoff_exclude)
     {
     neighborlist_cutoff_exclude_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_type)
+    {
+    neighborlist_type_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
 
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
@@ -979,6 +1190,11 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm)
 BOOST_AUTO_TEST_CASE( NeighborListTree_cutoff_exclude)
     {
     neighborlist_cutoff_exclude_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_type)
+    {
+    neighborlist_type_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! comparison test case for binned class
@@ -1050,6 +1266,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude)
     {
     neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type)
+    {
+    neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
     
 //! basic test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
@@ -1085,6 +1306,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
     {
     neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! type test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
+    {
+    neighborlist_type_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
     
 //! comparison test case for GPU class
