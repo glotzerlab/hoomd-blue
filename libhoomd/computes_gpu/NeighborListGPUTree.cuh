@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-#define NLIST_PARTICLES_PER_LEAF 4          //!< Max number of particles in a leaf node
+#define NLIST_GPU_PARTICLES_PER_LEAF 4      //!< Max number of particles in a leaf node
 #define NLIST_GPU_INVALID_NODE 0xffffffff   //!< Sentinel for an invalid node
 
 #include <cuda_runtime.h>

@@ -317,13 +317,13 @@ void NeighborListGPUTree::countParticlesAndTrees()
 
                 // compute the number of leafs for this type, and accumulate it
                 // temporarily stash the number of leafs in the tree root array
-                unsigned int cur_n_leaf = (N_i + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+                unsigned int cur_n_leaf = (N_i + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
                 h_tree_roots.data[cur_type] = cur_n_leaf;
                 m_n_leaf += cur_n_leaf;
 
                 // compute the offset that is needed for this type, set and accumulate the total offset required
-                const unsigned int remainder = N_i % NLIST_PARTICLES_PER_LEAF;
-                const unsigned int cur_offset = (remainder > 0) ? (NLIST_PARTICLES_PER_LEAF - remainder) : 0;
+                const unsigned int remainder = N_i % NLIST_GPU_PARTICLES_PER_LEAF;
+                const unsigned int cur_offset = (remainder > 0) ? (NLIST_GPU_PARTICLES_PER_LEAF - remainder) : 0;
                 h_leaf_offset.data[cur_type] = total_offset;
                 total_offset += cur_offset;
                 }
@@ -374,7 +374,7 @@ void NeighborListGPUTree::countParticlesAndTrees()
         h_leaf_offset.data[0] = 0;
         
         // number of leafs is for all particles
-        m_n_leaf = (m_pdata->getN() + m_pdata->getNGhosts() + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+        m_n_leaf = (m_pdata->getN() + m_pdata->getNGhosts() + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
         
         // number of internal nodes is one less than number of leafs
         m_n_internal = m_n_leaf - 1;

@@ -335,10 +335,10 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
  * \param nleafs Number of leaf nodes
  *
  * \b Implementation
- * One thread per leaf is called, and is responsible for merging NLIST_PARTICLES_PER_LEAF into an AABB. Each thread
+ * One thread per leaf is called, and is responsible for merging NLIST_GPU_PARTICLES_PER_LEAF into an AABB. Each thread
  * first determines what type of leaf particle it is operating on by calculating and iterating on the number of leafs
  * of each type. Then, the starting index is determined by subtracting d_leaf_offset[type] from the starting index that
- * would be set in a nleaf x NLIST_PARTICLES_PER_LEAF array. The reason for this complexity is that the leaf particle
+ * would be set in a nleaf x NLIST_GPU_PARTICLES_PER_LEAF array. The reason for this complexity is that the leaf particle
  * array is not permitted to have any "holes" in it for faster traversal. The AABB is merged from the particle
  * positions, and a Morton code is assigned to this AABB for determining tree hierarchy based on the Morton code of
  * the first particle in the leaf. Although this does not necessarily generate the best ordering along the Z order curve
@@ -375,7 +375,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_tree_aabbs,
     unsigned int max_idx = Ntot;
     for (unsigned int cur_type=0; leaf_type == -1 && cur_type < ntypes; ++cur_type)
         {
-        total_bins += (d_num_per_type[cur_type] + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+        total_bins += (d_num_per_type[cur_type] + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
         
         if (idx < total_bins)
             {
@@ -393,8 +393,8 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_tree_aabbs,
         }
     
     // get the starting particle index assuming naive leaf structure, and then subtract offset to eliminate "holes"
-    unsigned int start_idx = idx*NLIST_PARTICLES_PER_LEAF - d_leaf_offset[leaf_type];
-    unsigned int end_idx = (max_idx - start_idx > NLIST_PARTICLES_PER_LEAF) ? start_idx + NLIST_PARTICLES_PER_LEAF : max_idx;
+    unsigned int start_idx = idx*NLIST_GPU_PARTICLES_PER_LEAF - d_leaf_offset[leaf_type];
+    unsigned int end_idx = (max_idx - start_idx > NLIST_GPU_PARTICLES_PER_LEAF) ? start_idx + NLIST_GPU_PARTICLES_PER_LEAF : max_idx;
     
     
     // upper also holds the skip value, but we have no idea what this is right now
@@ -495,7 +495,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
  * \param i First Morton code index
  * \param j Second Morton code index
  * \param min_idx The smallest index considered "in range" (inclusive)
- * \param max_idx The first index considered "out of range"
+ * \param max_idx The last index considered "in range" (inclusive)
  *
  * \returns number of bits shared between the Morton codes of i and j
  *
@@ -533,7 +533,7 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
 /*!
  * \param d_morton_codes Array of Morton codes
  * \param min_idx The smallest Morton code index considered "in range" (inclusive)
- * \param max_idx The first Morton code index considered "out of range"
+ * \param max_idx The last Morton code index considered "in range" (inclusive)
  * \param idx Current node (Morton code) index
  *
  * \returns the minimum and maximum leafs covered by this node
@@ -686,7 +686,7 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
         // current min index is the previous max index
         min_idx = max_idx;
         // max index adds the number of internal nodes in this type (nleaf - 1)
-        const unsigned int cur_nleaf = (d_num_per_type[cur_type] + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
+        const unsigned int cur_nleaf = (d_num_per_type[cur_type] + NLIST_GPU_PARTICLES_PER_LEAF - 1)/NLIST_GPU_PARTICLES_PER_LEAF;
         if (cur_nleaf > 0)
             {
             max_idx += cur_nleaf-1;
@@ -1165,7 +1165,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                         {
                         // leaf node
                         // all leaves must have at least 1 particle, so we can use this to decide
-                        const unsigned int node_head = NLIST_PARTICLES_PER_LEAF*cur_node_idx - s_leaf_offset[cur_pair_type];
+                        const unsigned int node_head = NLIST_GPU_PARTICLES_PER_LEAF*cur_node_idx - s_leaf_offset[cur_pair_type];
                         const unsigned int n_part = np_child_masked >> 1;
                         for (unsigned int cur_p = node_head; cur_p < node_head + n_part; ++cur_p)
                             { 
