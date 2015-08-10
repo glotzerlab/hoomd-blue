@@ -2,6 +2,12 @@
 
 [TOC]
 
+## Next maintenance release
+
+*Bug fixes*
+
+* Analyze.log now accepts unicode strings.
+
 ## v1.1.0
 
 *New features*
@@ -59,12 +65,6 @@ del system.particles[0]
 *Removed*
 
 * Several `option` commands for controlling the execution configuration. Replaced with `context.initialize`.
-
-## Next maintenance release
-
-*Bug fixes*
-
-* *none*
 
 ## v1.0.5
 
