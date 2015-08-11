@@ -1754,10 +1754,13 @@ class table(force._force):
         # initialize the base class
         force._force.__init__(self, name);
 
+        # default r_cut for the neighbor list, this is pretty silly to use something other than 0 though
+        self.global_r_cut = r_cut
+
         # setup the coefficent matrix
         self.pair_coeff = coeff();
 
-        # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
+        # create the neighbor list
         neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
@@ -1810,18 +1813,13 @@ class table(force._force):
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
-                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
+                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'rmax');
                 if r_cut is not None:
                     # set the pair in our dictionary (not updating, so force the set)
                     r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
                 else:
-                    # using default value for the pair
-                    # it doesn't concern us that the pair has not been explicitly set yet
-                    # because the cutoff will be filled with the default value (or a new value) when
-                    # we pair_coeff.set, and these coefficients will be validated later anyway
-                    # so if something goes wrong there, HOOMD will grind to a halt.
-                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
-                    r_cut_dict.set_pair(type_list[i],type_list[j], self.get_max_rcut());
+                    # using the largest of all the set rmax
+                    r_cut_dict.set_pair(type_list[i],type_list[j], self.global_r_cut);
                 
         if not r_cut_dict.verify():
             globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
