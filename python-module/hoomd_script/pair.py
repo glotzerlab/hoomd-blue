@@ -1791,31 +1791,6 @@ class table(force._force):
 
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
-
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
-        # check that the pair coefficents are valid
-        if not self.pair_coeff.verify(coeff_list):
-            globals.msg.error("Not all pair coefficients are set\n");
-            raise RuntimeError("Error updating pair coefficients");
-
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
-                for name in coeff_list:
-                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
-
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
     
     ## \internal
     # \brief Get the r_cut pair dictionary
