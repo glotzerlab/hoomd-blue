@@ -188,7 +188,8 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
                                      eam_tex_data,
                                      eam_arrays,
                                      eam_data,
-                                     m_exec_conf->getComputeCapability()/10);
+                                     m_exec_conf->getComputeCapability()/10,
+                                     m_exec_conf->dev_prop.maxTexture1DLinear);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -94,7 +94,8 @@ struct dpd_pair_args_t
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial,
                     const unsigned int _threads_per_particle,
-                    const unsigned int _compute_capability)
+                    const unsigned int _compute_capability,
+                    const unsigned int _max_tex1d_width)
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
@@ -118,7 +119,8 @@ struct dpd_pair_args_t
                         shift_mode(_shift_mode),
                         compute_virial(_compute_virial),
                         threads_per_particle(_threads_per_particle),
-                        compute_capability(_compute_capability)
+                        compute_capability(_compute_capability),
+                        max_tex1d_width(_max_tex1d_width)
         {
         };
 
@@ -146,11 +148,10 @@ struct dpd_pair_args_t
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
     const unsigned int compute_capability;  //!< Compute capability of the device (20, 30, 35, ...)
+    const unsigned int max_tex1d_width;     //!< Maximum width of a 1d linear texture
     };
 
 #ifdef NVCC
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
 
 //! Texture for reading particle positions
 scalar4_tex_t pdata_dpd_pos_tex;
@@ -461,7 +462,7 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);
     
-    if (pair_args.size_nlist <= MAX_TEXTURE_WIDTH)
+    if (pair_args.size_nlist <= pair_args.max_tex1d_width)
         {
         nlist_tex.normalized = false;
         nlist_tex.filterMode = cudaFilterModePoint;
@@ -540,7 +541,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     assert(args.ntypes > 0);
 
     // run the kernel
-    if (args.compute_capability < 35 && args.size_nlist > MAX_TEXTURE_WIDTH)
+    if (args.compute_capability < 35 && args.size_nlist > args.max_tex1d_width)
         {
         if (args.compute_virial)
             {
@@ -621,7 +622,6 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
 
     return cudaSuccess;
     }
-#undef MAX_TEXTURE_WIDTH
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__
