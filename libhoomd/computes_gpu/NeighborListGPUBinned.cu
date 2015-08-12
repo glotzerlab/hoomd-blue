@@ -152,7 +152,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
-    unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(unsigned int)*num_typ_parameters]);
+    unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(Scalar)*num_typ_parameters]);
 
     // load in the per type pair r_list
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)

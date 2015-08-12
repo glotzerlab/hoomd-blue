@@ -1288,11 +1288,10 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
-    def __init__(self, width, r_cut=0, nlist=None, name=None):
+    def __init__(self, width, nlist=None, name=None):
         util.print_status_line();
 
         # initialize the base class
