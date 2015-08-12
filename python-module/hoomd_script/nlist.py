@@ -75,7 +75,7 @@ import hoomd_script
 # while the %tree implementation is faster when there is significant size disparity.
 #
 # Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$ 
-# will excluded this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
+# will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
 # or for belonging to the same rigid body (see reset_exclusions()).
 #
 # In previous versions of HOOMD-blue, %pair forces automatically created and subscribed to a single global neighbor
@@ -90,6 +90,14 @@ import hoomd_script
 # should be called directly on the neighbor list objects themselves. These global wrappers may be deprecated in a
 # future release.
 #
+# \b Examples:
+# \code
+# nl_c = nlist.cell(check_period=1)
+# nl_t = nlist.tree(r_buff = 0.8)
+# lj1 = pair.lj(r_cut = 3.0, nlist=nl_c)
+# lj2 = pair.lj(r_cut = 10.0, nlist=nl_t)
+# lj3 = pair.lj(r_cut = 1.1) # subscribe to the default global nlist
+# \endcode
 
 ## \internal
 # \brief Generic neighbor list object
@@ -721,7 +729,7 @@ cell.cur_id = 0
 # improved performance compared to %cell listing in systems with moderate size asymmetry, but has poorer performance
 # for monodisperse systems. The user should carefully benchmark neighbor list build times to select the appropriate
 # neighbor list construction type.
-
+#
 # Users can create multiple neighbor lists, and may see significant performance increases by doing so for systems with
 # size asymmetry, especially when used in conjunction with nlist.cell.
 #
@@ -837,10 +845,10 @@ def _subscribe_global_nlist(cb):
 #
 # \b Examples:
 # \code
-# nl.set_params(r_buff = 0.9)
-# nl.set_params(check_period = 11)
-# nl.set_params(r_buff = 0.7, check_period = 4)
-# nl.set_params(d_max = 3.0)
+# nlist.set_params(r_buff = 0.9)
+# nlist.set_params(check_period = 11)
+# nlist.set_params(r_buff = 0.7, check_period = 4)
+# nlist.set_params(d_max = 3.0)
 # \endcode
 #
 # \note For truly deterministic simulations, also the autotuner should be disabled.
@@ -890,10 +898,10 @@ def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, dete
 #
 # \b Examples:
 # \code
-# nl.reset_exclusions(exclusions = ['1-2'])
-# nl.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
-# nl.reset_exclusions(exclusions = ['bond', 'angle'])
-# nl.reset_exclusions(exclusions = [])
+# nlist.reset_exclusions(exclusions = ['1-2'])
+# nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+# nlist.reset_exclusions(exclusions = ['bond', 'angle'])
+# nlist.reset_exclusions(exclusions = [])
 # \endcode
 #
 def reset_exclusions(exclusions = None):
@@ -912,7 +920,7 @@ def reset_exclusions(exclusions = None):
 #
 # \b Examples:
 # \code
-# t = nl.benchmark(n = 100)
+# t = nlist.benchmark(n = 100)
 # \endcode
 #
 # The value returned by benchmark() is the average time to perform the neighbor list
