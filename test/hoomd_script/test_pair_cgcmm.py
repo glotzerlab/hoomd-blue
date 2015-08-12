@@ -34,7 +34,7 @@ class pair_cgcmm_tests (unittest.TestCase):
     def test_nlist_subscribe(self):
         cgcmm = pair.cgcmm(r_cut=2.5);
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     # test adding types
     def test_type_add(self):

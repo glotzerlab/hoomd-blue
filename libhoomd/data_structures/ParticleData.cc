@@ -1900,6 +1900,8 @@ void ParticleData::setType(unsigned int tag, unsigned int typ)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
         h_pos.data[idx].w = __int_as_scalar(typ);
+        // signal that the types have changed
+        notifyParticleSort();
         }
     }
 

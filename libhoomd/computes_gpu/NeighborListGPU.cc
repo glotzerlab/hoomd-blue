@@ -63,6 +63,8 @@ using namespace boost::python;
 #include "Communicator.h"
 #endif
 
+#include "CachedAllocator.h"
+
 #include <iostream>
 using namespace std;
 
@@ -105,66 +107,8 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
 
 void NeighborListGPU::buildNlist(unsigned int timestep)
     {
-    if (m_storage_mode != full)
-        {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
-        throw runtime_error("Error computing neighbor list");
-        }
-
-    if (m_filter_body || m_filter_diameter)
-        {
-        m_exec_conf->msg->error() << "NeighborListGPU does not currently support body or diameter exclusions." << endl;
-        m_exec_conf->msg->error() << "Please contact the developers and notify them that you need this functionality" << endl;
-
-        throw runtime_error("Error computing neighbor list");
-        }
-
-    // check that the simulation box is big enough
-    const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
-    // acquire the particle data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    // access the nlist data arrays
-    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
-
-    ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
-
-    // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
-    // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
-    Scalar rmaxsq = rmax*rmax;
-
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
-
-    gpu_compute_nlist_nsq(d_nlist.data,
-                          d_n_neigh.data,
-                          d_last_pos.data,
-                          m_conditions.getDeviceFlags(),
-                          m_nlist_indexer,
-                          d_pos.data,
-                          m_pdata->getN(),
-                          m_pdata->getNGhosts(),
-                          box,
-                          rmaxsq);
-
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
+    throw runtime_error("Error updating neighborlist bins");
     }
 
 void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
@@ -175,7 +119,6 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
         m_distcheck_scheduled = false;
         return;
         }
-
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
@@ -187,27 +130,22 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     // get current global nearest plane distance
     Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
 
-    // Cutoff distance for inclusion in neighbor list
-    Scalar rmax = m_r_cut + m_r_buff;
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
-
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
-    // maximum displacement for each particle (after subtraction of homogeneous dilations)
-    Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
-    Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
-
-    ArrayHandle<unsigned int> h_flags(m_flags, access_location::device, access_mode::readwrite);
-    gpu_nlist_needs_update_check_new(h_flags.data,
+    ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
+    gpu_nlist_needs_update_check_new(d_flags.data,
                                      d_last_pos.data,
                                      d_pos.data,
                                      m_pdata->getN(),
                                      box,
-                                     maxshiftsq,
+                                     d_rcut_max.data,
+                                     m_r_buff,
+                                     m_pdata->getNTypes(),
+                                     lambda_min,
                                      lambda,
                                      ++m_checkn);
 
@@ -224,7 +162,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     }
 
 bool NeighborListGPU::distanceCheck(unsigned int timestep)
-    {
+    {   
     // check if we have scheduled a kernel for the current time step
     if (! m_distcheck_scheduled || m_last_schedule_tstep != timestep)
         scheduleDistanceCheck(timestep);
@@ -273,11 +211,12 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     m_tuner_filter->begin();
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
-                     m_nlist_indexer,
+                     d_head_list.data,
                      d_n_ex_idx.data,
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
@@ -320,6 +259,60 @@ void NeighborListGPU::updateExListIdx()
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
+    }
+
+//! Build the head list for neighbor list indexing on the GPU
+void NeighborListGPU::buildHeadList()
+    {
+    // don't do anything if there are no particles owned by this rank
+    if (!m_pdata->getN())
+        return;
+        
+    if (m_prof) m_prof->push(exec_conf, "head-list");
+            
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
+    
+    m_req_size_nlist.resetFlags(0);
+    
+    // initialize and allocate
+    void *d_tmp_storage = NULL;
+    size_t tmp_storage_bytes = 0;
+
+    m_tuner_head_list->begin();
+    gpu_nlist_build_head_list(d_head_list.data,
+                              m_req_size_nlist.getDeviceFlags(),
+                              d_tmp_storage,
+                              tmp_storage_bytes,
+                              d_Nmax.data,
+                              d_pos.data,
+                              m_pdata->getN(),
+                              m_pdata->getNTypes(),
+                              m_tuner_head_list->getParam());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_head_list->end();
+
+    // allocate temporary storage (unsigned char = 1 B)
+    ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+    d_tmp_storage = (void*)d_alloc();
+
+    // prefix sum
+    gpu_nlist_build_head_list(d_head_list.data,
+                              m_req_size_nlist.getDeviceFlags(),
+                              d_tmp_storage,
+                              tmp_storage_bytes,
+                              d_Nmax.data,
+                              d_pos.data,
+                              m_pdata->getN(),
+                              m_pdata->getNTypes(),
+                              m_tuner_head_list->getParam());
+
+    unsigned int req_size_nlist = m_req_size_nlist.readFlags();
+    resizeNlist(req_size_nlist);
+    
+    if (m_prof) m_prof->pop(exec_conf);
     }
 
 void export_NeighborListGPU()

@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 #include "SnapshotSystemData.h"
 
@@ -99,7 +99,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0,0.0,0.0));
 
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
@@ -200,7 +200,7 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
@@ -293,7 +293,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
     boost::shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
@@ -367,7 +367,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(2.8,0.0,0.0));
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
     boost::shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
     fc_no_shift->setShiftMode(PotentialPairGauss::no_shift);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));

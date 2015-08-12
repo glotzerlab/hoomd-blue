@@ -74,13 +74,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-//! Computes a Neibhorlist from the particles
+//! Computes a Neighborlist from the particles
 /*! \b Overview:
 
     A particle \c i is a neighbor of particle \c j if the distance between
-    particle them is less than or equal to \c r_cut. The neighborlist for a given particle
-    \c i includes all of these neighbors at a minimum. Other particles particles are included
-    in the list: those up to \c r_max which includes a buffer distance so that the neighbor list
+    particle them is less than or equal to \c r_cut(i,j). The neighborlist for a given particle
+    \c i includes all of these neighbors at a minimum. Other particles are included
+    in the list: those up to \c r_list(i,j) which includes a buffer distance so that the neighbor list
     doesn't need to be updated every step.
 
     There are two ways of storing this information. One is to store only half of the
@@ -93,13 +93,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <b>Data access:</b>
 
-    Up to Nmax neighbors can be stored for each particle. Data is stored in a 2D matrix array in memory. Each element
-    in the matrix stores the index of the neighbor with the highest bits reserved for flags. An indexer for accessing
-    elements can be gotten with getNlistIndexer() and the array itself can be accessed with getNlistArray().
+    Up to Nmax neighbors can be stored for each particle. Data is stored in a flat array in memory. A secondary
+    flat list is supplied for each particle which specifies where to start reading neighbors from the list
+    (a "head" list). Each element in the list stores the index of the neighbor with the highest bits reserved for flags.
+    The head list for accessing elements can be gotten with getHeadList()
+    and the array itself can be accessed with getNlistArray().
 
     The number of neighbors for each particle is stored in an auxilliary array accessed with getNNeighArray().
 
-     - <code>jf = nlist[nlist_indexer(i,n)]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
+     - <code>jf = nlist[head_list[i] + n]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
        0 to <code>n_neigh[i] - 1</code>
 
     \a jf includes flags in the highest bits. The format and use of these flags are yet to be determined.
@@ -109,20 +111,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     By default, a neighbor list includes all particles within a single cutoff distance r_cut. Various filters can be
     applied to remove unwanted neighbors from the list.
      - setFilterBody() prevents two particles of the same body from being neighbors
-     - setFilterRcutType() enables individual r_cut values for each pair of particle types
-     - setFilterDiameter() enables slj type diameter filtering (TODO: need to specify exactly what this does)
+     - setDiameterShift() enables slj type diameter shifting, where a single minimum cutoff is used and the actual
+       r_cut(i,j) is shifted by the average diameter of the particles (d_i + d_j)/2 -1 (such that no shift is applied
+       when d_i = d_j = 1
 
     \b Algorithms:
 
-    This base class supplys a dumb O(N^2) algorithm for generating this list. It is very
-    slow, but functional. Derived classes implement O(N) efficient straetegies using the CellList.
+    This base class supplys no build algorithm for generating this list, it must be overridden by deriving classes.
+    Derived classes implement O(N) efficient straetegies using a CellList or a BVH tree.
 
-    <b>Needs updage check:</b>
+    <b>Needs update check:</b>
 
     When compute() is called, the neighbor list is updated, but only if it needs to be. Checks
     are performed to see if any particle has moved more than half of the buffer distance, and
     only then is the list actually updated. This check can even be avoided for a number of time
-    steps by calling setEvery(). If the caller wants to forces a full update, forceUpdate()
+    steps by calling setEvery(). If the caller wants to force a full update, forceUpdate()
     can be called before compute() to do so. Note that if the particle data is resorted,
     an update is automatically forced.
 
@@ -140,7 +143,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     to be processed without slowing the performance of the buildNlist() step itself.
 
     <b>Overvlow handling:</b>
-    For easy support of derived GPU classes to implement overvlow detectio the overflow condition is storeed in the
+    For easy support of derived GPU classes to implement overflow detection the overflow condition is stored in the
     GPUArray \a d_conditions.
 
      - 0: Maximum nlist size (implementations are free to write to this element only in overflow conditions if they
@@ -163,16 +166,22 @@ class NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
+        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();
 
         //! \name Set parameters
         // @{
-
-        //! Change the cuttoff radius
+        
+        //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change the cutoff radius by pair
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        
+        //! Change the global buffer radius
+        virtual void setRBuff(Scalar r_buff);
 
         //! Change how many timesteps before checking to see if the list should be rebuilt
         /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
@@ -238,6 +247,12 @@ class NeighborList : public Compute
             {
             return m_nlist;
             }
+            
+        //! Get the head list
+        const GPUArray<unsigned int>& getHeadList()
+            {
+            return m_head_list;
+            }
 
         //! Get the number of exclusions array
         const GPUArray<unsigned int>& getNExArray()
@@ -255,11 +270,6 @@ class NeighborList : public Compute
         /*! \note Do not save indexers across calls. Get a new indexer after every call to compute() - they will
             change.
         */
-        const Index2D& getNListIndexer()
-            {
-            return m_nlist_indexer;
-            }
-
         const Index2D& getExListIndexer()
             {
             return m_ex_list_indexer;
@@ -331,35 +341,44 @@ class NeighborList : public Compute
             {
             return m_filter_body;
             }
-
-        //! Enable/disable diameter filtering
-        virtual void setFilterDiameter(bool filter_diameter)
+        
+        //! Enable/disable diameter shifting
+        /*!
+         * If diameter shifting is enabled, a value (d_i + d_j)/2.0 - 1.0 is added to r_cut(i,j) for
+         * inclusion in the neighbor list (where d_i and d_j are the diameters). This is useful in simulations
+         * where there is only a single particle type, but each particle may have a different diameter, and
+         * the potential (and its cutoff) depends on this diameter (i.e. shifted Lennard-Jones).
+         */
+        virtual void setDiameterShift(bool diameter_shift)
             {
-            m_filter_diameter = filter_diameter;
+            m_diameter_shift = diameter_shift;
             forceUpdate();
             }
-
-        //! Test if diameter filtering is set
-        virtual bool getFilterDiameter()
+            
+        //! Test if diameter shifting is set
+        virtual bool getDiameterShift()
             {
-            return m_filter_diameter;
+            return m_diameter_shift;
             }
 
         //! Set the maximum diameter to use in computing neighbor lists
+        /*!
+         * If diameter shifting is enabled, then this sets the maximum query radius for inclusion in the neighborlist.
+         * The shift (d_i + d_j)/2.0 - 1.0 can be no bigger than d_max - 1.0.
+         */
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
-
             forceUpdate();
             }
 
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth() const
             {
-            Scalar rmax = m_r_cut + m_r_buff;
-            // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-            rmax += m_d_max - Scalar(1.0);
-            return rmax;
+            Scalar r_max = m_rcut_max_max + m_r_buff;
+            if (m_diameter_shift);
+                r_max += m_d_max - Scalar(1.0);
+            return r_max;
             }
 
         Scalar getMaximumDiameter()
@@ -378,7 +397,7 @@ class NeighborList : public Compute
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
-                m_force_update = true;
+            m_force_update = true;
             }
 
         //! Get the number of updates
@@ -411,21 +430,26 @@ class NeighborList : public Compute
             }
 
    protected:
-        Scalar m_r_cut;             //!< The cuttoff radius
+        Index2D m_typpair_idx;      //!< Indexer for full type pair storage
+        GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
+        GPUArray<Scalar> m_r_listsq;//!< The neighborlist cutoff radius squared stored by pair type
+        GPUArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
+        Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
-        bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
+        bool m_diameter_shift;      //!< Set to true if the neighborlist rcut(i,j) should be diameter shifted
         storageMode m_storage_mode; //!< The storage mode
 
-        Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         Scalar3 m_last_L;                    //!< Box lengths at last update
         Scalar3 m_last_L_local;              //!< Local Box lengths at last update
-        unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
-        GPUFlags<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+
+        GPUArray<unsigned int> m_head_list;     //!< Indexes for particles to read from the neighbor list
+        GPUArray<unsigned int> m_Nmax;          //!< Holds the maximum number of neighbors for each particle type
+        GPUArray<unsigned int> m_conditions;    //!< Holds the max number of computed particles by type for resizing
 
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
@@ -459,9 +483,18 @@ class NeighborList : public Compute
 
         //! Updates the idx exlcusion list
         virtual void updateExListIdx();
+        
+        //! Loops through all pairs, and updates the r_list(i,j)
+        void updateRList();
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+        
+        //! Build the head list to allocated memory
+        virtual void buildHeadList();
+        
+        //! Amortized resizing of the neighborlist
+        void resizeNlist(unsigned int size);
 
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
@@ -474,6 +507,8 @@ class NeighborList : public Compute
         #endif
 
     private:
+        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
+    
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
@@ -490,19 +525,16 @@ class NeighborList : public Compute
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
 
-        //! Reallocate internal data structures
+        //! Reallocate internal neighbor list data structures
         void reallocate();
-
-        //! Allocate the nlist array
-        void allocateNlist();
+        
+        //! Reallocate internal data structures that depend on types
+        void reallocateTypes();
 
         //! Check the status of the conditions
         bool checkConditions();
 
-        //! Read back the conditions
-        virtual unsigned int readConditions();
-
-        //! Resets the condition status
+        //! Resets the condition status to all zeroes
         virtual void resetConditions();
 
         //! Grow the exclusions list memory capacity by one row

@@ -43,11 +43,11 @@ class pair_gauss_tests (unittest.TestCase):
         gauss = pair.gauss(r_cut=2.5);
         gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         gauss.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     def tearDown(self):
         init.reset();

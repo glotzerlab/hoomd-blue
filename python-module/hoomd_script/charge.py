@@ -128,9 +128,11 @@ class pppm(force._force):
         force._force.__init__(self);
         # create the c++ mirror class
 
-        # update the neighbor list
-        neighbor_list = pair._update_global_nlist(0.0)
-        neighbor_list.subscribe(lambda: self.log*0.0)
+        # create a neighbor list if it doesn't exist
+        # but, the pppm does not need to subscribe a cutoff to the neighbor list
+        # so always return None
+        neighbor_list = pair._subscribe_global_nlist(lambda : None)
+
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
         else:
@@ -256,8 +258,8 @@ class pppm(force._force):
             globals.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
 
-        if globals.neighbor_list.cpp_nlist.getFilterDiameter():
-            globals.msg.warning("Neighbor diameter filtering is enabled, PPPM may not correct for all excluded interactions\n");
+        if globals.neighbor_list.cpp_nlist.getDiameterShift():
+            globals.msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
 
         if globals.neighbor_list.cpp_nlist.getFilterBody():
             globals.msg.warning("Neighbor body filtering is enabled, PPPM may not correct for all excluded interactions\n");
