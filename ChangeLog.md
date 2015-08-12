@@ -2,7 +2,15 @@
 
 [TOC]
 
-## Next release
+## Next feature release
+
+*New features*
+
+* Performance improvements for systems with large particle size disparity
+* Bounding volume hierarchy (tree) neighbor list computation
+* Neighbor lists have separate `r_cut` values for each pair of types
+
+## Next bugfix release
 
 Released TBD
 
