@@ -5,7 +5,7 @@ from hoomd_script import *
 import unittest
 import os
 
-# pair.yukawa
+# pair.morse
 class pair_morse_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -43,11 +43,11 @@ class pair_morse_tests (unittest.TestCase):
         p = pair.morse(r_cut=2.5);
         p.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         p.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     def tearDown(self):
         init.reset();

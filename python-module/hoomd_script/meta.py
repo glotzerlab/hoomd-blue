@@ -61,7 +61,7 @@
 #
 # \code
 # metadata = meta.dump_metadata()
-# meta.dump_metadata(filename = "metadata.json", overwrite = False, extra = {'debug': True})
+# meta.dump_metadata(filename = "metadata.json", overwrite = False, user = {'debug': True}, indent=2)
 # \endcode
 
 import hoomd;
@@ -101,7 +101,7 @@ class _metadata_from_dict:
 
         return data
 
-# Writes simulation metadata into a file
+## Writes simulation metadata into a file
 #
 # When called, this function will query all registered forces, updaters etc.
 # and ask them to provide metadata. E.g. a pair potential will return

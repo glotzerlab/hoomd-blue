@@ -162,6 +162,8 @@ Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
 
 Michael P. Howard, Princeton University
  - Automatic citation list generator
+ - Neighbor list memory footprint reduction
+ - Bounding volume hierarchy (tree) neighbor lists
  - Per-type MPI ghost layer communication
 
 James Antonaglia, University of Michigan

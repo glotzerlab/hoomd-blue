@@ -19,10 +19,22 @@ else (CMAKE_MINOR_VERSION GREATER 7)
 # setup hoomd runner environment
 get_target_property(HOOMD_EXE hoomd LOCATION)
 
-add_test(script-${_test_name}-cpu ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
-if (ENABLE_CUDA)
-add_test(script-${_test_name}-gpu ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
-endif (ENABLE_CUDA)
+# use mpirun -n 1 in MPI builds, otherwise, just run hoomd
+if (ENABLE_MPI)
+    add_test(NAME script-${_test_name}-cpu 
+             COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+                     ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
+    if (ENABLE_CUDA)
+        add_test(NAME script-${_test_name}-gpu 
+                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+                         ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
+    endif (ENABLE_CUDA)
+else ()
+    add_test(script-${_test_name}-cpu ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
+    if (ENABLE_CUDA)
+        add_test(script-${_test_name}-gpu ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
+    endif (ENABLE_CUDA)
+endif()
 
 endif (CMAKE_MINOR_VERSION GREATER 7)
 endmacro(add_hoomd_script_test)
@@ -74,8 +86,17 @@ else (CMAKE_MINOR_VERSION GREATER 7)
 # setup hoomd runner environment
 get_target_property(HOOMD_EXE hoomd LOCATION)
 if (ENABLE_CUDA)
-add_test(script-${_test_name}-racecheck-gpu ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
-add_test(script-${_test_name}-memcheck-gpu ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+if (ENABLE_MPI)
+    add_test(NAME script-${_test_name}-racecheck-gpu 
+             COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+                     ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+    add_test(NAME script-${_test_name}-memcheck-gpu 
+             COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+                     ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+else()
+    add_test(script-${_test_name}-racecheck-gpu ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+    add_test(script-${_test_name}-memcheck-gpu ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+endif()
 endif (ENABLE_CUDA)
 
 endif (CMAKE_MINOR_VERSION GREATER 7)

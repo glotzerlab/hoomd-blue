@@ -58,11 +58,11 @@ class pair_mie_tests (unittest.TestCase):
         mie = pair.mie(r_cut=2.5);
         mie.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, n=13.0, m=7.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         mie.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     # test coeff list
     def test_coeff_list(self):

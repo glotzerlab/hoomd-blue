@@ -49,53 +49,78 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-/*! \file NeighborListGPUBinned.cu
+/*! \file NeighborListGPU.cu
     \brief Defines GPU kernel code for neighbor list processing on the GPU
 */
 
-#include "NeighborListGPUBinned.cuh"
-
 #include "NeighborListGPU.cuh"
-#include <stdio.h>
+
+#include "cub/cub.cuh"
 
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
     \param N Number of particles
     \param box Box dimensions
-    \param maxshiftsq The maximum drsq a particle can have before an update is needed
+    \param d_rcut_max The maximum rcut(i,j) that any particle of type i participates in
+    \param r_buff The buffer size that particles can move in
+    \param ntypes The number of particle types
+    \param lambda_min Minimum contraction of deformation tensor
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
 
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
-    compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
-    is set to \a ncheck.
+    compared to its last position. If the particle has moved a distance more than the buffer width, then *d_result
+    is set to \a checkn.
 */
 __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const Scalar4 *d_last_pos,
                                                         const Scalar4 *d_pos,
                                                         const unsigned int N,
                                                         const BoxDim box,
-                                                        const Scalar maxshiftsq,
+                                                        const Scalar *d_rcut_max,
+                                                        const Scalar r_buff,
+                                                        const unsigned int ntypes,
+                                                        const Scalar lambda_min,
                                                         const Scalar3 lambda,
                                                         const unsigned int checkn)
     {
+    // cache delta max into shared memory
+    // shared data for per type pair parameters
+    extern __shared__ unsigned char s_data[];
+    
+    // pointer for the r_listsq data
+    Scalar *s_maxshiftsq = (Scalar *)(&s_data[0]);
+
+    // load in the per type pair r_list
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            const Scalar rmin = d_rcut_max[cur_offset + threadIdx.x];
+            const Scalar rmax = rmin + r_buff;
+            const Scalar delta_max = (rmax*lambda_min - rmin)/Scalar(2.0);
+            s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max*delta_max : 0.0f;
+            }
+        }
+    __syncthreads();
+    
+    
     // each thread will compare vs it's old position to see if the list needs updating
-    // if that is true, write a 1 to nlist_needs_updating
-    // it is possible that writes will collide, but at least one will succeed and that is all that matters
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
         Scalar4 cur_postype = d_pos[idx];
         Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
+        const unsigned int cur_type = __scalar_as_int(cur_postype.w);
         Scalar4 last_postype = d_last_pos[idx];
         Scalar3 last_pos = make_scalar3(last_postype.x, last_postype.y, last_postype.z);
 
         Scalar3 dx = cur_pos - lambda*last_pos;
         dx = box.minImage(dx);
 
-        if (dot(dx, dx) >= maxshiftsq)
+        if (dot(dx, dx) >= s_maxshiftsq[cur_type])
             atomicMax(d_result, checkn);
         }
     }
@@ -105,20 +130,28 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const Scalar maxshiftsq,
+                                             const Scalar *d_rcut_max,
+                                             const Scalar r_buff,
+                                             const unsigned int ntypes,
+                                             const Scalar lambda_min,
                                              const Scalar3 lambda,
                                              const unsigned int checkn)
     {
+    const unsigned int shared_bytes = sizeof(Scalar) * ntypes;
+    
     unsigned int block_size = 128;
     int n_blocks = N/block_size+1;
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
-                                                                                d_last_pos,
-                                                                                d_pos,
-                                                                                N,
-                                                                                box,
-                                                                                maxshiftsq,
-                                                                                lambda,
-                                                                                checkn);
+    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
+                                                                                    d_last_pos,
+                                                                                    d_pos,
+                                                                                    N,
+                                                                                    box,
+                                                                                    d_rcut_max,
+                                                                                    r_buff,
+                                                                                    ntypes,
+                                                                                    lambda_min,
+                                                                                    lambda,
+                                                                                    checkn);
 
     return cudaSuccess;
     }
@@ -150,7 +183,7 @@ const unsigned int FILTER_BATCH_SIZE = 4;
 */
 __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
                                         unsigned int *d_nlist,
-                                        const Index2D nli,
+                                        const unsigned int *d_head_list,
                                         const unsigned int *d_n_ex,
                                         const unsigned int *d_ex_list,
                                         const Index2D exli,
@@ -187,9 +220,10 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
         }
 
     // loop over the list, regenerating it as we go
+    const unsigned int my_head = d_head_list[idx];
     for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
         {
-        unsigned int cur_neigh = d_nlist[nli(idx, cur_neigh_idx)];
+        unsigned int cur_neigh = d_nlist[my_head + cur_neigh_idx];
 
         // test if excluded
         bool excluded = false;
@@ -204,7 +238,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
         if (!excluded)
             {
             if (new_n_neigh != cur_neigh_idx)
-                d_nlist[nli(idx, new_n_neigh)] = cur_neigh;
+                d_nlist[my_head + new_n_neigh] = cur_neigh;
             new_n_neigh++;
             }
         }
@@ -215,7 +249,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
 
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              unsigned int *d_nlist,
-                             const Index2D& nli,
+                             const unsigned int *d_head_list,
                              const unsigned int *d_n_ex,
                              const unsigned int *d_ex_list,
                              const Index2D& exli,
@@ -242,7 +276,7 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
         {
         gpu_nlist_filter_kernel<<<n_blocks, run_block_size>>>(d_n_neigh,
                                                               d_nlist,
-                                                              nli,
+                                                              d_head_list,
                                                               d_n_ex,
                                                               d_ex_list,
                                                               exli,
@@ -253,120 +287,6 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
         }
 
     return cudaSuccess;
-    }
-
-//! Compile time determined block size for the NSQ neighbor list calculation
-const int NLIST_BLOCK_SIZE = 128;
-
-//! Generate the neighbor list on the GPU in O(N^2) time
-/*! \param d_nlist Neighbor list to write out
-    \param d_n_neigh Number of neighbors to write
-    \param d_last_updated_pos Particle positions will be written here
-    \param d_conditions Overflow condition flag
-    \param nli Indexer for indexing into d_nlist
-    \param d_pos Current particle positions
-    \param N number of particles
-    \param box Box dimensions for handling periodic boundary conditions
-    \param r_maxsq Precalculated value for r_max*r_max
-
-    each thread is to compute the neighborlist for a single particle i
-    each block will load a bunch of particles into shared mem and then each thread will compare it's particle
-    to each particle in shmem to see if they are a neighbor. Since all threads in the block access the same
-    shmem element at the same time, the value is broadcast and there are no bank conflicts
-*/
-__global__
-void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
-                                  unsigned int *d_n_neigh,
-                                  Scalar4 *d_last_updated_pos,
-                                  unsigned int *d_conditions,
-                                  const Index2D nli,
-                                  const Scalar4 *d_pos,
-                                  const unsigned int N,
-                                  const unsigned int n_ghost,
-                                  const BoxDim box,
-                                  const Scalar r_maxsq)
-    {
-    // shared data to store all of the particles we compare against
-    __shared__ Scalar sdata[NLIST_BLOCK_SIZE*4];
-
-    // load in the particle
-    int pidx = blockIdx.x * NLIST_BLOCK_SIZE + threadIdx.x;
-
-    // store the max number of neighbors needed for this thread
-    unsigned int n_neigh_needed = 0;
-
-    Scalar4 pos = make_scalar4(0, 0, 0, 0);
-    if (pidx < N)
-        pos = d_pos[pidx];
-
-    Scalar px = pos.x;
-    Scalar py = pos.y;
-    Scalar pz = pos.z;
-
-    // track the number of neighbors added so far
-    int n_neigh = 0;
-
-    // each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
-    // in blocks of blockDim.x
-    // include ghosts as neighbors
-    for (int start = 0; start < N + n_ghost; start += NLIST_BLOCK_SIZE)
-        {
-        // load data
-        Scalar4 neigh_pos = make_scalar4(0, 0, 0, 0);
-        if (start + threadIdx.x < N + n_ghost)
-            neigh_pos = d_pos[start + threadIdx.x];
-
-        // make sure everybody is caught up before we stomp on the memory
-        __syncthreads();
-        sdata[threadIdx.x] = neigh_pos.x;
-        sdata[threadIdx.x + NLIST_BLOCK_SIZE] = neigh_pos.y;
-        sdata[threadIdx.x + 2*NLIST_BLOCK_SIZE] = neigh_pos.z;
-        sdata[threadIdx.x + 3*NLIST_BLOCK_SIZE] = neigh_pos.w; //< unused, but try to get compiler to fully coalesce reads
-
-        // ensure all data is loaded
-        __syncthreads();
-
-        // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
-        // the block might extend that far)
-        int end_offset= NLIST_BLOCK_SIZE;
-        end_offset = min(end_offset, N + n_ghost - start);
-
-        if (pidx < N)
-            {
-            for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
-                {
-                // calculate dr
-                Scalar3 dx = make_scalar3(px - sdata[cur_offset],
-                                          py - sdata[cur_offset + NLIST_BLOCK_SIZE],
-                                          pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE]);
-                dx = box.minImage(dx);
-
-                // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
-                if ((dot(dx,dx) <= r_maxsq) && ((start + cur_offset) != pidx))
-                    {
-                    unsigned int j = start + cur_offset;
-
-                    if (n_neigh < nli.getH())
-                        d_nlist[nli(pidx, n_neigh)] = j;
-                    else
-                        n_neigh_needed = n_neigh+1;
-
-                    n_neigh++;
-                    }
-                }
-            }
-        }
-
-    // now that we are done: update the first row that lists the number of neighbors
-    if (pidx < N)
-        {
-        d_n_neigh[pidx] = n_neigh;
-
-        d_last_updated_pos[pidx] = d_pos[pidx];
-
-        if (n_neigh_needed > 0)
-            atomicMax(&d_conditions[0], n_neigh_needed);
-        }
     }
 
 //! GPU kernel to update the exclusions list
@@ -438,35 +358,137 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
     return cudaSuccess;
     }
 
-
-//! Generate the neighbor list on the GPU in O(N^2) time
-cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
-                                  unsigned int *d_n_neigh,
-                                  Scalar4 *d_last_updated_pos,
-                                  unsigned int *d_conditions,
-                                  const Index2D& nli,
-                                  const Scalar4 *d_pos,
-                                  const unsigned int N,
-                                  const unsigned int n_ghost,
-                                  const BoxDim& box,
-                                  const Scalar r_maxsq)
+//! GPU kernel to do a preliminary sizing on particles
+/*!
+ * \param d_head_list The head list of indexes to overwrite
+ * \param d_req_size_nlist Flag for the required size of the neighbor list to overwrite
+ * \param d_Nmax The number of neighbors to size per particle type
+ * \param d_pos Particle positions and types
+ * \param N the number of particles on this rank
+ * \param ntypes the number of types in the system
+ *
+ * This kernel initializes the head list with the number of neighbors that each type expects from d_Nmax. A prefix sum
+ * is then performed in gpu_nlist_build_head_list() to accumulate starting indices.
+ */
+__global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
+                                                unsigned int *d_req_size_nlist,
+                                                const unsigned int *d_Nmax,
+                                                const Scalar4 *d_pos,
+                                                const unsigned int N,
+                                                const unsigned int ntypes)
     {
-    // setup the grid to run the kernel
-    int block_size = NLIST_BLOCK_SIZE;
-    dim3 grid( (N/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    // cache the d_Nmax into shared memory for faster reads
+    extern __shared__ unsigned char sh[];
+    unsigned int *s_Nmax = (unsigned int *)(&sh[0]);
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
+            }
+        }
+    __syncthreads();
+    
+    
+    // particle index
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // one thread per particle
+    if (idx >= N)
+        return;
 
-    // run the kernel
-    gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(d_nlist,
-                                                      d_n_neigh,
-                                                      d_last_updated_pos,
-                                                      d_conditions,
-                                                      nli,
-                                                      d_pos,
-                                                      N,
-                                                      n_ghost,
-                                                      box,
-                                                      r_maxsq);
+    const Scalar4 postype_i = d_pos[idx];
+    const unsigned int type_i = __scalar_as_int(postype_i.w);
+    const unsigned int Nmax_i = d_Nmax[type_i];
+    
+    d_head_list[idx] = Nmax_i;
+    
+    // last thread presets its number of particles in the memory req as well
+    if (idx == (N-1))
+        {
+        *d_req_size_nlist = Nmax_i;
+        }
+    }
 
+/*!
+ * \param d_req_size_nlist Flag for the total size of the neighbor list
+ * \param d_head_list The complete particle head list
+ * \param N the number of particles on this rank
+ *
+ * A single thread on the device is needed to complete the exclusive scan and find the size of the neighbor list.
+ * Because gpu_nlist_init_head_list_kernel() already set the number of neighbors for the last particle in
+ * d_req_size_nlist, the head index of the last particle is added to this number to get the total size.
+ */
+__global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
+                                                const unsigned int *d_head_list,
+                                                const unsigned int N)
+    {
+    *d_req_size_nlist += d_head_list[N-1];
+    }
+
+/*!
+ * \param d_head_list The head list of indexes to compute for reading the neighbor list
+ * \param d_req_size_nlist The required size of the neighbor list flat array
+ * \param d_tmp_storage Temporary storage in device memory
+ * \param tmp_storage_bytes Size of temporary storage in bytes
+ * \param d_Nmax The number of neighbors to size per particle type
+ * \param d_pos Particle positions and types
+ * \param N the number of particles on this rank
+ * \param ntypes the number of types in the system
+ * \param block_size Number of threads per block for gpu_nlist_init_head_list_kernel()
+ *
+ * \return cudaSuccess on completion
+ *
+ * \b Implementation
+ * This function must be called twice to build the head list. In the first call (when \a d_tmp_storage is NULL),
+ * the head list is filled with the number of neighbors per particle and the amount of temporary storage space needed
+ * to compute the head list is saved in \a tmp_storage_bytes. This amount of memory must then be allocated on the
+ * device in \a d_tmp_storage before this function is called again. In the second call, an exclusive prefix sum is
+ * performed in place on this list using the CUB libraries and a single thread is used to perform compute the total
+ * size of the neighbor list while still on device.
+ */
+cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
+                                      unsigned int *d_req_size_nlist,
+                                      void *d_tmp_storage,
+                                      size_t &tmp_storage_bytes,
+                                      const unsigned int *d_Nmax,
+                                      const Scalar4 *d_pos,
+                                      const unsigned int N,
+                                      const unsigned int ntypes,
+                                      const unsigned int block_size)
+    {
+    if (d_tmp_storage == NULL) // initialization
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+           cudaFuncAttributes attr;
+           cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
+           max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+        unsigned int shared_bytes = ntypes*sizeof(unsigned int);
+    
+        // initialize each particle with its number of neighbors
+        gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
+                                                                                                d_req_size_nlist,
+                                                                                                d_Nmax,
+                                                                                                d_pos,
+                                                                                                N,
+                                                                                                ntypes);
+    
+        // size the temporary storage
+        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
+        }
+    else
+        {
+        // perform the exclusive sum
+        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
+    
+        // compute the total number on the GPU from the last element (it would be nice if the cub code could do this)
+        gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
+        }
+    
     return cudaSuccess;
     }

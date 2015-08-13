@@ -49,11 +49,11 @@ class pair_slj_tests (unittest.TestCase):
         lj = pair.slj(r_cut=2.5, d_max=2.0);
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     # test set params
     def test_dmax(self):
