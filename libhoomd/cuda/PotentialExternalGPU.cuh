@@ -153,9 +153,9 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     This is just a driver function for gpu_compute_external_forces(), see it for details.
 */
+
 template< class evaluator >
-cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args,
-                                    const typename evaluator::param_type *d_params)
+cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -176,7 +176,10 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
            <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.N, external_potential_args.d_pos, external_potential_args.box, d_params);
 
     return cudaSuccess;
-    }
+    };
 #endif
+    
+template< class evaluator >
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params);
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__

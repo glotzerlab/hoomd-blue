@@ -69,8 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Applys a constraint force to keep a group of particles on a sphere
 /*! \ingroup computes
 */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
+template<class evaluator>
 class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
@@ -100,9 +99,8 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
 /*! Constructor
     \param sysdef system definition
  */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
-PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+template<class evaluator>
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
@@ -112,9 +110,8 @@ PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_pt
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
-void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int timestep)
+template<class evaluator>
+void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, "PotentialExternalGPU");
@@ -128,7 +125,7 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
     this->m_tuner->begin();
-    gpu_cpef(external_potential_args_t(d_force.data,
+    gpu_cpef< evaluator >(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),

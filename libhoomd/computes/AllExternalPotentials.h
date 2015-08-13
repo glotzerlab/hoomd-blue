@@ -73,7 +73,7 @@ typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
 
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
-typedef PotentialExternalGPU<EvaluatorExternalPeriodic, gpu_compute_periodic_forces> PotentialExternalPeriodicGPU;
+typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
 #endif
 
 #endif // __EXTERNAL_POTENTIALS_H__
