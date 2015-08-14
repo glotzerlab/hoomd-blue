@@ -129,15 +129,17 @@ class DomainDecomposition
         bool isAtBoundary(unsigned int dir) const;
 
         //! Get the dimensions of the local simulation box
-        const BoxDim calculateLocalBox(const BoxDim& global_box);
+        virtual const BoxDim calculateLocalBox(const BoxDim& global_box);
 
         //! Get the rank for a particle to be placed
-        /*! \param pos Particle position
+        /*!
+         * \param global_box Global simulation box
+         * \param pos Particle position
          * \returns the rank of the processor that should receive the particle
          */
-        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
+        virtual unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
-    private:
+    protected:
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis
         unsigned int m_nz;           //!< Number of processors along the z-axis
