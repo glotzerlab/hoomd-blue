@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "Communicator.h"
 #include "DomainDecomposition.h"
+#include "BalancedDomainDecomposition.h"
 
 #include "ConstForceCompute.h"
 #include "TwoStepNVE.h"
@@ -92,7 +93,9 @@ boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<Syste
                                                   boost::shared_ptr<DomainDecomposition> decomposition);
 #endif
 
-void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                               const BoxDim& box,
+                               boost::shared_ptr<DomainDecomposition> decomposition)
 {
     // this test needs to be run on eight processors
     int size;
@@ -101,7 +104,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             box,         // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
                                                              0,           // number of angle types
@@ -151,9 +154,6 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
-
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -217,6 +217,138 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
     BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
     BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    }
+
+void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+{
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    BOOST_REQUIRE_EQUAL(size,8);
+
+    // create a system with eight particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        // set up eight particles, one in every domain
+        h_pos.data[0].x = -0.5;
+        h_pos.data[0].y = -0.75;
+        h_pos.data[0].z = -0.9;
+
+        h_pos.data[1].x = 0.5;
+        h_pos.data[1].y = -0.75;
+        h_pos.data[1].z = -0.9;
+
+        h_pos.data[2].x = -0.5;
+        h_pos.data[2].y = 0.75;
+        h_pos.data[2].z = -0.9;
+
+        h_pos.data[3].x = 0.5;
+        h_pos.data[3].y = 0.75;
+        h_pos.data[3].z = -0.9;
+
+        h_pos.data[4].x = -0.5;
+        h_pos.data[4].y = -0.75;
+        h_pos.data[4].z = 0.9;
+
+        h_pos.data[5].x = 0.5;
+        h_pos.data[5].y = -0.75;
+        h_pos.data[5].z = 0.9;
+
+        h_pos.data[6].x = -0.5;
+        h_pos.data[6].y = 0.75;
+        h_pos.data[6].z = 0.9;
+
+        h_pos.data[7].x = 0.5;
+        h_pos.data[7].y = 0.75;
+        h_pos.data[7].z = 0.9;
+        }
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    std::vector<Scalar> fxs(2), fys(2), fzs(2);
+    fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
+    fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
+    fzs[0] = Scalar(0.8); fzs[1] = Scalar(0.2);
+
+    SnapshotParticleData<Scalar> snap(8);
+    pdata->takeSnapshot(snap);
+
+    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+
+    pdata->setDomainDecomposition(decomposition);
+
+    // check that periodic flags are correctly set on the box
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().z, 0);
+
+    pdata->initializeFromSnapshot(snap);
+
+    // check that every domain has exactly one particle
+    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+
+    // check that every particle ended up in the domain to where it belongs
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+
+    // check that the positions have been transferred correctly
+    Scalar3 pos = pdata->getPosition(0);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+
+    pos = pdata->getPosition(1);
+    BOOST_CHECK_CLOSE(pos.x, 0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+
+    pos = pdata->getPosition(2);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+
+    pos = pdata->getPosition(3);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+
+    pos = pdata->getPosition(4);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+
+    pos = pdata->getPosition(5);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+
+    pos = pdata->getPosition(6);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+
+    pos = pdata->getPosition(7);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
     }
 
 //! Test particle migration of Communicator
@@ -2755,7 +2887,28 @@ boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<Syste
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
-    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    BoxDim box(2.0);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    test_domain_decomposition(exec_conf, box, decomposition);
+    }
+
+//! Tests balanced particle distribution on CPU
+BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    BoxDim box(2.0);
+        
+    // first test the fallback to the uniform grid using the standard DomainDecomposition test
+    std::vector<Scalar> fxs(2), fys(2), fzs(3);
+    fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
+    fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
+    fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
+    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    test_domain_decomposition(exec_conf, box, decomposition);
+    
+    // then test the balanced decomposition in the test for nonuniform particles and decomposition
+    test_balanced_domain_decomposition(exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
@@ -2812,7 +2965,28 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test )
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
-    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    BoxDim box(2.0);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    test_domain_decomposition(exec_conf, box, decomposition);
+    }
+
+//! Tests balanced particle distribution on GPU
+BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    BoxDim box(2.0);
+        
+    // first test the fallback to the uniform grid using the standard DomainDecomposition test
+    std::vector<Scalar> fxs(2), fys(2), fzs(3);
+    fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
+    fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
+    fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
+    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    test_domain_decomposition(exec_conf, box, decomposition);
+    
+    // then test the balanced decomposition in the test for nonuniform particles and decomposition
+    test_balanced_domain_decomposition(exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
