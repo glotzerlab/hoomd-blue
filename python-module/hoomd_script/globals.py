@@ -72,6 +72,9 @@ system_definition = None;
 ## Global variable that holds the System shared by all parts of hoomd_script
 system = None;
 
+## Global variable that holds the balanced domain decomposition in MPI runs if it is requested
+decomposition = None
+
 ## Global variable that holds the sorter
 sorter = None;
 
@@ -120,11 +123,12 @@ bib = None;
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
-    global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, analyzers, thermos, updaters;
+    global system_definition, system, decomposition, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, analyzers, thermos, updaters;
     global sorter, group_all, exec_conf, bib;
 
     system_definition = None;
     system = None;
+    decomposition = None
     forces = [];
     constraint_forces = [];
     external_forces = [];

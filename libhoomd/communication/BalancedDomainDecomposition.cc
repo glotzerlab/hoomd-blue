@@ -60,36 +60,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <numeric>
 
+#include <boost/python.hpp>
+using namespace boost::python;
+
 BalancedDomainDecomposition::BalancedDomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                                          Scalar3 L,
                                                          const std::vector<Scalar>& fxs,
                                                          const std::vector<Scalar>& fys,
                                                          const std::vector<Scalar>& fzs)
-    : DomainDecomposition(exec_conf, L, fxs.size(), fys.size(), fzs.size()), m_frac_x(fxs), m_frac_y(fys),
-      m_frac_z(fzs), m_uniform(false)
+    : DomainDecomposition(exec_conf, L, fxs.size(), fys.size(), fzs.size()), m_uniform(false)
     {
 
-    // everyone needs to resize their vectors
+    // everyone needs to just resize their vectors, rank 0 will fill them in
+    m_frac_x = std::vector<Scalar>(m_nx, 0.0);
+    m_frac_y = std::vector<Scalar>(m_ny, 0.0);
+    m_frac_z = std::vector<Scalar>(m_nz, 0.0);
+
     m_cum_frac_x = std::vector<Scalar>(m_nx+1, 0.0);
     m_cum_frac_y = std::vector<Scalar>(m_ny+1, 0.0);
     m_cum_frac_z = std::vector<Scalar>(m_nz+1, 0.0);
 
-    // we need to let the root rank handle all of this so that everyone gets exactly the same data, or we could have
-    // a big problem
     unsigned int rank = m_exec_conf->getRank();
     if (rank == 0)
         {
+        m_frac_x = fxs;
+        m_frac_y = fys;
+        m_frac_z = fzs;
+
         // the DomainDecomposition constructor should respect our choice if we specify all three dimensions
         // if it doesn't, then an incorrect grid was chosen by the user and we need to warn them and fall back to the uniform case
-        if (m_frac_x.size() != m_nx || m_frac_y.size() != m_ny || m_frac_z.size() != m_nz)
+        if ((m_frac_x.size() > 0 && m_frac_x.size() != m_nx) || 
+            (m_frac_y.size() > 0 && m_frac_y.size() != m_ny) ||
+            (m_frac_z.size() > 0 && m_frac_z.size() != m_nz))
             {
             m_exec_conf->msg->warning() << "Domain decomposition grid does not match specification, defaulting to uniform spacing" << std::endl;
-    
+
             m_frac_x = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nx));
             m_frac_y = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_ny));
             m_frac_z = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nz));
             m_uniform = true;
             }
+            
+        if (m_frac_x.size() == 0) m_frac_x = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nx));
+        if (m_frac_y.size() == 0) m_frac_y = std::vector<Scalar>(m_ny, Scalar(1.0) / Scalar(m_ny));
+        if (m_frac_z.size() == 0) m_frac_z = std::vector<Scalar>(m_nz, Scalar(1.0) / Scalar(m_nz));
 
         // perform an exclusive sum on the fractions to accumulate the fractions (last entry should sum to 1.0)
         // this stores the cumulative fraction of space below the current cartesian index
@@ -194,6 +208,15 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
     // synchronize with rank zero
     bcast(rank, 0, m_exec_conf->getMPICommunicator());
     return rank;
+    }
+
+//! Export BalancedDomainDecomposition class to python
+void export_BalancedDomainDecomposition()
+    {
+    class_<BalancedDomainDecomposition, boost::shared_ptr<BalancedDomainDecomposition>, bases<DomainDecomposition>, boost::noncopyable>
+        ("BalancedDomainDecomposition", init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, const std::vector<Scalar>&, const std::vector<Scalar>&, const std::vector<Scalar>&>())
+    .def("getFractions", &BalancedDomainDecomposition::getFractions)
+    ;
     }
 
 #endif

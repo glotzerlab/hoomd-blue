@@ -285,7 +285,21 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::vector<Scalar> cum_frac_x = decomposition->getCumulativeFractions(0);
+    MY_BOOST_CHECK_SMALL(cum_frac_x[0], tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_x[1], 0.5, tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_x[2], 1.0, tol);
+
+    std::vector<Scalar> cum_frac_y = decomposition->getCumulativeFractions(1);
+    MY_BOOST_CHECK_SMALL(cum_frac_y[0], tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_y[1], 0.25, tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_y[2], 1.0, tol);
+    
+    std::vector<Scalar> cum_frac_z = decomposition->getCumulativeFractions(2);
+    MY_BOOST_CHECK_SMALL(cum_frac_z[0], tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_z[1], 0.8, tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_z[2], 1.0, tol);
 
     pdata->setDomainDecomposition(decomposition);
 

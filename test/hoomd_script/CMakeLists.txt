@@ -126,6 +126,7 @@ SET(EXCLUDE_FROM_MPI
     test_pair_cgcmm
     test_update_rescale_temp
     test_wall_lj
+    test_balance
     )
 
 if (ENABLE_MPI)
@@ -136,6 +137,9 @@ if (ENABLE_MPI)
             add_hoomd_script_test_mpi(${test} 2)
         endif()
     endforeach(test)
+
+    # balance test needs to be run on 8 procs
+    add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_balance.py 8)
 endif(ENABLE_MPI)
 
 if (ENABLE_CUDA)

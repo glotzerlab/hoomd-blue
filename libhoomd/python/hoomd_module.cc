@@ -179,6 +179,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "DomainDecomposition.h"
+#include "BalancedDomainDecomposition.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
@@ -649,6 +650,7 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_MPI
     export_Communicator();
     export_DomainDecomposition();
+    export_BalancedDomainDecomposition();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();
 #endif // ENABLE_CUDA

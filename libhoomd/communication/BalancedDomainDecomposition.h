@@ -95,6 +95,33 @@ class BalancedDomainDecomposition : public DomainDecomposition
                                     const std::vector<Scalar>& fys,
                                     const std::vector<Scalar>& fzs);
 
+
+        //! Get the box fractions along each dimension
+        std::vector<Scalar> getFractions(unsigned int dir) const
+            {
+            if (dir == 0) return m_frac_x;
+            else if (dir == 1) return m_frac_y;
+            else if (dir == 2) return m_frac_z;
+            else
+                {
+                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+                throw std::runtime_error("comm: requested direction does not exist");
+                }
+            }
+        
+        //! Get the cumulative box fractions along each dimension
+        std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
+            {
+            if (dir == 0) return m_cum_frac_x;
+            else if (dir == 1) return m_cum_frac_y;
+            else if (dir == 2) return m_cum_frac_z;
+            else
+                {
+                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+                throw std::runtime_error("comm: requested direction does not exist");
+                }
+            }
+
         //! Get the dimensions of the local simulation box
         virtual const BoxDim calculateLocalBox(const BoxDim& global_box);
 
@@ -118,5 +145,10 @@ class BalancedDomainDecomposition : public DomainDecomposition
         bool m_uniform;                     //!< Flag to fall back to uniform domain decomposition if true
 #endif // ENABLE_MPI
     };
+
+#ifdef ENABLE_MPI
+//! Export the balanced domain decomposition information
+void export_BalancedDomainDecomposition();
+#endif
 
 #endif // __BALANCED_DOMAIN_DECOMPOSITION_H__

@@ -831,9 +831,13 @@ def _create_exec_conf():
 ## Create a DomainDecomposition object
 # \internal
 def _create_domain_decomposition(box):
-        if not hoomd.is_MPI_available():
-            return None
-
+    if not hoomd.is_MPI_available():
+        return None
+    
+    # return the existing decomposition if it is already taken care of from the balance() command
+    if globals.decomposition is not None:
+        return globals.decomposition._make_cpp_decomposition(box)
+    else:
         # default values for arguents
         nx = ny = nz = 0
         linear = False
