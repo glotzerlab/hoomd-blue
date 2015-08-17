@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllAnisoPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -100,7 +100,7 @@ void gb_force_particle_test(gbforce_creator gb_creator, boost::shared_ptr<Execut
     quat<Scalar> q = quat<Scalar>::fromAxisAngle(vec3<Scalar>(0,1,0), M_PI/2.0);
     h_orientation.data[1] = quat_to_scalar4(q);
     }
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<AnisoPotentialPairGB> fc_2 = gb_creator(sysdef_2, nlist_2);
     fc_2->setRcut(0, 0, Scalar(3.0));
 
