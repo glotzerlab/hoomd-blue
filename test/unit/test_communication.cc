@@ -363,6 +363,31 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
     BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
     BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+
+
+    // test that the simulation boxes are correct for each rank
+    const BoxDim& box = pdata->getBox();
+    const Scalar3 L = box.getL();
+    const BoxDim& global_box = pdata->getGlobalBox();
+    const Scalar3 global_L = global_box.getL();
+    const uint3 my_pos = decomposition->getGridPos();
+    // box size should be fractional width of global box
+    BOOST_CHECK_CLOSE(L.x, global_L.x * fxs[my_pos.x], tol);
+    BOOST_CHECK_CLOSE(L.y, global_L.y * fys[my_pos.y], tol);
+    BOOST_CHECK_CLOSE(L.z, global_L.z * fzs[my_pos.z], tol);
+
+    // box lower bound should be shifted if rank isn't the first slice along the dim
+    const Scalar3 lo = box.getLo();
+    Scalar3 check_lo = global_box.getLo();
+    if (my_pos.x > 0)
+        check_lo.x += fxs[0] * global_L.x;
+    if (my_pos.y > 0)
+        check_lo.y += fys[0] * global_L.y;
+    if (my_pos.z > 0)
+        check_lo.z += fzs[0] * global_L.z;
+    BOOST_CHECK_CLOSE(lo.x, check_lo.x, tol);
+    BOOST_CHECK_CLOSE(lo.y, check_lo.y, tol);
+    BOOST_CHECK_CLOSE(lo.z, check_lo.z, tol);
     }
 
 //! Test particle migration of Communicator

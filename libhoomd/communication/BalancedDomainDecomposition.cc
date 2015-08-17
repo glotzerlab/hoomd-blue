@@ -153,7 +153,7 @@ const BoxDim BalancedDomainDecomposition::calculateLocalBox(const BoxDim & globa
 
     Scalar3 L = global_box.getL();
     Scalar3 cur_frac = make_scalar3(m_frac_x[m_grid_pos.x], m_frac_y[m_grid_pos.y], m_frac_z[m_grid_pos.z]);
-    Scalar3 L_local = L / cur_frac;
+    Scalar3 L_local = L * cur_frac;
 
     // position of this domain in the grid
     Scalar3 cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x], m_cum_frac_y[m_grid_pos.y], m_cum_frac_z[m_grid_pos.z]);
