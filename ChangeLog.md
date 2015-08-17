@@ -2,7 +2,29 @@
 
 [TOC]
 
+## Next release
+
+Released TBD
+
+*Bug fixes*
+
+* Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
+* Analyze.log now accepts unicode strings.
+
+## v1.1.1
+
+Released 2015/07/21
+
+*Bug fixes*
+
+* `dump.xml(restart=True)` now works with MPI execution
+* Added missing documentation for `meta.dump_metadata`
+* Build all unit tests by default
+* Run all script unit tests through `mpirun -n 1`
+
 ## v1.1.0
+
+Released 2015/07/14
 
 *New features*
 
@@ -59,12 +81,6 @@ del system.particles[0]
 *Removed*
 
 * Several `option` commands for controlling the execution configuration. Replaced with `context.initialize`.
-
-## Next maintenance release
-
-*Bug fixes*
-
-* *none*
 
 ## v1.0.5
 
