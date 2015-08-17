@@ -109,6 +109,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
 
     h_pos.data[0].x = Scalar(1.5);
@@ -132,8 +134,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     h_body.data[0] = NO_BODY;
 
     I = make_scalar3(0, 1, 2);
-    pdata->setMomentsOfInertia(0, I);
-    pdata->setAngularMomentum(0,make_scalar4(0,1,2,3));
+    h_moments.data[0] = I;
+    h_angmom.data[0] = make_scalar4(0,1,2,3);
 
     h_pos.data[1].x = Scalar(1.5);
     h_pos.data[1].y = Scalar(2.5);
@@ -156,8 +158,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     h_body.data[1] = 1;
 
     I = make_scalar3(5, 4, 3);
-    pdata->setMomentsOfInertia(1, I);
-    pdata->setAngularMomentum(1,make_scalar4(9,8,7,6));
+    h_moments.data[1] = I;
+    h_angmom.data[1] = make_scalar4(9,8,7,6);
 
     h_pos.data[2].x = Scalar(-1.5);
     h_pos.data[2].y = Scalar(2.5);
@@ -180,8 +182,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     h_body.data[2] = 1;
 
     I = make_scalar3(1, 11, 21);
-    pdata->setMomentsOfInertia(2, I);
-    pdata->setAngularMomentum(2,make_scalar4(1, 2, 3, 4));
+    h_moments.data[2] = I;
+    h_angmom.data[2] = make_scalar4(1, 2, 3, 4);
 
     h_pos.data[3].x = Scalar(-1.5);
     h_pos.data[3].y = Scalar(2.5);
@@ -204,8 +206,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     h_body.data[3] = 0;
 
     I = make_scalar3(51,41,31);
-    pdata->setMomentsOfInertia(3, I);
-    pdata->setAngularMomentum(3,make_scalar4(51,41,31,21));
+    h_moments.data[3] = I;
+    h_angmom.data[3] = make_scalar4(51,41,31,21);
     }
 
     // add a couple walls for fun
@@ -775,7 +777,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->analyze(150);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"test.0000000150.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000150.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -1191,6 +1193,8 @@ im_b 5 4 3 2\n\
     ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     for (int i = 0; i < 6; i++)
         {
@@ -1224,14 +1228,14 @@ im_b 5 4 3 2\n\
 
         // check the moment_inertia values
         Scalar3 I;
-        I = pdata->getMomentsOfInertia(i);
+        I = h_moments.data[i];
         MY_BOOST_CHECK_CLOSE(I.x, i*10, tol);
         MY_BOOST_CHECK_CLOSE(I.y, i*10+1, tol);
         MY_BOOST_CHECK_CLOSE(I.z, i*10+2, tol);
 
         // check the angular momentum values
         Scalar4 M;
-        M = pdata->getAngularMomentum(i);
+        M = h_angmom.data[i];
         MY_BOOST_CHECK_CLOSE(M.x, i+1, tol);
         MY_BOOST_CHECK_CLOSE(M.y, (i+1)*10, tol);
         MY_BOOST_CHECK_CLOSE(M.z, (i+1)*100, tol);
