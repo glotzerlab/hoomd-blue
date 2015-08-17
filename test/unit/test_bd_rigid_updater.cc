@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -46,13 +46,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <iostream>
 
 //! name the boost unit test module
@@ -75,7 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxResizeUpdater.h"
 
 #include "AllPairPotentials.h"
-#include "NeighborList.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include "saruprng.h"
@@ -242,7 +235,7 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.5), Scalar(0.8)));
     boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(1.122));
     fc->setRcut(0, 1, Scalar(1.122));

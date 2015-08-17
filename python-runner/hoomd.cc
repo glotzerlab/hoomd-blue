@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -51,11 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
+#include "HOOMDVersion.h"
+#include "PathUtils.h"
 
 #include <boost/version.hpp>
 #include <boost/python.hpp>
@@ -64,9 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
-
-#include "PathUtils.h"
-#include "HOOMDVersion.h"
 
 #include <string>
 #include <sstream>
@@ -180,6 +174,8 @@ int main(int argc, char **argv)
         cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
         }
 
+    // set the _HOOMD_EXEC env var to indicate we are running as a hoomd invocation
+    python_cmds += string("import os; os.environ['_HOOMD_EXEC'] = '1';");
     PyRun_SimpleString(python_cmds.c_str());
 
 #if PY_MAJOR_VERSION >= 3
@@ -202,6 +198,3 @@ int main(int argc, char **argv)
     Py_Finalize();
     return retval;
     }
-#ifdef WIN32
-#pragma warning( pop )
-#endif

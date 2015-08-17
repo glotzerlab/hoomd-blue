@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,11 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #ifndef __PARTICLE_DATA_H__
 #define __PARTICLE_DATA_H__
 
@@ -81,6 +76,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/python.hpp>
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
@@ -95,11 +91,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stack>
 
 using namespace std;
-
-// windows doesn't understand __restrict__, it is __restrict instead
-#ifdef WIN32
-#define __restrict__ __restrict
-#endif
 
 /*! \ingroup hoomd_lib
     @{
@@ -168,14 +159,15 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
- * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
+ * (such as type, mass, diameter). Then a snapshot of this initial state is taken and passed to the
  * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
  * ParticleData, which in turn initializes its internal arrays from the snapshot using ParticleData::initializeFromSnapshot().
  *
- * To support the second scenerio it is necessary that particles can be accessed in global tag order. Therefore,
+ * To support the second scenario it is necessary that particles can be accessed in global tag order. Therefore,
  * the data in a snapshot is stored in global tag order.
  * \ingroup data_structs
  */
+template <class Real>
 struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
@@ -208,21 +200,46 @@ struct SnapshotParticleData {
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box);
 
-    std::vector<Scalar3> pos;       //!< positions
-    std::vector<Scalar3> vel;       //!< velocities
-    std::vector<Scalar3> accel;     //!< accelerations
-    std::vector<unsigned int> type; //!< types
-    std::vector<Scalar> mass;       //!< masses
-    std::vector<Scalar> charge;     //!< charges
-    std::vector<Scalar> diameter;   //!< diameters
-    std::vector<int3> image;        //!< images
-    std::vector<unsigned int> body; //!< body ids
-    std::vector<Scalar4> orientation; //!< orientations
-    std::vector<Scalar4> angmom;    //!< Angular momentum quaternion
-    std::vector<Scalar3> inertia; //!< Principal moments of inertia
+    //! Get pos as a numpy array
+    boost::python::numeric::array getPosNP();
+    //! Get vel as a numpy array
+    boost::python::numeric::array getVelNP();
+    //! Get accel as a numpy array
+    boost::python::numeric::array getAccelNP();
+    //! Get type as a numpy array
+    boost::python::numeric::array getTypeNP();
+    //! Get mass as a numpy array
+    boost::python::numeric::array getMassNP();
+    //! Get charge as a numpy array
+    boost::python::numeric::array getChargeNP();
+    //! Get diameter as a numpy array
+    boost::python::numeric::array getDiameterNP();
+    //! Get image as a numpy array
+    boost::python::numeric::array getImageNP();
+    //! Get body as a numpy array
+    boost::python::numeric::array getBodyNP();
+    //! Get orientation as a numpy array
+    boost::python::numeric::array getOrientationNP();
+    //! Get the type names for python
+    boost::python::list getTypes();
+    //! Set the type names from python
+    void setTypes(boost::python::list types);
 
-    unsigned int size;              //!< number of particles in this snapshot
-    std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
+    std::vector< vec3<Real> > pos;             //!< positions
+    std::vector< vec3<Real> > vel;             //!< velocities
+    std::vector< vec3<Real> > accel;           //!< accelerations
+    std::vector<unsigned int> type;            //!< types
+    std::vector<Real> mass;                    //!< masses
+    std::vector<Real> charge;                  //!< charges
+    std::vector<Real> diameter;                //!< diameters
+    std::vector<int3> image;                   //!< images
+    std::vector<unsigned int> body;            //!< body ids
+    std::vector< quat<Real> > orientation;     //!< orientations
+    std::vector< quat<Real> > angmom;          //!< angular momentum quaternion
+    std::vector< vec3<Real> > inertia;         //!< principal moments of inertia
+
+    unsigned int size;                         //!< number of particles in this snapshot
+    std::vector<std::string> type_mapping;     //!< Mapping between particle type ids and names
     };
 
 //! Structure to store packed particle data
@@ -371,7 +388,8 @@ class ParticleData : boost::noncopyable
                      );
 
         //! Construct using a ParticleDataSnapshot
-        ParticleData(const SnapshotParticleData& snapshot,
+        template<class Real>
+        ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf,
                      boost::shared_ptr<DomainDecomposition> decomposition
@@ -834,10 +852,12 @@ class ParticleData : boost::noncopyable
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
         //! Initialize from a snapshot
-        void initializeFromSnapshot(const SnapshotParticleData & snapshot);
+        template <class Real>
+        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot);
 
         //! Take a snapshot
-        void takeSnapshot(SnapshotParticleData &snapshot);
+        template <class Real>
+        void takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
@@ -916,7 +936,7 @@ class ParticleData : boost::noncopyable
         void removeParticle(unsigned int tag);
 
         //! Return the nth active global tag
-        unsigned int getNthTag(unsigned int n) const;
+        unsigned int getNthTag(unsigned int n);
 
         //! Add particle types
         /*! \param Name of type to add
@@ -990,6 +1010,8 @@ class ParticleData : boost::noncopyable
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
+        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.
@@ -1044,11 +1066,15 @@ class ParticleData : boost::noncopyable
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);
 
+        //! Helper function to rebuild the active tag cache if necessary
+        void maybe_rebuild_tag_cache();
+
         //! Helper function to check that particles of a snapshot are in the box
         /*! \return true If and only if all particles are in the simulation box
          * \param Snapshot to check
          */
-        bool inBox(const SnapshotParticleData& snap);
+        template <class Real>
+        bool inBox(const SnapshotParticleData<Real>& snap);
     };
 
 
@@ -1059,8 +1085,4 @@ void export_ParticleData();
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

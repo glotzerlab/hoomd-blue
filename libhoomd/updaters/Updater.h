@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
-
 #include "SystemDefinition.h"
 #include "Profiler.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
@@ -188,14 +188,10 @@ class Updater : boost::noncopyable
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
-        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
-        // merge conflicts.
     };
 
 //! Export the Updater class to python

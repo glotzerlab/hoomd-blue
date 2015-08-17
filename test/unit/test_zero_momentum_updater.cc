@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -207,7 +203,3 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_rigid )
     MY_BOOST_CHECK_SMALL(avg_py, tol_small);
     MY_BOOST_CHECK_SMALL(avg_pz, tol_small);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

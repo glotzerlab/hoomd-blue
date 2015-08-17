@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -80,8 +80,11 @@ class NeighborListBinned : public NeighborList
         //! Destructor
         virtual ~NeighborListBinned();
 
-        //! Change the cuttoff radius
+        //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Set the cutoff radius by pair type
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);

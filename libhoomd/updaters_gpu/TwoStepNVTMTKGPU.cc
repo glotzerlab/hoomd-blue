@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,15 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
 
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.cuh"
@@ -68,6 +60,11 @@ using namespace boost;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
+#include <boost/bind.hpp>
+using namespace boost;
 
 /*! \file TwoStepNVTMTKGPU.h
     \brief Contains code for the TwoStepNVTMTKGPU class
@@ -89,7 +86,7 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVTMTK(sysdef, group, thermo, tau, T, suffix)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVTMTKPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTMTKGPU");
@@ -102,6 +99,21 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
+    m_tuner_rescale.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_rescale", this->m_exec_conf));
+
+    // generate power-of-two block sizes
+    valid_params.clear();
+    for (unsigned int block_size = 32; block_size <= 1024; block_size *= 2)
+        {
+        valid_params.push_back(block_size);
+        }
+    m_tuner_reduce.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_reduce", this->m_exec_conf));
+
+    GPUVector< Scalar > scratch(m_exec_conf);
+    m_scratch.swap(scratch);
+
+    GPUArray< Scalar> temperature(1, m_exec_conf, true);
+    m_temperature.swap(temperature);
     }
 
 /*! \param timestep Current time step
@@ -115,7 +127,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT MTK step 1");
+        m_prof->push(m_exec_conf, "NVT MTK step 1");
 
         {
         // access all the needed data
@@ -140,7 +152,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
                          m_exp_thermo_fac,
                          m_deltaT);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_one->end();
         }
@@ -167,16 +179,42 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
                              m_deltaT,
                              exp_fac);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     // advance thermostat
-    advanceThermostat(timestep);
+    advanceThermostat(timestep, false);
+
+    // access all the needed data
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
+    BoxDim box = m_pdata->getBox();
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+    // perform the update on the GPU
+    m_tuner_one->begin();
+    gpu_nvt_mtk_step_one(d_pos.data,
+                     d_vel.data,
+                     d_accel.data,
+                     d_image.data,
+                     d_index_array.data,
+                     group_size,
+                     box,
+                     m_tuner_one->getParam(),
+                     m_exp_thermo_fac,
+                     m_deltaT);
+
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_one->end();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -190,7 +228,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT MTK step 2");
+        m_prof->push(m_exec_conf, "NVT MTK step 2");
 
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
@@ -209,7 +247,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
                      m_deltaT,
                      m_exp_thermo_fac);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
@@ -235,13 +273,13 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
                                  m_deltaT,
                                  exp_fac);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNVTMTKGPU()
@@ -256,7 +294,3 @@ void export_TwoStepNVTMTKGPU()
                           >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

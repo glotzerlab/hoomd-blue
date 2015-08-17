@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -183,13 +183,16 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
 
     MPI_Bcast(buf, recv_count, MPI_BYTE, root, mpi_comm);
 
-    // de-serialize
-    std::string str(buf,recv_count);
-    boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
-    boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
-    boost::archive::binary_iarchive ar(s);
+    if (rank != (int)root)
+        {
+        // de-serialize
+        std::string str(buf,recv_count);
+        boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
+        boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+        boost::archive::binary_iarchive ar(s);
 
-    ar >> val;
+        ar >> val;
+        }
 
     delete[] buf;
     }

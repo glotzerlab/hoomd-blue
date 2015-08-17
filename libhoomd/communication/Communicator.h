@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -87,6 +87,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! @}
 */
 
+//! a define to indicate API requirements
+#define HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
+
 //! Forward declarations for some classes
 class SystemDefinition;
 class Profiler;
@@ -158,6 +161,37 @@ struct comm_flags_bitwise_or
 
         CommFlags return_value(0);
         while (first != last) return_value |= *first++;
+
+        return return_value;
+        }
+    };
+
+//! Perform a maximum reduction on the return values of several signals
+struct ghost_layer_max
+    {
+    //! This is needed by boost::signals2
+    typedef Scalar result_type;
+
+    //! Max-reduce return values
+    /*! \param first First return value
+        \param last Last return value
+     */
+    template<typename InputIterator>
+    Scalar operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last)
+            {
+            return Scalar(0.0);
+            }
+
+        Scalar return_value = *first++;
+        while (first != last)
+            {
+            assert(*first >= Scalar(0.0));
+            if (*first > return_value)
+                return_value = *first;
+            first++;
+            }
 
         return return_value;
         }
@@ -262,6 +296,16 @@ class Communicator
             return m_migrate_requests.connect(subscriber);
             }
 
+        //! Subscribe to list of functions that request a minimum ghost layer width
+        /*! This method keeps track of all functions that request a minimum ghost layer widht
+         * The actual ghost layer width is chosen from the max over the inputs
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar ()>& subscriber)
+            {
+            return m_ghost_layer_width_requests.connect(subscriber);
+            }
+
         //! Subscribe to list of functions that determine the communication flags
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
@@ -270,6 +314,7 @@ class Communicator
             {
             return m_requested_flags.connect(subscriber);
             }
+
 
         //! Subscribe to list of call-backs for additional communication
         /*!
@@ -321,6 +366,8 @@ class Communicator
             return m_compute_callbacks.connect(subscriber);
             }
 
+        //! Get the ghost communication flags
+        CommFlags getFlags() { return m_flags; }
 
         //! Set width of ghost layer
         /*! \param ghost_width The width of the ghost layer
@@ -331,24 +378,11 @@ class Communicator
             m_r_ghost = ghost_width;
             }
 
-        //! Set skin layer width
-        /*! \param r_buff The width of the skin buffer
-         */
-        void setRBuff(Scalar r_buff)
+        //! Get the current ghost layer width
+        Scalar getGhostLayerWidth() const
             {
-            assert(r_buff > 0);
-
-            m_r_buff = r_buff;
+            return m_r_ghost;
             }
-
-        //! Return current skin layer width
-        Scalar getRBuff()
-            {
-            return m_r_buff;
-            }
-
-        //! Get the ghost communication flags
-        CommFlags getFlags() { return m_flags; }
 
         //! Set the ghost communication flags
         /*! \note Flags will be available after the next call to communicate().
@@ -576,6 +610,9 @@ class Communicator
 
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
+
+        boost::signals2::signal<Scalar(), ghost_layer_max>
+            m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication

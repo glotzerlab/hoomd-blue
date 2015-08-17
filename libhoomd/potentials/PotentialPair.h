@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,6 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
+#include "num_util.h"
+#include <boost/python/stl_iterator.hpp>
 
 #include "HOOMDMath.h"
 #include "Index1D.h"
@@ -68,10 +70,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 /*! \file PotentialPair.h
     \brief Defines the template class for standard pair potentials
@@ -173,6 +171,15 @@ class PotentialPair : public ForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
+        //! Calculates the energy between two lists of particles.
+        template< class InputIterator >
+        void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
+                                            InputIterator first2, InputIterator last2,
+                                            Scalar& energy );
+        //! Calculates the energy between two lists of particles.
+        Scalar computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
+                                                    boost::python::numeric::array tags2);
+
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
@@ -192,11 +199,11 @@ class PotentialPair : public ForceCompute
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
 
@@ -221,11 +228,11 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     assert(m_pdata);
     assert(m_nlist);
 
-    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     // initialize name
@@ -359,7 +366,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNListIndexer();
+//     Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -412,11 +420,12 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         Scalar virialzzi = 0.0;
 
         // loop over all of the neighbors of this particle
+        const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_nlist.data[nli(i, k)];
+            unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
@@ -577,6 +586,177 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
     }
 #endif
 
+
+//! function to compute the energy between two lists of particles.
+//! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
+//! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
+template< class evaluator >
+template< class InputIterator >
+inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
+                                                                    InputIterator first2, InputIterator last2,
+                                                                    Scalar& energy )
+    {
+    // start the profile for this compute
+    if (m_prof) m_prof->push(m_prof_name);
+
+    if( first1 == last1 || first2 == last2 )
+        return;
+
+    energy = Scalar(0.0);
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    // for each particle in tags1
+    while (first1 != last1)
+        {
+        unsigned int i = h_rtags.data[*first1]; first1++;
+        if (i >= m_pdata->getN()) // not owned by this processor.
+            continue;
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+
+        // sanity check
+        assert(typei < m_pdata->getNTypes());
+
+        // access diameter and charge (if needed)
+        Scalar di = Scalar(0.0);
+        Scalar qi = Scalar(0.0);
+        if (evaluator::needsDiameter())
+            di = h_diameter.data[i];
+        if (evaluator::needsCharge())
+            qi = h_charge.data[i];
+
+        // loop over all particles in tags2
+        for (InputIterator iter = first2; iter != last2; ++iter)
+            {
+            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+            unsigned int j = h_rtags.data[*iter];
+            if (j >= m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor at all
+                continue;
+            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
+
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+            assert(typej < m_pdata->getNTypes());
+
+            // access diameter and charge (if needed)
+            Scalar dj = Scalar(0.0);
+            Scalar qj = Scalar(0.0);
+            if (evaluator::needsDiameter())
+                dj = h_diameter.data[j];
+            if (evaluator::needsCharge())
+                qj = h_charge.data[j];
+
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
+
+            // calculate r_ij squared (FLOPS: 5)
+            Scalar rsq = dot(dx, dx);
+
+            // get parameters for this type pair
+            unsigned int typpair_idx = m_typpair_idx(typei, typej);
+            param_type param = h_params.data[typpair_idx];
+            Scalar rcutsq = h_rcutsq.data[typpair_idx];
+            Scalar ronsq = Scalar(0.0);
+            if (m_shift_mode == xplor)
+                ronsq = h_ronsq.data[typpair_idx];
+
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
+            bool energy_shift = false;
+            if (m_shift_mode == shift)
+                energy_shift = true;
+            else if (m_shift_mode == xplor)
+                {
+                if (ronsq > rcutsq)
+                    energy_shift = true;
+                }
+
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, qj);
+
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+            if (evaluated)
+                {
+                // modify the potential for xplor shifting
+                if (m_shift_mode == xplor)
+                    {
+                    if (rsq >= ronsq && rsq < rcutsq)
+                        {
+                        // Implement XPLOR smoothing (FLOPS: 16)
+                        Scalar old_pair_eng = pair_eng;
+                        Scalar old_force_divr = force_divr;
+
+                        // calculate 1.0 / (xplor denominator)
+                        Scalar xplor_denom_inv =
+                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                        // make modifications to the old pair energy and force
+                        pair_eng = old_pair_eng * s;
+                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
+                        // But this is verified correct via plotting
+                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                        }
+                    }
+                energy += pair_eng;
+                }
+            }
+        }
+    #ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    if (m_prof) m_prof->pop();
+    }
+
+//! Calculates the energy between two lists of particles.
+template < class evaluator >
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
+                                                                        boost::python::numeric::array tags2 )
+    {
+    Scalar eng = 0.0;
+    num_util::check_contiguous(tags1);
+    num_util::check_rank(tags1, 1);
+    num_util::check_type(tags1, NPY_INT);
+    unsigned int* itags1 = (unsigned int*)num_util::data(tags1);
+
+    num_util::check_contiguous(tags2);
+    num_util::check_rank(tags2, 1);
+    num_util::check_type(tags2, NPY_INT);
+    unsigned int* itags2 = (unsigned int*)num_util::data(tags2);
+    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
+                                itags2, itags2+num_util::size(tags2),
+                                eng);
+    return eng;
+    }
+
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -590,6 +770,7 @@ template < class T > void export_PotentialPair(const std::string& name)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
                   .def("setShiftMode", &T::setShiftMode)
+                  .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
                   ;
 
     boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
@@ -599,8 +780,5 @@ template < class T > void export_PotentialPair(const std::string& name)
     ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif // __POTENTIAL_PAIR_H__

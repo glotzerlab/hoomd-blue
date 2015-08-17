@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,16 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 #include "TwoStepNPTMTK.h"
 #include "VectorMath.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
@@ -738,7 +735,6 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
@@ -947,7 +943,3 @@ void export_TwoStepNPTMTK()
     .value("baro_yz", TwoStepNPTMTK::baro_yz)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 #include <fstream>
@@ -62,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -93,7 +89,7 @@ void fslj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Exec
     pdata_2->setPosition(0, make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1, make_scalar3(1.3,0.0,0.0));
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.5), Scalar(0.4)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.5), Scalar(0.4)));
     boost::shared_ptr<PotentialPairForceShiftedLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(1.5));
     fc_no_shift->setShiftMode(PotentialPairForceShiftedLJ::no_shift);
@@ -172,8 +168,4 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     fslj_force_particle_test(lj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

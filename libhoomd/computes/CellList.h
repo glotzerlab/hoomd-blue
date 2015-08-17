@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,13 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
 #include "GPUArray.h"
 #include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file CellList.h
     \brief Declares the CellList class
@@ -236,6 +237,13 @@ class CellList : public Compute
                 m_multiple = 1;
             }
 
+        //! Set the sort flag
+        void setSortCellList(bool sort)
+            {
+            m_sort_cell_list = sort;
+            m_params_changed = true;
+            }
+
         // @}
         //! \name Get properties
         // @{
@@ -374,6 +382,8 @@ class CellList : public Compute
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
         boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+
+        bool m_sort_cell_list;               //!< If true, sort cell list
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();

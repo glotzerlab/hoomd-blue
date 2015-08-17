@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -170,6 +170,8 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         std::vector<unsigned int> node_ranks(m_max_n_node);
         std::set<std::string>::iterator node_it = m_nodes.begin();
 
+        std::set<unsigned int> node_rank_set;
+
         // iterate over node grid
         for (unsigned int ix_node = 0; ix_node < m_node_grid.getW(); ix_node++)
             for (unsigned int iy_node = 0; iy_node < m_node_grid.getH(); iy_node++)
@@ -179,15 +181,25 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                     typedef std::multimap<std::string, unsigned int> map_t;
                     std::string node = *(node_it++);
                     std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(node);
-                    map_t::iterator it = p.first;
+
+                    // Insert ranks per node into an ordered set (multimap doesn't guarantee order
+                    // and thus order can be different on different ranks, especially after deserialization)
+                    node_rank_set.clear();
+                    for (map_t::iterator it = p.first; it != p.second; ++it)
+                        {
+                        node_rank_set.insert(it->second);
+                        }
+
+                    std::set<unsigned int>::iterator set_it;
 
                     std::ostringstream oss;
                     oss << "Node " << node << ": ranks";
-                    for (unsigned int i = 0; i < m_max_n_node; ++i)
+                    unsigned int i = 0;
+                    for (set_it= node_rank_set.begin(); set_it != node_rank_set.end(); ++set_it)
                         {
-                        unsigned int r = (it++)->second;
+                        unsigned int r = *set_it;
                         oss << " " << r;
-                        node_ranks[i] = r;
+                        node_ranks[i++] = r;
                         }
                     m_exec_conf->msg->notice(5) << oss.str() << std::endl;
 

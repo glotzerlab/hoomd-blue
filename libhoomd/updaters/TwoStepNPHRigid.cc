@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,16 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 #include "QuaternionMath.h"
 #include "TwoStepNPHRigid.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 #include <math.h>
 
 /*! \file TwoStepNPHRigid.cc
@@ -136,6 +133,8 @@ TwoStepNPHRigid::TwoStepNPHRigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         setRestartIntegratorVariables();
         }
+
+    setup();
     }
 
 TwoStepNPHRigid::~TwoStepNPHRigid()
@@ -275,12 +274,6 @@ void TwoStepNPHRigid::setup()
 */
 void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;
@@ -552,7 +545,3 @@ void export_TwoStepNPHRigid()
                        Scalar,
                        boost::shared_ptr<Variant> >());
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

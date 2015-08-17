@@ -1,22 +1,20 @@
 # Maintainer: joaander
 
 ###############################
-# UNIX like OSes need a few settings for the unit test library
-if (NOT WIN32)
-    # first, they need the boost unit test framework added as a library
-    set(ADDITIONAL_LIBS libhoomd
-            ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-            )
+# need a few settings for the unit test library
+# first, they need the boost unit test framework added as a library
+set(ADDITIONAL_LIBS libhoomd
+        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+        )
 
-    # then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
 
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-endif (NOT WIN32)
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
 ####################################
 ## Setup valgrind options
@@ -68,6 +66,7 @@ set(TEST_LIST
     test_external_periodic
     test_neighborlist
     test_lj_force
+    test_mie_force
     test_table_potential
     test_bondtable_bond_force
     test_slj_force
@@ -78,7 +77,6 @@ set(TEST_LIST
     test_force_shifted_lj
     test_nve_integrator
     test_nvt_integrator
-    test_nvt_mtk_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
     test_temp_rescale_updater
@@ -94,16 +92,22 @@ set(TEST_LIST
     test_table_angle_force
     test_gridshift_correct
     test_gayberne_force
+    test_opls_dihedral_force
     )
 
+option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
+
+if (NOT HOOMD_SKIP_LONG_TESTS)
     # put the longest tests last
-    set(TEST_LIST ${TEST_LIST}
+set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
     test_dpd_integrator
     test_bd_rigid_updater
-    test_npt_mtk_integrator)
+    test_npt_mtk_integrator
+    test_nvt_mtk_integrator)
+endif()
 
-if(ENABLE_MPI)
+if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
     SET("NProc_${_KEY}" "${_VALUE}")
     SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
@@ -112,9 +116,12 @@ if(ENABLE_MPI)
     # define every test together with the number of processors
     ADD_TO_MPI_TESTS(test_communication 8)
     ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
-endif(ENABLE_MPI)
+endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
+    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
+    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc

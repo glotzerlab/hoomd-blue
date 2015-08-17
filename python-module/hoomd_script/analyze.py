@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -54,6 +54,7 @@ from hoomd_script import globals;
 import sys;
 from hoomd_script import util;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -120,7 +121,7 @@ from hoomd_script import init;
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the analyzer and changing the
 # period which the system calls it
-class _analyzer:
+class _analyzer(meta._metadata):
     ## \internal
     # \brief Constructs the analyzer
     #
@@ -141,22 +142,31 @@ class _analyzer:
         self.analyzer_name = "analyzer%d" % (id);
         self.enabled = True;
 
+        # Store a reference in global simulation variables
+        globals.analyzers.append(self)
+
+        # base class constructor
+        meta._metadata.__init__(self)
+
     ## \internal
     # \brief Helper function to setup analyzer period
     #
     # \param period An integer or callable function period
+    # \param phase Phase parameter
     #
     # If an integer is specified, then that is set as the period for the analyzer.
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupAnalyzer(self, period):
+    def setupAnalyzer(self, period, phase=-1):
+        self.phase = phase;
+
         if type(period) == type(1.0):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period), phase);
         elif type(period) == type(1):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period, phase);
         elif type(period) == type(lambda n: n*2):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
             globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
             globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
@@ -235,7 +245,7 @@ class _analyzer:
             globals.msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
 
-        globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period);
+        globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
         self.enabled = True;
 
     ## Changes the period between analyzer executions
@@ -249,7 +259,8 @@ class _analyzer:
     # \endcode
     #
     # While the simulation is \ref run() "running", the action of each analyzer
-    # is executed every \a period time steps.
+    # is executed every \a period time steps. Changing the period does not change the phase set when the analyzer
+    # was first created.
     #
     # To use this command, you must have saved the analyzer in a variable, as
     # shown in this example:
@@ -260,16 +271,24 @@ class _analyzer:
     # \endcode
     def set_period(self, period):
         util.print_status_line();
+        self.period = period;
 
         if type(period) == type(1):
             if self.enabled:
-                globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+                globals.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
             globals.msg.warning("A period cannot be changed to a variable one");
         else:
             globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        return data
 
 # set default counter
 _analyzer.cur_id = 0;
@@ -299,6 +318,7 @@ class imd(_analyzer):
     # \param pause Set to True to \b pause the simulation at the first time step until an imd connection is made
     # \param force Give a saved force.constant to analyze.imd to apply forces received from VMD
     # \param force_scale Factor by which to scale all forces received from VMD
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -308,7 +328,7 @@ class imd(_analyzer):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1):
+    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -322,7 +342,7 @@ class imd(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, pause, rate, cpp_force);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
 
 ## Logs a number of calculated quantities to a file
@@ -430,6 +450,7 @@ class log(_analyzer):
     # \param header_prefix (optional) Specify a string to print before the header
     # \param overwrite When False (the default) an existing log will be appended to.
     #                  If True, an existing log file will be overwritten instead.
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -462,7 +483,7 @@ class log(_analyzer):
     # to log and in the same order for all runs of hoomd that append to the same log.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False):
+    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -470,7 +491,7 @@ class log(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix, overwrite);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
         # set the logged quantities
         quantity_list = hoomd.std_vector_string();
@@ -480,6 +501,11 @@ class log(_analyzer):
 
         # add the logger to the list of loggers
         globals.loggers.append(self);
+
+        # store metadata
+        self.metadata_fields = ['filename','period']
+        self.filename = filename
+        self.period = period
 
     ## Change the parameters of the log
     #
@@ -569,6 +595,7 @@ class msd(_analyzer):
     # \param header_prefix (optional) Specify a string to print before the header
     # \param r0_file hoomd_xml file specifying the positions (and images) to use for \f$ \vec{r}_0 \f$
     # \param overwrite set to True to overwrite the file \a filename if it exists
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -598,7 +625,7 @@ class msd(_analyzer):
     # analyze.msd command is used to initialize \f$ \vec{r}_0 \f$.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False):
+    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -606,7 +633,7 @@ class msd(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix, overwrite);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
         # it is an error to specify no groups
         if len(groups) == 0:
@@ -639,3 +666,31 @@ class msd(_analyzer):
 
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
+
+## Callback analyzer
+#
+# Create an analyzer that runs a given python callback method at a defined period.
+#
+class callback(_analyzer):
+    ## Initialize the callback analyzer
+    #
+    # \param callback The python callback object
+    # \param period The callback is called every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    # \b Examples:
+    # \code
+    # def my_callback(timestep):
+    #   print(timestep)
+    #
+    # analyze.callback(callback = my_callback, period = 100)
+    # \endcode
+    def __init__(self, callback, period, phase=-1):
+        util.print_status_line();
+
+        # initialize base class
+        _analyzer.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.CallbackAnalyzer(globals.system_definition, callback)
+        self.setupAnalyzer(period, phase);

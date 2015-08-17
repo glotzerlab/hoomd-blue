@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 
 
@@ -68,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PPPMForceComputeGPU.h"
 #endif
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -104,7 +100,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
@@ -175,7 +171,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
@@ -284,8 +280,4 @@ BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_triclinic )
     pppm_force_particle_test_triclinic(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

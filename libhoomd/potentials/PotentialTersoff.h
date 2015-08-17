@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -63,10 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 /*! \file PotentialTersoff.h
     \brief Defines the template class for standard three-body potentials
@@ -162,11 +158,11 @@ class PotentialTersoff : public ForceCompute
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
 
@@ -190,11 +186,11 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
     assert(m_pdata);
     assert(m_nlist);
 
-    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     // initialize name
@@ -332,7 +328,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -355,6 +351,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        const unsigned int head_i = h_head_list.data[i];
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
@@ -367,7 +364,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         for (unsigned int j = 0; j < size; j++)
             {
             // access the index of neighbor j (MEM TRANSFER: 1 scalar)
-            unsigned int jj = h_nlist.data[nli(i, j)];
+            unsigned int jj = h_nlist.data[head_i + j];
             assert(jj < m_pdata->getN());
 
             // access the position and type of particle j
@@ -406,7 +403,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 for (unsigned int k = 0; k < size; k++)
                     {
                     // access the index of neighbor k
-                    unsigned int kk = h_nlist.data[nli(i,k)];
+                    unsigned int kk = h_nlist.data[head_i + k];
                     assert(kk < m_pdata->getN());
 
                     // access the position and type of neighbor k
@@ -464,7 +461,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 for (unsigned int k = 0; k < size; k++)
                     {
                     // access the index of neighbor k
-                    unsigned int kk = h_nlist.data[nli(i, k)];
+                    unsigned int kk = h_nlist.data[head_i + k];
                     assert(kk < m_pdata->getN());
 
                     // access the position and type of neighbor k
@@ -565,8 +562,5 @@ template < class T > void export_PotentialTersoff(const std::string& name)
                   ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif

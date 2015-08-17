@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,105 +49,108 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "HOOMDVersion.h"
 #include <iostream>
+#include <sstream>
 #include <string>
+
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
 
 using namespace std;
 
-#include "HOOMDVersion.h"
 /*! \file HOOMDVersion.cc
-    \brief Defines functions for writing compile time version information to the screen.
+    \brief Defines functions for formatting compile time version information as a string.
 
     \ingroup utils
 */
 
-void output_version_info(bool verbose)
+std::string hoomd_compile_flags()
     {
-    #ifdef ENABLE_MPI
-    // only print this on rank zero
-    if (ExecutionConfiguration::getRankGlobal() != 0)
-        return;
-    #endif
-
-    // output the version info that comes from CMake
-    cout << "HOOMD-blue " << HOOMD_VERSION_LONG;
+    ostringstream o;
 
     #ifdef ENABLE_CUDA
-    cout << " CUDA";
+    int cudart_major = CUDART_VERSION / 1000;
+    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+
+    o << "CUDA (" << cudart_major << "." << cudart_minor << ") ";
     #endif
 
     #ifdef SINGLE_PRECISION
-    cout << " SINGLE";
+    o << "SINGLE ";
     #else
-    cout << " DOUBLE";
+    o << "DOUBLE ";
     #endif
 
     #ifdef ENABLE_MPI
-    cout << " MPI";
+    o << "MPI ";
     #endif
 
     #ifdef ENABLE_MPI_CUDA
-    cout << " MPI_CUDA";
+    o << "MPI_CUDA ";
     #endif
 
     #ifdef __SSE__
-    cout << " SSE";
+    o << "SSE ";
     #endif
 
     #ifdef __SSE2__
-    cout << " SSE2";
+    o << "SSE2 ";
     #endif
 
     #ifdef __SSE3__
-    cout << " SSE3";
+    o << "SSE3 ";
     #endif
 
     #ifdef __SSE4_1__
-    cout << " SSE4_1";
+    o << "SSE4_1 ";
     #endif
 
     #ifdef __SSE4_2__
-    cout << " SSE4_2";
+    o << "SSE4_2 ";
     #endif
 
     #ifdef __AVX__
-    cout << " AVX";
+    o << "AVX ";
     #endif
 
     #ifdef __AVX2__
-    cout << " AVX2";
+    o << "AVX2 ";
     #endif
 
-    cout << endl;
+    return o.str();
+    }
+
+string output_version_info()
+    {
+    ostringstream o;
+    // output the version info that comes from CMake
+    o << "HOOMD-blue " << HOOMD_VERSION_LONG;
+
+    o << " " << hoomd_compile_flags();
+
+    o << endl;
 
     // output the compiled date and copyright information
-    cout << "Compiled: " << COMPILE_DATE << endl;
-    cout << "Copyright 2009-2014 The Regents of the University of Michigan."
-         << endl;
+    o << "Compiled: " << COMPILE_DATE << endl;
+    o << "Copyright 2009-2015 The Regents of the University of Michigan." << endl << endl;
 
     // output the paper citation information
-    cout << "-----" << endl;
-    cout << "All publications and presentations based on HOOMD-blue, including any reports" << endl;
-    cout << "or published results obtained, in whole or in part, with HOOMD-blue, will" << endl;
-    cout << "acknowledge its use according to the terms posted at the time of submission on:" << endl;
-    cout << "http://codeblue.umich.edu/hoomd-blue/citations.html" << endl;
-    cout << endl;
-    cout << "At a minimum, this includes citations of:" << endl;
-    cout << "* http://codeblue.umich.edu/hoomd-blue/" << endl;
-    cout << "and:" << endl;
-    cout << "* Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
-    cout << "  Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;
-    cout << "  Units', Journal of Computational Physics 227 (2008) 5342-5359" << endl;
-    cout << "-----" << endl;
+    o << "All publications and presentations based on HOOMD-blue, including any reports" << endl;
+    o << "or published results obtained, in whole or in part, with HOOMD-blue, will" << endl;
+    o << "acknowledge its use according to the terms posted at the time of submission on:" << endl;
+    o << "http://codeblue.umich.edu/hoomd-blue/citations.html" << endl;
 
     // warn the user if they are running a debug or GPU emulation build
 #ifndef NDEBUG
-    cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
+    o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 #endif
 
 #ifdef ENABLE_CUDA
 #ifdef _DEVICEEMU
-    cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
+    o << endl << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
 #endif
 #endif
+    return o.str();
     }

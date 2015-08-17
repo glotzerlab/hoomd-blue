@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,18 +47,19 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <iostream>
-#include <stdexcept>
-#include <algorithm>
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "Autotuner.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
+
+#include <iostream>
+#include <stdexcept>
+#include <algorithm>
+#include <cfloat>
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 using namespace std;
 

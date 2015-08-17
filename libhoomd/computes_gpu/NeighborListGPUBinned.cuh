@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -66,12 +66,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const unsigned int min_threads_per_particle=1;
 const unsigned int max_threads_per_particle=WARP_SIZE;
 
-//! Kernel driver for gpu_compute_nlist_shared_kernel()
-cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
+//! Kernel driver for gpu_compute_nlist_kernel()
+cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
-                                     const Index2D& nli,
+                                     const unsigned int *d_Nmax,
+                                     const unsigned int *d_head_list,
                                      const Scalar4 *d_pos,
                                      const unsigned int *d_body,
                                      const Scalar *d_diameter,
@@ -84,34 +85,13 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const Index2D& cli,
                                      const Index2D& cadji,
                                      const BoxDim& box,
-                                     const Scalar r_maxsq,
+                                     const Scalar *d_r_cut,
+                                     const Scalar r_buff,
+                                     const unsigned int ntypes,
                                      const unsigned int threads_per_particle,
                                      const unsigned int block_size,
                                      bool filter_body,
-                                     bool filter_diameter,
+                                     bool diameter_shift,
                                      const Scalar3& ghost_width,
                                      const unsigned int compute_capability);
-
-//! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
-cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
-                                        unsigned int *d_n_neigh,
-                                        Scalar4 *d_last_updated_pos,
-                                        unsigned int *d_conditions,
-                                        const Index2D& nli,
-                                        const Scalar4 *d_pos,
-                                        const unsigned int *d_body,
-                                        const Scalar *d_diameter,
-                                        const unsigned int N,
-                                        const unsigned int *d_cell_size,
-                                        const cudaArray *dca_cell_xyzf,
-                                        const cudaArray *dca_cell_tdb,
-                                        const cudaArray *dca_cell_adj,
-                                        const Index3D& ci,
-                                        const BoxDim& box,
-                                        const Scalar r_maxsq,
-                                        const unsigned int block_size,
-                                        bool filter_body,
-                                        bool filter_diameter,
-                                        const Scalar3& ghost_width);
-
 #endif

@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -55,6 +55,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 import math;
 import sys;
@@ -220,6 +221,11 @@ class coeff:
             raise RuntimeError("Error setting dihedral coeff");
 
         return self.values[type][coeff_name];
+
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
 
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
@@ -520,3 +526,102 @@ class table(force._force):
           util._disable_status_lines = True;
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data
+
+## OPLS %dihedral force
+#
+# The command dihedral.opls specifies an OPLS-style %dihedral potential energy between every defined
+# quadruplet of particles in the simulation.
+# \f[ V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) + \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
+# + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) + \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right) \f]
+# where \f$ \phi \f$ is the angle between two sides of the dihedral and \f$ k_n \f$ are the %force coefficients
+# in the Fourier series (in energy units).
+#
+# \f$ k_1 \f$, \f$ k_2 \f$, \f$ k_3 \f$, and \f$ k_4 \f$ must be set for each type of %dihedral in the simulation using
+# set_coeff().
+#
+# \note Specifying the dihedral.opls command when no dihedrals are defined in the simulation results in an error.
+# \MPI_SUPPORTED
+class opls(force._force):
+    ## Specify the OPLS %dihedral %force
+    #
+    # \b Example:
+    # \code
+    # opls_di = dihedral.opls()
+    # \endcode
+    def __init__(self):
+        util.print_status_line();
+        # check that some dihedrals are defined
+        if globals.system_definition.getDihedralData().getNGlobal() == 0:
+            globals.msg.error("No dihedrals are defined.\n");
+            raise RuntimeError("Error creating opls dihedrals");
+
+        # initialize the base class
+        force._force.__init__(self);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.OPLSDihedralForceCompute(globals.system_definition);
+        else:
+            self.cpp_force = hoomd.OPLSDihedralForceComputeGPU(globals.system_definition);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # variable for tracking which dihedral type coefficients have been set
+        self.opls_types_set = [];
+
+    ## Sets the OPLS coefficients for a particular %dihedral type
+    #
+    # \param dihedral_type Dihedral type to set coefficients for
+    # \param k1 Force coefficient \f$ k_1 \f$ (in energy units)
+    # \param k2 Force coefficient \f$ k_2 \f$ (in energy units)
+    # \param k3 Force coefficient \f$ k_3 \f$ (in energy units)
+    # \param k4 Force coefficient \f$ k_4 \f$ (in energy units)
+    #
+    # Using set_coeff() requires that the specified %dihedral %force has been saved in a variable. i.e.
+    # \code
+    # opls_di = dihedral.opls()
+    # \endcode
+    #
+    # \b Example:
+    # \code
+    # opls_di.set_coeff('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
+    # \endcode
+    #
+    # The coefficients for every %dihedral type in the simulation must be set
+    # before the run() can be started.
+    def set_coeff(self, dihedral_type, k1, k2, k3, k4):
+        util.print_status_line();
+
+        # set the parameters for the appropriate type
+        self.cpp_force.setParams(globals.system_definition.getDihedralData().getTypeByName(dihedral_type),
+                                    k1, k2, k3, k4);
+
+        # track which particle types we have set
+        if not dihedral_type in self.opls_types_set:
+            self.opls_types_set.append(dihedral_type);
+
+    def update_coeffs(self):
+        # get a list of all dihedral types in the simulation
+        # check to see if all particle types have been set
+        ntypes = globals.system_definition.getDihedralData().getNTypes();
+        for i in range(0, ntypes):
+            cur_type = globals.system_definition.getDihedralData().getNameByType(i);
+            if not cur_type in self.opls_types_set:
+                globals.msg.error(str(cur_type) + " coefficients missing in dihedral.opls\n");
+                raise RuntimeError("Error updating coefficients");
+                
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        raise NotImplementedError()

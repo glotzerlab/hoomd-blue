@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,11 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+
 #include <string>
 
 #include <boost/shared_ptr.hpp>
-
-#include "Analyzer.h"
 
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__
@@ -93,7 +93,7 @@ class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
+        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
 
         //! Destructor
         ~HOOMDDumpWriter();
@@ -164,6 +164,7 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_moment_inertia;  //!< true if moment_inertia should be written
         Scalar m_vizsigma;          //!< vizsigma value to write out to xml files
         bool m_vizsigma_set;        //!< true if vizsigma has been set
+        bool m_mode_restart;        //!< true if we are writing restart files
         };
 
 //! Exports the HOOMDDumpWriter class to python

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,15 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
+
+#include "IntegrationMethodTwoStep.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "IntegrationMethodTwoStep.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -73,14 +70,13 @@ using namespace boost::python;
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group)
-    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()),
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
       m_deltaT(Scalar(0.0)), m_aniso(false), m_valid_restart(false)
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
-    m_exec_conf = exec_conf;
 
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }
@@ -241,7 +237,3 @@ void export_IntegrationMethodTwoStep()
 #endif
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

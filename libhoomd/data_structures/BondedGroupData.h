@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -63,10 +63,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Sentinel value to indicate group is not present on this processor
 const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
-#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "GPUVector.h"
 #include "Profiler.h"
 #include "Index1D.h"
+
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#include "BondedGroupData.cuh"
+#endif
 
 #include <boost/signals2.hpp>
 #include <boost/shared_ptr.hpp>
@@ -78,11 +83,6 @@ using namespace boost::python;
 #include <string>
 #include <sstream>
 #include <set>
-
-#ifdef ENABLE_CUDA
-#include "CachedAllocator.h"
-#include "BondedGroupData.cuh"
-#endif
 
 //! Forward declarations
 class ParticleData;
@@ -182,6 +182,7 @@ class BondedGroupData : boost::noncopyable
                 {
                 // provide default type mapping for one type
                 type_mapping.push_back(std::string(name) + "A");
+                size = 0;
                 }
 
             //! Constructor
@@ -200,8 +201,13 @@ class BondedGroupData : boost::noncopyable
              */
             void resize(unsigned int n_groups)
                 {
-                type_id.resize(n_groups);
-                groups.resize(n_groups);
+                // zero the newly created bonds
+                group_storage<group_size> def;
+                memset(&def, 0, sizeof(def));
+
+                type_id.resize(n_groups, 0);
+                groups.resize(n_groups, def);
+                size = n_groups;
                 }
 
             //! Validate the snapshot
@@ -219,9 +225,19 @@ class BondedGroupData : boost::noncopyable
              */
             void replicate(unsigned int n, unsigned int old_n_particles);
 
+            //! Get type as a numpy array
+            boost::python::numeric::array getTypeNP();
+            //! Get bonded tags as a numpy array
+            boost::python::numeric::array getBondedTagsNP();
+            //! Get the type names for python
+            boost::python::list getTypes();
+            //! Set the type names from python
+            void setTypes(boost::python::list types);
+
             std::vector<unsigned int> type_id;             //!< Stores type for each group
-            std::vector<members_t> groups;     //!< Stores the data for each group
+            std::vector<members_t> groups;                 //!< Stores the data for each group
             std::vector<std::string> type_mapping;         //!< Names of group types
+            unsigned int size;                             //!< Number of bonds in the snapshot
             };
 
         //! Constructor for empty BondedGroupData
@@ -274,7 +290,7 @@ class BondedGroupData : boost::noncopyable
         void setTypeName(unsigned int type, const std::string& new_name);
 
         //! Return the nth active global tag
-        unsigned int getNthTag(unsigned int n) const;
+        unsigned int getNthTag(unsigned int n);
 
         //! Return the maximum particle tag in the simulation
         unsigned int getMaximumTag() const
@@ -555,6 +571,8 @@ class BondedGroupData : boost::noncopyable
         unsigned int m_nglobal;                      //!< Global number of groups
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed groups
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
+        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
         boost::shared_ptr<Profiler> m_prof;          //!< Profiler
 
     private:
@@ -569,6 +587,9 @@ class BondedGroupData : boost::noncopyable
 
         //! Initialize internal memory
         void initialize();
+
+        //! Helper function to rebuild the active tag cache if necessary
+        void maybe_rebuild_tag_cache();
 
         //! Helper function to rebuild lookup by index table
         void rebuildGPUTable();

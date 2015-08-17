@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the CGCMMForceComputeGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "CGCMMForceComputeGPU.h"
 #include "cuda_runtime.h"
@@ -86,7 +82,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a CGCMMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMForceComputeGPU");
@@ -180,7 +176,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     m_nlist->compute(timestep);
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "CGCMM pair");
+    if (m_prof) m_prof->push(m_exec_conf, "CGCMM pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -194,8 +190,9 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
+    
     ArrayHandle<Scalar4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -213,11 +210,13 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              box,
                              d_n_neigh.data,
                              d_nlist.data,
-                             nli,
+                             d_head_list.data,
                              d_coeffs.data,
+                             this->m_nlist->getNListArray().getPitch(),
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,
-                             m_block_size);
+                             m_block_size,
+                             m_exec_conf->getComputeCapability()/10);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -235,7 +234,3 @@ void export_CGCMMForceComputeGPU()
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

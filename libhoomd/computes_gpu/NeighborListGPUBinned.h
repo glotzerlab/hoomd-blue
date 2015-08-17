@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -83,8 +83,11 @@ class NeighborListGPUBinned : public NeighborListGPU
         //! Destructor
         virtual ~NeighborListGPUBinned();
 
-        //! Change the cuttoff radius
+        //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change the cutoff radius by pair type
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
         //! Set the autotuner period
         void setTuningParam(unsigned int param)
@@ -102,15 +105,9 @@ class NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setPeriod(period/10);
             m_tuner->setEnabled(enable);
             }
-
+        
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
-
-        //! Enable/disable body filtering
-        virtual void setFilterBody(bool filter_body);
-
-        //! Enable/disable diameter filtering
-        virtual void setFilterDiameter(bool filter_diameter);
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
@@ -122,9 +119,9 @@ class NeighborListGPUBinned : public NeighborListGPU
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
-        unsigned int m_last_tuned_timestep; //!< Last tuning timestep
-
+        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
+        
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 

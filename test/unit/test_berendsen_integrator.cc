@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -82,7 +82,7 @@ void berend_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // check that the berendsen thermostat applied to a system of 1000 LJ particles produces the correct average temperature
     // Build a 1000 particle system with particles scattered on the x, y, and z axes.
     RandomInitializer rand_init(1000, Scalar(0.05), Scalar(1.3), "A");
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -168,7 +168,3 @@ BOOST_AUTO_TEST_CASE( TwoStepBerendsenGPU_LJ_tests )
     }
 #endif
 
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

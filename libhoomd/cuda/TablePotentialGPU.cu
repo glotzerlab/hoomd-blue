@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -54,18 +54,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TablePotentialGPU.cu
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
+
+//! Texture for reading the neighborlist
+texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 //! Texture for reading table values
 scalar2_tex_t tables_tex;
@@ -80,17 +82,21 @@ scalar2_tex_t tables_tex;
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexer for reading \a d_nlist
     \param d_params Parameters for each table associated with a type pair
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
 
     See TablePotential for information on the memory layout.
 
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
+
     \b Details:
     * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
       at a later date may result in this changing.
 */
+template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned virial_pitch,
@@ -99,7 +105,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                                                 const BoxDim box,
                                                 const unsigned int *d_n_neigh,
                                                 const unsigned int *d_nlist,
-                                                const Index2D nli,
+                                                const unsigned int *d_head_list,
                                                 const Scalar2 *d_tables,
                                                 const Scalar4 *d_params,
                                                 const unsigned int ntypes,
@@ -126,6 +132,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
     // load in the length of the list
     unsigned int n_neigh = d_n_neigh[idx];
+    const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
@@ -143,92 +150,95 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = d_nlist[nli(idx, 0)];
+    unsigned int next_neigh(0);
+    if (use_gmem_nlist)
+        {
+        next_neigh = d_nlist[head_idx];
+        }
+    else
+        {
+        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
 
     // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
-    #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-    #endif
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
+        // read the current neighbor index
+        // prefetch the next value and set the current one
+        cur_neigh = next_neigh;
+        if (use_gmem_nlist)
             {
-            // read the current neighbor index
-            // prefetch the next value and set the current one
-            cur_neigh = next_neigh;
-            next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
+            next_neigh = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+            }
 
-            // get the neighbor's position
-            Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
-            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+        // get the neighbor's position
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
-            // calculate dr (with periodic boundary conditions)
-            Scalar3 dx = pos - neigh_pos;
+        // calculate dr (with periodic boundary conditions)
+        Scalar3 dx = pos - neigh_pos;
 
-            // apply periodic boundary conditions
-            dx = box.minImage(dx);
+        // apply periodic boundary conditions
+        dx = box.minImage(dx);
 
-            // access needed parameters
-            unsigned int typej = __scalar_as_int(neigh_postype.w);
-            unsigned int cur_table_index = table_index(typei, typej);
-            Scalar4 params = s_params[cur_table_index];
-            Scalar rmin = params.x;
-            Scalar rmax = params.y;
-            Scalar delta_r = params.z;
+        // access needed parameters
+        unsigned int typej = __scalar_as_int(neigh_postype.w);
+        unsigned int cur_table_index = table_index(typei, typej);
+        Scalar4 params = s_params[cur_table_index];
+        Scalar rmin = params.x;
+        Scalar rmax = params.y;
+        Scalar delta_r = params.z;
 
-            // calculate r
-            Scalar rsq = dot(dx, dx);
-            Scalar r = sqrtf(rsq);
+        // calculate r
+        Scalar rsq = dot(dx, dx);
+        Scalar r = sqrtf(rsq);
 
-            if (r < rmax && r >= rmin)
-                {
-                // precomputed term
-                Scalar value_f = (r - rmin) / delta_r;
+        if (r < rmax && r >= rmin)
+            {
+            // precomputed term
+            Scalar value_f = (r - rmin) / delta_r;
 
-                // compute index into the table and read in values
-                unsigned int value_i = floor(value_f);
-                Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_table_index));
-                Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_table_index));
+            // compute index into the table and read in values
+            unsigned int value_i = floor(value_f);
+            Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_table_index));
+            Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_table_index));
 
-                // unpack the data
-                Scalar V0 = VF0.x;
-                Scalar V1 = VF1.x;
-                Scalar F0 = VF0.y;
-                Scalar F1 = VF1.y;
+            // unpack the data
+            Scalar V0 = VF0.x;
+            Scalar V1 = VF1.x;
+            Scalar F0 = VF0.y;
+            Scalar F1 = VF1.y;
 
-                // compute the linear interpolation coefficient
-                Scalar f = value_f - Scalar(value_i);
+            // compute the linear interpolation coefficient
+            Scalar f = value_f - Scalar(value_i);
 
-                // interpolate to get V and F;
-                Scalar V = V0 + f * (V1 - V0);
-                Scalar F = F0 + f * (F1 - F0);
+            // interpolate to get V and F;
+            Scalar V = V0 + f * (V1 - V0);
+            Scalar F = F0 + f * (F1 - F0);
 
-                // convert to standard variables used by the other pair computes in HOOMD-blue
-                Scalar forcemag_divr = Scalar(0.0);
-                if (r > Scalar(0.0))
-                    forcemag_divr = F / r;
-                Scalar pair_eng = V;
-                // calculate the virial
-                Scalar force_div2r = Scalar(0.5) * forcemag_divr;
-                virialxx +=  dx.x * dx.x * force_div2r;
-                virialxy +=  dx.x * dx.y * force_div2r;
-                virialxz +=  dx.x * dx.z * force_div2r;
-                virialyy +=  dx.y * dx.y * force_div2r;
-                virialyz +=  dx.y * dx.z * force_div2r;
-                virialzz +=  dx.z * dx.z * force_div2r;
+            // convert to standard variables used by the other pair computes in HOOMD-blue
+            Scalar forcemag_divr = Scalar(0.0);
+            if (r > Scalar(0.0))
+                forcemag_divr = F / r;
+            Scalar pair_eng = V;
+            // calculate the virial
+            Scalar force_div2r = Scalar(0.5) * forcemag_divr;
+            virialxx +=  dx.x * dx.x * force_div2r;
+            virialxy +=  dx.x * dx.y * force_div2r;
+            virialxz +=  dx.x * dx.z * force_div2r;
+            virialyy +=  dx.y * dx.y * force_div2r;
+            virialyz +=  dx.y * dx.z * force_div2r;
+            virialzz +=  dx.z * dx.z * force_div2r;
 
-                // add up the force vector components (FLOPS: 7)
-                force.x += dx.x * forcemag_divr;
-                force.y += dx.y * forcemag_divr;
-                force.z += dx.z * forcemag_divr;
-                force.w += pair_eng;
-                }
+            // add up the force vector components (FLOPS: 7)
+            force.x += dx.x * forcemag_divr;
+            force.y += dx.y * forcemag_divr;
+            force.z += dx.z * forcemag_divr;
+            force.w += pair_eng;
             }
         }
 
@@ -253,9 +263,10 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexer for reading \a d_nlist
     \param d_tables Tables of the potential and force
     \param d_params Parameters for each table associated with a type pair
+    \param size_nlist Total length of the neighborlist
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
     \param block_size Block size at which to run the kernel
@@ -272,9 +283,10 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const BoxDim& box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
-                                     const Index2D& nli,
+                                     const unsigned int *d_head_list,
                                      const Scalar2 *d_tables,
                                      const Scalar4 *d_params,
+                                     const unsigned int size_nlist,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size,
@@ -285,23 +297,10 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     assert(ntypes > 0);
     assert(table_width > 1);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-
     // index calculation helper
     Index2DUpperTriangular table_index(ntypes);
 
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
+    // texture bind
     if (compute_capability < 350)
         {
         // bind the pdata position texture
@@ -311,6 +310,15 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         if (error != cudaSuccess)
             return error;
 
+        if (size_nlist <= MAX_TEXTURE_WIDTH)
+            {
+            nlist_tex.normalized = false;
+            nlist_tex.filterMode = cudaFilterModePoint;
+            error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+            if (error != cudaSuccess)
+                return error;
+            }
+
         // bind the tables texture
         tables_tex.normalized = false;
         tables_tex.filterMode = cudaFilterModePoint;
@@ -319,10 +327,72 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
             return error;
         }
 
-    gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>
-            (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_tables, d_params, ntypes, table_width);
+    if (compute_capability < 350 && size_nlist > MAX_TEXTURE_WIDTH)
+        { // use global memory when the neighbor list must be texture bound, but exceeds the max size of a texture
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_forces_kernel<1>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+
+        // setup the grid to run the kernel
+        dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        gpu_compute_table_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
+                                                                                                           d_virial,
+                                                                                                           virial_pitch,
+                                                                                                           N,
+                                                                                                           d_pos,
+                                                                                                           box,
+                                                                                                           d_n_neigh,
+                                                                                                           d_nlist,
+                                                                                                           d_head_list,
+                                                                                                           d_tables,
+                                                                                                           d_params,
+                                                                                                           ntypes,
+                                                                                                           table_width);
+        }
+    else
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_forces_kernel<0>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+
+        // index calculation helper
+        Index2DUpperTriangular table_index(ntypes);
+
+        // setup the grid to run the kernel
+        dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        gpu_compute_table_forces_kernel<0><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
+                                                                                                           d_virial,
+                                                                                                           virial_pitch,
+                                                                                                           N,
+                                                                                                           d_pos,
+                                                                                                           box,
+                                                                                                           d_n_neigh,
+                                                                                                           d_nlist,
+                                                                                                           d_head_list,
+                                                                                                           d_tables,
+                                                                                                           d_params,
+                                                                                                           ntypes,
+                                                                                                           table_width);
+        }
 
     return cudaSuccess;
     }
 
+#undef MAX_TEXTURE_WIDTH
 // vim:syntax=cpp

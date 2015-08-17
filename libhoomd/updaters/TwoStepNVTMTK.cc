@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,13 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 #include "TwoStepNVTMTK.h"
 
@@ -65,6 +59,9 @@ using namespace boost::python;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
@@ -437,7 +434,7 @@ void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepNVTMTK::advanceThermostat(unsigned int timestep)
+void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -457,7 +454,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep)
     m_exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi*m_deltaT);
 
     #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_comm && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -508,7 +505,3 @@ void export_TwoStepNVTMTK()
         .def("setTau", &TwoStepNVTMTK::setTau)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

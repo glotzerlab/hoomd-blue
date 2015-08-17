@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -96,7 +96,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     rand_init.generate();
 
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(), 0));
@@ -223,8 +223,8 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     if (exec_conf->getRank() == 0)
         nvt_2->prepRun(0);
 
-    SnapshotParticleData snap_1(N);
-    SnapshotParticleData snap_2(N);
+    SnapshotParticleData<Scalar> snap_1(N);
+    SnapshotParticleData<Scalar> snap_2(N);
     for (int i=0; i< 100; i++)
         {
         // compare temperatures

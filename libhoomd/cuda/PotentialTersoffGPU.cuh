@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file PotentialTersoffGPU.cuh
     \brief Defines templated GPU kernel code for calculating certain three-body forces
@@ -75,22 +71,26 @@ struct tersoff_args_t
                    const BoxDim& _box,
                    const unsigned int *_d_n_neigh,
                    const unsigned int *_d_nlist,
-                   const Index2D& _nli,
+                   const unsigned int *_d_head_list,
                    const Scalar *_d_rcutsq,
                    const Scalar *_d_ronsq,
+                   const unsigned int _size_nlist,
                    const unsigned int _ntypes,
-                   const unsigned int _block_size)
+                   const unsigned int _block_size,
+                   const unsigned int _compute_capability)
                    : d_force(_d_force),
                      N(_N),
                      d_pos(_d_pos),
                      box(_box),
                      d_n_neigh(_d_n_neigh),
                      d_nlist(_d_nlist),
-                     nli(_nli),
+                     d_head_list(_d_head_list),
                      d_rcutsq(_d_rcutsq),
                      d_ronsq(_d_ronsq),
+                     size_nlist(_size_nlist),
                      ntypes(_ntypes),
-                     block_size(_block_size)
+                     block_size(_block_size),
+                     compute_capability(_compute_capability)
         {
         };
 
@@ -100,17 +100,24 @@ struct tersoff_args_t
     const BoxDim& box;                //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
-    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
+    const unsigned int size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
+    const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
     };
 
 
 #ifdef NVCC
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
+//! Texture for reading neighbor list
+texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
@@ -145,7 +152,7 @@ static __device__ inline double atomicAdd(double* address, double val)
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for reading \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
@@ -158,20 +165,22 @@ static __device__ inline double atomicAdd(double* address, double val)
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator >
+template< class evaluator , unsigned char use_gmem_nlist>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   const Scalar4 *d_pos,
                                                   const BoxDim box,
                                                   const unsigned int *d_n_neigh,
                                                   const unsigned int *d_nlist,
-                                                  const Index2D nli,
+                                                  const unsigned int *d_head_list,
                                                   const typename evaluator::param_type *d_params,
                                                   const Scalar *d_rcutsq,
                                                   const Scalar *d_ronsq,
@@ -214,366 +223,247 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     Scalar4 forcei = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // prefetch neighbor index
+    const unsigned int head_idx = d_head_list[idx];
     unsigned int cur_j = 0;
-    unsigned int next_j = d_nlist[nli(idx, 0)];
+    unsigned int next_j(0);
+    if (use_gmem_nlist)
+        {
+        next_j = d_nlist[head_idx];
+        }
+    else
+        {
+        next_j = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
 
     // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
-    #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-    #endif
     {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
-        {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
-            cur_j = next_j;
-            next_j = d_nlist[nli(idx, neigh_idx + 1)];
+        // read the current neighbor index (MEM TRANSFER: 4 bytes)
+        // prefetch the next value and set the current one
+        cur_j = next_j;
+        if (use_gmem_nlist)
+            {
+            next_j = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + 1);
+            }
 
-            // read the position of j (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
-            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+        // read the position of j (MEM TRANSFER: 16 bytes)
+        Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+        Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-            // initialize the force on j
-            Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        // initialize the force on j
+        Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
-            // compute r_ij (FLOPS: 3)
-            Scalar3 dxij = posi - posj;
+        // compute r_ij (FLOPS: 3)
+        Scalar3 dxij = posi - posj;
 
-            // apply periodic boundary conditions (FLOPS: 12)
-            dxij = box.minImage(dxij);
+        // apply periodic boundary conditions (FLOPS: 12)
+        dxij = box.minImage(dxij);
 
-            // compute rij_sq (FLOPS: 5)
-            Scalar rij_sq = dot(dxij, dxij);
+        // compute rij_sq (FLOPS: 5)
+        Scalar rij_sq = dot(dxij, dxij);
 
-            // access the per type-pair parameters
-            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-            Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+        // access the per type-pair parameters
+        unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+        Scalar rcutsq = s_rcutsq[typpair];
+        typename evaluator::param_type param = s_params[typpair];
 
-            // compute the base repulsive and attractive terms of the potential
-            Scalar fR = Scalar(0.0);
-            Scalar fA = Scalar(0.0);
-            evaluator eval(rij_sq, rcutsq, param);
-            bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
+        // compute the base repulsive and attractive terms of the potential
+        Scalar fR = Scalar(0.0);
+        Scalar fA = Scalar(0.0);
+        evaluator eval(rij_sq, rcutsq, param);
+        bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
 
-            if (evaluatedij)
+        if (evaluatedij)
+            {
+            // compute chi
+            Scalar chi = Scalar(0.0);
+            unsigned int cur_k = 0;
+            unsigned int next_k(0);
+            if (use_gmem_nlist)
                 {
-                // compute chi
-                Scalar chi = Scalar(0.0);
-                unsigned int cur_k = 0;
-                unsigned int next_k = d_nlist[nli(idx, 0)];
-                #if (__CUDA_ARCH__ < 200)
-                for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                #else
-                for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
-                #endif
-                    {
-                    #if (__CUDA_ARCH__ < 200)
-                    if (neigh_idy < n_neigh)
-                    #endif
-                        {
-                        // read the current index of k and prefetch the next one
-                        cur_k = next_k;
-                        next_k = d_nlist[nli(idx, neigh_idy+1)];
-
-                        // get the position of neighbor k
-                        Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
-                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                        // get the type pair parameters for i and k
-                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-                        Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
-
-                        evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
-                        bool temp_evaluated = temp_eval.areInteractive();
-
-                        if (cur_k != cur_j && temp_evaluated)
-                            {
-                            // compute rik
-                            Scalar3 dxik = posi - posk;
-
-                            // apply the periodic boundary conditions
-                            dxik = box.minImage(dxik);
-
-                            // compute rik_sq
-                            Scalar rik_sq = dot(dxik, dxik);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
-                            else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                            // set up the evaluator
-                            eval.setRik(rik_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
-                            // compute the partial chi term
-                            eval.evalChi(chi);
-                            }
-                        }
-                    }
-                // evaluate the force and energy from the ij interaction
-                Scalar force_divr = Scalar(0.0);
-                Scalar potential_eng = Scalar(0.0);
-                Scalar bij = Scalar(0.0);
-                eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
-
-                // add the forces and energies to their respective particles
-                Scalar2 v_coeffs = make_scalar2(Scalar(1.0 / 6.0) * rij_sq, Scalar(0.0));
-                #if (__CUDA_ARCH__ >= 200)
-                forcei.x += dxij.x * force_divr;
-                forcei.y += dxij.y * force_divr;
-                forcei.z += dxij.z * force_divr;
-
-                forcej.x -= dxij.x * force_divr;
-                forcej.y -= dxij.y * force_divr;
-                forcej.z -= dxij.z * force_divr;
-                forcej.w += potential_eng;
-                #else
-                forcei.x += __fmul_rn(dxij.x, force_divr);
-                forcei.y += __fmul_rn(dxij.y, force_divr);
-                forcei.z += __fmul_rn(dxij.z, force_divr);
-
-                forcej.x += Scalar(1.0); // shuts up the compiler warning
-                #endif
-                forcei.w += potential_eng;
-
-                // now evaluate the force from the ik interactions
-                cur_k = 0;
-                next_k = d_nlist[nli(idx, 0)];
-                #if (__CUDA_ARCH__ < 200)
-                for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                #else
-                for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
-                #endif
-                    {
-                    #if (__CUDA_ARCH__ < 200)
-                    if (neigh_idy < n_neigh)
-                    #endif
-                        {
-                        // read the current neighbor index and prefetch the next one
-                        cur_k = next_k;
-                        next_k = d_nlist[nli(idx, neigh_idy+1)];
-
-                        // get the position of neighbor k
-                        Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
-                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                        // get the type pair parameters for i and k
-                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-                        Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
-
-                        evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
-                        bool temp_evaluated = temp_eval.areInteractive();
-
-                        if (cur_k != cur_j && temp_evaluated)
-                            {
-                            Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-                            // compute rik
-                            Scalar3 dxik = posi - posk;
-
-                            // apply the periodic boundary conditions
-                            dxik = box.minImage(dxik);
-
-                            // compute rik_sq
-                            Scalar rik_sq = dot(dxik, dxik);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
-                            else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                            // set up the evaluator
-                            eval.setRik(rik_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
-                            // compute the force
-                            Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            Scalar3 force_divr_ik = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
-
-                            if (evaluatedjk)
-                                {
-                                // add the forces to their respective particles
-                                v_coeffs.y = Scalar(1.0 / 6.0) * rik_sq;
-                                #if (__CUDA_ARCH__ >= 200)
-                                forcei.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
-                                forcei.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
-                                forcei.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
-
-                                forcej.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
-                                forcej.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
-                                forcej.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
-
-                                forcek.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
-                                forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
-                                forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
-
-                                atomicAdd(&d_force[cur_k].x, forcek.x);
-                                atomicAdd(&d_force[cur_k].y, forcek.y);
-                                atomicAdd(&d_force[cur_k].z, forcek.z);
-                                #else
-                                forcei.x += __fmul_rn(dxij.x, force_divr_ij.x) + __fmul_rn(dxik.x, force_divr_ik.x);
-                                forcei.y += __fmul_rn(dxij.y, force_divr_ij.x) + __fmul_rn(dxik.y, force_divr_ik.x);
-                                forcei.z += __fmul_rn(dxij.z, force_divr_ij.x) + __fmul_rn(dxik.z, force_divr_ik.x);
-
-                                forcek.x += Scalar(1.0); // shuts up the compiler warning
-                                #endif
-                                }
-                            }
-                        }
-                    }
-                // on Fermi hardware we can use atomicAdd to gain some speed
-                // otherwise we need to loop over neighbors of j
-                #if (__CUDA_ARCH__ >= 200)
-                // potential energy of j must be halved
-                forcej.w *= Scalar(0.5);
-                // write out the result for particle j
-                atomicAdd(&d_force[cur_j].x, forcej.x);
-                atomicAdd(&d_force[cur_j].y, forcej.y);
-                atomicAdd(&d_force[cur_j].z, forcej.z);
-                atomicAdd(&d_force[cur_j].w, forcej.w);
-                #else
-                // now we have to compute the force with i as a secondary/tertiary particle
-                // first consider i as the secondary particle and j as the primary particle
-                // rji is -rij
-                dxij.x *= -Scalar(1.0);
-                dxij.y *= -Scalar(1.0);
-                dxij.z *= -Scalar(1.0);
-
-                // the fR and fA already computed are still valid, so there is no point in recomputing them
-
-                // recompute chi by looping over neighbors of j
-                unsigned int n_neighj = d_n_neigh[cur_j];
-                chi = Scalar(0.0);
-                cur_k = 0;
-                next_k = d_nlist[nli(cur_j, 0)];
-                for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                    {
-                    if (neigh_idy < n_neighj)
-                        {
-                        // read the index of k and prefetch the next one
-                        cur_k = next_k;
-                        next_k = d_nlist[nli(cur_j, neigh_idy+1)];
-
-                        if (cur_k != idx)
-                            {
-                            // get the position of neighbor k
-                            Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
-                            Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                            // compute rjk
-                            Scalar3 dxjk = posj - posk;
-
-                            // apply the periodic boundary conditions
-                            dxjk = box.minImage(dxjk);
-
-                            // compute rjk_sq
-                            Scalar rjk_sq = dot(dxjk, dxjk);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * fast::rsqrt(rij_sq * rjk_sq);
-                            else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                            // set up the evaluator
-                            eval.setRik(rjk_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
-                            // evaluate chi
-                            eval.evalChi(chi);
-                            }
-                        }
-                    }
-                // now compute the ji force
-                eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
-
-                // add the force and energy to particle i
-                forcei.x -= __fmul_rn(dxij.x, force_divr);
-                forcei.y -= __fmul_rn(dxij.y, force_divr);
-                forcei.z -= __fmul_rn(dxij.z, force_divr);
-                forcei.w += potential_eng;
-
-                // now compute the jk force
-                cur_k = 0;
-                next_k = d_nlist[nli(cur_j, 0)];
-                for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                    {
-                    if (neigh_idy < n_neighj)
-                        {
-                        // get the index of k and prefecth the next one
-                        cur_k = next_k;
-                        next_k = d_nlist[nli(cur_j, neigh_idy+1)];
-
-                        if (cur_k != idx)
-                            {
-                            // get the position of k
-                            Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
-                            Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                            // compute rjk
-                            Scalar3 dxjk = posj - posk;
-
-                            // apply periodic boundary conditions
-                            dxjk = box.minImage(dxjk);
-
-                            // compute rjk_sq
-                            Scalar rjk_sq = dot(dxjk, dxjk);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * fast::rsqrt(rij_sq * rjk_sq);
-                            else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                            // set up the evaluator
-                            eval.setRik(rjk_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
-                            // evaluate the force
-                            Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            Scalar3 force_divr_jk = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_jk);
-
-                            // add the force to particle i
-                            forcei.x += __fmul_rn(dxjk.x, force_divr_jk.y) + __fmul_rn(dxij.x, force_divr_ij.y);
-                            forcei.y += __fmul_rn(dxjk.y, force_divr_jk.y) + __fmul_rn(dxij.y, force_divr_ij.y);
-                            forcei.z += __fmul_rn(dxjk.z, force_divr_jk.y) + __fmul_rn(dxij.z, force_divr_ij.y);
-                            }
-                        }
-                    }
-                #endif
+                next_k = d_nlist[head_idx];
                 }
+            else
+                {
+                next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+                }
+            for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
+                {
+                // read the current index of k and prefetch the next one
+                cur_k = next_k;
+                if (use_gmem_nlist)
+                    {
+                    next_k = d_nlist[head_idx + neigh_idy + 1];
+                    }
+                else
+                    {
+                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                    }
+
+                // get the position of neighbor k
+                Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
+                Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+
+                // get the type pair parameters for i and k
+                typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                Scalar temp_rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type temp_param = s_params[typpair];
+
+                evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
+                bool temp_evaluated = temp_eval.areInteractive();
+
+                if (cur_k != cur_j && temp_evaluated)
+                    {
+                    // compute rik
+                    Scalar3 dxik = posi - posk;
+
+                    // apply the periodic boundary conditions
+                    dxik = box.minImage(dxik);
+
+                    // compute rik_sq
+                    Scalar rik_sq = dot(dxik, dxik);
+
+                    // compute the bond angle (if needed)
+                    Scalar cos_th = Scalar(0.0);
+                    if (evaluator::needsAngle())
+                        cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
+                    else cos_th += Scalar(1.0); // shuts up the compiler warning
+
+                    // set up the evaluator
+                    eval.setRik(rik_sq);
+                    if (evaluator::needsAngle())
+                        eval.setAngle(cos_th);
+
+                    // compute the partial chi term
+                    eval.evalChi(chi);
+                    }
+                }
+            // evaluate the force and energy from the ij interaction
+            Scalar force_divr = Scalar(0.0);
+            Scalar potential_eng = Scalar(0.0);
+            Scalar bij = Scalar(0.0);
+            eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
+
+            // add the forces and energies to their respective particles
+            Scalar2 v_coeffs = make_scalar2(Scalar(1.0 / 6.0) * rij_sq, Scalar(0.0));
+            forcei.x += dxij.x * force_divr;
+            forcei.y += dxij.y * force_divr;
+            forcei.z += dxij.z * force_divr;
+
+            forcej.x -= dxij.x * force_divr;
+            forcej.y -= dxij.y * force_divr;
+            forcej.z -= dxij.z * force_divr;
+            forcej.w += potential_eng;
+
+            forcei.w += potential_eng;
+
+            // now evaluate the force from the ik interactions
+            cur_k = 0;
+            if (use_gmem_nlist)
+                {
+                next_k = d_nlist[head_idx];
+                }
+            else
+                {
+                next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+                }
+            for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
+                {
+                // read the current neighbor index and prefetch the next one
+                cur_k = next_k;
+                if (use_gmem_nlist)
+                    {
+                    next_k = d_nlist[head_idx + neigh_idy + 1];
+                    }
+                else
+                    {
+                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                    }
+
+                // get the position of neighbor k
+                Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
+                Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+
+                // get the type pair parameters for i and k
+                typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                Scalar temp_rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type temp_param = s_params[typpair];
+
+                evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
+                bool temp_evaluated = temp_eval.areInteractive();
+
+                if (cur_k != cur_j && temp_evaluated)
+                    {
+                    Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+                    // compute rik
+                    Scalar3 dxik = posi - posk;
+
+                    // apply the periodic boundary conditions
+                    dxik = box.minImage(dxik);
+
+                    // compute rik_sq
+                    Scalar rik_sq = dot(dxik, dxik);
+
+                    // compute the bond angle (if needed)
+                    Scalar cos_th = Scalar(0.0);
+                    if (evaluator::needsAngle())
+                        cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
+                    else cos_th += Scalar(1.0); // shuts up the compiler warning
+
+                    // set up the evaluator
+                    eval.setRik(rik_sq);
+                    if (evaluator::needsAngle())
+                        eval.setAngle(cos_th);
+
+                    // compute the force
+                    Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                    Scalar3 force_divr_ik = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                    bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
+
+                    if (evaluatedjk)
+                        {
+                        // add the forces to their respective particles
+                        v_coeffs.y = Scalar(1.0 / 6.0) * rik_sq;
+                        forcei.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
+                        forcei.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
+                        forcei.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
+
+                        forcej.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
+                        forcej.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
+                        forcej.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
+
+                        forcek.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
+                        forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
+                        forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
+
+                        atomicAdd(&d_force[cur_k].x, forcek.x);
+                        atomicAdd(&d_force[cur_k].y, forcek.y);
+                        atomicAdd(&d_force[cur_k].z, forcek.z);
+                        }
+                    }
+                }
+
+            // potential energy of j must be halved
+            forcej.w *= Scalar(0.5);
+            // write out the result for particle j
+            atomicAdd(&d_force[cur_j].x, forcej.x);
+            atomicAdd(&d_force[cur_j].y, forcej.y);
+            atomicAdd(&d_force[cur_j].z, forcej.z);
+            atomicAdd(&d_force[cur_j].w, forcej.w);
             }
         }
     // potential energy per particle must be halved
     forcei.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    #if (__CUDA_ARCH__ >= 200)
     atomicAdd(&d_force[idx].x, forcei.x);
     atomicAdd(&d_force[idx].y, forcei.y);
     atomicAdd(&d_force[idx].z, forcei.z);
     atomicAdd(&d_force[idx].w, forcei.w);
-    #else
-    d_force[idx] = forcei;
-    #endif
     }
 
 //! Kernel for zeroing forces before computation with atomic additions.
@@ -612,9 +502,18 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator>);
-        max_block_size = attr.maxThreadsPerBlock;
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+        else
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
         }
 
     unsigned int run_block_size = min(pair_args.block_size, max_block_size);
@@ -623,12 +522,24 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
-    if (error != cudaSuccess)
-        return error;
+    // bind to texture
+    if (pair_args.compute_capability < 35)
+        {
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
+        if (error != cudaSuccess)
+            return error;
+        
+        if (pair_args.size_nlist <= MAX_TEXTURE_WIDTH)
+            {
+            nlist_tex.normalized = false;
+            nlist_tex.filterMode = cudaFilterModePoint;
+            error = cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
+            if (error != cudaSuccess)
+                return error;
+            }
+        }
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
@@ -639,20 +550,39 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                             pair_args.N);
 
     // compute the new forces
-    gpu_compute_triplet_forces_kernel<evaluator>
-      <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                        pair_args.N,
-                                        pair_args.d_pos,
-                                        pair_args.box,
-                                        pair_args.d_n_neigh,
-                                        pair_args.d_nlist,
-                                        pair_args.nli,
-                                        d_params,
-                                        pair_args.d_rcutsq,
-                                        pair_args.d_ronsq,
-                                        pair_args.ntypes);
+    if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+        {
+        gpu_compute_triplet_forces_kernel<evaluator, 1>
+          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                            pair_args.N,
+                                            pair_args.d_pos,
+                                            pair_args.box,
+                                            pair_args.d_n_neigh,
+                                            pair_args.d_nlist,
+                                            pair_args.d_head_list,
+                                            d_params,
+                                            pair_args.d_rcutsq,
+                                            pair_args.d_ronsq,
+                                            pair_args.ntypes);
+        }
+    else
+        {
+        gpu_compute_triplet_forces_kernel<evaluator, 0>
+          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                            pair_args.N,
+                                            pair_args.d_pos,
+                                            pair_args.box,
+                                            pair_args.d_n_neigh,
+                                            pair_args.d_nlist,
+                                            pair_args.d_head_list,
+                                            d_params,
+                                            pair_args.d_rcutsq,
+                                            pair_args.d_ronsq,
+                                            pair_args.ntypes);
+        }
     return cudaSuccess;
     }
+#undef MAX_TEXTURE_WIDTH
 #endif
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

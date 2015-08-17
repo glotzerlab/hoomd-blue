@@ -147,7 +147,7 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(boost::share
     if (!this->exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "ai_pair." << evaluator::getName()
-                  << ": Creating a AnisoPotentialPairGPU with no GPU in the execution configuration" 
+                  << ": Creating a AnisoPotentialPairGPU with no GPU in the execution configuration"
                   << std::endl << std::endl;
         throw std::runtime_error("Error initializing AnisoPotentialPairGPU");
         }
@@ -197,7 +197,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     if (third_law)
         {
         this->m_exec_conf->msg->error() << "ai_pair." << evaluator::getName()
-                  << ": AnisoPotentialPairGPU cannot handle a half neighborlist" 
+                  << ": AnisoPotentialPairGPU cannot handle a half neighborlist"
                   << std::endl << std::endl;
         throw std::runtime_error("Error computing forces in AnisoPotentialPairGPU");
         }
@@ -205,7 +205,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -244,7 +244,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
                            box,
                            d_n_neigh.data,
                            d_nlist.data,
-                           nli,
+                           d_head_list.data,
                            d_rcutsq.data,
                            this->m_pdata->getNTypes(),
                            block_size,
@@ -275,4 +275,3 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(const std::st
 
 #endif // ENABLE_CUDA
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__
-

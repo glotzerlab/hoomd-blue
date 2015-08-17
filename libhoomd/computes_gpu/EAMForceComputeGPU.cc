@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -59,10 +59,6 @@ Moscow group.
     \brief Defines the EAMForceComputeGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "EAMForceComputeGPU.h"
 #include <cuda_runtime.h>
@@ -89,7 +85,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
     #endif
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
@@ -152,7 +148,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     m_nlist->compute(timestep);
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "EAM pair");
+    if (m_prof) m_prof->push(m_exec_conf, "EAM pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -166,7 +162,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -187,16 +183,18 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
                                      box,
                                      d_n_neigh.data,
                                      d_nlist.data,
-                                     nli,
+                                     d_head_list.data,
+                                     this->m_nlist->getNListArray().getPitch(),
                                      eam_tex_data,
                                      eam_arrays,
-                                     eam_data);
+                                     eam_data,
+                                     m_exec_conf->getComputeCapability()/10);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_EAMForceComputeGPU()
@@ -205,7 +203,3 @@ void export_EAMForceComputeGPU()
         ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

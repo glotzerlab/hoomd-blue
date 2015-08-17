@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <math.h>
 #include "HOOMDDumpWriter.h"
@@ -81,6 +77,11 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
+    // temporary directory for files (avoid race conditions in multiple test invocations)
+    path ph = unique_path();
+    create_directories(ph);
+    std::string tmp_path = ph.string();
+
     Scalar3 I;
 
     // start by creating a single particle system: see it the correct file is written
@@ -227,24 +228,22 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
 
     writer->setOutputPosition(false);
 
     // first test
         {
         // make sure the first output file is deleted
-        remove_all("test.0000000000.xml");
-        BOOST_REQUIRE(!exists("test.0000000000.xml"));
 
         // write the first output
         writer->analyze(0);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists("test.0000000000.xml"));
+        BOOST_REQUIRE(exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
-        ifstream f("test.0000000000.xml");
+        ifstream f((tmp_path+"/test.0000000000.xml").c_str());
         string line;
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -276,18 +275,14 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         {
         writer->setOutputPosition(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000010.xml");
-        BOOST_REQUIRE(!exists("test.0000000010.xml"));
-
         // write the file
         writer->analyze(10);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists("test.0000000010.xml"));
+        BOOST_REQUIRE(exists(tmp_path+"/test.0000000010.xml"));
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000010.xml");
+        ifstream f((tmp_path+"/test.0000000010.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -327,15 +322,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputPosition(false);
         writer->setOutputVelocity(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000020.xml");
-        BOOST_REQUIRE(!exists("test.0000000020.xml"));
-
         // write the file
         writer->analyze(20);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000020.xml");
+        ifstream f((tmp_path+"/test.0000000020.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -372,15 +363,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputVelocity(false);
         writer->setOutputType(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000030.xml");
-        BOOST_REQUIRE(!exists("test.0000000030.xml"));
-
         // write the file
         writer->analyze(30);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000030.xml");
+        ifstream f((tmp_path+"/test.0000000030.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -417,15 +404,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputType(false);
         writer->setOutputWall(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000040.xml");
-        BOOST_REQUIRE(!exists("test.0000000040.xml"));
-
         // write the file
         writer->analyze(40);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000040.xml");
+        ifstream f((tmp_path+"/test.0000000040.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -458,15 +441,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputWall(false);
         writer->setOutputBond(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000050.xml");
-        BOOST_REQUIRE(!exists("test.0000000050.xml"));
-
         // write the file
         writer->analyze(50);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000050.xml");
+        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -495,15 +474,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputBond(false);
         writer->setOutputAngle(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000060.xml");
-        BOOST_REQUIRE(!exists("test.0000000060.xml"));
-
         // write the file
         writer->analyze(60);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000060.xml");
+        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -532,15 +507,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputAngle(false);
         writer->setOutputImage(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000070.xml");
-        BOOST_REQUIRE(!exists("test.0000000070.xml"));
-
         // write the file
         writer->analyze(70);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000070.xml");
+        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -577,15 +548,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputImage(false);
         writer->setOutputMass(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000080.xml");
-        BOOST_REQUIRE(!exists("test.0000000080.xml"));
-
         // write the file
         writer->analyze(80);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000080.xml");
+        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -622,15 +589,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputMass(false);
         writer->setOutputDiameter(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000090.xml");
-        BOOST_REQUIRE(!exists("test.0000000090.xml"));
-
         // write the file
         writer->analyze(90);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000090.xml");
+        ifstream f((tmp_path+"/test.0000000090.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -667,15 +630,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputDiameter(false);
         writer->setOutputDihedral(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000100.xml");
-        BOOST_REQUIRE(!exists("test.0000000100.xml"));
-
         // write the file
         writer->analyze(100);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000100.xml");
+        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -701,15 +660,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputDihedral(false);
         writer->setOutputImproper(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000110.xml");
-        BOOST_REQUIRE(!exists("test.0000000110.xml"));
-
         // write the file
         writer->analyze(110);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000110.xml");
+        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -734,15 +689,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputImproper(false);
         writer->setOutputBody(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000120.xml");
-        BOOST_REQUIRE(!exists("test.0000000120.xml"));
-
         // write the file
         writer->analyze(120);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000120.xml");
+        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -774,20 +725,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // fourteenth test: the moment_inertia array
+        // fourteenth test: the moment_inertia array
         {
         writer->setOutputBody(false);
         writer->setOutputMomentInertia(true);
-
-        // make sure the first output file is deleted
-        remove_all("test.0000000120.xml");
-        BOOST_REQUIRE(!exists("test.0000000120.xml"));
 
         // write the file
         writer->analyze(130);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000130.xml");
+        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -819,20 +766,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // fourteenth test: the angmom array
+        // fifteenth test: the angmom array
         {
         writer->setOutputMomentInertia(false);
         writer->setOutputAngularMomentum(true);
 
-        // make sure the first output file is deleted
-        remove_all("test.0000000130.xml");
-        BOOST_REQUIRE(!exists("test.0000000130.xml"));
-
         // write the file
-        writer->analyze(140);
+        writer->analyze(150);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f("test.0000000140.xml");
+        ifstream f((tmp_path+"test.0000000150.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -864,27 +807,17 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-
-    remove_all("test.0000000000.xml");
-    remove_all("test.0000000010.xml");
-    remove_all("test.0000000020.xml");
-    remove_all("test.0000000030.xml");
-    remove_all("test.0000000040.xml");
-    remove_all("test.0000000050.xml");
-    remove_all("test.0000000060.xml");
-    remove_all("test.0000000070.xml");
-    remove_all("test.0000000080.xml");
-    remove_all("test.0000000090.xml");
-    remove_all("test.0000000100.xml");
-    remove_all("test.0000000110.xml");
-    remove_all("test.0000000120.xml");
-    remove_all("test.0000000130.xml");
-    remove_all("test.0000000140.xml");
+    remove_all(ph);
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     {
+    // temporary directory for files (avoid race conditions in multiple test invocations)
+    path ph = unique_path();
+    create_directories(ph);
+    std::string tmp_path = ph.string();
+
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
     int n_types = 10;
@@ -930,7 +863,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);
@@ -940,18 +873,14 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 
     // now the big mess: check the file line by line
         {
-        // make sure the first output file is deleted
-        remove_all("test.0000000100.xml");
-        BOOST_REQUIRE(!exists("test.0000000100.xml"));
-
         // write the first output
         writer->analyze(100);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists("test.0000000100.xml"));
+        BOOST_REQUIRE(exists(tmp_path+"/test.0000000100.xml"));
 
         // check the output line by line
-        ifstream f("test.0000000100.xml");
+        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -1107,15 +1036,20 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
         BOOST_REQUIRE(!f.bad());
         f.close();
-        remove_all("test.0000000100.xml");
         }
+    remove_all(ph);
     }
 
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     {
+    // temporary directory for files (avoid race conditions in multiple test invocations)
+    path ph = unique_path();
+    create_directories(ph);
+    std::string tmp_path = ph.string();
+
     // create a test input file
-    ofstream f("test_input.xml");
+    ofstream f((tmp_path+"/test_input.xml").c_str());
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml version=\"1.6\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
@@ -1229,8 +1163,8 @@ im_b 5 4 3 2\n\
 
     // now that we have created a test file, load it up into a pdata
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    HOOMDInitializer init(exec_conf,"test_input.xml");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    HOOMDInitializer init(exec_conf,tmp_path+"/test_input.xml");
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -1455,9 +1389,5 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
 
     // clean up after ourselves
-    remove_all("test_input.xml");
+    remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

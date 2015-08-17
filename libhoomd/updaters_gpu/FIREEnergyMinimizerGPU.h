@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: askeys
 
+#include "FIREEnergyMinimizer.h"
+
 #include <boost/shared_ptr.hpp>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__
 #define __FIRE_ENERGY_MINIMIZER_GPU_H__
-
-#include "FIREEnergyMinimizer.h"
 
 /*! \file FIREEnergyMinimizer.h
     \brief Declares a base class for all energy minimization methods

@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -70,6 +70,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import init;
 from hoomd_script import data;
+from hoomd_script import meta;
 
 ## \internal
 # \brief Base class for constraint forces
@@ -79,7 +80,7 @@ from hoomd_script import data;
 # writers. 1) The instance of the c++ constraint force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
-class _constraint_force:
+class _constraint_force(meta._metadata):
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -106,6 +107,9 @@ class _constraint_force:
 
         # create force data iterator
         self.forces = data.force_data(self);
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -217,6 +221,15 @@ class _constraint_force:
 
         self.enabled = True;
 
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        if self.name is not "":
+            data['name'] = self.name
+        return data
+
 # set default counter
 _constraint_force.cur_id = 0;
 
@@ -257,3 +270,9 @@ class sphere(_constraint_force):
             self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # store metadata
+        self.group = group
+        self.P = P
+        self.r = r
+        self.metadata_fields = ['group','P', 'r']

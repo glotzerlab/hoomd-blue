@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,19 +53,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines RigidData and related classes.
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
+
+#include "RigidData.h"
+#include "QuaternionMath.h"
 
 #include <cassert>
 #include <math.h>
 #include <boost/python.hpp>
 #include <algorithm>
 using namespace boost::python;
-
-#include "RigidData.h"
-#include "QuaternionMath.h"
 
 using namespace boost;
 using namespace std;
@@ -1110,13 +1106,16 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
     {
     // get access to the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_oldpos(m_particle_oldpos, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::read);
+    // body data: bodyId's of particles and images of bodies
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar> h_net_virial( m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
     unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
     ArrayHandle<Scalar4> h_net_force( m_pdata->getNetForce(), access_location::host, access_mode::read);
+
+    BoxDim box = m_pdata->getBox(); // SRR: box for minimum images
 
     // loop through all the particles and compute the virial correction to each one
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -1128,17 +1127,24 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
             Scalar mass = h_vel.data[i].w;
             Scalar4 old_vel = h_oldvel.data[i];
             Scalar4 old_pos = h_oldpos.data[i];
+            Scalar3 o_p = make_scalar3(old_pos.x,old_pos.y,old_pos.z); // SRR: for relative position w.r.t. COM
+            unsigned int bodyIdx = h_body.data[i]; // SRR: Body index to retrive COM
+            Scalar3 bodyCOM = getBodyCOM(bodyIdx); // SRR: Body COM
+
+            Scalar3 rawdr = make_scalar3(o_p.x-bodyCOM.x, o_p.y-bodyCOM.y, o_p.z-bodyCOM.z); // SRR: relative particle pos w.r.t. COM
+            Scalar3 dr = box.minImage(rawdr); // SRR: minimum image of relative particle pos w.r.t. COM
+
             Scalar3 fc;
             fc.x = mass * (h_vel.data[i].x - old_vel.x) / deltaT - h_net_force.data[i].x;
             fc.y = mass * (h_vel.data[i].y - old_vel.y) / deltaT - h_net_force.data[i].y;
             fc.z = mass * (h_vel.data[i].z - old_vel.z) / deltaT - h_net_force.data[i].z;
 
-            h_net_virial.data[0*virial_pitch+i] += old_pos.x * fc.x;
-            h_net_virial.data[1*virial_pitch+i] += old_pos.x * fc.y;
-            h_net_virial.data[2*virial_pitch+i] += old_pos.x * fc.z;
-            h_net_virial.data[3*virial_pitch+i] += old_pos.y * fc.y;
-            h_net_virial.data[4*virial_pitch+i] += old_pos.y * fc.z;
-            h_net_virial.data[5*virial_pitch+i] += old_pos.z * fc.z;
+            h_net_virial.data[0*virial_pitch+i] += dr.x * fc.x;
+            h_net_virial.data[1*virial_pitch+i] += dr.x * fc.y;
+            h_net_virial.data[2*virial_pitch+i] += dr.x * fc.z;
+            h_net_virial.data[3*virial_pitch+i] += dr.y * fc.y;
+            h_net_virial.data[4*virial_pitch+i] += dr.y * fc.z;
+            h_net_virial.data[5*virial_pitch+i] += dr.z * fc.z;
             }
         }
     }
@@ -1169,21 +1175,28 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     {
     // get access to the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read);
+
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_body_com(m_com, access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
 
     ArrayHandle<Scalar> d_net_virial( m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
     unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
     ArrayHandle<Scalar4> d_net_force( m_pdata->getNetForce(), access_location::device, access_mode::read);
 
+    BoxDim box = m_pdata->getBox();
+
     gpu_compute_virial_correction_end(d_net_virial.data,
                                       virial_pitch,
                                       d_net_force.data,
                                       d_oldpos.data,
+                                      d_body_com.data,
                                       d_oldvel.data,
                                       d_vel.data,
                                       d_body.data,
+                                      box,
                                       deltaT,
                                       m_pdata->getN());
 
@@ -1321,7 +1334,3 @@ void export_RigidData()
     .def("setRV", &RigidData::setRV)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

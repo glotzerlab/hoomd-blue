@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -11,10 +11,10 @@
  *     * Neither the name of the NVIDIA CORPORATION nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -56,11 +56,11 @@ MGPU_HOST void LocalitySortKeys(T* data_global, int count, CudaContext& context,
 	SegSortSupport support;
 	MGPU_MEM(byte) mem = AllocSegSortBuffers(count, NV, support, false,
 		context);
-	
+
 	MGPU_MEM(T) destDevice = context.Malloc<T>(count);
 	T* source = data_global;
-	T* dest = destDevice->get(); 
-	
+	T* dest = destDevice->get();
+
 	KernelBlocksort<Tuning, false>
 		<<<numBlocks, launch.x, 0, context.Stream()>>>(source, (const int*)0,
 		count, (1 & numPasses) ? dest : source, (int*)0, comp);
@@ -68,9 +68,9 @@ MGPU_HOST void LocalitySortKeys(T* data_global, int count, CudaContext& context,
 
 	if(1 & numPasses) std::swap(source, dest);
 
-	SegSortPasses<Tuning, false, false>(support, source, (int*)0, count, 
+	SegSortPasses<Tuning, false, false>(support, source, (int*)0, count,
 		numBlocks, numPasses, dest, (int*)0, comp, context, verbose);
-} 
+}
 template<typename T>
 MGPU_HOST void LocalitySortKeys(T* data_global, int count, CudaContext& context,
 	bool verbose) {
@@ -81,9 +81,7 @@ template<typename KeyType, typename ValType, typename Comp>
 MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 	int count, CudaContext& context, Comp comp, bool verbose) {
 
-	const int NT = 128;
-	const int VT = 7;
-	typedef LaunchBoxVT<NT, VT> Tuning;
+	typedef LaunchBoxVT<128, 7> Tuning;
 	int2 launch = Tuning::GetLaunchParams(context);
 	const int NV = launch.x * launch.y;
 
@@ -93,7 +91,7 @@ MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 	SegSortSupport support;
 	MGPU_MEM(byte) mem = AllocSegSortBuffers(count, NV, support, false,
 		context);
-	
+
 	MGPU_MEM(KeyType) keysDestDevice = context.Malloc<KeyType>(count);
 	MGPU_MEM(ValType) valsDestDevice = context.Malloc<ValType>(count);
 
@@ -114,7 +112,7 @@ MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 
 	SegSortPasses<Tuning, false, true>(support, keysSource, valsSource, count,
 		numBlocks, numPasses, keysDest, valsDest, comp, context, verbose);
-} 
+}
 template<typename KeyType, typename ValType>
 MGPU_HOST void LocalitySortPairs(KeyType* keys_global, ValType* values_global,
 	int count, CudaContext& context, bool verbose) {

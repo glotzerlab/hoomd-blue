@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -79,18 +79,25 @@ class xml(analyze._analyzer):
     # \param params (optional) Any number of parameters that set_params() accepts
     # \param time_step (optional) Time step to write into the file (overrides the current simulation step). time_step
     #                  is ignored for periodic updates
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    # \param restart When True, write only \a filename and don't save previous states.
     #
     # \b Examples:
     # \code
     # dump.xml(filename="atoms.dump", period=1000)
     # xml = dump.xml(filename="particles", period=1e5)
     # xml = dump.xml(filename="test.xml", vis=True)
+    # xml = dump.xml(filename="restart.xml", all=True, restart=True, period=10000, phase=0);
     # \endcode
     #
-    # If period is set, a new file will be created every \a period steps. The time step at which
+    # If period is set and restart is False, a new file will be created every \a period steps. The time step at which
     # the file is created is added to the file name in a fixed width format to allow files to easily
     # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
     # \c particles.0000000000.xml
+    #
+    # If period is set and restart is True, dump.xml() will write a temporary file and then move it to \a filename. This
+    # stores only the most recent state of the simulation in the written file. It is useful for writing jobs that
+    # are restartable. TODO - link to restartable documentation.
     #
     # By default, only particle positions are output to the dump files. This can be changed
     # with set_params(), or by specifying the options in the dump.xml() command.
@@ -99,20 +106,25 @@ class xml(analyze._analyzer):
     # \a filename is written immediately. \a time_step is passed on to write()
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, time_step=None, **params):
+    def __init__(self, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
         util.print_status_line();
 
         # initialize base class
         analyze._analyzer.__init__(self);
 
+        # check restart options
+        self.restart = restart;
+        if restart and period is None:
+            raise ValueError("a period must be specified with restart=True");
+
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename, restart);
         util._disable_status_lines = True;
         self.set_params(**params);
         util._disable_status_lines = False;
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -121,6 +133,11 @@ class xml(analyze._analyzer):
             util._disable_status_lines = False;
         else:
             self.enabled = False;
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.metadata_fields = ['filename','period']
 
     ## Change xml write parameters
     #
@@ -275,6 +292,18 @@ class xml(analyze._analyzer):
 
         self.cpp_analyzer.writeFile(filename, time_step);
 
+    ## Write a restart file at the current time step
+    #
+    # This only works when dump.xml() is in **restart** mode. write_restart() writes out a restart file at the current
+    # time step. Put it at the end of a script to ensure that the system state is written out before exiting.
+    def write_restart(self):
+        util.print_status_line();
+
+        if not self.restart:
+            raise ValueError("Cannot write_restart() when restart=False");
+
+        self.cpp_analyzer.analyze(globals.system.getCurrentTimeStep());
+
 ## Writes simulation snapshots in a binary format
 #
 # Every \a period time steps, a new file will be created. The state of the
@@ -295,6 +324,7 @@ class bin(analyze._analyzer):
     # \param file1 (optional) First alternating file name to write
     # \param file2 (optional) Second alternating file name to write
     # \param compress Set to False to disable gzip compression
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -339,7 +369,7 @@ class bin(analyze._analyzer):
     # limit. If you need to store data in a system and version independent manner, use dump.xml().
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
+    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True, phase=-1):
         util.print_status_line();
         globals.msg.warning("dump.bin is deprecated and will be removed in the next release");
 
@@ -371,7 +401,7 @@ class bin(analyze._analyzer):
         globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -419,6 +449,7 @@ class mol2(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -436,7 +467,7 @@ class mol2(analyze._analyzer):
     # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, phase=-1):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -452,7 +483,7 @@ class mol2(analyze._analyzer):
         self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -461,6 +492,11 @@ class mol2(analyze._analyzer):
             util._disable_status_lines = False;
         else:
             self.enabled = False;
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.metadata_fields = ['filename','period']
 
     ## Write a file at the current time step
     #
@@ -483,7 +519,6 @@ class mol2(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
-
 
 ## Writes simulation snapshots in the DCD format
 #
@@ -518,6 +553,7 @@ class dcd(analyze._analyzer):
     #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
     # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -532,7 +568,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -554,7 +590,13 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.group = group
+        self.metadata_fields = ['filename','period','group']
 
     def enable(self):
         util.print_status_line();
@@ -582,6 +624,7 @@ class pdb(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -602,7 +645,7 @@ class pdb(analyze._analyzer):
     # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, phase=-1):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -619,7 +662,7 @@ class pdb(analyze._analyzer):
         self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -670,3 +713,52 @@ class pdb(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
+
+## Writes simulation snapshots in the POS format
+#
+# The file is opened on initialization and a new frame is appended every \a period steps.
+#
+# \warning dump.pos Is not restart compatible. It always overwrites the file on initialization.
+#
+class pos(analyze._analyzer):
+    ## Initialize the pos writer
+    #
+    # \param filename File name to write
+    # \param period (optional) Number of time steps between file dumps
+    # \param unwrap_rigid When False, (the default) individual particles are written inside
+    #        the simulation box which breaks up rigid bodies near box boundaries. When True,
+    #        particles belonging to the same rigid body will be unwrapped so that the body
+    #        is continuous. The center of mass of the body remains in the simulation box, but
+    #        some particles may be written just outside it.
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    # \b Examples:
+    # \code
+    # dump.pos(filename="dump.pos", period=1000)
+    # pos = dump.pos(filename="particles.pos", period=1e5)
+    # \endcode
+    #
+    # dump.pos always overwrites the file when initializing.
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    #
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1):
+        util.print_status_line();
+
+        # initialize base class
+        analyze._analyzer.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.POSDumpWriter(globals.system_definition, filename);
+
+        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+        if period is not None:
+            self.setupAnalyzer(period, phase);
+            self.enabled = True;
+            self.prev_period = 1;
+        else:
+            self.enabled = False;
+
+    def set_def(self, typ, shape):
+        v = globals.system_definition.getParticleData().getTypeByName(typ);
+        self.cpp_analyzer.setDef(v, shape)

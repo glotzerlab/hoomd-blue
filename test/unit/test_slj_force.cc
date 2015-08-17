@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -61,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -115,7 +111,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar r_alpha = maxdiam/2 - 0.5;
     Scalar r_cut_wc = r_cut + 2 * r_alpha;
 
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, r_cut_wc, Scalar(3.0)));
     boost::shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, r_cut);
 
@@ -270,7 +266,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar r_cut_wc = Scalar(r_cut + 2.0 * r_alpha);
 
 
-    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, r_cut_wc, Scalar(3.0)));
     boost::shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, r_cut);
     fc_6->setRcut(0, 1, r_cut);
@@ -362,11 +358,11 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
-    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
     boost::shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
@@ -493,8 +489,4 @@ BOOST_AUTO_TEST_CASE( SLJForceGPU_compare )
                                     boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

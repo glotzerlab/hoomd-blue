@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -51,10 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -115,21 +111,14 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
+    int dev_count = getNumCapableGPUs();
 
     // auto select a mode
     if (exec_mode == AUTO)
         {
         // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
-        int dev_count = getNumCapableGPUs();
-
         if (dev_count > 0)
-            {
             exec_mode = GPU;
-
-            // if we are not running in compute exclusive mode, use
-            // local MPI rank as preferred GPU id
-            gpu_id = m_system_compute_exclusive ? -1 : guessLocalRank();
-            }
         else
             exec_mode = CPU;
         }
@@ -139,6 +128,13 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
+        if (gpu_id == -1 && !m_system_compute_exclusive)
+            {
+            // if we are not running in compute exclusive mode, use
+            // local MPI rank as preferred GPU id
+            gpu_id = (guessLocalRank() % dev_count);
+            }
+
         initializeGPU(gpu_id, min_cpu);
         }
 #else
@@ -167,6 +163,26 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #endif
 
     #ifdef ENABLE_MPI
+    // ensure that all ranks are on the same execution configuration
+    if (getNRanks() > 1)
+        {
+        executionMode rank0_mode = exec_mode;
+        bcast(rank0_mode, 0, getMPICommunicator());
+
+        // ensure that all ranks terminate here
+        int errors = 0;
+        if (rank0_mode != exec_mode)
+            errors = 1;
+
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, getMPICommunicator());
+
+        if (errors != 0)
+            {
+            msg->error() << "Not all ranks have the same execution context (some are CPU and some are GPU)" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
+        }
+
     if (hoomd_launch_timing && getNRanksGlobal() > 1)
         {
         // compute the number of seconds to get an exec conf
@@ -580,14 +596,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                 throw runtime_error("Error initializing execution configuration");
                 }
 
-            // calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
-            // attached to a display
-            float priority = float(prop.clockRate * prop.multiProcessorCount) / float(1e7);
-            // if the GPU is compute 2.x, multiply that by 4 as there are 4x more SPs in each MP
-            if (prop.major == 2)
-                priority *= 4.0f;
-            if (prop.major == 3)
-                priority *= 24.0f;
+            // calculate a simple priority: prefer the newest GPUs first, then those with more multiprocessors,
+            // then subtract a bit if the device is attached to a display
+            float priority = float(prop.major*1000000 + prop.minor*10000 + prop.multiProcessorCount);
 
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
@@ -721,6 +732,7 @@ void export_ExecutionConfiguration()
                          .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
                          .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
                          .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+                         .def("barrier", &ExecutionConfiguration::barrier)
                          .staticmethod("guessLocalRank")
                          .staticmethod("getNRanksGlobal")
                          .staticmethod("getRankGlobal")

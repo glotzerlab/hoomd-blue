@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -94,9 +94,16 @@ class _constant(_variant):
         # initialize the base class
         _variant.__init__(self);
 
+        self.val = val
+
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantConst(val);
         self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+
+    ## \internal
+    # \brief return metadata
+    def get_metadata(self):
+        return self.val
 
 ## Linearly interpolated variant
 #
@@ -178,6 +185,13 @@ class linear_interp(_variant):
 
             self.cpp_variant.setPoint(int(t), v);
 
+        # store metadata
+        self.points = points
+
+    ## \internal
+    # \brief return metadata
+    def get_metadata(self):
+        return self.points
 
 ## \internal
 # \brief Internal helper function to aid in setting up variants

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,12 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "BondTablePotentialGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "BondTablePotentialGPU.h"
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc
@@ -75,7 +76,7 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotentialGPU" << endl;
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing BondTableForceComputeGPU");
@@ -103,7 +104,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     {
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Bond Table");
+    if (m_prof) m_prof->push(m_exec_conf, "Bond Table");
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -146,7 +147,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
         }
 
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         {
         CHECK_CUDA_ERROR();
 
@@ -161,7 +162,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
         }
     m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_BondTablePotentialGPU()

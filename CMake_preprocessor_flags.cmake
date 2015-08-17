@@ -25,11 +25,7 @@ endif (ENABLE_CUDA)
 
 ################################
 ## thread safe compiling
-if(WIN32)
-    add_definitions(-D_MT)
-elseif(UNIX)
-    add_definitions(-D_REENTRANT)
-endif(WIN32)
+add_definitions(-D_REENTRANT)
 
 if (ENABLE_MPI)
     add_definitions (-DENABLE_MPI)

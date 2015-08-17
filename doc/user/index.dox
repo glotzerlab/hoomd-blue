@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Welcome to the user documentation for HOOMD-blue!
 
-1. \subpage page_install_guide
+1. \subpage page_compile_guide
 2. \subpage page_quick_start
 3. \subpage page_command_line_options
 4. \subpage page_example_scripts
@@ -61,9 +61,9 @@ Welcome to the user documentation for HOOMD-blue!
     3. \ref page_xml_file_format
     4. \ref page_mpi
     5. \ref page_autotuner
+    6. \ref page_restartable_jobs
 6. \subpage page_command_list
 7. \subpage page_conversion_scripts
-8. \subpage page_compile_guide
 9. \subpage page_license
 10. \subpage page_citing
 11. \subpage page_credits
@@ -78,11 +78,13 @@ Table of contents:
  - \ref sec_index_run
  - \ref sec_index_option
  - \ref sec_index_init
+ - \ref sec_index_data
  - \ref sec_index_integration
  - \ref sec_index_update
  - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
+ - \ref sec_index_meta
  - Potentials
    - \ref sec_index_pair
    - \ref sec_index_manybody
@@ -114,15 +116,13 @@ Table of contents:
  - Command line
     - \ref page_command_line_options
  - In script
-    - \link hoomd_script.option.set_mode() option.set_mode\endlink - <i>Set the execution mode</i>
-    - \link hoomd_script.option.set_gpu() option.set_gpu\endlink - <i>Set the gpu</i>
-    - \link hoomd_script.option.set_gpu_error_checking() option.set_gpu_error_checking\endlink - <i>Set the error checking flag</i>
-    - \link hoomd_script.option.set_min_cpu() option.set_min_cpu\endlink - <i>Set the minimize CPU usage flag</i>
-    - \link hoomd_script.option.set_ignore_display() option.set_ignore_display\endlink - <i>Set the ignore display GPU flag</i>
+    - \link hoomd_script.option.set_notice_level() option.set_notice_level\endlink - <i>Set the notice level</i>
+    - \link hoomd_script.option.set_msg_file() option.set_msg_file\endlink - <i>Set the message output file</i>
     - \link hoomd_script.option.get_user() option.get_user\endlink - <i>Get user options</i>
     - \link hoomd_script.option.set_autotuner_params() option.set_autotuner_params\endlink - <i>Set autotuner params</i>
 
 \section sec_index_init Initialize
+ - \link hoomd_script.context.initialize() context.initialize\endlink - <i>Parse command line arguments and initialize the execution context</i>
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>Create an empty system</i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>Generates N randomly positioned particles of the same type </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>Generates any number of randomly positioned polymers of configurable types </i>
@@ -132,7 +132,9 @@ Table of contents:
  - \link hoomd_script.init.reset() init.reset\endlink - <i>Resets all hoomd_script variables </i>
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
+\section sec_index_data Data access
  - \link hoomd_script.data data access\endlink - <i>Access particles, bonds, and other state information inside scripts </i>
+ - \link hoomd_script.data.make_snapshot data.make_snapshot\endlink - <i>Make an empty snapshot</i>
  - \link hoomd_script.data.system_data.take_snapshot system_data.take_snapshot\endlink - <i>Take a snapshot of the current configuration </i>
  - \link hoomd_script.data.system_data.restore_snapshot system_data.restore_snapshot\endlink - <i>Load the current system with a previously taken snapshot</i>
  - \link hoomd_script.data.system_data.replicate system_data.replicate\endlink - <i>Replicate the system periodically along specified dimensions</i>
@@ -167,6 +169,7 @@ Table of contents:
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>Sends simulation snapshots to VMD in real-time </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>Logs a number of calculated quantities to a file </i>
  - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>Calculates the mean-squared displacement of groups of particles and logs the values to a file </i>
+ - \link hoomd_script.analyze.callback analyze.callback\endlink - <i>Call a callback with each analyzer period </i>
 
 \section sec_index_dump Dump
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>Writes simulation snapshots in the DCD format </i>
@@ -174,6 +177,10 @@ Table of contents:
  - \link hoomd_script.dump.pdb dump.pdb\endlink - <i>Writes simulation snapshots in the PBD format </i>
  - \link hoomd_script.dump.bin dump.bin\endlink - <i>Writes simulation snapshots in a binary format </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>Writes simulation snapshots in the HOOMD XML format </i>
+ - \link hoomd_script.dump.pos dump.pos\endlink - <i>Writes simulation snapshots in the POS format </i>
+
+\section sec_index_meta Meta
+ - \link hoomd_script.meta\endlink - <i>Dumps metadata about the execution status and context </i>
 
 <h2>Potentials</h2>
 
@@ -185,6 +192,7 @@ Table of contents:
  - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i>
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>Gaussian %pair %force </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>Lennard-Jones %pair %force </i>
+ - \link hoomd_script.pair.mie pair.mie\endlink - <i>Mie potential %pair %force </i>
  - \link hoomd_script.pair.moliere pair.moliere\endlink - <i>Moliere %pair %force</i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>Morse %pair %force </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>Tabulated %pair %force </i>
@@ -210,6 +218,7 @@ Table of contents:
 
 \section sec_index_dihedral Dihedral potentials
  - \link hoomd_script.dihedral.harmonic dihedral.harmonic\endlink - <i>Harmonic %dihedral force </i>
+ - \link hoomd_script.dihedral.opls dihedral.opls\endlink - <i>OPLS %dihedral force </i>
  - \link hoomd_script.dihedral.table dihedral.table\endlink - <i>Tabulated %dihedral force </i>
 
 \section sec_index_improper Improper potentials
@@ -257,6 +266,8 @@ Table of contents:
 
 \section sec_index_benchmark Benchmark
  - \link hoomd_script.benchmark.series() benchmark.series\endlink - <i>Perform a series of short runs to benchmark overall simulation performance</i>
+ - \link hoomd_script.cuda_profile_start() cuda_profile_start\endlink - <i>Start nvvp profiling</i>
+ - \link hoomd_script.cuda_profile_stop() cuda_profile_stop\endlink - <i>Stop nvvp profiling</i>
 
 \section sec_index_communicate Communication helpers
  - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>

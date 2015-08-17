@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -46,13 +46,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <iostream>
 
 #include <boost/bind.hpp>
@@ -65,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTGPU.h"
 #endif
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 #include "AllPairPotentials.h"
 
@@ -533,7 +526,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
     fc3->setRcut(0, 0, Scalar(1.3));
 
@@ -681,9 +674,4 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
     twostepbdnvt_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
     bd_updater_lj_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
-
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

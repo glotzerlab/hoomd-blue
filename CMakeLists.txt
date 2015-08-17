@@ -1,12 +1,4 @@
-# Maintainer: joaander
-
-if (WIN32)
-# require cmake 2.8 for add_test(NAME COMMAND) form on windows
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
-else (WIN32)
-# require cmake 2.6.2 for findCUDA.cmake
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6.2 FATAL_ERROR)
-endif (WIN32)
 
 if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
 if(COMMAND cmake_policy)
@@ -45,6 +37,8 @@ include (HOOMDCFlagsSetup)
 include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
+# setup numpy
+include (HOOMDNumpySetup)
 # macros
 include (HOOMDMacros)
 # Configure some source files, include directories, and create variables listing all source files
@@ -77,17 +71,10 @@ endif (ENABLE_DOXYGEN)
 include(CTest)
 mark_as_advanced(DART_TESTING_TIMEOUT)
 if (BUILD_TESTING)
-    # add test_all to the ALL target if requested (mainly for automatic test
-    # suites)
-    if (ENABLE_TEST_ALL)
-        set(_default_test_all ALL)
-    endif (ENABLE_TEST_ALL)
-    # setup convenience targets that prevent tests from always being built
-    add_custom_target(test_all ${_default_test_all})
+    # add test_all to the ALL target
+    add_custom_target(test_all ALL)
     add_dependencies(test_all hoomd)
     add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
     add_dependencies(check test_all)
     add_subdirectory (test)
 endif (BUILD_TESTING)
-
-add_subdirectory (packaging)

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file PotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the pair forces.
@@ -70,23 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Maximum number of threads (width of a warp)
 const unsigned int gpu_pair_force_max_tpp = 32;
 
-//! CTA reduce
-template<typename T>
-__device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
-    {
-    shared[tid] = x;
-
-    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
-        {
-        if (tid < dest_count)
-            {
-            x += shared[dest_count + tid];
-            shared[tid] = x;
-            }
-         }
-    T total = shared[0];
-    return total;
-    }
 
 //! Wrapps arguments to gpu_cgpf
 struct pair_args_t
@@ -103,9 +82,10 @@ struct pair_args_t
               const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
-              const Index2D& _nli,
+              const unsigned int *_d_head_list,
               const Scalar *_d_rcutsq,
               const Scalar *_d_ronsq,
+              const unsigned int _size_neigh_list,
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
@@ -123,9 +103,10 @@ struct pair_args_t
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
-                  nli(_nli),
+                  d_head_list(_d_head_list),
                   d_rcutsq(_d_rcutsq),
                   d_ronsq(_d_ronsq),
+                  size_neigh_list(_size_neigh_list),
                   ntypes(_ntypes),
                   block_size(_block_size),
                   shift_mode(_shift_mode),
@@ -146,9 +127,10 @@ struct pair_args_t
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
-    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const unsigned int *d_head_list;//!< Head list indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
+    const unsigned int size_neigh_list; //!< Size of the neighbor list for texture binding
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -158,6 +140,63 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
+#if (__CUDA_ARCH__ >= 300)
+// need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
+// double specialization
+__device__ inline
+double __my_shfl_down(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl_down(a.x, srcLane, width);
+    a.y = __shfl_down(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
+__device__ inline
+float __my_shfl_down(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl_down(var, srcLane, width);
+    }
+#endif
+
+//! CTA reduce, returns result in first thread
+template<typename T>
+__device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
+    {
+    #if (__CUDA_ARCH__ < 300)
+    shared[tid] = x;
+    __syncthreads();
+    #endif
+
+    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
+        {
+        #if (__CUDA_ARCH__ < 300)
+        if (tid < dest_count)
+            {
+            shared[tid] += shared[dest_count + tid];
+            }
+        __syncthreads();
+        #else
+        x += __my_shfl_down(x, dest_count, NT);
+        #endif
+        }
+
+    #if (__CUDA_ARCH__ < 300)
+    T total;
+    if (tid == 0)
+        {
+        total = shared[0];
+        }
+    __syncthreads();
+    return total;
+    #else
+    return x;
+    #endif
+    }
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 
@@ -166,6 +205,11 @@ scalar_tex_t pdata_diam_tex;
 
 //! Texture for reading particle charges
 scalar_tex_t pdata_charge_tex;
+
+// there is some naming conflict between the DPD pair force and PotentialPair because
+// the DPD does not extend PotentialPair, and so we need to choose a different name for this texture
+//! Texture for reading neighbor list
+texture<unsigned int, 1, cudaReadModeElementType> pair_nlist_tex;
 
 //! Kernel for calculating pair forces (shared memory version)
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -181,7 +225,7 @@ scalar_tex_t pdata_charge_tex;
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for reading \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
@@ -197,13 +241,15 @@ scalar_tex_t pdata_charge_tex;
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial>
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
 __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
                                                const unsigned int virial_pitch,
@@ -214,7 +260,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                const BoxDim box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
-                                               const Index2D nli,
+                                               const unsigned int *d_head_list,
                                                const typename evaluator::param_type *d_params,
                                                const Scalar *d_rcutsq,
                                                const Scalar *d_ronsq,
@@ -256,28 +302,13 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
         }
 
+    bool active = true;
+
     if (idx >= N)
-        return;
-
-    // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = d_n_neigh[idx];
-
-    // read in the position of our particle.
-    // (MEM TRANSFER: 16 bytes)
-    Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
-    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-
-    Scalar di;
-    if (evaluator::needsDiameter())
-        di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
-    else
-        di += Scalar(1.0); // shutup compiler warning
-    Scalar qi;
-    if (evaluator::needsCharge())
-        qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
-    else
-        qi += Scalar(1.0); // shutup compiler warning
-
+        {
+        // need to mask this thread, but still participate in warp-level reduction (because of __syncthreads())
+        active = false;
+        }
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -288,138 +319,167 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     Scalar virialyz = Scalar(0.0);
     Scalar virialzz = Scalar(0.0);
 
-    unsigned int cur_j = 0;
-    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        d_nlist[nli(idx, threadIdx.x%tpp)] : 0;
-    // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < nli.getH(); neigh_idx+=tpp)
-    #else
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
-    #endif
+    if (active)
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
+        // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
+        unsigned int n_neigh = d_n_neigh[idx];
+
+        // read in the position of our particle.
+        // (MEM TRANSFER: 16 bytes)
+        Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+
+        Scalar di;
+        if (evaluator::needsDiameter())
+            di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
+        else
+            di += Scalar(1.0); // shutup compiler warning
+        Scalar qi;
+        if (evaluator::needsCharge())
+            qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
+        else
+            qi += Scalar(1.0); // shutup compiler warning
+
+        unsigned int my_head = d_head_list[idx];
+        unsigned int cur_j = 0;
+        
+        unsigned int next_j(0);
+        if (use_gmem_nlist)
             {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            cur_j = next_j;
-            if (neigh_idx+tpp < n_neigh)
-                next_j = d_nlist[nli(idx, neigh_idx+tpp)];
-
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
-            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-
-            Scalar dj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
-            else
-                dj += Scalar(1.0); // shutup compiler warning
-
-            Scalar qj = Scalar(0.0);
-            if (evaluator::needsCharge())
-                qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
-            else
-                qj += Scalar(1.0); // shutup compiler warning
-
-            // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            Scalar3 dx = posi - posj;
-
-            // apply periodic boundary conditions: (FLOPS 12)
-            dx = box.minImage(dx);
-
-            // calculate r squard (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
-
-            // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-            Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
-            Scalar ronsq = Scalar(0.0);
-            if (shift_mode == 2)
-                ronsq = s_ronsq[typpair];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (shift_mode == 1)
-                energy_shift = true;
-            else if (shift_mode == 2)
-                {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
-
-            // evaluate the potential
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
-
-            evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj);
-
-            eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-            if (shift_mode == 2)
-                {
-                if (rsq >= ronsq && rsq < rcutsq)
-                    {
-                    // Implement XPLOR smoothing (FLOPS: 16)
-                    Scalar old_pair_eng = pair_eng;
-                    Scalar old_force_divr = force_divr;
-
-                    // calculate 1.0 / (xplor denominator)
-                    Scalar xplor_denom_inv =
-                        Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-
-                    Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                               (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                    Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-
-                    // make modifications to the old pair energy and force
-                    pair_eng = old_pair_eng * s;
-                    force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                    }
-                }
-
-            // calculate the virial
-            if (compute_virial)
-                {
-                Scalar force_div2r = Scalar(0.5) * force_divr;
-                virialxx +=  dx.x * dx.x * force_div2r;
-                virialxy +=  dx.x * dx.y * force_div2r;
-                virialxz +=  dx.x * dx.z * force_div2r;
-                virialyy +=  dx.y * dx.y * force_div2r;
-                virialyz +=  dx.y * dx.z * force_div2r;
-                virialzz +=  dx.z * dx.z * force_div2r;
-                }
-
-            // add up the force vector components (FLOPS: 7)
-            #if (__CUDA_ARCH__ >= 200)
-            force.x += dx.x * force_divr;
-            force.y += dx.y * force_divr;
-            force.z += dx.z * force_divr;
-            #else
-            // fmad causes momentum drift here, prevent it from being used
-            force.x += __fmul_rn(dx.x, force_divr);
-            force.y += __fmul_rn(dx.y, force_divr);
-            force.z += __fmul_rn(dx.z, force_divr);
-            #endif
-
-            force.w += pair_eng;
+            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
             }
-        }
+        else
+            {
+            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
+            }
 
-    // potential energy per particle must be halved
-    force.w *= Scalar(0.5);
+        // loop over neighbors
+        for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
+            {
+                {
+                // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                cur_j = next_j;
+                if (neigh_idx+tpp < n_neigh)
+                    {
+                    if (use_gmem_nlist)
+                        {
+                        next_j = d_nlist[my_head + neigh_idx + tpp];
+                        }
+                    else
+                        {
+                        next_j = texFetchUint(d_nlist, pair_nlist_tex, my_head + neigh_idx+tpp);
+                        }
+                    }
+                // get the neighbor's position (MEM TRANSFER: 16 bytes)
+                Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+                Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+                Scalar dj = Scalar(0.0);
+                if (evaluator::needsDiameter())
+                    dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
+                else
+                    dj += Scalar(1.0); // shutup compiler warning
+
+                Scalar qj = Scalar(0.0);
+                if (evaluator::needsCharge())
+                    qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
+                else
+                    qj += Scalar(1.0); // shutup compiler warning
+
+                // calculate dr (with periodic boundary conditions) (FLOPS: 3)
+                Scalar3 dx = posi - posj;
+
+                // apply periodic boundary conditions: (FLOPS 12)
+                dx = box.minImage(dx);
+
+                // calculate r squard (FLOPS: 5)
+                Scalar rsq = dot(dx, dx);
+
+                // access the per type pair parameters
+                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                Scalar rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type param = s_params[typpair];
+                Scalar ronsq = Scalar(0.0);
+                if (shift_mode == 2)
+                    ronsq = s_ronsq[typpair];
+
+                // design specifies that energies are shifted if
+                // 1) shift mode is set to shift
+                // or 2) shift mode is explor and ron > rcut
+                bool energy_shift = false;
+                if (shift_mode == 1)
+                    energy_shift = true;
+                else if (shift_mode == 2)
+                    {
+                    if (ronsq > rcutsq)
+                        energy_shift = true;
+                    }
+
+                // evaluate the potential
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+
+                evaluator eval(rsq, rcutsq, param);
+                if (evaluator::needsDiameter())
+                    eval.setDiameter(di, dj);
+                if (evaluator::needsCharge())
+                    eval.setCharge(qi, qj);
+
+                eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+                if (shift_mode == 2)
+                    {
+                    if (rsq >= ronsq && rsq < rcutsq)
+                        {
+                        // Implement XPLOR smoothing (FLOPS: 16)
+                        Scalar old_pair_eng = pair_eng;
+                        Scalar old_force_divr = force_divr;
+
+                        // calculate 1.0 / (xplor denominator)
+                        Scalar xplor_denom_inv =
+                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                        // make modifications to the old pair energy and force
+                        pair_eng = old_pair_eng * s;
+                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                        }
+                    }
+                // calculate the virial
+                if (compute_virial)
+                    {
+                    Scalar force_div2r = Scalar(0.5) * force_divr;
+                    virialxx +=  dx.x * dx.x * force_div2r;
+                    virialxy +=  dx.x * dx.y * force_div2r;
+                    virialxz +=  dx.x * dx.z * force_div2r;
+                    virialyy +=  dx.y * dx.y * force_div2r;
+                    virialyz +=  dx.y * dx.z * force_div2r;
+                    virialzz +=  dx.z * dx.z * force_div2r;
+                    }
+
+                // add up the force vector components (FLOPS: 7)
+                #if (__CUDA_ARCH__ >= 200)
+                force.x += dx.x * force_divr;
+                force.y += dx.y * force_divr;
+                force.z += dx.z * force_divr;
+                #else
+                // fmad causes momentum drift here, prevent it from being used
+                force.x += __fmul_rn(dx.x, force_divr);
+                force.y += __fmul_rn(dx.y, force_divr);
+                force.z += __fmul_rn(dx.z, force_divr);
+                #endif
+
+                force.w += pair_eng;
+                }
+            }
+
+        // potential energy per particle must be halved
+        force.w *= Scalar(0.5);
+        }
 
     // we need to access a separate portion of shared memory to avoid race conditions
     const unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements();
@@ -436,7 +496,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     force.w = warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    if (threadIdx.x % tpp == 0)
+    if (active && threadIdx.x % tpp == 0)
         d_force[idx] = force;
 
     if (compute_virial)
@@ -449,7 +509,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         virialzz = warp_reduce(tpp, threadIdx.x % tpp, virialzz, &sh[cta_offs]);
 
         // if we are the first thread in the cta, write out virial to global mem
-        if (threadIdx.x %tpp == 0)
+        if (active && threadIdx.x %tpp == 0)
             {
             d_virial[0*virial_pitch+idx] = virialxx;
             d_virial[1*virial_pitch+idx] = virialxy;
@@ -487,6 +547,64 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
+    
+    // bind the neighborlist texture if it will fit
+    if (pair_args.size_neigh_list <= MAX_TEXTURE_WIDTH)
+        {
+        pair_nlist_tex.normalized = false;
+        pair_nlist_tex.filterMode = cudaFilterModePoint;
+        cudaBindTexture(0, pair_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
+        }
+    }
+
+//! Kernel launcher to compact templated kernel launches
+/*!
+ * \param pair_args Other arugments to pass onto the kernel
+ * \param d_params Parameters for the potential, stored per type pair
+ *
+ * \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+ * \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
+ *                       (See PotentialPair for a discussion on what that entails)
+ * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+ * \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+ *                        is used depending on architecture.
+ */
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
+inline void launch_compute_pair_force_kernel(const pair_args_t& pair_args,
+                                             const typename evaluator::param_type *d_params)
+    {
+    unsigned int block_size = pair_args.block_size;
+    unsigned int tpp = pair_args.threads_per_particle;
+
+    Index2D typpair_idx(pair_args.ntypes);
+    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                * typpair_idx.getNumElements();
+
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>);
+
+    if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
+
+    block_size = block_size < max_block_size ? block_size : max_block_size;
+    dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+    if (pair_args.compute_capability < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x/65535 + 1;
+        grid.x = 65535;
+        }
+
+    if (pair_args.compute_capability < 30)
+        {
+        shared_bytes += sizeof(Scalar)*block_size;
+        }
+
+    gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>
+      <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+      pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
+      pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
+      pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+      tpp);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -504,193 +622,108 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
-    // threads per particle
-
-    // setup the grid to run the kernel
-    unsigned int block_size = pair_args.block_size;
-    unsigned int tpp = pair_args.threads_per_particle;
-
-    Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
-
-
     // Launch kernel
-    if (pair_args.compute_virial)
-        {
-        switch (pair_args.shift_mode)
+    if (pair_args.compute_capability < 35 && pair_args.size_neigh_list > MAX_TEXTURE_WIDTH)
+        { // fall back to slow global loads when the neighbor list is too big for texture memory
+        if (pair_args.compute_virial)
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 1, 1>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 1:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 1, 1, 1>(pair_args, d_params);
+                    break;
+                    }
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 1, 1>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 0, 1>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
-                }
-            case 2:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 1:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 1, 0, 1>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 0, 1>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            default:
-                break;
             }
         }
     else
         {
-        switch (pair_args.shift_mode)
+        if (pair_args.compute_virial)
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 1, 0>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 1:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 1, 1, 0>(pair_args, d_params);
+                    break;
+                    }
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 1, 0>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 0, 0>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
-                }
-            case 2:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 1:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 1, 0, 0>(pair_args, d_params);
+                    break;
                     }
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 0, 0>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            default:
-                break;
             }
         }
 
     return cudaSuccess;
     }
+#undef MAX_TEXTURE_WIDTH
 #endif
-
 #endif // __POTENTIAL_PAIR_GPU_CUH__

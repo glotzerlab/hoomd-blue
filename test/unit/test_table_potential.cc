@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,15 +48,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <fstream>
 
 #include "TablePotential.h"
-#include "NeighborList.h"
+#include "NeighborListTree.h"
 #ifdef ENABLE_CUDA
 #include "TablePotentialGPU.h"
 #endif
@@ -91,7 +87,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(7.0), Scalar(0.8)));
     boost::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
 
     // first check for proper initialization by seeing if the force and potential come out to be 0
@@ -284,7 +280,7 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
     }
 
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
     boost::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
 
     // specify a table to interpolate
@@ -400,8 +396,4 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
     table_potential_type_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

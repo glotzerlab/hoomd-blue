@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,16 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
-
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
 #include "TwoStepNVTGPU.h"
 #include "TwoStepNVTGPU.cuh"
 
@@ -66,6 +56,13 @@ using namespace boost;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+
+
+#include <boost/python.hpp>
+using namespace boost::python;
+#include <boost/bind.hpp>
+using namespace boost;
 
 /*! \file TwoStepNVTGPU.h
     \brief Contains code for the TwoStepNVTGPU class
@@ -87,7 +84,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVT(sysdef, group, thermo, tau, T, suffix), m_curr_T(0.0)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
@@ -113,7 +110,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT step 1");
+        m_prof->push(m_exec_conf, "NVT step 1");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -140,7 +137,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      xi,
                      m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
@@ -164,7 +161,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                                  m_deltaT,
                                  exp_fac);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
@@ -186,7 +183,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -215,7 +212,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT step 2");
+        m_prof->push(m_exec_conf, "NVT step 2");
 
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
@@ -234,7 +231,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                      xi,
                      m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
@@ -259,13 +256,13 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                                  m_deltaT,
                                  exp_fac);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNVTGPU()
@@ -280,7 +277,3 @@ void export_TwoStepNVTGPU()
                           >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

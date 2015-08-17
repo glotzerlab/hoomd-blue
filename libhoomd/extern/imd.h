@@ -77,8 +77,8 @@ extern int imd_send_energies(void *, const IMDEnergies *);
 /** Send atom forces and coordinates, units are Kcal/mol/angstrom */
 extern int imd_send_fcoords(void *, int32, const float *);
 
-/** 
- *  recv_handshake returns 0 if server and client have the same relative 
+/**
+ *  recv_handshake returns 0 if server and client have the same relative
  *  endianism; returns 1 if they have opposite endianism, and -1 if there
  *  was an error in the handshake process.
  */
@@ -97,4 +97,3 @@ extern int imd_recv_energies(void *, IMDEnergies *);
 extern int imd_recv_fcoords(void *, int32, float *);
 
 #endif
-

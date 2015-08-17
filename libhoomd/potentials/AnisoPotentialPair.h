@@ -282,7 +282,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -342,11 +342,12 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         Scalar virialzzi = 0.0;
 
         // loop over all of the neighbors of this particle
+        const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_nlist.data[nli(i, k)];
+            unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
@@ -510,4 +511,3 @@ template < class T > void export_AnisoPotentialPair(const std::string& name)
     }
 
 #endif // __ANISO_POTENTIAL_PAIR_H__
-

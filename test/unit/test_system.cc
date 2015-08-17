@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -163,14 +159,14 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     // add them both to a System
     System sys(sysdef, 0);
-    sys.addAnalyzer(analyzer1, "analyzer1", 10);
-    sys.addAnalyzer(analyzer2, "analyzer2", 105);
+    sys.addAnalyzer(analyzer1, "analyzer1", 10, -1);
+    sys.addAnalyzer(analyzer2, "analyzer2", 105, -1);
 
     // test adding another of the same name
     bool except = false;
     try
         {
-        sys.addAnalyzer(analyzer2, "analyzer1", 1);
+        sys.addAnalyzer(analyzer2, "analyzer1", 1, -1);
         }
     catch (runtime_error)
         {
@@ -206,8 +202,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         }
     BOOST_CHECK(except);
 
-    sys.setAnalyzerPeriod("analyzer1", 15);
-    sys.setAnalyzerPeriod("analyzer2", 8);
+    sys.setAnalyzerPeriod("analyzer1", 15, -1);
+    sys.setAnalyzerPeriod("analyzer2", 8, -1);
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
 
@@ -243,14 +239,14 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
 
     // add them both to a System
-    sys.addUpdater(updater1, "updater1", 10);
-    sys.addUpdater(updater2, "updater2", 105);
+    sys.addUpdater(updater1, "updater1", 10, -1);
+    sys.addUpdater(updater2, "updater2", 105, -1);
 
     // test adding another of the same name
     except = false;
     try
         {
-        sys.addUpdater(updater2, "updater1", 1);
+        sys.addUpdater(updater2, "updater1", 1, -1);
         }
     catch (runtime_error)
         {
@@ -286,8 +282,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         }
     BOOST_CHECK(except);
 
-    sys.setUpdaterPeriod("updater1", 15);
-    sys.setUpdaterPeriod("updater2", 8);
+    sys.setUpdaterPeriod("updater1", 15, -1);
+    sys.setUpdaterPeriod("updater2", 8, -1);
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
 
@@ -412,9 +408,9 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     // add them both to a System
     System sys(sysdef, 0);
-    sys.addAnalyzer(analyzer1, "analyzer1", 15);
-    sys.addAnalyzer(analyzer2, "analyzer2", 20);
-    sys.addAnalyzer(analyzer3, "analyzer3", 1);
+    sys.addAnalyzer(analyzer1, "analyzer1", 15, -1);
+    sys.addAnalyzer(analyzer2, "analyzer2", 20, -1);
+    sys.addAnalyzer(analyzer3, "analyzer3", 1, -1);
 
     sys.setAnalyzerPeriodVariable("analyzer3", eval("lambda n: n**2"));
 
@@ -424,9 +420,9 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     boost::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
 
     // add them both to a System
-    sys.addUpdater(updater1, "updater1", 5);
-    sys.addUpdater(updater2, "updater2", 10);
-    sys.addUpdater(updater3, "updater3", 20);
+    sys.addUpdater(updater1, "updater1", 5, -1);
+    sys.addUpdater(updater2, "updater2", 10, -1);
+    sys.addUpdater(updater3, "updater3", 20, -1);
 
     sys.setUpdaterPeriodVariable("updater3", eval("lambda n: 0.5 * 10**n"));
 
@@ -455,7 +451,3 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     Py_Finalize();
     }*/
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

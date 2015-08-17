@@ -36,11 +36,11 @@ class pair_table_tests (unittest.TestCase):
         table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
         table.update_coeffs();
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         table.pair_coeff.set('A', 'A', rmax = 2.5)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
     # test adding types
     def test_type_add(self):
@@ -53,6 +53,7 @@ class pair_table_tests (unittest.TestCase):
         table.update_coeffs();
 
     def tearDown(self):
+        del self.s
         init.reset();
 
 

@@ -107,7 +107,7 @@ struct a_pair_args_t
               const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
-              const Index2D& _nli,
+              const unsigned int *_d_head_list,
               const Scalar *_d_rcutsq,
               const unsigned int _ntypes,
               const unsigned int _block_size,
@@ -127,7 +127,7 @@ struct a_pair_args_t
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
-                  nli(_nli),
+                  d_head_list(_d_head_list),
                   d_rcutsq(_d_rcutsq),
                   ntypes(_ntypes),
                   block_size(_block_size),
@@ -150,7 +150,7 @@ struct a_pair_args_t
     const BoxDim& box;              //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
-    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const unsigned int *d_head_list;//!< Device array listing beginning of each particle's neighbors
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
@@ -188,7 +188,7 @@ scalar_tex_t aniso_pdata_charge_tex;
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Device memory array listing beginning of each particle's neighbors
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param ntypes Number of types in the simulation
@@ -223,7 +223,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const BoxDim box,
                                                      const unsigned int *d_n_neigh,
                                                      const unsigned int *d_nlist,
-                                                     const Index2D nli,
+                                                     const unsigned int *d_head_list,
                                                      const typename evaluator::param_type *d_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
@@ -296,28 +296,19 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     // prefetch neighbor index
     unsigned int cur_j = 0;
+    const unsigned int myHead = d_head_list[idx];
     unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        d_nlist[nli(idx, threadIdx.x%tpp)] : 0;
+        d_nlist[myHead + threadIdx.x%tpp] : 0;
 
     // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < nli.getH(); neigh_idx+=tpp)
-    #else
     for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
-    #endif
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
             cur_j = next_j;
             if (neigh_idx+tpp < n_neigh)
-                next_j = d_nlist[nli(idx, neigh_idx+tpp)];
+                next_j = d_nlist[myHead + neigh_idx + tpp];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             Scalar4 postypej = texFetchScalar4(d_pos, aniso_pdata_pos_tex, cur_j);
@@ -550,7 +541,7 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.box,
                                                   pair_args.d_n_neigh,
                                                   pair_args.d_nlist,
-                                                  pair_args.nli,
+                                                  pair_args.d_head_list,
                                                   d_params,
                                                   pair_args.d_rcutsq,
                                                   pair_args.ntypes,
@@ -591,7 +582,7 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.box,
                                                   pair_args.d_n_neigh,
                                                   pair_args.d_nlist,
-                                                  pair_args.nli,
+                                                  pair_args.d_head_list,
                                                   d_params,
                                                   pair_args.d_rcutsq,
                                                   pair_args.ntypes,
@@ -640,7 +631,7 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.box,
                                                   pair_args.d_n_neigh,
                                                   pair_args.d_nlist,
-                                                  pair_args.nli,
+                                                  pair_args.d_head_list,
                                                   d_params,
                                                   pair_args.d_rcutsq,
                                                   pair_args.ntypes,
@@ -681,7 +672,7 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.box,
                                                   pair_args.d_n_neigh,
                                                   pair_args.d_nlist,
-                                                  pair_args.nli,
+                                                  pair_args.d_head_list,
                                                   d_params,
                                                   pair_args.d_rcutsq,
                                                   pair_args.ntypes,

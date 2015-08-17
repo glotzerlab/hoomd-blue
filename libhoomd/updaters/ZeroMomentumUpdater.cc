@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -52,15 +52,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ZeroMomentumUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
+
+#include "ZeroMomentumUpdater.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "ZeroMomentumUpdater.h"
 
 #include <iostream>
 #include <math.h>
@@ -189,7 +185,3 @@ void export_ZeroMomentumUpdater()
     ("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
