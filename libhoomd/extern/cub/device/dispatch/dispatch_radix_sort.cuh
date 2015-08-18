@@ -680,6 +680,7 @@ struct DispatchRadixSort
             items_per_thread            = UpsweepPolicy::ITEMS_PER_THREAD;
             radix_bits                  = UpsweepPolicy::RADIX_BITS;
             tile_size                   = block_threads * items_per_thread;
+            sm_occupancy                = 0; // may be uninitialized if next call fails, squash warnings
             cudaError_t retval          = MaxSmOccupancy(sm_occupancy, sm_version, upsweep_kernel, block_threads);
             subscription_factor         = CUB_SUBSCRIPTION_FACTOR(sm_version);
             max_grid_size               = (sm_occupancy * sm_count) * subscription_factor;
@@ -710,6 +711,7 @@ struct DispatchRadixSort
             items_per_thread            = DownsweepPolicy::ITEMS_PER_THREAD;
             radix_bits                  = DownsweepPolicy::RADIX_BITS;
             tile_size                   = block_threads * items_per_thread;
+            sm_occupancy                = 0; // may be uninitialized if next call fails, squash warnings
             cudaError_t retval          = MaxSmOccupancy(sm_occupancy, sm_version, downsweep_kernel, block_threads);
             subscription_factor         = CUB_SUBSCRIPTION_FACTOR(sm_version);
             max_grid_size               = (sm_occupancy * sm_count) * subscription_factor;
