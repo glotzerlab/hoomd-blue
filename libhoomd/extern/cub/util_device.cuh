@@ -302,7 +302,7 @@ cudaError_t MaxSmOccupancy(
     } while (0);
 
     return error;
-#endif  // CUDART < 6.5
+#endif  // CUDART_VERSION >= 6050
 #endif  // CUB_RUNTIME_ENABLED
 }
 
