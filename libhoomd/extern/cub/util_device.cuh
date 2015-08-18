@@ -222,12 +222,17 @@ cudaError_t MaxSmOccupancy(
 
 #else
 
+// cudaOccupancyMaxActiveBlocksPerMultiprocessor was only included in CUDA 6.5 and newer
+// http://devblogs.nvidia.com/parallelforall/cuda-pro-tip-occupancy-api-simplifies-launch-configuration/
+// https://groups.google.com/forum/#!category-topic/cub-users/bugs-and-issues/Y3fFGkZ3ka4
+// http://stackoverflow.com/questions/28044011/cudaoccupancymaxactiveblockspermultiprocessor-is-undefined
+#if CUDART_VERSION >= 6050
     return cudaOccupancyMaxActiveBlocksPerMultiprocessor (
         &max_sm_occupancy,
         kernel_ptr,
         block_threads,
         0);
-/*
+#else
     cudaError_t error = cudaSuccess;
     do
     {
@@ -297,7 +302,7 @@ cudaError_t MaxSmOccupancy(
     } while (0);
 
     return error;
-*/
+#endif  // CUDART < 6.5
 #endif  // CUB_RUNTIME_ENABLED
 }
 
