@@ -520,8 +520,18 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
-
-        // allocate temporary storage (unsigned char = 1 B)
+        /*
+         * Always allocate at least 4 bytes. In CUB 1.4.1, sorting N < the tile size (which I believe is a thread block)
+         * does not require any temporary storage, and tmp_storage_bytes returns 0. But, d_tmp_storage must be not NULL
+         * for the sort to occur on the second pass. C++ standards forbid specifying a pointer to memory that
+         * isn't properly allocated / doesn't exist (for example, a pointer to an odd address), so we allocate a small
+         * bit of memory as temporary storage that isn't used.
+         */
+        if (tmp_storage_bytes == 0)
+            {
+            tmp_storage_bytes = 4;
+            }
+        // unsigned char = 1 B
         ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
         d_tmp_storage = (void *)d_alloc();
 
@@ -535,7 +545,7 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_morton,
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
-                              m_n_type_bits);    
+                              m_n_type_bits);
         }
         
     // we want the sorted data in the real data because the alt is just a tmp holder
