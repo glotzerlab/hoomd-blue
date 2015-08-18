@@ -527,12 +527,9 @@ void NeighborListGPUTree::sortMortonCodes()
          * isn't properly allocated / doesn't exist (for example, a pointer to an odd address), so we allocate a small
          * bit of memory as temporary storage that isn't used.
          */
-        if (tmp_storage_bytes == 0)
-            {
-            tmp_storage_bytes = 4;
-            }
+        size_t alloc_size = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
         // unsigned char = 1 B
-        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
         d_tmp_storage = (void *)d_alloc();
 
         // perform the sort
