@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -75,7 +75,7 @@ struct WarpReduceSmem
         /// The number of shared memory elements per warp
         WARP_SMEM_ELEMENTS =  LOGICAL_WARP_THREADS + HALF_WARP_THREADS,
 
-        /// Flag status (when not using ballot)
+        /// FlagT status (when not using ballot)
         UNSET   = 0x0,  // Is initially unset
         SET     = 0x1,  // Is initially set
         SEEN    = 0x2,  // Has seen another head flag from a successor peer
@@ -117,10 +117,13 @@ struct WarpReduceSmem
             LaneId() % LOGICAL_WARP_THREADS)
     {}
 
-
     /******************************************************************************
-     * Operation
+     * Utility methods
      ******************************************************************************/
+
+    //---------------------------------------------------------------------
+    // Regular reduction
+    //---------------------------------------------------------------------
 
     /**
      * Reduction step
@@ -169,20 +172,9 @@ struct WarpReduceSmem
     }
 
 
-    /**
-     * Reduction
-     */
-    template <
-        bool                ALL_LANES_VALID,        ///< Whether all lanes in each warp are contributing a valid fold of items
-        int                 FOLDED_ITEMS_PER_LANE,  ///< Number of items folded into each lane
-        typename            ReductionOp>
-    __device__ __forceinline__ T Reduce(
-        T                   input,                  ///< [in] Calling thread's input
-        int                 folded_items_per_warp,  ///< [in] Total number of valid items folded into each logical warp
-        ReductionOp         reduction_op)           ///< [in] Reduction operator
-    {
-        return ReduceStep<ALL_LANES_VALID, FOLDED_ITEMS_PER_LANE>(input, folded_items_per_warp, reduction_op, Int2Type<0>());
-    }
+    //---------------------------------------------------------------------
+    // Segmented reduction
+    //---------------------------------------------------------------------
 
 
     /**
@@ -190,11 +182,11 @@ struct WarpReduceSmem
      */
     template <
         bool            HEAD_SEGMENTED,     ///< Whether flags indicate a segment-head or a segment-tail
-        typename        Flag,
+        typename        FlagT,
         typename        ReductionOp>
     __device__ __forceinline__ T SegmentedReduce(
         T               input,              ///< [in] Calling thread's input
-        Flag            flag,               ///< [in] Whether or not the current lane is a segment head/tail
+        FlagT            flag,               ///< [in] Whether or not the current lane is a segment head/tail
         ReductionOp     reduction_op,       ///< [in] Reduction operator
         Int2Type<true>  has_ballot)         ///< [in] Marker type for whether the target arch has ballot functionality
     {
@@ -245,11 +237,11 @@ struct WarpReduceSmem
      */
     template <
         bool            HEAD_SEGMENTED,     ///< Whether flags indicate a segment-head or a segment-tail
-        typename        Flag,
+        typename        FlagT,
         typename        ReductionOp>
     __device__ __forceinline__ T SegmentedReduce(
         T               input,              ///< [in] Calling thread's input
-        Flag            flag,               ///< [in] Whether or not the current lane is a segment head/tail
+        FlagT            flag,               ///< [in] Whether or not the current lane is a segment head/tail
         ReductionOp     reduction_op,       ///< [in] Reduction operator
         Int2Type<false> has_ballot)         ///< [in] Marker type for whether the target arch has ballot functionality
     {
@@ -322,34 +314,41 @@ struct WarpReduceSmem
     }
 
 
+    /******************************************************************************
+     * Interface
+     ******************************************************************************/
+
+    /**
+     * Reduction
+     */
+    template <
+        bool                ALL_LANES_VALID,        ///< Whether all lanes in each warp are contributing a valid fold of items
+        int                 FOLDED_ITEMS_PER_LANE,  ///< Number of items folded into each lane
+        typename            ReductionOp>
+    __device__ __forceinline__ T Reduce(
+        T                   input,                  ///< [in] Calling thread's input
+        int                 folded_items_per_warp,  ///< [in] Total number of valid items folded into each logical warp
+        ReductionOp         reduction_op)           ///< [in] Reduction operator
+    {
+        return ReduceStep<ALL_LANES_VALID, FOLDED_ITEMS_PER_LANE>(input, folded_items_per_warp, reduction_op, Int2Type<0>());
+    }
+
+
     /**
      * Segmented reduction
      */
     template <
         bool            HEAD_SEGMENTED,     ///< Whether flags indicate a segment-head or a segment-tail
-        typename        Flag,
+        typename        FlagT,
         typename        ReductionOp>
     __device__ __forceinline__ T SegmentedReduce(
         T               input,              ///< [in] Calling thread's input
-        Flag            flag,               ///< [in] Whether or not the current lane is a segment head/tail
+        FlagT            flag,               ///< [in] Whether or not the current lane is a segment head/tail
         ReductionOp     reduction_op)       ///< [in] Reduction operator
     {
         return SegmentedReduce<HEAD_SEGMENTED>(input, flag, reduction_op, Int2Type<(PTX_ARCH >= 200)>());
     }
 
-
-    /**
-     * Summation
-     */
-    template <
-        bool            ALL_LANES_VALID,        ///< Whether all lanes in each warp are contributing a valid fold of items
-        int             FOLDED_ITEMS_PER_LANE>  ///< Number of items folded into each lane
-    __device__ __forceinline__ T Sum(
-        T               input,                  ///< [in] Calling thread's input
-        int             folded_items_per_warp)  ///< [in] Total number of valid items folded into each logical warp
-    {
-        return Reduce<ALL_LANES_VALID, FOLDED_ITEMS_PER_LANE>(input, folded_items_per_warp, cub::Sum());
-    }
 
 };
 
