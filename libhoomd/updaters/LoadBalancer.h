@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 #include "Updater.h"
+#include "BalancedDomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -78,7 +79,8 @@ class LoadBalancer : public Updater
 #ifdef ENABLE_MPI
     public:
         //! Constructor
-        LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<BalancedDomainDecomposition> decomposition);
+        //! Destructor
         virtual ~LoadBalancer();
 
         //! Take one timestep forward
@@ -89,17 +91,36 @@ class LoadBalancer : public Updater
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
         MPI_Group m_mpi_comm_group; //!< MPI group for all ranks
-        MPI_Comm m_mpi_comm_z;      //!< MPI communicator for reducing down z
+        MPI_Comm m_mpi_comm_xy;      //!< MPI communicator for reducing down z to the xy plane
+        MPI_Comm m_mpi_comm_xz;      //!< MPI communicator for reducing down y to the xz plane
 
-        std::vector<MPI_Group> m_mpi_group_y;   //!< Array of MPI groups for reducing down y
-        std::vector<int> m_roots_y;    //!< Array of root ranks for reduction down y
-        std::vector<MPI_Comm> m_mpi_comm_y;     //!< Array of MPI communicators for reducing down y
+        std::vector<MPI_Group> m_mpi_group_xy_red_y;   //!< Array of MPI groups for reducing xy down y
+        std::vector<MPI_Comm> m_mpi_comm_xy_red_y;     //!< Array of MPI communicators for reducing xy down y
+
+        std::vector<MPI_Group> m_mpi_group_xy_red_x;   //!< Array of MPI groups for reducing xy down x
+        std::vector<MPI_Comm> m_mpi_comm_xy_red_x;     //!< Array of MPI communicators for reducing xy down x
+        std::vector<MPI_Group> m_mpi_group_xz_red_x;   //!< Array of MPI groups for reducing xz down x
+        std::vector<MPI_Comm> m_mpi_comm_xz_red_x;     //!< Array of MPI communicators for reducing xz down x
         
         MPI_Group m_mpi_group_x;    //!< Group for gathering and scattering in x
         MPI_Comm m_mpi_comm_x;      //!< Communicator for gathering and scattering in x
 
-        //! Adjusts the partitioning along a single dimension
-        bool adjust(const std::vector<unsigned int>& N_i, std::vector<Scalar>& cum_frac_i);
+        MPI_Group m_mpi_group_y;    //!< Group for gathering and scattering in y
+        MPI_Comm m_mpi_comm_y;      //!< Communicator for gathering and scattering in y
+
+        MPI_Group m_mpi_group_z;    //!< Group for gathering and scattering in z
+        MPI_Comm m_mpi_comm_z;      //!< Communicator for gathering and scattering in z
+
+        //! Reduce the particle numbers per rank down to one dimension
+        bool reduce(std::vector<unsigned int>& N_i, unsigned int dim);
+
+        //! Adjust the partitioning along a single dimension
+        bool adjust(std::vector<Scalar>& cum_frac_i, const std::vector<unsigned int>& N_i);
+
+        //! Compute the number of particles on each rank after an adjustment
+        virtual void computeParticleChange();
+        unsigned int m_N_own;   //!< Number of particles owned by this rank
+        bool m_adjusted;        //!< Flag if an adjustment has been made
 #endif // ENABLE_MPI
     };
 
