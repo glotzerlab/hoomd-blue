@@ -62,7 +62,7 @@ using namespace std;
     \param fname_base The base file name to write the output to
 */
 POSDumpWriter::POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname)
-        : Analyzer(sysdef), m_rigid_data(sysdef->getRigidData()), m_unwrap_rigid(false)
+        : Analyzer(sysdef), m_rigid_data(sysdef->getRigidData()), m_unwrap_rigid(false), m_write_info(false)
     {
     bool is_root = true;
 
@@ -158,6 +158,13 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_file << "def " << tname << " " << "\"" << m_defs[j] << "\"" << "\n";
         }
 
+    // if there is a string to be written due to the callback, write it.
+    if (m_write_info) 
+        {
+        string info = boost::python::extract<string> (m_add_info(timestep));
+        m_file << info;
+        }
+
     for (unsigned int j = 0; j < snap.size; j++)
         {
         // get the coordinates
@@ -216,5 +223,6 @@ void export_POSDumpWriter()
     ("POSDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
         .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
+        .def("setAddInfo", &POSDumpWriter::setAddInfo)
         ;
     }

@@ -78,6 +78,13 @@ class POSDumpWriter : public Analyzer
             m_unwrap_rigid = enable;
             }
 
+        //! Set whether or not there is additional information to be printed via the callback
+        void setAddInfo(boost::python::object callback)
+            {
+            m_write_info = true;
+            m_add_info = callback;
+            }
+
     private:
         std::ofstream m_file;    //!< File to write to
 
@@ -85,6 +92,8 @@ class POSDumpWriter : public Analyzer
 
         boost::shared_ptr<RigidData> m_rigid_data; //!< For accessing rigid body data
         bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
+        bool m_write_info; //!< If true, there is additional info to write
+        boost::python::object m_add_info; // callback 
     };
 
 //! Exports the POSDumpWriter class to python

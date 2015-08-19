@@ -732,7 +732,7 @@ class pos(analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     #
-    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1):
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, callback=None):
         util.print_status_line();
 
         # initialize base class
@@ -740,8 +740,11 @@ class pos(analyze._analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.POSDumpWriter(globals.system_definition, filename);
-
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+
+        if callback is not None:
+            self.cpp_analyzer.setAddInfo(callback);
+
         if period is not None:
             self.setupAnalyzer(period, phase);
             self.enabled = True;
