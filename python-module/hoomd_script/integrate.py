@@ -620,6 +620,10 @@ class npt(_integration_method):
                 T=1.0
                 tau=1.0
 
+        if len(group) == 0:
+            globals.msg.error("integrate.npt: Need a non-empty group.\n");
+            raise RuntimeError("Error setting up NPT integration.");
+
         # initialize base class
         _integration_method.__init__(self);
 
@@ -1116,7 +1120,7 @@ class nve_rigid(_integration_method):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='nguyen2011',
                          author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
