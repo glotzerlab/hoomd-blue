@@ -112,6 +112,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const BoxDim box,
+                                               const typename evaluator::field_type field,
                                                const typename evaluator::param_type *params)
     {
     // start by identifying which particle we are to handle
@@ -155,7 +156,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 */
 
 template< class evaluator >
-cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params)
+cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::field_type field, const typename evaluator::param_type *d_params)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -180,6 +181,5 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
 #endif
     
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params);
-
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::field_type field, const typename evaluator::param_type *d_params);
 #endif // __POTENTIAL_PAIR_GPU_CUH__

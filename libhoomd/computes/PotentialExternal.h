@@ -79,6 +79,7 @@ class PotentialExternal: public ForceCompute
 
         //! type of external potential parameters
         typedef typename evaluator::param_type param_type;
+        typedef typename evaluator::field_type field_type;
 
         //! Sets parameters of the evaluator
         void setParams(unsigned int type, param_type params);

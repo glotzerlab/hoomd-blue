@@ -102,13 +102,14 @@ class EvaluatorExternalPeriodic
 
         //! type of parameters this external potential accepts
         typedef Scalar4 param_type;
+        typedef struct dummy{}field_type;
 
         //! Constructs the constraint evaluator
         /*! \param X position of particle
             \param box box dimensions
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params)
+        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const field_type& field, const param_type& params)
             : m_pos(X),
               m_box(box)
             {
