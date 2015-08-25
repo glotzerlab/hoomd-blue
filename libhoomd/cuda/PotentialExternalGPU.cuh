@@ -112,8 +112,8 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const BoxDim box,
-                                               const typename evaluator::field_type field,
-                                               const typename evaluator::param_type *params)
+                                               const typename evaluator::param_type *params,
+                                               const typename evaluator::field_type *field)
     {
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -134,7 +134,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, box, params[typei]);
+    evaluator eval(Xi, box, params[typei], field);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
 
@@ -156,7 +156,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 */
 
 template< class evaluator >
-cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::field_type field, const typename evaluator::param_type *d_params)
+cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -179,7 +179,7 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
     return cudaSuccess;
     };
 #endif
-    
+
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::field_type field, const typename evaluator::param_type *d_params);
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field);
 #endif // __POTENTIAL_PAIR_GPU_CUH__

@@ -59,6 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialExternalGPU.cuh"
 
 //! Compute periodic potential forces on the GPU with EvaluatorExternalPeriodic
-cudaError_t gpu_compute_periodic_forces(const external_potential_args_t& potential_args, struct field, const Scalar4 *d_params);
+gpu_compute_periodic_forces(const external_potential_args_t& potential_args, const Scalar4 *d_params, const EvaluatorExternalPeriodic::field_type *field)
 
 #endif
