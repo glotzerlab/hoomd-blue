@@ -134,7 +134,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, box, params[typei], field);
+    evaluator eval(Xi, box, params[typei], *field);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
 
@@ -154,7 +154,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     This is just a driver function for gpu_compute_external_forces(), see it for details.
 */
-
+/*
 template< class evaluator >
 cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
     {
@@ -178,6 +178,7 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
 
     return cudaSuccess;
     };
+*/
 #endif
 
 template< class evaluator >

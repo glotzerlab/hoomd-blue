@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairMie.h"
 */
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::field_type field, const typename evaluator::param_type *d_params)
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
     {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -82,14 +82,14 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, c
 
         // bind the position texture
         gpu_compute_external_forces_kernel<evaluator>
-               <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.N, external_potential_args.d_pos, external_potential_args.box, d_params);
+               <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.N, external_potential_args.d_pos, external_potential_args.box, d_params, field);
 
         return cudaSuccess;
     }
 //Instantiate external evaluator templates
 
 //! Evaluator for External Periodic potentials.
-template cudaError_t gpu_cpef<EvaluatorExternalPeriodic>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalPeriodic::field_type field, const typename EvaluatorExternalPeriodic::param_type *d_params);
+template cudaError_t gpu_cpef<EvaluatorExternalPeriodic>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalPeriodic::param_type *d_params, const typename EvaluatorExternalPeriodic::field_type *field);
 /*//! Evaluator for Lennard-Jones pair potential.
 template cudaError_t gpu_cpef<EvaluatorPairLJ>(const external_potential_args_t& external_potential_args, const typename EvaluatorPairLJ::field_type field, const typename EvaluatorPairLJ::param_type *d_params);
 //! Evaluator for Gaussian pair potential.
