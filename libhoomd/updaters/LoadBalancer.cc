@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "LoadBalancer.h"
+#include "Communicator.h"
+
+#include "BVLSSolver.h"
+#include "Eigen/Dense"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -61,6 +65,7 @@ using namespace boost::python;
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -70,7 +75,7 @@ using namespace std;
 LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<BalancedDomainDecomposition> decomposition)
         : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_N_own(m_pdata->getN()), m_adjusted(false)
+          m_N_own(m_pdata->getN()), m_needs_recount(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
@@ -204,8 +209,8 @@ LoadBalancer::~LoadBalancer()
  * in each dimension taking into account the adjusted boundaries each time. An adjustment of 50% of the load imbalance
  * is attempted, subject to the following constraints:
  *  - No length may change by more than 5% for stability
- *  - No length may change by more than half of the length of an adjacent cell (or particles could cross multiple cells)
  *  - No length may shrink smaller than the ghost width (or the system is over-decomposed)
+ *  - No boundary may move past than halfway point of an adjacent cell (conservative way to stop a particle jumping 2 cells)
  *  - The total volume must be conserved after adjustment
  */
 void LoadBalancer::update(unsigned int timestep)
@@ -215,11 +220,9 @@ void LoadBalancer::update(unsigned int timestep)
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
 
-    // no adjustment has been made yet
-    m_adjusted = false;
-
-    // clear out the ghosts, they will be invalidated anyway
-    m_comm->removeGhostParticles();
+    // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
+    m_N_own = m_pdata->getN();
+    m_needs_recount = false;
 
     // copy the domain decomposition into GPUArrays (this could be avoided by turning the DD into GPUArrays
     // and just operating on this data, which is what we really want do do)
@@ -229,38 +232,48 @@ void LoadBalancer::update(unsigned int timestep)
     // vectors to hold the reduced particle numbers along each dimension
     vector<unsigned int> N_x(di.getW()), N_y(di.getH()), N_z(di.getD());
 
-    vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
+    const BoxDim& box = m_pdata->getGlobalBox();
+    Scalar3 L = box.getL();
+
     bool active = reduce(N_x, 0);
     if (active)
         {
-        adjust(cum_frac_x, N_x);
+        vector<Scalar> frac_x = m_decomposition->getFractions(0);
+        vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
+        if (adjust(cum_frac_x, frac_x, N_x, L.x))
+            {
+            cout << cum_frac_x[0] << " " << cum_frac_x[1] << " " << cum_frac_x[2] << endl;
+//             m_decomposition->setCumulativeFractions(0, cum_frac_x);
+//             m_pdata->updateLocalBox();
+            }
         }
-    // set the new domain decomposition along x
-    // rescale the boxes (this is a trick to force the domain decomposition to act on the ParticleData)
-    // should replace with a new function m_pdata->updateLocalBox() since this is hackish
-    m_pdata->getGlobalBox(m_pdata->getGlobalBox());
 
-    vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
     active = reduce(N_y, 1);
     if (active)
         {
-        adjust(cum_frac_y, N_y);
+        vector<Scalar> frac_y = m_decomposition->getFractions(1);
+        vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
+        if (adjust(cum_frac_y, frac_y, N_y, L.y))
+            {
+//             m_decomposition->setCumulativeFractions(1, cum_frac_y);
+//             m_pdata->updateLocalBox();
+            }
         }
-    // broadcast the y adjustment
-    // compute the change in particles per rank
 
-    vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
     active = reduce(N_z, 2);
     if (active)
         {
-        adjust(cum_frac_z, N_z);
+        vector<Scalar> frac_z = m_decomposition->getFractions(2);
+        vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
+        if (adjust(cum_frac_z, frac_z, N_z, L.z))
+            {
+//             m_decomposition->setCumulativeFractions(2, cum_frac_z);
+//             m_pdata->updateLocalBox();
+            }
         }
 
-    // notify a box size change
     // migrate particles to their final locations
     m_comm->migrateParticles();
-    
-    // compute the load imbalance and repeat if necessary
 
     if (m_prof) m_prof->pop();
     }
@@ -350,22 +363,151 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
 /*!
  * \returns true if an adjustment occurred
  */
-bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i, const vector<unsigned int>& N_i)
+bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
+                          const vector<Scalar>& frac_i,
+                          const vector<unsigned int>& N_i,
+                          Scalar L_i)
     {
+    if (N_i.size() == 1)
+        return false;
+
+    // target particles per rank is uniform distribution
+    const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
+
     // imbalance factors for each rank
-    vector<Scalar> imb_factor(N_i.size());
+    vector<Scalar> scale_factor(N_i.size());
+    Scalar max_imb(-1.0);
+    for (unsigned int i=0; i < N_i.size(); ++i)
+        {
+        const Scalar imb_factor = Scalar(N_i[i]) / target;
+        if (N_i[i] > 0)
+            {
+            scale_factor[i] = Scalar(0.5) / imb_factor; // as in gromacs, use half the imbalance factor to scale
+            if (scale_factor[i] > Scalar(1.05))
+                {
+                scale_factor[i] = Scalar(1.05);
+                }
+            else if(scale_factor[i] < Scalar(0.95))
+                {
+                scale_factor[i] = Scalar(0.95);
+                }
+            
+            }
+        else
+            {
+            scale_factor[i] = Scalar(1.05); // apply rescaling limit to empty ranks otherwise they want to expand too much
+            }
+        
+        if (imb_factor > max_imb)
+            max_imb = imb_factor;
+        }
     
-    m_adjusted = true;
-    return true;
+    if (max_imb > Scalar(1.05))
+        {
+        // make the minimum domain slightly bigger so that the optimization won't fail
+        const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
+        const Scalar min_domain_target = Scalar(1.05) * min_domain_size;
+
+        // define the optimization problem to solve to satisfy the constraints
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N_i.size(), N_i.size()-1);
+        A(0,0) = 1.0;
+        for (unsigned int i=1; i < N_i.size()-1; ++i)
+            {
+            A(i,i-1) = -1.0;
+            A(i,i) = 1.0;
+            }
+        A(N_i.size()-1, N_i.size()-2) = -1.0;
+
+        Eigen::VectorXd b(N_i.size());
+        for (unsigned int cur_rank=0; cur_rank < N_i.size(); ++cur_rank)
+            {
+            Scalar new_width = scale_factor[cur_rank] * frac_i[cur_rank] * L_i;
+            // enforce a soft (but really quite stiff) limit on the minimum domain size
+            if (new_width < min_domain_target)
+                {
+                new_width = min_domain_target;
+                // add a very steep penalty for violating this constraint
+                if (cur_rank > 1)
+                    A(cur_rank,cur_rank-1) *= Scalar(100.0);
+
+                if (cur_rank < N_i.size() - 1)
+                    A(cur_rank,cur_rank) *= Scalar(100.0);
+                }
+            b(cur_rank) = new_width;
+            }
+        b(N_i.size() - 1) -= L_i; // the last equation applies the length constraint
+        
+        Eigen::VectorXd l(N_i.size() - 1), u(N_i.size() - 1);
+        for (unsigned int cur_rank=0; cur_rank < N_i.size()-1; ++cur_rank)
+            {
+            // multiply by a small scale factor so that we don't have <= problems
+            l(cur_rank) = Scalar(1.001) * Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
+            u(cur_rank) = Scalar(0.999) * Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
+            }
+        
+        try
+            {
+            BVLSSolver solver(A, b, l, u);
+            solver.solve();
+            if (solver.converged())
+                {
+                Eigen::VectorXd x = solver.getSolution();
+                // validate the converged solution by checking nobody is smaller than the minimum domain width
+                // if somebody is, give up balancing this dimension
+                vector<Scalar> sorted_f(x.size());
+                bool need_sort = false;
+                for (unsigned int cur_div=0; cur_div < x.size(); ++cur_div)
+                    {
+                    if (x(cur_div) < min_domain_size)
+                        {
+                        m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                        return false;
+                        }
+                    sorted_f[cur_div] = x(cur_div) / L_i;
+                    if (cur_div > 0 && sorted_f[cur_div] > sorted_f[cur_div-1])
+                        {
+                        need_sort = true;
+                        }
+                    }
+                // sanity check: everybody needs to be in ascending order
+                if (need_sort)
+                    {
+                    sort(sorted_f.begin(), sorted_f.end());
+                    }
+                
+                for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
+                    {
+                    cum_frac_i[cur_div+1] = sorted_f[cur_div];
+                    }
+
+                m_needs_recount = true;
+                return true;
+                }
+            else
+                {
+                m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
+                return false;
+                }
+            }
+        catch (const runtime_error& e)
+            {
+            m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance" << endl;
+            throw e;
+            }
+        }
+
+    return false;
     }
 
 void LoadBalancer::computeParticleChange()
     {
-    if (!m_adjusted)
-        {
-        m_N_own = m_pdata->getN();
-        return;
-        }
+    // don't do anything if nobody has signaled a change
+    if (!m_needs_recount) return;
+
+    // compute the changes in each direction
+
+    // we are done until someone needs us to recount again
+    m_needs_recount = false;
     }
 
 void export_LoadBalancer()

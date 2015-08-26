@@ -115,12 +115,15 @@ class LoadBalancer : public Updater
         bool reduce(std::vector<unsigned int>& N_i, unsigned int dim);
 
         //! Adjust the partitioning along a single dimension
-        bool adjust(std::vector<Scalar>& cum_frac_i, const std::vector<unsigned int>& N_i);
+        bool adjust(std::vector<Scalar>& cum_frac_i,
+                    const std::vector<Scalar>& frac_i,
+                    const std::vector<unsigned int>& N_i,
+                    Scalar L_i);
 
         //! Compute the number of particles on each rank after an adjustment
         virtual void computeParticleChange();
         unsigned int m_N_own;   //!< Number of particles owned by this rank
-        bool m_adjusted;        //!< Flag if an adjustment has been made
+        bool m_needs_recount;   //!< Flag if a particle change needs to be computed
 #endif // ENABLE_MPI
     };
 
