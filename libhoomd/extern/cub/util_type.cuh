@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -500,35 +500,6 @@ struct Uninitialized
 
 
 /**
- * \brief An item value paired with a corresponding offset
- */
-template <typename _T, typename _Offset>
-struct ItemOffsetPair
-{
-    typedef _T        T;                ///< Item data type
-    typedef _Offset   Offset;           ///< Integer offset data type
-
-#if (CUB_PTX_ARCH == 0)
-    union
-    {
-        Offset                              offset;     ///< Offset
-        typename UnitWord<T>::DeviceWord    align0;     ///< Alignment/padding (for Win32 consistency between host/device)
-    };
-#else
-    Offset                                  offset;     ///< Offset
-#endif
-
-    T                                       value;      ///< Item value
-
-    /// Inequality operator
-    __host__ __device__ __forceinline__ bool operator !=(const ItemOffsetPair &b)
-    {
-        return (value != b.value) || (offset != b.offset);
-    }
-};
-
-
-/**
  * \brief A key identifier paired with a corresponding value
  */
 template <typename _Key, typename _Value>
@@ -537,8 +508,17 @@ struct KeyValuePair
     typedef _Key    Key;                ///< Key data type
     typedef _Value  Value;              ///< Value data type
 
-    Value                   value;      ///< Item value
+#if (CUB_PTX_ARCH == 0)
+    union
+    {
+        Key                                     key;        ///< Item key
+        typename UnitWord<Value>::DeviceWord    align0;     ///< Alignment/padding (for Win32 consistency between host/device)
+    };
+#else
     Key                     key;        ///< Item key
+#endif
+
+    Value                   value;      ///< Item value
 
     /// Inequality operator
     __host__ __device__ __forceinline__ bool operator !=(const KeyValuePair &b)
@@ -581,8 +561,12 @@ __host__ __device__ __forceinline__ T ZeroInitialize()
 template <typename T, int COUNT>
 struct ArrayWrapper
 {
-    /// Static array of type \p T
+
+    /// Statically-sized array of type \p T
     T array[COUNT];
+
+    /// Constructor
+    __host__ __device__ __forceinline__ ArrayWrapper() {}
 };
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
@@ -624,6 +608,10 @@ struct DoubleBuffer
 
     /// \brief Return pointer to the currently valid buffer
     __host__ __device__ __forceinline__ T* Current() { return d_buffers[selector]; }
+
+    /// \brief Return pointer to the currently invalid buffer
+    __host__ __device__ __forceinline__ T* Alternate() { return d_buffers[selector ^ 1]; }
+
 };
 
 
@@ -647,6 +635,7 @@ struct Log2
 };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
+
 template <int N, int COUNT>
 struct Log2<N, 0, COUNT>
 {
@@ -654,6 +643,7 @@ struct Log2<N, 0, COUNT>
         COUNT :
         COUNT - 1 };
 };
+
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 
@@ -666,8 +656,6 @@ struct PowerOfTwo
     enum { VALUE = ((N & (N - 1)) == 0) };
 };
 
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
 
 
 /******************************************************************************
@@ -756,8 +744,6 @@ struct RemoveQualifiers<Tp, const volatile Up>
     typedef Up Type;
 };
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
-
 
 
 /******************************************************************************
@@ -798,12 +784,10 @@ struct EnableIf
     typedef T Type;
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
 
 template <class T>
 struct EnableIf<false, T> {};
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 
 /******************************************************************************
@@ -817,21 +801,22 @@ template <typename T, typename BinaryOp>
 struct BinaryOpHasIdxParam
 {
 private:
+/*
     template <typename BinaryOpT, bool (BinaryOpT::*)(const T &a, const T &b, unsigned int idx) const>  struct SFINAE1 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(const T &a, const T &b, unsigned int idx)>        struct SFINAE2 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(T a, T b, unsigned int idx) const>                struct SFINAE3 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(T a, T b, unsigned int idx)>                      struct SFINAE4 {};
-
+*/
     template <typename BinaryOpT, bool (BinaryOpT::*)(const T &a, const T &b, int idx) const>           struct SFINAE5 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(const T &a, const T &b, int idx)>                 struct SFINAE6 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(T a, T b, int idx) const>                         struct SFINAE7 {};
     template <typename BinaryOpT, bool (BinaryOpT::*)(T a, T b, int idx)>                               struct SFINAE8 {};
-
+/*
     template <typename BinaryOpT> static char Test(SFINAE1<BinaryOpT, &BinaryOpT::operator()> *);
     template <typename BinaryOpT> static char Test(SFINAE2<BinaryOpT, &BinaryOpT::operator()> *);
     template <typename BinaryOpT> static char Test(SFINAE3<BinaryOpT, &BinaryOpT::operator()> *);
     template <typename BinaryOpT> static char Test(SFINAE4<BinaryOpT, &BinaryOpT::operator()> *);
-
+*/
     template <typename BinaryOpT> static char Test(SFINAE5<BinaryOpT, &BinaryOpT::operator()> *);
     template <typename BinaryOpT> static char Test(SFINAE6<BinaryOpT, &BinaryOpT::operator()> *);
     template <typename BinaryOpT> static char Test(SFINAE7<BinaryOpT, &BinaryOpT::operator()> *);
@@ -845,7 +830,8 @@ public:
     static const bool HAS_PARAM = sizeof(Test<BinaryOp>(NULL)) == sizeof(char);
 };
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+
 
 /******************************************************************************
  * Simple type traits utilities.
@@ -885,7 +871,6 @@ struct BaseTraits
     };
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
 
 /**
  * Basic type traits (unsigned primitive specialization)
@@ -982,15 +967,11 @@ struct BaseTraits<FLOATING_POINT, true, false, _UnsignedBits>
     };
 };
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
-
 
 /**
  * \brief Numeric type traits
  */
 template <typename T> struct NumericTraits :            BaseTraits<NOT_A_NUMBER, false, false, T> {};
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
 
 template <> struct NumericTraits<NullType> :            BaseTraits<NOT_A_NUMBER, false, true, NullType> {};
 
@@ -1010,7 +991,8 @@ template <> struct NumericTraits<unsigned long long> :  BaseTraits<UNSIGNED_INTE
 template <> struct NumericTraits<float> :               BaseTraits<FLOATING_POINT, true, false, unsigned int> {};
 template <> struct NumericTraits<double> :              BaseTraits<FLOATING_POINT, true, false, unsigned long long> {};
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+template <> struct NumericTraits<bool> :                BaseTraits<UNSIGNED_INTEGER, true, false, typename UnitWord<bool>::VolatileWord > {};
+
 
 
 /**
@@ -1019,6 +1001,8 @@ template <> struct NumericTraits<double> :              BaseTraits<FLOATING_POIN
 template <typename T>
 struct Traits : NumericTraits<typename RemoveQualifiers<T>::Type> {};
 
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 
 /** @} */       // end group UtilModule

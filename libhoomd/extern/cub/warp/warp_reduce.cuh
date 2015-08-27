@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -251,7 +251,7 @@ public:
     __device__ __forceinline__ T Sum(
         T                   input)              ///< [in] Calling thread's input
     {
-        return InternalWarpReduce(temp_storage).Sum<true, 1>(input, LOGICAL_WARP_THREADS);
+        return InternalWarpReduce(temp_storage).Reduce<true, 1>(input, LOGICAL_WARP_THREADS, cub::Sum());
     }
 
     /**
@@ -297,14 +297,7 @@ public:
         int                 valid_items)        ///< [in] Total number of valid items in the calling thread's logical warp (may be less than \p LOGICAL_WARP_THREADS)
     {
         // Determine if we don't need bounds checking
-        if (valid_items >= LOGICAL_WARP_THREADS)
-        {
-            return InternalWarpReduce(temp_storage).Sum<true, 1>(input, valid_items);
-        }
-        else
-        {
-            return InternalWarpReduce(temp_storage).Sum<false, 1>(input, valid_items);
-        }
+        return InternalWarpReduce(temp_storage).Reduce<false, 1>(input, valid_items, cub::Sum());
     }
 
 
@@ -347,10 +340,10 @@ public:
      *
      */
     template <
-        typename            Flag>
+        typename            FlagT>
     __device__ __forceinline__ T HeadSegmentedSum(
         T                   input,              ///< [in] Calling thread's input
-        Flag                head_flag)          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
+        FlagT                head_flag)          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
     {
         return HeadSegmentedReduce(input, head_flag, cub::Sum());
     }
@@ -394,10 +387,10 @@ public:
      * \tparam ReductionOp     <b>[inferred]</b> Binary reduction operator type having member <tt>T operator()(const T &a, const T &b)</tt>
      */
     template <
-        typename            Flag>
+        typename            FlagT>
     __device__ __forceinline__ T TailSegmentedSum(
         T                   input,              ///< [in] Calling thread's input
-        Flag                tail_flag)          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
+        FlagT                tail_flag)          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
     {
         return TailSegmentedReduce(input, tail_flag, cub::Sum());
     }
@@ -503,15 +496,7 @@ public:
         ReductionOp         reduction_op,       ///< [in] Binary reduction operator
         int                 valid_items)        ///< [in] Total number of valid items in the calling thread's logical warp (may be less than \p LOGICAL_WARP_THREADS)
     {
-        // Determine if we don't need bounds checking
-        if (valid_items >= LOGICAL_WARP_THREADS)
-        {
-            return InternalWarpReduce(temp_storage).Reduce<true, 1>(input, valid_items, reduction_op);
-        }
-        else
-        {
-            return InternalWarpReduce(temp_storage).Reduce<false, 1>(input, valid_items, reduction_op);
-        }
+        return InternalWarpReduce(temp_storage).Reduce<false, 1>(input, valid_items, reduction_op);
     }
 
 
@@ -556,10 +541,10 @@ public:
      */
     template <
         typename            ReductionOp,
-        typename            Flag>
+        typename            FlagT>
     __device__ __forceinline__ T HeadSegmentedReduce(
         T                   input,              ///< [in] Calling thread's input
-        Flag                head_flag,          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
+        FlagT                head_flag,          ///< [in] Head flag denoting whether or not \p input is the start of a new segment
         ReductionOp         reduction_op)       ///< [in] Reduction operator
     {
         return InternalWarpReduce(temp_storage).template SegmentedReduce<true>(input, head_flag, reduction_op);
@@ -607,10 +592,10 @@ public:
      */
     template <
         typename            ReductionOp,
-        typename            Flag>
+        typename            FlagT>
     __device__ __forceinline__ T TailSegmentedReduce(
         T                   input,              ///< [in] Calling thread's input
-        Flag                tail_flag,          ///< [in] Tail flag denoting whether or not \p input is the end of the current segment
+        FlagT                tail_flag,          ///< [in] Tail flag denoting whether or not \p input is the end of the current segment
         ReductionOp         reduction_op)       ///< [in] Reduction operator
     {
         return InternalWarpReduce(temp_storage).template SegmentedReduce<false>(input, tail_flag, reduction_op);

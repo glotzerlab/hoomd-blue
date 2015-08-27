@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -44,15 +44,17 @@
 #include "block/block_reduce.cuh"
 #include "block/block_scan.cuh"
 #include "block/block_store.cuh"
-#include "block/block_shift.cuh"
+//#include "block/block_shift.cuh"
 
 // Device
 #include "device/device_histogram.cuh"
 #include "device/device_partition.cuh"
 #include "device/device_radix_sort.cuh"
 #include "device/device_reduce.cuh"
+#include "device/device_run_length_encode.cuh"
 #include "device/device_scan.cuh"
 #include "device/device_select.cuh"
+#include "device/device_spmv.cuh"
 
 // Grid
 //#include "grid/grid_barrier.cuh"
