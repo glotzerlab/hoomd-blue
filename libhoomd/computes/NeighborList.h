@@ -373,12 +373,24 @@ class NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth() const
+        virtual Scalar getGhostLayerWidth(unsigned int type) const
             {
-            Scalar r_max = m_rcut_max_max + m_r_buff;
-            if (m_diameter_shift);
-                r_max += m_d_max - Scalar(1.0);
-            return r_max;
+            ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
+            const Scalar rcut_max_i = h_rcut_max.data[type];
+
+            if (rcut_max_i > Scalar(0.0)) // ensure communication is required
+                {
+                Scalar rmax = rcut_max_i + m_r_buff;
+
+                // diameter shifting requires to communicate a larger rlist
+                if (m_diameter_shift)
+                    rmax += m_d_max - Scalar(1.0);
+                return rmax;
+                }
+            else
+                {
+                return Scalar(0.0);
+                }
             }
 
         Scalar getMaximumDiameter()
