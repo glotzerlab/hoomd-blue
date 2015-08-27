@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -222,6 +222,17 @@ cudaError_t MaxSmOccupancy(
 
 #else
 
+// cudaOccupancyMaxActiveBlocksPerMultiprocessor was only included in CUDA 6.5 and newer
+// http://devblogs.nvidia.com/parallelforall/cuda-pro-tip-occupancy-api-simplifies-launch-configuration/
+// https://groups.google.com/forum/#!category-topic/cub-users/bugs-and-issues/Y3fFGkZ3ka4
+// http://stackoverflow.com/questions/28044011/cudaoccupancymaxactiveblockspermultiprocessor-is-undefined
+#if CUDART_VERSION >= 6050
+    return cudaOccupancyMaxActiveBlocksPerMultiprocessor (
+        &max_sm_occupancy,
+        kernel_ptr,
+        block_threads,
+        0);
+#else
     cudaError_t error = cudaSuccess;
     do
     {
@@ -273,7 +284,7 @@ cudaError_t MaxSmOccupancy(
 
         // Shared memory per threadblock
         int block_allocated_smem = CUB_ROUND_UP_NEAREST(
-            kernel_attrs.sharedSizeBytes,
+            (int) kernel_attrs.sharedSizeBytes,
             smem_alloc_unit);
 
         // Max shared memory occupancy
@@ -291,7 +302,7 @@ cudaError_t MaxSmOccupancy(
     } while (0);
 
     return error;
-
+#endif  // CUDART_VERSION >= 6050
 #endif  // CUB_RUNTIME_ENABLED
 }
 
