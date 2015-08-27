@@ -136,6 +136,76 @@ BalancedDomainDecomposition::BalancedDomainDecomposition(boost::shared_ptr<Execu
         }
     }
 
+void BalancedDomainDecomposition::setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root)
+    {
+    if (dir > 2)
+        {
+        m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+        throw std::runtime_error("comm: requested direction does not exist");
+        }
+
+    bool changed = false;
+    if (m_exec_conf->getRank() == root)
+        {
+        if (dir == 0 && cum_frac.size() == m_cum_frac_x.size())
+            {
+            m_cum_frac_x = cum_frac;
+            changed = true;
+            }
+        else if (dir == 1 && cum_frac.size() == m_cum_frac_y.size())
+            {
+            m_cum_frac_y = cum_frac;
+            changed = true;
+            }
+        else if (dir == 2 && cum_frac.size() == m_cum_frac_z.size())
+            {
+            m_cum_frac_z = cum_frac;
+            changed = true;
+            }
+        }
+
+    // sync the update from the root to all ranks
+    bcast(changed, root, m_mpi_comm);
+    if (changed)
+        {
+        if (dir == 0)
+            {
+            MPI_Bcast(&m_cum_frac_x[0], m_nx+1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            
+            if (m_cum_frac_x.front() != Scalar(0.0) || m_cum_frac_x.back() != Scalar(1.0))
+                {
+                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
+                throw std::runtime_error("comm: specified fractions are invalid");
+                }
+            }
+        else if (dir == 1)
+            {
+            MPI_Bcast(&m_cum_frac_y[0], m_ny+1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            
+            if (m_cum_frac_y.front() != Scalar(0.0) || m_cum_frac_y.back() != Scalar(1.0))
+                {
+                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
+                throw std::runtime_error("comm: specified fractions are invalid");
+                }
+            }
+        else if (dir == 2)
+            {
+            MPI_Bcast(&m_cum_frac_z[0], m_nz+1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            
+            if (m_cum_frac_z.front() != Scalar(0.0) || m_cum_frac_z.back() != Scalar(1.0))
+                {
+                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
+                throw std::runtime_error("comm: specified fractions are invalid");
+                }
+            }
+        }
+    else // if no change, it's because things don't match up
+        {
+        m_exec_conf->msg->error() << "comm: domain decomposition cannot change topology after construction" << std::endl;
+        throw std::runtime_error("comm: domain decomposition cannot change topology after construction");
+        }
+    }
+
 const BoxDim BalancedDomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
     // use the simpler method if we have a uniform decomposition
@@ -147,18 +217,14 @@ const BoxDim BalancedDomainDecomposition::calculateLocalBox(const BoxDim & globa
 
     // initialize local box with all properties of global box
     BoxDim box = global_box;
-
-    // calculate the local box dimensions using the fractions of the current rank
-    ArrayHandle<unsigned int> h_cart_ranks_inv(m_cart_ranks_inv, access_location::host, access_mode::read);
-
     Scalar3 L = global_box.getL();
-    Scalar3 cur_frac = make_scalar3(m_frac_x[m_grid_pos.x], m_frac_y[m_grid_pos.y], m_frac_z[m_grid_pos.z]);
-    Scalar3 L_local = L * cur_frac;
 
     // position of this domain in the grid
-    Scalar3 cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x], m_cum_frac_y[m_grid_pos.y], m_cum_frac_z[m_grid_pos.z]);
-    Scalar3 lo = global_box.getLo() + cum_frac * L;
-    Scalar3 hi = lo + L_local;
+    Scalar3 lo_cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x], m_cum_frac_y[m_grid_pos.y], m_cum_frac_z[m_grid_pos.z]);
+    Scalar3 lo = global_box.getLo() + lo_cum_frac * L;
+
+    Scalar3 hi_cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x+1], m_cum_frac_y[m_grid_pos.y+1], m_cum_frac_z[m_grid_pos.z+1]);
+    Scalar3 hi = global_box.getLo() + hi_cum_frac * L;
 
     // set periodic flags
     // we are periodic in a direction along which there is only one box

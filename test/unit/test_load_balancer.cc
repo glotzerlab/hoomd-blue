@@ -93,28 +93,28 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         h_pos.data[0].y = -0.25;
         h_pos.data[0].z = 0.25;
 
-        h_pos.data[1].x = 0.75;
-        h_pos.data[1].y = -0.75;
+        h_pos.data[1].x = 0.25;
+        h_pos.data[1].y = -0.25;
         h_pos.data[1].z = 0.75;
 
         h_pos.data[2].x = 0.25;
-        h_pos.data[2].y = -0.25;
+        h_pos.data[2].y = -0.75;
         h_pos.data[2].z = 0.25;
 
-        h_pos.data[3].x = 0.75;
+        h_pos.data[3].x = 0.25;
         h_pos.data[3].y = -0.75;
         h_pos.data[3].z = 0.75;
 
-        h_pos.data[4].x = 0.25;
+        h_pos.data[4].x = 0.75;
         h_pos.data[4].y = -0.25;
         h_pos.data[4].z = 0.25;
 
         h_pos.data[5].x = 0.75;
-        h_pos.data[5].y = -0.75;
+        h_pos.data[5].y = -0.25;
         h_pos.data[5].z = 0.75;
 
-        h_pos.data[6].x = 0.25;
-        h_pos.data[6].y = -0.25;
+        h_pos.data[6].x = 0.75;
+        h_pos.data[6].y = -0.75;
         h_pos.data[6].z = 0.25;
 
         h_pos.data[7].x = 0.75;
@@ -151,7 +151,12 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
 
-    lb->update(0);
+    for (unsigned int t=0; t < 6; ++t)
+        {
+        lb->update(t);
+        }
+    lb->update(7);
+    BOOST_CHECK_EQUAL(pdata->getN(), 1);
     }
 
 

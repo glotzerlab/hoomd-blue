@@ -53,6 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the BalancedDomainDecomposition class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __BALANCED_DOMAIN_DECOMPOSITION_H__
 #define __BALANCED_DOMAIN_DECOMPOSITION_H__
 
@@ -121,6 +125,9 @@ class BalancedDomainDecomposition : public DomainDecomposition
                 throw std::runtime_error("comm: requested direction does not exist");
                 }
             }
+        
+        //! Set the cumulative fractions along a dimension
+        void setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root);
 
         //! Get the dimensions of the local simulation box
         virtual const BoxDim calculateLocalBox(const BoxDim& global_box);

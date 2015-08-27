@@ -79,6 +79,12 @@ LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
+    // allocate data connected to the maximum number of particles
+//     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&LoadBalancer::slotMaxNumChanged, this));
+//     GPUArray<unsigned int> flag_own(m_pdata->getMaxN());
+//     m_flag_own.swap(flag_own);
+
+    // now all the stuff with the reductions
     const Index3D& di = m_decomposition->getDomainIndexer();
     uint3 my_grid_pos = m_decomposition->getGridPos();
 
@@ -157,6 +163,9 @@ LoadBalancer::~LoadBalancer()
     {
     m_exec_conf->msg->notice(5) << "Destroying LoadBalancer" << endl;
 
+    // disconnect from the signal
+//     m_max_numchange_conn.disconnect();
+
     // free the communicators and groups that we have made
     
     if (m_mpi_comm_xy != MPI_COMM_NULL)
@@ -224,58 +233,91 @@ void LoadBalancer::update(unsigned int timestep)
     m_N_own = m_pdata->getN();
     m_needs_recount = false;
 
-    // copy the domain decomposition into GPUArrays (this could be avoided by turning the DD into GPUArrays
-    // and just operating on this data, which is what we really want do do)
+    // figure out which rank is the reduction root for broadcasting
     const Index3D& di = m_decomposition->getDomainIndexer();
-    const uint3 my_grid_pos = m_decomposition->getGridPos();
-
-    // vectors to hold the reduced particle numbers along each dimension
-    vector<unsigned int> N_x(di.getW()), N_y(di.getH()), N_z(di.getD());
+    unsigned int reduce_root(0);
+        {
+        ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+        reduce_root = h_cart_ranks.data[di(0,0,0)];
+        }
 
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
 
-    bool active = reduce(N_x, 0);
-    if (active)
+    for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > Scalar(1.05); ++dim)
         {
-        vector<Scalar> frac_x = m_decomposition->getFractions(0);
+        Scalar L_i(0.0);
+        vector<unsigned int> N_i;
+        if (dim == 0)
+            {
+            L_i = L.x;
+            N_i.resize(di.getW());
+            }
+        else if (dim == 1)
+            {
+            L_i = L.y;
+            N_i.resize(di.getH());
+            }
+        else
+            {
+            L_i = L.z;
+            N_i.resize(di.getD());
+            }
+
+        bool active = reduce(N_i, dim);
+        vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
+        if (active)
+            {
+            vector<Scalar> frac = m_decomposition->getFractions(dim);
+            adjust(cum_frac, frac, N_i, L_i);
+            }
+        bcast(m_needs_recount, reduce_root, m_mpi_comm);
+        if (m_needs_recount)
+            {
+            m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
+            m_pdata->setGlobalBox(box); // force a domain resizing to trigger
+            computeParticleChange(dim);
+            }
+        }
+
+    // migrate particles to their final locations NOW because we have modified the domains
+    m_comm->forceMigrate();
+    m_comm->communicate(timestep);
+
+    // after migration, no recounting is necessary because all ranks own their particles
+    m_N_own = m_pdata->getN();
+    m_needs_recount = false;
+
+    Scalar max_imb = getMaxImbalance();
+    if (m_exec_conf->getRank() == 0)
+        {
+        const BoxDim& root_box = m_pdata->getBox();
+        Scalar3 root_hi = root_box.getHi();
         vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
-        if (adjust(cum_frac_x, frac_x, N_x, L.x))
-            {
-            cout << cum_frac_x[0] << " " << cum_frac_x[1] << " " << cum_frac_x[2] << endl;
-//             m_decomposition->setCumulativeFractions(0, cum_frac_x);
-//             m_pdata->updateLocalBox();
-            }
-        }
-
-    active = reduce(N_y, 1);
-    if (active)
-        {
-        vector<Scalar> frac_y = m_decomposition->getFractions(1);
         vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
-        if (adjust(cum_frac_y, frac_y, N_y, L.y))
-            {
-//             m_decomposition->setCumulativeFractions(1, cum_frac_y);
-//             m_pdata->updateLocalBox();
-            }
-        }
-
-    active = reduce(N_z, 2);
-    if (active)
-        {
-        vector<Scalar> frac_z = m_decomposition->getFractions(2);
         vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
-        if (adjust(cum_frac_z, frac_z, N_z, L.z))
-            {
-//             m_decomposition->setCumulativeFractions(2, cum_frac_z);
-//             m_pdata->updateLocalBox();
-            }
+        cout << timestep << " " << max_imb << " " << cum_frac_x[1] << " " << cum_frac_y[1] << " " << cum_frac_z[1] << " " << root_hi.x << " " << root_hi.y << " " << root_hi.z << endl;
         }
-
-    // migrate particles to their final locations
-    m_comm->migrateParticles();
 
     if (m_prof) m_prof->pop();
+    }
+
+/*!
+ * Computes the imbalance factor I = N / <N> for each rank, and computes the maximum among all ranks.
+ */
+Scalar LoadBalancer::getMaxImbalance()
+    {
+    if (m_needs_recount)
+        {
+        m_exec_conf->msg->error() << "comm: cannot compute imbalance factor while recounting is pending" << endl;
+        throw runtime_error("Cannot compute imbalance factor while recounting is pending");
+        }
+
+    Scalar cur_imb = Scalar(m_N_own) / (Scalar(m_pdata->getNGlobal()) / Scalar(m_exec_conf->getNRanks()));
+    Scalar max_imb(0.0);
+    MPI_Allreduce(&cur_imb, &max_imb, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_mpi_comm);
+    
+    return max_imb;
     }
 
 /*!
@@ -292,9 +334,12 @@ void LoadBalancer::update(unsigned int timestep)
  */
 bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
     {
+    // do nothing if there is only one rank
+    if (N_i.size() == 1) return false;
+
     const uint3 my_grid_pos = m_decomposition->getGridPos();
 
-    computeParticleChange();
+    computeParticleChange(dim);
 
     unsigned int sum_N(0), sum_sum_N(0);
 
@@ -376,7 +421,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 
     // imbalance factors for each rank
     vector<Scalar> scale_factor(N_i.size());
-    Scalar max_imb(-1.0);
+    Scalar max_imb_factor(1.0);
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
@@ -391,120 +436,192 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 {
                 scale_factor[i] = Scalar(0.95);
                 }
-            
             }
         else
             {
             scale_factor[i] = Scalar(1.05); // apply rescaling limit to empty ranks otherwise they want to expand too much
             }
-        
-        if (imb_factor > max_imb)
-            max_imb = imb_factor;
+        if (imb_factor > max_imb_factor)
+            max_imb_factor = imb_factor;
         }
     
-    if (max_imb > Scalar(1.05))
+    if (max_imb_factor < Scalar(1.05))
         {
-        // make the minimum domain slightly bigger so that the optimization won't fail
-        const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
-        const Scalar min_domain_target = Scalar(1.05) * min_domain_size;
+        return false;
+        }
 
-        // define the optimization problem to solve to satisfy the constraints
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N_i.size(), N_i.size()-1);
-        A(0,0) = 1.0;
-        for (unsigned int i=1; i < N_i.size()-1; ++i)
+    // make the minimum domain slightly bigger so that the optimization won't fail
+    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
+    const Scalar min_domain_target = Scalar(1.05) * min_domain_size;
+
+    // define the optimization problem to solve to satisfy the constraints
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N_i.size(), N_i.size()-1);
+    A(0,0) = 1.0;
+    for (unsigned int i=1; i < N_i.size()-1; ++i)
+        {
+        A(i,i-1) = -1.0;
+        A(i,i) = 1.0;
+        }
+    A(N_i.size()-1, N_i.size()-2) = -1.0;
+
+    Eigen::VectorXd b(N_i.size());
+    for (unsigned int cur_rank=0; cur_rank < N_i.size(); ++cur_rank)
+        {
+        Scalar new_width = scale_factor[cur_rank] * (cum_frac_i[cur_rank+1] - cum_frac_i[cur_rank]) * L_i;
+        // enforce a soft (but really quite stiff) limit on the minimum domain size
+        if (new_width < min_domain_target)
             {
-            A(i,i-1) = -1.0;
-            A(i,i) = 1.0;
+            new_width = min_domain_target;
+            // add a very steep penalty for violating this constraint
+            if (cur_rank > 1)
+                A(cur_rank,cur_rank-1) *= Scalar(100.0);
+
+            if (cur_rank < N_i.size() - 1)
+                A(cur_rank,cur_rank) *= Scalar(100.0);
             }
-        A(N_i.size()-1, N_i.size()-2) = -1.0;
-
-        Eigen::VectorXd b(N_i.size());
-        for (unsigned int cur_rank=0; cur_rank < N_i.size(); ++cur_rank)
+        b(cur_rank) = new_width;
+        }
+    b(N_i.size() - 1) -= L_i; // the last equation applies the length constraint
+    
+    Eigen::VectorXd l(N_i.size() - 1), u(N_i.size() - 1);
+    for (unsigned int cur_rank=0; cur_rank < N_i.size()-1; ++cur_rank)
+        {
+        // multiply by a small scale factor so that we don't have <= problems
+        l(cur_rank) = Scalar(1.001) * Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
+        u(cur_rank) = Scalar(0.999) * Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
+        }
+    try
+        {
+        BVLSSolver solver(A, b, l, u);
+        solver.solve();
+        if (solver.converged())
             {
-            Scalar new_width = scale_factor[cur_rank] * frac_i[cur_rank] * L_i;
-            // enforce a soft (but really quite stiff) limit on the minimum domain size
-            if (new_width < min_domain_target)
+            Eigen::VectorXd x = solver.getSolution();
+            // validate the converged solution by checking nobody is smaller than the minimum domain width
+            // if somebody is, give up balancing this dimension
+            vector<Scalar> sorted_f(x.size());
+            bool need_sort = false;
+            for (unsigned int cur_div=0; cur_div < x.size(); ++cur_div)
                 {
-                new_width = min_domain_target;
-                // add a very steep penalty for violating this constraint
-                if (cur_rank > 1)
-                    A(cur_rank,cur_rank-1) *= Scalar(100.0);
-
-                if (cur_rank < N_i.size() - 1)
-                    A(cur_rank,cur_rank) *= Scalar(100.0);
+                if (x(cur_div) < min_domain_size)
+                    {
+                    m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                    return false;
+                    }
+                sorted_f[cur_div] = x(cur_div) / L_i;
+                if (cur_div > 0 && sorted_f[cur_div] > sorted_f[cur_div-1])
+                    {
+                    need_sort = true;
+                    }
                 }
-            b(cur_rank) = new_width;
-            }
-        b(N_i.size() - 1) -= L_i; // the last equation applies the length constraint
-        
-        Eigen::VectorXd l(N_i.size() - 1), u(N_i.size() - 1);
-        for (unsigned int cur_rank=0; cur_rank < N_i.size()-1; ++cur_rank)
-            {
-            // multiply by a small scale factor so that we don't have <= problems
-            l(cur_rank) = Scalar(1.001) * Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
-            u(cur_rank) = Scalar(0.999) * Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
-            }
-        
-        try
-            {
-            BVLSSolver solver(A, b, l, u);
-            solver.solve();
-            if (solver.converged())
+            // sanity check: everybody needs to be in ascending order
+            if (need_sort)
                 {
-                Eigen::VectorXd x = solver.getSolution();
-                // validate the converged solution by checking nobody is smaller than the minimum domain width
-                // if somebody is, give up balancing this dimension
-                vector<Scalar> sorted_f(x.size());
-                bool need_sort = false;
-                for (unsigned int cur_div=0; cur_div < x.size(); ++cur_div)
-                    {
-                    if (x(cur_div) < min_domain_size)
-                        {
-                        m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
-                        return false;
-                        }
-                    sorted_f[cur_div] = x(cur_div) / L_i;
-                    if (cur_div > 0 && sorted_f[cur_div] > sorted_f[cur_div-1])
-                        {
-                        need_sort = true;
-                        }
-                    }
-                // sanity check: everybody needs to be in ascending order
-                if (need_sort)
-                    {
-                    sort(sorted_f.begin(), sorted_f.end());
-                    }
-                
-                for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
-                    {
-                    cum_frac_i[cur_div+1] = sorted_f[cur_div];
-                    }
-
-                m_needs_recount = true;
-                return true;
+                sort(sorted_f.begin(), sorted_f.end());
                 }
-            else
+            
+            for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
                 {
-                m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
-                return false;
+                cum_frac_i[cur_div+1] = sorted_f[cur_div];
                 }
+
+            m_needs_recount = true;
+            return true;
             }
-        catch (const runtime_error& e)
+        else
             {
-            m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance" << endl;
-            throw e;
+            m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
+            return false;
             }
+        }
+    catch (const runtime_error& e)
+        {
+        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance" << endl;
+        throw e;
         }
 
     return false;
     }
 
-void LoadBalancer::computeParticleChange()
+void LoadBalancer::countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    const BoxDim& box = m_pdata->getBox();
+
+    n_up = 0; n_down = 0;
+    for (unsigned int cur_p=0; cur_p < m_pdata->getN(); ++cur_p)
+        {
+        const Scalar4 cur_postype = h_pos.data[cur_p];
+        const Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
+        const Scalar3 f = box.makeFraction(cur_pos);
+        
+        if (dim == 0)
+            {
+            if (f.x >= Scalar(1.0)) ++n_up;
+            if (f.x < Scalar(0.0)) ++n_down;
+            }
+        else if (dim == 1)
+            {
+            if (f.y >= Scalar(1.0)) ++n_up;
+            if (f.y < Scalar(0.0)) ++n_down;
+            }
+        else if (dim == 2)
+            {
+            if (f.z >= Scalar(1.0)) ++n_up;
+            if (f.z < Scalar(0.0)) ++n_down;
+            }
+        }
+    }
+
+void LoadBalancer::computeParticleChange(unsigned int dim)
     {
     // don't do anything if nobody has signaled a change
     if (!m_needs_recount) return;
 
-    // compute the changes in each direction
+    if (dim > 2)
+        {
+        m_exec_conf->msg->error() << "comm: requested direction does not exist" << endl;
+        throw runtime_error("comm: requested direction does not exist");
+        }
+
+    // don't do anything if there is only one rank along this direction
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    if ( (dim == 0 && di.getW() == 1) ||
+         (dim == 1 && di.getH() == 1) ||
+         (dim == 2 && di.getD() == 1) )
+         {
+         return;
+         }
+
+    // count the particles that are off the rank in either direction
+    unsigned int n_up(0), n_down(0);
+    countParticlesOffRank(n_up, n_down, dim);
+
+    // the number of particles I now own is reduced by the number that went off rank
+    m_N_own -= n_up + n_down;
+
+    // east 0, west 1, north 2, south 3, up 4, down 5
+    // x: 2*0 = 0 = east, y: 2*1 = 2 = north, ...
+    unsigned int neigh_up = m_decomposition->getNeighborRank(2*dim);
+    unsigned int neigh_down = m_decomposition->getNeighborRank(2*dim+1);
+
+    // send out the information in 2 pairs of calls
+    // (1) send up and receive below, (2) send down and receive above
+    MPI_Request reqs[4];
+    MPI_Status status[4];
+
+    unsigned int n_recv_down(0), n_recv_up(0);
+    // send up and receive from below
+    MPI_Isend(&n_up, 1, MPI_UNSIGNED, neigh_up, 0, m_mpi_comm, & reqs[0]);
+    MPI_Irecv(&n_recv_down, 1, MPI_UNSIGNED, neigh_down, 0, m_mpi_comm, & reqs[1]);
+
+    // send down and receive from above
+    MPI_Isend(&n_down, 1, MPI_UNSIGNED, neigh_down, 0, m_mpi_comm, & reqs[2]);
+    MPI_Irecv(&n_recv_up, 1, MPI_UNSIGNED, neigh_up, 0, m_mpi_comm, & reqs[3]);
+    MPI_Waitall(4, reqs, status);
+
+    // add the number of particles that we received from other ranks
+    m_N_own += n_recv_down + n_recv_up;
 
     // we are done until someone needs us to recount again
     m_needs_recount = false;

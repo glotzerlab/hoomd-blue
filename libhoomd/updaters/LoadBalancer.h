@@ -83,6 +83,13 @@ class LoadBalancer : public Updater
         //! Destructor
         virtual ~LoadBalancer();
 
+        //! Notification of a max number of particle change    
+//         void slotMaxNumChanged()
+//             {
+//             GPUArray<unsigned int> flag_own(m_pdata->getMaxN());
+//             m_flag_own.swap(flag_own);
+//             }
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -111,6 +118,9 @@ class LoadBalancer : public Updater
         MPI_Group m_mpi_group_z;    //!< Group for gathering and scattering in z
         MPI_Comm m_mpi_comm_z;      //!< Communicator for gathering and scattering in z
 
+        //! Computes the maximum imbalance factor
+        Scalar getMaxImbalance();
+
         //! Reduce the particle numbers per rank down to one dimension
         bool reduce(std::vector<unsigned int>& N_i, unsigned int dim);
 
@@ -120,10 +130,23 @@ class LoadBalancer : public Updater
                     const std::vector<unsigned int>& N_i,
                     Scalar L_i);
 
-        //! Compute the number of particles on each rank after an adjustment
-        virtual void computeParticleChange();
-        unsigned int m_N_own;   //!< Number of particles owned by this rank
-        bool m_needs_recount;   //!< Flag if a particle change needs to be computed
+        //! Compute the number of particles on each rank after an adjustment along one dimension
+        void computeParticleChange(unsigned int dim);
+        //! Count the number of particles that have gone off either edge of the rank along a dimension
+        virtual void countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim);
+        unsigned int m_N_own;           //!< Number of particles owned by this rank
+        bool m_needs_recount;           //!< Flag if a particle change needs to be computed
+//         GPUArray<unsigned int> m_flag_own;    //!< Array to hold the flags of the particles owned by this rank
+        
+        //! Flags to determine if the particle needs to stay or move
+//         enum owner_flags
+//             {
+//             stay = 0,
+//             send_up = 1,
+//             send_down = 2
+//             };
+        
+//         boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
 #endif // ENABLE_MPI
     };
 
