@@ -185,7 +185,7 @@ static KindTypeMap kindtypes(kindTypeMapEntries,
 PyObject* makeNum(PyObject *x){
   if (!PySequence_Check(x)){
     PyErr_SetString(PyExc_ValueError, "expected a sequence");
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   PyObject *obj = PyArray_ContiguousFromObject(x,NPY_NOTYPE,0,0);
   check_PyArrayElementType(obj);
@@ -217,7 +217,7 @@ NPY_TYPES type(PyObject *arr){
 void check_is_PyArray(PyObject *arr) {
   if(!PyArray_Check(arr)){
     PyErr_SetString(PyExc_ValueError, "expected a PyArrayObject");
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
 }
 
@@ -230,7 +230,7 @@ void check_type(PyObject *arr,
     stream << "expected Numeric type " << kindstrings[expected_type]
        << ", found Numeric type " << kindstrings[actual_type] << std::ends;
     PyErr_SetString(PyExc_TypeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -251,7 +251,7 @@ void check_rank(PyObject *arr, int expected_rank){
     stream << "expected rank " << expected_rank
        << ", found rank " << actual_rank << std::ends;
     PyErr_SetString(PyExc_RuntimeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -266,13 +266,13 @@ intp size(PyObject *arr)
 //Throws an error if expected_size does not equal
 //the number of elements in arr
 void check_size(PyObject *arr, intp expected_size){
-  NPY_TYPES actual_type = type(arr);
-  if (actual_type != expected_type) {
+  intp actual_size = size(arr);
+  if (actual_size != expected_size) {
     std::ostringstream stream;
-    stream << "expected Numeric type " << kindstrings[expected_type]
-       << ", found Numeric type " << kindstrings[actual_type] << std::ends;
-    PyErr_SetString(PyExc_TypeError, stream.str().c_str());
-    throw_error_already_set();
+    stream << "expected size " << expected_size
+       << ", found size " << actual_size << std::ends;
+    PyErr_SetString(PyExc_RuntimeError, stream.str().c_str());
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -297,7 +297,7 @@ intp get_dim(PyObject *arr, int dimnum){
     stream << "Error: asked for length of dimension ";
     stream << dimnum << " but rank of array is " << the_rank << std::ends;
     PyErr_SetString(PyExc_RuntimeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   std::vector<intp> actual_dims = shape(arr);
   return actual_dims[dimnum];
@@ -312,7 +312,7 @@ void check_shape(PyObject *arr, std::vector<intp> expected_dims){
     stream << "expected dimensions " << vector_str(expected_dims)
        << ", found dimensions " << vector_str(actual_dims) << std::ends;
     PyErr_SetString(PyExc_RuntimeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -327,7 +327,7 @@ void check_dim(PyObject *arr, int dimnum, intp dimsize){
     stream << dimnum << " to be length " << dimsize;
     stream << ", but found length " << actual_dims[dimnum]  << std::ends;
     PyErr_SetString(PyExc_RuntimeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -345,7 +345,7 @@ void check_contiguous(PyObject *arr)
 {
   if (!iscontiguous(arr)) {
     PyErr_SetString(PyExc_RuntimeError, "expected a contiguous array");
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
@@ -389,7 +389,7 @@ int refcount(PyObject *arr){
 }
 
 void check_PyArrayElementType(PyObject *obj){
-  check_is_PyArray(arr);
+  check_is_PyArray(obj);
   NPY_TYPES theType=NPY_TYPES(PyArray_TYPE((PyArrayObject*)obj));
   if(theType == NPY_OBJECT){
       std::ostringstream stream;
@@ -397,7 +397,7 @@ void check_PyArrayElementType(PyObject *obj){
              << "numhandle can only accept arrays with numerical elements"
          << std::ends;
       PyErr_SetString(PyExc_TypeError, stream.str().c_str());
-      throw_error_already_set();
+      boost::python::throw_error_already_set();
   }
   return;
 }
@@ -435,16 +435,9 @@ inline void check_size_match(std::vector<intp> dims, intp n)
     stream << "expected array size " << n
            << ", dimensions give array size " << total << std::ends;
     PyErr_SetString(PyExc_TypeError, stream.str().c_str());
-    throw_error_already_set();
+    boost::python::throw_error_already_set();
   }
   return;
 }
 
 } //namespace num_util
-// Copyright 2006  Phil Austin (http://www.eos.ubc.ca/personal/paustin)
-// Distributed under the Boost Software License, Version 1.0. (See
-// accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
-
-/*! \file num_util.cc
-    \brief Helper routines for numpy arrays
