@@ -66,6 +66,7 @@ using namespace boost::python;
 #include <stdexcept>
 #include <vector>
 #include <cmath>
+#include <numeric>
 
 using namespace std;
 
@@ -419,107 +420,170 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // target particles per rank is uniform distribution
     const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
 
+    // make the minimum domain slightly bigger so that the optimization won't fail
+    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
+
     // imbalance factors for each rank
-    vector<Scalar> scale_factor(N_i.size());
+    vector<Scalar> new_widths(N_i.size());
+    
+    // flag which variables are free choices to setup the optimization problem
+    vector<int> map_rank_to_var(N_i.size(), -1); // map of where the rank is in free variables (< 0 indicates fixed)
+    vector<unsigned int> free_vars;
+    free_vars.reserve(N_i.size());
+
     Scalar max_imb_factor(1.0);
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
-        if (N_i[i] > 0)
+        Scalar scale_factor = (N_i[i] > 0) ? Scalar(0.5) / imb_factor : Scalar(1.05); // as in gromacs, use half the imbalance factor to scale
+
+        // limit rescaling to 5% either direction
+        if (scale_factor > Scalar(1.05))
             {
-            scale_factor[i] = Scalar(0.5) / imb_factor; // as in gromacs, use half the imbalance factor to scale
-            if (scale_factor[i] > Scalar(1.05))
-                {
-                scale_factor[i] = Scalar(1.05);
-                }
-            else if(scale_factor[i] < Scalar(0.95))
-                {
-                scale_factor[i] = Scalar(0.95);
-                }
+            scale_factor = Scalar(1.05);
+            }
+        else if(scale_factor < Scalar(0.95))
+            {
+            scale_factor = Scalar(0.95);
+            }
+
+        // compute the new domain width (can't be smaller than the threshold, if it is, this is not a free variable)
+        Scalar new_width = scale_factor * (cum_frac_i[i+1] - cum_frac_i[i]) * L_i;
+        // enforce a hard limit on the minimum domain size
+        // this is a good assumption for optimization because chances are that reducing this domain to the minimum
+        // will minimize the total objective function. if it needs to get bigger, it can be expanded on next iteration
+        if (new_width < min_domain_size)
+            {
+            new_width = min_domain_size;
             }
         else
             {
-            scale_factor[i] = Scalar(1.05); // apply rescaling limit to empty ranks otherwise they want to expand too much
+            map_rank_to_var[i] = free_vars.size(); // current size is the index we will push into
+            free_vars.push_back(i); // if not at the minimum, then this domain is a free variable
             }
+        new_widths[i] = new_width;
+
         if (imb_factor > max_imb_factor)
             max_imb_factor = imb_factor;
         }
-    
+
+    // balancing can be expensive, so don't do anything if we're already good enough in this direction
     if (max_imb_factor < Scalar(1.05))
         {
         return false;
         }
+    
+    // if there's zero or one free variables, then the system is totally constrained and solved algebraically
+    if (free_vars.size() == 0)
+        {
+        // either the system is overconstrained (an error), or the system is already perfectly balanced, so do nothing
+        return false;
+        }
+    else if (free_vars.size() == 1)
+        {
+        // fix the one free variable width algebraically
+        new_widths[free_vars.front()] = L_i - min_domain_size * Scalar(N_i.size() - 1);
+        
+        // loop through and rescale widths to fractions
+        for (unsigned int cur_rank = 0; cur_rank < N_i.size(); ++cur_rank)
+            {
+            new_widths[cur_rank] /= L_i; // to fractional width
+            }
+        std::partial_sum(new_widths.begin(), new_widths.end()-1, cum_frac_i.begin() + 1);
+        m_needs_recount = true;
+        return true;
+        }
 
-    // make the minimum domain slightly bigger so that the optimization won't fail
-    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
-    const Scalar min_domain_target = Scalar(1.05) * min_domain_size;
 
-    // define the optimization problem to solve to satisfy the constraints
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N_i.size(), N_i.size()-1);
+    /* Here come's the harder case -- there are at least two free variables */
+
+    // setup the A matrix just based on the number of free variables (we can map these back later)
+    // if there are N free variables, then the length constraint of the box gives N-1 true free variables for optimization
+    unsigned int rows = free_vars.size();
+    unsigned int cols = free_vars.size() - 1;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(rows, cols);
     A(0,0) = 1.0;
-    for (unsigned int i=1; i < N_i.size()-1; ++i)
+    A(rows-1, cols-1) = -1.0;
+    for (unsigned int i=1; i < rows-1; ++i)
         {
         A(i,i-1) = -1.0;
         A(i,i) = 1.0;
         }
-    A(N_i.size()-1, N_i.size()-2) = -1.0;
 
-    Eigen::VectorXd b(N_i.size());
-    for (unsigned int cur_rank=0; cur_rank < N_i.size(); ++cur_rank)
-        {
-        Scalar new_width = scale_factor[cur_rank] * (cum_frac_i[cur_rank+1] - cum_frac_i[cur_rank]) * L_i;
-        // enforce a soft (but really quite stiff) limit on the minimum domain size
-        if (new_width < min_domain_target)
-            {
-            new_width = min_domain_target;
-            // add a very steep penalty for violating this constraint
-            if (cur_rank > 1)
-                A(cur_rank,cur_rank-1) *= Scalar(100.0);
-
-            if (cur_rank < N_i.size() - 1)
-                A(cur_rank,cur_rank) *= Scalar(100.0);
-            }
-        b(cur_rank) = new_width;
-        }
-    b(N_i.size() - 1) -= L_i; // the last equation applies the length constraint
+    // the tricky part is figuring out what the target values should be
+    // we need to add amounts that correspond to the number of fixed lengths
     
-    Eigen::VectorXd l(N_i.size() - 1), u(N_i.size() - 1);
-    for (unsigned int cur_rank=0; cur_rank < N_i.size()-1; ++cur_rank)
+    // the number of fixed variables at the front is equal to the index and at the tail is equal to the number of
+    // ranks minus the rank index of the last free choice
+    // (i.e., if the last one is free, then there is 1, if the last one is fixed, there are 2, etc.
+    // if the first one is free, then there are 0 dead, if the first is fixed, then there is 1, ...)
+    unsigned int n_dead_front = free_vars.front();
+    unsigned int n_dead_end = N_i.size() - free_vars.back();
+    Eigen::VectorXd b(rows);
+    for (unsigned int i=0; i < rows; ++i)
         {
-        // multiply by a small scale factor so that we don't have <= problems
-        l(cur_rank) = Scalar(1.001) * Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
-        u(cur_rank) = Scalar(0.999) * Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
+        const unsigned int cur_rank = free_vars[i];
+        b(i) = new_widths[cur_rank];
+
+        // add the appropriate correction for the number of constrained zones between free variables
+        if (i == 0)
+            {
+            b(0) += min_domain_size * Scalar(n_dead_front);
+            }
+        else if (i == rows - 1)
+            {
+            b(rows-1) += min_domain_size * Scalar(n_dead_end);
+            }
+        else
+            {
+            b(i) += min_domain_size * Scalar(free_vars[i+1] - cur_rank - 1); // -1 so that adjacent var needs no correction
+            }
+        }
+    b(rows-1) -= L_i; // the last equation applies the total length constraint
+    free_vars.pop_back(); // this variable is not really free anymore, so pop it off
+
+    // position constraints limit movement due to over-decomposition
+    Eigen::VectorXd l(cols), u(cols);
+    for (unsigned int j=0; j < cols; ++j)
+        {
+        const unsigned int cur_rank = free_vars[j];
+        l(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
+        u(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
         }
     try
         {
         BVLSSolver solver(A, b, l, u);
+        solver.setMaxIterations(3*free_vars.size());
         solver.solve();
         if (solver.converged())
             {
             Eigen::VectorXd x = solver.getSolution();
-            // validate the converged solution by checking nobody is smaller than the minimum domain width
-            // if somebody is, give up balancing this dimension
-            vector<Scalar> sorted_f(x.size());
-            bool need_sort = false;
-            for (unsigned int cur_div=0; cur_div < x.size(); ++cur_div)
+            
+            // now we need to map the solution back and fill in the holes
+            vector<Scalar> sorted_f(N_i.size()-1);
+            Scalar cur_div_pos(0.0);
+            for (unsigned int cur_div=0; cur_div < N_i.size() - 1; ++cur_div)
                 {
-                if (x(cur_div) < min_domain_size)
+                if (map_rank_to_var[cur_div] >= 0)
                     {
-                    m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                    if (x(map_rank_to_var[cur_div]) < min_domain_size)
+                        {
+                        m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                        return false;
+                        }
+                    cur_div_pos = x(map_rank_to_var[cur_div]);
+                    }
+                else
+                    {
+                    cur_div_pos += new_widths[cur_div];
+                    }
+                sorted_f[cur_div] = cur_div_pos / L_i;
+                if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div-1])
+                    {
+                    m_exec_conf->msg->warning() << "comm.balance: domains attempting to flip" << endl;
                     return false;
                     }
-                sorted_f[cur_div] = x(cur_div) / L_i;
-                if (cur_div > 0 && sorted_f[cur_div] > sorted_f[cur_div-1])
-                    {
-                    need_sort = true;
-                    }
                 }
-            // sanity check: everybody needs to be in ascending order
-            if (need_sort)
-                {
-                sort(sorted_f.begin(), sorted_f.end());
-                }
-            
             for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
                 {
                 cum_frac_i[cur_div+1] = sorted_f[cur_div];

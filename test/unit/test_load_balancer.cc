@@ -65,7 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BalancedDomainDecomposition.h"
 #include "LoadBalancer.h"
 
-void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+#define TO_TRICLINIC(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
+#define TO_POS4(v) make_scalar4(v.x,v.y,v.z,h_pos.data[rtag].w)
+#define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
+
+void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
     // this test needs to be run on eight processors
     int size;
@@ -73,8 +77,9 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
+    BoxDim ref_box = BoxDim(2.0);
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
-                                                             BoxDim(2.0),        // box dimensions
+                                                             dest_box,        // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
                                                              0,           // number of angle types
@@ -85,42 +90,15 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
 
     boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-        {
-        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
-        // set up eight particles, one in every domain
-        h_pos.data[0].x = 0.25;
-        h_pos.data[0].y = -0.25;
-        h_pos.data[0].z = 0.25;
-
-        h_pos.data[1].x = 0.25;
-        h_pos.data[1].y = -0.25;
-        h_pos.data[1].z = 0.75;
-
-        h_pos.data[2].x = 0.25;
-        h_pos.data[2].y = -0.75;
-        h_pos.data[2].z = 0.25;
-
-        h_pos.data[3].x = 0.25;
-        h_pos.data[3].y = -0.75;
-        h_pos.data[3].z = 0.75;
-
-        h_pos.data[4].x = 0.75;
-        h_pos.data[4].y = -0.25;
-        h_pos.data[4].z = 0.25;
-
-        h_pos.data[5].x = 0.75;
-        h_pos.data[5].y = -0.25;
-        h_pos.data[5].z = 0.75;
-
-        h_pos.data[6].x = 0.75;
-        h_pos.data[6].y = -0.75;
-        h_pos.data[6].z = 0.25;
-
-        h_pos.data[7].x = 0.75;
-        h_pos.data[7].y = -0.75;
-        h_pos.data[7].z = 0.75;
-        }
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.25)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.75)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.25,-0.75,0.25)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(0.25,-0.75,0.75)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(0.75,-0.25,0.25)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(0.75,-0.25,0.75)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(0.75,-0.75,0.25)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(0.75,-0.75,0.75)),false);
 
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
@@ -151,12 +129,44 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
 
-    for (unsigned int t=0; t < 6; ++t)
+    for (unsigned int t=0; t < 10; ++t)
         {
         lb->update(t);
         }
-    lb->update(7);
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    
+    // flip the particle signs and see if the domains can realign correctly
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.25,0.25,-0.25)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-0.25,0.25,-0.75)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(-0.25,0.75,-0.25)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(-0.25,0.75,-0.75)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(-0.75,0.25,-0.25)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(-0.75,0.25,-0.75)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.75,0.75,-0.25)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.75,0.75,-0.75)),false);
+    comm->migrateParticles();
+
+    for (unsigned int t=10; t < 30; ++t)
+        {
+        lb->update(t);
+        }
+    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    
+    // pathological case, everything is collapsed to a point (what happens??)
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(0.0,0.0,0.0)),false);
+    comm->migrateParticles();
+    
+    for (unsigned int t=30; t < 50; ++t)
+        {
+        lb->update(t);
+        }
     }
 
 
@@ -164,7 +174,7 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 BOOST_AUTO_TEST_CASE( LoadBalancer_test )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    test_load_balancer(exec_conf);
+    test_load_balancer(exec_conf, BoxDim(2.0));
     }
 
 #endif // ENABLE_MPI
