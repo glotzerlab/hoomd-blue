@@ -70,6 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! External potential to impose periodic structure
 typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorLJ> > PotentialLJWalls; //check eval name
 
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
