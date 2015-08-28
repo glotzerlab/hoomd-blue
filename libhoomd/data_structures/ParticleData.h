@@ -232,25 +232,25 @@ struct SnapshotParticleData {
         const BoxDim& old_box, const BoxDim& new_box);
 
     //! Get pos as a Python object
-    boost::python::numeric::array getPosNP();
+    PyObject* getPosNP();
     //! Get vel as a Python object
-    boost::python::numeric::array getVelNP();
+    PyObject* getVelNP();
     //! Get accel as a Python object
-    boost::python::numeric::array getAccelNP();
+    PyObject* getAccelNP();
     //! Get type as a Python object
-    boost::python::numeric::array getTypeNP();
+    PyObject* getTypeNP();
     //! Get mass as a Python object
-    boost::python::numeric::array getMassNP();
+    PyObject* getMassNP();
     //! Get charge as a Python object
-    boost::python::numeric::array getChargeNP();
+    PyObject* getChargeNP();
     //! Get diameter as a Python object
-    boost::python::numeric::array getDiameterNP();
+    PyObject* getDiameterNP();
     //! Get image as a Python object
-    boost::python::numeric::array getImageNP();
+    PyObject* getImageNP();
     //! Get body as a Python object
-    boost::python::numeric::array getBodyNP();
+    PyObject* getBodyNP();
     //! Get orientation as a Python object
-    boost::python::numeric::array getOrientationNP();
+    PyObject* getOrientationNP();
     //! Get the type names for python
     boost::python::list getTypes();
     //! Set the type names from python
