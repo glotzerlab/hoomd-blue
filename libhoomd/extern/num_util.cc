@@ -9,8 +9,6 @@
 
 #include "num_util.h"
 
-//using namespace boost::python;
-
 namespace num_util{
 
   //specializations for use by makeNum
@@ -169,8 +167,6 @@ int numStringEntries = sizeof(kindStringMapEntries)/sizeof(KindStringMapEntry);
 int numCharEntries = sizeof(kindCharMapEntries)/sizeof(KindCharMapEntry);
 int numTypeEntries = sizeof(kindTypeMapEntries)/sizeof(KindTypeMapEntry);
 
-
-using namespace boost::python;
 
 static KindStringMap kindstrings(kindStringMapEntries,
                                    kindStringMapEntries + numStringEntries);
