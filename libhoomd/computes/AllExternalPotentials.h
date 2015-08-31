@@ -70,11 +70,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! External potential to impose periodic structure
 typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
-typedef PotentialExternal<EvaluatorWalls<EvaluatorLJ> > PotentialLJWalls; //check eval name
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJ;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJ;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJ;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMie;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawa;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBL;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwald;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliere;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorse;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPair> > WallsPotential;
 
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMieGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawaGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBLGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwaldGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliereGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPair> > WallsPotentialGPU;
+
 #endif
 
 #endif // __EXTERNAL_POTENTIALS_H__

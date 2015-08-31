@@ -61,3 +61,17 @@ void WallData::addWall(const Wall& wall)
     {
     m_walls.push_back(wall);
     }
+void WallDataNew::addSphereWall(const SphereWall& wall)
+    {
+    m_Spheres.push_back(wall);
+    }
+
+void WallDataNew::addCylinderWall(const CylinderWall& wall)
+    {
+    m_Cylinders.push_back(wall);
+    }
+
+void WallDataNew::addPlaneWall(const PlaneWall& wall)
+    {
+    m_Planes.push_back(wall);
+    }
