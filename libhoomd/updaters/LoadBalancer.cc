@@ -76,7 +76,8 @@ using namespace std;
 LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<BalancedDomainDecomposition> decomposition)
         : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_N_own(m_pdata->getN()), m_needs_recount(false)
+          m_N_own(m_pdata->getN()), m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
+          m_enable_x(true), m_enable_y(true), m_enable_z(true), m_max_scale(Scalar(0.05))
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
@@ -245,58 +246,67 @@ void LoadBalancer::update(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
 
-    for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > Scalar(1.05); ++dim)
+    for (unsigned int cur_iter=0; cur_iter < m_maxiter && getMaxImbalance() > m_tolerance; ++cur_iter)
         {
-        Scalar L_i(0.0);
-        vector<unsigned int> N_i;
-        if (dim == 0)
+        for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > m_tolerance; ++dim)
             {
-            L_i = L.x;
-            N_i.resize(di.getW());
-            }
-        else if (dim == 1)
-            {
-            L_i = L.y;
-            N_i.resize(di.getH());
-            }
-        else
-            {
-            L_i = L.z;
-            N_i.resize(di.getD());
+            Scalar L_i(0.0);
+            vector<unsigned int> N_i;
+            if (dim == 0)
+                {
+                if (!m_enable_x) continue; // skip this dimension if balancing is turned off
+
+                L_i = L.x;
+                N_i.resize(di.getW());
+                }
+            else if (dim == 1)
+                {
+                if (!m_enable_y) continue;
+
+                L_i = L.y;
+                N_i.resize(di.getH());
+                }
+            else
+                {
+                if (!m_enable_z) continue;
+
+                L_i = L.z;
+                N_i.resize(di.getD());
+                }
+
+            bool active = reduce(N_i, dim);
+            vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
+            if (active)
+                {
+                adjust(cum_frac, N_i, L_i);
+                }
+            bcast(m_needs_recount, reduce_root, m_mpi_comm);
+            if (m_needs_recount)
+                {
+                m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
+                m_pdata->setGlobalBox(box); // force a domain resizing to trigger
+                computeParticleChange(dim);
+                }
             }
 
-        bool active = reduce(N_i, dim);
-        vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
-        if (active)
+        // migrate particles to their final locations NOW because we have modified the domains
+        m_comm->forceMigrate();
+        m_comm->communicate(timestep);
+
+        // after migration, no recounting is necessary because all ranks own their particles
+        m_N_own = m_pdata->getN();
+        m_needs_recount = false;
+
+        Scalar max_imb = getMaxImbalance();
+        if (m_exec_conf->getRank() == 0)
             {
-            adjust(cum_frac, N_i, L_i);
+            const BoxDim& root_box = m_pdata->getBox();
+            Scalar3 root_hi = root_box.getHi();
+            vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
+            vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
+            vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
+            cout << timestep << " " << max_imb << " " << cum_frac_x[1] << " " << cum_frac_y[1] << " " << cum_frac_z[1] << " " << root_hi.x << " " << root_hi.y << " " << root_hi.z << endl;
             }
-        bcast(m_needs_recount, reduce_root, m_mpi_comm);
-        if (m_needs_recount)
-            {
-            m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
-            m_pdata->setGlobalBox(box); // force a domain resizing to trigger
-            computeParticleChange(dim);
-            }
-        }
-
-    // migrate particles to their final locations NOW because we have modified the domains
-    m_comm->forceMigrate();
-    m_comm->communicate(timestep);
-
-    // after migration, no recounting is necessary because all ranks own their particles
-    m_N_own = m_pdata->getN();
-    m_needs_recount = false;
-
-    Scalar max_imb = getMaxImbalance();
-    if (m_exec_conf->getRank() == 0)
-        {
-        const BoxDim& root_box = m_pdata->getBox();
-        Scalar3 root_hi = root_box.getHi();
-        vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
-        vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
-        vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
-        cout << timestep << " " << max_imb << " " << cum_frac_x[1] << " " << cum_frac_y[1] << " " << cum_frac_z[1] << " " << root_hi.x << " " << root_hi.y << " " << root_hi.z << endl;
         }
 
     if (m_prof) m_prof->pop();
@@ -433,16 +443,16 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
-        Scalar scale_factor = (N_i[i] > 0) ? Scalar(0.5) / imb_factor : Scalar(1.05); // as in gromacs, use half the imbalance factor to scale
+        Scalar scale_factor = (N_i[i] > 0) ? Scalar(0.5) / imb_factor : (Scalar(1.0) + m_max_scale); // as in gromacs, use half the imbalance factor to scale
 
         // limit rescaling to 5% either direction
-        if (scale_factor > Scalar(1.05))
+        if (scale_factor > (Scalar(1.0) + m_max_scale))
             {
-            scale_factor = Scalar(1.05);
+            scale_factor = (Scalar(1.0) + m_max_scale);
             }
-        else if(scale_factor < Scalar(0.95))
+        else if(scale_factor < (Scalar(1.0) - m_max_scale))
             {
-            scale_factor = Scalar(0.95);
+            scale_factor = (Scalar(1.0) - m_max_scale);
             }
 
         // compute the new domain width (can't be smaller than the threshold, if it is, this is not a free variable)
@@ -466,7 +476,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         }
 
     // balancing can be expensive, so don't do anything if we're already good enough in this direction
-    if (max_imb_factor < Scalar(1.05))
+    if (max_imb_factor <= m_tolerance)
         {
         return false;
         }
@@ -693,6 +703,11 @@ void export_LoadBalancer()
     {
     class_<LoadBalancer, boost::shared_ptr<LoadBalancer>, bases<Updater>, boost::noncopyable>
     ("LoadBalancer", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<BalancedDomainDecomposition> >())
+    .def("enableDimension", &LoadBalancer::enableDimension)
+    .def("getTolerance", &LoadBalancer::getTolerance)
+    .def("setTolerance", &LoadBalancer::setTolerance)
+    .def("getMaxIterations", &LoadBalancer::getMaxIterations)
+    .def("setMaxIterations", &LoadBalancer::setMaxIterations)
     ;
     }
 #endif // ENABLE_MPI

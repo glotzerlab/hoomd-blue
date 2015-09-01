@@ -283,7 +283,7 @@ class balance(update._updater):
     #
     # \note Load balancing is only compatible with an adjustable domain decomposition. This decomposition must be created
     #       explicitly before the system is initialized using comm.decomposition().
-    def __init__(self, x=True, y=True, z=True, tolerance=0.05, maxiter=1, period=1, phase=-1):
+    def __init__(self, x=True, y=True, z=True, tolerance=1.05, maxiter=1, period=1, phase=-1):
         # initialize base class
         update._updater.__init__(self);
 

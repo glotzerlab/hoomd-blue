@@ -83,6 +83,55 @@ class LoadBalancer : public Updater
         //! Destructor
         virtual ~LoadBalancer();
 
+        //! Get the tolerance for load balancing
+        Scalar getTolerance() const
+            {
+            return m_tolerance;
+            }
+
+        //! Get the maximum number of iterations to attempt in a single rebalancing step
+        unsigned int getMaxIterations() const
+            {
+            return m_maxiter;
+            }
+
+        //! Set the tolerance for load balancing
+        /*!
+         * \param tolerance Load imbalance below which no balancing is attempted (<= 1.0 forces rebalancing)
+         */
+        void setTolerance(Scalar tolerance)
+            {
+            m_tolerance = tolerance;
+            }
+
+        //! Set the maximum number of iterations to attempt in a single rebalancing step
+        /*!
+         * \param maxiter Maximum number of times to attempt to balance in a single update()
+         *
+         * If the load imbalance is reduced below the tolerance, fewer iterations than \a maxiter are performed.
+         */
+        void setMaxIterations(unsigned int maxiter)
+            {
+            m_maxiter = maxiter;
+            }
+
+        //! Enable / disable load balancing along a dimension
+        /*!
+         * \param dim Dimension along which to balance
+         * \param enable Flag to balance (true) or not balance (false)
+         */
+        void enableDimension(unsigned int dim, bool enable)
+            {
+            if (dim == 0) m_enable_x = enable;
+            else if (dim == 1) m_enable_y = enable;
+            else if (dim == 2) m_enable_z = enable;
+            else
+                {
+                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+                throw std::runtime_error("comm: requested direction does not exist");
+                }
+            }
+
         //! Notification of a max number of particle change    
 //         void slotMaxNumChanged()
 //             {
@@ -119,6 +168,9 @@ class LoadBalancer : public Updater
         MPI_Comm m_mpi_comm_z;      //!< Communicator for gathering and scattering in z
 
         //! Computes the maximum imbalance factor
+        /*!
+         * \todo Add caching behavior and make this public
+         */
         Scalar getMaxImbalance();
 
         //! Reduce the particle numbers per rank down to one dimension
@@ -136,6 +188,14 @@ class LoadBalancer : public Updater
         unsigned int m_N_own;           //!< Number of particles owned by this rank
         bool m_needs_recount;           //!< Flag if a particle change needs to be computed
 //         GPUArray<unsigned int> m_flag_own;    //!< Array to hold the flags of the particles owned by this rank
+
+        Scalar m_tolerance;     //!< Load imbalance to tolerate
+        unsigned int m_maxiter; //!< Maximum number of iterations to attempt
+        bool m_enable_x;        //!< Flag to enable balancing in x
+        bool m_enable_y;        //!< Flag to enable balancing in y
+        bool m_enable_z;        //!< Flag to enable balancing z
+
+        const Scalar m_max_scale;   //!< Maximum fraction to rescale either direction (5%)
         
         //! Flags to determine if the particle needs to stay or move
 //         enum owner_flags
