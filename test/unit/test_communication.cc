@@ -277,10 +277,10 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
         }
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    std::vector<Scalar> fxs(2), fys(2), fzs(2);
-    fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
-    fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
-    fzs[0] = Scalar(0.8); fzs[1] = Scalar(0.2);
+    std::vector<Scalar> fxs(1), fys(1), fzs(1);
+    fxs[0] = Scalar(0.5);
+    fys[0] = Scalar(0.25);
+    fzs[0] = Scalar(0.8);
 
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
@@ -372,9 +372,30 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     const Scalar3 global_L = global_box.getL();
     const uint3 my_pos = decomposition->getGridPos();
     // box size should be fractional width of global box
-    BOOST_CHECK_CLOSE(L.x, global_L.x * fxs[my_pos.x], tol);
-    BOOST_CHECK_CLOSE(L.y, global_L.y * fys[my_pos.y], tol);
-    BOOST_CHECK_CLOSE(L.z, global_L.z * fzs[my_pos.z], tol);
+    if (my_pos.x == 0)
+        {
+        BOOST_CHECK_CLOSE(L.x, global_L.x * fxs[0], tol);
+        }
+    else
+        {
+        BOOST_CHECK_CLOSE(L.x, global_L.x * (Scalar(1.0) - fxs[0]), tol);
+        }
+    if (my_pos.y == 0)
+        {
+        BOOST_CHECK_CLOSE(L.y, global_L.y * fys[0], tol);
+        }
+    else
+        {
+        BOOST_CHECK_CLOSE(L.y, global_L.y * (Scalar(1.0) - fys[0]), tol);
+        }
+    if (my_pos.z == 0)
+        {
+        BOOST_CHECK_CLOSE(L.z, global_L.z * fzs[0], tol);
+        }
+    else
+        {
+        BOOST_CHECK_CLOSE(L.z, global_L.z * (Scalar(1.0) - fzs[0]), tol);
+        }
 
     // box lower bound should be shifted if rank isn't the first slice along the dim
     const Scalar3 lo = box.getLo();

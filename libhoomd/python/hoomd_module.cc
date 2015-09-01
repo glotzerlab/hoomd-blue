@@ -180,6 +180,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #include "DomainDecomposition.h"
 #include "BalancedDomainDecomposition.h"
+#include "LoadBalancer.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
@@ -651,6 +652,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Communicator();
     export_DomainDecomposition();
     export_BalancedDomainDecomposition();
+    export_LoadBalancer();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();
 #endif // ENABLE_CUDA

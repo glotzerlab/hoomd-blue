@@ -89,9 +89,11 @@ class BalancedDomainDecomposition : public DomainDecomposition
         /*!
          * \param exec_conf The execution configuration
          * \param L Box lengths of global box to sub-divide
-         * \param fxs Array of fractions to decompose box in x
-         * \param fys Array of fractions to decompose box in y
-         * \param fzs Array of fractions to decompose box in z
+         * \param fxs Array of fractions to decompose box in x for first nx-1 processors
+         * \param fys Array of fractions to decompose box in y for first ny-1 processors
+         * \param fzs Array of fractions to decompose box in z for first nz-1 processors
+         *
+         * If a fraction is not specified, a default value is chosen with uniform spacing.
          */
         BalancedDomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                     Scalar3 L,
@@ -99,20 +101,6 @@ class BalancedDomainDecomposition : public DomainDecomposition
                                     const std::vector<Scalar>& fys,
                                     const std::vector<Scalar>& fzs);
 
-
-        //! Get the box fractions along each dimension
-        std::vector<Scalar> getFractions(unsigned int dir) const
-            {
-            if (dir == 0) return m_frac_x;
-            else if (dir == 1) return m_frac_y;
-            else if (dir == 2) return m_frac_z;
-            else
-                {
-                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-                throw std::runtime_error("comm: requested direction does not exist");
-                }
-            }
-        
         //! Get the cumulative box fractions along each dimension
         std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
             {
@@ -141,10 +129,6 @@ class BalancedDomainDecomposition : public DomainDecomposition
         virtual unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
     protected:
-        std::vector<Scalar> m_frac_x;       //!< Fractional divisions in x per cut plane
-        std::vector<Scalar> m_frac_y;       //!< Fractional divisions in y per cut plane
-        std::vector<Scalar> m_frac_z;       //!< Fractional divisions in z per cut plane
-        
         std::vector<Scalar> m_cum_frac_x;   //!< Cumulative fractions in x below cut plane index
         std::vector<Scalar> m_cum_frac_y;   //!< Cumulative fractions in y below cut plane index
         std::vector<Scalar> m_cum_frac_z;   //!< Cumulative fractions in z below cut plane index

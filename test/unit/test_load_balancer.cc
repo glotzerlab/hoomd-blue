@@ -104,10 +104,10 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, con
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    std::vector<Scalar> fxs(2), fys(2), fzs(2);
-    fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
-    fys[0] = Scalar(0.5); fys[1] = Scalar(0.5);
-    fzs[0] = Scalar(0.5); fzs[1] = Scalar(0.5);
+    std::vector<Scalar> fxs(1), fys(1), fzs(1);
+    fxs[0] = Scalar(0.5);
+    fys[0] = Scalar(0.5);
+    fzs[0] = Scalar(0.5);
     boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);

@@ -68,72 +68,72 @@ BalancedDomainDecomposition::BalancedDomainDecomposition(boost::shared_ptr<Execu
                                                          const std::vector<Scalar>& fxs,
                                                          const std::vector<Scalar>& fys,
                                                          const std::vector<Scalar>& fzs)
-    : DomainDecomposition(exec_conf, L, fxs.size(), fys.size(), fzs.size()), m_uniform(false)
+    : DomainDecomposition(exec_conf,
+                          L,
+                          (fxs.size() > 0) ? (fxs.size() + 1) : 0,
+                          (fys.size() > 0) ? (fys.size() + 1) : 0,
+                          (fzs.size() > 0) ? (fzs.size() + 1) : 0,
+                          false),
+      m_uniform(false)
     {
+    m_cum_frac_x.resize(m_nx+1);
+    m_cum_frac_y.resize(m_ny+1);
+    m_cum_frac_z.resize(m_nz+1);
 
-    // everyone needs to just resize their vectors, rank 0 will fill them in
-    m_frac_x = std::vector<Scalar>(m_nx, 0.0);
-    m_frac_y = std::vector<Scalar>(m_ny, 0.0);
-    m_frac_z = std::vector<Scalar>(m_nz, 0.0);
-
-    m_cum_frac_x = std::vector<Scalar>(m_nx+1, 0.0);
-    m_cum_frac_y = std::vector<Scalar>(m_ny+1, 0.0);
-    m_cum_frac_z = std::vector<Scalar>(m_nz+1, 0.0);
+    // fill the beginning and end points
+    m_cum_frac_x[0] = Scalar(0.0); m_cum_frac_x[m_nx] = Scalar(1.0);
+    m_cum_frac_y[0] = Scalar(0.0); m_cum_frac_y[m_ny] = Scalar(1.0);
+    m_cum_frac_z[0] = Scalar(0.0); m_cum_frac_z[m_nz] = Scalar(1.0);
 
     unsigned int rank = m_exec_conf->getRank();
     if (rank == 0)
         {
-        m_frac_x = fxs;
-        m_frac_y = fys;
-        m_frac_z = fzs;
+        // make a temporary copy of the arguments
+        std::vector<Scalar> cur_fxs = fxs;
+        std::vector<Scalar> cur_fys = fys;
+        std::vector<Scalar> cur_fzs = fzs;
 
         // the DomainDecomposition constructor should respect our choice if we specify all three dimensions
         // if it doesn't, then an incorrect grid was chosen by the user and we need to warn them and fall back to the uniform case
-        if ((m_frac_x.size() > 0 && m_frac_x.size() != m_nx) || 
-            (m_frac_y.size() > 0 && m_frac_y.size() != m_ny) ||
-            (m_frac_z.size() > 0 && m_frac_z.size() != m_nz))
+        if ((cur_fxs.size() > 0 && cur_fxs.size() != m_nx-1) ||
+            (cur_fys.size() > 0 && cur_fys.size() != m_ny-1) ||
+            (cur_fzs.size() > 0 && cur_fzs.size() != m_nz-1))
             {
             m_exec_conf->msg->warning() << "Domain decomposition grid does not match specification, defaulting to uniform spacing" << std::endl;
 
-            m_frac_x = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nx));
-            m_frac_y = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_ny));
-            m_frac_z = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nz));
+            // clear out the vectors and default to uniform in all dimensions
+            cur_fxs = std::vector<Scalar>(m_nx-1, Scalar(1.0)/Scalar(m_nx));
+            cur_fys = std::vector<Scalar>(m_ny-1, Scalar(1.0)/Scalar(m_ny));
+            cur_fzs = std::vector<Scalar>(m_nz-1, Scalar(1.0)/Scalar(m_nz));
             m_uniform = true;
             }
-            
-        if (m_frac_x.size() == 0) m_frac_x = std::vector<Scalar>(m_nx, Scalar(1.0) / Scalar(m_nx));
-        if (m_frac_y.size() == 0) m_frac_y = std::vector<Scalar>(m_ny, Scalar(1.0) / Scalar(m_ny));
-        if (m_frac_z.size() == 0) m_frac_z = std::vector<Scalar>(m_nz, Scalar(1.0) / Scalar(m_nz));
 
-        // perform an exclusive sum on the fractions to accumulate the fractions (last entry should sum to 1.0)
-        // this stores the cumulative fraction of space below the current cartesian index
-        // so, the first cut has 0% below it, the second cut has cum_frac_x[1] below it, and so on
-        // we pad the right end with the total sum so that we can validate summation to 1.0, and also for placing particles
-        std::partial_sum(m_frac_x.begin(), m_frac_x.end(), m_cum_frac_x.begin() + 1);
-        std::partial_sum(m_frac_y.begin(), m_frac_y.end(), m_cum_frac_y.begin() + 1);
-        std::partial_sum(m_frac_z.begin(), m_frac_z.end(), m_cum_frac_z.begin() + 1);
+        // if domain fractions weren't set, fill the fractions uniformly
+        if (cur_fxs.empty())
+            {
+            cur_fxs = std::vector<Scalar>(m_nx-1, Scalar(1.0)/Scalar(m_nx));
+            }
+        if (cur_fys.empty())
+            {
+            cur_fys = std::vector<Scalar>(m_ny-1, Scalar(1.0)/Scalar(m_ny));
+            }
+        if (cur_fzs.empty())
+            {
+            cur_fzs = std::vector<Scalar>(m_nz-1, Scalar(1.0)/Scalar(m_nz));
+            }
+
+        // fill in the cumulative fractions by partial summation
+        std::partial_sum(cur_fxs.begin(), cur_fxs.end(), m_cum_frac_x.begin() + 1);
+        std::partial_sum(cur_fys.begin(), cur_fys.end(), m_cum_frac_y.begin() + 1);
+        std::partial_sum(cur_fzs.begin(), cur_fzs.end(), m_cum_frac_z.begin() + 1);
         }
 
     // broadcast the adjusted boxes
     bcast(m_uniform, 0, m_mpi_comm);
 
-    MPI_Bcast(&m_frac_x[0], m_nx, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_frac_y[0], m_ny, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_frac_z[0], m_nz, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-
     MPI_Bcast(&m_cum_frac_x[0], m_nx+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
     MPI_Bcast(&m_cum_frac_y[0], m_ny+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
     MPI_Bcast(&m_cum_frac_z[0], m_nz+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-
-    // validate the fractional cuts
-    Scalar tol(1e-5);
-    if (std::fabs(m_cum_frac_x.back() - Scalar(1.0)) > tol ||
-        std::fabs(m_cum_frac_y.back() - Scalar(1.0)) > tol ||
-        std::fabs(m_cum_frac_z.back() - Scalar(1.0)) > tol)
-        {
-        m_exec_conf->msg->error() << "comm: domain decomposition fractions do not sum to 1.0" << std::endl;
-        throw std::runtime_error("comm: domain decomposition fractions do not sum to 1.0");
-        }
     }
 
 void BalancedDomainDecomposition::setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root)
@@ -280,8 +280,12 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
 void export_BalancedDomainDecomposition()
     {
     class_<BalancedDomainDecomposition, boost::shared_ptr<BalancedDomainDecomposition>, bases<DomainDecomposition>, boost::noncopyable>
-        ("BalancedDomainDecomposition", init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, const std::vector<Scalar>&, const std::vector<Scalar>&, const std::vector<Scalar>&>())
-    .def("getFractions", &BalancedDomainDecomposition::getFractions)
+        ("BalancedDomainDecomposition", init< boost::shared_ptr<ExecutionConfiguration>,
+                                              Scalar3,
+                                              const std::vector<Scalar>&,
+                                              const std::vector<Scalar>&,
+                                              const std::vector<Scalar>&>())
+    .def("getCumulativeFractions", &BalancedDomainDecomposition::getCumulativeFractions)
     ;
     }
 

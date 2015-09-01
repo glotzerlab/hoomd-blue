@@ -269,8 +269,7 @@ void LoadBalancer::update(unsigned int timestep)
         vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
         if (active)
             {
-            vector<Scalar> frac = m_decomposition->getFractions(dim);
-            adjust(cum_frac, frac, N_i, L_i);
+            adjust(cum_frac, N_i, L_i);
             }
         bcast(m_needs_recount, reduce_root, m_mpi_comm);
         if (m_needs_recount)
@@ -410,7 +409,6 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
  * \returns true if an adjustment occurred
  */
 bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
-                          const vector<Scalar>& frac_i,
                           const vector<unsigned int>& N_i,
                           Scalar L_i)
     {

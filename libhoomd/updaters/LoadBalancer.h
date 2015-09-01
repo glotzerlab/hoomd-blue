@@ -126,7 +126,6 @@ class LoadBalancer : public Updater
 
         //! Adjust the partitioning along a single dimension
         bool adjust(std::vector<Scalar>& cum_frac_i,
-                    const std::vector<Scalar>& frac_i,
                     const std::vector<unsigned int>& N_i,
                     Scalar L_i);
 
