@@ -109,7 +109,7 @@ class EvaluatorExternalPeriodic
             \param box box dimensions
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params, const field_type& field)
+        DEVICE EvaluatorExternalPeriodic(Scalar3 X, unsigned int i, const BoxDim& box, const param_type& params, const field_type& field)
             : m_pos(X),
               m_box(box)
             {

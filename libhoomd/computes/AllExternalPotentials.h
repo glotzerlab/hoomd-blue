@@ -54,6 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialExternal.h"
 #include "EvaluatorExternalPeriodic.h"
+#include "EvaluatorWalls.h"
+#include "AllPairPotentials.h"
 
 #ifdef ENABLE_CUDA
 #include "AllDriverPotentialExternalGPU.cuh"
@@ -79,12 +81,11 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBL;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwald;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliere;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorse;
-typedef PotentialExternal<EvaluatorWalls<EvaluatorPair> > WallsPotential;
 
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
-typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
+/*typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMieGPU;
@@ -92,8 +93,7 @@ typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentia
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBLGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwaldGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliereGPU;
-typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;
-typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPair> > WallsPotentialGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;*/
 
 #endif
 
