@@ -332,7 +332,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_forces_kernel<1>);
+            cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel<1>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -362,7 +362,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_forces_kernel<0>);
+            cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel<0>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 

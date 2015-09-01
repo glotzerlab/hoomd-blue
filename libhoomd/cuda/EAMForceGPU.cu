@@ -397,10 +397,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel<1>);
+            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
 
             cudaFuncAttributes attr2;
-            cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2<1>);
+            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
 
             max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
             }
@@ -439,10 +439,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel<0>);
+            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
 
             cudaFuncAttributes attr2;
-            cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2<0>);
+            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
 
             max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
             }

@@ -65,6 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
+#include <vector>
+
 template<class group_data>
 Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
@@ -823,7 +825,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_orientation_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
-            m_r_ghost(Scalar(0.0)),
+            m_r_ghost_max(Scalar(0.0)),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -857,6 +859,13 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     // connect to particle sort signal
     m_ghost_particles_removed_connection = m_pdata->connectGhostParticlesRemoved(boost::bind(&Communicator::slotGhostParticlesRemoved, this));
+    
+    // connect to type change signal
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&Communicator::slotNumTypesChanged, this));
+    
+    // allocate per type ghost width
+    GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
+    m_r_ghost.swap(r_ghost);
 
     /*
      * Bonded group communication
@@ -1213,6 +1222,25 @@ void Communicator::migrateParticles()
         m_prof->pop();
     }
 
+void Communicator::updateGhostWidth()
+    {
+    if (m_ghost_layer_width_requests.num_slots())
+        {
+        // update the ghost layer width only if subscribers are available
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+        
+        // reduce per type using the signals, and then overall
+        Scalar r_ghost_max = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            Scalar r_ghost_i = m_ghost_layer_width_requests(cur_type);
+            h_r_ghost.data[cur_type] = r_ghost_i;
+            if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
+            }
+        m_r_ghost_max = r_ghost_max;
+        }
+    }
+
 //! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts()
     {
@@ -1249,15 +1277,17 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
+    updateGhostWidth();
 
-    if (m_ghost_layer_width_requests.num_slots())
+    // compute the ghost layer widths as fractions
+    ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+    const Scalar3 box_dist = box.getNearestPlaneDistance();
+    std::vector<Scalar3> ghost_fractions(m_pdata->getNTypes());
+    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
-        // update the ghost layer width only if subscribers are avaiable
-        m_r_ghost = m_ghost_layer_width_requests();
+        ghost_fractions[cur_type] = h_r_ghost.data[cur_type] / box_dist;
         }
 
-    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
-    Scalar3 ghost_fraction = m_r_ghost/box.getNearestPlaneDistance();
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1267,6 +1297,10 @@ void Communicator::exchangeGhosts()
             {
             Scalar4 postype = h_pos.data[idx];
             Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+            // get the ghost fraction for this particle type
+            const unsigned int type = __scalar_as_int(postype.w);
+            const Scalar3 ghost_fraction = ghost_fractions[type];
 
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)
