@@ -56,15 +56,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#ifdef ENABLE_MPI
+
+#ifndef __LOADBALANCER_H__
+#define __LOADBALANCER_H__
+
 #include "Updater.h"
 #include "BalancedDomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
 
 #include <vector>
-
-#ifndef __LOADBALANCER_H__
-#define __LOADBALANCER_H__
 
 //! Updates domain decompositions to balance the load
 /*!
@@ -76,7 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 class LoadBalancer : public Updater
     {
-#ifdef ENABLE_MPI
     public:
         //! Constructor
         LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<BalancedDomainDecomposition> decomposition);
@@ -132,13 +134,6 @@ class LoadBalancer : public Updater
                 }
             }
 
-        //! Notification of a max number of particle change    
-//         void slotMaxNumChanged()
-//             {
-//             GPUArray<unsigned int> flag_own(m_pdata->getMaxN());
-//             m_flag_own.swap(flag_own);
-//             }
-
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -187,7 +182,6 @@ class LoadBalancer : public Updater
         virtual void countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim);
         unsigned int m_N_own;           //!< Number of particles owned by this rank
         bool m_needs_recount;           //!< Flag if a particle change needs to be computed
-//         GPUArray<unsigned int> m_flag_own;    //!< Array to hold the flags of the particles owned by this rank
 
         Scalar m_tolerance;     //!< Load imbalance to tolerate
         unsigned int m_maxiter; //!< Maximum number of iterations to attempt
@@ -196,22 +190,10 @@ class LoadBalancer : public Updater
         bool m_enable_z;        //!< Flag to enable balancing z
 
         const Scalar m_max_scale;   //!< Maximum fraction to rescale either direction (5%)
-        
-        //! Flags to determine if the particle needs to stay or move
-//         enum owner_flags
-//             {
-//             stay = 0,
-//             send_up = 1,
-//             send_down = 2
-//             };
-        
-//         boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
-#endif // ENABLE_MPI
     };
 
-#ifdef ENABLE_MPI
 //! Export the LoadBalancer to python
 void export_LoadBalancer();
-#endif
 
 #endif // __LOADBALANCER_H__
+#endif // ENABLE_MPI

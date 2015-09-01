@@ -81,11 +81,6 @@ LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
-    // allocate data connected to the maximum number of particles
-//     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&LoadBalancer::slotMaxNumChanged, this));
-//     GPUArray<unsigned int> flag_own(m_pdata->getMaxN());
-//     m_flag_own.swap(flag_own);
-
     // now all the stuff with the reductions
     const Index3D& di = m_decomposition->getDomainIndexer();
     uint3 my_grid_pos = m_decomposition->getGridPos();
@@ -164,9 +159,6 @@ LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
 LoadBalancer::~LoadBalancer()
     {
     m_exec_conf->msg->notice(5) << "Destroying LoadBalancer" << endl;
-
-    // disconnect from the signal
-//     m_max_numchange_conn.disconnect();
 
     // free the communicators and groups that we have made
     

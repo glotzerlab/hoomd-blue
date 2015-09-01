@@ -64,11 +64,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #include "BalancedDomainDecomposition.h"
 #include "LoadBalancer.h"
+#ifdef ENABLE_CUDA
+#include "LoadBalancerGPU.h"
+#endif
 
 #define TO_TRICLINIC(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 #define TO_POS4(v) make_scalar4(v.x,v.y,v.z,h_pos.data[rtag].w)
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
+template<class LB>
 void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
     // this test needs to be run on eight processors
@@ -114,7 +118,7 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, con
 
     pdata->initializeFromSnapshot(snap);
 
-    boost::shared_ptr<LoadBalancer> lb(new LoadBalancer(sysdef,decomposition));
+    boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
     
     // migrate atoms
@@ -174,7 +178,16 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, con
 BOOST_AUTO_TEST_CASE( LoadBalancer_test )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    test_load_balancer(exec_conf, BoxDim(2.0));
+    test_load_balancer<LoadBalancer>(exec_conf, BoxDim(2.0));
     }
+
+#ifdef ENABLE_CUDA
+//! Tests particle distribution
+BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    test_load_balancer<LoadBalancerGPU>(exec_conf, BoxDim(2.0));
+    }
+#endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI

@@ -184,6 +184,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
+#include "LoadBalancerGPU.h"
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
@@ -655,6 +656,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_LoadBalancer();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();
+    export_LoadBalancerGPU();
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 

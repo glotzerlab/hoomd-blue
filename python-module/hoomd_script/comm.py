@@ -297,7 +297,7 @@ class balance(update._updater):
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
         else:
-            self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
+            self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);
 
         # if no period is set, just do the update now, otherwise setup the periodic updater
         if period is None:
