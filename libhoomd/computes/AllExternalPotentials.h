@@ -76,6 +76,7 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMie;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGauss;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawa;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBL;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwald;
@@ -85,15 +86,16 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMor
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
-/*typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMieGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGaussGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawaGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBLGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwaldGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliereGPU;
-typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;*/
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;
 
 #endif
 

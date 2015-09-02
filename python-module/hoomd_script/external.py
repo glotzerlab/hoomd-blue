@@ -355,3 +355,385 @@ class periodic(_external_force):
         p = coeff['p'];
 
         return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
+
+class wallpotential(_external_force):
+    def __init__(self, name=""):
+        util.print_status_line();
+        _external_force.__init__(self, name);
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialExternalPeriodic(globals.system_definition,self.name);
+        else:
+            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(globals.system_definition,self.name);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        for i in range(0,ntypes):
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
+
+    def update_coeffs(self):
+        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
+        # check that the wallpotential coefficents are valid
+        if not self.pair_coeff.verify(coeff_list):
+            globals.msg.error("Not all wallpotential coefficients are set\n");
+            raise RuntimeError("Error updating wallpotential coefficients");
+
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+                param = self.process_coeff(coeff_dict);
+                self.cpp_force.setParams(i, j, param);
+                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
+                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
+
+    # setup the coefficient options
+    self.required_coeffs = ['r_cut','r_on','','p'];
+
+class lj(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialLJ(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialLJ;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialLJGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialLJGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar2(lj1, lj2);
+
+class gauss(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialGauss(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialGauss;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialGaussGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialGaussGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma'];
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+
+        return hoomd.make_scalar2(epsilon, sigma);
+
+class slj(wallpotential):
+    def __init__(self, r_cut, d_max=None, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        if d_max is None :
+            sysdef = globals.system_definition;
+            d_max = sysdef.getParticleData().getMaxDiameter()
+            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+
+
+
+
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialSLJ(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialSLJ;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialSLJGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialSLJGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar2(lj1, lj2);
+
+    def set_params(self, mode=None):
+        util.print_status_line();
+
+        if mode == "xplor":
+            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
+            raise RuntimeError("Error changing parameters in wallpotential force");
+
+        wallpotential.set_params(self, mode=mode);
+
+class yukawa(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialYukawa(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialYukawa;
+        else:
+            self.cpp_force = hoomd.WallsPotentialYukawaGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialYukawaGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'kappa'];
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        kappa = coeff['kappa'];
+
+        return hoomd.make_scalar2(epsilon, kappa);
+
+class ewald(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialEwald(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialEwald;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialEwaldGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialEwaldGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['kappa'];
+
+    def process_coeff(self, coeff):
+        kappa = coeff['kappa'];
+
+        return kappa;
+
+class morse(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialMorse(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMorse;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialMorseGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMorseGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['D0', 'alpha', 'r0'];
+
+    def process_coeff(self, coeff):
+        D0 = coeff['D0'];
+        alpha = coeff['alpha'];
+        r0 = coeff['r0']
+
+        return hoomd.make_scalar4(D0, alpha, r0, 0.0);
+
+class force_shifted_lj(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialForceShiftedLJ(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialForceShiftedLJ;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialForceShiftedLJGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialForceShiftedLJGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar2(lj1, lj2);
+
+class moliere(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialMoliere(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMoliere;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialMoliereGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMoliereGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+class zbl(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialZBL(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialZBL;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialZBLGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialZBLGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+class mie(wallpotential):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        wallpotential.__init__(self, r_cut, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.WallsPotentialMie(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMie;
+        else:
+
+            self.cpp_force = hoomd.WallsPotentialMieGPU(globals.system_definition, self.name);
+            self.cpp_class = hoomd.WallsPotentialMieGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma', 'n', 'm'];
+
+    def process_coeff(self, coeff):
+        epsilon = float(coeff['epsilon']);
+        sigma = float(coeff['sigma']);
+        n = float(coeff['n']);
+        m = float(coeff['m']);
+
+        mie1 = epsilon * math.pow(sigma, n) * (n/(n-m)) * math.pow(n/m,m/(n-m));
+        mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
+        mie3 = n
+        mie4 = m
+        return hoomd.make_scalar4(mie1, mie2, mie3, mie4);
