@@ -421,7 +421,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
 
     // make the minimum domain slightly bigger so that the optimization won't fail
-    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerWidth();
+    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerMaxWidth();
 
     // imbalance factors for each rank
     vector<Scalar> new_widths(N_i.size());
