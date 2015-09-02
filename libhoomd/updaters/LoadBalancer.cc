@@ -630,7 +630,7 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
             ++grid_pos.x;
             moved = true;
             }
-        else if (f.x < Scalar(0.0))
+        if (f.x < Scalar(0.0))
             {
             --grid_pos.x;
             moved = true;
@@ -641,7 +641,7 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
             ++grid_pos.y;
             moved = true;
             }
-        else if (f.y < Scalar(0.0))
+        if (f.y < Scalar(0.0))
             {
             --grid_pos.y;
             moved = true;
@@ -652,7 +652,7 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
             ++grid_pos.z;
             moved = true;
             }
-        else if (f.z < Scalar(0.0))
+        if (f.z < Scalar(0.0))
             {
             --grid_pos.z;
             moved = true;
@@ -687,10 +687,15 @@ void LoadBalancer::computeParticleChange()
     if (!m_needs_recount) return;
 
     // count the particles that are off the rank
-    std::map<unsigned int, unsigned int> cnts;
-    countParticlesOffRank(cnts);
-
     ArrayHandle<unsigned int> h_unique_neigh(m_comm->getUniqueNeighbors(), access_location::host, access_mode::read);
+
+    // fill the map initially to zeros (not necessary since should be auto-initialized to zero, but just playing it safe)
+    std::map<unsigned int, unsigned int> cnts;
+    for (unsigned int i=0; i < m_comm->getNUniqueNeighbors(); ++i)
+        {
+        cnts[h_unique_neigh.data[i]] = 0;
+        }
+    countParticlesOffRank(cnts);
 
     MPI_Request req[2*m_comm->getNUniqueNeighbors()];
     MPI_Status stat[2*m_comm->getNUniqueNeighbors()];

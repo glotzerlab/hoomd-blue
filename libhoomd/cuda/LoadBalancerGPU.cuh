@@ -49,69 +49,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 
-/*! \file LoadBalancerGPU.h
-    \brief Declares an updater that changes the MPI domain decomposition to balance the load using the GPU
+/*! \file LoadBalancerGPU.cuh
+    \brief Defines the GPU functions for load balancing
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#include "ParticleData.cuh"
+#include "Index1D.h"
 
-#ifndef __LOADBALANCERGPU_H__
-#define __LOADBALANCERGPU_H__
+//! Kernel drive to mark the current rank of each particle
+void gpu_load_balance_mark_rank(unsigned int *d_ranks,
+                                const Scalar4 *d_pos,
+                                const unsigned int *d_cart_ranks,
+                                const uint3 rank_pos,
+                                const BoxDim& box,
+                                const Index3D& di,
+                                const unsigned int N,
+                                const unsigned int block_size);
 
-#include "GPUFlags.h"
-#include "LoadBalancer.h"
-#include "Autotuner.h"
-#include <boost/signals2.hpp>
-
-class LoadBalancerGPU : public LoadBalancer
-    {
-    public:
-        //! Constructor
-        LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<BalancedDomainDecomposition> decomposition);
-
-        //! Destructor
-        virtual ~LoadBalancerGPU();
-    
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable/disable autotuning
-         * \param period period (approximate) in time steps when returning occurs
-         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            LoadBalancer::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
-
-        //! Notification of a max number of particle change    
-        void slotMaxNumChanged()
-            {
-            GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
-            m_off_ranks.swap(off_ranks);
-            }
-    protected:
-        //! Count the number of particles that have gone off either edge of the rank along a dimension
-        virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
-
-    private:
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
-
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size counting particles
-        GPUArray<unsigned int> m_off_ranks;     //!< Array to hold the ranks of particles that have moved
-        GPUFlags<unsigned int> m_n_off_rank;    //!< Device flag to count the total number of particles off rank
-    };
-
-//! Export the LoadBalancerGPU to python
-void export_LoadBalancerGPU();
-
-#endif // __LOADBALANCERGPU_H__
-
-#endif // ENABLE_CUDA
+//! CUB driver to select the particles that are off rank
+void gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
+                                      unsigned int *d_n_select,
+                                      unsigned int *d_ranks,
+                                      void *d_tmp_storage,
+                                      size_t &tmp_storage_bytes,
+                                      const unsigned int N,
+                                      const unsigned int cur_rank);
 #endif // ENABLE_MPI

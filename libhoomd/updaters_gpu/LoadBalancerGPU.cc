@@ -56,6 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 
 #include "LoadBalancerGPU.h"
+#include "LoadBalancerGPU.cuh"
+
+#include "CachedAllocator.h"
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -69,8 +72,14 @@ LoadBalancerGPU::LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
     {
     // allocate data connected to the maximum number of particles
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&LoadBalancerGPU::slotMaxNumChanged, this));
-    GPUArray<unsigned int> flag_own(m_pdata->getMaxN(), m_exec_conf);
-    m_flag_own.swap(flag_own);
+
+    GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
+    m_off_ranks.swap(off_ranks);
+
+    GPUFlags<unsigned int> n_off_rank(m_exec_conf);
+    m_n_off_rank.swap(n_off_rank);
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "load_balance", this->m_exec_conf));
     }
 
 LoadBalancerGPU::~LoadBalancerGPU()
@@ -79,9 +88,69 @@ LoadBalancerGPU::~LoadBalancerGPU()
     m_max_numchange_conn.disconnect();
     }
 
-void LoadBalancerGPU::countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim)
+void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
-    LoadBalancer::countParticlesOffRank(n_up, n_down, dim);
+    // do nothing if rank doesn't own any particles
+    if (m_pdata->getN() == 0) return;
+
+    // mark the current ranks of each particle (hijack the comm flags array)
+        {
+        ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_cart_ranks(m_decomposition->getCartRanks(), access_location::device, access_mode::read);
+
+        m_tuner->begin();
+        gpu_load_balance_mark_rank(d_comm_flag.data,
+                                   d_pos.data,
+                                   d_cart_ranks.data,
+                                   m_decomposition->getGridPos(),
+                                   m_pdata->getBox(),
+                                   m_decomposition->getDomainIndexer(),
+                                   m_pdata->getN(),
+                                   m_tuner->getParam());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        m_tuner->end();
+
+        }
+
+    // select the particles that should be sent to other ranks
+        {
+        ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_off_ranks(m_off_ranks, access_location::device, access_mode::overwrite);
+        m_n_off_rank.resetFlags(0);
+
+        // size the temporary storage
+        void *d_tmp_storage = NULL;
+        size_t tmp_storage_bytes = 0;
+        gpu_load_balance_select_off_rank(d_off_ranks.data,
+                                         m_n_off_rank.getDeviceFlags(),
+                                         d_comm_flag.data,
+                                         d_tmp_storage,
+                                         tmp_storage_bytes,
+                                         m_pdata->getN(),
+                                         m_exec_conf->getRank());
+
+        // always allocate a minimum of 4 bytes so that d_tmp_storage is never NULL
+        size_t n_alloc = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
+        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), n_alloc);
+        d_tmp_storage = (void*)d_alloc();
+
+        // perform the selection
+        gpu_load_balance_select_off_rank(d_off_ranks.data,
+                                         m_n_off_rank.getDeviceFlags(),
+                                         d_comm_flag.data,
+                                         d_tmp_storage,
+                                         tmp_storage_bytes,
+                                         m_pdata->getN(),
+                                         m_exec_conf->getRank());
+        }
+
+    // perform the counting on the host (todo: profile this!)
+    ArrayHandle<unsigned int> h_off_ranks(m_off_ranks, access_location::host, access_mode::read);
+    for (unsigned int cur_p=0; cur_p < m_n_off_rank.readFlags(); ++cur_p)
+        {
+        cnts[h_off_ranks.data[cur_p]]++;
+        }
     }
 
 void export_LoadBalancerGPU()
