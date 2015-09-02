@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include <vector>
+#include <map>
 
 //! Updates domain decompositions to balance the load
 /*!
@@ -177,11 +178,13 @@ class LoadBalancer : public Updater
                     Scalar L_i);
 
         //! Compute the number of particles on each rank after an adjustment along one dimension
-        void computeParticleChange(unsigned int dim);
+        void computeParticleChange();
+
         //! Count the number of particles that have gone off either edge of the rank along a dimension
-        virtual void countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim);
-        unsigned int m_N_own;           //!< Number of particles owned by this rank
-        bool m_needs_recount;           //!< Flag if a particle change needs to be computed
+        virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
+
+        unsigned int m_N_own;               //!< Number of particles owned by this rank
+        bool m_needs_recount;               //!< Flag if a particle change needs to be computed
 
         Scalar m_tolerance;     //!< Load imbalance to tolerate
         unsigned int m_maxiter; //!< Maximum number of iterations to attempt

@@ -277,7 +277,7 @@ void LoadBalancer::update(unsigned int timestep)
                 {
                 m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
                 m_pdata->setGlobalBox(box); // force a domain resizing to trigger
-                computeParticleChange(dim);
+                computeParticleChange();
                 }
             }
 
@@ -341,7 +341,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
 
     const uint3 my_grid_pos = m_decomposition->getGridPos();
 
-    computeParticleChange(dim);
+    computeParticleChange();
 
     unsigned int sum_N(0), sum_sum_N(0);
 
@@ -607,85 +607,115 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     return false;
     }
 
-void LoadBalancer::countParticlesOffRank(unsigned int &n_up, unsigned int &n_down, unsigned int dim)
+void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    const BoxDim& box = m_pdata->getBox();
+    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
-    n_up = 0; n_down = 0;
+    const BoxDim& box = m_pdata->getBox();
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    const uint3 rank_pos = m_decomposition->getGridPos();
+
     for (unsigned int cur_p=0; cur_p < m_pdata->getN(); ++cur_p)
         {
         const Scalar4 cur_postype = h_pos.data[cur_p];
         const Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
         const Scalar3 f = box.makeFraction(cur_pos);
-        
-        if (dim == 0)
+
+        int3 grid_pos = make_int3(rank_pos.x, rank_pos.y, rank_pos.z);
+
+        bool moved(false);
+        if (f.x >= Scalar(1.0))
             {
-            if (f.x >= Scalar(1.0)) ++n_up;
-            if (f.x < Scalar(0.0)) ++n_down;
+            ++grid_pos.x;
+            moved = true;
             }
-        else if (dim == 1)
+        else if (f.x < Scalar(0.0))
             {
-            if (f.y >= Scalar(1.0)) ++n_up;
-            if (f.y < Scalar(0.0)) ++n_down;
+            --grid_pos.x;
+            moved = true;
             }
-        else if (dim == 2)
+
+        if (f.y >= Scalar(1.0))
             {
-            if (f.z >= Scalar(1.0)) ++n_up;
-            if (f.z < Scalar(0.0)) ++n_down;
+            ++grid_pos.y;
+            moved = true;
+            }
+        else if (f.y < Scalar(0.0))
+            {
+            --grid_pos.y;
+            moved = true;
+            }
+
+        if (f.z >= Scalar(1.0))
+            {
+            ++grid_pos.z;
+            moved = true;
+            }
+        else if (f.z < Scalar(0.0))
+            {
+            --grid_pos.z;
+            moved = true;
+            }
+
+        if (moved)
+            {
+            if (grid_pos.x == (int)di.getW())
+                grid_pos.x = 0;
+            else if (grid_pos.x < 0)
+                grid_pos.x += di.getW();
+
+            if (grid_pos.y == (int)di.getH())
+                grid_pos.y = 0;
+            else if (grid_pos.y < 0)
+                grid_pos.y += di.getH();
+
+            if (grid_pos.z == (int)di.getD())
+                grid_pos.z = 0;
+            else if (grid_pos.z < 0)
+                grid_pos.z += di.getD();
+
+            unsigned int cur_rank = h_cart_ranks.data[di(grid_pos.x,grid_pos.y,grid_pos.z)];
+            cnts[cur_rank]++;
             }
         }
     }
 
-void LoadBalancer::computeParticleChange(unsigned int dim)
+void LoadBalancer::computeParticleChange()
     {
     // don't do anything if nobody has signaled a change
     if (!m_needs_recount) return;
 
-    if (dim > 2)
+    // count the particles that are off the rank
+    std::map<unsigned int, unsigned int> cnts;
+    countParticlesOffRank(cnts);
+
+    ArrayHandle<unsigned int> h_unique_neigh(m_comm->getUniqueNeighbors(), access_location::host, access_mode::read);
+
+    MPI_Request req[2*m_comm->getNUniqueNeighbors()];
+    MPI_Status stat[2*m_comm->getNUniqueNeighbors()];
+    unsigned int nreq = 0;
+
+    unsigned int n_send_ptls[m_comm->getNUniqueNeighbors()];
+    unsigned int n_recv_ptls[m_comm->getNUniqueNeighbors()];
+    for (unsigned int cur_neigh=0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
         {
-        m_exec_conf->msg->error() << "comm: requested direction does not exist" << endl;
-        throw runtime_error("comm: requested direction does not exist");
+        unsigned int neigh_rank = h_unique_neigh.data[cur_neigh];
+        n_send_ptls[cur_neigh] = cnts[neigh_rank];
+
+        MPI_Isend(&n_send_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
+        MPI_Irecv(&n_recv_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
         }
+    MPI_Waitall(nreq, req, stat);
 
-    // don't do anything if there is only one rank along this direction
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    if ( (dim == 0 && di.getW() == 1) ||
-         (dim == 1 && di.getH() == 1) ||
-         (dim == 2 && di.getD() == 1) )
-         {
-         return;
-         }
-
-    // count the particles that are off the rank in either direction
-    unsigned int n_up(0), n_down(0);
-    countParticlesOffRank(n_up, n_down, dim);
-
-    // the number of particles I now own is reduced by the number that went off rank
-    m_N_own -= n_up + n_down;
-
-    // east 0, west 1, north 2, south 3, up 4, down 5
-    // x: 2*0 = 0 = east, y: 2*1 = 2 = north, ...
-    unsigned int neigh_up = m_decomposition->getNeighborRank(2*dim);
-    unsigned int neigh_down = m_decomposition->getNeighborRank(2*dim+1);
-
-    // send out the information in 2 pairs of calls
-    // (1) send up and receive below, (2) send down and receive above
-    MPI_Request reqs[4];
-    MPI_Status status[4];
-
-    unsigned int n_recv_down(0), n_recv_up(0);
-    // send up and receive from below
-    MPI_Isend(&n_up, 1, MPI_UNSIGNED, neigh_up, 0, m_mpi_comm, & reqs[0]);
-    MPI_Irecv(&n_recv_down, 1, MPI_UNSIGNED, neigh_down, 0, m_mpi_comm, & reqs[1]);
-
-    // send down and receive from above
-    MPI_Isend(&n_down, 1, MPI_UNSIGNED, neigh_down, 0, m_mpi_comm, & reqs[2]);
-    MPI_Irecv(&n_recv_up, 1, MPI_UNSIGNED, neigh_up, 0, m_mpi_comm, & reqs[3]);
-    MPI_Waitall(4, reqs, status);
-
-    // add the number of particles that we received from other ranks
-    m_N_own += n_recv_down + n_recv_up;
+    // reduce the particles sent to me
+    int N_own = m_pdata->getN();
+    for (unsigned int cur_neigh = 0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
+        {
+        N_own += n_recv_ptls[cur_neigh];
+        N_own -= n_send_ptls[cur_neigh];
+        }
+    m_N_own = N_own;
 
     // we are done until someone needs us to recount again
     m_needs_recount = false;
