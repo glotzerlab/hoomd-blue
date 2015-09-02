@@ -158,7 +158,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_file << "def " << tname << " " << "\"" << m_defs[j] << "\"" << "\n";
         }
 
-    // if there is a string to be written due to the callback, write it.
+    // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info) 
         {
         string info = boost::python::extract<string> (m_add_info(timestep));
