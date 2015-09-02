@@ -77,7 +77,8 @@ struct tersoff_args_t
                    const unsigned int _size_nlist,
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
-                   const unsigned int _compute_capability)
+                   const unsigned int _compute_capability,
+                   const unsigned int _max_tex1d_width)
                    : d_force(_d_force),
                      N(_N),
                      d_pos(_d_pos),
@@ -90,7 +91,8 @@ struct tersoff_args_t
                      size_nlist(_size_nlist),
                      ntypes(_ntypes),
                      block_size(_block_size),
-                     compute_capability(_compute_capability)
+                     compute_capability(_compute_capability),
+                     max_tex1d_width(_max_tex1d_width)
         {
         };
 
@@ -107,13 +109,11 @@ struct tersoff_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
+    const unsigned int max_tex1d_width;     //!< Maximum width of a linear 1D texture
     };
 
 
 #ifdef NVCC
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
-
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading neighbor list
@@ -502,7 +502,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
             {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1>);
@@ -531,7 +531,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         if (error != cudaSuccess)
             return error;
         
-        if (pair_args.size_nlist <= MAX_TEXTURE_WIDTH)
+        if (pair_args.size_nlist <= pair_args.max_tex1d_width)
             {
             nlist_tex.normalized = false;
             nlist_tex.filterMode = cudaFilterModePoint;
@@ -550,7 +550,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                             pair_args.N);
 
     // compute the new forces
-    if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+    if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
         {
         gpu_compute_triplet_forces_kernel<evaluator, 1>
           <<<grid, threads, shared_bytes>>>(pair_args.d_force,
@@ -582,7 +582,6 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         }
     return cudaSuccess;
     }
-#undef MAX_TEXTURE_WIDTH
 #endif
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

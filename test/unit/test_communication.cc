@@ -671,7 +671,7 @@ struct ghost_layer_width
         {
         w = width;
         }
-    Scalar get()
+    Scalar get(unsigned int type)
         {
         return w;
         }
@@ -743,7 +743,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
     // width of ghost layer
     ghost_layer_width g(Scalar(0.05)*ref_box.getL().x);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g, _1));
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -1705,7 +1705,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2376,7 +2376,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::s
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2527,8 +2527,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     // width of ghost layer
     ghost_layer_width g(0.2);
-    comm_1->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
-    comm_2->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm_1->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm_2->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
 
     pdata_1->setDomainDecomposition(decomposition_1);
     pdata_2->setDomainDecomposition(decomposition_2);
@@ -2680,7 +2680,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -2838,22 +2838,43 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
         }
     }
 
-Scalar ghost_layer_width_request_1()
+Scalar ghost_layer_width_request_1(unsigned int type)
     {
     return 0.0123;
     }
 
-Scalar ghost_layer_width_request_2()
+Scalar ghost_layer_width_request_2(unsigned int type)
     {
     return 0.0001;
     }
 
-Scalar ghost_layer_width_request_3()
+Scalar ghost_layer_width_request_3(unsigned int type)
     {
     return 0.1;
     }
 
+//! Ghost layer subscriber for two particle types
+struct two_type_ghost_layer
+    {
+    //! Constructor
+    /*!
+     * \param r_A First cutoff
+     * \param r_B Second cutoff
+     */
+    two_type_ghost_layer(Scalar r_A, Scalar r_B) : m_r_A(r_A), m_r_B(r_B) {}
 
+    //! Get the ghost width layer by type
+    /*!
+     * \param type Type index
+     * \returns second cutoff radius if type is non-zero, first cutoff radius otherwise
+     */
+    Scalar get(unsigned int type)
+        {
+        return (type) ? m_r_B : m_r_A;
+        }
+    Scalar m_r_A;   //!< First cutoff
+    Scalar m_r_B;   //<! Second cutoff
+    };
 
 //! Test setting the ghost layer width
 void test_communicator_ghost_layer_width(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -2866,7 +2887,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     // just create some system
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
                                                              BoxDim(2.0), // box dimensions
-                                                             1,           // number of particle types
+                                                             2,           // number of particle types
                                                              0,           // number of bond types
                                                              0,           // number of angle types
                                                              0,           // number of dihedral types
@@ -2886,6 +2907,10 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5),false);
     pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5),false);
     pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
+    for (unsigned int i=0; i < pdata->getN(); ++i)
+        {
+        pdata->setType(i, i%2);
+        }
 
     // distribute particle data on processors
     SnapshotParticleData<Scalar> snap(9);
@@ -2910,23 +2935,230 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     // exchange ghosts
     comm->exchangeGhosts();
 
-    BOOST_CHECK_SMALL(comm->getGhostLayerWidth(), tol_small);
+    BOOST_CHECK_SMALL(comm->getGhostLayerMaxWidth(), tol_small);
 
     // width of ghost layer
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_1));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_1,_1));
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.0123, tol);
+    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_2));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_2,_1));
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.0123, tol);
+    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_3));
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_3,_1));
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.1, tol);
+    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.1, tol);
+    
+    // check that when using two types, only one gets updated
+    two_type_ghost_layer g(Scalar(0.05), Scalar(0.2));
+    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+    pdata->removeAllGhostParticles();
+    comm->exchangeGhosts();
+        {
+        ArrayHandle<Scalar> h_r_ghost(comm->getGhostLayerWidth(), access_location::host, access_mode::read);
+        BOOST_CHECK_CLOSE(h_r_ghost.data[0], 0.1, tol);
+        BOOST_CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
+        }
+    
+    // now update the other type
+    two_type_ghost_layer g2(Scalar(0.3), Scalar(0.2));
+    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g2,_1));
+    pdata->removeAllGhostParticles();
+    comm->exchangeGhosts();
+        {
+        ArrayHandle<Scalar> h_r_ghost(comm->getGhostLayerWidth(), access_location::host, access_mode::read);
+        BOOST_CHECK_CLOSE(h_r_ghost.data[0], 0.3, tol);
+        BOOST_CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
+        }
+    }
+
+//! Test per-type ghost layer
+void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+    {
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    BOOST_REQUIRE_EQUAL(size,8);
+
+    // create a system with fourteen particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
+                                                             dest_box, // box dimensions
+                                                             2,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+
+   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+   BoxDim ref_box = BoxDim(2.0);
+
+    // Set initial atom positions
+    // place one particle in the middle of every box (outside the ghost layer)
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(-0.5, 0.5,-0.5)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3( 0.5, 0.5,-0.5)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(-0.5,-0.5, 0.5)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3( 0.5,-0.5, 0.5)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.5, 0.5, 0.5)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)),false);
+    // toggle the types back and forth
+    for (unsigned int i=0; i < 8; ++i)
+        {
+        pdata->setType(i, i%2);
+        }
+
+    // 8: A, same rank as 0, within +x
+    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02,-0.5,-0.5)),false);
+    pdata->setType(8, 0);
+
+    // 9: B, same rank as 0, within +x
+    pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.03,-0.5,-0.5)),false);
+    pdata->setType(9, 1);
+
+    // 10: A, same rank as 1, outside +y
+    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(0.5, -0.12,-0.5)),false);
+    pdata->setType(10, 0);
+
+    // 11: B, same rank as 1, inside +y
+    pdata->setPosition(11, TO_TRICLINIC(make_scalar3(0.5, -0.12,-0.5)),false);
+    pdata->setType(11, 1);
+
+    // 12: A, same rank as 4, inside -z
+    pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.5, -0.5, 0.05)),false);
+    pdata->setType(12, 0);
+    
+    // 13: B, same rank as 4, outside -z
+    pdata->setPosition(13, TO_TRICLINIC(make_scalar3(-0.5, -0.5, 0.25)),false);
+    pdata->setType(13, 1);
+
+    // distribute particle data on processors
+    SnapshotParticleData<Scalar> snap(14);
+    pdata->takeSnapshot(snap);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    
+    pdata->setDomainDecomposition(decomposition);
+
+    pdata->initializeFromSnapshot(snap);
+
+    // width of ghost layer
+    two_type_ghost_layer g(Scalar(0.1), Scalar(0.2));
+    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+
+    // Check number of particles
+    switch (exec_conf->getRank())
+        {
+        case 0:
+            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            break;
+        case 1:
+            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            break;
+        case 2:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 3:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 4:
+            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            break;
+        case 5:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 6:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 7:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        }
+
+    // we should have zero ghosts before the exchange
+    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+
+    // set ghost exchange flags for position
+    CommFlags flags(0);
+    flags[comm_flag::position] = 1;
+    flags[comm_flag::tag] = 1;
+    comm->setFlags(flags);
+
+    // exchange ghosts
+    comm->exchangeGhosts();
+
+    Scalar3 cmp;
+   // check ghost atom numbers and positions
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+        unsigned int rtag;
+        switch (exec_conf->getRank())
+            {
+            case 0:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 1);
+
+                rtag = h_global_rtag.data[12];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.5,tol);
+                BOOST_CHECK_CLOSE(cmp.z, 0.05,tol);
+
+                break;
+            case 1:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 2);
+
+                rtag = h_global_rtag.data[8];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+
+                rtag = h_global_rtag.data[9];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                break;
+            case 2:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            case 3:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 1);
+
+                rtag = h_global_rtag.data[11];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.12, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                break;
+            case 4:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            case 5:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            case 6:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            case 7:
+                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            }
+        }
     }
 
 //! Communicator creator for unit tests
@@ -3020,6 +3252,12 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test )
     test_communicator_ghost_layer_width(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
+BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_ghosts_per_type(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    }
+
 #ifdef ENABLE_CUDA
 
 //! Tests particle distribution on GPU
@@ -3094,6 +3332,12 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_layer_width(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test_GPU )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_ghosts_per_type(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
     }
 
 BOOST_AUTO_TEST_CASE (communicator_compare_test )

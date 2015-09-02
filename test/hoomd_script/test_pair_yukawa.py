@@ -39,7 +39,7 @@ class pair_yukawa_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, yuk.set_params, mode="blah");
 
     # test nlist subscribe
-    def test_nlist_subscribe(self):
+    def test_nlist_global_subscribe(self):
         yuk = pair.yukawa(r_cut=2.5);
         yuk.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
         globals.neighbor_list.update_rcut();
@@ -48,6 +48,20 @@ class pair_yukawa_tests (unittest.TestCase):
         yuk.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+    
+    # test nlist subscribe
+    def test_nlist_subscribe(self):
+        nl = nlist.cell()
+        yuk = pair.yukawa(r_cut=2.5, nlist=nl);
+        self.assertEqual(globals.neighbor_list, None)
+
+        yuk.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+
+        yuk.pair_coeff.set('A', 'A', r_cut = 2.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
 
     def tearDown(self):
         init.reset();

@@ -133,7 +133,8 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int N,
                                   const Scalar4 *d_pos,
                                   const BoxDim& box,
-                                  Scalar3 ghost_fraction,
+                                  const Scalar *d_r_ghost,
+                                  unsigned int ntypes,
                                   unsigned int mask);
 
 //! Get neighbor counts

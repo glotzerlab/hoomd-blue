@@ -1080,7 +1080,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         {
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
-            s_r_list[cur_offset + threadIdx.x] = d_r_cut[cur_offset + threadIdx.x]+r_buff;
+            Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
+            // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+            s_r_list[cur_offset + threadIdx.x] = (r_cut > Scalar(0.0)) ? r_cut+r_buff : Scalar(-1.0);
             }
             
         if (cur_offset + threadIdx.x < ntypes)
@@ -1121,6 +1123,10 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         {
         // Check primary box
         const Scalar r_cut_i = s_r_list[typpair_idx(type_i,cur_pair_type)];
+        
+        // Skip this tree type if it is not needed
+        if (r_cut_i <= Scalar(0.0))
+            continue;
         
         // stash the r_cutsq before any diameter shifting
         const Scalar r_cutsq_i = r_cut_i*r_cut_i;
