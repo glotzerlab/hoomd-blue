@@ -1151,6 +1151,8 @@ void CommunicatorGPU::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
+    updateGhostWidth();
+
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 

@@ -859,10 +859,10 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     // connect to particle sort signal
     m_ghost_particles_removed_connection = m_pdata->connectGhostParticlesRemoved(boost::bind(&Communicator::slotGhostParticlesRemoved, this));
-    
+
     // connect to type change signal
     m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&Communicator::slotNumTypesChanged, this));
-    
+
     // allocate per type ghost width
     GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
@@ -1101,6 +1101,8 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
+    updateGhostWidth();
+
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 
@@ -1228,7 +1230,7 @@ void Communicator::updateGhostWidth()
         {
         // update the ghost layer width only if subscribers are available
         ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
-        
+
         // reduce per type using the signals, and then overall
         Scalar r_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)

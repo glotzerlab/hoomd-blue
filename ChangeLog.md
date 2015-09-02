@@ -17,6 +17,7 @@ Released TBD
 *Bug fixes*
 
 * Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
+* Analyze.log now accepts unicode strings.
 
 ## v1.1.1
 
@@ -88,12 +89,6 @@ del system.particles[0]
 *Removed*
 
 * Several `option` commands for controlling the execution configuration. Replaced with `context.initialize`.
-
-## Next maintenance release
-
-*Bug fixes*
-
-* *none*
 
 ## v1.0.5
 
