@@ -749,6 +749,12 @@ class pos(analyze._analyzer):
         else:
             self.enabled = False;
 
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.unwrap_rigid = unwrap_rigid
+        self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
+
     def set_def(self, typ, shape):
         v = globals.system_definition.getParticleData().getTypeByName(typ);
         self.cpp_analyzer.setDef(v, shape)
