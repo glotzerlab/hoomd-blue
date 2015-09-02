@@ -58,9 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
-
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
@@ -240,6 +237,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
     \param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the
         force is set to 0
     \param block_size Block size to execute
+    \param compute_capability GPU compute capability (20, 30, 35, ...)
+    \param max_tex1d_width Maximum width of a linear 1d texture
 
     \returns Any error code resulting from the kernel launch
 
@@ -259,7 +258,8 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
                                      const unsigned int coeff_width,
                                      const Scalar r_cutsq,
                                      const unsigned int block_size,
-                                     const unsigned int compute_capability)
+                                     const unsigned int compute_capability,
+                                     const unsigned int max_tex1d_width)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
@@ -277,7 +277,7 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
         if (error != cudaSuccess)
             return error;
 
-        if (size_nlist <= MAX_TEXTURE_WIDTH)
+        if (size_nlist <= max_tex1d_width)
             {
             nlist_tex.normalized = false;
             nlist_tex.filterMode = cudaFilterModePoint;
@@ -288,7 +288,7 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
         }
 
     // run the kernel
-    if (compute_capability < 35 && size_nlist > MAX_TEXTURE_WIDTH)
+    if (compute_capability < 35 && size_nlist > max_tex1d_width)
         { // fall back to slow global loads when the neighbor list is too big for texture memory
         gpu_compute_cgcmm_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
                                                                                                       d_virial,
@@ -321,7 +321,5 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
 
     return cudaSuccess;
     }
-
-#undef MAX_TEXTURE_WIDTH
 
 // vim:syntax=cpp

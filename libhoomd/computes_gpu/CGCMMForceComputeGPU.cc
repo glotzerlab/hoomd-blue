@@ -216,7 +216,8 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,
                              m_block_size,
-                             m_exec_conf->getComputeCapability()/10);
+                             m_exec_conf->getComputeCapability()/10,
+                             m_exec_conf->dev_prop.maxTexture1DLinear);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 

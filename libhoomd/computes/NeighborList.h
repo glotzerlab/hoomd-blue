@@ -393,6 +393,7 @@ class NeighborList : public Compute
                 }
             }
 
+        //! Get the maximum diameter value
         Scalar getMaximumDiameter()
             {
             return m_d_max;

@@ -142,7 +142,8 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              m_ntypes,
                              m_table_width,
                              m_tuner->getParam(),
-                             m_exec_conf->getComputeCapability());
+                             m_exec_conf->getComputeCapability(),
+                             m_exec_conf->dev_prop.maxTexture1DLinear);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
