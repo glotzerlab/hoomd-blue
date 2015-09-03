@@ -177,8 +177,8 @@ class PotentialPair : public ForceCompute
                                             InputIterator first2, InputIterator last2,
                                             Scalar& energy );
         //! Calculates the energy between two lists of particles.
-        Scalar computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
-                                                    boost::python::numeric::array tags2);
+        Scalar computeEnergyBetweenSetsPythonList(  PyObject* tags1,
+                                                    PyObject* tags2);
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -736,8 +736,8 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
 
 //! Calculates the energy between two lists of particles.
 template < class evaluator >
-Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
-                                                                        boost::python::numeric::array tags2 )
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject* tags1,
+                                                                        PyObject* tags2 )
     {
     Scalar eng = 0.0;
     num_util::check_contiguous(tags1);

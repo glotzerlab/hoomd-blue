@@ -173,6 +173,9 @@ Carl Simon Adorf, University of Michigan
 Paull Dodd, University of Michigan
  - pair.compute_energy
 
+Joseph Berleant, University of Michigan
+ - fix python 3.4 segfault
+
 <hr>
 <h1>Source code</h1>
 <hr>

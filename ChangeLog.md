@@ -10,6 +10,7 @@ Released TBD
 
 * Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
 * Analyze.log now accepts unicode strings.
+* Fix segfault on exit with python 3.4
 
 ## v1.1.1
 

@@ -1206,7 +1206,7 @@ void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int 
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name>
-boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getTypeNP()
+PyObject* BondedGroupData<group_size, Group, name>::Snapshot::getTypeNP()
     {
     return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
     }
@@ -1215,7 +1215,7 @@ boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name>
-boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
+PyObject* BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
     {
     std::vector<intp> dims(2);
     dims[0] = this->groups.size();
