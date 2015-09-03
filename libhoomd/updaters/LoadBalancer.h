@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 
+#include <string>
 #include <vector>
 #include <map>
 
@@ -138,52 +139,65 @@ class LoadBalancer : public Updater
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
+        //! Print load balancer counters
+        virtual void printStats();
+
+        //! Reset the counters for the run
+        virtual void resetStats();
+
     protected:
         boost::shared_ptr<BalancedDomainDecomposition> m_decomposition; //!< The domain decomposition to balance
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
-        MPI_Group m_mpi_comm_group; //!< MPI group for all ranks
-        MPI_Comm m_mpi_comm_xy;      //!< MPI communicator for reducing down z to the xy plane
-        MPI_Comm m_mpi_comm_xz;      //!< MPI communicator for reducing down y to the xz plane
-
-        std::vector<MPI_Group> m_mpi_group_xy_red_y;   //!< Array of MPI groups for reducing xy down y
-        std::vector<MPI_Comm> m_mpi_comm_xy_red_y;     //!< Array of MPI communicators for reducing xy down y
-
-        std::vector<MPI_Group> m_mpi_group_xy_red_x;   //!< Array of MPI groups for reducing xy down x
-        std::vector<MPI_Comm> m_mpi_comm_xy_red_x;     //!< Array of MPI communicators for reducing xy down x
-        std::vector<MPI_Group> m_mpi_group_xz_red_x;   //!< Array of MPI groups for reducing xz down x
-        std::vector<MPI_Comm> m_mpi_comm_xz_red_x;     //!< Array of MPI communicators for reducing xz down x
-        
-        MPI_Group m_mpi_group_x;    //!< Group for gathering and scattering in x
-        MPI_Comm m_mpi_comm_x;      //!< Communicator for gathering and scattering in x
-
-        MPI_Group m_mpi_group_y;    //!< Group for gathering and scattering in y
-        MPI_Comm m_mpi_comm_y;      //!< Communicator for gathering and scattering in y
-
-        MPI_Group m_mpi_group_z;    //!< Group for gathering and scattering in z
-        MPI_Comm m_mpi_comm_z;      //!< Communicator for gathering and scattering in z
 
         //! Computes the maximum imbalance factor
         /*!
          * \todo Add caching behavior and make this public
          */
         Scalar getMaxImbalance();
+        Scalar m_max_imbalance;             //!< Maximum imbalance
+        bool m_recompute_max_imbalance;     //!< Flag if maximum imbalance needs to be computed
 
         //! Reduce the particle numbers per rank down to one dimension
-        bool reduce(std::vector<unsigned int>& N_i, unsigned int dim);
+        bool reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root);
+
+        //! Set flags within the class that a resize has been performed
+        void signalResize()
+            {
+            m_recompute_max_imbalance = true;
+            m_needs_migrate = true;
+            m_needs_recount = true;
+            }
 
         //! Adjust the partitioning along a single dimension
         bool adjust(std::vector<Scalar>& cum_frac_i,
                     const std::vector<unsigned int>& N_i,
                     Scalar L_i);
+        bool m_needs_migrate;   //!< Flag to signal that migration is necessary
 
-        //! Compute the number of particles on each rank after an adjustment along one dimension
-        void computeParticleChange();
+        //! Compute the number of particles on each rank after an adjustment
+        void computeOwnedParticles();
 
-        //! Count the number of particles that have gone off either edge of the rank along a dimension
+        //! Count the number of particles that have gone off the rank
         virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
 
-        unsigned int m_N_own;               //!< Number of particles owned by this rank
+        //! Gets the number of owned particles, updating if necessary
+        unsigned int getNOwn()
+            {
+            computeOwnedParticles();
+            return m_N_own;
+            }
+
+        //! Force a reset of the number of owned particles without counting
+        /*!
+         * \param N number of particles owned by the rank
+         */
+        void resetNOwn(unsigned int N)
+            {
+            m_N_own = N;
+            m_recompute_max_imbalance = true;
+            m_needs_recount = false;
+            }
         bool m_needs_recount;               //!< Flag if a particle change needs to be computed
 
         Scalar m_tolerance;     //!< Load imbalance to tolerate
@@ -193,6 +207,15 @@ class LoadBalancer : public Updater
         bool m_enable_z;        //!< Flag to enable balancing z
 
         const Scalar m_max_scale;   //!< Maximum fraction to rescale either direction (5%)
+
+    private:
+        unsigned int m_N_own;               //!< Number of particles owned by this rank
+
+        Scalar m_max_max_imbalance;     //!< The maximum imbalance of any check
+        double m_total_max_imbalance;   //!< The average imbalance over checks
+        uint64_t m_n_calls;             //!< The number of times the updater was called
+        uint64_t m_n_iterations;        //!< The actual number of balancing iterations performed
+        uint64_t m_n_rebalances;        //!< The actual number of rebalances (migrations) performed
     };
 
 //! Export the LoadBalancer to python

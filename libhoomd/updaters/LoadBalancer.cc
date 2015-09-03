@@ -76,133 +76,17 @@ using namespace std;
 LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<BalancedDomainDecomposition> decomposition)
         : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_N_own(m_pdata->getN()), m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
-          m_enable_x(true), m_enable_y(true), m_enable_z(true), m_max_scale(Scalar(0.05))
+          m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
+          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
+          m_enable_x(true), m_enable_y(true), m_enable_z(true), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
+          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
-
-    // now all the stuff with the reductions
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    uint3 my_grid_pos = m_decomposition->getGridPos();
-
-    // setup the MPI_Comms that reduce 3D to two 2D planes
-    MPI_Comm_split(m_mpi_comm, di(my_grid_pos.x, my_grid_pos.y, 0), my_grid_pos.z, &m_mpi_comm_xy);
-    MPI_Comm_split(m_mpi_comm, di(my_grid_pos.x, 0, my_grid_pos.z), my_grid_pos.y, &m_mpi_comm_xz);
-
-    // get the world group and then select only those ranks that are in the xy plane
-    MPI_Comm_group(m_mpi_comm, &m_mpi_comm_group);
-
-    // allocate one group and communicator for every slice along each dimension that is not reduced
-    m_mpi_group_xy_red_y.resize(di.getW()); m_mpi_comm_xy_red_y.resize(di.getW());
-    m_mpi_group_xy_red_x.resize(di.getH()); m_mpi_comm_xy_red_x.resize(di.getH());
-    m_mpi_group_xz_red_x.resize(di.getD()); m_mpi_comm_xz_red_x.resize(di.getD());
-
-    // lists to hold the rank ids along each dimension corresponding to a given slice
-    int *x_ranks = new int[di.getW()];
-    int *y_ranks = new int[di.getH()];
-    int *z_ranks = new int[di.getD()];
-    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
-
-    // xy reduced down y
-    for (unsigned int i=0; i < di.getW(); ++i)
-        {
-        // we are stuffing the ranks into the communicator in the Cartesian order, so the root should be 0
-        for (unsigned int j=0; j < di.getH(); ++j)
-            {
-            y_ranks[j] = h_cart_ranks.data[di(i,j,0)];
-            }
-        MPI_Group_incl(m_mpi_comm_group, di.getH(), y_ranks, &m_mpi_group_xy_red_y[i]);
-        MPI_Comm_create(m_mpi_comm, m_mpi_group_xy_red_y[i], &m_mpi_comm_xy_red_y[i]);
-        
-        // save the ranks of the x roots for making a new communicator
-        x_ranks[i] = h_cart_ranks.data[di(i,0,0)];
-        }
-    // create the communicator to gather down x
-    MPI_Group_incl(m_mpi_comm_group, di.getW(), x_ranks, &m_mpi_group_x);
-    MPI_Comm_create(m_mpi_comm, m_mpi_group_x, &m_mpi_comm_x);
-
-    // xy reduced down x
-    for (unsigned int j=0; j < di.getH(); ++j)
-        {
-        for (unsigned int i=0; i < di.getW(); ++i)
-            {
-            x_ranks[i] = h_cart_ranks.data[di(i,j,0)];
-            }
-        MPI_Group_incl(m_mpi_comm_group, di.getW(), x_ranks, &m_mpi_group_xy_red_x[j]);
-        MPI_Comm_create(m_mpi_comm, m_mpi_group_xy_red_x[j], &m_mpi_comm_xy_red_x[j]);
-
-        y_ranks[j] = h_cart_ranks.data[di(0,j,0)];
-        }
-    MPI_Group_incl(m_mpi_comm_group, di.getH(), y_ranks, &m_mpi_group_y);
-    MPI_Comm_create(m_mpi_comm, m_mpi_group_y, &m_mpi_comm_y);
-
-    // xz reduced down x
-    for (unsigned int k=0; k < di.getD(); ++k)
-        {
-        for (unsigned int i=0; i < di.getW(); ++i)
-            {
-            x_ranks[i] = h_cart_ranks.data[di(i,0,k)];
-            }
-        MPI_Group_incl(m_mpi_comm_group, di.getW(), x_ranks, &m_mpi_group_xz_red_x[k]);
-        MPI_Comm_create(m_mpi_comm, m_mpi_group_xz_red_x[k], &m_mpi_comm_xz_red_x[k]);
-
-        z_ranks[k] = h_cart_ranks.data[di(0,0,k)];
-        }
-    MPI_Group_incl(m_mpi_comm_group, di.getD(), z_ranks, &m_mpi_group_z);
-    MPI_Comm_create(m_mpi_comm, m_mpi_group_z, &m_mpi_comm_z);
-
-    delete[] x_ranks;
-    delete[] y_ranks;
-    delete[] z_ranks;
     }
 
 LoadBalancer::~LoadBalancer()
     {
     m_exec_conf->msg->notice(5) << "Destroying LoadBalancer" << endl;
-
-    // free the communicators and groups that we have made
-    
-    if (m_mpi_comm_xy != MPI_COMM_NULL)
-        MPI_Comm_free(&m_mpi_comm_xy);
-    if (m_mpi_comm_xz != MPI_COMM_NULL)
-        MPI_Comm_free(&m_mpi_comm_xz);
-
-    for (unsigned int i=0; i < m_mpi_comm_xy_red_y.size(); ++i)
-        {
-        if (m_mpi_comm_xy_red_y[i] != MPI_COMM_NULL)
-            MPI_Comm_free(&m_mpi_comm_xy_red_y[i]);
-        if (m_mpi_group_xy_red_y[i] != MPI_GROUP_NULL)
-            MPI_Group_free(&m_mpi_group_xy_red_y[i]);
-        }
-    for (unsigned int i=0; i < m_mpi_comm_xy_red_x.size(); ++i)
-        {
-        if (m_mpi_comm_xy_red_x[i] != MPI_COMM_NULL)
-            MPI_Comm_free(&m_mpi_comm_xy_red_x[i]);
-        if (m_mpi_group_xy_red_x[i] != MPI_GROUP_NULL)
-            MPI_Group_free(&m_mpi_group_xy_red_x[i]);
-        }
-    for (unsigned int i=0; i < m_mpi_comm_xz_red_x.size(); ++i)
-        {
-        if (m_mpi_comm_xz_red_x[i] != MPI_COMM_NULL)
-            MPI_Comm_free(&m_mpi_comm_xz_red_x[i]);
-        if (m_mpi_group_xz_red_x[i] != MPI_GROUP_NULL)
-            MPI_Group_free(&m_mpi_group_xz_red_x[i]);
-        }
-
-    if (m_mpi_comm_x != MPI_COMM_NULL)
-        MPI_Comm_free(&m_mpi_comm_x);
-    if (m_mpi_group_x != MPI_GROUP_NULL)
-        MPI_Group_free(&m_mpi_group_x);
-
-    if (m_mpi_comm_y != MPI_COMM_NULL)
-        MPI_Comm_free(&m_mpi_comm_y);
-    if (m_mpi_group_y != MPI_GROUP_NULL)
-        MPI_Group_free(&m_mpi_group_y);
-
-    if (m_mpi_comm_z != MPI_COMM_NULL)
-        MPI_Comm_free(&m_mpi_comm_z);
-    if (m_mpi_group_z != MPI_GROUP_NULL)
-        MPI_Group_free(&m_mpi_group_z);
     }
 
 /*!
@@ -224,8 +108,7 @@ void LoadBalancer::update(unsigned int timestep)
     assert(m_comm);
 
     // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
-    m_N_own = m_pdata->getN();
-    m_needs_recount = false;
+    resetNOwn(m_pdata->getN());
 
     // figure out which rank is the reduction root for broadcasting
     const Index3D& di = m_decomposition->getDomainIndexer();
@@ -238,66 +121,61 @@ void LoadBalancer::update(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
 
+    // compute the current imbalance always for the average
+    m_total_max_imbalance += getMaxImbalance();
+    ++m_n_calls;
+
     for (unsigned int cur_iter=0; cur_iter < m_maxiter && getMaxImbalance() > m_tolerance; ++cur_iter)
         {
+        // increment the number of attempted balances
+        ++m_n_iterations;
+
         for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > m_tolerance; ++dim)
             {
             Scalar L_i(0.0);
-            vector<unsigned int> N_i;
             if (dim == 0)
                 {
                 if (!m_enable_x) continue; // skip this dimension if balancing is turned off
-
                 L_i = L.x;
-                N_i.resize(di.getW());
                 }
             else if (dim == 1)
                 {
                 if (!m_enable_y) continue;
-
                 L_i = L.y;
-                N_i.resize(di.getH());
                 }
             else
                 {
                 if (!m_enable_z) continue;
-
                 L_i = L.z;
-                N_i.resize(di.getD());
                 }
 
-            bool active = reduce(N_i, dim);
+            vector<unsigned int> N_i;
+            bool adjusted = false;
+            bool active = reduce(N_i, dim, reduce_root);
             vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
             if (active)
                 {
-                adjust(cum_frac, N_i, L_i);
+                adjusted = adjust(cum_frac, N_i, L_i);
                 }
-            bcast(m_needs_recount, reduce_root, m_mpi_comm);
-            if (m_needs_recount)
+            bcast(adjusted, reduce_root, m_mpi_comm);
+
+            if (adjusted)
                 {
                 m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
                 m_pdata->setGlobalBox(box); // force a domain resizing to trigger
-                computeParticleChange();
+                signalResize();
                 }
             }
 
-        // migrate particles to their final locations NOW because we have modified the domains
-        m_comm->forceMigrate();
-        m_comm->communicate(timestep);
-
-        // after migration, no recounting is necessary because all ranks own their particles
-        m_N_own = m_pdata->getN();
-        m_needs_recount = false;
-
-        Scalar max_imb = getMaxImbalance();
-        if (m_exec_conf->getRank() == 0)
+        // force a particle migration
+        if (m_needs_migrate)
             {
-            const BoxDim& root_box = m_pdata->getBox();
-            Scalar3 root_hi = root_box.getHi();
-            vector<Scalar> cum_frac_x = m_decomposition->getCumulativeFractions(0);
-            vector<Scalar> cum_frac_y = m_decomposition->getCumulativeFractions(1);
-            vector<Scalar> cum_frac_z = m_decomposition->getCumulativeFractions(2);
-            cout << timestep << " " << max_imb << " " << cum_frac_x[1] << " " << cum_frac_y[1] << " " << cum_frac_z[1] << " " << root_hi.x << " " << root_hi.y << " " << root_hi.z << endl;
+            m_comm->migrateParticles();
+            resetNOwn(m_pdata->getN());
+            m_needs_migrate = false;
+
+            // increment the number of rebalances actually performed
+            ++m_n_rebalances;
             }
         }
 
@@ -309,92 +187,101 @@ void LoadBalancer::update(unsigned int timestep)
  */
 Scalar LoadBalancer::getMaxImbalance()
     {
-    if (m_needs_recount)
+    if (m_recompute_max_imbalance)
         {
-        m_exec_conf->msg->error() << "comm: cannot compute imbalance factor while recounting is pending" << endl;
-        throw runtime_error("Cannot compute imbalance factor while recounting is pending");
-        }
+        Scalar cur_imb = Scalar(getNOwn()) / (Scalar(m_pdata->getNGlobal()) / Scalar(m_exec_conf->getNRanks()));
+        Scalar max_imb(0.0);
+        MPI_Allreduce(&cur_imb, &max_imb, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_mpi_comm);
 
-    Scalar cur_imb = Scalar(m_N_own) / (Scalar(m_pdata->getNGlobal()) / Scalar(m_exec_conf->getNRanks()));
-    Scalar max_imb(0.0);
-    MPI_Allreduce(&cur_imb, &max_imb, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_mpi_comm);
-    
-    return max_imb;
+        m_max_imbalance = max_imb;
+        m_recompute_max_imbalance = false;
+
+        // save as a statistic if new max imbalance
+        if (m_max_imbalance > m_max_max_imbalance)
+            m_max_max_imbalance = m_max_imbalance;
+        }
+    return m_max_imbalance;
     }
 
 /*!
- * \param N_i Vector holding the total number of particles in each slice
+ * \param N_i Vector holding the total number of particles in each slice (will be allocated on call)
  * \param dim The dimension of the slices (x=0, y=1, z=2)
+ * \param reduce_root The rank to perform the reduction on
  * \returns true if the current rank holds the active \a N_i
  *
  * \post \a N_i holds the number of particles in each slice along \a dim
  *
  * \note reduce() relies on collective MPI calls, and so all ranks must call it. However, for efficiency the data will
  *       be active only on Cartesian rank 0 along \a dim, as indicated by the return value. As a result, only rank 0
- *       needs to actually allocate memory for \a N_i. The return value should be used to check the active buffer in
+ *       will actually allocate memory for \a N_i. The return value should be used to check the active buffer in
  *       case there is a situation where rank 0 is not Cartesian rank 0.
  */
-bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
+bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root)
     {
     // do nothing if there is only one rank
     if (N_i.size() == 1) return false;
 
-    const uint3 my_grid_pos = m_decomposition->getGridPos();
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    std::vector<unsigned int> N_per_rank(di.getNumElements());
 
-    computeParticleChange();
+    unsigned int N_own = getNOwn();
 
-    unsigned int sum_N(0), sum_sum_N(0);
+    if (m_prof) m_prof->push("reduce");
+    MPI_Gather(&N_own, 1, MPI_UNSIGNED, &N_per_rank[0], 1, MPI_UNSIGNED, reduce_root, m_mpi_comm);
+
+    // only the root rank performs the reduction
+    if (m_exec_conf->getRank() != reduce_root)
+        return false;
+
+    // rearrange the data from ranks to cartesian order in case it is jumbled around
+    ArrayHandle<unsigned int> h_cart_ranks_inv(m_decomposition->getInverseCartRanks(), access_location::host, access_mode::read);
+    std::vector<unsigned int> N_per_cart_rank(di.getNumElements());
+    for (unsigned int cur_rank=0; cur_rank < di.getNumElements(); ++cur_rank)
+        {
+        N_per_cart_rank[h_cart_ranks_inv.data[cur_rank]] = N_per_rank[cur_rank];
+        }
 
     if (dim == 0) // to x
         {
-        MPI_Reduce(&m_N_own, &sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xy);
-
-        if (my_grid_pos.z == 0)
+        N_i.clear(); N_i.resize(di.getW());
+        for (unsigned int i=0; i < di.getW(); ++i)
             {
-            MPI_Reduce(&sum_N, &sum_sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xy_red_y[my_grid_pos.x]);
-
-            if (my_grid_pos.y == 0)
+            N_i[i] = 0;
+            for (unsigned int k=0; k < di.getD(); ++k)
                 {
-                MPI_Gather(&sum_sum_N, 1, MPI_INT, &N_i.front(), 1, MPI_INT, 0, m_mpi_comm_x);
-                if (my_grid_pos.x == 0)
+                for (unsigned int j=0; j < di.getH(); ++j)
                     {
-                    return true;
+                    N_i[i] += N_per_cart_rank[di(i,j,k)];
                     }
                 }
             }
         }
     else if (dim == 1) // to y
         {
-        MPI_Reduce(&m_N_own, &sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xy);
-
-        if (my_grid_pos.z == 0)
+        N_i.clear(); N_i.resize(di.getH());
+        for (unsigned int j=0; j < di.getH(); ++j)
             {
-            MPI_Reduce(&sum_N, &sum_sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xy_red_x[my_grid_pos.y]);
-
-            if (my_grid_pos.x == 0)
+            N_i[j] = 0;
+            for (unsigned int k=0; k < di.getD(); ++k)
                 {
-                MPI_Gather(&sum_sum_N, 1, MPI_INT, &N_i.front(), 1, MPI_INT, 0, m_mpi_comm_y);
-                if (my_grid_pos.y == 0)
+                for (unsigned int i=0; i < di.getW(); ++i)
                     {
-                    return true;
+                    N_i[j] += N_per_cart_rank[di(i,j,k)];
                     }
                 }
             }
         }
     else if (dim == 2) // to z
         {
-        MPI_Reduce(&m_N_own, &sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xz);
-
-        if (my_grid_pos.y == 0)
+        N_i.clear(); N_i.resize(di.getD());
+        for (unsigned int k=0; k < di.getD(); ++k)
             {
-            MPI_Reduce(&sum_N, &sum_sum_N, 1, MPI_INT, MPI_SUM, 0, m_mpi_comm_xz_red_x[my_grid_pos.z]);
-
-            if (my_grid_pos.x == 0)
+            N_i[k] = 0;
+            for (unsigned int j=0; j < di.getH(); ++j)
                 {
-                MPI_Gather(&sum_sum_N, 1, MPI_INT, &N_i.front(), 1, MPI_INT, 0, m_mpi_comm_z);
-                if (my_grid_pos.z == 0)
+                for (unsigned int i=0; i < di.getW(); ++i)
                     {
-                    return true;
+                    N_i[k] += N_per_cart_rank[di(i, j, k)];
                     }
                 }
             }
@@ -404,7 +291,10 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim)
         m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction" << endl;
         throw runtime_error("Unknown dimension for particle reduction");
         }
-    return false;
+
+    if (m_prof) m_prof->pop();
+
+    return true;
     }
 
 /*!
@@ -416,6 +306,8 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     {
     if (N_i.size() == 1)
         return false;
+
+    if (m_prof) m_prof->push("adjust");
 
     // target particles per rank is uniform distribution
     const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
@@ -470,6 +362,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // balancing can be expensive, so don't do anything if we're already good enough in this direction
     if (max_imb_factor <= m_tolerance)
         {
+        if (m_prof) m_prof->pop();
         return false;
         }
     
@@ -477,6 +370,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     if (free_vars.size() == 0)
         {
         // either the system is overconstrained (an error), or the system is already perfectly balanced, so do nothing
+        if (m_prof) m_prof->pop();
         return false;
         }
     else if (free_vars.size() == 1)
@@ -490,7 +384,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
             new_widths[cur_rank] /= L_i; // to fractional width
             }
         std::partial_sum(new_widths.begin(), new_widths.end()-1, cum_frac_i.begin() + 1);
-        m_needs_recount = true;
+        if (m_prof) m_prof->pop();
         return true;
         }
 
@@ -569,6 +463,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                     if (x(map_rank_to_var[cur_div]) < min_domain_size)
                         {
                         m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                        if (m_prof) m_prof->pop();
                         return false;
                         }
                     cur_div_pos = x(map_rank_to_var[cur_div]);
@@ -581,6 +476,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div-1])
                     {
                     m_exec_conf->msg->warning() << "comm.balance: domains attempting to flip" << endl;
+                    if (m_prof) m_prof->pop();
                     return false;
                     }
                 }
@@ -588,13 +484,13 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 {
                 cum_frac_i[cur_div+1] = sorted_f[cur_div];
                 }
-
-            m_needs_recount = true;
+            if (m_prof) m_prof->pop();
             return true;
             }
         else
             {
             m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
+            if (m_prof) m_prof->pop();
             return false;
             }
         }
@@ -681,7 +577,7 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
         }
     }
 
-void LoadBalancer::computeParticleChange()
+void LoadBalancer::computeOwnedParticles()
     {
     // don't do anything if nobody has signaled a change
     if (!m_needs_recount) return;
@@ -695,14 +591,18 @@ void LoadBalancer::computeParticleChange()
         {
         cnts[h_unique_neigh.data[i]] = 0;
         }
+    if (m_prof) m_prof->push("count");
     countParticlesOffRank(cnts);
+    if (m_prof) m_prof->pop();
 
+    if (m_prof) m_prof->push("MPI send/recv");
     MPI_Request req[2*m_comm->getNUniqueNeighbors()];
     MPI_Status stat[2*m_comm->getNUniqueNeighbors()];
     unsigned int nreq = 0;
 
     unsigned int n_send_ptls[m_comm->getNUniqueNeighbors()];
     unsigned int n_recv_ptls[m_comm->getNUniqueNeighbors()];
+    unsigned int send_bytes(0), recv_bytes(0);
     for (unsigned int cur_neigh=0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
         {
         unsigned int neigh_rank = h_unique_neigh.data[cur_neigh];
@@ -710,8 +610,12 @@ void LoadBalancer::computeParticleChange()
 
         MPI_Isend(&n_send_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
         MPI_Irecv(&n_recv_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
+        send_bytes += sizeof(unsigned int);
+        recv_bytes += sizeof(unsigned int);
         }
     MPI_Waitall(nreq, req, stat);
+
+    if (m_prof) m_prof->pop(0, send_bytes + recv_bytes);
 
     // reduce the particles sent to me
     int N_own = m_pdata->getN();
@@ -720,10 +624,31 @@ void LoadBalancer::computeParticleChange()
         N_own += n_recv_ptls[cur_neigh];
         N_own -= n_send_ptls[cur_neigh];
         }
-    m_N_own = N_own;
 
-    // we are done until someone needs us to recount again
-    m_needs_recount = false;
+    // set the count
+    resetNOwn(N_own);
+    }
+
+/*!
+ * Print statistics on the maximum and average load imbalance, and the number of times
+ * load balancing was performed.
+ */
+void LoadBalancer::printStats()
+    {
+    if (m_exec_conf->msg->getNoticeLevel() < 1)
+        return;
+
+    double avg_imb = m_total_max_imbalance / ((double)m_n_calls);
+    m_exec_conf->msg->notice(1) << "-- Load imbalance stats:" << endl;
+    m_exec_conf->msg->notice(1) << "max imbalance: " << m_max_max_imbalance << " / avg. imbalance: " << avg_imb << endl;
+    m_exec_conf->msg->notice(1) << "iterations: " << m_n_iterations << " / rebalances: " << m_n_rebalances << endl;
+    }
+
+void LoadBalancer::resetStats()
+    {
+    m_n_calls = m_n_iterations = m_n_rebalances = 0;
+    m_total_max_imbalance = 0.0;
+    m_max_max_imbalance = Scalar(1.0);
     }
 
 void export_LoadBalancer()

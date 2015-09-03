@@ -120,6 +120,7 @@ void test_load_balancer(boost::shared_ptr<ExecutionConfiguration> exec_conf, con
 
     boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
+    lb->setMaxIterations(2);
     
     // migrate atoms
     comm->migrateParticles();
