@@ -63,8 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <string.h>
 
-#include <hoomd_config.h>
-#include <Compute.h>
 
 
 
@@ -288,55 +286,55 @@ class WallDataNew : boost::noncopyable
 //     .def("AddPlaneWall", &ExternalFieldWall<Shape>::AddPlaneWall)
 //     ;
 // };
-
-SphereWall make_sphere_wall(Scalar r, boost::python::list origin, bool inside)
-    {
-    vec3<Scalar> orig;
-    orig.x = boost::python::extract<Scalar>(origin[0]);
-    orig.y = boost::python::extract<Scalar>(origin[1]);
-    orig.z = boost::python::extract<Scalar>(origin[2]);
-    return SphereWall(r, orig, inside);
-    };
-
-CylinderWall make_cylinder_wall(Scalar r, boost::python::list origin, boost::python::list zorientation, bool inside)
-	{
-	vec3<Scalar> orig;
-    orig.x = boost::python::extract<Scalar>(origin[0]);
-    orig.y = boost::python::extract<Scalar>(origin[1]);
-    orig.z = boost::python::extract<Scalar>(origin[2]);
-    vec3<Scalar> zorient;
-    zorient.x = boost::python::extract<Scalar>(zorientation[0]);
-    zorient.y = boost::python::extract<Scalar>(zorientation[1]);
-    zorient.z = boost::python::extract<Scalar>(zorientation[2]);
-    return CylinderWall(r, orig, zorient, inside);
-	};
-
-PlaneWall make_plane_wall(boost::python::list norm, boost::python::list origin)
-    {
-    vec3<Scalar> orig;
-    orig.x = boost::python::extract<Scalar>(origin[0]);
-    orig.y = boost::python::extract<Scalar>(origin[1]);
-    orig.z = boost::python::extract<Scalar>(origin[2]);
-    vec3<Scalar> normal;
-    normal.x = boost::python::extract<Scalar>(norm[0]);
-    normal.y = boost::python::extract<Scalar>(norm[1]);
-    normal.z = boost::python::extract<Scalar>(norm[2]);
-    return PlaneWall(normal, orig);
-    };
-
-void export_walls()
-    {
-    // export wall structs.
-    class_<SphereWall, boost::shared_ptr<SphereWall> >("sphere_wall_parms", no_init);
-    class_<CylinderWall, boost::shared_ptr<CylinderWall> >("cylinder_wall_params", no_init);
-    class_<PlaneWall, boost::shared_ptr<PlaneWall> >("plane_wall_parms", no_init);
-
-    // export helper functions.
-    def("make_sphere_wall", &make_sphere_wall);
-    def("make_cylinder_wall", &make_cylinder_wall);
-    def("make_plane_wall", &make_plane_wall);
-
-    };
+// 
+// SphereWall make_sphere_wall(Scalar r, boost::python::list origin, bool inside)
+//     {
+//     vec3<Scalar> orig;
+//     orig.x = boost::python::extract<Scalar>(origin[0]);
+//     orig.y = boost::python::extract<Scalar>(origin[1]);
+//     orig.z = boost::python::extract<Scalar>(origin[2]);
+//     return SphereWall(r, orig, inside);
+//     };
+//
+// CylinderWall make_cylinder_wall(Scalar r, boost::python::list origin, boost::python::list zorientation, bool inside)
+// 	{
+// 	vec3<Scalar> orig;
+//     orig.x = boost::python::extract<Scalar>(origin[0]);
+//     orig.y = boost::python::extract<Scalar>(origin[1]);
+//     orig.z = boost::python::extract<Scalar>(origin[2]);
+//     vec3<Scalar> zorient;
+//     zorient.x = boost::python::extract<Scalar>(zorientation[0]);
+//     zorient.y = boost::python::extract<Scalar>(zorientation[1]);
+//     zorient.z = boost::python::extract<Scalar>(zorientation[2]);
+//     return CylinderWall(r, orig, zorient, inside);
+// 	};
+//
+// PlaneWall make_plane_wall(boost::python::list norm, boost::python::list origin)
+//     {
+//     vec3<Scalar> orig;
+//     orig.x = boost::python::extract<Scalar>(origin[0]);
+//     orig.y = boost::python::extract<Scalar>(origin[1]);
+//     orig.z = boost::python::extract<Scalar>(origin[2]);
+//     vec3<Scalar> normal;
+//     normal.x = boost::python::extract<Scalar>(norm[0]);
+//     normal.y = boost::python::extract<Scalar>(norm[1]);
+//     normal.z = boost::python::extract<Scalar>(norm[2]);
+//     return PlaneWall(normal, orig);
+//     };
+//
+// void export_walls()
+//     {
+//     // export wall structs.
+//     class_<SphereWall, boost::shared_ptr<SphereWall> >("sphere_wall_parms", no_init);
+//     class_<CylinderWall, boost::shared_ptr<CylinderWall> >("cylinder_wall_params", no_init);
+//     class_<PlaneWall, boost::shared_ptr<PlaneWall> >("plane_wall_parms", no_init);
+//
+//     // export helper functions.
+//     def("make_sphere_wall", &make_sphere_wall);
+//     def("make_cylinder_wall", &make_cylinder_wall);
+//     def("make_plane_wall", &make_plane_wall);
+//
+//     };
 
 //! Simple structure representing a single wall
 /*! Walls are represented by an origin and a unit length normal.

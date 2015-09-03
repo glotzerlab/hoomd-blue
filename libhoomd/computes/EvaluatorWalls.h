@@ -89,6 +89,9 @@ class EvaluatorWalls : public ForceCompute
 		DEVICE EvaluatorWalls(Scalar3 m_pos, unsigned int idx, const BoxDim& m_box, const param_type& params, const field_type& field)
 			{
 			vec3<Scalar> dx;
+			/*WallDataNew::addSphereWall(SphereWall(3.0,(0,0,1),true)); //TODO:remove after python interface for walls is fixed
+			WallDataNew::addCylinderWall(CylinderWall(2.0,(0,0,0),(0,0,1),true));
+			WallDataNew::addPlaneWall(PlaneWall((0,0,1),(0,0,-1)));*/
 			}
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -309,5 +312,6 @@ class EvaluatorWalls : public ForceCompute
         param_type params;
 
 	};
+
 
 #endif //__EVALUATOR__WALLS_H__
