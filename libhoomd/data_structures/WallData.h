@@ -73,6 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct SphereWall
     {
+    SphereWall() {}
     SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : inside(ins), origin(orig) {}
     Scalar          r;
     bool            inside;
@@ -81,6 +82,7 @@ struct SphereWall
 
 struct CylinderWall
     {
+    CylinderWall() {}
     CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> zorient, bool ins=true) : inside(ins), origin(orig), orientation(zorient)
         {
         vec3<Scalar> zvec;
@@ -116,6 +118,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
+    PlaneWall(){}
     PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt) : normal(nvec), origin(pt), inside(true)
         {
         Scalar n_length;
@@ -286,7 +289,7 @@ class WallDataNew : boost::noncopyable
 //     .def("AddPlaneWall", &ExternalFieldWall<Shape>::AddPlaneWall)
 //     ;
 // };
-// 
+//
 // SphereWall make_sphere_wall(Scalar r, boost::python::list origin, bool inside)
 //     {
 //     vec3<Scalar> orig;

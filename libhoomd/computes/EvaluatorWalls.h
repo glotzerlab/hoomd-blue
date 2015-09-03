@@ -64,7 +64,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-#define MAX_NUM_WALLS 500
+#define MAX_NUM_WALLS 500 // take a look at what sam is doing in hpmc.
+//
+//
+//
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
@@ -72,26 +75,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template<class evaluator>
-class EvaluatorWalls : public ForceCompute
+class EvaluatorWalls
 	{
 	public:
         typedef struct {
-        	Scalar rcutsq;
-        	Scalar ronsq;
         	typename evaluator::param_type params;
+			Scalar rcutsq;
+        	Scalar ronsq;
         } param_type;
-		typedef struct {
-			SphereWall m_Spheres[20];
-			CylinderWall m_Cylinders[20];
-			PlaneWall m_Planes[MAX_NUM_WALLS - 40];
+		typedef struct _field_type{
+			SphereWall 		m_Spheres[20];
+			CylinderWall 	m_Cylinders[20];
+			PlaneWall 		m_Planes[MAX_NUM_WALLS - 40];
+			unsigned int numSpheres;
+			unsigned int numCylinders;
+			unsigned int numPlanes;
+			// add a constructor
 		} field_type;
 
-		DEVICE EvaluatorWalls(Scalar3 m_pos, unsigned int idx, const BoxDim& m_box, const param_type& params, const field_type& field)
+		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int idx, const BoxDim& m_box, const param_type& params, const field_type& f) : m_pos(pos)
 			{
 			vec3<Scalar> dx;
-			/*WallDataNew::addSphereWall(SphereWall(3.0,(0,0,1),true)); //TODO:remove after python interface for walls is fixed
-			WallDataNew::addCylinderWall(CylinderWall(2.0,(0,0,0),(0,0,1),true));
-			WallDataNew::addPlaneWall(PlaneWall((0,0,1),(0,0,-1)));*/
+			field.m_Spheres[0] = SphereWall(3.0,vec3<Scalar>(0,0,1),true); //TODO:remove after python interface for walls is fixed
+			field.numSpheres = 1;
+			// field.m_Cylinders[0] = CylinderWall(2.0,vec3<Scalar>(0,0,0),vec3<Scalar>(0,0,1),true);
+			field.numCylinders = 0;
+			// field.m_Planes[0] = PlaneWall(vec3<Scalar>(0,0,1),vec3<Scalar>(0,0,-1));
+			field.numPlanes = 0;
 			}
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -131,15 +141,17 @@ class EvaluatorWalls : public ForceCompute
 	        vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
 			shifted_pos.z = 0;
 	        Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxy < wall.r) && wall.inside) || (rxy > wall.r) && !(wall.inside)) {
+			if (((rxy < wall.r) && wall.inside) || (rxy > wall.r) && !(wall.inside))
+				{
 		        t = (wall.r / rxy) * shifted_pos;
 		        vec3<Scalar> dx = t - shifted_pos;
 				dx = rotate(conj(wall.q_reorientation),dx);
 				return dx;
-			}
-			else{
+				}
+			else
+				{
 				return vec3<Scalar>(0.0,0.0,0.0);
-			}
+				}
 		    };
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const PlaneWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -162,16 +174,16 @@ class EvaluatorWalls : public ForceCompute
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
 
-			ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-			ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-
+			// ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+			// ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+			//cout << "hello world" << endl;
 			// access diameter and charge (if needed)
 			Scalar di = Scalar(0.0);
 			Scalar qi = Scalar(0.0);
-			if (evaluator::needsDiameter())
-				di = h_diameter.data[idx];
-			if (evaluator::needsCharge())
-				qi = h_charge.data[idx];
+			// if (evaluator::needsDiameter())
+			// 	di = h_diameter.data[idx];
+			// if (evaluator::needsCharge())
+			// 	qi = h_charge.data[idx];
 
 			// convert type as little as possible
 			vec3<Scalar> position = vec3<Scalar>(m_pos);
@@ -179,7 +191,7 @@ class EvaluatorWalls : public ForceCompute
 
 			// initialize virial
 			bool energy_shift = false;
-			for (unsigned int k = 0; k < WallDataNew::getNumSphereWalls(); k++)
+			for (unsigned int k = 0; k < field.numSpheres; k++)
 				{
 				dxv = wall_eval_dist(field.m_Spheres[k], position, m_box);
 				Scalar3 dx = vec_to_scalar3(dxv);
@@ -217,7 +229,7 @@ class EvaluatorWalls : public ForceCompute
 		            }
 
 				}
-			for (unsigned int k = 0; k < WallDataNew::getNumCylinderWalls(); k++)
+			for (unsigned int k = 0; k < field.numCylinders; k++)
 				{
 				dxv = wall_eval_dist(field.m_Cylinders[k], position, m_box);
 				Scalar3 dx = vec_to_scalar3(dxv);
@@ -254,7 +266,7 @@ class EvaluatorWalls : public ForceCompute
 						}
 					}
 				}
-			for (unsigned int k = 0; k < WallDataNew::getNumPlaneWalls(); k++)
+			for (unsigned int k = 0; k < field.numPlanes; k++)
 				{
 				dxv = wall_eval_dist(field.m_Planes[k], position, m_box);
 				Scalar3 dx = vec_to_scalar3(dxv);
@@ -305,12 +317,11 @@ class EvaluatorWalls : public ForceCompute
         #endif
 
     protected:
-        Scalar3 m_pos;                //!< particle position
-        BoxDim m_box;                 //!< box dimensions
-        unsigned int idx;
-        field_type field;
-        param_type params;
-
+        Scalar3 		m_pos;                //!< particle position
+        BoxDim 			m_box;                 //!< box dimensions
+        unsigned int 	idx;
+        field_type 		field;			  //!< contains all information about the walls.
+        param_type 		params;
 	};
 
 

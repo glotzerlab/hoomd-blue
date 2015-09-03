@@ -83,6 +83,7 @@ class PotentialExternal: public ForceCompute
 
         //! Sets parameters of the evaluator
         void setParams(unsigned int type, param_type params);
+        void setFieldParams(field_type field) { m_field = field; } // change this to follow the other format
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -92,8 +93,9 @@ class PotentialExternal: public ForceCompute
 
     protected:
 
-        GPUArray<param_type> m_params;        //!< Array of per-type parameters
-        std::string m_log_name;               //!< Cached log name
+        GPUArray<param_type>    m_params;        //!< Array of per-type parameters
+        std::string             m_log_name;               //!< Cached log name
+        field_type              m_field;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

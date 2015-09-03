@@ -365,7 +365,8 @@ class wallpotential(_external_force):
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the wallpotential coefficents are valid
-        if not self.pair_coeff.verify(coeff_list):
+        print coeff_list
+        if not self.force_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
             raise RuntimeError("Error updating wallpotential coefficients");
             # set all the params
@@ -380,7 +381,7 @@ class wallpotential(_external_force):
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
 
 class lj(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -401,7 +402,7 @@ class lj(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
+        self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];

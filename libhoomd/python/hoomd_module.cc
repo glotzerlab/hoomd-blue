@@ -548,7 +548,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphere();
     export_PPPMForceCompute();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
-    //export_PotentialExternal<EvaluatorWalls<EvaluatorPairLJ> >("WallsPotentialLJ"); TODO:Fix boost errors
+    export_PotentialExternal< WallsPotentialLJ >("WallsPotentialLJ"); // TODO:Fix boost errors
     /*export_PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ> >("WallsPotentialSLJ");
     export_PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ> >("WallsPotentialForceShiftedLJ");
     export_PotentialExternal<EvaluatorWalls<EvaluatorPairMie> >("WallsPotentialMie");
@@ -669,4 +669,3 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
-
