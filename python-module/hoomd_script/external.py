@@ -386,14 +386,6 @@ class wallpotential(_external_force):
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
-
-    # setup the coefficient options
-    self.required_coeffs = ['r_cut','r_on','','p'];
-
 class lj(wallpotential):
     def __init__(self, r_cut, name=None):
         util.print_status_line();
@@ -402,7 +394,7 @@ class lj(wallpotential):
 
         # initialize the base class
         wallpotential.__init__(self, r_cut, name);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialLJ(globals.system_definition, self.name);
