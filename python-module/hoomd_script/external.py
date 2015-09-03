@@ -66,6 +66,7 @@ from hoomd_script import tune;
 from hoomd_script import meta;
 
 import sys;
+import math;
 
 # \brief Defines external potential coefficients
 # The coefficients for all %external force are specified using this class. Coefficients are specified per-particle
@@ -360,18 +361,6 @@ class wallpotential(_external_force):
     def __init__(self, name=""):
         util.print_status_line();
         _external_force.__init__(self, name);
-        # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalPeriodic(globals.system_definition,self.name);
-        else:
-            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(globals.system_definition,self.name);
-
-        globals.system.addCompute(self.cpp_force, self.force_name);
-
-        for i in range(0,ntypes):
-            coeff_dict = {};
-            for name in coeff_list:
-                coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
@@ -379,21 +368,25 @@ class wallpotential(_external_force):
         if not self.pair_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
             raise RuntimeError("Error updating wallpotential coefficients");
+            # set all the params
+            ntypes = globals.system_definition.getParticleData().getNTypes();
+            type_list = [];
+            for i in range(0,ntypes):
+                type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            for i in range(0,ntypes):
+                coeff_dict = {};
+                for name in coeff_list:
+                    coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
 
 class lj(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -420,13 +413,13 @@ class lj(wallpotential):
         return hoomd.make_scalar2(lj1, lj2);
 
 class gauss(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialGauss(globals.system_definition, self.name);
@@ -454,7 +447,7 @@ class slj(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # update the neighbor list
         if d_max is None :
@@ -500,13 +493,13 @@ class slj(wallpotential):
         wallpotential.set_params(self, mode=mode);
 
 class yukawa(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -528,13 +521,13 @@ class yukawa(wallpotential):
         return hoomd.make_scalar2(epsilon, kappa);
 
 class ewald(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -556,13 +549,13 @@ class ewald(wallpotential):
         return kappa;
 
 class morse(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -586,13 +579,13 @@ class morse(wallpotential):
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
 
 class force_shifted_lj(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -619,13 +612,13 @@ class force_shifted_lj(wallpotential):
         return hoomd.make_scalar2(lj1, lj2);
 
 class moliere(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
 
         # create the c++ mirror class
@@ -658,13 +651,13 @@ class moliere(wallpotential):
         return hoomd.make_scalar2(Zsq, aF);
 
 class zbl(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -696,13 +689,13 @@ class zbl(wallpotential):
         return hoomd.make_scalar2(Zsq, aF);
 
 class mie(wallpotential):
-    def __init__(self, r_cut, name=None):
+    def __init__(self, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, r_cut, name);
+        wallpotential.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
