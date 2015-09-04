@@ -281,9 +281,9 @@ void NeighborListGPU::buildHeadList()
     ArrayHandle<unsigned int> d_alt_head_list(m_alt_head_list, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
-    
+
     m_req_size_nlist.resetFlags(0);
-    
+
     // initialize and allocate
     void *d_tmp_storage = NULL;
     size_t tmp_storage_bytes = 0;
@@ -304,7 +304,8 @@ void NeighborListGPU::buildHeadList()
     m_tuner_head_list->end();
 
     // allocate temporary storage (unsigned char = 1 B)
-    ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+    size_t alloc_bytes = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
+    ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_bytes);
     d_tmp_storage = (void*)d_alloc();
 
     // prefix sum

@@ -464,9 +464,9 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-           cudaFuncAttributes attr;
-           cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
-           max_block_size = attr.maxThreadsPerBlock;
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
+            max_block_size = attr.maxThreadsPerBlock;
             }
 
         unsigned int run_block_size = min(block_size, max_block_size);
