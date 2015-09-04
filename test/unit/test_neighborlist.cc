@@ -944,6 +944,7 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
+        BOOST_REQUIRE_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
         BOOST_REQUIRE_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
 
         tmp_list1.resize(h_n_neigh1.data[i]);
