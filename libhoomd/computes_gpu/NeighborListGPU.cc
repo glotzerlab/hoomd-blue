@@ -269,8 +269,16 @@ void NeighborListGPU::buildHeadList()
         return;
         
     if (m_prof) m_prof->push(exec_conf, "head-list");
-            
+
+    // resize the temporary head list array if necessary
+    if (m_alt_head_list.getNumElements() < m_head_list.getNumElements())
+        {
+        GPUArray<unsigned int> alt_head_list(m_head_list.getNumElements(), m_exec_conf);
+        m_alt_head_list.swap(alt_head_list);
+        }
+
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_alt_head_list(m_alt_head_list, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
     
@@ -282,6 +290,7 @@ void NeighborListGPU::buildHeadList()
 
     m_tuner_head_list->begin();
     gpu_nlist_build_head_list(d_head_list.data,
+                              d_alt_head_list.data,
                               m_req_size_nlist.getDeviceFlags(),
                               d_tmp_storage,
                               tmp_storage_bytes,
@@ -300,6 +309,7 @@ void NeighborListGPU::buildHeadList()
 
     // prefix sum
     gpu_nlist_build_head_list(d_head_list.data,
+                              d_alt_head_list.data,
                               m_req_size_nlist.getDeviceFlags(),
                               d_tmp_storage,
                               tmp_storage_bytes,
