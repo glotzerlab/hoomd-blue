@@ -1341,7 +1341,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         
         head_list_tex.normalized = false;
         head_list_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*(N+nghosts));
+        error = cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*N);
         if (error != cudaSuccess)
             return error;
         }
