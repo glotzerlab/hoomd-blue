@@ -106,6 +106,7 @@ Table of contents:
   - \ref sec_index_tuning
   - \ref sec_index_benchmark
   - \ref sec_index_communicate
+  - \ref sec_index_citation
 
 \section sec_index_run Run
  - \link hoomd_script.get_step() get_step\endlink - <i>Gets the current time step</i>
@@ -274,5 +275,7 @@ Table of contents:
  - \link hoomd_script.comm.get_rank() comm.get_rank\endlink - <i>Return the rank of the current process</i>
  - \link hoomd_script.comm.get_partition() comm.get_partition\endlink - <i>Return the partition of the current process</i>
 
+\section sec_index_citation Citations
+ - \link hoomd_script.cite.save() cite.save\endlink - <i>Save citations to a bibtex file.</i>
 
 */
