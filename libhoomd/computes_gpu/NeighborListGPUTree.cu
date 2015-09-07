@@ -1486,7 +1486,31 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     max_diam,
                                                                                     ntypes);
         }
-    
+
+    // unbind the textures
+    if (compute_capability < 35)
+        {
+        cudaError_t error = cudaUnbindTexture(pdata_pos_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(leaf_xyzf_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(leaf_db_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(aabb_node_bounds_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(head_list_tex);
+        if (error != cudaSuccess)
+            return error;
+        }
+
     return cudaSuccess;
     }
 

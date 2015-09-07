@@ -558,6 +558,18 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
         }
     }
 
+inline void gpu_pair_force_unbind_textures(const pair_args_t pair_args)
+    {
+    cudaUnbindTexture(pdata_pos_tex);
+    cudaUnbindTexture(pdata_diam_tex);
+    cudaUnbindTexture(pdata_charge_tex);
+
+    if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
+        {
+        cudaUnbindTexture(pair_nlist_tex);
+        }
+    }
+
 //! Kernel launcher to compact templated kernel launches
 /*!
  * \param pair_args Other arugments to pass onto the kernel
@@ -606,6 +618,8 @@ inline void launch_compute_pair_force_kernel(const pair_args_t& pair_args,
       pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
       pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
       tpp);
+
+    if (pair_args.compute_capability < 35) gpu_pair_force_unbind_textures(pair_args);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
