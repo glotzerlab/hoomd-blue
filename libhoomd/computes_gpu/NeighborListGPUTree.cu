@@ -504,7 +504,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
  * of the range of Morton codes corresponding to this tree, then it always returns -1. If the Morton codes for i and j
  * are identical, then the longest prefix of i and j is used as a tie breaker.
  */
-__device__ inline int delta(const unsigned int *d_morton_codes,
+__device__ inline int delta(const uint32_t *d_morton_codes,
                             unsigned int i,
                             unsigned int j,
                             int min_idx,
@@ -515,13 +515,15 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
         return -1;
         }
     
-    unsigned int first_code = d_morton_codes[i];
-    unsigned int last_code = d_morton_codes[j];
+    uint32_t first_code = d_morton_codes[i];
+    uint32_t last_code = d_morton_codes[j];
     
     // if codes match, then use index as tie breaker
+    // the number of shared bits is equal to the 32 bits in the integer, plus the number of bits shared between the
+    // indexes (offset from the start of the node range to make things simpler)
     if (first_code == last_code)
         {
-        return __clz(i ^ j);
+        return (32 + __clz((i-min_idx) ^ (j-min_idx)));
         }
     else
         {
@@ -541,7 +543,7 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
  *       Tero Karras, "Maximizing parallelism in the construction of BVHs, octrees, and k-d trees", 
  *       High Performance Graphics (2012).
  */
-__device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
+__device__ inline uint2 determineRange(const uint32_t *d_morton_codes,
                                        const int min_idx,
                                        const int max_idx,
                                        const int idx)
@@ -597,12 +599,12 @@ __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
  * \returns the leaf index corresponding to the split in Morton codes
  * See determineRange for original source of algorithm.
  */
-__device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
+__device__ inline unsigned int findSplit(const uint32_t *d_morton_codes,
                                          const unsigned int first,
                                          const unsigned int last)
     {
-    unsigned int first_code = d_morton_codes[first];
-    unsigned int last_code = d_morton_codes[last];
+    uint32_t first_code = d_morton_codes[first];
+    uint32_t last_code = d_morton_codes[last];
     
     // if codes match, then just split evenly
     if (first_code == last_code)
