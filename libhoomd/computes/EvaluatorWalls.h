@@ -117,7 +117,7 @@ class EvaluatorWalls
 			t-=wall.origin;
 			vec3<Scalar> shifted_pos(t);
 			Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxyz < wall.r) && wall.inside) || (rxyz > wall.r) && !(wall.inside)) {
+			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) {
 				t *= wall.r/rxyz;
 				vec3<Scalar> dx = t - shifted_pos;
 				return dx;
@@ -141,7 +141,7 @@ class EvaluatorWalls
 	        vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
 			shifted_pos.z = 0;
 	        Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxy < wall.r) && wall.inside) || (rxy > wall.r) && !(wall.inside))
+			if (((rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
 				{
 		        t = (wall.r / rxy) * shifted_pos;
 		        vec3<Scalar> dx = t - shifted_pos;
