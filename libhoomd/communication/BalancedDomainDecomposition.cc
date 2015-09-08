@@ -252,8 +252,16 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
     // check user input
     if (f.x < -tol|| f.x >= 1.0+tol || f.y < -tol || f.y >= 1.0+tol || f.z < -tol|| f.z >= 1.0+tol)
         {
-        m_exec_conf->msg->error() << "Particle coordinates outside box." << std::endl;
-        m_exec_conf->msg->error() << "f.x = " << f.x << " f.y = " << f.y << " f.z = " << f.z << std::endl;
+        m_exec_conf->msg->error() << "Particle coordinates outside global box." << std::endl;
+        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
+        m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
+        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+        Scalar3 lo = global_box.getLo();
+        Scalar3 hi = global_box.getHi();
+        m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
         throw std::runtime_error("Error placing particle");
         }
 
@@ -271,8 +279,6 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
     unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
 
-    // synchronize with rank zero
-    bcast(rank, 0, m_exec_conf->getMPICommunicator());
     return rank;
     }
 
