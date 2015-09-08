@@ -365,7 +365,7 @@ class wallpotential(_external_force):
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the wallpotential coefficents are valid
-        print coeff_list
+        print(coeff_list)
         if not self.force_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
             raise RuntimeError("Error updating wallpotential coefficients");
