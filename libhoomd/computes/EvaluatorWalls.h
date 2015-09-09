@@ -122,11 +122,12 @@ class EvaluatorWalls
 			t-=wall.origin;
 			vec3<Scalar> shifted_pos(t);
 			Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) {
+			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) 
+				{
 				t *= wall.r/rxyz;
 				vec3<Scalar> dx = t - shifted_pos;
 				return dx;
-			}
+				}
 			else
 				{
 				return vec3<Scalar>(0.0,0.0,0.0);
@@ -209,6 +210,7 @@ class EvaluatorWalls
 
 		            if (evaluated)
 		                {
+		                cout << "eval";
 		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
 		                // add the force, potential energy and virial to the particle i
 		                // (FLOPS: 8)
@@ -223,12 +225,13 @@ class EvaluatorWalls
 						}
 					else
 						{
-						F = Scalar3(0.0,0.0,0.0);
+						cout << "not";
+/*						F = Scalar3(0.0,0.0,0.0);
 						energy = Scalar(0.0);
 						for (unsigned int i = 0; i < 6; i++)
 							{
               				virial[i] = Scalar(0.0);
-              				}
+              				}*/
 						}
 					}
 
