@@ -77,11 +77,17 @@ LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<BalancedDomainDecomposition> decomposition)
         : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
           m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
-          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
-          m_enable_x(true), m_enable_y(true), m_enable_z(true), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
-          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0), m_n_rebalances(0)
+          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
+          m_N_own(m_pdata->getN()), m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
+          m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
+
+    // default initialize the load balancing based on domain grid
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    m_enable_x = (di.getW() > 1);
+    m_enable_y = (di.getH() > 1);
+    m_enable_z = (di.getD() > 1);
     }
 
 LoadBalancer::~LoadBalancer()
@@ -102,10 +108,10 @@ LoadBalancer::~LoadBalancer()
  */
 void LoadBalancer::update(unsigned int timestep)
     {
-    if (m_prof) m_prof->push("balance");
-
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
+
+    if (m_prof) m_prof->push(m_exec_conf, "balance");
 
     // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
     resetNOwn(m_pdata->getN());
@@ -135,28 +141,31 @@ void LoadBalancer::update(unsigned int timestep)
             Scalar L_i(0.0);
             if (dim == 0)
                 {
-                if (!m_enable_x) continue; // skip this dimension if balancing is turned off
+                if (!m_enable_x || di.getW() == 1) continue; // skip this dimension if balancing is turned off
                 L_i = L.x;
                 }
             else if (dim == 1)
                 {
-                if (!m_enable_y) continue;
+                if (!m_enable_y || di.getH() == 1) continue;
                 L_i = L.y;
                 }
             else
                 {
-                if (!m_enable_z) continue;
+                if (!m_enable_z || di.getD() == 1) continue;
                 L_i = L.z;
                 }
 
             vector<unsigned int> N_i;
             bool adjusted = false;
+
             bool active = reduce(N_i, dim, reduce_root);
+
             vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
             if (active)
                 {
                 adjusted = adjust(cum_frac, N_i, L_i);
                 }
+
             bcast(adjusted, reduce_root, m_mpi_comm);
 
             if (adjusted)
@@ -179,7 +188,7 @@ void LoadBalancer::update(unsigned int timestep)
             }
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -226,7 +235,6 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
 
     unsigned int N_own = getNOwn();
 
-    if (m_prof) m_prof->push("reduce");
     MPI_Gather(&N_own, 1, MPI_UNSIGNED, &N_per_rank[0], 1, MPI_UNSIGNED, reduce_root, m_mpi_comm);
 
     // only the root rank performs the reduction
@@ -281,7 +289,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
                 {
                 for (unsigned int i=0; i < di.getW(); ++i)
                     {
-                    N_i[k] += N_per_cart_rank[di(i, j, k)];
+                    N_i[k] += N_per_cart_rank[di(i,j,k)];
                     }
                 }
             }
@@ -291,8 +299,6 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
         m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction" << endl;
         throw runtime_error("Unknown dimension for particle reduction");
         }
-
-    if (m_prof) m_prof->pop();
 
     return true;
     }
@@ -307,12 +313,11 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     if (N_i.size() == 1)
         return false;
 
-    if (m_prof) m_prof->push("adjust");
-
     // target particles per rank is uniform distribution
     const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
 
     // make the minimum domain slightly bigger so that the optimization won't fail
+    // TODO: this is probably supposed to be using getNearestPlaneDistance(), and should be tested very carefully
     const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerMaxWidth();
 
     // imbalance factors for each rank
@@ -327,7 +332,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
-        Scalar scale_factor = (N_i[i] > 0) ? Scalar(0.5) / imb_factor : (Scalar(1.0) + m_max_scale); // as in gromacs, use half the imbalance factor to scale
+        Scalar scale_factor = (N_i[i] > 0) ? Scalar(1.0) / imb_factor : (Scalar(1.0) + m_max_scale); // as in gromacs, use half the imbalance factor to scale
 
         // limit rescaling to 5% either direction
         if (scale_factor > (Scalar(1.0) + m_max_scale))
@@ -362,7 +367,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // balancing can be expensive, so don't do anything if we're already good enough in this direction
     if (max_imb_factor <= m_tolerance)
         {
-        if (m_prof) m_prof->pop();
         return false;
         }
     
@@ -370,7 +374,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     if (free_vars.size() == 0)
         {
         // either the system is overconstrained (an error), or the system is already perfectly balanced, so do nothing
-        if (m_prof) m_prof->pop();
         return false;
         }
     else if (free_vars.size() == 1)
@@ -384,7 +387,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
             new_widths[cur_rank] /= L_i; // to fractional width
             }
         std::partial_sum(new_widths.begin(), new_widths.end()-1, cum_frac_i.begin() + 1);
-        if (m_prof) m_prof->pop();
         return true;
         }
 
@@ -412,7 +414,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // (i.e., if the last one is free, then there is 1, if the last one is fixed, there are 2, etc.
     // if the first one is free, then there are 0 dead, if the first is fixed, then there is 1, ...)
     unsigned int n_dead_front = free_vars.front();
-    unsigned int n_dead_end = N_i.size() - free_vars.back();
+    unsigned int n_dead_end = N_i.size() - 1 - free_vars.back();
     Eigen::VectorXd b(rows);
     for (unsigned int i=0; i < rows; ++i)
         {
@@ -444,6 +446,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         l(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
         u(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
         }
+
     try
         {
         BVLSSolver solver(A, b, l, u);
@@ -463,7 +466,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                     if (x(map_rank_to_var[cur_div]) < min_domain_size)
                         {
                         m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
-                        if (m_prof) m_prof->pop();
                         return false;
                         }
                     cur_div_pos = x(map_rank_to_var[cur_div]);
@@ -476,7 +478,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div-1])
                     {
                     m_exec_conf->msg->warning() << "comm.balance: domains attempting to flip" << endl;
-                    if (m_prof) m_prof->pop();
                     return false;
                     }
                 }
@@ -484,13 +485,11 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 {
                 cum_frac_i[cur_div+1] = sorted_f[cur_div];
                 }
-            if (m_prof) m_prof->pop();
             return true;
             }
         else
             {
             m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
-            if (m_prof) m_prof->pop();
             return false;
             }
         }
@@ -591,18 +590,14 @@ void LoadBalancer::computeOwnedParticles()
         {
         cnts[h_unique_neigh.data[i]] = 0;
         }
-    if (m_prof) m_prof->push("count");
     countParticlesOffRank(cnts);
-    if (m_prof) m_prof->pop();
 
-    if (m_prof) m_prof->push("MPI send/recv");
     MPI_Request req[2*m_comm->getNUniqueNeighbors()];
     MPI_Status stat[2*m_comm->getNUniqueNeighbors()];
     unsigned int nreq = 0;
 
     unsigned int n_send_ptls[m_comm->getNUniqueNeighbors()];
     unsigned int n_recv_ptls[m_comm->getNUniqueNeighbors()];
-    unsigned int send_bytes(0), recv_bytes(0);
     for (unsigned int cur_neigh=0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
         {
         unsigned int neigh_rank = h_unique_neigh.data[cur_neigh];
@@ -610,12 +605,8 @@ void LoadBalancer::computeOwnedParticles()
 
         MPI_Isend(&n_send_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
         MPI_Irecv(&n_recv_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
-        send_bytes += sizeof(unsigned int);
-        recv_bytes += sizeof(unsigned int);
         }
     MPI_Waitall(nreq, req, stat);
-
-    if (m_prof) m_prof->pop(0, send_bytes + recv_bytes);
 
     // reduce the particles sent to me
     int N_own = m_pdata->getN();

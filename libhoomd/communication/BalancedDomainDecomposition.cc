@@ -102,30 +102,37 @@ BalancedDomainDecomposition::BalancedDomainDecomposition(boost::shared_ptr<Execu
             m_exec_conf->msg->warning() << "Domain decomposition grid does not match specification, defaulting to uniform spacing" << std::endl;
 
             // clear out the vectors and default to uniform in all dimensions
-            cur_fxs = std::vector<Scalar>(m_nx-1, Scalar(1.0)/Scalar(m_nx));
-            cur_fys = std::vector<Scalar>(m_ny-1, Scalar(1.0)/Scalar(m_ny));
-            cur_fzs = std::vector<Scalar>(m_nz-1, Scalar(1.0)/Scalar(m_nz));
+            cur_fxs.clear();
+            cur_fys.clear();
+            cur_fzs.clear();
             m_uniform = true;
             }
 
         // if domain fractions weren't set, fill the fractions uniformly
-        if (cur_fxs.empty())
+        if (m_nx > 1)
             {
-            cur_fxs = std::vector<Scalar>(m_nx-1, Scalar(1.0)/Scalar(m_nx));
+            if (cur_fxs.empty())
+                {
+                cur_fxs = std::vector<Scalar>(m_nx-1, Scalar(1.0)/Scalar(m_nx));
+                }
+            std::partial_sum(cur_fxs.begin(), cur_fxs.end(), m_cum_frac_x.begin() + 1);
             }
-        if (cur_fys.empty())
+        if (m_ny > 1)
             {
-            cur_fys = std::vector<Scalar>(m_ny-1, Scalar(1.0)/Scalar(m_ny));
+            if (cur_fys.empty())
+                {
+                cur_fys = std::vector<Scalar>(m_ny-1, Scalar(1.0)/Scalar(m_ny));
+                }
+            std::partial_sum(cur_fys.begin(), cur_fys.end(), m_cum_frac_y.begin() + 1);
             }
-        if (cur_fzs.empty())
+        if (m_nz > 1)
             {
-            cur_fzs = std::vector<Scalar>(m_nz-1, Scalar(1.0)/Scalar(m_nz));
+            if (cur_fzs.empty())
+                {
+                cur_fzs = std::vector<Scalar>(m_nz-1, Scalar(1.0)/Scalar(m_nz));
+                }
+            std::partial_sum(cur_fzs.begin(), cur_fzs.end(), m_cum_frac_z.begin() + 1);
             }
-
-        // fill in the cumulative fractions by partial summation
-        std::partial_sum(cur_fxs.begin(), cur_fxs.end(), m_cum_frac_x.begin() + 1);
-        std::partial_sum(cur_fys.begin(), cur_fys.end(), m_cum_frac_y.begin() + 1);
-        std::partial_sum(cur_fzs.begin(), cur_fzs.end(), m_cum_frac_z.begin() + 1);
         }
 
     // broadcast the adjusted boxes
@@ -208,13 +215,6 @@ void BalancedDomainDecomposition::setCumulativeFractions(unsigned int dir, const
 
 const BoxDim BalancedDomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
-    // use the simpler method if we have a uniform decomposition
-    if (m_uniform)
-        {
-        return DomainDecomposition::calculateLocalBox(global_box);
-        }
-
-
     // initialize local box with all properties of global box
     BoxDim box = global_box;
     Scalar3 L = global_box.getL();
@@ -239,12 +239,6 @@ const BoxDim BalancedDomainDecomposition::calculateLocalBox(const BoxDim & globa
 
 unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos)
     {
-    // use the simpler method if we have a uniform decomposition
-    if (m_uniform)
-        {
-        return DomainDecomposition::placeParticle(global_box, pos);
-        }
-
     // get fractional coordinates in the global box
     Scalar3 f = global_box.makeFraction(pos);
 
@@ -268,13 +262,13 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
     // compute the box the particle should be placed into
     std::vector<Scalar>::iterator it;
     it = std::lower_bound(m_cum_frac_x.begin(), m_cum_frac_x.end(), f.x);
-    unsigned ix = (it <= m_cum_frac_x.end()-1) ? (it - 1 - m_cum_frac_x.begin()) : 0;
+    unsigned ix = (it != m_cum_frac_x.end()) ? (it - 1 - m_cum_frac_x.begin()) : 0;
 
     it = std::lower_bound(m_cum_frac_y.begin(), m_cum_frac_y.end(), f.y);
-    unsigned iy = (it <= m_cum_frac_y.end()-1) ? (it - 1 - m_cum_frac_y.begin()) : 0;
+    unsigned iy = (it != m_cum_frac_y.end()) ? (it - 1 - m_cum_frac_y.begin()) : 0;
     
     it = std::lower_bound(m_cum_frac_z.begin(), m_cum_frac_z.end(), f.z);
-    unsigned iz = (it <= m_cum_frac_z.end()-1) ? (it - 1 - m_cum_frac_z.begin()) : 0;
+    unsigned iz = (it != m_cum_frac_z.end()) ? (it - 1 - m_cum_frac_z.begin()) : 0;
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
     unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
