@@ -268,13 +268,13 @@ unsigned int BalancedDomainDecomposition::placeParticle(const BoxDim& global_box
     // compute the box the particle should be placed into
     std::vector<Scalar>::iterator it;
     it = std::lower_bound(m_cum_frac_x.begin(), m_cum_frac_x.end(), f.x);
-    unsigned ix = (it >= m_cum_frac_x.end()-1) ? (it - 1 - m_cum_frac_x.begin()) : 0;
+    unsigned ix = (it <= m_cum_frac_x.end()-1) ? (it - 1 - m_cum_frac_x.begin()) : 0;
 
     it = std::lower_bound(m_cum_frac_y.begin(), m_cum_frac_y.end(), f.y);
-    unsigned iy = (it >= m_cum_frac_y.end()-1) ? (it - 1 - m_cum_frac_y.begin()) : 0;
+    unsigned iy = (it <= m_cum_frac_y.end()-1) ? (it - 1 - m_cum_frac_y.begin()) : 0;
     
     it = std::lower_bound(m_cum_frac_z.begin(), m_cum_frac_z.end(), f.z);
-    unsigned iz = (it >= m_cum_frac_z.end()-1) ? (it - 1 - m_cum_frac_z.begin()) : 0;
+    unsigned iz = (it <= m_cum_frac_z.end()-1) ? (it - 1 - m_cum_frac_z.begin()) : 0;
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
     unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
@@ -291,7 +291,6 @@ void export_BalancedDomainDecomposition()
                                               const std::vector<Scalar>&,
                                               const std::vector<Scalar>&,
                                               const std::vector<Scalar>&>())
-    .def("getCumulativeFractions", &BalancedDomainDecomposition::getCumulativeFractions)
     ;
     }
 

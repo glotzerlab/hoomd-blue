@@ -100,19 +100,6 @@ class BalancedDomainDecomposition : public DomainDecomposition
                                     const std::vector<Scalar>& fxs,
                                     const std::vector<Scalar>& fys,
                                     const std::vector<Scalar>& fzs);
-
-        //! Get the cumulative box fractions along each dimension
-        std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
-            {
-            if (dir == 0) return m_cum_frac_x;
-            else if (dir == 1) return m_cum_frac_y;
-            else if (dir == 2) return m_cum_frac_z;
-            else
-                {
-                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-                throw std::runtime_error("comm: requested direction does not exist");
-                }
-            }
         
         //! Set the cumulative fractions along a dimension
         void setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root);
@@ -129,10 +116,6 @@ class BalancedDomainDecomposition : public DomainDecomposition
         virtual unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
     protected:
-        std::vector<Scalar> m_cum_frac_x;   //!< Cumulative fractions in x below cut plane index
-        std::vector<Scalar> m_cum_frac_y;   //!< Cumulative fractions in y below cut plane index
-        std::vector<Scalar> m_cum_frac_z;   //!< Cumulative fractions in z below cut plane index
-
         bool m_uniform;                     //!< Flag to fall back to uniform domain decomposition if true
 #endif // ENABLE_MPI
     };

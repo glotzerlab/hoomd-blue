@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 
 #include <set>
+#include <vector>
 
 /*! \ingroup communication
 */
@@ -128,6 +129,43 @@ class DomainDecomposition
         //! Determines whether the local box shares a boundary with the global box
         bool isAtBoundary(unsigned int dir) const;
 
+        Scalar getCumulativeFraction(unsigned int dir, unsigned int idx) const
+            {
+            if (dir == 0)
+                {
+                assert(idx >= 0 && idx < m_nx +1);
+                return m_cum_frac_x[idx];
+                }
+            else if (dir == 1)
+                {
+                assert(idx >= 0 && idx < m_ny+1);
+                return m_cum_frac_y[idx];
+                }
+            else if (dir == 2)
+                {
+                assert(idx >= 0 && idx < m_nz+1);
+                return m_cum_frac_z[idx];
+                }
+            else
+                {
+                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+                throw std::runtime_error("comm: requested direction does not exist");
+                }
+            }
+
+        //! Get the cumulative box fractions along each dimension
+        std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
+            {
+            if (dir == 0) return m_cum_frac_x;
+            else if (dir == 1) return m_cum_frac_y;
+            else if (dir == 2) return m_cum_frac_z;
+            else
+                {
+                m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
+                throw std::runtime_error("comm: requested direction does not exist");
+                }
+            }
+
         //! Get the dimensions of the local simulation box
         virtual const BoxDim calculateLocalBox(const BoxDim& global_box);
 
@@ -174,6 +212,10 @@ class DomainDecomposition
 
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator
+
+        std::vector<Scalar> m_cum_frac_x;   //!< Cumulative fractions in x below cut plane index
+        std::vector<Scalar> m_cum_frac_y;   //!< Cumulative fractions in y below cut plane index
+        std::vector<Scalar> m_cum_frac_z;   //!< Cumulative fractions in z below cut plane index
 #endif // ENABLE_MPI
    };
 

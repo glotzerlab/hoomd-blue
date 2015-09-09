@@ -252,11 +252,11 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
         h_pos.data[1].z = -0.9;
 
         h_pos.data[2].x = -0.5;
-        h_pos.data[2].y = 0.75;
+        h_pos.data[2].y = -0.25;
         h_pos.data[2].z = -0.9;
 
         h_pos.data[3].x = 0.5;
-        h_pos.data[3].y = 0.75;
+        h_pos.data[3].y = -0.25;
         h_pos.data[3].z = -0.9;
 
         h_pos.data[4].x = -0.5;
@@ -268,18 +268,18 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
         h_pos.data[5].z = 0.9;
 
         h_pos.data[6].x = -0.5;
-        h_pos.data[6].y = 0.75;
+        h_pos.data[6].y = -0.25;
         h_pos.data[6].z = 0.9;
 
         h_pos.data[7].x = 0.5;
-        h_pos.data[7].y = 0.75;
+        h_pos.data[7].y = -0.25;
         h_pos.data[7].z = 0.9;
         }
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::vector<Scalar> fxs(1), fys(1), fzs(1);
     fxs[0] = Scalar(0.5);
-    fys[0] = Scalar(0.25);
+    fys[0] = Scalar(0.35);
     fzs[0] = Scalar(0.8);
 
     SnapshotParticleData<Scalar> snap(8);
@@ -293,7 +293,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
 
     std::vector<Scalar> cum_frac_y = decomposition->getCumulativeFractions(1);
     MY_BOOST_CHECK_SMALL(cum_frac_y[0], tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_y[1], 0.25, tol);
+    MY_BOOST_CHECK_CLOSE(cum_frac_y[1], 0.35, tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_y[2], 1.0, tol);
     
     std::vector<Scalar> cum_frac_z = decomposition->getCumulativeFractions(2);
@@ -336,12 +336,12 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
 
     pos = pdata->getPosition(2);
     BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
     BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(3);
     BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
     BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(4);
@@ -356,12 +356,12 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
 
     pos = pdata->getPosition(6);
     BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
     BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
 
     pos = pdata->getPosition(7);
     BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.75, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
     BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
 
 
@@ -665,6 +665,277 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
+//! Test particle migration of Communicator
+void test_communicator_balanced_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+    BoxDim dest_box)
+    {
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    BOOST_REQUIRE_EQUAL(size,8);
+
+    BoxDim ref_box = BoxDim(2.0);
+    // create a system with eight particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+                                                             dest_box, // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.75,0.25)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.75,0.25)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(-0.5, -0.25,0.25)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3( 0.5, -0.25,0.25)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(-0.5,-0.75, 0.75)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3( 0.5,-0.75, 0.75)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.5, -0.25, 0.75)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, -0.25, 0.75)),false);
+
+    SnapshotParticleData<Scalar> snap(8);
+
+    pdata->takeSnapshot(snap);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    std::vector<Scalar> fxs(1), fys(1), fzs(1);
+    fxs[0] = Scalar(0.5);
+    fys[0] = Scalar(0.25);
+    fzs[0] = Scalar(0.75);
+
+    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+
+    pdata->setDomainDecomposition(decomposition);
+
+    pdata->initializeFromSnapshot(snap);
+
+    // migrate atoms
+    comm->migrateParticles();
+
+    // check that every domain has exactly one particle
+    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+
+    // check that every particle stayed where it was
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+
+    // Now move particle 0 into domain 1
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3( 0.51,-0.751,0.251)),false);
+    // move particle 1 into domain 2
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-0.51, -0.251,0.251)),false);
+    // move particle 2 into domain 3
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3( 0.51, -0.251,0.251)),false);
+    // move particle 3 into domain 4
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(-0.51,-0.751, 0.751)),false);
+    // move particle 4 into domain 5
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3( 0.51,-0.751, 0.751)),false);
+    // move particle 5 into domain 6
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(-0.51, -0.251, 0.751)),false);
+    // move particle 6 into domain 7
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3( 0.51, -0.251, 0.751)),false);
+    // move particle 7 into domain 0
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.51,-0.751,0.251)),false);
+
+    // validate that placing the particle would send it to the ranks that we expect
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(0)), 1);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(1)), 2);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(2)), 3);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(3)), 4);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(4)), 5);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
+    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
+    
+    // migrate atoms
+    comm->migrateParticles();
+
+    // check that every particle has ended up in the right domain
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 1);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 2);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 3);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 4);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 5);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 6);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 7);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 0);
+
+    // check positions
+    Scalar3 pos = pdata->getPosition(0);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(1);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(2);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(3);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+
+    pos = pdata->getPosition(4);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+
+    pos = pdata->getPosition(5);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+
+    pos = pdata->getPosition(6);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+
+    pos = pdata->getPosition(7);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    //
+    // check that that particles are correctly wrapped across the boundary
+    //
+
+    // particle 0 crosses the global boundary in +x direction
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(1.1,-0.751,0.251)),false);
+    //  particle 1 crosses the global bounadry in the -x direction
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-1.1, -0.251, 0.251)),false);
+    // particle 2 crosses the global boundary in the + y direction
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.51, 1.3, 0.251)),false);
+    // particle 3 crosses the global boundary in the - y direction
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(-0.51, -1.5, 0.751)),false);
+    // particle 4 crosses the global boundary in the + z direction
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(0.51, -0.751, 1.6)),false);
+    // particle 5 crosses the global boundary in the + z direction and in the -x direction
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(-1.1, -0.251, 1.25)),false);
+    // particle 6 crosses the global boundary in the + z direction and in the +x direction
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(1.3, -0.251, 1.05)),false);
+    // particle 7 crosses the global boundary in the - z direction
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.51, -0.751, -1.3)),false);
+
+    // migrate particles
+    comm->migrateParticles();
+
+    // check number of particles
+    switch (exec_conf->getRank())
+        {
+        case 0:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 1:
+            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            break;
+        case 2:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 3:
+            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            break;
+        case 4:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 5:
+            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            break;
+        case 6:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 7:
+            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            break;
+        }
+
+    // check that every particle has ended up in the right domain
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 3);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 1);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 6);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 1);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 3);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 2);
+    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 4);
+
+    // check positions (taking into account that particles should have been wrapped)
+    pos = pdata->getPosition(0);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  -0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(1);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, 0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(2);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, 0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.7, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+
+    pos = pdata->getPosition(3);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, 0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, 0.751, tol);
+
+    pos = pdata->getPosition(4);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, 0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.4, tol);
+
+    pos = pdata->getPosition(5);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y,-0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z,-0.75, tol);
+
+    pos = pdata->getPosition(6);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.7, tol);
+    BOOST_CHECK_CLOSE(pos.y,-0.251, tol);
+    BOOST_CHECK_CLOSE(pos.z,-0.95, tol);
+
+    pos = pdata->getPosition(7);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.7, tol);
+    }
+
+
 struct ghost_layer_width
     {
     ghost_layer_width(Scalar width)
@@ -679,7 +950,11 @@ struct ghost_layer_width
     };
 
 //! Test ghost particle communication
-void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_communicator_ghosts(communicator_creator comm_creator,
+                              boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                              const BoxDim& dest_box,
+                              boost::shared_ptr<DomainDecomposition> decomposition,
+                              Scalar3 origin)
     {
     // this test needs to be run on eight processors
     int size;
@@ -698,8 +973,8 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
 
 
-   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-   BoxDim ref_box = BoxDim(2.0);
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -713,28 +988,28 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)),false);
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its +x neighbor
-    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02,-0.5,-0.5)),false);
+    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02+origin.x,-0.5,-0.5)),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its +y neighbor
-    pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.5,-0.05,-0.5)),false);
+    pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.5,-0.05+origin.y,-0.5)),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y and +z neighbor
-    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01,-0.05)),false);
+    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01+origin.y,-0.05+origin.z)),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its +x and +y neighbor
-    pdata->setPosition(11, TO_TRICLINIC(make_scalar3(-0.05, -0.03,-0.5)),false);
+    pdata->setPosition(11, TO_TRICLINIC(make_scalar3(-0.05+origin.x, -0.03+origin.y,-0.5)),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its +x , +y and +z neighbor
-    pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.05, -0.03,-0.001)),false);
+    pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.05+origin.x, -0.03+origin.y,-0.001+origin.z)),false);
     // place particle 13 in the same box as particle 1 and in the ghost layer of its -x neighbor
-    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( 0.05, -0.5, -0.5)),false);
+    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( 0.05+origin.x, -0.5, -0.5)),false);
     // place particle 14 in the same box as particle 1 and in the ghost layer of its -x neighbor and its +y neighbor
-    pdata->setPosition(14, TO_TRICLINIC(make_scalar3( 0.01, -0.0123, -0.5)),false);
+    pdata->setPosition(14, TO_TRICLINIC(make_scalar3( 0.01+origin.x, -0.0123+origin.y, -0.5)),false);
     // place particle 15 in the same box as particle 1 and in the ghost layer of its -x neighbor, of its +y neighbor, and of its +z neighbor
-    pdata->setPosition(15, TO_TRICLINIC(make_scalar3( 0.01, -0.0123, -0.09)),false);
+    pdata->setPosition(15, TO_TRICLINIC(make_scalar3( 0.01+origin.x, -0.0123+origin.y, -0.09+origin.z)),false);
 
     // distribute particle data on processors
     SnapshotParticleData<Scalar> snap(16);
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+//     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
@@ -800,23 +1075,23 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.05,tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.05 + origin.x,tol);
                 BOOST_CHECK_CLOSE(cmp.y, -0.5,tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
             case 1:
                 BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
@@ -824,23 +1099,23 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02 + origin.x, tol);
                 BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 break;
             case 2:
@@ -850,43 +1125,43 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.05 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.x,  0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
                 break;
             case 3:
@@ -895,30 +1170,30 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
                 break;
             case 4:
@@ -928,22 +1203,22 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 5:
@@ -952,16 +1227,16 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 6:
@@ -971,22 +1246,22 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 7:
@@ -995,16 +1270,16 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
             }
         }
@@ -1022,17 +1297,17 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     // place some atoms in a ghost layer at a global boundary
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its -x neighbor and -y neighbor
-    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02,-0.95,-0.5)),false);
+    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02+origin.x,-0.95,-0.5)),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its -y neighbor
     pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.5,-0.96,-0.5)),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y neighbor and -z neighbor
-    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01,-0.97)),false);
+    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01+origin.y,-0.97)),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its -x and -y neighbor
     pdata->setPosition(11, TO_TRICLINIC(make_scalar3(-0.97, -0.99,-0.5)),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its -x , -y and -z neighbor
     pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.997, -0.998,-0.999)),false);
     // place particle 13 in the same box as particle 0 and in the ghost layer of its -x neighbor and +y neighbor
-    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( -0.96, -0.005, -0.50)),false);
+    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( -0.96, -0.005+origin.y, -0.50)),false);
     // place particle 14 in the same box as particle 7 and in the ghost layer of its +x neighbor and its +y neighbor
     pdata->setPosition(14, TO_TRICLINIC(make_scalar3( 0.901, .98, 0.50)),false);
     // place particle 15 in the same box as particle 7 and in the ghost layer of its +x neighbor, of its +y neighbor, and of its +z neighbor
@@ -1098,7 +1373,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 BOOST_CHECK_CLOSE(cmp.y, -0.95, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
@@ -1120,7 +1395,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
 
 
@@ -1137,7 +1412,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
@@ -1152,7 +1427,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  -0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-0.97, tol);
 
                 rtag = h_global_rtag.data[11];
@@ -1173,7 +1448,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.96, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.50, tol);
 
                 rtag = h_global_rtag.data[15];
@@ -1190,7 +1465,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
@@ -1212,7 +1487,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
 
                 rtag = h_global_rtag.data[15];
@@ -1230,7 +1505,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,  1.03, tol);
 
                 rtag = h_global_rtag.data[12];
@@ -1287,7 +1562,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x,-0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,1.03, tol);
 
                 rtag = h_global_rtag.data[12];
@@ -1349,14 +1624,14 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[9];
-                h_pos.data[rtag].x = -0.03;
+                h_pos.data[rtag].x = -0.03+origin.x;
                 h_pos.data[rtag].y = -1.09;
                 h_pos.data[rtag].z = -0.3;
                 h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[10];
                 h_pos.data[rtag].x = -0.11;
-                h_pos.data[rtag].y = 0.01;
+                h_pos.data[rtag].y = 0.01+origin.y;
                 h_pos.data[rtag].z = -1.02;
                 h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
@@ -1374,7 +1649,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_rtag.data[13];
                 h_pos.data[rtag].x = -0.89;
-                h_pos.data[rtag].y = 0.005;
+                h_pos.data[rtag].y = 0.005+origin.y;
                 h_pos.data[rtag].z = -0.99;
                 h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
@@ -1446,7 +1721,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
 
 
@@ -1469,7 +1744,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 rtag = h_global_rtag.data[9];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.x, -0.03+origin.x, tol);
                 BOOST_CHECK_CLOSE(cmp.y,  0.91, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.3, tol);
 
@@ -1477,7 +1752,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-1.02, tol);
 
                 rtag = h_global_rtag.data[11];
@@ -1498,7 +1773,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.89, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z, -0.99, tol);
 
                 rtag = h_global_rtag.data[15];
@@ -1535,7 +1810,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
 
                 rtag = h_global_rtag.data[15];
@@ -1551,7 +1826,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,  0.98, tol);
 
                 rtag = h_global_rtag.data[12];
@@ -1604,7 +1879,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 BOOST_CHECK_CLOSE(cmp.x,-0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.01+origin.y, tol);
                 BOOST_CHECK_CLOSE(cmp.z,0.98, tol);
 
                 rtag = h_global_rtag.data[12];
@@ -1639,11 +1914,13 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 break;
             }
         }
-
    }
 
 //! Test particle communication for covalently bonded ghosts
-void test_communicator_bond_exchange(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_bond_exchange(communicator_creator comm_creator,
+                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     const BoxDim& box,
+                                     boost::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
@@ -1652,7 +1929,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
 
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
                                                              0,           // number of angle types
@@ -1700,7 +1977,6 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
     bdata->takeSnapshot(bdata_snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
@@ -2309,7 +2585,10 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
     }
 
 //! Test particle communication for covalently bonded ghosts
-void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_bonded_ghosts(communicator_creator comm_creator,
+                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     const BoxDim& box,
+                                     boost::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
@@ -2318,7 +2597,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::s
 
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
                                                              0,           // number of angle types
@@ -2366,7 +2645,6 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::s
     bdata->takeSnapshot(snap_bdata);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // communicate tags, necessary for gpu bond table
@@ -2476,7 +2754,10 @@ CommFlags comm_flag_request(unsigned int timestep)
 void test_communicator_compare(communicator_creator comm_creator_1,
                                  communicator_creator comm_creator_2,
                                  boost::shared_ptr<ExecutionConfiguration> exec_conf_1,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_2)
+                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_2,
+                                 const BoxDim& box,
+                                 boost::shared_ptr<DomainDecomposition> decomposition_1,
+                                 boost::shared_ptr<DomainDecomposition> decomposition_2)
 
     {
     if (exec_conf_1->getRank() == 0)
@@ -2485,7 +2766,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     unsigned int n = 1000;
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
                                                              0,           // number of angle types
@@ -2493,7 +2774,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              exec_conf_1));
     boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
                                                              0,           // number of angle types
@@ -2518,10 +2799,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                    lo.z + (Scalar)rand()/(Scalar)RAND_MAX*L.z);
         }
 
-    // initialize dommain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1, pdata_1->getBox().getL()));
-    boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2, pdata_2->getBox().getL()));
-
+    // setup communicators
     boost::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
     boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
@@ -3216,28 +3494,136 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-0.5,0.7,0.3));
     }
 
+BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    // cubic box
+    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    // orthorhombic box
+    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,2.0,3.0));
+    // triclinic box 1
+    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,0.5,0.6,0.8));
+    // triclinic box 1
+    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    }
+
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
 
+    /////////////////////
+    // uniform version //
+    /////////////////////
     // test in a cubic box
-    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
     // triclinic box 1
-    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,.1,.2,.3));
+        {
+        BoxDim box(1.0,.1,.2,.3);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
     // triclinic box 2
-    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-.6,.7,.5));
+        {
+        BoxDim box(1.0,-.6,.7,.5);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
+
+    //////////////////////
+    // balanced version //
+    //////////////////////
+    // reference fractions for the given origin in the reference BoxDim(2.0)
+    Scalar3 origin = make_scalar3(0.1,-0.12,0.14);
+    vector<Scalar> fx(1), fy(1), fz(1);
+    fx[0] = 0.55; fy[0] = 0.44; fz[0] = 0.57;
+    // test in a cubic box
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
+    // triclinic box 1
+        {
+        BoxDim box(1.0,.1,.2,.3);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
+    // triclinic box 2
+        {
+        BoxDim box(1.0,-.6,.7,.5);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        test_communicator_ghosts(communicator_creator_base,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_bonded_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    // uniform version
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
+        }
+    // balanced version
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
+        }
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_bond_exchange(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    // uniform version
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
+        }
+    // balanced version
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
+        }
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
@@ -3300,26 +3686,136 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-0.5,0.7,0.3));
     }
 
+BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test_GPU )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    // cubic box
+    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    // orthorhombic box
+    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,2.0,3.0));
+    // triclinic box 1
+    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,0.5,0.6,0.8));
+    // triclinic box 1
+    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    }
+
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+
+    /////////////////////
+    // uniform version //
+    /////////////////////
     // test in a cubic box
-    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
     // triclinic box 1
-    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,.1,.2,.3));
+        {
+        BoxDim box(1.0,.1,.2,.3);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
     // triclinic box 2
-    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-.6,.7,.5));
+        {
+        BoxDim box(1.0,-.6,.7,.5);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 make_scalar3(0.0,0.0,0.0));
+        }
+
+    //////////////////////
+    // balanced version //
+    //////////////////////
+    // reference fractions for the given origin in the reference BoxDim(2.0)
+    Scalar3 origin = make_scalar3(0.1,-0.12,0.14);
+    vector<Scalar> fx(1), fy(1), fz(1);
+    fx[0] = 0.55; fy[0] = 0.44; fz[0] = 0.57;
+    // test in a cubic box
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
+    // triclinic box 1
+        {
+        BoxDim box(1.0,.1,.2,.3);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
+    // triclinic box 2
+        {
+        BoxDim box(1.0,-.6,.7,.5);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        test_communicator_ghosts(communicator_creator_gpu,
+                                 exec_conf,
+                                 box,
+                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 origin);
+        }
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bonded_ghosts(communicator_creator_gpu,  boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    // uniform version
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
+        }
+    // balanced version
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
+        }
     }
+
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bond_exchange(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    // uniform version
+        {
+        BoxDim box(2.0);
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
+        }
+    // balanced version
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
+        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
+        }
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
@@ -3340,11 +3836,50 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test_GPU )
     test_communicator_ghosts_per_type(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
     }
 
-BOOST_AUTO_TEST_CASE (communicator_compare_test )
+BOOST_AUTO_TEST_CASE ( communicator_compare_test )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+
+    // uniform case: compare cpu and gpu
+        {
+        BoxDim box(2.0);
+
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        
+        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
+        test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
+        }
+
+    // balanced case: compare cpu and gpu
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.55; fy[0] = 0.45; fz[0] = 0.7;
+
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        
+        boost::shared_ptr<DomainDecomposition> decomposition_1(new BalancedDomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
+        boost::shared_ptr<DomainDecomposition> decomposition_2(new BalancedDomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
+        test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
+        }
+
+    // sanity check: compare cpu uniform and balanced with equal cuts
+        {
+        BoxDim box(2.0);
+        vector<Scalar> fx(1), fy(1), fz(1);
+        fx[0] = 0.5; fy[0] = 0.5; fz[0] = 0.5;
+
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        
+        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        boost::shared_ptr<DomainDecomposition> decomposition_2(new BalancedDomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
+        test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
+        }
     }
 #endif
 

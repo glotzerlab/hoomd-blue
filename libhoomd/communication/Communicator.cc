@@ -1204,16 +1204,19 @@ void Communicator::migrateParticles()
         if (m_prof)
             m_prof->pop();
 
-        const BoxDim shifted_box = getShiftedBox();
-
-        // wrap received particles across a global boundary back into global box
+        /* Use the global box to wrap the particles around global boundaries.
+         * Migration guarantees that all particles must be within the boundaries of a local domain, and so must also
+         * be inside the global box. This differs from ghosts, which need a shifted box ( getShiftedBox() ) in order to
+         * wrap the ghost layer around.
+         */
+        const BoxDim global_box = m_pdata->getGlobalBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
             pdata_element& p = m_recvbuf[idx];
             Scalar4& postype = p.pos;
             int3& image = p.image;
 
-            shifted_box.wrap(postype, image);
+            global_box.wrap(postype, image);
             }
 
         // remove particles that were sent and fill particle data with received particles
@@ -1836,28 +1839,60 @@ const BoxDim Communicator::getShiftedBox() const
     BoxDim shifted_box = m_pdata->getGlobalBox();
     Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
-    Scalar3 shift = m_pdata->getBox().getNearestPlaneDistance()/
-        shifted_box.getNearestPlaneDistance()/2.0;
-
+    /* As was done before, shift the global box by half the size of the domain that you received from.
+     * This guarantees that any ghosts that could have been sent are wrapped back in because the smallest size a domain
+     * can be is 2*getGhostLayerMaxWidth(). Because the domains and the global box have the same triclinic skew, we can
+     * just use the fractional widths rather than using getNearestPlaneDistance().
+     */
+    uint3 grid_pos = m_decomposition->getGridPos();
+    const Index3D& di = m_decomposition->getDomainIndexer();
     Scalar tol = 0.0001;
-    shift += tol*make_scalar3(1.0,1.0,1.0);
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))
             {
             if (dir == face_east)
-                f.x += shift.x;
+                {
+                int neigh = (int)grid_pos.x + 1;
+                if (neigh == (int)di.getW()) neigh = 0;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(0, neigh+1) - m_decomposition->getCumulativeFraction(0, neigh));
+                f.x += (shift + tol);
+                }
             else if (dir == face_west)
-                f.x -= shift.x;
+                {
+                int neigh = (int)grid_pos.x - 1;
+                if (neigh == -1) neigh = di.getW() - 1;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(0, neigh+1) - m_decomposition->getCumulativeFraction(0, neigh));
+                f.x -= (shift + tol);
+                }
             else if (dir == face_north)
-                f.y += shift.y;
+                {
+                int neigh = (int)grid_pos.y + 1;
+                if (neigh == (int)di.getH()) neigh = 0;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(1, neigh+1) - m_decomposition->getCumulativeFraction(1, neigh));
+                f.y += (shift + tol);
+                }
             else if (dir == face_south)
-                f.y -= shift.y;
+                {
+                int neigh = (int)grid_pos.y - 1;
+                if (neigh == -1) neigh = di.getH() - 1;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(1, neigh+1) - m_decomposition->getCumulativeFraction(1, neigh));
+                f.y -= (shift + tol);
+                }
             else if (dir == face_up)
-                f.z += shift.z;
+                {
+                int neigh = (int)grid_pos.z + 1;
+                if (neigh == (int)di.getD()) neigh = 0;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(2, neigh+1) - m_decomposition->getCumulativeFraction(2, neigh));
+                f.z += (shift + tol);
+                }
             else if (dir == face_down)
-                f.z -= shift.z;
+                {
+                int neigh = (int)grid_pos.z - 1;
+                if (neigh == -1) neigh = di.getD() - 1;
+                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(2, neigh+1) - m_decomposition->getCumulativeFraction(2, neigh));
+                f.z -= (shift + tol);
+                }
             }
         }
     Scalar3 dx = shifted_box.makeCoordinates(f);

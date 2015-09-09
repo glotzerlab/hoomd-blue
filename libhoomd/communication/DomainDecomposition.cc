@@ -64,6 +64,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/serialization/set.hpp>
 
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <numeric>
+
 using namespace boost::python;
 
 //! Constructor
@@ -242,6 +247,33 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
 
     // compute position of this box in the domain grid by reverse look-up
     m_grid_pos = m_index.getTriple(h_cart_ranks_inv.data[rank]);
+
+    //////////////////////////
+    // TODO: THIS IS ALL COPIED FROM BALANCED DOMAIN DECOMPOSITION -- THEY SHOULD BECOME ONE CLASS
+    // default initialize the cumulative fractions as a uniform spacing
+    m_cum_frac_x.resize(m_nx+1);
+    m_cum_frac_y.resize(m_ny+1);
+    m_cum_frac_z.resize(m_nz+1);
+
+    // fill the beginning and end points
+    m_cum_frac_x[0] = Scalar(0.0); m_cum_frac_x[m_nx] = Scalar(1.0);
+    m_cum_frac_y[0] = Scalar(0.0); m_cum_frac_y[m_ny] = Scalar(1.0);
+    m_cum_frac_z[0] = Scalar(0.0); m_cum_frac_z[m_nz] = Scalar(1.0);
+
+    std::vector<Scalar> cur_fxs(m_nx-1, Scalar(1.0)/Scalar(m_nx));
+    std::vector<Scalar> cur_fys(m_ny-1, Scalar(1.0)/Scalar(m_ny));
+    std::vector<Scalar> cur_fzs(m_nz-1, Scalar(1.0)/Scalar(m_nz));
+
+    // fill in the cumulative fractions by partial summation
+    std::partial_sum(cur_fxs.begin(), cur_fxs.end(), m_cum_frac_x.begin() + 1);
+    std::partial_sum(cur_fys.begin(), cur_fys.end(), m_cum_frac_y.begin() + 1);
+    std::partial_sum(cur_fzs.begin(), cur_fzs.end(), m_cum_frac_z.begin() + 1);
+
+    MPI_Bcast(&m_cum_frac_x[0], m_nx+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(&m_cum_frac_y[0], m_ny+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(&m_cum_frac_z[0], m_nz+1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    //
+    //////////////////////
     }
 
 //! Find a domain decomposition with given parameters
@@ -493,6 +525,7 @@ void export_DomainDecomposition()
     {
     class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
            init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int, bool>())
+    .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions)
     ;
     }
 #endif // ENABLE_MPI
