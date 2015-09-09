@@ -1204,12 +1204,7 @@ void Communicator::migrateParticles()
         if (m_prof)
             m_prof->pop();
 
-        /* Use the global box to wrap the particles around global boundaries.
-         * Migration guarantees that all particles must be within the boundaries of a local domain, and so must also
-         * be inside the global box. This differs from ghosts, which need a shifted box ( getShiftedBox() ) in order to
-         * wrap the ghost layer around.
-         */
-        const BoxDim global_box = m_pdata->getGlobalBox();
+        const BoxDim global_box = getShiftedBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
             pdata_element& p = m_recvbuf[idx];
