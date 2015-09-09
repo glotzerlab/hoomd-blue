@@ -548,16 +548,18 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphere();
     export_PPPMForceCompute();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
-    export_PotentialExternal< WallsPotentialLJ >("WallsPotentialLJ"); // TODO:Fix boost errors
-    export_PotentialExternal< WallsPotentialYukawa >("WallsPotentialYukawa");
-    export_PotentialExternal< WallsPotentialSLJ >("WallsPotentialSLJ");
-    export_PotentialExternal< WallsPotentialForceShiftedLJ >("WallsPotentialForceShiftedLJ");
-    export_PotentialExternal< WallsPotentialMie >("WallsPotentialMie");
-    export_PotentialExternal< WallsPotentialGauss >("WallsPotentialGauss");
-    export_PotentialExternal< WallsPotentialZBL >("WallsPotentialZBL");
-    export_PotentialExternal< WallsPotentialEwald >("WallsPotentialEwald");
-    export_PotentialExternal< WallsPotentialMoliere >("WallsPotentialMoliere");
-    export_PotentialExternal< WallsPotentialMorse >("WallsPotentialMorse");
+    // export_PotentialExternal< WallsPotentialLJ >("WallsPotentialLJ"); // TODO:Fix boost errors
+    export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
+
+    // export_PotentialExternal< WallsPotentialYukawa >("WallsPotentialYukawa");
+    // export_PotentialExternal< WallsPotentialSLJ >("WallsPotentialSLJ");
+    // export_PotentialExternal< WallsPotentialForceShiftedLJ >("WallsPotentialForceShiftedLJ");
+    // export_PotentialExternal< WallsPotentialMie >("WallsPotentialMie");
+    // export_PotentialExternal< WallsPotentialGauss >("WallsPotentialGauss");
+    // export_PotentialExternal< WallsPotentialZBL >("WallsPotentialZBL");
+    // export_PotentialExternal< WallsPotentialEwald >("WallsPotentialEwald");
+    // export_PotentialExternal< WallsPotentialMoliere >("WallsPotentialMoliere");
+    // export_PotentialExternal< WallsPotentialMorse >("WallsPotentialMorse");
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();

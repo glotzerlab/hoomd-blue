@@ -77,11 +77,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "WallData.h"
 
 
+
 template<class evaluator>
 class EvaluatorWalls
 	{
 	public:
-        typedef struct {
+        typedef struct{
         	typename evaluator::param_type params;
 			Scalar rcutsq;
         	Scalar ronsq;
@@ -96,10 +97,10 @@ class EvaluatorWalls
 			// add a constructor
 		} field_type;
 
-		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int idx, const BoxDim& m_box, const param_type& params, const field_type& f) : m_pos(pos)
+		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), params(p)
 			{
 			//This runs once for every single particle... Probably should fix somehow
-			field.m_Spheres[0].r = 5.0;
+			field.m_Spheres[0].r = 5;
 			field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
 			field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
 			field.numSpheres = 1;
@@ -118,11 +119,10 @@ class EvaluatorWalls
 		    // Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
 		    // Scalar r = wall.r - sqrt(rxyz_sq);
 			vec3<Scalar> t = position;
-			box.minImage(t);
 			t-=wall.origin;
 			vec3<Scalar> shifted_pos(t);
 			Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) 
+			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
 				{
 				t *= wall.r/rxyz;
 				vec3<Scalar> dx = t - shifted_pos;
@@ -169,12 +169,12 @@ class EvaluatorWalls
 			vec3<Scalar> t = position;
 			box.minImage(t);
 			Scalar wall_dist = dot(wall.normal,t) - dot(wall.normal,wall.origin);
-			if (wall_dist > 0.0) 
+			if (wall_dist > 0.0)
 				{
 				vec3<Scalar> dx = wall_dist * wall.normal;
 				return dx;
 				}
-			else 
+			else
 				{
 				return vec3<Scalar>(0.0,0.0,0.0);
 				}
@@ -182,35 +182,36 @@ class EvaluatorWalls
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
-			F.x = Scalar(0.0);
-            F.y = Scalar(0.0);
-            F.z = Scalar(0.0);
-            energy = Scalar(0.0);
-            for (unsigned int i = 0; i < 6; i++)
-                virial[i] = Scalar(0.0);
+			// F.x = Scalar(0.0);
+            // F.y = Scalar(0.0);
+            // F.z = Scalar(0.0);
+            // energy = Scalar(0.0);
+            // for (unsigned int i = 0; i < 6; i++)
+            //     virial[i] = Scalar(0.0);
 
 			// convert type as little as possible
 			vec3<Scalar> position = vec3<Scalar>(m_pos);
 			vec3<Scalar> dxv;
 			// initialize virial
-			bool energy_shift = false;
+			bool energy_shift = true;
 			for (unsigned int k = 0; k < field.numSpheres; k++)
 				{
 				dxv = wall_eval_dist(field.m_Spheres[k], position, m_box);
-				Scalar3 dx = vec_to_scalar3(dxv);
+				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
+				if (rsq > params.ronsq)
+					{
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-
-		            evaluator eval(rsq, 25.0, params.params); //TODO: Fix hardcoding
+					//cout << "evaluator params " << params.params.x << " " << params.params.y << "rcut = " << params.rcutsq << " ronsq = "<< params.ronsq << endl;
+		            evaluator eval(rsq, params.rcutsq, params.params); //TODO: Fix hardcoding
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
 		                {
-		                cout << "eval";
 		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
 		                // add the force, potential energy and virial to the particle i
 		                // (FLOPS: 8)
@@ -223,17 +224,8 @@ class EvaluatorWalls
 	                    virial[4] += force_divr*dx.y*dx.z;
 	                    virial[5] += force_divr*dx.z*dx.z;
 						}
-					else
-						{
-						cout << "not";
-/*						F = Scalar3(0.0,0.0,0.0);
-						energy = Scalar(0.0);
-						for (unsigned int i = 0; i < 6; i++)
-							{
-              				virial[i] = Scalar(0.0);
-              				}*/
-						}
 					}
+				}
 
 			for (unsigned int k = 0; k < field.numCylinders; k++)
 				{
@@ -320,6 +312,34 @@ class EvaluatorWalls
         field_type 		field;			  //!< contains all information about the walls.
         param_type 		params;
 	};
+
+template < class evaluator >
+typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluator::param_type p, Scalar rcutsq, Scalar ronsq)
+	{
+	typename EvaluatorWalls<evaluator>::param_type params;
+	params.params = p;
+	params.rcutsq = rcutsq;
+	params.ronsq = ronsq;
+	return params;
+	}
+
+template< class evaluator>
+void export_wall_param_helpers()
+	{
+	class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
+		.def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
+		.def_readwrite("ronsq", &EvaluatorWalls<evaluator>::param_type::ronsq)
+		.def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
+		;
+	def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
+	}
+
+template <class evaluator>
+void export_PotentialExternalWall(const std::string& name)
+	{
+	export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
+	export_wall_param_helpers<evaluator>();
+	}
 
 
 #endif //__EVALUATOR__WALLS_H__
