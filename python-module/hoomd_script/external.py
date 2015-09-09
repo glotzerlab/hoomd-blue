@@ -252,7 +252,7 @@ class _external_force(force._force):
     # Initializes the cpp_force to None.
     # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         # initialize the base class
         force._force.__init__(self, name);
 
@@ -364,8 +364,6 @@ class wallpotential(_external_force):
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
-        # check that the wallpotential coefficents are valid
-        print(coeff_list)
         if not self.force_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
             raise RuntimeError("Error updating wallpotential coefficients");
@@ -379,6 +377,11 @@ class wallpotential(_external_force):
                 coeff_dict = {};
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
+
+                param = self.process_coeff(coeff_dict);
+                self.cpp_force.setParams(i, param);
+                self.cpp_force.setRcut(i, coeff_dict['r_cut']);
+                self.cpp_force.setRon(i, coeff_dict['r_on']);
 
 class lj(wallpotential):
     def __init__(self, name=""):
@@ -414,7 +417,7 @@ class lj(wallpotential):
         return hoomd.make_scalar2(lj1, lj2);
 
 class gauss(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -442,7 +445,7 @@ class gauss(wallpotential):
         return hoomd.make_scalar2(epsilon, sigma);
 
 class slj(wallpotential):
-    def __init__(self, r_cut, d_max=None, name=None):
+    def __init__(self, r_cut, d_max=None, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -494,7 +497,7 @@ class slj(wallpotential):
         wallpotential.set_params(self, mode=mode);
 
 class yukawa(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -522,7 +525,7 @@ class yukawa(wallpotential):
         return hoomd.make_scalar2(epsilon, kappa);
 
 class ewald(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -550,7 +553,7 @@ class ewald(wallpotential):
         return kappa;
 
 class morse(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -580,7 +583,7 @@ class morse(wallpotential):
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
 
 class force_shifted_lj(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -613,7 +616,7 @@ class force_shifted_lj(wallpotential):
         return hoomd.make_scalar2(lj1, lj2);
 
 class moliere(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -652,7 +655,7 @@ class moliere(wallpotential):
         return hoomd.make_scalar2(Zsq, aF);
 
 class zbl(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -690,7 +693,7 @@ class zbl(wallpotential):
         return hoomd.make_scalar2(Zsq, aF);
 
 class mie(wallpotential):
-    def __init__(self, name=None):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # tell the base class how we operate

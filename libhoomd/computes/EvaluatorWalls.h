@@ -64,7 +64,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-#define MAX_NUM_WALLS 500 // take a look at what sam is doing in hpmc.
+#define MAX_N_SWALLS 20
+#define MAX_N_CWALLS 20
+#define MAX_N_PWALLS 40
+ // take a look at what sam is doing in hpmc.
 //
 //
 //
@@ -84,9 +87,9 @@ class EvaluatorWalls
         	Scalar ronsq;
         } param_type;
 		typedef struct _field_type{
-			SphereWall 		m_Spheres[20];
-			CylinderWall 	m_Cylinders[20];
-			PlaneWall 		m_Planes[MAX_NUM_WALLS - 40];
+			SphereWall m_Spheres[MAX_N_SWALLS];
+			CylinderWall m_Cylinders[MAX_N_CWALLS];
+			PlaneWall m_Planes[MAX_N_PWALLS];
 			unsigned int numSpheres;
 			unsigned int numCylinders;
 			unsigned int numPlanes;
@@ -95,8 +98,10 @@ class EvaluatorWalls
 
 		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int idx, const BoxDim& m_box, const param_type& params, const field_type& f) : m_pos(pos)
 			{
-			vec3<Scalar> dx;
-			field.m_Spheres[0] = SphereWall(3.0,vec3<Scalar>(0,0,1),true); //TODO:remove after python interface for walls is fixed
+			//This runs once for every single particle... Probably should fix somehow
+			field.m_Spheres[0].r = 5.0;
+			field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
+			field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
 			field.numSpheres = 1;
 			// field.m_Cylinders[0] = CylinderWall(2.0,vec3<Scalar>(0,0,0),vec3<Scalar>(0,0,1),true);
 			field.numCylinders = 0;
@@ -122,9 +127,10 @@ class EvaluatorWalls
 				vec3<Scalar> dx = t - shifted_pos;
 				return dx;
 			}
-			else{
+			else
+				{
 				return vec3<Scalar>(0.0,0.0,0.0);
-			}
+				}
 		    };
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const CylinderWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -162,33 +168,29 @@ class EvaluatorWalls
 			vec3<Scalar> t = position;
 			box.minImage(t);
 			Scalar wall_dist = dot(wall.normal,t) - dot(wall.normal,wall.origin);
-			if (wall_dist > 0.0) {
+			if (wall_dist > 0.0) 
+				{
 				vec3<Scalar> dx = wall_dist * wall.normal;
 				return dx;
-			}
-			else {
+				}
+			else 
+				{
 				return vec3<Scalar>(0.0,0.0,0.0);
-			}
+				}
 			};
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
-
-			// ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-			// ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-			//cout << "hello world" << endl;
-			// access diameter and charge (if needed)
-			Scalar di = Scalar(0.0);
-			Scalar qi = Scalar(0.0);
-			// if (evaluator::needsDiameter())
-			// 	di = h_diameter.data[idx];
-			// if (evaluator::needsCharge())
-			// 	qi = h_charge.data[idx];
+			F.x = Scalar(0.0);
+            F.y = Scalar(0.0);
+            F.z = Scalar(0.0);
+            energy = Scalar(0.0);
+            for (unsigned int i = 0; i < 6; i++)
+                virial[i] = Scalar(0.0);
 
 			// convert type as little as possible
 			vec3<Scalar> position = vec3<Scalar>(m_pos);
 			vec3<Scalar> dxv;
-
 			// initialize virial
 			bool energy_shift = false;
 			for (unsigned int k = 0; k < field.numSpheres; k++)
@@ -198,18 +200,11 @@ class EvaluatorWalls
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
-
-	            if (rsq > params.ronsq)
-		            {
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, params.rcutsq, params.params);
-		            if (evaluator::needsDiameter())
-		                eval.setDiameter(di, 0.0);
-		            if (evaluator::needsCharge())
-		                eval.setCharge(qi, 0.0);
 
+		            evaluator eval(rsq, 25.0, params.params); //TODO: Fix hardcoding
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
@@ -226,9 +221,17 @@ class EvaluatorWalls
 	                    virial[4] += force_divr*dx.y*dx.z;
 	                    virial[5] += force_divr*dx.z*dx.z;
 						}
-		            }
+					else
+						{
+						F = Scalar3(0.0,0.0,0.0);
+						energy = Scalar(0.0);
+						for (unsigned int i = 0; i < 6; i++)
+							{
+              				virial[i] = Scalar(0.0);
+              				}
+						}
+					}
 
-				}
 			for (unsigned int k = 0; k < field.numCylinders; k++)
 				{
 				dxv = wall_eval_dist(field.m_Cylinders[k], position, m_box);
@@ -243,11 +246,6 @@ class EvaluatorWalls
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
 		            evaluator eval(rsq, params.rcutsq, params.params);
-		            if (evaluator::needsDiameter())
-		                eval.setDiameter(di, 0.0);
-		            if (evaluator::needsCharge())
-		                eval.setCharge(qi, 0.0);
-
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
@@ -280,10 +278,6 @@ class EvaluatorWalls
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
 		            evaluator eval(rsq, params.rcutsq, params.params);
-		            if (evaluator::needsDiameter())
-		                eval.setDiameter(di, 0.0);
-		            if (evaluator::needsCharge())
-		                eval.setCharge(qi, 0.0);
 
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 

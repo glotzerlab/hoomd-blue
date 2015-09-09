@@ -63,14 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <string.h>
 
-
-
-
-//#include "QuaternionMath.h"//doesn't seem to work, might use just vector math
-
-//is the inside portion of the data structure needed?
-//how easy would applying potentials to the outside be as well? could we make easy?
-
 struct SphereWall
     {
     SphereWall() {}
@@ -118,7 +110,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall(){}
+    PlaneWall() {}
     PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt) : normal(nvec), origin(pt), inside(true)
         {
         Scalar n_length;
