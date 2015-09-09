@@ -64,9 +64,6 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
-
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
@@ -340,10 +337,11 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const EAMtex& eam_tex,
     const EAMTexInterArrays& eam_arrays,
     const EAMTexInterData& eam_data,
-    const unsigned int compute_capability)
+    const unsigned int compute_capability,
+    const unsigned int max_tex1d_width)
     {
     cudaError_t error;
-    if (compute_capability < 35 && size_nlist <= MAX_TEXTURE_WIDTH)
+    if (compute_capability < 35 && size_nlist <= max_tex1d_width)
         {
         nlist_tex.normalized = false;
         nlist_tex.filterMode = cudaFilterModePoint;
@@ -393,7 +391,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     // run the kernel
     cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
 
-    if (compute_capability < 35 && size_nlist > MAX_TEXTURE_WIDTH)
+    if (compute_capability < 35 && size_nlist > max_tex1d_width)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -480,7 +478,5 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 
     return cudaSuccess;
     }
-
-#undef MAX_TEXTURE_WIDTH
 
 // vim:syntax=cpp

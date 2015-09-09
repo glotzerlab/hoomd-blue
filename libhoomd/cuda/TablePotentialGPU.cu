@@ -60,9 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
-
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 
@@ -271,6 +268,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \param table_width Number of points in each table
     \param block_size Block size at which to run the kernel
     \param compute_capability Compute capability of the device (200, 300, 350)
+    \param max_tex1d_width Maximum width of a linear 1d texture
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
@@ -290,7 +288,8 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size,
-                                     const unsigned int compute_capability)
+                                     const unsigned int compute_capability,
+                                     const unsigned int max_tex1d_width)
     {
     assert(d_params);
     assert(d_tables);
@@ -310,7 +309,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         if (error != cudaSuccess)
             return error;
 
-        if (size_nlist <= MAX_TEXTURE_WIDTH)
+        if (size_nlist <= max_tex1d_width)
             {
             nlist_tex.normalized = false;
             nlist_tex.filterMode = cudaFilterModePoint;
@@ -327,7 +326,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
             return error;
         }
 
-    if (compute_capability < 350 && size_nlist > MAX_TEXTURE_WIDTH)
+    if (compute_capability < 350 && size_nlist > max_tex1d_width)
         { // use global memory when the neighbor list must be texture bound, but exceeds the max size of a texture
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -393,6 +392,4 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
 
     return cudaSuccess;
     }
-
-#undef MAX_TEXTURE_WIDTH
 // vim:syntax=cpp

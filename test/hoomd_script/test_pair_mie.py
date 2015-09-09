@@ -48,21 +48,35 @@ class pair_mie_tests (unittest.TestCase):
     # test max rcut
     def test_max_rcut(self):
         mie = pair.mie(r_cut=2.5);
-        mie.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, n=13.0, m=7.0)
+        mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
         self.assertAlmostEqual(2.5, mie.get_max_rcut());
         mie.pair_coeff.set('A', 'A', r_cut = 2.0)
         self.assertAlmostEqual(2.0, mie.get_max_rcut());
 
-    # test nlist subscribe
-    def test_nlist_subscribe(self):
+    # test nlist global subscribe
+    def test_nlist_global_subscribe(self):
         mie = pair.mie(r_cut=2.5);
-        mie.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, n=13.0, m=7.0)
+        mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         mie.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+    
+    # test specific nlist subscription
+    def test_nlist_subscribe(self):
+        nl = nlist.cell()
+        mie = pair.mie(r_cut=2.5, nlist=nl);        
+        self.assertEqual(globals.neighbor_list, None)
+
+        mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+
+        mie.pair_coeff.set('A', 'A', r_cut = 2.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
 
     # test coeff list
     def test_coeff_list(self):

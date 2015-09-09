@@ -39,6 +39,8 @@ class analyze_log_tests (unittest.TestCase):
         run(100);
         ana.set_params(quantities = ['test2', 'test3'], delimiter=',')
         run(100);
+        ana.set_params(quantities = [u'test4', u'test5'], delimiter=',')
+        run(100);
 
     # test variable period
     def test_variable(self):
