@@ -9,6 +9,7 @@
 * Performance improvements for systems with large particle size disparity
 * Bounding volume hierarchy (tree) neighbor list computation
 * Neighbor lists have separate `r_cut` values for each pair of types
+* addInfo callback for dump.pos allows user specified information in pos files
 
 ## Next bugfix release
 
