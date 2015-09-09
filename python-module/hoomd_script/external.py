@@ -214,7 +214,6 @@ class coeff:
             if count != len(required_coeffs):
                 globals.msg.error("Particle type " + type + " is missing required coefficients\n");
                 valid = False;
-
         return valid;
 
     ## \internal
@@ -367,21 +366,19 @@ class wallpotential(_external_force):
         if not self.force_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
             raise RuntimeError("Error updating wallpotential coefficients");
-            # set all the params
-            ntypes = globals.system_definition.getParticleData().getNTypes();
-            type_list = [];
-            for i in range(0,ntypes):
-                type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-            for i in range(0,ntypes):
-                coeff_dict = {};
-                for name in coeff_list:
-                    coeff_dict[name] = self.pair_coeff.get(type_list[i], name);
+        for i in range(0,ntypes):
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.force_coeff.get(type_list[i], name);
 
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, param);
-                self.cpp_force.setRcut(i, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, coeff_dict['r_on']);
+            param = self.process_coeff(coeff_dict);
+            self.cpp_force.setParams(i, param);
 
 class lj(wallpotential):
     def __init__(self, name=""):
@@ -414,7 +411,8 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_scalar2(lj1, lj2);
+        print "lj1 = %.2f,lj2 = %.2f,rcut = %.2f,ron = %.2f, "%(lj1, lj2, coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on'])
+        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class gauss(wallpotential):
     def __init__(self, name=""):
