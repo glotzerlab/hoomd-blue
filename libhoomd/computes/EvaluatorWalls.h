@@ -100,7 +100,7 @@ class EvaluatorWalls
 		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), params(p)
 			{
 			//This runs once for every single particle... Probably should fix somehow
-			field.m_Spheres[0].r = 5;
+			field.m_Spheres[0].r = 15;
 			field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
 			field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
 			field.numSpheres = 1;
@@ -182,12 +182,12 @@ class EvaluatorWalls
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
-			// F.x = Scalar(0.0);
-            // F.y = Scalar(0.0);
-            // F.z = Scalar(0.0);
-            // energy = Scalar(0.0);
-            // for (unsigned int i = 0; i < 6; i++)
-            //     virial[i] = Scalar(0.0);
+			F.x = Scalar(0.0);
+            F.y = Scalar(0.0);
+            F.z = Scalar(0.0);
+            energy = Scalar(0.0);
+            for (unsigned int i = 0; i < 6; i++)
+                virial[i] = Scalar(0.0);
 
 			// convert type as little as possible
 			vec3<Scalar> position = vec3<Scalar>(m_pos);
@@ -212,6 +212,7 @@ class EvaluatorWalls
 
 		            if (evaluated)
 		                {
+
 		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
 		                // add the force, potential energy and virial to the particle i
 		                // (FLOPS: 8)
@@ -223,6 +224,8 @@ class EvaluatorWalls
 	                    virial[3] += force_divr*dx.y*dx.y;
 	                    virial[4] += force_divr*dx.y*dx.z;
 	                    virial[5] += force_divr*dx.z*dx.z;
+	                    cout << "Force is " << F.x << ", " << F.y << ", " << F.z <<endl;
+		               	cout << "dx is " << dx.x << ", " << dx.y << ", " << dx.z <<endl;
 						}
 					}
 				}
@@ -245,11 +248,8 @@ class EvaluatorWalls
 
 		            if (evaluated)
 		                {
-		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-		                // add the force, potential energy and virial to the particle i
-		                // (FLOPS: 8)
 		                F += dx*force_divr;
-		                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+		                energy += pair_eng;
 	                    virial[0] += force_divr*dx.x*dx.x;
 	                    virial[1] += force_divr*dx.x*dx.y;
 	                    virial[2] += force_divr*dx.x*dx.z;

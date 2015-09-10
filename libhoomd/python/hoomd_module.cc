@@ -549,15 +549,15 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PPPMForceCompute();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
     export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
-    export_PotentialExternalWall<EvaluatorPairYukawa >("WallsPotentialYukawa");
-    export_PotentialExternalWall<EvaluatorPairSLJ >("WallsPotentialSLJ");
-    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ >("WallsPotentialForceShiftedLJ");
-    export_PotentialExternalWall<EvaluatorPairMie >("WallsPotentialMie");
-    export_PotentialExternalWall<EvaluatorPairGauss >("WallsPotentialGauss");
-    export_PotentialExternalWall<EvaluatorPairMorse >("WallsPotentialMorse");
-    //export_PotentialExternalWall<EvaluatorPairZBL >("WallsPotentialZBL");
-    //export_PotentialExternalWall<EvaluatorPairEwald >("WallsPotentialEwald");
-    //export_PotentialExternalWall<EvaluatorPairMoliere >("WallsPotentialMoliere");
+    export_PotentialExternalWall<EvaluatorPairYukawa>("WallsPotentialYukawa");
+    export_PotentialExternalWall<EvaluatorPairSLJ>("WallsPotentialSLJ");
+    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>("WallsPotentialForceShiftedLJ");
+    export_PotentialExternalWall<EvaluatorPairMie>("WallsPotentialMie");
+    export_PotentialExternalWall<EvaluatorPairGauss>("WallsPotentialGauss");
+    export_PotentialExternalWall<EvaluatorPairMorse>("WallsPotentialMorse");
+    //export_PotentialExternalWall<EvaluatorPairZBL>("WallsPotentialZBL");
+    //export_PotentialExternalWall<EvaluatorPairEwald>("WallsPotentialEwald");
+    //export_PotentialExternalWall<EvaluatorPairMoliere>("WallsPotentialMoliere");
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
