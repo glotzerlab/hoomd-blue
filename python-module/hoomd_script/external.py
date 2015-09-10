@@ -411,6 +411,10 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+<<<<<<< HEAD
+=======
+        print "lj1 = %.2f,lj2 = %.2f,rcut = %.2f,ron = %.2f, "%(lj1, lj2, coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on'])
+>>>>>>> ba1ea8b4cadf06ddaf900b3bb8aeba3f069157a7
         return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class gauss(wallpotential):
