@@ -411,7 +411,6 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        print "lj1 = %.2f,lj2 = %.2f,rcut = %.2f,ron = %.2f, "%(lj1, lj2, coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on'])
         return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class gauss(wallpotential):
@@ -439,8 +438,8 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
+        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-        return hoomd.make_scalar2(epsilon, sigma);
 
 class slj(wallpotential):
     def __init__(self, r_cut, d_max=None, name=""):
@@ -483,7 +482,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_scalar2(lj1, lj2);
+        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
     def set_params(self, mode=None):
         util.print_status_line();
@@ -519,36 +518,38 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
+        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-        return hoomd.make_scalar2(epsilon, kappa);
 
-class ewald(wallpotential):
-    def __init__(self, name=""):
-        util.print_status_line();
+# class ewald(wallpotential):
+#     def __init__(self, name=""):
+#         util.print_status_line();
 
-        # tell the base class how we operate
+#         # tell the base class how we operate
 
-        # initialize the base class
-        wallpotential.__init__(self, name);
+#         # initialize the base class
+#         wallpotential.__init__(self, name);
 
-        # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialEwald(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialEwald;
-        else:
+#         # create the c++ mirror class
+#         if not globals.exec_conf.isCUDAEnabled():
+#             self.cpp_force = hoomd.WallsPotentialEwald(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialEwald;
+#         else:
 
-            self.cpp_force = hoomd.WallsPotentialEwaldGPU(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialEwaldGPU;
+#             self.cpp_force = hoomd.WallsPotentialEwaldGPU(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialEwaldGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+#         globals.system.addCompute(self.cpp_force, self.force_name);
 
-        # setup the coefficent options
-        self.required_coeffs = ['kappa'];
+#         # setup the coefficent options
+#         self.required_coeffs = ['kappa'];
 
-    def process_coeff(self, coeff):
-        kappa = coeff['kappa'];
+#     def process_coeff(self, coeff):
+#         kappa = coeff['kappa'];
 
-        return kappa;
+#         return kappa;
+#         return hoomd.make_walls_ewald_params(kappa, coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+
 
 class morse(wallpotential):
     def __init__(self, name=""):
@@ -578,7 +579,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_scalar4(D0, alpha, r0, 0.0);
+        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class force_shifted_lj(wallpotential):
     def __init__(self, name=""):
@@ -612,83 +613,87 @@ class force_shifted_lj(wallpotential):
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
-
-class moliere(wallpotential):
-    def __init__(self, name=""):
-        util.print_status_line();
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        wallpotential.__init__(self, name);
+        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 
-        # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialMoliere(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMoliere;
-        else:
+# class moliere(wallpotential):
+#     def __init__(self, name=""):
+#         util.print_status_line();
 
-            self.cpp_force = hoomd.WallsPotentialMoliereGPU(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMoliereGPU;
+#         # tell the base class how we operate
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+#         # initialize the base class
+#         wallpotential.__init__(self, name);
 
-        # setup the coefficient options
-        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
-        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
-        self.pair_coeff.set_default_coeff('a_0', 1.0);
 
-    def process_coeff(self, coeff):
-        Z_i = coeff['Z_i'];
-        Z_j = coeff['Z_j'];
-        elementary_charge = coeff['elementary_charge'];
-        a_0 = coeff['a_0'];
+#         # create the c++ mirror class
+#         if not globals.exec_conf.isCUDAEnabled():
+#             self.cpp_force = hoomd.WallsPotentialMoliere(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialMoliere;
+#         else:
 
-        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
-        if (not (Z_i == 0)) or (not (Z_j == 0)):
-            aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
-        else:
-            aF = 1.0;
-        return hoomd.make_scalar2(Zsq, aF);
+#             self.cpp_force = hoomd.WallsPotentialMoliereGPU(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialMoliereGPU;
 
-class zbl(wallpotential):
-    def __init__(self, name=""):
-        util.print_status_line();
+#         globals.system.addCompute(self.cpp_force, self.force_name);
 
-        # tell the base class how we operate
+#         # setup the coefficient options
+#         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+#         self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+#         self.pair_coeff.set_default_coeff('a_0', 1.0);
 
-        # initialize the base class
-        wallpotential.__init__(self, name);
+#     def process_coeff(self, coeff):
+#         Z_i = coeff['Z_i'];
+#         Z_j = coeff['Z_j'];
+#         elementary_charge = coeff['elementary_charge'];
+#         a_0 = coeff['a_0'];
 
-        # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialZBL(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialZBL;
-        else:
+#         Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+#         if (not (Z_i == 0)) or (not (Z_j == 0)):
+#             aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
+#         else:
+#             aF = 1.0;
+#         return hoomd.make_walls_moliere_params(hoomd.make_scalar2(Zsq, aF), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-            self.cpp_force = hoomd.WallsPotentialZBLGPU(globals.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialZBLGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+# class zbl(wallpotential):
+#     def __init__(self, name=""):
+#         util.print_status_line();
 
-        # setup the coefficient options
-        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
-        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
-        self.pair_coeff.set_default_coeff('a_0', 1.0);
+#         # tell the base class how we operate
 
-    def process_coeff(self, coeff):
-        Z_i = coeff['Z_i'];
-        Z_j = coeff['Z_j'];
-        elementary_charge = coeff['elementary_charge'];
-        a_0 = coeff['a_0'];
+#         # initialize the base class
+#         wallpotential.__init__(self, name);
 
-        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
-        if (not (Z_i == 0)) or (not (Z_j == 0)):
-            aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
-        else:
-            aF = 1.0;
-        return hoomd.make_scalar2(Zsq, aF);
+#         # create the c++ mirror class
+#         if not globals.exec_conf.isCUDAEnabled():
+#             self.cpp_force = hoomd.WallsPotentialZBL(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialZBL;
+#         else:
+
+#             self.cpp_force = hoomd.WallsPotentialZBLGPU(globals.system_definition, self.name);
+#             self.cpp_class = hoomd.WallsPotentialZBLGPU;
+
+#         globals.system.addCompute(self.cpp_force, self.force_name);
+
+#         # setup the coefficient options
+#         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+#         self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+#         self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+#     def process_coeff(self, coeff):
+#         Z_i = coeff['Z_i'];
+#         Z_j = coeff['Z_j'];
+#         elementary_charge = coeff['elementary_charge'];
+#         a_0 = coeff['a_0'];
+
+#         Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+#         if (not (Z_i == 0)) or (not (Z_j == 0)):
+#             aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
+#         else:
+#             aF = 1.0;
+#         return hoomd.make_walls_zbl_params(hoomd.make_scalar2(Zsq, aF), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+
 
 class mie(wallpotential):
     def __init__(self, name=""):
@@ -723,4 +728,5 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_scalar4(mie1, mie2, mie3, mie4);
+        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+
