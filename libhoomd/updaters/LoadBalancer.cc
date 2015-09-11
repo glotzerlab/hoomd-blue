@@ -67,6 +67,7 @@ using namespace boost::python;
 #include <vector>
 #include <cmath>
 #include <numeric>
+#include <limits>
 
 using namespace std;
 
@@ -322,12 +323,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 
     // imbalance factors for each rank
     vector<Scalar> new_widths(N_i.size());
-    
-    // flag which variables are free choices to setup the optimization problem
-    vector<int> map_rank_to_var(N_i.size(), -1); // map of where the rank is in free variables (< 0 indicates fixed)
-    vector<unsigned int> free_vars;
-    free_vars.reserve(N_i.size());
-
     Scalar max_imb_factor(1.0);
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
@@ -345,20 +340,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
             }
 
         // compute the new domain width (can't be smaller than the threshold, if it is, this is not a free variable)
-        Scalar new_width = scale_factor * (cum_frac_i[i+1] - cum_frac_i[i]) * L_i;
-        // enforce a hard limit on the minimum domain size
-        // this is a good assumption for optimization because chances are that reducing this domain to the minimum
-        // will minimize the total objective function. if it needs to get bigger, it can be expanded on next iteration
-        if (new_width < min_domain_size)
-            {
-            new_width = min_domain_size;
-            }
-        else
-            {
-            map_rank_to_var[i] = free_vars.size(); // current size is the index we will push into
-            free_vars.push_back(i); // if not at the minimum, then this domain is a free variable
-            }
-        new_widths[i] = new_width;
+        new_widths[i] = scale_factor * (cum_frac_i[i+1] - cum_frac_i[i]) * L_i;
 
         if (imb_factor > max_imb_factor)
             max_imb_factor = imb_factor;
@@ -369,112 +351,67 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         {
         return false;
         }
-    
-    // if there's zero or one free variables, then the system is totally constrained and solved algebraically
-    if (free_vars.size() == 0)
-        {
-        // either the system is overconstrained (an error), or the system is already perfectly balanced, so do nothing
-        return false;
-        }
-    else if (free_vars.size() == 1)
-        {
-        // fix the one free variable width algebraically
-        new_widths[free_vars.front()] = L_i - min_domain_size * Scalar(N_i.size() - 1);
-        
-        // loop through and rescale widths to fractions
-        for (unsigned int cur_rank = 0; cur_rank < N_i.size(); ++cur_rank)
-            {
-            new_widths[cur_rank] /= L_i; // to fractional width
-            }
-        std::partial_sum(new_widths.begin(), new_widths.end()-1, cum_frac_i.begin() + 1);
-        return true;
-        }
-
 
     /* Here come's the harder case -- there are at least two free variables */
 
     // setup the A matrix just based on the number of free variables (we can map these back later)
     // if there are N free variables, then the length constraint of the box gives N-1 true free variables for optimization
-    unsigned int rows = free_vars.size();
-    unsigned int cols = free_vars.size() - 1;
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(rows, cols);
-    A(0,0) = 1.0;
-    A(rows-1, cols-1) = -1.0;
-    for (unsigned int i=1; i < rows-1; ++i)
+    const Scalar eps(0.1);
+    unsigned int m = N_i.size();
+    unsigned int n = m - 1;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
+    A(0,0) = 1.0; A(m,0) = eps;
+    A(m-1, n-1) = -1.0; A(2*m-1, n-1) = -eps;
+    for (unsigned int i=1; i < m-1; ++i)
         {
+        // upper left block is A
         A(i,i-1) = -1.0;
         A(i,i) = 1.0;
-        }
 
-    // the tricky part is figuring out what the target values should be
-    // we need to add amounts that correspond to the number of fixed lengths
-    
-    // the number of fixed variables at the front is equal to the index and at the tail is equal to the number of
-    // ranks minus the rank index of the last free choice
-    // (i.e., if the last one is free, then there is 1, if the last one is fixed, there are 2, etc.
-    // if the first one is free, then there are 0 dead, if the first is fixed, then there is 1, ...)
-    unsigned int n_dead_front = free_vars.front();
-    unsigned int n_dead_end = N_i.size() - 1 - free_vars.back();
-    Eigen::VectorXd b(rows);
-    for (unsigned int i=0; i < rows; ++i)
+        // lower left block is e A
+        A(i+m, i-1) = -eps;
+        A(i+m, i) = eps;
+        }
+    A.block(0,n,m,m) = -1.0*Eigen::MatrixXd::Identity(m,m);
+
+    // initialize the augmented b array
+    Eigen::VectorXd b(2*m);
+    b.fill(min_domain_size);
+    for (unsigned int i=0; i < m; ++i)
         {
-        const unsigned int cur_rank = free_vars[i];
-        b(i) = new_widths[cur_rank];
-
-        // add the appropriate correction for the number of constrained zones between free variables
-        if (i == 0)
-            {
-            b(0) += min_domain_size * Scalar(n_dead_front);
-            }
-        else if (i == rows - 1)
-            {
-            b(rows-1) += min_domain_size * Scalar(n_dead_end);
-            }
-        else
-            {
-            b(i) += min_domain_size * Scalar(free_vars[i+1] - cur_rank - 1); // -1 so that adjacent var needs no correction
-            }
+        b(m+i) = eps*new_widths[i];
         }
-    b(rows-1) -= L_i; // the last equation applies the total length constraint
-    free_vars.pop_back(); // this variable is not really free anymore, so pop it off
+    b(m-1) -= L_i; // the last equation applies the total length constraint
+    b(2*m-1) -= eps*L_i; // the last equation applies the total length constraint
 
     // position constraints limit movement due to over-decomposition
-    Eigen::VectorXd l(cols), u(cols);
-    for (unsigned int j=0; j < cols; ++j)
+    Eigen::VectorXd l(n+m), u(n+m);
+    l.fill(0.0); u.fill(std::numeric_limits<Scalar>::max()); // the default is lower limit 0 and no upper limit (for slack vars)
+    for (unsigned int j=0; j < n; ++j)
         {
-        const unsigned int cur_rank = free_vars[j];
-        l(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank] + cum_frac_i[cur_rank+1]) * L_i;
-        u(cur_rank) = Scalar(0.5) * (cum_frac_i[cur_rank+1] + cum_frac_i[cur_rank+2]) * L_i;
+        l(j) = Scalar(0.5) * (cum_frac_i[j] + cum_frac_i[j+1]) * L_i;
+        u(j) = Scalar(0.5) * (cum_frac_i[j+1] + cum_frac_i[j+2]) * L_i;
         }
 
     try
         {
         BVLSSolver solver(A, b, l, u);
-        solver.setMaxIterations(3*free_vars.size());
+        solver.setMaxIterations(3*(n+m));
         solver.solve();
         if (solver.converged())
             {
             Eigen::VectorXd x = solver.getSolution();
             
             // now we need to map the solution back and fill in the holes
-            vector<Scalar> sorted_f(N_i.size()-1);
-            Scalar cur_div_pos(0.0);
-            for (unsigned int cur_div=0; cur_div < N_i.size() - 1; ++cur_div)
+            vector<Scalar> sorted_f(n);
+            for (unsigned int cur_div=0; cur_div < n; ++cur_div)
                 {
-                if (map_rank_to_var[cur_div] >= 0)
+                if (x(cur_div) < min_domain_size)
                     {
-                    if (x(map_rank_to_var[cur_div]) < min_domain_size)
-                        {
-                        m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
-                        return false;
-                        }
-                    cur_div_pos = x(map_rank_to_var[cur_div]);
+                    m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                    return false;
                     }
-                else
-                    {
-                    cur_div_pos += new_widths[cur_div];
-                    }
-                sorted_f[cur_div] = cur_div_pos / L_i;
+                sorted_f[cur_div] = x(cur_div) / L_i;
                 if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div-1])
                     {
                     m_exec_conf->msg->warning() << "comm.balance: domains attempting to flip" << endl;
