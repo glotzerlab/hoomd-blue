@@ -62,7 +62,7 @@ class pair_max_rcut_tests (unittest.TestCase):
     # test independent subscription to two neighbor list
     def test_multi_nlist_subscribe(self):
         # subscribe to a tree neighbor list
-        nl = nlist.tree()
+        nl = nlist.cell()
         lj = pair.lj(r_cut=2.5, nlist=nl);
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=3.0)
         lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0)

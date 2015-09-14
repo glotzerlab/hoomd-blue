@@ -1095,27 +1095,6 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         }
     }
 
-//! basic test case for base class
-// BOOST_AUTO_TEST_CASE( NeighborList_basic )
-//     {
-//     neighborlist_basic_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-//     }
-// //! exclusion test case for base class
-// BOOST_AUTO_TEST_CASE( NeighborList_exclusion )
-//     {
-//     neighborlist_exclusion_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-//     }
-// //! large exclusion test case for base class
-// BOOST_AUTO_TEST_CASE( NeighborList_large_ex )
-//     {
-//     neighborlist_large_ex_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-//     }
-// //! body filter test case for base class
-// BOOST_AUTO_TEST_CASE( NeighborList_body_filter)
-//     {
-//     neighborlist_body_filter_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-//     }
-
 //! basic test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_basic )
     {
@@ -1197,7 +1176,6 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_type)
     {
     neighborlist_type_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-
 //! comparison test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListTree_comparison )
     {
@@ -1205,28 +1183,6 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_comparison )
     }
 
 #ifdef ENABLE_CUDA
-
-//! basic test case for GPU class
-// BOOST_AUTO_TEST_CASE( NeighborListGPU_basic )
-//     {
-//     neighborlist_basic_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-//     }
-// //! exclusion test case for GPU class
-// BOOST_AUTO_TEST_CASE( NeighborListGPU_exclusion )
-//     {
-//     neighborlist_exclusion_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-//     }
-// //! large exclusion test case for GPU class
-// BOOST_AUTO_TEST_CASE( NeighborListGPU_large_ex )
-//     {
-//     neighborlist_large_ex_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-//     }
-// //! comparison test case for GPU class
-// BOOST_AUTO_TEST_CASE( NeighborListGPU_comparison )
-//     {
-//     neighborlist_comparison_test<NeighborList, NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-//     }
-
 //! basic test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_basic )
     {
@@ -1272,51 +1228,138 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type)
     {
     neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-    
+
 //! basic test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
     {
-    neighborlist_basic_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree basic test, unsupported" << endl;
+        }
     }
 //! exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree exclusion test, unsupported" << endl;
+        }
     }
 //! large exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree large exclusion test, unsupported" << endl;
+        }
     }
 //! body filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree body filter test, unsupported" << endl;
+        }
     }
 //! diameter filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree diameter shift test, unsupported" << endl;
+        }
     }
+
 //! particle asymmetry test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
     {
-    neighborlist_particle_asymm_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree particle asymm test, unsupported" << endl;
+        }
     }
 //! cutoff exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
     {
-    neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree cutoff exclusion test, unsupported" << endl;
+        }
     }
 //! type test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
     {
-    neighborlist_type_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
+        }
+    }
+
+//! comparison test case for GPUTree class with itself
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree CPU comparison test, unsupported" << endl;
+        }
     }
     
-//! comparison test case for GPU class
-BOOST_AUTO_TEST_CASE( NeighborListGPUTree_comparison )
+//! comparison test case for GPUTree class with GPUBinned
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_binned_comparison )
     {
-    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree GPU comparison test, unsupported" << endl;
+        }
     }
 #endif

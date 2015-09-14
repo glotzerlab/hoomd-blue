@@ -739,6 +739,8 @@ cell.cur_id = 0
 # nl_t.tune()
 # \endcode
 #
+# \warning BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
+#
 # \MPI_SUPPORTED
 class tree(_nlist):
     ## Initialize a %tree neighbor list
@@ -752,6 +754,9 @@ class tree(_nlist):
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
+    #
+    # \warning BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
+    #
     def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
         util.print_status_line()
 
