@@ -78,7 +78,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            unsigned int seed,
                            bool gamma_diam,
                            const std::string& suffix)
-    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false), m_warned_aniso(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVT" << endl;
 
@@ -187,6 +187,13 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
 #endif
     if (group_size == 0)
         return;
+
+    if (m_aniso && !m_warned_aniso)
+        {
+        m_exec_conf->msg->warning() << "integrate.bdnvt: this thermostat "
+            "does not operate on rotational degrees of freedom" << endl;
+        m_warned_aniso = true;
+        }
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

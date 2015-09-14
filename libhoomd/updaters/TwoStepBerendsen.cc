@@ -75,7 +75,8 @@ TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ComputeThermo> thermo,
                                    Scalar tau,
                                    boost::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
+      m_warned_aniso(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBerendsen" << endl;
 
@@ -96,6 +97,13 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
+
+    if (m_aniso && !m_warned_aniso)
+        {
+        m_exec_conf->msg->warning() << "integrate.berendsen: this integrator "
+            "does not support anisotropic degrees of freedom" << endl;
+        m_warned_aniso = true;
+        }
 
     // profile this step
     if (m_prof)

@@ -265,7 +265,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 }
 
             if (! z_zero)
-                { 
+                {
                 p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
                 q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
                 phi3 = Scalar(1./4.)/I.z*dot(p,q3);

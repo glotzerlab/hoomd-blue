@@ -83,19 +83,19 @@ import math
 # The interaction energy, forces and torque depend on the inter-particle separation
 # \f$ \vec r \f$ and on the orientations \f$\vec e_i, \vec e_j\f$, of the particles.
 #
-# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-class ai_pair(force._force):
+class ai_pair(pair.pair):
     ## \internal
     # \brief Initialize the pair force
     # \details
     # The derived class must set
     #  - self.cpp_class (the pair class to instantiate)
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
-    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in 
+    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
     def __init__(self, r_cut, name=None):
         # initialize the base class
@@ -106,7 +106,7 @@ class ai_pair(force._force):
         # setup the coefficent matrix
         self.pair_coeff = pair.coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
- 
+
     ## Set parameters controlling the way forces are computed
     #
     # \param mode (if set) Set the mode with which potentials are handled at the cutoff
@@ -120,7 +120,7 @@ class ai_pair(force._force):
     # mypair.set_params(mode="shift")
     # mypair.set_params(mode="no_shift")
     # \endcode
-    # 
+    #
     def set_params(self, mode=None):
         util.print_status_line();
 
@@ -265,8 +265,7 @@ class gb(ai_pair):
         ai_pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = pair._update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = pair._subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():

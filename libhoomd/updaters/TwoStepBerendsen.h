@@ -102,6 +102,7 @@ class TwoStepBerendsen : public IntegrationMethodTwoStep
         const boost::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
         Scalar m_tau;                    //!< time constant for Berendsen thermostat
         boost::shared_ptr<Variant> m_T;    //!< set temperature
+        bool m_warned_aniso;                             //!< true if we've already warned that we don't support aniso
     };
 
 //! Export the Berendsen class to python
