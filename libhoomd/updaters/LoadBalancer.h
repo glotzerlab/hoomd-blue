@@ -172,7 +172,8 @@ class LoadBalancer : public Updater
         //! Adjust the partitioning along a single dimension
         bool adjust(std::vector<Scalar>& cum_frac_i,
                     const std::vector<unsigned int>& N_i,
-                    Scalar L_i);
+                    Scalar L_i,
+                    Scalar min_domain_frac);
         bool m_needs_migrate;   //!< Flag to signal that migration is necessary
 
         //! Compute the number of particles on each rank after an adjustment

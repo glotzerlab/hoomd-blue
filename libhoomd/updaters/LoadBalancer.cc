@@ -127,6 +127,7 @@ void LoadBalancer::update(unsigned int timestep)
 
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
+    const Scalar3 min_domain_frac = Scalar(2.0)*m_comm->getGhostLayerMaxWidth()/box.getNearestPlaneDistance();
 
     // compute the current imbalance always for the average
     m_total_max_imbalance += getMaxImbalance();
@@ -140,20 +141,24 @@ void LoadBalancer::update(unsigned int timestep)
         for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > m_tolerance; ++dim)
             {
             Scalar L_i(0.0);
+            Scalar min_frac_i(0.0);
             if (dim == 0)
                 {
                 if (!m_enable_x || di.getW() == 1) continue; // skip this dimension if balancing is turned off
                 L_i = L.x;
+                min_frac_i = min_domain_frac.x;
                 }
             else if (dim == 1)
                 {
                 if (!m_enable_y || di.getH() == 1) continue;
                 L_i = L.y;
+                min_frac_i = min_domain_frac.y;
                 }
             else
                 {
                 if (!m_enable_z || di.getD() == 1) continue;
                 L_i = L.z;
+                min_frac_i = min_domain_frac.z;
                 }
 
             vector<unsigned int> N_i;
@@ -164,7 +169,7 @@ void LoadBalancer::update(unsigned int timestep)
             vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
             if (active)
                 {
-                adjusted = adjust(cum_frac, N_i, L_i);
+                adjusted = adjust(cum_frac, N_i, L_i, min_frac_i);
                 }
 
             bcast(adjusted, reduce_root, m_mpi_comm);
@@ -309,7 +314,8 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
  */
 bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                           const vector<unsigned int>& N_i,
-                          Scalar L_i)
+                          Scalar L_i,
+                          Scalar min_frac_i)
     {
     if (N_i.size() == 1)
         return false;
@@ -317,9 +323,13 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // target particles per rank is uniform distribution
     const Scalar target = Scalar(m_pdata->getNGlobal()) / Scalar(N_i.size());
 
-    // make the minimum domain slightly bigger so that the optimization won't fail
-    // TODO: this is probably supposed to be using getNearestPlaneDistance(), and should be tested very carefully
-    const Scalar min_domain_size = Scalar(2.0)*m_comm->getGhostLayerMaxWidth();
+    // make the minimum domain slightly bigger so that the optimization won't fail at equality
+    const Scalar min_domain_size = Scalar(1.00001) * min_frac_i * L_i;
+    // if system is overconstrained (exactly decomposed) don't do any adjusting
+    if (min_domain_size * Scalar(N_i.size()) >= L_i)
+        {
+        return false;
+        }
 
     // imbalance factors for each rank
     vector<Scalar> new_widths(N_i.size());
@@ -330,6 +340,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         Scalar scale_factor = (N_i[i] > 0) ? Scalar(1.0) / imb_factor : (Scalar(1.0) + m_max_scale); // as in gromacs, use half the imbalance factor to scale
 
         // limit rescaling to 5% either direction
+        // we should use absolute distance here, it is necessary to control balancing in corrugated systems
         if (scale_factor > (Scalar(1.0) + m_max_scale))
             {
             scale_factor = (Scalar(1.0) + m_max_scale);
@@ -352,11 +363,9 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         return false;
         }
 
-    /* Here come's the harder case -- there are at least two free variables */
-
-    // setup the A matrix just based on the number of free variables (we can map these back later)
-    // if there are N free variables, then the length constraint of the box gives N-1 true free variables for optimization
-    const Scalar eps(0.1);
+    // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
+    // constraints correctly)
+    const Scalar eps(0.001);
     unsigned int m = N_i.size();
     unsigned int n = m - 1;
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
@@ -401,9 +410,8 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         if (solver.converged())
             {
             Eigen::VectorXd x = solver.getSolution();
-            
-            // now we need to map the solution back and fill in the holes
             vector<Scalar> sorted_f(n);
+            // do validation / sanity checking
             for (unsigned int cur_div=0; cur_div < n; ++cur_div)
                 {
                 if (x(cur_div) < min_domain_size)
@@ -418,6 +426,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                     return false;
                     }
                 }
+            // only push back the solution after we know it is valid
             for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
                 {
                 cum_frac_i[cur_div+1] = sorted_f[cur_div];
