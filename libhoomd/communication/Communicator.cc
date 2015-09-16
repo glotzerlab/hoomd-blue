@@ -1204,14 +1204,15 @@ void Communicator::migrateParticles()
         if (m_prof)
             m_prof->pop();
 
-        const BoxDim global_box = getShiftedBox();
+        // wrap received particles across a global boundary back into global box
+        const BoxDim shifted_box = getShiftedBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
             pdata_element& p = m_recvbuf[idx];
             Scalar4& postype = p.pos;
             int3& image = p.image;
 
-            global_box.wrap(postype, image);
+            shifted_box.wrap(postype, image);
             }
 
         // remove particles that were sent and fill particle data with received particles

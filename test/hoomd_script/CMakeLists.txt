@@ -138,7 +138,7 @@ if (ENABLE_MPI)
         endif()
     endforeach(test)
 
-    # balance test needs to be run on 8 procs
+    # communication test needs to be run on 8 procs
     add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_communication.py 8)
 endif(ENABLE_MPI)
 

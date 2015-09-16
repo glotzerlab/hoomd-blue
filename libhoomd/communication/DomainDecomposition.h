@@ -183,7 +183,7 @@ class DomainDecomposition
         void setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root);
 
         //! Get the dimensions of the local simulation box
-        virtual const BoxDim calculateLocalBox(const BoxDim& global_box);
+        const BoxDim calculateLocalBox(const BoxDim& global_box);
 
         //! Get the rank for a particle to be placed
         /*!
@@ -191,7 +191,7 @@ class DomainDecomposition
          * \param pos Particle position
          * \returns the rank of the processor that should receive the particle
          */
-        virtual unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
+        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
