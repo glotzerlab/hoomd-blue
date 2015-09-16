@@ -68,15 +68,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup communication
 */
 
-//! Class that initializes and holds information about the domain decomposition
-
 //! Class that initializes every processor using spatial domain-decomposition
 /*! This class is used to divide the global simulation box into sub-domains and to assign a box to every processor.
  *
  *  <b>Implementation details</b>
  *
+ *  One way to perform a domain decomposition is to subdivide the box into equal sized widths along each dimension.
  *  To achieve an optimal domain decomposition (i.e. minimal communication costs), the global domain is sub-divided
  *  such as to minimize surface area between domains, while utilizing all processors in the MPI communicator.
+ *
+ *  Alternatively, unequal sized cuts can be taken. This is advantageous for simulations with non-homogeneous
+ *  particle distributions, e.g., a vapor-liquid interface. The user can specify N-1 of the fractions at construction
+ *  time, provided that the specified fractions must create a grid commensurate with the number of ranks available.
+ *  The final rank with is chosen so that the total box is covered. If the specified number of
+ *  ranks does not match the number that is available, behavior is reverted to the normal default with
+ *  uniform cuts along each dimension.
  *
  *  The initialization of the domain decomposition scheme is performed in the constructor.
  */
@@ -97,6 +103,13 @@ class DomainDecomposition
                        unsigned int ny = 0,
                        unsigned int nz = 0,
                        bool twolevel = false);
+
+        //! Constructor for fixed fractions
+        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                            Scalar3 L,
+                            const std::vector<Scalar>& fxs,
+                            const std::vector<Scalar>& fys,
+                            const std::vector<Scalar>& fzs);
 
         //! Calculate MPI ranks of neighboring domain.
         unsigned int getNeighborRank(unsigned int dir) const;
@@ -166,6 +179,9 @@ class DomainDecomposition
                 }
             }
 
+        //! Collectively set the cumulative fractions along a dimension from a given rank
+        void setCumulativeFractions(unsigned int dir, const std::vector<Scalar>& cum_frac, unsigned int root);
+
         //! Get the dimensions of the local simulation box
         virtual const BoxDim calculateLocalBox(const BoxDim& global_box);
 
@@ -177,7 +193,7 @@ class DomainDecomposition
          */
         virtual unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
-    protected:
+    private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis
         unsigned int m_nz;           //!< Number of processors along the z-axis
@@ -209,6 +225,18 @@ class DomainDecomposition
 
         //! Helper method to initialize the two-level decomposition
         void initializeTwoLevel();
+
+        //! Helper method to perform common grid initialization tasks in constructors
+        void initializeDomainGrid(Scalar3 L,
+                                  unsigned int nx,
+                                  unsigned int ny,
+                                  unsigned int nz,
+                                  bool twolevel);
+
+        //! Helper function to perform partial sums on fractional domain widths
+        void initializeCumulativeFractions(const std::vector<Scalar>& fxs,
+                                           const std::vector<Scalar>& fys,
+                                           const std::vector<Scalar>& fzs);
 
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator

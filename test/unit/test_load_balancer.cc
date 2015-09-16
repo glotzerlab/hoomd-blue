@@ -62,7 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ExecutionConfiguration.h"
 #include "Communicator.h"
-#include "BalancedDomainDecomposition.h"
 #include "LoadBalancer.h"
 #ifdef ENABLE_CUDA
 #include "LoadBalancerGPU.h"
@@ -112,7 +111,7 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
     fxs[0] = Scalar(0.5);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.5);
-    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 
@@ -217,7 +216,7 @@ void test_load_balancer_multi(boost::shared_ptr<ExecutionConfiguration> exec_con
     std::vector<Scalar> fxs, fys(1), fzs(3);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.25); fzs[1] = Scalar(0.25); fzs[2] = Scalar(0.25);
-    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 
@@ -353,7 +352,7 @@ void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_con
     fxs[0] = Scalar(0.5);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.5);
-    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 

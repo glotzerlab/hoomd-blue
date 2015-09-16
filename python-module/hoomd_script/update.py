@@ -593,5 +593,83 @@ class box_resize(_updater):
         if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
+## Adjusts the boundaries of a domain decomposition on a regular 3D grid.
+class balance(_updater):
+    ## Create a load balancer
+    #
+    # \param x If true, balance in x dimension
+    # \param y If true, balance in y dimension
+    # \param z If true, balance in z dimension
+    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
+    # \param maxiter Maximum number of iterations to attempt in a single step
+    # \param period Balancing will be attempted every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    # If \a period is set to None, then load balancing performed only *once*.
+    #
+    # \note Load balancing is only compatible with an adjustable domain decomposition. This decomposition must be created
+    #       explicitly before the system is initialized using comm.decomposition().
+    def __init__(self, x=True, y=True, z=True, tolerance=1.05, maxiter=1, period=1, phase=-1):
+        # initialize base class
+        update._updater.__init__(self);
+
+        # globals.decomposition being None is equivalent to (a) not having a decomposition or (b) having a regular
+        # decomposition that doesn't support balancing
+        if not hoomd.is_MPI_available():
+            globals.msg.warning("Ignoring balance command, not supported in current configuration.\n")
+            return
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
+        else:
+            self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);
+
+        # if no period is set, just do the update now, otherwise setup the periodic updater
+        if period is None:
+            self.cpp_updater.update(globals.system.getCurrentTimeStep())
+        else:
+            self.setupUpdater(period, phase)
+
+        # stash arguments to metadata
+        self.metadata_fields = ['tolerance','maxiter','period','phase']
+        self.period = period
+        self.phase = phase
+
+        # configure the parameters
+        util._disable_status_lines = True
+        self.set_params(x,y,z,tolerance, maxiter)
+        util._disable_status_lines = False
+
+    ## Change load balancing parameters
+    #
+    # \param x If true, balance in x dimension
+    # \param y If true, balance in y dimension
+    # \param z If true, balance in z dimension
+    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
+    # \param maxiter Maximum number of iterations to attempt in a single step
+    #
+    # \b Examples:
+    # \code
+    # balance.set_params(x=True, y=False)
+    # balance.set_params(tolerance=0.02, maxiter=5)
+    # \endcode
+    def set_params(self, x=None, y=None, z=None, tolerance=None, maxiter=None):
+        util.print_status_line()
+        self.check_initialization()
+
+        if x is not None:
+            self.cpp_updater.enableDimension(0, x)
+        if y is not None:
+            self.cpp_updater.enableDimension(1, y)
+        if z is not None:
+            self.cpp_updater.enableDimension(2, z)
+        if tolerance is not None:
+            self.tolerance = tolerance
+            self.cpp_updater.setTolerance(self.tolerance)
+        if maxiter is not None:
+            self.maxiter = maxiter
+            self.cpp_updater.setMaxIterations(self.maxiter)
+
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;

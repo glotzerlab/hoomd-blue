@@ -60,6 +60,7 @@ import platform;
 
 from hoomd_script import util;
 from hoomd_script import globals;
+from hoomd_script import comm;
 import hoomd_script
 
 ## \package hoomd_script.init
@@ -833,33 +834,18 @@ def _create_exec_conf():
 def _create_domain_decomposition(box):
     if not hoomd.is_MPI_available():
         return None
-    
-    # return the existing decomposition if it is already taken care of from the balance() command
-    if globals.decomposition is not None:
-        return globals.decomposition._make_cpp_decomposition(box)
-    else:
-        # default values for arguents
-        nx = ny = nz = 0
-        linear = False
 
-        if globals.options.nx is not None:
-            nx = globals.options.nx
-        if globals.options.ny is not None:
-            ny = globals.options.ny
-        if globals.options.nz is not None:
-            nz = globals.options.nz
-        if globals.options.linear is not None:
-            linear = globals.options.linear
+    # if we are only running on one processor, we use optimized code paths
+    # for single-GPU execution
+    if globals.exec_conf.getNRanks() == 1:
+        return None
 
-        if linear is True:
-            # set up linear decomposition
-            nz = globals.exec_conf.getNRanks()
+    # okay, we want a decomposition but one isn't set, so make a default one
+    if globals.decomposition is None:
+        # this is happening transparently to the user, so hush this up
+        util._disable_status_lines = True
+        globals.decomposition = comm.decomposition()
+        util._disable_status_lines = False
 
-        # if we are only running on one processor, we use optimized code paths
-        # for single-GPU execution
-        if globals.exec_conf.getNRanks() == 1:
-            return None
-
-        # initialize domain decomposition
-        return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz, not globals.options.onelevel);
+    return globals.decomposition._make_cpp_decomposition(box)
 

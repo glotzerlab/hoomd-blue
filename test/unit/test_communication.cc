@@ -62,8 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ExecutionConfiguration.h"
 #include "Communicator.h"
-#include "DomainDecomposition.h"
-#include "BalancedDomainDecomposition.h"
 
 #include "ConstForceCompute.h"
 #include "TwoStepNVE.h"
@@ -285,7 +283,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
-    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::vector<Scalar> cum_frac_x = decomposition->getCumulativeFractions(0);
     MY_BOOST_CHECK_SMALL(cum_frac_x[0], tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_x[1], 0.5, tol);
@@ -709,7 +707,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     fys[0] = Scalar(0.25);
     fzs[0] = Scalar(0.75);
 
-    boost::shared_ptr<BalancedDomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
 
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
@@ -3474,7 +3472,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
     
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
@@ -3559,7 +3557,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3569,7 +3567,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3579,7 +3577,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
@@ -3600,7 +3598,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
@@ -3621,7 +3619,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
@@ -3666,7 +3664,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
     
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
@@ -3751,7 +3749,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3761,7 +3759,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3771,7 +3769,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new BalancedDomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
@@ -3792,7 +3790,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
@@ -3813,7 +3811,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new BalancedDomainDecomposition(exec_conf, box.getL(), fx, fy, fz));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
@@ -3862,8 +3860,8 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new BalancedDomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new BalancedDomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
+        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
+        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
 
@@ -3877,7 +3875,7 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new BalancedDomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
+        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
     }

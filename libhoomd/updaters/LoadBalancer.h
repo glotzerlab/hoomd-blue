@@ -63,7 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __LOADBALANCER_H__
 
 #include "Updater.h"
-#include "BalancedDomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -83,7 +82,7 @@ class LoadBalancer : public Updater
     {
     public:
         //! Constructor
-        LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<BalancedDomainDecomposition> decomposition);
+        LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<DomainDecomposition> decomposition);
         //! Destructor
         virtual ~LoadBalancer();
 
@@ -146,7 +145,7 @@ class LoadBalancer : public Updater
         virtual void resetStats();
 
     protected:
-        boost::shared_ptr<BalancedDomainDecomposition> m_decomposition; //!< The domain decomposition to balance
+        boost::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
 

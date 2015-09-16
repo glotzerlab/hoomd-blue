@@ -67,7 +67,7 @@ using namespace boost;
 using namespace boost::python;
 
 LoadBalancerGPU::LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<BalancedDomainDecomposition> decomposition)
+                                 boost::shared_ptr<DomainDecomposition> decomposition)
     : LoadBalancer(sysdef, decomposition)
     {
     // allocate data connected to the maximum number of particles
@@ -156,7 +156,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
 void export_LoadBalancerGPU()
     {
     class_<LoadBalancerGPU, boost::shared_ptr<LoadBalancerGPU>, bases<LoadBalancer>, boost::noncopyable>
-    ("LoadBalancerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<BalancedDomainDecomposition> >())
+    ("LoadBalancerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<DomainDecomposition> >())
     ;
     }
 

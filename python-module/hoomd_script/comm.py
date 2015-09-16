@@ -53,10 +53,8 @@
 # \brief Commands to support MPI communication
 
 import hoomd;
-from hoomd_script import init;
 from hoomd_script import util;
 from hoomd_script import globals;
-from hoomd_script import update;
 import hoomd_script;
 
 import sys;
@@ -154,7 +152,7 @@ class decomposition():
         util.print_status_line()
 
         # check that system is not initialized
-        if init.is_initialized():
+        if globals.system is not None:
             globals.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
@@ -166,12 +164,36 @@ class decomposition():
             self.x = []
             self.y = []
             self.z = []
+            self.nx = 0
+            self.ny = 0
+            self.nz = 0
+            self.uniform_x = True
+            self.uniform_y = True
+            self.uniform_z = True
 
             util._disable_status_lines = True
             self.set_params(x,y,z,nx,ny,nz)
             util._disable_status_lines = False
 
+            # do a one time update of the cuts to the global values if a global is set
+            if not self.x and self.nx == 0 and globals.options.nx is not None:
+                self.nx = globals.options.nx
+                self.uniform_x = True
+            if not self.y and self.ny == 0 and globals.options.ny is not None:
+                self.ny = globals.options.ny
+                self.uniform_y = True
+            if not self.z and self.nz == 0:
+                if globals.options.linear is True:
+                    self.nz = globals.exec_conf.getNRanks()
+                    self.uniform_z = True
+                elif globals.options.nz is not None:
+                    self.nz = globals.options.nz
+                    self.uniform_z = True
+
             # set the global decomposition to this class
+            if globals.decomposition is not None:
+                globals.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
+
             globals.decomposition = self
 
     ## Set parameters for the decomposition before initialization.
@@ -184,6 +206,10 @@ class decomposition():
     def set_params(self,x=None,y=None,z=None,nx=None,ny=None,nz=None):
         util.print_status_line()
 
+        if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
+            globals.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
+            raise RuntimeError("Cannot set fractions and number of processors simultaneously")
+
         # if x is set, use it. otherwise, if nx is set, compute x and set it
         if x is not None:
             # recast single floats as lists that can be iterated, this is the only single input we should expect
@@ -191,10 +217,10 @@ class decomposition():
                 self.x = [x]
             else:
                 self.x = x
+            self.uniform_x = False
         elif nx is not None:
-            self.x = [1.0/nx] * (nx-1)
-        elif globals.options.nx is not None:
-            self.x = [1.0/globals.options.nx] * (globals.options.nx-1)
+            self.nx = nx
+            self.uniform_x = True
 
         # do the same in y
         if y is not None:
@@ -202,31 +228,49 @@ class decomposition():
                 self.y = [y]
             else:
                 self.y = y
+            self.uniform_y = False
         elif ny is not None:
-            self.y = [1.0/ny] * (ny-1)
-        elif globals.options.ny is not None:
-            self.y = [1.0/globals.options.ny] * (globals.options.ny-1)
+            self.ny = ny
+            self.uniform_y = True
 
-        # do the same in z
+        # do the same in z (but also use the linear command line option if it is present, which supersedes nz)
         if z is not None:
             if isinstance(z, float):
                 self.z = [z]
             else:
                 self.z = z
+            self.uniform_z = False
         elif nz is not None:
-            self.z = [1.0/nz] * (nz-1)
-        elif globals.options.nz is not None:
-            self.z = [1.0/globals.options.nz] * (globals.options.nz-1)
-
+            self.nz = nz
+            self.uniform_z = True
 
     ## \internal
     # \brief Delayed construction of the C++ object for this balanced decomposition
     # \param box Global simulation box for decomposition
     def _make_cpp_decomposition(self, box):
+        # if the box is uniform in all directions, just use these values
+        if self.uniform_x and self.uniform_y and self.uniform_z:
+            self.cpp_dd = hoomd.DomainDecomposition(globals.exec_conf, box.getL(), self.nx, self.ny, self.nz, not globals.options.onelevel)
+            return self.cpp_dd
+
+        # otherwise, make the fractional decomposition
         try:
             fxs = hoomd.std_vector_scalar()
             fys = hoomd.std_vector_scalar()
             fzs = hoomd.std_vector_scalar()
+
+            # if uniform, correct the fractions to be uniform as well
+            if self.uniform_x and self.nx > 0:
+                self.x = [1.0/self.nx]*(self.nx-1)
+            if self.uniform_y and self.ny > 0:
+                self.y = [1.0/self.ny]*(self.ny-1)
+            if self.uniform_z and self.nz > 0:
+                self.z = [1.0/self.nz]*(self.nz-1)
+
+            if get_rank() == 0:
+                print self.x
+                print self.y
+                print self.z
 
             sum_x = sum_y = sum_z = 0.0
             tol = 1.0e-5
@@ -260,87 +304,9 @@ class decomposition():
                 globals.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in z must lie between 0.0 and 1.0")
 
-            self.cpp_dd = hoomd.BalancedDomainDecomposition(globals.exec_conf, box.getL(), fxs, fys, fzs)
+            self.cpp_dd = hoomd.DomainDecomposition(globals.exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
         except TypeError,te:
             globals.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
-
-## Adjusts the boundaries of a domain decomposition on a regular 3D grid.
-class balance(update._updater):
-    ## Create a load balancer
-    #
-    # \param x If true, balance in x dimension
-    # \param y If true, balance in y dimension
-    # \param z If true, balance in z dimension
-    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
-    # \param maxiter Maximum number of iterations to attempt in a single step
-    # \param period Balancing will be attempted every \a period time steps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # If \a period is set to None, then load balancing performed only *once*.
-    #
-    # \note Load balancing is only compatible with an adjustable domain decomposition. This decomposition must be created
-    #       explicitly before the system is initialized using comm.decomposition().
-    def __init__(self, x=True, y=True, z=True, tolerance=1.05, maxiter=1, period=1, phase=-1):
-        # initialize base class
-        update._updater.__init__(self);
-
-        # globals.decomposition being None is equivalent to (a) not having a decomposition or (b) having a regular
-        # decomposition that doesn't support balancing
-        if not hoomd.is_MPI_available() or globals.decomposition is None or not isinstance(globals.decomposition.cpp_dd, hoomd.BalancedDomainDecomposition):
-            globals.msg.warning("Ignoring balance command, not supported in current configuration.\n")
-            return
-
-        # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
-        else:
-            self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);
-
-        # if no period is set, just do the update now, otherwise setup the periodic updater
-        if period is None:
-            self.cpp_updater.update(globals.system.getCurrentTimeStep())
-        else:
-            self.setupUpdater(period, phase)
-
-        # stash arguments to metadata
-        self.metadata_fields = ['tolerance','maxiter','period','phase']
-        self.period = period
-        self.phase = phase
-
-        # configure the parameters
-        util._disable_status_lines = True
-        self.set_params(x,y,z,tolerance, maxiter)
-        util._disable_status_lines = False
-
-    ## Change load balancing parameters
-    #
-    # \param x If true, balance in x dimension
-    # \param y If true, balance in y dimension
-    # \param z If true, balance in z dimension
-    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
-    # \param maxiter Maximum number of iterations to attempt in a single step
-    #
-    # \b Examples:
-    # \code
-    # balance.set_params(x=True, y=False)
-    # balance.set_params(tolerance=0.02, maxiter=5)
-    # \endcode
-    def set_params(self, x=None, y=None, z=None, tolerance=None, maxiter=None):
-        util.print_status_line()
-        self.check_initialization()
-
-        if x is not None:
-            self.cpp_updater.enableDimension(0, x)
-        if y is not None:
-            self.cpp_updater.enableDimension(1, y)
-        if z is not None:
-            self.cpp_updater.enableDimension(2, z)
-        if tolerance is not None:
-            self.tolerance = tolerance
-            self.cpp_updater.setTolerance(self.tolerance)
-        if maxiter is not None:
-            self.maxiter = maxiter
-            self.cpp_updater.setMaxIterations(self.maxiter)
