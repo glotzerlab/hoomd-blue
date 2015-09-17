@@ -594,6 +594,42 @@ class box_resize(_updater):
             self.cpp_updater.setParams(scale_particles);
 
 ## Adjusts the boundaries of a domain decomposition on a regular 3D grid.
+#
+# Every \a period steps, the boundaries of the processor domains are adjusted to distribute the particle load close
+# to evenly between them. The load imbalance is defined as the number of particles owned by a rank divided by the
+# average number of particles per rank if the particles had a uniform distribution:
+# \f[
+# I = \frac{N(i)}{N / P}
+# \f]
+# where \f$ N(i) \f$ is the number of particles on processor \f$i\f$, \f$N\f$ is the total number of particles, and
+# \f$P\f$ is the number of ranks.
+#
+# In order to adjust the load imbalance, the sizes are rescaled by the inverse of the imbalance factor. To reduce
+# oscillations and communication overhead, a domain cannot move more than 5% of its current size in a single
+# rebalancing step, and the edge of a domain cannot move more than half the distance to its neighbors.
+#
+# Simulations with interfaces (so that there is a particle density gradient) or clustering should benefit from load
+# balancing. The potential speedup is roughly \f$I-1.0\f$, so that if the largest imbalance is 1.4, then the user
+# can expect a roughly 40% speedup in the simulation. This is of course an estimate that assumes that all algorithms
+# are roughly linear in \f$N\f$, all GPUs are fully occupied, and the simulation is limited by the speed of the slowest
+# processor. It also assumes that all particles roughly equal. If you have a simulation where, for example, some particles
+# have significantly more pair force neighbors than others, this estimate of the load imbalance may not produce the
+# optimal results.
+#
+# A load balancing adjustment is only performed when the maximum load imbalance exceeds a \a tolerance. The ideal load
+# balance is 1.0, so setting \a tolerance less than 1.0 will force an adjustment every \a period. The load balancer
+# can attempt multiple iterations of balancing every \a period, and up to \a maxiter attempts can be made. The optimal
+# values of \a period and \a maxiter will depend on your simulation.
+#
+# Load balancing can be performed independently and sequentially for each dimension of the simulation box. A small
+# performance increase may be obtained by disabling load balancing along dimensions that are known to be homogeneous.
+# For example, if there is a planar vapor-liquid interface normal to the \f$z\f$ axis, then it may be advantageous to
+# disable balancing along \f$x\f$ and \f$y\f$.
+#
+# Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
+# If \a period is None, then load balancing is only performed once at the time the command is called.
+#
+# \MPI_SUPPORTED
 class balance(_updater):
     ## Create a load balancer
     #
@@ -609,9 +645,9 @@ class balance(_updater):
     #
     # \note Load balancing is only compatible with an adjustable domain decomposition. This decomposition must be created
     #       explicitly before the system is initialized using comm.decomposition().
-    def __init__(self, x=True, y=True, z=True, tolerance=1.05, maxiter=1, period=1, phase=-1):
+    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1, phase=-1):
         # initialize base class
-        update._updater.__init__(self);
+        _updater.__init__(self);
 
         # globals.decomposition being None is equivalent to (a) not having a decomposition or (b) having a regular
         # decomposition that doesn't support balancing

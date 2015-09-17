@@ -66,6 +66,10 @@ using namespace boost;
 #include <boost/python.hpp>
 using namespace boost::python;
 
+/*!
+ * \param sysdef System definition
+ * \param decomposition Domain decomposition
+ */
 LoadBalancerGPU::LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
     : LoadBalancer(sysdef, decomposition)
@@ -114,6 +118,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         }
 
     // select the particles that should be sent to other ranks
+    vector<unsigned int> off_rank;
         {
         ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_off_ranks(m_off_ranks, access_location::device, access_mode::overwrite);
@@ -143,13 +148,18 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
                                          tmp_storage_bytes,
                                          m_pdata->getN(),
                                          m_exec_conf->getRank());
+
+        // copy just the subset of particles that are off rank on the device into host memory
+        // this can save substantially on the memcpy if there are many particles on a rank
+        const unsigned int n_off_rank = m_n_off_rank.readFlags();
+        off_rank.resize(n_off_rank);
+        cudaMemcpy(&off_rank[0], d_off_ranks.data, sizeof(unsigned int)*n_off_rank, cudaMemcpyDeviceToHost);
         }
 
-    // perform the counting on the host (todo: profile this!)
-    ArrayHandle<unsigned int> h_off_ranks(m_off_ranks, access_location::host, access_mode::read);
-    for (unsigned int cur_p=0; cur_p < m_n_off_rank.readFlags(); ++cur_p)
+    // perform the counting on the host
+    for (unsigned int cur_p=0; cur_p < off_rank.size(); ++cur_p)
         {
-        cnts[h_off_ranks.data[cur_p]]++;
+        cnts[off_rank[cur_p]]++;
         }
     }
 

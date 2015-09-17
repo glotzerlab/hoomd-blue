@@ -4,7 +4,6 @@
 
 from hoomd_script import *
 context.initialize()
-import hoomd
 import unittest
 
 ## Dynamic load balancing tests
@@ -16,14 +15,16 @@ class load_balance_tests (unittest.TestCase):
             comm.decomposition(nx=2,ny=2,nz=2)
             init.create_random(N=100, phi_p=0.05)
 
+    ## Test basic constructor succeeds
     def test_basic(self):
         if comm.get_num_ranks() > 1:
-            comm.balance()
+            update.balance()
 
+    ## Test for parameter setting in constructor and by set_params
     def test_set_params(self):
         if comm.get_num_ranks() > 1:
-            lb = comm.balance(x=False, y=False, z=False, tolerance=0.02, maxiter=2, period=4, phase=1)
-            lb.set_params(x=True, y=True, z=True, tolerance=0.05, maxiter=1)
+            lb = update.balance(x=False, y=False, z=False, tolerance=1.05, maxiter=2, period=4, phase=1)
+            lb.set_params(x=True, y=True, z=True, tolerance=0.95, maxiter=1)
 
     def tearDown(self):
         if comm.get_num_ranks() > 1:

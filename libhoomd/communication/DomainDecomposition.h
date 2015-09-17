@@ -96,6 +96,7 @@ class DomainDecomposition
          * \param nx Requested number of domains along the x direction (0 == choose default)
          * \param ny Requested number of domains along the y direction (0 == choose default)
          * \param nz Requested number of domains along the z direction (0 == choose default)
+         * \param twolevel If true, attempt two level decomposition (default == false)
          */
         DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
                        Scalar3 L,
@@ -132,7 +133,6 @@ class DomainDecomposition
             return m_cart_ranks_inv;
             }
 
-
         //! Get the grid position of this rank
         uint3 getGridPos() const
             {
@@ -142,6 +142,12 @@ class DomainDecomposition
         //! Determines whether the local box shares a boundary with the global box
         bool isAtBoundary(unsigned int dir) const;
 
+        //! Get the cumulative box fraction at a specific rank index
+        /*!
+         * \param dir Direction (0=x, 1=y, 2=z) to get fraction
+         * \param idx The rank index to get the cumulative fraction below (0 to N+1)
+         * \returns Cumulative fraction of global box length below rank at \a idx
+         */
         Scalar getCumulativeFraction(unsigned int dir, unsigned int idx) const
             {
             if (dir == 0)
@@ -167,6 +173,10 @@ class DomainDecomposition
             }
 
         //! Get the cumulative box fractions along each dimension
+        /*!
+         * \param dir Direction (0=x, 1=y, 2=z) to get fraction
+         * \returns Array of cumulative fractions of global box length below rank
+         */
         std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
             {
             if (dir == 0) return m_cum_frac_x;
@@ -186,11 +196,6 @@ class DomainDecomposition
         const BoxDim calculateLocalBox(const BoxDim& global_box);
 
         //! Get the rank for a particle to be placed
-        /*!
-         * \param global_box Global simulation box
-         * \param pos Particle position
-         * \returns the rank of the processor that should receive the particle
-         */
         unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
     private:

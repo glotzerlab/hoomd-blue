@@ -152,6 +152,13 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     initializeCumulativeFractions(try_fxs, try_fys, try_fzs);
     }
 
+/*!
+ * \param L Box lengths of global box to sub-divide
+ * \param nx Requested number of domains along the x direction (0 == choose default)
+ * \param ny Requested number of domains along the y direction (0 == choose default)
+ * \param nz Requested number of domains along the z direction (0 == choose default)
+ * \param twolevel If true, attempt two level decomposition (default == false)
+ */
 void DomainDecomposition::initializeDomainGrid(Scalar3 L,
                                                unsigned int nx,
                                                unsigned int ny,
@@ -320,6 +327,15 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
     m_grid_pos = m_index.getTriple(h_cart_ranks_inv.data[rank]);
     }
 
+/*!
+ * \param fxs Array of fractions to decompose box in x for first nx-1 processors
+ * \param fys Array of fractions to decompose box in y for first ny-1 processors
+ * \param fzs Array of fractions to decompose box in z for first nz-1 processors
+ *
+ * The constructor that calls this method should ensure that the array sizes match the domain decomposition grid size.
+ * A partial sum is performed on the fractions to fill up the cumulative fraction arrays, which begin with 0 and end with
+ * 1 always.
+ */
 void DomainDecomposition::initializeCumulativeFractions(const std::vector<Scalar>& fxs,
                                                         const std::vector<Scalar>& fys,
                                                         const std::vector<Scalar>& fzs)
@@ -555,7 +571,10 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
         }
     }
 
-//! Get the dimensions of the local simulation box
+/*!
+ * \param global_box The global simulation box
+ * \returns The local simulation box for the current rank
+ */
 const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
     // initialize local box with all properties of global box
@@ -580,6 +599,11 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     return box;
     }
 
+/*!
+ * \param global_box Global simulation box
+ * \param pos Particle position
+ * \returns the rank of the processor that should receive the particle
+ */
 unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos)
     {
     // get fractional coordinates in the global box

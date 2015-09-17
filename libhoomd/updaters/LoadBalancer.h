@@ -72,9 +72,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Updates domain decompositions to balance the load
 /*!
- * Adjusts the boundaries of the processor domains to distribute the load close to evenly between them.
- * Implements a hybrid of the LAMMPS and GROMACS load balancing algorithms, where boxes are rescaled slowly and only
- * one time per step (as in GROMACS), but using the particle numbers rather than explicit timings (as in LAMMPS).
+ * Adjusts the boundaries of the processor domains to distribute the load close to evenly between them. The load imbalance
+ * is defined as the number of particles owned by a rank divided by the average number of particles per rank if the
+ * particles had a uniform distribution.
+ *
+ * At each load balancing step, we attempt to rescale the domain size by the inverse of the load balance, subject to the
+ * following constraints that are imposed to both maintain a stable balancing and to keep communication isolated to the
+ * 26 nearest neighbors of a cell:
+ *  1. No domain may move more than half its neighboring domains.
+ *  2. No domain may be smaller than the minimum size set by the ghost layer.
+ *  3. A domain should change size by at most approximately 5% in a single rescaling.
+ *
+ * Constraints are satisfied by solving a least-squares problem with box constraints, where the cost function is the
+ * deviation of the domain sizes from the proposed rescaled width.
  *
  * \ingroup updaters
  */
@@ -150,9 +160,6 @@ class LoadBalancer : public Updater
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
 
         //! Computes the maximum imbalance factor
-        /*!
-         * \todo Add caching behavior and make this public
-         */
         Scalar getMaxImbalance();
         Scalar m_max_imbalance;             //!< Maximum imbalance
         bool m_recompute_max_imbalance;     //!< Flag if maximum imbalance needs to be computed
@@ -198,7 +205,7 @@ class LoadBalancer : public Updater
             m_recompute_max_imbalance = true;
             m_needs_recount = false;
             }
-        bool m_needs_recount;               //!< Flag if a particle change needs to be computed
+        bool m_needs_recount;   //!< Flag if a particle change needs to be computed
 
         Scalar m_tolerance;     //!< Load imbalance to tolerate
         unsigned int m_maxiter; //!< Maximum number of iterations to attempt

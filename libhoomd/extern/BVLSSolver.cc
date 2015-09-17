@@ -30,7 +30,6 @@
 
 using namespace std;
 using namespace Eigen;
-#include <iostream>
 
 /*!
  * \param A m equation x n variable matrix

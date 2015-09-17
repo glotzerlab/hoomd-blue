@@ -109,21 +109,26 @@ def barrier():
 
 ## Balances the domain decomposition
 #
-# A standard domain decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
-# the surface area between domains. Although this works well for systems where particles are uniformly distributed and
-# there is equal computational load for each domain, it can lead to significant load imbalance between processors
-# in simulations with density gradients, such as a vapor-liquid interface, or with significant particle clustering. The
-# simulation time then becomes limited by the slowest processor. It may then be advantageous in certain systems to
-# create domains of unequal volume, for example, by increasing the volume of less dense regions of the simulation box
-# in order to balance the number of particles.
+# A single domain %decomposition is defined for the simulation.
+# A standard domain %decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
+# the surface area between domains. This works well for systems where particles are uniformly distributed and
+# there is equal computational load for each domain, and is the default behavior in HOOMD-blue. If no %decomposition is
+# specified for an MPI run, a uniform %decomposition is automatically constructed on initialization.
 #
-# The %balance command allows the user to shift the Cartesian cut planes of the decomposition to adjust the volume
-# of each domain. The fractional width of the first \f$n_i - 1\f$ domains is specified along each dimension, where
+# In simulations with density gradients, such as a vapor-liquid interface, there can be a considerable imbalance of
+# particles between different ranks. The simulation time then becomes limited by the slowest processor. It may then be
+# advantageous in certain systems to create domains of unequal volume, for example, by increasing the volume of less
+# dense regions of the simulation box in order to balance the number of particles.
+#
+# The %decomposition command allows the user to control the geometry and positions of the %decomposition.
+# The fractional width of the first \f$n_i - 1\f$ domains is specified along each dimension, where
 # \f$n_i\f$ is the number of ranks desired along dimension \f$i\f$. If no cut planes are specified, then a uniform
-# spacing is assumed. The number of domains in the uniform dimensions can be specified in the constructor or in
-# the command line options, or else one is chosen. If the desired decomposition is not commensurate with the
-# number of ranks available (for example, a 3x3x3 decomposition when only 8 ranks are available), then a default uniform
-# spacing is chosen. For the best control, the user should specify all cut planes.
+# spacing is assumed. The number of domains with uniform spacing can also be specified. If the desired %decomposition
+# is not commensurate with the number of ranks available (for example, a 3x3x3 decomposition when only 8 ranks are
+# available), then a default uniform spacing is chosen. For the best control, the user should specify the number of
+# ranks in each dimension even if uniform spacing is desired.
+#
+# \warning The %decomposition command will override specified command line options.
 #
 class decomposition():
     ## Create a balanced domain decomposition
@@ -134,9 +139,8 @@ class decomposition():
     # \param ny Number of processors to uniformly space in y dimension (if y list is None)
     # \param nz Number of processors to uniformly space in z dimension (if z list is None)
     #
-    # Priority is always given to (x,y,z) lists for determining grid size. If one of these is not set, but (nx,ny,nz)
-    # is, then this value is used for the grid dimension assuming uniform spacing. If one of these is not set, then
-    # the global option is checked and used if set. Otherwise, a default decomposition is chosen.
+    # Priority is always given to specified arguments over the command line arguments. If one of these is not set but
+    # a command line option is, then the command line option is used. Otherwise, a default %decomposition is chosen.
     #
     # \b Examples:
     # \code
@@ -145,9 +149,13 @@ class decomposition():
     # \endcode
     #
     # \note This command must be invoked *before* the system is initialized because particles are decomposed at this time.
-    # \note The domain size cannot be chosen arbitrarily small. There are restrictions placed on the decomposition by the
-    #       ghost layer width set by the %pair potentials. An error will be raised if the ghost layer width exceeds half
-    #       the shortest domain size.
+    #
+    # \note The domain size cannot be chosen arbitrarily small. There are restrictions placed on the %decomposition by the
+    #       ghost layer width set by the %pair potentials. An error will be raised at run time if the ghost layer width
+    #       exceeds half the shortest domain size.
+    #
+    # \warning Both fractional widths and the number of processors cannot be set simultaneously, and an error will be
+    #          raised if both are set.
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
         util.print_status_line()
 
@@ -203,6 +211,12 @@ class decomposition():
     # \param nx Number of processors to uniformly space in x dimension (if x list is None)
     # \param ny Number of processors to uniformly space in y dimension (if y list is None)
     # \param nz Number of processors to uniformly space in z dimension (if z list is None)
+    #
+    # \b Examples:
+    # \code
+    # decomposition.set_params(x=[0.2])
+    # decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
+    # \endcode
     def set_params(self,x=None,y=None,z=None,nx=None,ny=None,nz=None):
         util.print_status_line()
 

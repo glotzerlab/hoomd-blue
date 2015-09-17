@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Autotuner.h"
 #include <boost/signals2.hpp>
 
+//! GPU implementation of dynamic load balancing
 class LoadBalancerGPU : public LoadBalancer
     {
     public:
@@ -90,14 +91,14 @@ class LoadBalancerGPU : public LoadBalancer
             m_tuner->setEnabled(enable);
             }
 
-        //! Notification of a max number of particle change    
+        //! Resize the per particle data when there is a max number of particle change
         void slotMaxNumChanged()
             {
             GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
             m_off_ranks.swap(off_ranks);
             }
     protected:
-        //! Count the number of particles that have gone off either edge of the rank along a dimension
+        //! Count the number of particles that have gone off either edge of the rank along a dimension on the GPU
         virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
 
     private:

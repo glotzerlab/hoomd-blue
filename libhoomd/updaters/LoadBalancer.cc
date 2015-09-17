@@ -73,6 +73,7 @@ using namespace std;
 
 /*!
  * \param sysdef System definition
+ * \param decomposition Domain decomposition
  */
 LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<DomainDecomposition> decomposition)
@@ -100,12 +101,7 @@ LoadBalancer::~LoadBalancer()
  * \param timestep Current time step of the simulation
  *
  * Computes the load imbalance along each slice and adjusts the domain boundaries. This process is repeated iteratively
- * in each dimension taking into account the adjusted boundaries each time. An adjustment of 50% of the load imbalance
- * is attempted, subject to the following constraints:
- *  - No length may change by more than 5% for stability
- *  - No length may shrink smaller than the ghost width (or the system is over-decomposed)
- *  - No boundary may move past than halfway point of an adjacent cell (conservative way to stop a particle jumping 2 cells)
- *  - The total volume must be conserved after adjustment
+ * in each dimension taking into account the adjusted boundaries each time.
  */
 void LoadBalancer::update(unsigned int timestep)
     {
@@ -125,14 +121,16 @@ void LoadBalancer::update(unsigned int timestep)
         reduce_root = h_cart_ranks.data[di(0,0,0)];
         }
 
+    // get the minimum domain size
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
     const Scalar3 min_domain_frac = Scalar(2.0)*m_comm->getGhostLayerMaxWidth()/box.getNearestPlaneDistance();
 
-    // compute the current imbalance always for the average
+    // compute the current imbalance always for the average in printed stats
     m_total_max_imbalance += getMaxImbalance();
     ++m_n_calls;
 
+    // attempt load balancing
     for (unsigned int cur_iter=0; cur_iter < m_maxiter && getMaxImbalance() > m_tolerance; ++cur_iter)
         {
         // increment the number of attempted balances
@@ -164,16 +162,20 @@ void LoadBalancer::update(unsigned int timestep)
             vector<unsigned int> N_i;
             bool adjusted = false;
 
+            // reduce the number of particles in the slice along dim
             bool active = reduce(N_i, dim, reduce_root);
 
+            // attempt an adjustment
             vector<Scalar> cum_frac = m_decomposition->getCumulativeFractions(dim);
             if (active)
                 {
                 adjusted = adjust(cum_frac, N_i, L_i, min_frac_i);
                 }
 
+            // broadcast if an adjustment has been made on the root
             bcast(adjusted, reduce_root, m_mpi_comm);
 
+            // update the cumulative fractions and signal
             if (adjusted)
                 {
                 m_decomposition->setCumulativeFractions(dim, cum_frac, reduce_root);
@@ -182,7 +184,7 @@ void LoadBalancer::update(unsigned int timestep)
                 }
             }
 
-        // force a particle migration
+        // force a particle migration if one is needed
         if (m_needs_migrate)
             {
             m_comm->migrateParticles();
@@ -227,9 +229,13 @@ Scalar LoadBalancer::getMaxImbalance()
  * \post \a N_i holds the number of particles in each slice along \a dim
  *
  * \note reduce() relies on collective MPI calls, and so all ranks must call it. However, for efficiency the data will
- *       be active only on Cartesian rank 0 along \a dim, as indicated by the return value. As a result, only rank 0
- *       will actually allocate memory for \a N_i. The return value should be used to check the active buffer in
- *       case there is a situation where rank 0 is not Cartesian rank 0.
+ *       be active only on Cartesian rank \a reduce_root, as indicated by the return value. As a result, only \a reduce_root
+ *       actually needs to allocate memory for \a N_i.
+ *
+ * The reduction is performed by performing an all-to-one gather, followed by summation on \a reduce_root. This
+ * operation may be suboptimal for very large numbers of processors, and could be replaced by cascading send operations
+ * down dimensions. Generally, load balancing should not be performed too frequently, and so we do not pursue this
+ * optimization right now.
  */
 bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root)
     {
@@ -239,6 +245,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
     const Index3D& di = m_decomposition->getDomainIndexer();
     std::vector<unsigned int> N_per_rank(di.getNumElements());
 
+    // get the number of particles the current rank owns (the quantity to be reduced)
     unsigned int N_own = getNOwn();
 
     MPI_Gather(&N_own, 1, MPI_UNSIGNED, &N_per_rank[0], 1, MPI_UNSIGNED, reduce_root, m_mpi_comm);
@@ -255,6 +262,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
         N_per_cart_rank[h_cart_ranks_inv.data[cur_rank]] = N_per_rank[cur_rank];
         }
 
+    // perform the summation along dim in as cache friendly of a way as we can manage
     if (dim == 0) // to x
         {
         N_i.clear(); N_i.resize(di.getW());
@@ -310,7 +318,23 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
     }
 
 /*!
+ * \param cum_frac_i The cumulative fraction array to write output into
+ * \param N_i The reduced number of particles along the dimension
+ * \param L_i The global box length along the dimension
+ * \param min_frac_i The minimum fractional width of a domain
+ *
  * \returns true if an adjustment occurred
+ *
+ * An adjustment is attempted as follows:
+ *  1. Compute the imbalance factor (and scale factor) for each slice. Enforce the maximum 5% target for adjustment
+ *     in the scale factor. Compute the target new width for each rank.
+ *  2. Construct a set of linear equations with box constraints that will enforce the necessary constraints. This is
+ *     done through a matrix A that converts slices between domains into widths while conserving total length. A is then
+ *     augmented to include an inequality constraint on the minimum domain size through a slack variable w. Additional
+ *     box constraints are enforced on the new positions of the domain slices.
+ *  3. Minimize the cost function using bounded variable least-squares (BVLSSolver).
+ *  4. Sanity check the adjustment. Domains must be big enough and cannot have inverted. If the minimization was
+ *     successful, apply the adjustment to \a cum_frac_i.
  */
 bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                           const vector<unsigned int>& N_i,
@@ -333,7 +357,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 
     // imbalance factors for each rank
     vector<Scalar> new_widths(N_i.size());
-    Scalar max_imb_factor(1.0);
     for (unsigned int i=0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
@@ -352,15 +375,6 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 
         // compute the new domain width (can't be smaller than the threshold, if it is, this is not a free variable)
         new_widths[i] = scale_factor * (cum_frac_i[i+1] - cum_frac_i[i]) * L_i;
-
-        if (imb_factor > max_imb_factor)
-            max_imb_factor = imb_factor;
-        }
-
-    // balancing can be expensive, so don't do anything if we're already good enough in this direction
-    if (max_imb_factor <= m_tolerance)
-        {
-        return false;
         }
 
     // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
@@ -448,6 +462,9 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     return false;
     }
 
+/*!
+ * \param cnts Map holding result of number of particles on each rank that neighbors the local rank
+ */
 void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -522,6 +539,13 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
         }
     }
 
+/*!
+ * Each rank calls countParticlesOffRank() to count the number of particles to send to other ranks. Neighboring ranks
+ * then perform send/receive calls, and count the new number of particles they own as the number they owned locally
+ * plus the number received minus the number sent.
+ *
+ * \note All ranks must participate in this call since it involves send/receive operations between neighboring domains.
+ */
 void LoadBalancer::computeOwnedParticles()
     {
     // don't do anything if nobody has signaled a change
@@ -581,6 +605,9 @@ void LoadBalancer::printStats()
     m_exec_conf->msg->notice(1) << "iterations: " << m_n_iterations << " / rebalances: " << m_n_rebalances << endl;
     }
 
+/*!
+ * Zero the counters.
+ */
 void LoadBalancer::resetStats()
     {
     m_n_calls = m_n_iterations = m_n_rebalances = 0;
