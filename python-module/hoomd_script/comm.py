@@ -164,6 +164,11 @@ class decomposition():
             globals.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
+        # check that the context has been initialized though
+        if globals.exec_conf is None:
+            globals.msg.error("comm.decomposition: call context.initialize() before decomposition can be set\n")
+            raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
+
         # check that there are ranks available for decomposition
         if globals.exec_conf.getNRanks() == 1:
             globals.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
