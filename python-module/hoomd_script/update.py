@@ -627,7 +627,6 @@ class box_resize(_updater):
 # disable balancing along \f$x\f$ and \f$y\f$.
 #
 # Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
-# If \a period is None, then load balancing is only performed once at the time the command is called.
 #
 # \MPI_SUPPORTED
 class balance(_updater):
@@ -641,10 +640,6 @@ class balance(_updater):
     # \param period Balancing will be attempted every \a period time steps
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
-    # If \a period is set to None, then load balancing performed only *once*.
-    #
-    # \note Load balancing is only compatible with an adjustable domain decomposition. This decomposition must be created
-    #       explicitly before the system is initialized using comm.decomposition().
     def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1, phase=-1):
         util.print_status_line();
 
@@ -663,11 +658,7 @@ class balance(_updater):
         else:
             self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);
 
-        # if no period is set, just do the update now, otherwise setup the periodic updater
-        if period is None:
-            self.cpp_updater.update(globals.system.getCurrentTimeStep())
-        else:
-            self.setupUpdater(period, phase)
+        self.setupUpdater(period,phase)
 
         # stash arguments to metadata
         self.metadata_fields = ['tolerance','maxiter','period','phase']
@@ -684,7 +675,7 @@ class balance(_updater):
     # \param x If true, balance in x dimension
     # \param y If true, balance in y dimension
     # \param z If true, balance in z dimension
-    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
+    # \param tolerance Load imbalance tolerance (if <= 1.0, always rebalance)
     # \param maxiter Maximum number of iterations to attempt in a single step
     #
     # \b Examples:
