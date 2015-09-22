@@ -64,45 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 
-struct Wall
-    {
-    //! Constructor
-    /*! \param ox Origin x-component
-        \param oy Origin y-component
-        \param oz Origin z-component
-        \param nx Origin x-component
-        \param ny Normal y-component
-        \param nz Normal z-component
-    */
-    Wall(Scalar ox=0.0, Scalar oy=0.0, Scalar oz=0.0, Scalar nx=1.0, Scalar ny=0.0, Scalar nz=0.0)
-            : origin_x(ox), origin_y(oy), origin_z(oz)
-        {
-        // normalize nx,ny,nz
-        Scalar len = sqrt(nx*nx + ny*ny + nz*nz);
-        normal_x = nx / len;
-        normal_y = ny / len;
-        normal_z = nz / len;
-        }
-
-    Scalar origin_x;    //!< x-component of the origin
-    Scalar origin_y;    //!< y-component of the origin
-    Scalar origin_z;    //!< z-component of the origin
-
-    Scalar normal_x;    //!< x-component of the normal
-    Scalar normal_y;    //!< y-component of the normal
-    Scalar normal_z;    //!< z-component of the normal
-    };
-
-
 struct SphereWall
     {
-    SphereWall()
-        {
-        Scalar r = 0.0;
-        vec3<Scalar> origin = vec3(0.0,0.0,0.0);
-        bool inside = true;
-        }
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : inside(ins), origin(orig) {}
+    SphereWall(Scalar r = 0.0, vec3<Scalar> orig = vec3<Scalar>(0.0,0.0,0.0), bool ins = true) : inside(ins), origin(orig) {}
     Scalar          r;
     bool            inside;
     vec3<Scalar>    origin;
@@ -110,15 +74,7 @@ struct SphereWall
 
 struct CylinderWall
     {
-    CylinderWall()
-        {
-        Scalar r = 0.0;
-        vec3<Scalar> origin = vec3(0.0,0.0,0.0);
-        vec3<Scalar> orientation = vec3(1.0,0.0,0.0);
-        quat<Scalar> q_reorientation =quat(1.0,0.0,0.0,0.0);
-        bool inside = true;
-        }
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> zorient, bool ins=true) : inside(ins), origin(orig), orientation(zorient)
+    CylinderWall(Scalar r = 0.0, vec3<Scalar> orig = vec3<Scalar>(0.0,0.0,0.0), vec3<Scalar> zorient = vec3<Scalar>(1.0,0.0,0.0), bool ins=true) : inside(ins), origin(orig), orientation(zorient)
         {
         vec3<Scalar> zvec;
         zvec=zorient;
@@ -153,13 +109,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall()
-        {
-        vec3<Scalar> origin = vec3(0.0,0.0,0.0);
-        vec3<Scalar> normal = vec3(1.0,0.0,0.0);
-        bool inside = true;
-        }
-    PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt) : normal(nvec), origin(pt), inside(true)
+    PlaneWall(vec3<Scalar> nvec = vec3<Scalar>(1.0,0.0,0.0), vec3<Scalar> pt = vec3<Scalar>(0.0,0.0,0.0)) : normal(nvec), origin(pt), inside(true)
         {
         Scalar n_length;
         n_length=fast::rsqrt(nvec.x*nvec.x + nvec.y*nvec.y + nvec.z*nvec.z);
