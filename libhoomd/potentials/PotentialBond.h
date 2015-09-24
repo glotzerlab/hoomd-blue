@@ -223,7 +223,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
+    // we are using the minimum image of the global box here
+    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain length)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
