@@ -138,12 +138,12 @@ include (HOOMDCUDASetup)
 include (HOOMDCFlagsSetup)
 # include some os specific options
 include (HOOMDOSSpecificSetup)
-# setup common libraries used by all targets in this project
-include (HOOMDCommonLibsSetup)
 # setup macros
 include (HOOMDMacros)
 # setup MPI support
 include (HOOMDMPISetup)
+# setup common libraries used by all targets in this project
+include (HOOMDCommonLibsSetup)
 
 set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
 
