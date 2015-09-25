@@ -83,7 +83,7 @@ class PotentialExternal: public ForceCompute
 
         //! Sets parameters of the evaluator
         void setParams(unsigned int type, param_type params);
-        void setFieldParams(field_type field) { m_field = field; } // change this to follow the other format
+        void setField(field_type field);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -245,6 +245,12 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
     h_params.data[type] = params;
     }
 
+template<class evaluator>
+void PotentialExternal<evaluator>::setField(field_type field)
+    {
+    m_field = field; //might not be right, but don't think a handle is needed for this structure
+    }
+
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
@@ -255,6 +261,7 @@ void export_PotentialExternal(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
+                  .def("setField", &T::setField)
                   ;
     }
 

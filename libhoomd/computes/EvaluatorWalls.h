@@ -99,15 +99,15 @@ class EvaluatorWalls
 
 		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), params(p)
 			{
-			//This runs once for every single particle... Probably should fix somehow
-			field.m_Spheres[0].r = 15;
-			field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
-			field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
-			field.numSpheres = 1;
-			// field.m_Cylinders[0] = CylinderWall(2.0,vec3<Scalar>(0,0,0),vec3<Scalar>(0,0,1),true);
-			field.numCylinders = 0;
-			// field.m_Planes[0] = PlaneWall(vec3<Scalar>(0,0,1),vec3<Scalar>(0,0,-1));
-			field.numPlanes = 0;
+			// //This runs once for every single particle... Probably should fix somehow
+			// field.m_Spheres[0].r = 15;
+			// field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
+			// field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
+			// field.numSpheres = 1;
+			// // field.m_Cylinders[0] = CylinderWall(2.0,vec3<Scalar>(0,0,0),vec3<Scalar>(0,0,1),true);
+			// field.numCylinders = 0;
+			// // field.m_Planes[0] = PlaneWall(vec3<Scalar>(0,0,1),vec3<Scalar>(0,0,-1));
+			// field.numPlanes = 0;
 			}
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -324,7 +324,7 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
 	}
 
 template< class evaluator>
-void export_wall_param_helpers()
+void export_wall_params_helpers()
 	{
 	class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
 		.def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
@@ -338,8 +338,7 @@ template <class evaluator>
 void export_PotentialExternalWall(const std::string& name)
 	{
 	export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
-	export_wall_param_helpers<evaluator>();
+	export_wall_params_helpers<evaluator>();
 	}
-
 
 #endif //__EVALUATOR__WALLS_H__

@@ -492,6 +492,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ExecutionConfiguration();
     export_SystemDefinition();
     export_SnapshotSystemData();
+    //export_();
     export_BondedGroupData<BondData,Bond>("BondData","BondDataSnapshot");
     export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
     export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
@@ -596,13 +597,7 @@ BOOST_PYTHON_MODULE(hoomd)
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
-    // export_PotentialExternalGPU<WallsPotentialLJGPU, ;
-    // export_PotentialExternalGPU<WallsPotentialSLJGPU;
-    // export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU;
-    // export_PotentialExternalGPU<WallsPotentialMieGPU;
-    // export_PotentialExternalGPU<WallsPotentialGaussGPU;
-    // export_PotentialExternalGPU<WallsPotentialYukawaGPU;
-    // export_PotentialExternalGPU<WallsPotentialMorseGPU;
+
 #endif
 
     // analyzers

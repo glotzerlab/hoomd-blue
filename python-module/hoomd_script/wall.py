@@ -178,3 +178,88 @@ class lj(force._force):
             if not cur_type in self.particle_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in wall.lj\n");
                 raise RuntimeError("Error updating coefficients");
+
+
+class group:
+    numSpheres=0;
+    numCylinders=0;
+    numPlanes=0;
+    def __init__(self):
+        self.Spheres=[];
+        self.Cylinders=[];
+        self.Planes=[];
+    def addSphere(self, r, origin, inside=True):
+        self.Spheres.append(make_SphereWall(r,origin,inside));
+        self.numSpheres+=1;
+    def addCylinder(self, r, origin, axis, inside=True):
+        self.Cylinders.append(make_CylinderWall(r, origin, axis, inside));
+        self.numCylinders+=1;
+    def addPlane(self, normal, origin):
+        self.Planes.append(make_PlaneWall(normal, origin));
+        self.numPlanes+=1;
+    def delSphere(self, i):
+        del(self.Spheres[i]);
+        self.numSpheres-=1;
+    def delCylinder(self, i):
+        del(self.Cylinders[i]);
+        self.numCylinders-=1;
+    def delPlane(self, i):
+        del(self.Planes[i]);
+        self.numPlanes-=1;
+    def __repr__(self):
+        output="Wall_Data_Sturucture:\nSpheres{";
+        for i in range(self.numSpheres):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.Spheres[i]));
+
+        output+="}\nCylinders{";
+        for i in range(self.numCylinders):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.Cylinders[i]));
+
+        output+="}\nPlanes{"
+        for i in range(self.numPlanes):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.Planes[i]));
+
+        output+="}";
+        return output;
+
+class SphereWall:
+    r=0.0;
+    origin=(0.0,0.0,0.0);
+    inside = True;
+    def __repr__(self):
+        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
+
+class CylinderWall:
+    r=0.0;
+    origin=(0.0,0.0,0.0);
+    axis=(1.0,0.0,0.0);
+    inside = True;
+    def __repr__(self):
+        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+
+class PlaneWall:
+    normal=(1.0,0.0,0.0);
+    origin=(0.0,0.0,0.0);
+    def __repr__(self):
+        return "Normal=%s\tOrigin=%s" % (str(self.normal), str(self.origin));
+
+def make_SphereWall(r, origin, inside):
+    Sphere = SphereWall();
+    Sphere.r = r;
+    Sphere.origin = origin;
+    Sphere.inside = inside;
+    return Sphere;
+
+def make_CylinderWall(r, origin, axis, inside):
+    Cylinder = CylinderWall();
+    Cylinder.r = r;
+    Cylinder.origin = origin;
+    Cylinder.axis = axis;
+    Cylinder.inside = inside;
+    return Cylinder;
+
+def make_PlaneWall(normal, origin):
+    Plane = PlaneWall();
+    Plane.normal = normal;
+    Plane.origin = origin;
+    return Plane;

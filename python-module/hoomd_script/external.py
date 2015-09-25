@@ -357,11 +357,14 @@ class periodic(_external_force):
         return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
 
 class wallpotential(_external_force):
-    def __init__(self, name=""):
+    def __init__(self, walls, name=""):
         util.print_status_line();
         _external_force.__init__(self, name);
 
     def update_coeffs(self):
+        # First update Walls
+        self.cpp_force.setField(wall);
+        # Then process Per-Type params
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         if not self.force_coeff.verify(coeff_list):
             globals.msg.error("Not all wallpotential coefficients are set\n");
@@ -381,13 +384,13 @@ class wallpotential(_external_force):
             self.cpp_force.setParams(i, param);
 
 class lj(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -414,13 +417,13 @@ class lj(wallpotential):
         return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class gauss(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialGauss(globals.system_definition, self.name);
@@ -448,7 +451,7 @@ class slj(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # update the neighbor list
         if d_max is None :
@@ -494,13 +497,13 @@ class slj(wallpotential):
         wallpotential.set_params(self, mode=mode);
 
 class yukawa(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -522,13 +525,13 @@ class yukawa(wallpotential):
 
 
 # class ewald(wallpotential):
-#     def __init__(self, name=""):
+#     def __init__(self, wall, name=""):
 #         util.print_status_line();
 
 #         # tell the base class how we operate
 
 #         # initialize the base class
-#         wallpotential.__init__(self, name);
+#         wallpotential.__init__(self, wall, name);
 
 #         # create the c++ mirror class
 #         if not globals.exec_conf.isCUDAEnabled():
@@ -552,13 +555,13 @@ class yukawa(wallpotential):
 
 
 class morse(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -582,13 +585,13 @@ class morse(wallpotential):
         return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 class force_shifted_lj(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -612,18 +615,17 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_scalar2(lj1, lj2);
         return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 
 # class moliere(wallpotential):
-#     def __init__(self, name=""):
+#     def __init__(self, wall, name=""):
 #         util.print_status_line();
 
 #         # tell the base class how we operate
 
 #         # initialize the base class
-#         wallpotential.__init__(self, name);
+#         wallpotential.__init__(self, wall, name);
 
 
 #         # create the c++ mirror class
@@ -657,13 +659,13 @@ class force_shifted_lj(wallpotential):
 
 
 # class zbl(wallpotential):
-#     def __init__(self, name=""):
+#     def __init__(self, wall, name=""):
 #         util.print_status_line();
 
 #         # tell the base class how we operate
 
 #         # initialize the base class
-#         wallpotential.__init__(self, name);
+#         wallpotential.__init__(self, wall, name);
 
 #         # create the c++ mirror class
 #         if not globals.exec_conf.isCUDAEnabled():
@@ -696,13 +698,13 @@ class force_shifted_lj(wallpotential):
 
 
 class mie(wallpotential):
-    def __init__(self, name=""):
+    def __init__(self, wall, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, name);
+        wallpotential.__init__(self, wall, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -729,4 +731,3 @@ class mie(wallpotential):
         mie3 = n
         mie4 = m
         return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
-
