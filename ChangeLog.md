@@ -19,6 +19,7 @@ Released TBD
 
 * Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
 * Analyze.log now accepts unicode strings.
+* Fixed a bug where calling `restore_snapshot()` during a run zeroed potential parameters.
 
 ## v1.1.1
 

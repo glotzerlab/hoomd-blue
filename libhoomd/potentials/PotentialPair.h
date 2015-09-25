@@ -196,6 +196,13 @@ class PotentialPair : public ForceCompute
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old potential coefficients when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_typpair_idx.getW())
+                return;
+
+            // if the number of types is different, built a new indexer and reallocate memory
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
