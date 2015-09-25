@@ -224,42 +224,42 @@ class group:
 
 class SphereWall:
     r=0.0;
-    origin=(0.0,0.0,0.0);
+    origin=hoomd.make_scalar3(0.0,0.0,0.0);
     inside = True;
     def __repr__(self):
         return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
 
 class CylinderWall:
     r=0.0;
-    origin=(0.0,0.0,0.0);
-    axis=(1.0,0.0,0.0);
+    origin=hoomd.make_scalar3(0.0,0.0,0.0);
+    axis=hoomd.make_scalar3(1.0,0.0,0.0);
     inside = True;
     def __repr__(self):
         return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
 class PlaneWall:
-    normal=(1.0,0.0,0.0);
-    origin=(0.0,0.0,0.0);
+    normal=hoomd.make_scalar3(1.0,0.0,0.0);
+    origin=hoomd.make_scalar3(0.0,0.0,0.0);
     def __repr__(self):
         return "Normal=%s\tOrigin=%s" % (str(self.normal), str(self.origin));
 
 def make_SphereWall(r, origin, inside):
     Sphere = SphereWall();
     Sphere.r = r;
-    Sphere.origin = origin;
+    Sphere.origin = hoomd.make_scalar3(*origin);
     Sphere.inside = inside;
     return Sphere;
 
 def make_CylinderWall(r, origin, axis, inside):
     Cylinder = CylinderWall();
     Cylinder.r = r;
-    Cylinder.origin = origin;
-    Cylinder.axis = axis;
+    Cylinder.origin = hoomd.make_scalar3(*origin);
+    Cylinder.axis = hoomd.make_scalar3(*axis);
     Cylinder.inside = inside;
     return Cylinder;
 
 def make_PlaneWall(normal, origin):
     Plane = PlaneWall();
-    Plane.normal = normal;
-    Plane.origin = origin;
+    Plane.normal = hoomd.make_scalar3(*normal);
+    Plane.origin = hoomd.make_scalar3(*origin);
     return Plane;

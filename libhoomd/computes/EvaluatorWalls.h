@@ -76,7 +76,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "VectorMath.h"
 #include "WallData.h"
 
+struct wall_type{
+	SphereWall 		Spheres[MAX_N_SWALLS];
+	CylinderWall 	Cylinders[MAX_N_CWALLS];
+	PlaneWall 		Planes[MAX_N_PWALLS];
+	unsigned int 	numSpheres;
+	unsigned int 	numCylinders;
+	unsigned int 	numPlanes;
+	// wall_type() : numSpheres(0), numCylinders(w.numCylinders), numPlanes(w.numPlanes)
+	// wall_type(const wall_type& w) : numSpheres(w.numSpheres), numCylinders(w.numCylinders), numPlanes(w.numPlanes)
+	// {
+	// 	cout << "using copy constructor" << endl;
+	// 	for(unsigned int i =0; i < numSpheres; i++) Spheres[i] = w.Spheres[i];
+	// 	for(unsigned int i =0; i < numCylinders; i++) Cylinders[i] = w.Cylinders[i];
+	// 	for(unsigned int i =0; i < numPlanes; i++) Planes[i] = w.Planes[i];
+	// }
 
+};
 
 template<class evaluator>
 class EvaluatorWalls
@@ -87,17 +103,10 @@ class EvaluatorWalls
 			Scalar rcutsq;
         	Scalar ronsq;
         } param_type;
-		typedef struct _field_type{
-			SphereWall m_Spheres[MAX_N_SWALLS];
-			CylinderWall m_Cylinders[MAX_N_CWALLS];
-			PlaneWall m_Planes[MAX_N_PWALLS];
-			unsigned int numSpheres;
-			unsigned int numCylinders;
-			unsigned int numPlanes;
-			// add a constructor
-		} field_type;
 
-		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), params(p)
+		typedef wall_type field_type;
+
+		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), field(f), params(p)
 			{
 			// //This runs once for every single particle... Probably should fix somehow
 			// field.m_Spheres[0].r = 15;
@@ -196,7 +205,7 @@ class EvaluatorWalls
 			bool energy_shift = true;
 			for (unsigned int k = 0; k < field.numSpheres; k++)
 				{
-				dxv = wall_eval_dist(field.m_Spheres[k], position, m_box);
+				dxv = wall_eval_dist(field.Spheres[k], position, m_box);
 				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
@@ -232,7 +241,7 @@ class EvaluatorWalls
 
 			for (unsigned int k = 0; k < field.numCylinders; k++)
 				{
-				dxv = wall_eval_dist(field.m_Cylinders[k], position, m_box);
+				dxv = wall_eval_dist(field.Cylinders[k], position, m_box);
 				Scalar3 dx = vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
@@ -261,7 +270,7 @@ class EvaluatorWalls
 				}
 			for (unsigned int k = 0; k < field.numPlanes; k++)
 				{
-				dxv = wall_eval_dist(field.m_Planes[k], position, m_box);
+				dxv = wall_eval_dist(field.Planes[k], position, m_box);
 				Scalar3 dx = vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
@@ -340,5 +349,28 @@ void export_PotentialExternalWall(const std::string& name)
 	export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
 	export_wall_params_helpers<evaluator>();
 	}
+
+wall_type make_wall_field_params(boost::python::object walls)
+	{
+		wall_type w;
+		w.numSpheres = boost::python::extract<unsigned int>(walls.attr("numSpheres"));
+		w.numCylinders = boost::python::extract<unsigned int>(walls.attr("numCylinders"));
+		w.numPlanes = boost::python::extract<unsigned int>(walls.attr("numPlanes"));
+		for(unsigned int i = 0; i < w.numSpheres; i++)
+			{
+			Scalar 	r = boost::python::extract<Scalar>(walls.attr("Spheres")[i].attr("r"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("Spheres")[i].attr("origin"));
+			bool 	inside =boost::python::extract<bool>(walls.attr("Spheres")[i].attr("inside"));
+			w.Spheres[i] = SphereWall(r, origin, inside);
+			}
+		return w;
+	}
+
+void export_wall_field_helpers()
+	{
+	class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
+	def("make_wall_field_params", &make_wall_field_params);
+	}
+
 
 #endif //__EVALUATOR__WALLS_H__

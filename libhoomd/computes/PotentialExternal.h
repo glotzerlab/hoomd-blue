@@ -209,8 +209,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        field_type field;
-        evaluator eval(X, idx, box, params, field);
+        evaluator eval(X, idx, box, params, m_field);
         eval.evalForceEnergyAndVirial(F, energy, virial);
 
         // apply the constraint force

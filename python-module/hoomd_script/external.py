@@ -259,6 +259,7 @@ class _external_force(force._force):
 
         # setup the coefficient vector
         self.force_coeff = coeff();
+        self.field_coeff = None;
 
         self.name = name
         self.enabled = True;
@@ -268,6 +269,11 @@ class _external_force(force._force):
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs;
+
+        if self.field_coeff:
+            fcoeff = self.process_field_coeff(self.field_coeff);
+            self.cpp_force.setField(fcoeff);
+
         # check that the force coefficients are valid
         if not self.force_coeff.verify(coeff_list):
            globals.msg.error("Not all force coefficients are set\n");
@@ -360,37 +366,42 @@ class wallpotential(_external_force):
     def __init__(self, walls, name=""):
         util.print_status_line();
         _external_force.__init__(self, name);
+        self.field_coeff = walls;
+        self.required_coeffs = ["r_cut", "r_on"];
 
-    def update_coeffs(self):
-        # First update Walls
-        self.cpp_force.setField(wall);
-        # Then process Per-Type params
-        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
-        if not self.force_coeff.verify(coeff_list):
-            globals.msg.error("Not all wallpotential coefficients are set\n");
-            raise RuntimeError("Error updating wallpotential coefficients");
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+    def process_field_coeff(self, coeff):
+        return hoomd.make_wall_field_params(coeff);
 
-        for i in range(0,ntypes):
-            coeff_dict = {};
-            for name in coeff_list:
-                coeff_dict[name] = self.force_coeff.get(type_list[i], name);
-
-            param = self.process_coeff(coeff_dict);
-            self.cpp_force.setParams(i, param);
+    # def update_coeffs(self):
+    #     # First update Walls
+    #     self.cpp_force.setField(self.wall);
+    #     # Then process Per-Type params
+    #     coeff_list =self.required_coeffs
+    #     if not self.force_coeff.verify(coeff_list):
+    #         globals.msg.error("Not all wallpotential coefficients are set\n");
+    #         raise RuntimeError("Error updating wallpotential coefficients");
+    #     # set all the params
+    #     ntypes = globals.system_definition.getParticleData().getNTypes();
+    #     type_list = [];
+    #     for i in range(0,ntypes):
+    #         type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+    #
+    #     for i in range(0,ntypes):
+    #         coeff_dict = {};
+    #         for name in coeff_list:
+    #             coeff_dict[name] = self.force_coeff.get(type_list[i], name);
+    #
+    #         param = self.process_coeff(coeff_dict);
+    #         self.cpp_force.setParams(i, param);
 
 class lj(wallpotential):
-    def __init__(self, wall, name=""):
+    def __init__(self, walls, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, wall, name);
+        wallpotential.__init__(self, walls, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -404,7 +415,7 @@ class lj(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
         self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):

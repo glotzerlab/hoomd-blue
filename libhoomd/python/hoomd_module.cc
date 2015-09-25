@@ -548,6 +548,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListBinned();
     export_ConstraintSphere();
     export_PPPMForceCompute();
+    export_wall_field_helpers();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
     export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
     export_PotentialExternalWall<EvaluatorPairYukawa>("WallsPotentialYukawa");

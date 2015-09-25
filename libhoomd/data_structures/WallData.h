@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct SphereWall
     {
-    SphereWall(Scalar r = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : inside(ins), origin(vec3<Scalar>(orig)) {}
+    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), inside(ins), origin(vec3<Scalar>(orig)) {}
     Scalar          r;
     bool            inside;
     vec3<Scalar>    origin;
@@ -74,7 +74,7 @@ struct SphereWall
 
 struct CylinderWall
     {
-    CylinderWall(Scalar r = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(1.0,0.0,0.0), bool ins=true) : inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
+    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(1.0,0.0,0.0), bool ins=true) : r(rad), inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
         {
         vec3<Scalar> zvec;
         zvec=axis;
