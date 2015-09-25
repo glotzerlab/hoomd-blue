@@ -11,6 +11,10 @@ Released TBD
 * Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
 * Analyze.log now accepts unicode strings.
 * Fix segfault on exit with python 3.4
+* Add `cite.save()` to documentation
+* Fix a problem were bond forces are computed incorrectly in some MPI configurations
+* Fix bug in pair.zbl
+* Add pair.zbl to the documentation
 
 ## v1.1.1
 
