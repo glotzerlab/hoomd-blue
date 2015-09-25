@@ -95,6 +95,8 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     allocateTree();
     
     calcTypeBits();
+
+    m_prev_ntypes = m_pdata->getNTypes();
     }
 
 NeighborListGPUTree::~NeighborListGPUTree()
@@ -212,6 +214,7 @@ void NeighborListGPUTree::setupTree()
         
         // all done with the type reallocation
         m_type_changed = false;
+        m_prev_ntypes = m_pdata->getNTypes();
         }
         
     if (m_box_changed)

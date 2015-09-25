@@ -100,6 +100,12 @@ class PotentialExternal: public ForceCompute
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old parameters when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_params.getNumElements())
+                return;
+
             // reallocate parameter array
             GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
             m_params.swap(params);

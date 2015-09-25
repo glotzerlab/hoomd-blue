@@ -119,6 +119,13 @@ void TablePotential::slotNumTypesChange()
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
 
+    // skip the reallocation if the number of types does not change
+    // this keeps old parameters when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if ((2*m_pdata->getNTypes()-1) == m_params.getNumElements())
+        return;
+
+
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);
     GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), m_exec_conf);

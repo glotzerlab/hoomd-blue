@@ -111,6 +111,13 @@ TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
 
 void TwoStepBDNVTRigid::slotNumTypesChange()
     {
+    // skip the reallocation if the number of types does not change
+    // this keeps old parameters when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if (m_pdata->getNTypes() == m_gamma.size())
+        return;
+
+
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());

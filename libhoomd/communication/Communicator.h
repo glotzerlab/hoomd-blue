@@ -703,13 +703,19 @@ class Communicator
 
         //! Connection to the signal notifying when ghost particles are removed
         boost::signals2::connection m_ghost_particles_removed_connection;
-        
+
         //! Connection to the signal notifying when number of types change
         boost::signals2::connection m_num_type_change_connection;
-        
+
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old parameters when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_r_ghost.getNumElements())
+                return;
+
             GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
             m_r_ghost.swap(r_ghost);
             }
