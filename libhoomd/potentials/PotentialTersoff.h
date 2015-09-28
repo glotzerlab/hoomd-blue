@@ -187,7 +187,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << endl;
+    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
 
     assert(m_pdata);
     assert(m_nlist);
@@ -210,7 +210,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
-    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << endl;
+    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_num_type_change_connection.disconnect();
     }
 
@@ -284,7 +284,7 @@ void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
 template< class evaluator >
 std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }
@@ -303,7 +303,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
     else
         {
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                  << std::endl << endl;
+                  << std::endl << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }

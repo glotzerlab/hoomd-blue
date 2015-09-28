@@ -122,7 +122,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
                       const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
-    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
     assert(m_pdata);
 
     // access the bond data for later use
@@ -138,7 +138,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
 template< class evaluator >
 PotentialBond< evaluator >::~PotentialBond()
     {
-    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">" << std::endl;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -152,8 +152,8 @@ void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& 
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
-        throw runtime_error("Error setting parameters in PotentialBond");
+        this->m_exec_conf->msg->error() << "Invalid bond type specified" << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialBond");
         }
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
@@ -166,7 +166,7 @@ void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& 
 template< class evaluator >
 std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }
@@ -256,7 +256,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         if (idx_a >= max_local || idx_b >= max_local)
             {
             this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
-                bond.tag[0] << " " << bond.tag[1] << " incomplete." << endl << endl;
+                bond.tag[0] << " " << bond.tag[1] << " incomplete." << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
 
@@ -347,7 +347,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             }
         else
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

@@ -129,10 +129,10 @@ class SFCPackUpdater : public Updater
         virtual void applySortOrder();
 
         //! Helper function to generate traversal order
-        static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order);
+        static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], std::vector< unsigned int > &traversal_order);
 
         //! Write traversal order out for visualization
-        void writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order);
+        void writeTraversalOrder(const std::string& fname, const std::vector< unsigned int >& reverse_order);
 
         //! Reallocate internal arrays
         virtual void reallocate();

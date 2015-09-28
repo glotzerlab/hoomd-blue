@@ -64,6 +64,8 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+using namespace std;
+
 /*! \file TwoStepBDNVTGPU.h
     \brief Contains code for the TwoStepBDNVTGPU class
 */

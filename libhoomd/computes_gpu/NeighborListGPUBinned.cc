@@ -173,8 +173,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
-        throw runtime_error("Error computing neighbor list");
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
+        throw std::runtime_error("Error computing neighbor list");
         }
 
     m_cl->compute(timestep);
@@ -215,8 +215,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << std::endl;
+        throw std::runtime_error("Error updating neighborlist bins");
         }
 
     // we should not call the tuner with MPI sync enabled

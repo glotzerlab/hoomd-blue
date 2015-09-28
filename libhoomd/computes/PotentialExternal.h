@@ -148,7 +148,7 @@ PotentialExternal<evaluator>::~PotentialExternal()
 template<class evaluator>
 std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }

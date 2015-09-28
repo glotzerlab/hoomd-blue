@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 using namespace boost::python;
+using namespace std;
 
 /*! \file TwoStepNPTMTKGPU.h
     \brief Contains code for the TwoStepNPTMTKGPU class

@@ -64,6 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/serialization/set.hpp>
 
+using namespace std;
 using namespace boost::python;
 
 //! Constructor

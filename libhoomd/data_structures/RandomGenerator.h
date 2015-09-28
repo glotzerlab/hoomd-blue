@@ -213,7 +213,7 @@ class PolymerParticleGenerator : public ParticleGenerator
                                  const std::vector<std::string>& types,
                                  const std::vector<unsigned int>& bond_a,
                                  const std::vector<unsigned int>& bond_b,
-                                 const std::vector<string>& bond_type,
+                                 const std::vector<std::string>& bond_type,
                                  unsigned int max_attempts,
                                  unsigned int dimensions);
 
@@ -232,7 +232,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         std::vector<std::string> m_types;   //!< Particle types for each polymer bead
         std::vector<unsigned int> m_bond_a; //!< First particle in the bond pair
         std::vector<unsigned int> m_bond_b; //!< Second particle in the bond pair
-        std::vector<string> m_bond_type;    //!< Type name of the bond
+        std::vector<std::string> m_bond_type;    //!< Type name of the bond
         unsigned int m_max_attempts;        //!< Number of attemps to make for each particle placement
         unsigned int m_dimensions;          //!< Number of dimensions
 
@@ -279,7 +279,7 @@ class RandomGenerator
         virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! Sets the separation radius for a particle
-        void setSeparationRadius(string type, Scalar radius);
+        void setSeparationRadius(std::string type, Scalar radius);
 
         //! Adds a generator
         void addGenerator(unsigned int repeat, boost::shared_ptr<ParticleGenerator> generator);

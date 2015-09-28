@@ -90,8 +90,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <bitset>
 #include <stack>
 
-using namespace std;
-
 /*! \ingroup hoomd_lib
     @{
 */

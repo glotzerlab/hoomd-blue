@@ -198,7 +198,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 
         if (h_flags.data[0] & 1)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

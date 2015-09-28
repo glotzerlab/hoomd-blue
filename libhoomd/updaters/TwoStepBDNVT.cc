@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 using namespace boost::python;
+using namespace std;
 
 /*! \file TwoStepBDNVT.h
     \brief Contains code for the TwoStepBDNVT class

@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+
+using namespace std;
 using namespace boost::python;
 
 NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,

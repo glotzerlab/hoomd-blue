@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 
+using namespace std;
 using namespace boost::python;
 
 /*! \param sysdef system to compute the cell list of

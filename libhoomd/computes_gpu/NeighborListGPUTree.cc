@@ -65,6 +65,8 @@ using namespace boost;
 #include "Communicator.h"
 #endif
 
+using namespace std;
+
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
