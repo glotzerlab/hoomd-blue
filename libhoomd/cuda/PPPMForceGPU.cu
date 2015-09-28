@@ -145,27 +145,10 @@ static __device__ inline double atomicAdd(double* address, double val)
 
 #endif
 
-//! Implements workaround atomic Scalar addition on sm_1x hardware
-__device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
-    {
-#if (__CUDA_ARCH__ < 200) && defined SINGLE_PRECISION
-    Scalar old = value;
-    Scalar new_old;
-    do
-        {
-        new_old = atomicExch(address, Scalar(0.0));
-        new_old += old;
-        }
-    while ((old = atomicExch(address, new_old))!=Scalar(0.0));
-#else
-    atomicAdd(address, value);
-#endif
-    }
-
 //! The developer has chosen not to document this function
 __device__ inline void AddToGridpoint(int X, int Y, int Z, CUFFTCOMPLEX* array, Scalar value, int Ny, int Nz)
     {
-    atomicFloatAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
+    atomicAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
 
 
