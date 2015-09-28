@@ -63,7 +63,7 @@ from hoomd_script import util;
 # when an input XML file is read (read.xml).
 #
 # By themselves, walls that have been specified in an input file do nothing. Only when you
-# specify a wall force (i.e. wall.lj), are forces actually applied between the wall and the
+# specify a wall force (index.e. wall.lj), are forces actually applied between the wall and the
 # particle.
 
 ## Lennard-Jones %wall %force
@@ -140,7 +140,7 @@ class lj(force._force):
     # \param sigma Coefficient \f$ \sigma \f$ in the %force (in distance units)
     # \param alpha Coefficient \f$ \alpha \f$ in the %force (unitless)
     #
-    # Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
+    # Using set_coeff() requires that the specified %wall %force has been saved in a variable. index.e.
     # \code
     # lj_wall = wall.lj(r_cut=3.0)
     # \endcode
@@ -170,8 +170,8 @@ class lj(force._force):
         # get a list of all particle types in the simulation
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        for index in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(index));
 
         # check to see if all particle types have been set
         for cur_type in type_list:
@@ -209,39 +209,48 @@ class group():
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
             raise RuntimeError('Maximum number of plane walls already used.');
-    def del_sphere(self, i):
-        if (self.num_spheres-i)>0:
-            del(self.spheres[i]);
+    def del_sphere(self, index):
+        if type(index) is list: index = set(index);
+        elif type(index) is range: index = set(list(index));
+        elif type(index) is not set: index = set([index]);
+        if (self.num_spheres-index)>0:
+            del(self.spheres[index]);
             self.num_spheres-=1;
         else:
             globals.msg.error("Specified index for deletion is not available.\n");
             raise RuntimeError("del_sphere failed")
-    def del_cylinder(self, i):
-        if (self.num_cylinders-i)>0:
-            del(self.cylinders[i]);
+    def del_cylinder(self, index):
+        if type(index) is list: index = set(index);
+        elif type(index) is range: index = set(list(index));
+        elif type(index) is not set: index = set([index]);
+        if (self.num_cylinders-index)>0:
+            del(self.cylinders[index]);
             self.num_cylinders-=1;
         else:
             globals.msg.error("Specified index for deletion is not valid.\n");
             raise RuntimeError("del_cylinder failed")
-    def del_plane(self, i):
-        if (self.num_planes-i)>0:
-            del(self.planes[i]);
+    def del_plane(self, index):
+        if type(index) is list: index = set(index);
+        elif type(index) is range: index = set(list(index));
+        elif type(index) is not set: index = set([index]);
+        if (self.num_planes-index)>0:
+            del(self.planes[index]);
             self.num_planes-=1;
         else:
             globals.msg.error("Specified index for deletion is not valid.\n");
             raise RuntimeError("del_plane failed")
     def __repr__(self):
         output="Wall_Data_Sturucture:\nSpheres:%s{"%(self.num_spheres);
-        for i in range(self.num_spheres):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.spheres[i]));
+        for index in range(self.num_spheres):
+            output+="\n[%s:\t%s]"%(repr(index), repr(self.spheres[index]));
 
         output+="}\nCylinders:%s{"%(self.num_cylinders);
-        for i in range(self.num_cylinders):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.cylinders[i]));
+        for index in range(self.num_cylinders):
+            output+="\n[%s:\t%s]"%(repr(index), repr(self.cylinders[index]));
 
         output+="}\nPlanes:%s{"%(self.num_planes);
-        for i in range(self.num_planes):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.planes[i]));
+        for index in range(self.num_planes):
+            output+="\n[%s:\t%s]"%(repr(index), repr(self.planes[index]));
 
         output+="}";
         return output;
