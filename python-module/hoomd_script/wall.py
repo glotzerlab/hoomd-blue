@@ -181,6 +181,10 @@ class lj(force._force):
 
 
 class group():
+    # Max number of each wall geometry must match c++ defintions
+    _max_n_sphere_walls=20;
+    _max_n_cylinder_walls=20;
+    _max_n_plane_walls=60;
     def __init__(self):
         self.num_spheres=0;
         self.num_cylinders=0;
@@ -189,21 +193,21 @@ class group():
         self.cylinders=[];
         self.planes=[];
     def add_sphere(self, r, origin, inside=True):
-        if self.num_spheres<_max_n_sphere_walls:
+        if self.num_spheres<group._max_n_sphere_walls:
             self.spheres.append(make_sphere_wall(r,origin,inside));
             self.num_spheres+=1;
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of sphere walls.\n");
             raise RuntimeError('Maximum number of sphere walls already used.');
     def add_cylinder(self, r, origin, axis, inside=True):
-        if self.num_cylinders<_max_n_cylinder_walls:
+        if self.num_cylinders<group._max_n_cylinder_walls:
             self.cylinders.append(make_cylinder_wall(r, origin, axis, inside));
             self.num_cylinders+=1;
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of cylinder walls.\n");
             raise RuntimeError('Maximum number of cylinder walls already used.');
     def add_plane(self, normal, origin):
-        if self.num_planes<_max_n_plane_walls:
+        if self.num_planes<group._max_n_plane_walls:
             self.planes.append(make_plane_wall(normal, origin));
             self.num_planes+=1;
         else:

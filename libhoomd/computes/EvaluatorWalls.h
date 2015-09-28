@@ -64,16 +64,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
+// sets the max numbers for each wall geometry type
+// if modified, the same number should be modified in the python module
 #define MAX_N_SWALLS 20
 #define MAX_N_CWALLS 20
 #define MAX_N_PWALLS 60
-boost::python::scope().attr("_max_n_sphere_walls") = MAX_N_SWALLS;
-boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
-boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
- // take a look at what sam is doing in hpmc.
-//
-//
-//
+// doesn't work without being in a boost module
+// boost::python::scope().attr("_max_n_sphere_walls") = MAX_N_SWALLS;
+// boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
+// boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
@@ -86,14 +85,6 @@ struct wall_type{
 	unsigned int 	numSpheres;
 	unsigned int 	numCylinders;
 	unsigned int 	numPlanes;
-	// wall_type() : numSpheres(0), numCylinders(w.numCylinders), numPlanes(w.numPlanes)
-	// wall_type(const wall_type& w) : numSpheres(w.numSpheres), numCylinders(w.numCylinders), numPlanes(w.numPlanes)
-	// {
-	// 	cout << "using copy constructor" << endl;
-	// 	for(unsigned int i =0; i < numSpheres; i++) Spheres[i] = w.Spheres[i];
-	// 	for(unsigned int i =0; i < numCylinders; i++) Cylinders[i] = w.Cylinders[i];
-	// 	for(unsigned int i =0; i < numPlanes; i++) Planes[i] = w.Planes[i];
-	// }
 
 };
 

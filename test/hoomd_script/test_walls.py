@@ -8,7 +8,7 @@ import os
 #test wall.group()
 class wall_group_tests(unittest.TestCase):
     def setUp(self):
-        init.create_random(N=100, box=data.boxdim(L=5));
+        init.create_random(N=100, box=data.boxdim(L=5), Period=None);
         updater=update.box_resize(L = 10);
         updater.set_params(scale_particles = False);
 
