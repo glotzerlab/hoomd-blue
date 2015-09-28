@@ -66,7 +66,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_N_SWALLS 20
 #define MAX_N_CWALLS 20
-#define MAX_N_PWALLS 40
+#define MAX_N_PWALLS 60
+boost::python::scope().attr("_max_n_sphere_walls") = MAX_N_SWALLS;
+boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
+boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
  // take a look at what sam is doing in hpmc.
 //
 //

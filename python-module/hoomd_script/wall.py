@@ -180,86 +180,110 @@ class lj(force._force):
                 raise RuntimeError("Error updating coefficients");
 
 
-class group:
-    numSpheres=0;
-    numCylinders=0;
-    numPlanes=0;
+class group():
     def __init__(self):
-        self.Spheres=[];
-        self.Cylinders=[];
-        self.Planes=[];
-    def addSphere(self, r, origin, inside=True):
-        self.Spheres.append(make_SphereWall(r,origin,inside));
-        self.numSpheres+=1;
-    def addCylinder(self, r, origin, axis, inside=True):
-        self.Cylinders.append(make_CylinderWall(r, origin, axis, inside));
-        self.numCylinders+=1;
-    def addPlane(self, normal, origin):
-        self.Planes.append(make_PlaneWall(normal, origin));
-        self.numPlanes+=1;
-    def delSphere(self, i):
-        del(self.Spheres[i]);
-        self.numSpheres-=1;
-    def delCylinder(self, i):
-        del(self.Cylinders[i]);
-        self.numCylinders-=1;
-    def delPlane(self, i):
-        del(self.Planes[i]);
-        self.numPlanes-=1;
+        self.num_spheres=0;
+        self.num_cylinders=0;
+        self.num_planes=0;
+        self.spheres=[];
+        self.cylinders=[];
+        self.planes=[];
+    def add_sphere(self, r, origin, inside=True):
+        if self.num_spheres<_max_n_sphere_walls:
+            self.spheres.append(make_sphere_wall(r,origin,inside));
+            self.num_spheres+=1;
+        else:
+            globals.msg.error("Trying to specify more than the maximum allowable number of sphere walls.\n");
+            raise RuntimeError('Maximum number of sphere walls already used.');
+    def add_cylinder(self, r, origin, axis, inside=True):
+        if self.num_cylinders<_max_n_cylinder_walls:
+            self.cylinders.append(make_cylinder_wall(r, origin, axis, inside));
+            self.num_cylinders+=1;
+        else:
+            globals.msg.error("Trying to specify more than the maximum allowable number of cylinder walls.\n");
+            raise RuntimeError('Maximum number of cylinder walls already used.');
+    def add_plane(self, normal, origin):
+        if self.num_planes<_max_n_plane_walls:
+            self.planes.append(make_plane_wall(normal, origin));
+            self.num_planes+=1;
+        else:
+            globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
+            raise RuntimeError('Maximum number of plane walls already used.');
+    def del_sphere(self, i):
+        if (self.num_spheres-i)>0:
+            del(self.spheres[i]);
+            self.num_spheres-=1;
+        else:
+            globals.msg.error("Specified index for deletion is not available.\n");
+            raise RuntimeError("del_sphere failed")
+    def del_cylinder(self, i):
+        if (self.num_cylinders-i)>0:
+            del(self.cylinders[i]);
+            self.num_cylinders-=1;
+        else:
+            globals.msg.error("Specified index for deletion is not valid.\n");
+            raise RuntimeError("del_cylinder failed")
+    def del_plane(self, i):
+        if (self.num_planes-i)>0:
+            del(self.planes[i]);
+            self.num_planes-=1;
+        else:
+            globals.msg.error("Specified index for deletion is not valid.\n");
+            raise RuntimeError("del_plane failed")
     def __repr__(self):
-        output="Wall_Data_Sturucture:\nSpheres{";
-        for i in range(self.numSpheres):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.Spheres[i]));
+        output="Wall_Data_Sturucture:\nSpheres:%s{"%(self.num_spheres);
+        for i in range(self.num_spheres):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.spheres[i]));
 
-        output+="}\nCylinders{";
-        for i in range(self.numCylinders):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.Cylinders[i]));
+        output+="}\nCylinders:%s{"%(self.num_cylinders);
+        for i in range(self.num_cylinders):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.cylinders[i]));
 
-        output+="}\nPlanes{"
-        for i in range(self.numPlanes):
-            output+="\n[%s:\t%s]"%(repr(i), repr(self.Planes[i]));
+        output+="}\nPlanes:%s{"%(self.num_planes);
+        for i in range(self.num_planes):
+            output+="\n[%s:\t%s]"%(repr(i), repr(self.planes[i]));
 
         output+="}";
         return output;
 
-class SphereWall:
+class sphere_wall:
     r=0.0;
     origin=hoomd.make_scalar3(0.0,0.0,0.0);
     inside = True;
     def __repr__(self):
-        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
+        return "Radius=%s\tOrigin=(%d, %d, %d)\tInside=%s" % (str(self.r), self.origin.x, self.origin.y, self.origin.z, str(self.inside));
 
-class CylinderWall:
+class cylinder_wall:
     r=0.0;
     origin=hoomd.make_scalar3(0.0,0.0,0.0);
     axis=hoomd.make_scalar3(1.0,0.0,0.0);
     inside = True;
     def __repr__(self):
-        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+        return "Radius=%s\tOrigin=(%d, %d, %d)\tAxis=(%d, %d, %d)\tInside=%s" % (str(self.r), self.origin.x, self.origin.y, self.origin.z, self.axis.x, self.axis.y, self.axis.z, str(self.inside));
 
-class PlaneWall:
+class plane_wall:
     normal=hoomd.make_scalar3(1.0,0.0,0.0);
     origin=hoomd.make_scalar3(0.0,0.0,0.0);
     def __repr__(self):
-        return "Normal=%s\tOrigin=%s" % (str(self.normal), str(self.origin));
+        return "Normal=(%d, %d, %d)\tOrigin=(%d, %d, %d)" % (self.normal.x, self.normal.y, self.normal.z, self.origin.x self.origin.y self.origin.z);
 
-def make_SphereWall(r, origin, inside):
-    Sphere = SphereWall();
-    Sphere.r = r;
-    Sphere.origin = hoomd.make_scalar3(*origin);
-    Sphere.inside = inside;
-    return Sphere;
+def make_sphere_wall(r, origin, inside):
+    sphere = sphere_wall();
+    sphere.r = r;
+    sphere.origin = hoomd.make_scalar3(*origin);
+    sphere.inside = inside;
+    return sphere;
 
-def make_CylinderWall(r, origin, axis, inside):
-    Cylinder = CylinderWall();
+def make_cylinder_wall(r, origin, axis, inside):
+    Cylinder = cylinder_wall();
     Cylinder.r = r;
     Cylinder.origin = hoomd.make_scalar3(*origin);
     Cylinder.axis = hoomd.make_scalar3(*axis);
     Cylinder.inside = inside;
     return Cylinder;
 
-def make_PlaneWall(normal, origin):
-    Plane = PlaneWall();
+def make_plane_wall(normal, origin):
+    Plane = plane_wall();
     Plane.normal = hoomd.make_scalar3(*normal);
     Plane.origin = hoomd.make_scalar3(*origin);
     return Plane;
