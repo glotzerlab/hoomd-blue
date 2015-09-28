@@ -4,7 +4,7 @@
 ## find the threads library
 find_package(Threads)
 
-include_directories(${PYTHON_INCLUDE_DIR})
+include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
 
 # find ZLIB
 if (ENABLE_ZLIB)
@@ -48,7 +48,7 @@ if (UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 set(HOOMD_COMMON_LIBS
-        ${PYTHON_LIBRARIES}
+        ${HOOMD_PYTHON_LIBRARIES}
         ${BOOST_LIBS}
         ${CMAKE_THREAD_LIBS_INIT}
         ${ZLIB_LIBRARIES}
