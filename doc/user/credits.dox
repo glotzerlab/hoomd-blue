@@ -179,6 +179,9 @@ Paull Dodd, University of Michigan
 Erin Teich, University of Michigan
  - addInfo callback to dump.pos
 
+Joseph Berleant, University of Michigan
+ - fix python 3.4 segfault
+
 <hr>
 <h1>Source code</h1>
 <hr>

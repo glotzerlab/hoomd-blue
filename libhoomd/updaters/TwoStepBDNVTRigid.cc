@@ -150,6 +150,16 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
     h_gamma.data[typ] = gamma;
     }
 
+//! Update the temperature
+/*! \param T New temperature to set
+*/
+void TwoStepBDNVTRigid::setT(boost::shared_ptr<Variant> T)
+    {
+    m_T = T;
+    // do we need to set m_temperature??
+    // this->m_temperature = T;
+    }
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -278,5 +288,6 @@ void export_TwoStepBDNVTRigid()
                          bool
                          >())
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
+        .def("setT", &TwoStepBDNVTRigid::setT)
         ;
     }
