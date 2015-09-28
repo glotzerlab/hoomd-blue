@@ -208,7 +208,7 @@ class group():
             raise RuntimeError('Maximum number of cylinder walls already used.');
     def add_plane(self, normal, origin):
         if self.num_planes<group._max_n_plane_walls:
-            self.planes.append(make_plane_wall(normal, origin));
+            self.planes.append(make_plane_wall(origin, normal));
             self.num_planes+=1;
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
@@ -278,7 +278,7 @@ class plane_wall:
     normal=hoomd.make_scalar3(1.0,0.0,0.0);
     origin=hoomd.make_scalar3(0.0,0.0,0.0);
     def __repr__(self):
-        return "Normal=(%d, %d, %d)\tOrigin=(%d, %d, %d)" % (self.normal.x, self.normal.y, self.normal.z, self.origin.x self.origin.y self.origin.z);
+        return "Normal=(%d, %d, %d)\tOrigin=(%d, %d, %d)" % (self.normal.x, self.normal.y, self.normal.z, self.origin.x, self.origin.y, self.origin.z);
 
 def make_sphere_wall(r, origin, inside):
     sphere = sphere_wall();
@@ -295,8 +295,8 @@ def make_cylinder_wall(r, origin, axis, inside):
     Cylinder.inside = inside;
     return Cylinder;
 
-def make_plane_wall(normal, origin):
+def make_plane_wall(origin, normal):
     Plane = plane_wall();
-    Plane.normal = hoomd.make_scalar3(*normal);
     Plane.origin = hoomd.make_scalar3(*origin);
+    Plane.normal = hoomd.make_scalar3(*normal);
     return Plane;

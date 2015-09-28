@@ -109,7 +109,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall(Scalar3 nscalar = make_scalar3(0.0,0.0,1.0), Scalar3 opt = make_scalar3(0.0,0.0,0.0)) : normal(vec3<Scalar>(nscalar)), origin(vec3<Scalar>(opt)), inside(true)
+    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(true)
         {
         vec3<Scalar> nvec;
         nvec = normal;
@@ -163,127 +163,6 @@ DEVICE inline Scalar wall_dist_eval<PlaneWall>(const PlaneWall& wall, const vec3
     return wall_dist;
     };*/
 
-//TODO: determine if this part is even necessary, doesn't seem like it
-
-class WallDataNew : boost::noncopyable
-    {
-    public:
-
-        WallDataNew() : m_Spheres(), m_Cylinders(), m_Planes() {}
-
-        WallDataNew(const std::vector<SphereWall>& walls)
-            {
-            m_Spheres = walls;
-            }
-
-        WallDataNew(const std::vector<CylinderWall>& walls)
-            {
-            m_Cylinders = walls;
-            }
-
-        WallDataNew(const std::vector<PlaneWall>& walls)
-            {
-            m_Planes= walls;
-            }
-
-        void setSphereWallParameter(size_t index, SphereWall wall)
-            {
-            m_Spheres[index] = wall;
-            }
-
-        void setCylinderWallParameter(size_t index, CylinderWall wall)
-            {
-            m_Cylinders[index] = wall;
-            }
-
-        void setPlaneWallParameter(size_t index, PlaneWall wall)
-            {
-            m_Planes[index] = wall;
-            }
-
-        void addSphereWall(const SphereWall& wall);
-
-        void addCylinderWall(const CylinderWall& wall);
-
-        void addPlaneWall(const PlaneWall& wall);
-
-        unsigned int getNumSphereWalls() const
-            {
-            return (unsigned int)m_Spheres.size();
-            }
-
-        unsigned int getNumCylinderWalls() const
-            {
-            return (unsigned int)m_Cylinders.size();
-            }
-
-        unsigned int getNumPlaneWalls() const
-            {
-            return (unsigned int)m_Planes.size();
-            }
-
-        const SphereWall& getSWall(unsigned int idx) const
-            {
-            assert(idx < m_Spheres.size());
-            return m_Spheres[idx];
-            }
-
-        const CylinderWall& getCWall(unsigned int idx) const
-            {
-            assert(idx < m_Cylinders.size());
-            return m_Cylinders[idx];
-            }
-
-        const PlaneWall& getPWall(unsigned int idx) const
-            {
-            assert(idx < m_Planes.size());
-            return m_Planes[idx];
-            }
-
-        void removeSphereWalls()
-            {
-            m_Spheres.clear();
-            }
-
-        void removeCylinderWalls()
-            {
-            m_Cylinders.clear();
-            }
-
-        void removePlaneWalls()
-            {
-            m_Planes.clear();
-            }
-
-        void removeAllWalls()
-            {
-            m_Spheres.clear();
-            m_Cylinders.clear();
-            m_Planes.clear();
-            }
-
-    protected:
-        std::vector<SphereWall>     m_Spheres;
-        std::vector<CylinderWall>   m_Cylinders;
-        std::vector<PlaneWall>      m_Planes;
-    };
-
-
-// void export_WallDataNew(const std::string& name)
-//     {
-//     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-//         (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
-//         .def("SetSphereWallParameter", &WallDataNew::setSphereWallParameter)
-//         .def("SetCylinderWallParameter", &WallDataNew::setCylinderWallParameter)
-//         .def("SetPlaneWallParameter", &WallDataNew::setPlaneWallParameter)
-//         .def("AddSphereWall", &WallDataNew::addSphereWall)
-//         .def("AddCylinderWall", &WallDataNew::addCylinderWall)
-//         .def("AddPlaneWall", &WallDataNew::addPlaneWall)
-//         .def("RemoveSphereWall", &WallDataNew::removeSphereWall)
-//         .def("RemoveCylinderWall", &WallDataNew::removeCylinderWall)
-//         .def("RemovePlaneWall", &WallDataNew::removePlaneWall)
-//         ;
-//     }
 
 //! Simple structure representing a single wall
 /*! Walls are represented by an origin and a unit length normal.

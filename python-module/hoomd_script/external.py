@@ -426,7 +426,7 @@ class gauss(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma'];
+        self.required_coeffs += ['epsilon', 'sigma'];
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -465,7 +465,7 @@ class slj(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -506,7 +506,7 @@ class yukawa(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'kappa'];
+        self.required_coeffs += ['epsilon', 'kappa'];
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -535,7 +535,7 @@ class yukawa(wallpotential):
 #         globals.system.addCompute(self.cpp_force, self.force_name);
 
 #         # setup the coefficent options
-#         self.required_coeffs = ['kappa'];
+#         self.required_coeffs += ['kappa'];
 
 #     def process_coeff(self, coeff):
 #         kappa = coeff['kappa'];
@@ -565,7 +565,7 @@ class morse(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['D0', 'alpha', 'r0'];
+        self.required_coeffs += ['D0', 'alpha', 'r0'];
 
     def process_coeff(self, coeff):
         D0 = coeff['D0'];
@@ -595,7 +595,7 @@ class force_shifted_lj(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -630,7 +630,7 @@ class force_shifted_lj(wallpotential):
 #         globals.system.addCompute(self.cpp_force, self.force_name);
 
 #         # setup the coefficient options
-#         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+#         self.required_coeffs += ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
 #         self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
 #         self.pair_coeff.set_default_coeff('a_0', 1.0);
 
@@ -669,7 +669,7 @@ class force_shifted_lj(wallpotential):
 #         globals.system.addCompute(self.cpp_force, self.force_name);
 
 #         # setup the coefficient options
-#         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+#         self.required_coeffs += ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
 #         self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
 #         self.pair_coeff.set_default_coeff('a_0', 1.0);
 
@@ -708,7 +708,7 @@ class mie(wallpotential):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma', 'n', 'm'];
+        self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];
 
     def process_coeff(self, coeff):
         epsilon = float(coeff['epsilon']);

@@ -102,15 +102,6 @@ class EvaluatorWalls
 
 		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), field(f), params(p)
 			{
-			// //This runs once for every single particle... Probably should fix somehow
-			// field.m_Spheres[0].r = 15;
-			// field.m_Spheres[0].origin = vec3<Scalar>(0,0,0);
-			// field.m_Spheres[0].inside = true; //TODO:remove after python interface for walls is fixed
-			// field.numSpheres = 1;
-			// // field.m_Cylinders[0] = CylinderWall(2.0,vec3<Scalar>(0,0,0),vec3<Scalar>(0,0,1),true);
-			// field.numCylinders = 0;
-			// // field.m_Planes[0] = PlaneWall(vec3<Scalar>(0,0,1),vec3<Scalar>(0,0,-1));
-			// field.numPlanes = 0;
 			}
 
 		DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
@@ -146,7 +137,6 @@ class EvaluatorWalls
 		    // Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
 		    // Scalar r = wall.r - sqrt(rxy_sq);
 			vec3<Scalar> t = position;
-	        box.minImage(t);
 	        t-=wall.origin;
 	        vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
 			shifted_pos.z = 0;
@@ -170,8 +160,7 @@ class EvaluatorWalls
 		    // box.minImage(t);
 		    // Scalar r =dot(wall.normal,t)-dot(wall.normal,wall.origin);
 			vec3<Scalar> t = position;
-			box.minImage(t);
-			Scalar wall_dist = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+			Scalar wall_dist = dot(wall.normal,wall.origin) - dot(wall.normal,t);
 			if (wall_dist > 0.0)
 				{
 				vec3<Scalar> dx = wall_dist * wall.normal;
@@ -236,7 +225,7 @@ class EvaluatorWalls
 			for (unsigned int k = 0; k < field.numCylinders; k++)
 				{
 				dxv = wall_eval_dist(field.Cylinders[k], position, m_box);
-				Scalar3 dx = vec_to_scalar3(dxv);
+				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
@@ -265,7 +254,7 @@ class EvaluatorWalls
 			for (unsigned int k = 0; k < field.numPlanes; k++)
 				{
 				dxv = wall_eval_dist(field.Planes[k], position, m_box);
-				Scalar3 dx = vec_to_scalar3(dxv);
+				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
@@ -347,15 +336,29 @@ void export_PotentialExternalWall(const std::string& name)
 wall_type make_wall_field_params(boost::python::object walls)
 	{
 		wall_type w;
-		w.numSpheres = boost::python::extract<unsigned int>(walls.attr("numSpheres"));
-		w.numCylinders = boost::python::extract<unsigned int>(walls.attr("numCylinders"));
-		w.numPlanes = boost::python::extract<unsigned int>(walls.attr("numPlanes"));
+		w.numSpheres = boost::python::extract<unsigned int>(walls.attr("num_spheres"));
+		w.numCylinders = boost::python::extract<unsigned int>(walls.attr("num_cylinders"));
+		w.numPlanes = boost::python::extract<unsigned int>(walls.attr("num_planes"));
 		for(unsigned int i = 0; i < w.numSpheres; i++)
 			{
-			Scalar 	r = boost::python::extract<Scalar>(walls.attr("Spheres")[i].attr("r"));
-			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("Spheres")[i].attr("origin"));
-			bool 	inside =boost::python::extract<bool>(walls.attr("Spheres")[i].attr("inside"));
+			Scalar 	r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("origin"));
+			bool 	inside =boost::python::extract<bool>(walls.attr("spheres")[i].attr("inside"));
 			w.Spheres[i] = SphereWall(r, origin, inside);
+			}
+		for(unsigned int i = 0; i < w.numCylinders; i++)
+			{
+			Scalar 	r = boost::python::extract<Scalar>(walls.attr("cylinders")[i].attr("r"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("origin"));
+			Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("axis"));
+			bool 	inside =boost::python::extract<bool>(walls.attr("cylinders")[i].attr("inside"));
+			w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
+			}
+		for(unsigned int i = 0; i < w.numPlanes; i++)
+			{
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("origin"));
+			Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("normal"));
+			w.Planes[i] = PlaneWall(origin, normal);
 			}
 		return w;
 	}
