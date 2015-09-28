@@ -104,59 +104,32 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
 
 
-    // take optimized code paths for different GPU generations
-    if(m_exec_conf->getComputeCapability() >= 200)
-        {
-        // autotune block sizes
-        m_tuner->begin();
-        gpu_compute_cell_list(d_cell_size.data,
-                              d_xyzf.data,
-                              d_tdb.data,
-                              d_cell_orientation.data,
-                              d_cell_idx.data,
-                              m_conditions.getDeviceFlags(),
-                              d_pos.data,
-                              d_orientation.data,
-                              d_charge.data,
-                              d_diameter.data,
-                              d_body.data,
-                              m_pdata->getN(),
-                              m_pdata->getNGhosts(),
-                              m_Nmax,
-                              m_flag_charge,
-                              m_flag_type,
-                              box,
-                              m_cell_indexer,
-                              m_cell_list_indexer,
-                              getGhostWidth(),
-                              m_tuner->getParam());
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_tuner->end();
-        }
-    else
-        {
-        gpu_compute_cell_list_1x(d_cell_size.data,
-                                 d_xyzf.data,
-                                 d_tdb.data,
-                                 d_cell_orientation.data,
-                                 d_cell_idx.data,
-                                 m_conditions.getDeviceFlags(),
-                                 d_pos.data,
-                                 d_orientation.data,
-                                 d_charge.data,
-                                 d_diameter.data,
-                                 d_body.data,
-                                 m_pdata->getN(),
-                                 m_pdata->getNGhosts(),
-                                 m_Nmax,
-                                 m_flag_charge,
-                                 m_flag_type,
-                                 box,
-                                 m_cell_indexer,
-                                 m_cell_list_indexer,
-                                 getGhostWidth());
-        }
+    // autotune block sizes
+    m_tuner->begin();
+    gpu_compute_cell_list(d_cell_size.data,
+                          d_xyzf.data,
+                          d_tdb.data,
+                          d_cell_orientation.data,
+                          d_cell_idx.data,
+                          m_conditions.getDeviceFlags(),
+                          d_pos.data,
+                          d_orientation.data,
+                          d_charge.data,
+                          d_diameter.data,
+                          d_body.data,
+                          m_pdata->getN(),
+                          m_pdata->getNGhosts(),
+                          m_Nmax,
+                          m_flag_charge,
+                          m_flag_type,
+                          box,
+                          m_cell_indexer,
+                          m_cell_list_indexer,
+                          getGhostWidth(),
+                          m_tuner->getParam());
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
