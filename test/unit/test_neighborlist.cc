@@ -88,7 +88,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
 
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 3.25;
-    
+
     h_pos.data[0].w = 0.0; h_pos.data[1].w = 0.0;
     pdata_2->notifyParticleSort();
     }
@@ -105,7 +105,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
         }
-        
+
     // adjust the radius to include the particles and see if we get some now
     nlist_2->setRCutPair(0,0,5.5);
     nlist_2->compute(2);
@@ -157,7 +157,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0; h_pos.data[3].w = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6); h_pos.data[4].w = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6); h_pos.data[5].w = 0.0;
-    
+
     pdata_6->notifyParticleSort();
     }
 
@@ -178,17 +178,17 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
-        
+
         // populate the neighbor list as a collection for fast compare
         vector<unsigned int> nbrs(6, 0);
         for (unsigned int i=0; i < 6; ++i)
             {
             nbrs[i] = h_nlist.data[h_head_list.data[i]];
             }
-        
+
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
-        
+
         BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
@@ -202,7 +202,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(19.6); h_pos.data[2].z = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = Scalar(-29.6);
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z =  Scalar(29.6);
-    
+
     pdata_6->notifyParticleSort();
     }
 
@@ -212,7 +212,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
-        
+
         // check for right number of nbrs
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
@@ -220,17 +220,17 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
-        
+
         // populate the neighbor list as a collection for fast compare
         vector<unsigned int> nbrs(6, 0);
         for (unsigned int i=0; i < 6; ++i)
             {
             nbrs[i] = h_nlist.data[h_head_list.data[i]];
             }
-        
+
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
-        
+
         BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
@@ -244,7 +244,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
-    
+
     pdata_6->notifyParticleSort();
     }
 
@@ -255,22 +255,22 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
-        
+
         vector<unsigned int> nbrs(3,0);
         for (unsigned int i=0; i < 3; ++i)
             {
             nbrs[i] = h_nlist.data[h_head_list.data[0] + i];
             }
-            
+
         // sort the neighbors because it doesn't matter what order they are stored in, just that they all are there
         sort(nbrs.begin(), nbrs.end());
-        
+
         // the answer we expect
         unsigned int check_nbrs[] = {1, 4, 5};
         BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 3);
         }
     }
-    
+
 //! Test neighborlist functionality with particles with different numbers of neighbors
 template <class NL>
 void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -284,10 +284,10 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0; h_pos.data[0].w = __int_as_scalar(1);
         h_pos.data[1].x = Scalar(1.2); h_pos.data[1].y = 0.0; h_pos.data[1].z = 0.0; h_pos.data[1].w = __int_as_scalar(0);
         h_pos.data[2].x = Scalar(3.5); h_pos.data[2].y = 0.0; h_pos.data[2].z = 0.0; h_pos.data[2].w = __int_as_scalar(1);
-        
+
         pdata_3->notifyParticleSort();
         }
-        
+
     boost::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
     nlist_3->setStorageMode(NeighborList::full);
     nlist_3->setRCutPair(0,0,1.0);
@@ -308,7 +308,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
-    
+
     // now change the cutoff so that 2 is neighbors with 0 but not 1
     nlist_3->setRCutPair(1,1,3.5);
     nlist_3->compute(1);
@@ -316,7 +316,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         ArrayHandle<unsigned int> h_n_neigh(nlist_3->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
-            
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 2);
         vector<unsigned int> nbrs(2, 0);
         nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
@@ -331,7 +331,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 0);
         }
-        
+
     // now change the cutoff so that all are neighbors
     nlist_3->setRCutPair(0,1,2.5);
     nlist_3->compute(20);
@@ -339,14 +339,14 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         ArrayHandle<unsigned int> h_n_neigh(nlist_3->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
-            
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 2);
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 2);
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 2);
         }
-        
+
     // check what happens with particle resize by first keeping number below the 8 default, and then bumping over this
     // do this with size 18 so that NeighborListGPU is forced to use kernel call with multiple levels at m_bin_size = 4
     boost::shared_ptr<SystemDefinition> sysdef_18(new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, exec_conf));
@@ -372,10 +372,10 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         h_pos.data[15].x = 0.0; h_pos.data[15].y = 0.0; h_pos.data[15].z = Scalar(-0.9); h_pos.data[15].w = __int_as_scalar(0);
         h_pos.data[16].x = Scalar(-10.0); h_pos.data[16].y = 0.0; h_pos.data[16].z = 0.0; h_pos.data[16].w = __int_as_scalar(1);
         h_pos.data[17].x = 0.0; h_pos.data[17].y = Scalar(10.0); h_pos.data[17].z = 0.0; h_pos.data[17].w = __int_as_scalar(1);
-        
+
         pdata_18->notifyParticleSort();
         }
-        
+
     boost::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
     nlist_18->setRCutPair(0,0,1.0);
     nlist_18->setRCutPair(1,1,1.0);
@@ -391,7 +391,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         // 6x16 + 12x8 = 192
         BOOST_REQUIRE(nlist_18->getNListArray().getPitch() >= 192);
         BOOST_CHECK_EQUAL_UINT(h_head_list.data[17],176);
-        
+
         for (unsigned int i=0; i < 18; ++i)
             {
             if (i < 3)
@@ -413,18 +413,18 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
                 }
             }
         }
-        
+
     // bring in particle 3, 16, and 17, which should force a resize on particle type 1
         {
         ArrayHandle<Scalar4> h_pos(pdata_18->getPositions(), access_location::host, access_mode::readwrite);
         h_pos.data[3].x = 0.0;
         h_pos.data[16].x = 0.0;
         h_pos.data[17].y = 0.0;
-        
+
         pdata_18->notifyParticleSort();
         }
-    
-    nlist_18->compute(20);  
+
+    nlist_18->compute(20);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_18->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(), access_location::host, access_mode::read);
@@ -433,7 +433,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         // 6x24 + 12x8 = 240
         BOOST_REQUIRE(nlist_18->getNListArray().getPitch() >= 240);
         BOOST_CHECK_EQUAL_UINT(h_head_list.data[17],216);
-        
+
         for (unsigned int i=0; i < 18; ++i)
             {
             if (i <= 3 || i >= 16)
@@ -446,7 +446,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
                 }
             }
         }
-        
+
     // collapse all particles onto self and force a resize
         {
         ArrayHandle<Scalar4> h_pos(pdata_18->getPositions(), access_location::host, access_mode::readwrite);
@@ -456,8 +456,8 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
             }
         pdata_18->notifyParticleSort();
         }
-    
-    nlist_18->compute(40);  
+
+    nlist_18->compute(40);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_18->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(), access_location::host, access_mode::read);
@@ -466,7 +466,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         // 18x24 = 432
         BOOST_REQUIRE(nlist_18->getNListArray().getPitch() >= 432);
         BOOST_CHECK_EQUAL_UINT(h_head_list.data[17],408);
-        
+
         for (unsigned int i=0; i < 18; ++i)
             {
             BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 17);
@@ -511,7 +511,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
         for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
@@ -524,8 +524,8 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
                 nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
                 }
             sort(nbrs.begin(), nbrs.end());
-            
-            // create the list of expected neighbors (everybody except for myself) 
+
+            // create the list of expected neighbors (everybody except for myself)
             check_nbrs.reserve(5);
             for (unsigned int i = 0; i < 6; ++i)
                 {
@@ -552,7 +552,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
         for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
@@ -565,8 +565,8 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
                 nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
                 }
             sort(nbrs.begin(), nbrs.end());
-            
-            // create the list of expected neighbors (everybody except for myself) 
+
+            // create the list of expected neighbors (everybody except for myself)
             check_nbrs.reserve(5);
             for (unsigned int i = 0; i < 6; ++i)
                 {
@@ -594,7 +594,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
         for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
@@ -607,8 +607,8 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
                 nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
                 }
             sort(nbrs.begin(), nbrs.end());
-            
-            // create the list of expected neighbors (everybody except for myself) 
+
+            // create the list of expected neighbors (everybody except for myself)
             check_nbrs.reserve(5);
             for (unsigned int i = 0; i < 6; ++i)
                 {
@@ -650,7 +650,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[3], 4);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[4], 4);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[5], 0);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
         // just check the first 5 particles, since the last has no neighbors
@@ -664,8 +664,8 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
                 nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
                 }
             sort(nbrs.begin(), nbrs.end());
-            
-            // create the list of expected neighbors (everybody except for myself) 
+
+            // create the list of expected neighbors (everybody except for myself)
             check_nbrs.reserve(5);
             for (unsigned int i = 0; i < 5; ++i)
                 {
@@ -679,7 +679,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
             }
         }
     }
-    
+
 //! Tests the ability of the neighbor list to exclude particle pairs
 template <class NL>
 void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -698,7 +698,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0.0; h_pos.data[3].w = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_pos.data[4].w = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0; h_pos.data[5].w = 0.0;
-    
+
     pdata_6->notifyParticleSort();
     }
 
@@ -772,7 +772,7 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0; h_pos.data[3].w = 0.0; h_body.data[3] = 0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_pos.data[4].w = 0.0; h_body.data[4] = 1;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = 0; h_pos.data[5].w = 0.0; h_body.data[5] = NO_BODY;
-    
+
     pdata_6->notifyParticleSort();
     }
 
@@ -848,7 +848,7 @@ void neighborlist_diameter_shift_tests(boost::shared_ptr<ExecutionConfiguration>
     h_pos.data[2].x = 0; h_pos.data[2].y = 0; h_pos.data[2].z = 2.5; h_pos.data[2].w = 0.0; h_diameter.data[2] = 2.0;
     h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = -3.0; h_pos.data[1].w = 0.0; h_diameter.data[1] = 1.0;
     h_pos.data[3].x = 0; h_pos.data[3].y = 2.51; h_pos.data[3].z = 0; h_pos.data[3].w = 0.0; h_diameter.data[3] = 0;
-    
+
     pdata_3->notifyParticleSort();
     }
 
@@ -958,7 +958,7 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
 
         sort(tmp_list1.begin(), tmp_list1.end());
         sort(tmp_list2.begin(), tmp_list2.end());
-        
+
         BOOST_CHECK_EQUAL_COLLECTIONS(tmp_list1.begin(), tmp_list1.end(), tmp_list2.begin(), tmp_list2.end());
         }
     }
@@ -1014,7 +1014,7 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
     // Initialize a system of 3 particles each having a distinct type
     boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+
     // put the particles on top of each other, the worst case scenario for inclusion / exclusion since the distance
     // between them is zero
         {
@@ -1044,7 +1044,7 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
-    
+
     // turn on cross interaction with B particle
     for (unsigned int i=0; i < pdata_3->getNTypes(); ++i)
         {
@@ -1056,12 +1056,12 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 2); // B ignores itself, but gets everyone else as a neighbor
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 1);
-        
+
         vector<unsigned int> nbrs(2, 0);
         nbrs[0] = h_nlist.data[h_head_list.data[1] + 0];
         nbrs[1] = h_nlist.data[h_head_list.data[1] + 1];
@@ -1079,7 +1079,7 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 2);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
-        
+
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
 
@@ -1091,7 +1091,7 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {1,2};
-        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);        
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
         }
     }
 
@@ -1233,133 +1233,63 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type)
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree basic test, unsupported" << endl;
-        }
+    neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
     }
 //! exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree exclusion test, unsupported" << endl;
-        }
+    neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
     }
 //! large exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree large exclusion test, unsupported" << endl;
-        }
+    neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
     }
 //! body filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree body filter test, unsupported" << endl;
-        }
+    neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
     }
 //! diameter filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree diameter shift test, unsupported" << endl;
-        }
+    neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
     }
 
 //! particle asymmetry test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree particle asymm test, unsupported" << endl;
-        }
+    neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
     }
 //! cutoff exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree cutoff exclusion test, unsupported" << endl;
-        }
+    neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
     }
 //! type test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
-        }
+    neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
     }
 
 //! comparison test case for GPUTree class with itself
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree CPU comparison test, unsupported" << endl;
-        }
+    neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
     }
-    
+
 //! comparison test case for GPUTree class with GPUBinned
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_binned_comparison )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() > 200)
-        {
-        neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree GPU comparison test, unsupported" << endl;
-        }
+    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);
     }
 #endif

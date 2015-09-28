@@ -386,16 +386,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                     }
 
                 // add up the force vector components (FLOPS: 7)
-                #if (__CUDA_ARCH__ >= 200)
                 force.x += dx.x * force_divr;
                 force.y += dx.y * force_divr;
                 force.z += dx.z * force_divr;
-                #else
-                // fmad causes momentum drift here, prevent it from being used
-                force.x += __fmul_rn(dx.x, force_divr);
-                force.y += __fmul_rn(dx.y, force_divr);
-                force.z += __fmul_rn(dx.z, force_divr);
-                #endif
 
                 force.w += pair_eng;
                 }
@@ -461,7 +454,7 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     pdata_dpd_tag_tex.normalized = false;
     pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);
-    
+
     if (pair_args.size_nlist <= pair_args.max_tex1d_width)
         {
         nlist_tex.normalized = false;
