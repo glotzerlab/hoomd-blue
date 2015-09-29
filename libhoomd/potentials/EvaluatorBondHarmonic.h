@@ -123,7 +123,7 @@ class EvaluatorBondHarmonic
 
             // if the result is not finite, it is likely because of a division by 0, setting force_divr to 0 will
             // correctly result in a 0 force in this case
-            #ifdef __CUDA_ARCH__
+            #ifdef NVCC
             if (!isfinite(force_divr))
             #else
             if (!std::isfinite(force_divr))
