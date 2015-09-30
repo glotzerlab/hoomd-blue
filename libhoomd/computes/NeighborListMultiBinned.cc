@@ -136,28 +136,18 @@ void NeighborListMultiBinned::calcStencil()
     const Scalar3 ghost_width = m_cl->getGhostWidth();
     const BoxDim& box = m_pdata->getBox();
     const Scalar3 L = box.getNearestPlaneDistance();
-
-    // TODO: remove this requirement
-    if (dim.x <= 2 || dim.y <= 2 || dim.z <= 2)
-        {
-        m_exec_conf->msg->error() << "nlist: multi requires 3 cells in each direction" << std::endl;
-        throw std::runtime_error("Multi must have 3 cells in each direction");
-        }
+    const uchar3 periodic = box.getPeriodic();
 
     const Scalar3 cell_size = make_scalar3((L.x + ghost_width.x) / Scalar(dim.x),
                                            (L.y + ghost_width.y) / Scalar(dim.y),
                                            (L.z + ghost_width.z) / Scalar(dim.z));
 
-    // we have to have at least three cells
     Scalar r_list_max_max = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         r_list_max_max += m_d_max - Scalar(1.0);
     int3 max_stencil_size = make_int3(static_cast<int>(ceil(r_list_max_max / cell_size.x)),
                                       static_cast<int>(ceil(r_list_max_max / cell_size.y)),
                                       static_cast<int>(ceil(r_list_max_max / cell_size.z)));
-    if (max_stencil_size.x == 0) ++max_stencil_size.x;
-    if (max_stencil_size.y == 0) ++max_stencil_size.y;
-    if (max_stencil_size.z == 0) ++max_stencil_size.z;  
     if (m_sysdef->getNDimensions() == 2) max_stencil_size.z = 0; // this check is simple
 
     // compute the maximum number of bins in the stencil
@@ -185,23 +175,31 @@ void NeighborListMultiBinned::calcStencil()
         Scalar r_listsq_max = r_list_max*r_list_max;
 
         // get the stencil size
-        // TODO: abstract this as an inline function
         int3 stencil_size = make_int3(static_cast<int>(ceil(r_list_max / cell_size.x)),
                                       static_cast<int>(ceil(r_list_max / cell_size.y)),
                                       static_cast<int>(ceil(r_list_max / cell_size.z)));
-        if (stencil_size.x == 0) ++stencil_size.x;
-        if (stencil_size.y == 0) ++stencil_size.y;
-        if (stencil_size.z == 0) ++stencil_size.z;  
         if (m_sysdef->getNDimensions() == 2) stencil_size.z = 0; // this check is simple
 
         // loop through the possible stencils
         unsigned int n_stencil_i = 0;
         for (int k=-stencil_size.z; k <= stencil_size.z; ++k)
             {
+            // pass on the - side if periodic AND would overlap with the stencil in the + side
+            // always pass on other cells if there is only one cell in this dim
+            if ((k < 0 && periodic.z && dim.z > 1 && (k + (int)dim.z <= stencil_size.z)) || (dim.z == 1 && k != 0)) continue;
+
             for (int j=-stencil_size.y; j <= stencil_size.y; ++j)
                 {
+                // pass on the - side if periodic AND would overlap with the stencil in the + side
+                // always pass on other cells if there is only one cell in this dim
+                if ((j < 0 && periodic.y && dim.y > 1 && (j + (int)dim.y <= stencil_size.y)) || (dim.y == 1 && j != 0)) continue;
+
                 for (int i=-stencil_size.x; i <= stencil_size.x; ++i)
                     {
+                    // pass on the - side if periodic AND would overlap with the stencil in the + side
+                    // always pass on other cells if there is only one cell in this dim
+                    if ((i < 0 && periodic.x && dim.x > 1 && (i + (int)dim.x <= stencil_size.x)) || (dim.x == 1 && i != 0)) continue;
+
                     // compute the distance to the closest point in the bin
                     Scalar3 dr = make_scalar3(0.0,0.0,0.0);
                     if (i > 0) dr.x = (i-1) * cell_size.x;
@@ -217,9 +215,6 @@ void NeighborListMultiBinned::calcStencil()
 
                     if (dr2 < r_listsq_max)
                         {
-                        // could this be packed as a Scalar2 using a single int for the stencil?
-                        // maybe with shift by +1 so that you never get negative numbers (that should work)
-                        // still need to unwrap later
                         h_stencil.data[m_stencil_idx(n_stencil_i, cur_type)] = make_scalar4(__int_as_scalar(i),
                                                                                             __int_as_scalar(j),
                                                                                             __int_as_scalar(k),
@@ -229,11 +224,8 @@ void NeighborListMultiBinned::calcStencil()
                     }
                 }
             }
-        if (n_stencil_i > max_n_stencil)
-            {
-            m_exec_conf->msg->error() << "nlist: stencil size too bug, report bug" << std::endl;
-            throw std::runtime_error("bug: stencil size too big");
-            }
+
+        assert(n_stencil_i > max_n_stencil);
         h_n_stencil.data[cur_type] = n_stencil_i;
         }
 
@@ -267,9 +259,12 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
 
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+    // get periodic flags
+    uchar3 periodic = box.getPeriodic();
+
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -295,9 +290,6 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
     // access indexers
     Index3D ci = m_cl->getCellIndexer();
     Index2D cli = m_cl->getCellListIndexer();
-
-    // get periodic flags
-    uchar3 periodic = box.getPeriodic();
 
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
@@ -413,7 +405,7 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
                         else
                             h_conditions.data[type_i] = max(h_conditions.data[type_i], cur_n_neigh+1);
 
-                        cur_n_neigh++;
+                        ++cur_n_neigh;
                         }
                     }
                 }
