@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
+#include "NeighborListMultiBinned.h"
 #include "NeighborListTree.h"
 #include "Initializers.h"
 
@@ -627,7 +628,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // disable the interaction between type 6 and all other particles
     for (unsigned int cur_type = 0; cur_type < pdata_6->getNTypes(); ++cur_type)
         {
-        nlist_6->setRCutPair(6, cur_type, 0.001);
+        nlist_6->setRCutPair(6, cur_type, -1.0);
         }
     // shuffle all of the particle types and retest
         {
@@ -1095,6 +1096,9 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
         }
     }
 
+///////////////
+// BINNED CPU
+///////////////
 //! basic test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_basic )
     {
@@ -1121,21 +1125,74 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_diameter_shift )
     neighborlist_diameter_shift_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for binned class
-BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm)
+BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm )
     {
     neighborlist_particle_asymm_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for binned class
-BOOST_AUTO_TEST_CASE( NeighborListBinned_cutoff_exclude)
+BOOST_AUTO_TEST_CASE( NeighborListBinned_cutoff_exclude )
     {
     neighborlist_cutoff_exclude_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-//! type test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListBinned_type)
+//! type test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_type )
     {
     neighborlist_type_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
+////////////////////
+// MULTI BINNED CPU
+////////////////////
+//! basic test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_basic )
+    {
+    neighborlist_basic_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+//! exclusion test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! large exclusion test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! body filter test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! diameter filter test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_diameter_shift )
+    {
+    neighborlist_diameter_shift_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! particle asymmetry test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_particle_asymm )
+    {
+    neighborlist_particle_asymm_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! cutoff exclusion test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_cutoff_exclude )
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! type test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_type )
+    {
+    neighborlist_type_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! comparison test case for multi binned class
+BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_comparison )
+    {
+    neighborlist_comparison_test<NeighborListBinned, NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+///////////////
+// TREE CPU
+///////////////
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
     {
@@ -1162,27 +1219,30 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_diameter_shift )
     neighborlist_diameter_shift_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm)
+BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm )
     {
     neighborlist_particle_asymm_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListTree_cutoff_exclude)
+BOOST_AUTO_TEST_CASE( NeighborListTree_cutoff_exclude )
     {
     neighborlist_cutoff_exclude_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! type test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListTree_type)
+BOOST_AUTO_TEST_CASE( NeighborListTree_type )
     {
     neighborlist_type_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-//! comparison test case for binned class
+//! comparison test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_comparison )
     {
     neighborlist_comparison_test<NeighborListBinned, NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
+///////////////
+// BINNED GPU
+///////////////
 //! basic test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_basic )
     {
@@ -1214,21 +1274,24 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
     neighborlist_comparison_test<NeighborListBinned, NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! particle asymmetry test case for GPUBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm)
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm )
     {
     neighborlist_particle_asymm_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! cutoff exclusion test case for GPUBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude)
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude )
     {
     neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! type test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type)
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type )
     {
     neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
+///////////////
+// TREE GPU
+///////////////
 //! basic test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
     {
@@ -1294,9 +1357,8 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
         exec_conf->msg->notice(1) << "Skipping GPU tree diameter shift test, unsupported" << endl;
         }
     }
-
 //! particle asymmetry test case for GPUTree class
-BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
@@ -1309,7 +1371,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
         }
     }
 //! cutoff exclusion test case for GPUTree class
-BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
@@ -1322,7 +1384,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
         }
     }
 //! type test case for tree class
-BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
@@ -1334,7 +1396,6 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type)
         exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
         }
     }
-
 //! comparison test case for GPUTree class with itself
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
     {
@@ -1348,7 +1409,6 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
         exec_conf->msg->notice(1) << "Skipping GPU tree CPU comparison test, unsupported" << endl;
         }
     }
-
 //! comparison test case for GPUTree class with GPUBinned
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_binned_comparison )
     {
