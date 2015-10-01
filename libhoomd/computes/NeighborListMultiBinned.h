@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "CellList.h"
+#include "CellListStencil.h"
 
 /*! \file NeighborListMultiBinned.h
     \brief Declares the NeighborListMultiBinned class
@@ -90,27 +91,22 @@ class NeighborListMultiBinned : public NeighborList
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
-
-        void calcStencil();                     //!< Compute the stencils for each particle type
-        Index2D m_stencil_idx;                  //!< Type indexer into stencils
-        GPUArray<Scalar4> m_stencil;            //!< Stencil of shifts and closest distance to bin
-        GPUArray<unsigned int> m_n_stencil;     //!< Number of bins in a stencil
-
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
-        boost::signals2::connection m_box_change_conn;      //!< Connection to the box size
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
+        boost::shared_ptr<CellList> m_cl;           //!< The cell list
+        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
 
-        bool m_compute_stencil;             //!< Flag if stencil should be recomputed
-        //! Signal to recompute the stencil
-        void slotComputeStencil()
+        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
+        bool m_rcut_change;                                 //!< Flag for rcut changing
+        void slotRCutChange()
             {
-            m_compute_stencil = true;
+            m_rcut_change = true;
             }
+
+        //! Update the stencil radius
+        void updateRStencil();
     };
 
 //! Exports NeighborListMultiBinned to python

@@ -69,7 +69,7 @@ NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinit
                                                  Scalar r_cut,
                                                  Scalar r_buff,
                                                  boost::shared_ptr<CellList> cl)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_compute_stencil(true)
+    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_rcut_change(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListMultiBinned" << endl;
 
@@ -84,16 +84,15 @@ NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinit
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(boost::bind(&NeighborListMultiBinned::slotComputeStencil, this));
-    m_box_change_conn = m_pdata->connectBoxChange(boost::bind(&NeighborListMultiBinned::slotComputeStencil, this));
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotComputeStencil, this));
+    // construct the cell list stencil generator for the current nlist and cell list
+    m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+
+    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotRCutChange, this));
     }
 
 NeighborListMultiBinned::~NeighborListMultiBinned()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListMultiBinned" << endl;
-    m_num_type_change_conn.disconnect();
-    m_box_change_conn.disconnect();
     m_rcut_change_conn.disconnect();
     }
 
@@ -129,112 +128,35 @@ void NeighborListMultiBinned::setMaximumDiameter(Scalar d_max)
     m_cl->setNominalWidth(Scalar(0.5)*rmin);
     }
 
-void NeighborListMultiBinned::calcStencil()
+void NeighborListMultiBinned::updateRStencil()
     {
-    // compute the size of the bins in each dimension so that we know how big each is
-    const uint3 dim = m_cl->getDim();
-    const Scalar3 cell_size = m_cl->getCellWidth();
-
-    const BoxDim& box = m_pdata->getBox();
-    const uchar3 periodic = box.getPeriodic();
-
-    Scalar r_list_max_max = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        r_list_max_max += m_d_max - Scalar(1.0);
-    int3 max_stencil_size = make_int3(static_cast<int>(ceil(r_list_max_max / cell_size.x)),
-                                      static_cast<int>(ceil(r_list_max_max / cell_size.y)),
-                                      static_cast<int>(ceil(r_list_max_max / cell_size.z)));
-    if (m_sysdef->getNDimensions() == 2) max_stencil_size.z = 0; // this check is simple
-
-    // the cell in the middle of the box (will be used to guard against running over ends or double counting)
-    int3 origin = make_int3((dim.x-1)/2, (dim.y-1)/2, (dim.z-1)/2);
-
-    // compute the maximum number of bins in the stencil
-    unsigned int max_n_stencil = (2*max_stencil_size.x+1)*(2*max_stencil_size.y+1)*(2*max_stencil_size.z+1);
-    
-    m_stencil_idx = Index2D(max_n_stencil, m_pdata->getNTypes());
-    // reallocate the stencil memory
-        {
-        GPUArray<unsigned int> n_stencil(m_pdata->getNTypes(), m_exec_conf);
-        m_n_stencil.swap(n_stencil);
-
-        GPUArray<Scalar4> stencil(max_n_stencil*m_pdata->getNTypes(), m_exec_conf);
-        m_stencil.swap(stencil);
-        }
-
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_stencil(m_stencil, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_n_stencil(m_n_stencil, access_location::host, access_mode::overwrite);
+    std::vector<Scalar> rstencil(m_pdata->getNTypes(), -1.0);
     for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
-        // compute the maximum distance for inclusion in the neighbor list for this type
-        Scalar r_list_max = h_rcut_max.data[cur_type] + m_r_buff;
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-        Scalar r_listsq_max = r_list_max*r_list_max;
-
-        // get the stencil size
-        int3 stencil_size = make_int3(static_cast<int>(ceil(r_list_max / cell_size.x)),
-                                      static_cast<int>(ceil(r_list_max / cell_size.y)),
-                                      static_cast<int>(ceil(r_list_max / cell_size.z)));
-        if (m_sysdef->getNDimensions() == 2) stencil_size.z = 0; // this check is simple
-
-        // loop through the possible stencils
-        unsigned int n_stencil_i = 0;
-        for (int k=-stencil_size.z; k <= stencil_size.z; ++k)
+        Scalar rcut = h_rcut_max.data[cur_type];
+        if (rcut > Scalar(0.0))
             {
-            // skip this stencil site if it could take the representative "origin" stencil out of the grid
-            // by symmetry of the stencil and because of periodic wrapping. this stops us from double counting
-            // cases that would cover the entire grid
-            if (periodic.z && ((origin.z + k) < 0 || (origin.z + k) >= (int)dim.z) ) continue;
-
-            for (int j=-stencil_size.y; j <= stencil_size.y; ++j)
-                {
-                if (periodic.y && ((origin.y + j) < 0 || (origin.y + j) >= (int)dim.y) ) continue;
-
-                for (int i=-stencil_size.x; i <= stencil_size.x; ++i)
-                    {
-                    if (periodic.z && ((origin.x + i) < 0 || (origin.x + i) >= (int)dim.x) ) continue;
-
-                    // compute the distance to the closest point in the bin
-                    Scalar3 dr = make_scalar3(0.0,0.0,0.0);
-                    if (i > 0) dr.x = (i-1) * cell_size.x;
-                    else if (i < 0) dr.x = (i+1) * cell_size.x;
-
-                    if (j > 0) dr.y = (j-1) * cell_size.y;
-                    else if (j < 0) dr.y = (j+1) * cell_size.y;
-
-                    if (k > 0) dr.z = (k-1) * cell_size.z;
-                    else if (k < 0) dr.z = (k+1) * cell_size.z;
-
-                    Scalar dr2 = dot(dr, dr);
-
-                    if (dr2 < r_listsq_max)
-                        {
-                        h_stencil.data[m_stencil_idx(n_stencil_i, cur_type)] = make_scalar4(__int_as_scalar(i),
-                                                                                            __int_as_scalar(j),
-                                                                                            __int_as_scalar(k),
-                                                                                            dr2);
-                        ++n_stencil_i;
-                        }
-                    }
-                }
+            Scalar rlist = rcut + m_r_buff;
+            if (m_diameter_shift)
+                rlist += m_d_max - Scalar(1.0);
+            rstencil[cur_type] = rlist;
             }
-
-        assert(n_stencil_i > max_n_stencil);
-        h_n_stencil.data[cur_type] = n_stencil_i;
         }
-
-    m_compute_stencil = false;
+    m_cls->setRStencil(rstencil);
     }
 
 void NeighborListMultiBinned::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
-    if (m_compute_stencil)
+
+    // update the stencil radii if there was a change
+    if (m_rcut_change)
         {
-        calcStencil();
+        updateRStencil();
+        m_rcut_change = false;
         }
+    m_cls->compute(timestep);
 
     uint3 dim = m_cl->getDim();
     Scalar3 ghost_width = m_cl->getGhostWidth();
@@ -273,8 +195,9 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_cell_tdb(m_cl->getTDBArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_stencil(m_stencil, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_n_stencil(m_n_stencil, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_stencil(m_cls->getStencils(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_stencil(m_cls->getStencilSizes(), access_location::host, access_mode::read);
+    const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     // access the neighbor list data
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
@@ -321,7 +244,7 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
         for (unsigned int cur_stencil = 0; cur_stencil < n_stencil; ++cur_stencil)
             {
             // compute the stenciled cell cartesian coordinates
-            Scalar4 stencil = h_stencil.data[m_stencil_idx(cur_stencil, type_i)];
+            Scalar4 stencil = h_stencil.data[stencil_idx(cur_stencil, type_i)];
             int sib = ib + __scalar_as_int(stencil.x);
             int sjb = jb + __scalar_as_int(stencil.y);
             int skb = kb + __scalar_as_int(stencil.z);
