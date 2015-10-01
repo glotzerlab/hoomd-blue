@@ -84,7 +84,7 @@ NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinit
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    // construct the cell list stencil generator for the current nlist and cell list
+    // construct the cell list stencil generator for the current cell list
     m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotRCutChange, this));

@@ -63,7 +63,7 @@ using namespace std;
 using namespace boost::python;
 
 CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
-                                                   boost::shared_ptr<CellList> cl)
+                                 boost::shared_ptr<CellList> cl)
     : Compute(sysdef), m_cl(cl), m_compute_stencil(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
@@ -97,6 +97,9 @@ void CellListStencil::compute(unsigned int timestep)
 
     // sanity check that rstencil is correctly sized
     assert(m_rstencil.size() >= m_pdata->getNTypes());
+
+    if (m_prof)
+        m_prof->push("compute");
 
     // compute the size of the bins in each dimension so that we know how big each is
     const uint3 dim = m_cl->getDim();
@@ -199,6 +202,9 @@ void CellListStencil::compute(unsigned int timestep)
         assert(n_stencil_i <= max_n_stencil);
         h_n_stencil.data[cur_type] = n_stencil_i;
         }
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 bool CellListStencil::shouldCompute(unsigned int timestep)
