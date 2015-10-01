@@ -133,14 +133,10 @@ void NeighborListMultiBinned::calcStencil()
     {
     // compute the size of the bins in each dimension so that we know how big each is
     const uint3 dim = m_cl->getDim();
-    const Scalar3 ghost_width = m_cl->getGhostWidth();
-    const BoxDim& box = m_pdata->getBox();
-    const Scalar3 L = box.getNearestPlaneDistance();
-    const uchar3 periodic = box.getPeriodic();
+    const Scalar3 cell_size = m_cl->getCellWidth();
 
-    const Scalar3 cell_size = make_scalar3((L.x + ghost_width.x) / Scalar(dim.x),
-                                           (L.y + ghost_width.y) / Scalar(dim.y),
-                                           (L.z + ghost_width.z) / Scalar(dim.z));
+    const BoxDim& box = m_pdata->getBox();
+    const uchar3 periodic = box.getPeriodic();
 
     Scalar r_list_max_max = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)

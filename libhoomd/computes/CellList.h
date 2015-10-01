@@ -284,16 +284,16 @@ class CellList : public Compute
             return m_Nmax;
             }
 
-        //! Get number of ghost cells per direction
-        const uint3 getNGhostCells() const
-            {
-            return m_num_ghost_cells;
-            }
-
         //! Get width of ghost cells
         const Scalar3 getGhostWidth() const
             {
             return m_ghost_width;
+            }
+
+        //! Get the actual cell width that was computed (includes ghost layer)
+        const Scalar3 getCellWidth() const
+            {
+            return m_actual_width;
             }
 
         // @}
@@ -369,8 +369,8 @@ class CellList : public Compute
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
-        uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction
-        Scalar3 m_ghost_width;       //!< Width of ghost cells
+        Scalar3 m_actual_width;      //!< Actual width of a cell in each direction
+        Scalar3 m_ghost_width;       //!< Width of ghost layer sized for (on one side only)
 
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
