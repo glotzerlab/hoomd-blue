@@ -135,6 +135,9 @@ void NeighborListMultiBinned::calcStencil()
     const uint3 dim = m_cl->getDim();
     const Scalar3 cell_size = m_cl->getCellWidth();
 
+    const BoxDim& box = m_pdata->getBox();
+    const uchar3 periodic = box.getPeriodic();
+
     Scalar r_list_max_max = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         r_list_max_max += m_d_max - Scalar(1.0);
@@ -180,16 +183,18 @@ void NeighborListMultiBinned::calcStencil()
         unsigned int n_stencil_i = 0;
         for (int k=-stencil_size.z; k <= stencil_size.z; ++k)
             {
-            // skip this stencil site if it could take the stencil out of the cell grid
-            if ( (origin.z + k) < 0 || (origin.z + k) >= (int)dim.z ) continue;
+            // skip this stencil site if it could take the representative "origin" stencil out of the grid
+            // by symmetry of the stencil and because of periodic wrapping. this stops us from double counting
+            // cases that would cover the entire grid
+            if (periodic.z && ((origin.z + k) < 0 || (origin.z + k) >= (int)dim.z) ) continue;
 
             for (int j=-stencil_size.y; j <= stencil_size.y; ++j)
                 {
-                if ( (origin.y + j) < 0 || (origin.y + j) >= (int)dim.y ) continue;
+                if (periodic.y && ((origin.y + j) < 0 || (origin.y + j) >= (int)dim.y) ) continue;
 
                 for (int i=-stencil_size.x; i <= stencil_size.x; ++i)
                     {
-                    if ( (origin.x + i) < 0 || (origin.x + i) >= (int)dim.x ) continue;
+                    if (periodic.z && ((origin.x + i) < 0 || (origin.x + i) >= (int)dim.x) ) continue;
 
                     // compute the distance to the closest point in the bin
                     Scalar3 dr = make_scalar3(0.0,0.0,0.0);
@@ -326,17 +331,41 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
                 {
                 if (sib >= (int)dim.x) sib -= dim.x;
                 else if (sib < 0) sib += dim.x;
+
+                // wrapping and the stencil construction should ensure this is in bounds
+                assert(sib >= 0 && sib < (int)dim.x);
                 }
+            else if (sib < 0 || sib >= (int)dim.x)
+                {
+                // in aperiodic systems the stencil could maybe extend out of the grid (although it really shouldn't)
+                // just in case, pass on any of these cells to avoid segfaults
+                continue;
+                }
+
             if (periodic.y)
                 {
                 if (sjb >= (int)dim.y) sjb -= dim.y;
                 else if (sjb < 0) sjb += dim.y;
+
+                assert(sjb >= 0 && sjb < (int)dim.y);
                 }
+            else if (sjb < 0 || sjb >= (int)dim.y)
+                {
+                continue;
+                }
+
             if (periodic.z)
                 {
                 if (skb >= (int)dim.z) skb -= dim.z;
                 else if (skb < 0) skb += dim.z;
+
+                assert(skb >= 0 && skb < (int)dim.z);
                 }
+            else if (skb < 0 || skb >= (int)dim.z)
+                {
+                continue;
+                }
+
             unsigned int neigh_cell = ci(sib, sjb, skb);
 
             // check against all the particles in that neighboring bin to see if it is a neighbor
@@ -344,10 +373,10 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4 in)
-                const Scalar4& cur_tdb = h_cell_tdb.data[cli(cur_offset, neigh_cell)];
-                const unsigned int type_j = __scalar_as_int(cur_tdb.x);
-                const Scalar diam_j = cur_tdb.y;
-                const unsigned int body_j = __scalar_as_int(cur_tdb.z);
+                const Scalar4& neigh_tdb = h_cell_tdb.data[cli(cur_offset, neigh_cell)];
+                const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
+                const Scalar diam_j = neigh_tdb.y;
+                const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
     
                 // skip any particles belonging to the same rigid body if requested
                 if (m_filter_body && body_i != NO_BODY && body_i == body_j) continue;
@@ -372,13 +401,13 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
                 if (cell_dist2 > r_listsq) continue;
 
                 // only load in the particle position and id if distance check is satisfied
-                const Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
-                unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
+                const Scalar4& neigh_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
+                unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 
                 // a particle cannot neighbor itself
                 if (i == (int)cur_neigh) continue;
 
-                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+                Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 Scalar3 dx = my_pos - neigh_pos;
                 dx = box.minImage(dx);
                     
