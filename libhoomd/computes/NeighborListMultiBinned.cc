@@ -135,9 +135,6 @@ void NeighborListMultiBinned::calcStencil()
     const uint3 dim = m_cl->getDim();
     const Scalar3 cell_size = m_cl->getCellWidth();
 
-    const BoxDim& box = m_pdata->getBox();
-    const uchar3 periodic = box.getPeriodic();
-
     Scalar r_list_max_max = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         r_list_max_max += m_d_max - Scalar(1.0);
@@ -145,6 +142,9 @@ void NeighborListMultiBinned::calcStencil()
                                       static_cast<int>(ceil(r_list_max_max / cell_size.y)),
                                       static_cast<int>(ceil(r_list_max_max / cell_size.z)));
     if (m_sysdef->getNDimensions() == 2) max_stencil_size.z = 0; // this check is simple
+
+    // the cell in the middle of the box (will be used to guard against running over ends or double counting)
+    int3 origin = make_int3((dim.x-1)/2, (dim.y-1)/2, (dim.z-1)/2);
 
     // compute the maximum number of bins in the stencil
     unsigned int max_n_stencil = (2*max_stencil_size.x+1)*(2*max_stencil_size.y+1)*(2*max_stencil_size.z+1);
@@ -180,21 +180,16 @@ void NeighborListMultiBinned::calcStencil()
         unsigned int n_stencil_i = 0;
         for (int k=-stencil_size.z; k <= stencil_size.z; ++k)
             {
-            // pass on the - side if periodic AND would overlap with the stencil in the + side
-            // always pass on other cells if there is only one cell in this dim
-            if ((k < 0 && periodic.z && dim.z > 1 && (k + (int)dim.z <= stencil_size.z)) || (dim.z == 1 && k != 0)) continue;
+            // skip this stencil site if it could take the stencil out of the cell grid
+            if ( (origin.z + k) < 0 || (origin.z + k) >= (int)dim.z ) continue;
 
             for (int j=-stencil_size.y; j <= stencil_size.y; ++j)
                 {
-                // pass on the - side if periodic AND would overlap with the stencil in the + side
-                // always pass on other cells if there is only one cell in this dim
-                if ((j < 0 && periodic.y && dim.y > 1 && (j + (int)dim.y <= stencil_size.y)) || (dim.y == 1 && j != 0)) continue;
+                if ( (origin.y + j) < 0 || (origin.y + j) >= (int)dim.y ) continue;
 
                 for (int i=-stencil_size.x; i <= stencil_size.x; ++i)
                     {
-                    // pass on the - side if periodic AND would overlap with the stencil in the + side
-                    // always pass on other cells if there is only one cell in this dim
-                    if ((i < 0 && periodic.x && dim.x > 1 && (i + (int)dim.x <= stencil_size.x)) || (dim.x == 1 && i != 0)) continue;
+                    if ( (origin.x + i) < 0 || (origin.x + i) >= (int)dim.x ) continue;
 
                     // compute the distance to the closest point in the bin
                     Scalar3 dr = make_scalar3(0.0,0.0,0.0);
