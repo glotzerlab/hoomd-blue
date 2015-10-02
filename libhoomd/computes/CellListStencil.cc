@@ -158,7 +158,9 @@ void CellListStencil::compute(unsigned int timestep)
         if (m_sysdef->getNDimensions() == 2) stencil_size.z = 0;
 
         // loop through the possible stencils
-        unsigned int n_stencil_i = 0;
+        // all active stencils must have at least one member -- the current cell
+        h_stencil.data[m_stencil_idx(0, cur_type)] = make_scalar4(__int_as_scalar(0), __int_as_scalar(0), __int_as_scalar(0), 0.0);
+        unsigned int n_stencil_i = 1;
         for (int k=-stencil_size.z; k <= stencil_size.z; ++k)
             {
             // skip this stencil site if it could take the representative "origin" stencil out of the grid
@@ -173,6 +175,9 @@ void CellListStencil::compute(unsigned int timestep)
                 for (int i=-stencil_size.x; i <= stencil_size.x; ++i)
                     {
                     if (periodic.z && ((origin.x + i) < 0 || (origin.x + i) >= (int)dim.x) ) continue;
+
+                    // (0,0,0) is always added first
+                    if (i == 0 && j == 0 && k == 0) continue;
 
                     // compute the distance to the closest point in the bin
                     Scalar3 dr = make_scalar3(0.0,0.0,0.0);

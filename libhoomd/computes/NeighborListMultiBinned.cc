@@ -260,8 +260,7 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
                 }
             else if (sib < 0 || sib >= (int)dim.x)
                 {
-                // in aperiodic systems the stencil could maybe extend out of the grid (although it really shouldn't)
-                // just in case, pass on any of these cells to avoid segfaults
+                // in aperiodic systems the stencil could maybe extend out of the grid
                 continue;
                 }
 

@@ -212,7 +212,9 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_stencil(m_cls->getStencils(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_stencil(m_cls->getStencilSizes(), access_location::device, access_mode::read);
+    const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
@@ -248,6 +250,34 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
     unsigned int threads_per_particle = param % 10000;
 
     // launch neighbor list kernel
+    gpu_compute_nlist_multi_binned(d_nlist.data,
+                                   d_n_neigh.data,
+                                   d_last_pos.data,
+                                   d_conditions.data,
+                                   d_Nmax.data,
+                                   d_head_list.data,
+                                   d_pos.data,
+                                   d_body.data,
+                                   d_diameter.data,
+                                   m_pdata->getN(),
+                                   d_cell_size.data,
+                                   d_cell_xyzf.data,
+                                   d_cell_tdb.data,
+                                   m_cl->getCellIndexer(),
+                                   m_cl->getCellListIndexer(),
+                                   d_stencil.data,
+                                   d_n_stencil.data,
+                                   stencil_idx,
+                                   box,
+                                   d_r_cut.data,
+                                   m_r_buff,
+                                   m_pdata->getNTypes(),
+                                   1,
+                                   block_size,
+                                   m_filter_body,
+                                   m_diameter_shift,
+                                   m_cl->getGhostWidth(),
+                                   m_exec_conf->getComputeCapability()/10);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     if (tune) this->m_tuner->end();
