@@ -119,7 +119,7 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
     // construct the cell list stencil generator for the current cell list
     m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotRCutChange, this));
+    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUMultiBinned::slotRCutChange, this));
     }
 
 NeighborListGPUMultiBinned::~NeighborListGPUMultiBinned()

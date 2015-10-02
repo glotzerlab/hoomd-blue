@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUMultiBinned.h"
 #include "NeighborListGPUTree.h"
 #endif
 
@@ -1263,15 +1264,10 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_body_filter)
     {
     neighborlist_body_filter_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! diameter filter test case for binned class
+//! diameter filter test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_diameter_shift )
     {
     neighborlist_diameter_shift_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-//! comparison test case for GPUBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
-    {
-    neighborlist_comparison_test<NeighborListBinned, NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! particle asymmetry test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm )
@@ -1283,10 +1279,69 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude )
     {
     neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! type test case for tree class
+//! type test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type )
     {
     neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! comparison test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
+    {
+    neighborlist_comparison_test<NeighborListBinned, NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+///////////////
+// MULTI BINNED GPU
+///////////////
+//! basic test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_basic )
+    {
+    neighborlist_basic_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! exclusion test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBMultiinned_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! large exclusion test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! body filter test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! diameter filter test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_diameter_shift )
+    {
+    neighborlist_diameter_shift_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! particle asymmetry test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_particle_asymm )
+    {
+    neighborlist_particle_asymm_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! cutoff exclusion test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_cutoff_exclude )
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! type test case for GPUMultiBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_type )
+    {
+    neighborlist_type_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! comparison test case for GPUMultiBinned class against MultiBinned on cpu
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_cpu_comparison )
+    {
+    neighborlist_comparison_test<NeighborListMultiBinned, NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! comparison test case for GPUMultiBinned class against GPUBinned
+BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_binned_comparison )
+    {
+    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 ///////////////
