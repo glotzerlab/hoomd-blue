@@ -2,7 +2,9 @@
 
 [TOC]
 
-## Next feature release
+## v1.2.0
+
+Released 2015/09/30
 
 *New features*
 
@@ -10,10 +12,6 @@
 * Bounding volume hierarchy (tree) neighbor list computation
 * Neighbor lists have separate `r_cut` values for each pair of types
 * addInfo callback for dump.pos allows user specified information in pos files
-
-## Next bugfix release
-
-Released TBD
 
 *Bug fixes*
 
@@ -25,6 +23,7 @@ Released TBD
 * Fix a problem were bond forces are computed incorrectly in some MPI configurations
 * Fix bug in pair.zbl
 * Add pair.zbl to the documentation
+* Use `HOOMD_PYTHON_LIBRARY` to avoid problems with modified CMake builds that preset `PYTHON_LIBRARY`
 
 ## v1.1.1
 
