@@ -59,6 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading d_cell_xyzf
 scalar4_tex_t cell_xyzf_1d_tex;
 
+//! Texture for reading d_cell_tdb
+scalar4_tex_t cell_tdb_1d_tex;
+
 //! Texture for reading d_stencil
 scalar4_tex_t stencil_1d_tex;
 
@@ -286,7 +289,7 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
             do
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4 in)
-                const Scalar4& neigh_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
+                const Scalar4 neigh_tdb = texFetchScalar4(d_cell_tdb, cell_tdb_1d_tex, cli(cur_offset, neigh_cell));
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
                 const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
@@ -311,7 +314,7 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
                 if (cell_dist2 > r_listsq) break;
 
                 // only load in the particle position and id if distance check is satisfied
-                const Scalar4& neigh_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+                const Scalar4 neigh_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
                 Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 
@@ -320,7 +323,7 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
 
                 Scalar3 dx = my_pos - neigh_pos;
                 dx = box.minImage(dx);
-                
+
                 Scalar dr_sq = dot(dx,dx);
 
                 if (dr_sq <= r_listsq)
@@ -328,7 +331,6 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
                     neighbor = cur_neigh;
                     has_neighbor = 1;
                     }
-
                 } while (0); // particle is processed exactly once
 
             // advance cur_offset
@@ -380,6 +382,7 @@ int get_max_block_size_multi(T func)
     }
 
 void gpu_nlist_multi_binned_bind_texture(const Scalar4 *d_cell_xyzf,
+                                         const Scalar4 *d_cell_tdb,
                                          unsigned int n_elements,
                                          const Scalar4 *d_stencil,
                                          unsigned int n_stencil_elements)
@@ -388,6 +391,11 @@ void gpu_nlist_multi_binned_bind_texture(const Scalar4 *d_cell_xyzf,
     cell_xyzf_1d_tex.normalized = false;
     cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*n_elements);
+
+    // bind the position texture
+    cell_tdb_1d_tex.normalized = false;
+    cell_tdb_1d_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, cell_tdb_1d_tex, d_cell_tdb, sizeof(Scalar4)*n_elements);
 
     // bind the stencil texture
     stencil_1d_tex.normalized = false;
@@ -439,6 +447,7 @@ inline void multi_launcher(unsigned int *d_nlist,
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<0,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             d_cell_tdb,
                                                                              cli.getNumElements(),
                                                                              d_stencil,
                                                                              stencil_idx.getNumElements());
@@ -481,6 +490,7 @@ inline void multi_launcher(unsigned int *d_nlist,
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<1,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             d_cell_tdb,
                                                                              cli.getNumElements(),
                                                                              d_stencil,
                                                                              stencil_idx.getNumElements());
@@ -523,6 +533,7 @@ inline void multi_launcher(unsigned int *d_nlist,
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<2,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             d_cell_tdb,
                                                                              cli.getNumElements(),
                                                                              d_stencil,
                                                                              stencil_idx.getNumElements());
@@ -565,6 +576,7 @@ inline void multi_launcher(unsigned int *d_nlist,
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<3,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             d_cell_tdb,
                                                                              cli.getNumElements(),
                                                                              d_stencil,
                                                                              stencil_idx.getNumElements());
