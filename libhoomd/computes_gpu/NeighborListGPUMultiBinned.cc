@@ -272,11 +272,11 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
                                    d_r_cut.data,
                                    m_r_buff,
                                    m_pdata->getNTypes(),
-                                   1,
-                                   block_size,
+                                   m_cl->getGhostWidth(),
                                    m_filter_body,
                                    m_diameter_shift,
-                                   m_cl->getGhostWidth(),
+                                   threads_per_particle,
+                                   block_size,
                                    m_exec_conf->getComputeCapability()/10);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

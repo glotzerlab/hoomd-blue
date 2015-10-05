@@ -89,10 +89,10 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            const Scalar *d_r_cut,
                                            const Scalar r_buff,
                                            const unsigned int ntypes,
-                                           const unsigned int threads_per_particle,
-                                           const unsigned int block_size,
+                                           const Scalar3& ghost_width,
                                            bool filter_body,
                                            bool diameter_shift,
-                                           const Scalar3& ghost_width,
+                                           const unsigned int threads_per_particle,
+                                           const unsigned int block_size,
                                            const unsigned int compute_capability);
 #endif // __NEIGHBORLOSTGPUMULTIBINNED_CUH__
