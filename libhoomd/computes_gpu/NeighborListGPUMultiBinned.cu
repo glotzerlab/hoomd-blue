@@ -59,6 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading d_cell_xyzf
 scalar4_tex_t cell_xyzf_1d_tex;
 
+//! Texture for reading d_stencil
+scalar4_tex_t stencil_1d_tex;
+
 //! Warp-centric scan (Kepler and later)
 template<int NT>
 struct warp_scan_sm30_multi
@@ -250,55 +253,22 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
             if (cur_adj < n_stencil)
                 {
                 // compute the stenciled cell cartesian coordinates
-                Scalar4 stencil = d_stencil[stencil_idx(cur_adj, my_type)];
+                Scalar4 stencil = texFetchScalar4(d_stencil, stencil_1d_tex, stencil_idx(cur_adj, my_type));
                 int sib = ib + __scalar_as_int(stencil.x);
                 int sjb = jb + __scalar_as_int(stencil.y);
                 int skb = kb + __scalar_as_int(stencil.z);
                 cell_dist2 = stencil.w;
 
                 // wrap through the boundary
-                bool in_bounds = true;
-                if (periodic.x)
-                    {
-                    if (sib >= (int)ci.getW()) sib -= ci.getW();
-                    if (sib < 0) sib += ci.getW();
-                    }
-                else if (sib < 0 || sib >= (int)ci.getW())
-                    {
-                    // in aperiodic systems the stencil could maybe extend out of the grid
-                    in_bounds = false;
-                    }
+                if (sib >= (int)ci.getW() && periodic.x) sib -= ci.getW();
+                if (sib < 0 && periodic.x) sib += ci.getW();
+                if (sjb >= (int)ci.getH() && periodic.y) sjb -= ci.getH();
+                if (sjb < 0 && periodic.y) sjb += ci.getH();
+                if (skb >= (int)ci.getD() && periodic.z) skb -= ci.getD();
+                if (skb < 0 && periodic.z) skb += ci.getD();
 
-                if (periodic.y)
-                    {
-                    if (sjb >= (int)ci.getH()) sjb -= ci.getH();
-                    if (sjb < 0) sjb += ci.getH();
-                    }
-                else if (sjb < 0 || sjb >= (int)ci.getH())
-                    {
-                    in_bounds = false;
-                    }
-
-                if (periodic.z)
-                    {
-                    if (skb >= (int)ci.getD()) skb -= ci.getD();
-                    if (skb < 0) skb += ci.getD();
-                    }
-                else if (skb < 0 || skb >= (int)ci.getD())
-                    {
-                    in_bounds = false;
-                    }
-
-                if (in_bounds)
-                    {
-                    neigh_cell = ci(sib, sjb, skb);
-                    neigh_size = d_cell_size[neigh_cell];
-                    }
-                else
-                    {
-                    neigh_cell = 0;
-                    neigh_size = 0;
-                    }
+                neigh_cell = ci(sib, sjb, skb);
+                neigh_size = d_cell_size[neigh_cell];
                 }
             else
                 // we are past the end of the cell neighbors
@@ -310,6 +280,9 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
 
         if (!done)
             {
+            // use a do {} while(0) loop to process this particle so we can break for exclusions
+            // in microbenchmarks, this is was faster than using bool exclude because it saved flops
+            // it's a little easier to read than having 4 levels of if{} statements nested
             do
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4 in)
@@ -356,7 +329,7 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
                     has_neighbor = 1;
                     }
 
-                } while (0); // loop that we can break out of when we get exclusions
+                } while (0); // particle is processed exactly once
 
             // advance cur_offset
             cur_offset += threads_per_particle;
@@ -406,12 +379,20 @@ int get_max_block_size_multi(T func)
     return max_threads;
     }
 
-void gpu_nlist_multi_binned_bind_texture(const Scalar4 *d_cell_xyzf, unsigned int n_elements)
+void gpu_nlist_multi_binned_bind_texture(const Scalar4 *d_cell_xyzf,
+                                         unsigned int n_elements,
+                                         const Scalar4 *d_stencil,
+                                         unsigned int n_stencil_elements)
     {
     // bind the position texture
     cell_xyzf_1d_tex.normalized = false;
     cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*n_elements);
+
+    // bind the stencil texture
+    stencil_1d_tex.normalized = false;
+    stencil_1d_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, stencil_1d_tex, d_stencil, sizeof(Scalar4)*n_stencil_elements);
     }
 
 //! recursive template to launch neighborlist with given template parameters
@@ -457,7 +438,10 @@ inline void multi_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<0,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             cli.getNumElements(),
+                                                                             d_stencil,
+                                                                             stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -496,7 +480,10 @@ inline void multi_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<1,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             cli.getNumElements(),
+                                                                             d_stencil,
+                                                                             stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -535,7 +522,10 @@ inline void multi_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<2,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             cli.getNumElements(),
+                                                                             d_stencil,
+                                                                             stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -574,7 +564,10 @@ inline void multi_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_multi(gpu_compute_nlist_multi_binned_kernel<3,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_multi_binned_bind_texture(d_cell_xyzf,
+                                                                             cli.getNumElements(),
+                                                                             d_stencil,
+                                                                             stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
