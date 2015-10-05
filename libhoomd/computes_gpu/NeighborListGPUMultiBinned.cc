@@ -120,12 +120,18 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
     m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUMultiBinned::slotRCutChange, this));
+    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUMultiBinned::slotMaxNumChanged, this));
+
+    // needs realloc on size change...
+    GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
+    m_pid_map.swap(pid_map);
     }
 
 NeighborListGPUMultiBinned::~NeighborListGPUMultiBinned()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUMultiBinned" << std::endl;
     m_rcut_change_conn.disconnect();
+    m_max_numchange_conn.disconnect();
     }
 
 void NeighborListGPUMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
@@ -179,6 +185,44 @@ void NeighborListGPUMultiBinned::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
+void NeighborListGPUMultiBinned::sortTypes()
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "sort");
+
+    // always just fill in the particle indexes from 1 to N
+    ArrayHandle<unsigned int> d_pids(m_pid_map, access_location::device, access_mode::overwrite);
+    ScopedAllocation<unsigned int> d_pids_alt(m_exec_conf->getCachedAllocator(), m_pdata->getN());
+    ScopedAllocation<unsigned int> d_types(m_exec_conf->getCachedAllocator(), m_pdata->getN());
+    ScopedAllocation<unsigned int> d_types_alt(m_exec_conf->getCachedAllocator(), m_pdata->getN());
+
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    gpu_compute_nlist_multi_fill_types(d_pids.data, d_types(), d_pos.data, m_pdata->getN());
+
+    // only sort with more than one type
+    if (m_pdata->getNTypes() > 1)
+        {
+        // perform the sort
+        void *d_tmp_storage = NULL;
+        size_t tmp_storage_bytes = 0;
+        bool swap = false;
+        gpu_compute_nlist_multi_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+
+        size_t alloc_size = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
+        // unsigned char = 1 B
+        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
+        d_tmp_storage = (void *)d_alloc();
+
+        gpu_compute_nlist_multi_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+
+        if (swap)
+            {
+            cudaMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+            }
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
 void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
@@ -197,10 +241,14 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
         }
     m_cls->compute(timestep);
 
+    // sort the particles by type
+    sortTypes();
+
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
+    ArrayHandle<unsigned int> d_pid_map(m_pid_map, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
@@ -256,6 +304,7 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
                                    d_conditions.data,
                                    d_Nmax.data,
                                    d_head_list.data,
+                                   d_pid_map.data,
                                    d_pos.data,
                                    d_body.data,
                                    d_diameter.data,

@@ -124,6 +124,15 @@ class NeighborListGPUMultiBinned : public NeighborListGPU
 
         //! Update the stencil radius
         void updateRStencil();
+
+        //! Sort the particles by type
+        void sortTypes();
+        GPUArray<unsigned int> m_pid_map;
+        boost::signals2::connection m_max_numchange_conn;   //!< Connection to the maximum number of particles changing
+        void slotMaxNumChanged()
+            {
+            m_pid_map.resize(m_pdata->getMaxN());
+            }
     };
 
 //! Exports NeighborListGPUMultiBinned to python

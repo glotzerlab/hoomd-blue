@@ -73,6 +73,7 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            unsigned int *d_conditions,
                                            const unsigned int *d_Nmax,
                                            const unsigned int *d_head_list,
+                                           const unsigned int *d_pid_map,
                                            const Scalar4 *d_pos,
                                            const unsigned int *d_body,
                                            const Scalar *d_diameter,
@@ -95,4 +96,18 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            const unsigned int threads_per_particle,
                                            const unsigned int block_size,
                                            const unsigned int compute_capability);
+
+cudaError_t gpu_compute_nlist_multi_fill_types(unsigned int *d_pids,
+                                               unsigned int *d_types,
+                                               const Scalar4 *d_pos,
+                                               const unsigned int N);
+
+void gpu_compute_nlist_multi_sort_types(unsigned int *d_pids,
+                                        unsigned int *d_pids_alt,
+                                        unsigned int *d_types,
+                                        unsigned int *d_types_alt,
+                                        void *d_tmp_storage,
+                                        size_t &tmp_storage_bytes,
+                                        bool &swap,
+                                        const unsigned int N);
 #endif // __NEIGHBORLOSTGPUMULTIBINNED_CUH__

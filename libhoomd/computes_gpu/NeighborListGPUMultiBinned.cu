@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListGPUMultiBinned.cuh"
 #include "TextureTools.h"
+#include "cub/cub.cuh"
 
 /*! \file NeighborListGPUMultiBinned.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils
@@ -130,6 +131,7 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_conditions,
                                                     const unsigned int *d_Nmax,
                                                     const unsigned int *d_head_list,
+                                                    const unsigned int *d_pid_map,
                                                     const Scalar4 *d_pos,
                                                     const unsigned int *d_body,
                                                     const Scalar *d_diameter,
@@ -179,19 +181,22 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
     __syncthreads();
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
-    int my_pidx;
+    int idx;
     if (gridDim.y > 1)
         {
         // fermi workaround
-        my_pidx = (blockIdx.x + blockIdx.y*65535) * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+        idx = (blockIdx.x + blockIdx.y*65535) * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
         }
     else
         {
-        my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+        idx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
         }
 
     // one thread per particle
-    if (my_pidx >= N) return;
+    if (idx >= N) return;
+
+    // get the write particle id
+    int my_pidx = d_pid_map[idx];
 
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
@@ -313,9 +318,9 @@ __global__ void gpu_compute_nlist_multi_binned_kernel(unsigned int *d_nlist,
                 // compare the check distance to the minimum cell distance, and pass without distance check if unnecessary
                 if (cell_dist2 > r_listsq) break;
 
-                // only load in the particle position and id if distance check is satisfied
+                // only load in the particle position and id if distance check is required
                 const Scalar4 neigh_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
-                Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
+                const Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 
                 // a particle cannot neighbor itself
@@ -412,6 +417,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                            unsigned int *d_conditions,
                            const unsigned int *d_Nmax,
                            const unsigned int *d_head_list,
+                           const unsigned int *d_pid_map,
                            const Scalar4 *d_pos,
                            const unsigned int *d_body,
                            const Scalar *d_diameter,
@@ -466,6 +472,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                                                                                                   d_conditions,
                                                                                                   d_Nmax,
                                                                                                   d_head_list,
+                                                                                                  d_pid_map,
                                                                                                   d_pos,
                                                                                                   d_body,
                                                                                                   d_diameter,
@@ -509,6 +516,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                                                                                                   d_conditions,
                                                                                                   d_Nmax,
                                                                                                   d_head_list,
+                                                                                                  d_pid_map,
                                                                                                   d_pos,
                                                                                                   d_body,
                                                                                                   d_diameter,
@@ -552,6 +560,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                                                                                                   d_conditions,
                                                                                                   d_Nmax,
                                                                                                   d_head_list,
+                                                                                                  d_pid_map,
                                                                                                   d_pos,
                                                                                                   d_body,
                                                                                                   d_diameter,
@@ -595,6 +604,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                                                                                                   d_conditions,
                                                                                                   d_Nmax,
                                                                                                   d_head_list,
+                                                                                                  d_pid_map,
                                                                                                   d_pos,
                                                                                                   d_body,
                                                                                                   d_diameter,
@@ -622,6 +632,7 @@ inline void multi_launcher(unsigned int *d_nlist,
                                d_conditions,
                                d_Nmax,
                                d_head_list,
+                               d_pid_map,
                                d_pos,
                                d_body,
                                d_diameter,
@@ -655,6 +666,7 @@ inline void multi_launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
                                                        unsigned int *d_conditions,
                                                        const unsigned int *d_Nmax,
                                                        const unsigned int *d_head_list,
+                                                       const unsigned int *d_pid_map,
                                                        const Scalar4 *d_pos,
                                                        const unsigned int *d_body,
                                                        const Scalar *d_diameter,
@@ -685,6 +697,7 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            unsigned int *d_conditions,
                                            const unsigned int *d_Nmax,
                                            const unsigned int *d_head_list,
+                                           const unsigned int *d_pid_map,
                                            const Scalar4 *d_pos,
                                            const unsigned int *d_body,
                                            const Scalar *d_diameter,
@@ -714,6 +727,7 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            d_conditions,
                                            d_Nmax,
                                            d_head_list,
+                                           d_pid_map,
                                            d_pos,
                                            d_body,
                                            d_diameter,
@@ -737,4 +751,48 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            block_size,
                                            compute_capability);
     return cudaSuccess;
+    }
+
+__global__ void gpu_compute_nlist_multi_fill_types_kernel(unsigned int *d_pids,
+                                                          unsigned int *d_types,
+                                                          const Scalar4 *d_pos,
+                                                          const unsigned int N)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N) return;
+
+    Scalar4 pos_i = d_pos[idx];
+    unsigned int type = __scalar_as_int(pos_i.w);
+    d_types[idx] = type;
+    d_pids[idx] = idx;
+    }
+
+cudaError_t gpu_compute_nlist_multi_fill_types(unsigned int *d_pids,
+                                               unsigned int *d_types,
+                                               const Scalar4 *d_pos,
+                                               const unsigned int N)
+    {
+    const unsigned int block_size = 128;
+
+    gpu_compute_nlist_multi_fill_types_kernel<<<N/block_size + 1, block_size>>>(d_pids, d_types, d_pos, N);
+
+    return cudaSuccess;
+    }
+
+void gpu_compute_nlist_multi_sort_types(unsigned int *d_pids,
+                                        unsigned int *d_pids_alt,
+                                        unsigned int *d_types,
+                                        unsigned int *d_types_alt,
+                                        void *d_tmp_storage,
+                                        size_t &tmp_storage_bytes,
+                                        bool &swap,
+                                        const unsigned int N)
+    {
+    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
+    cub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
+    if (d_tmp_storage != NULL)
+        {
+        swap = (d_vals.selector == 1);
+        }
     }
