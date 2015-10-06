@@ -151,7 +151,6 @@ class xml(analyze._analyzer):
     # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
     # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
     # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
-    # \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
@@ -171,7 +170,6 @@ class xml(analyze._analyzer):
     # xml.set_params(type=False)
     # xml.set_params(position=False, type=False, velocity=True)
     # xml.set_params(type=True, position=True)
-    # xml.set_params(position=True, wall=True)
     # xml.set_params(bond=True)
     # xml.set_params(all=True)
     # \endcode
@@ -185,7 +183,6 @@ class xml(analyze._analyzer):
                    diameter=None,
                    type=None,
                    body=None,
-                   wall=None,
                    bond=None,
                    angle=None,
                    dihedral=None,
@@ -198,7 +195,7 @@ class xml(analyze._analyzer):
         self.check_initialization();
 
         if all:
-            position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
+            position = image = velocity = mass = diameter = type = bond = angle = dihedral = improper = True;
             acceleration = charge = body = orientation = True;
 
         if vis:
@@ -224,9 +221,6 @@ class xml(analyze._analyzer):
 
         if body is not None:
             self.cpp_analyzer.setOutputBody(body);
-
-        if wall is not None:
-            self.cpp_analyzer.setOutputWall(wall);
 
         if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);

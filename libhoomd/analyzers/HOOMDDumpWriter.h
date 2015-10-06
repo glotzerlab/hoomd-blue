@@ -80,8 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     numberical order.
 
     To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
-    and setOutputType(). Similarly, walls and bonds can be included with setOutputWall() and
-    setOutputBond().
+    and setOutputType(). Similarly, bonds can be included with setOutputBond().
 
     Future versions will include the ability to dump forces on each particle to the file also.
 
@@ -120,8 +119,6 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputDihedral(bool enable);
         //! Enables/disables the writing of impropers
         void setOutputImproper(bool enable);
-        //! Enables/disables the writing of walls
-        void setOutputWall(bool enable);
         //! Enables/disables the writing of acceleration
         void setOutputAccel(bool enable);
         //! Enables/disables the writing of body
@@ -151,7 +148,6 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_type;         //!< true if the particle types should be written
         bool m_output_bond;         //!< true if the bonds should be written
         bool m_output_angle;        //!< true if the angles should be written
-        bool m_output_wall;         //!< true if the walls should be written
         bool m_output_dihedral;     //!< true if dihedrals should be written
         bool m_output_improper;     //!< true if impropers should be written
         bool m_output_accel;        //!< true if acceleration should be written

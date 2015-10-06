@@ -62,7 +62,6 @@ set(TEST_LIST
     test_harmonic_improper_force
     test_cgcmm_angle_force
     test_fenebond_force
-    test_lj_wall_force
     test_external_periodic
     test_neighborlist
     test_lj_force

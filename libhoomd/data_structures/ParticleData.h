@@ -112,8 +112,6 @@ using namespace std;
 // Forward declaration of Profiler
 class Profiler;
 
-class WallData;
-
 // Forward declaration of RigidData
 class RigidData;
 

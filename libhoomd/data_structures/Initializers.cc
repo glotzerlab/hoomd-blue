@@ -51,7 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "Initializers.h"
-#include "WallData.h"
 #include "SnapshotSystemData.h"
 
 #include <stdlib.h>
@@ -238,66 +237,6 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot()
 /////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
 
-/*! \param N number of particles to create
-    \param phi_p Packing fraction of particles in the box
-    \param min_dist Minimum distance two particles will be placed apart
-    \param wall_buffer Distance from the edge of the box to place the walls
-    \param type_name Name of the particle type to create
-    \note assumes particles have a diameter of 1
-*/
-RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N,
-                                                       Scalar phi_p,
-                                                       Scalar min_dist,
-                                                       Scalar wall_buffer,
-                                                       const std::string &type_name)
-    : RandomInitializer(N, phi_p, min_dist, type_name), m_wall_buffer(wall_buffer)
-    {
-    Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
-    // artificially shrink the box dimensions by 10% so that the super class doesn't put
-    // particles too close to the walls
-    m_box = BoxDim(L*Scalar(0.9));
-    // save the real box for specifying the walls
-    m_real_box = BoxDim(L);
-    }
-
-RandomInitializerWithWalls::~RandomInitializerWithWalls()
-    {
-    }
-
-boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializerWithWalls::getSnapshot() const
-    {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot = RandomInitializer::getSnapshot();
-
-    // the real box dimensions need to be increased by m_wall_buffer*2
-    Scalar L = m_real_box.getL().x + m_wall_buffer*2;
-    BoxDim box(L);
-
-    snapshot->global_box = box;
-
-    /*
-        Walls are created on all 6 sides of the box, spaced in from the edge by a distance of \a wall_buffer
-        specified in the constructor.
-    */
-
-    Scalar3 lo = m_real_box.getLo();
-    Scalar3 hi = m_real_box.getHi();
-    // add all walls
-    // left
-    snapshot->wall_data.push_back(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
-    // right
-    snapshot->wall_data.push_back(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
-    // bottom
-    snapshot->wall_data.push_back(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
-    // top
-    snapshot->wall_data.push_back(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
-    // front
-    snapshot->wall_data.push_back(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
-    // back
-    snapshot->wall_data.push_back(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
-
-    return snapshot;
-    }
-
 
 void export_SimpleCubicInitializer()
     {
@@ -311,12 +250,4 @@ void export_RandomInitializer()
     class_< RandomInitializer >
         ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
     ;
-    }
-
-void export_RandomInitializerWithWalls()
-    {
-    class_< RandomInitializerWithWalls >
-        ("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar, string>())
-    ;
-    // no need to .def methods, they are all inherited
     }

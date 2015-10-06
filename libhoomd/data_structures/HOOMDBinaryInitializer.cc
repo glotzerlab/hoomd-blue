@@ -215,11 +215,6 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDBinaryInitializer::getSnaps
     idata.type_mapping = m_improper_type_mapping;
 
     /*
-     * Initialize walls
-     */
-    snapshot->wall_data = m_walls;
-
-    /*
      * Initialize integrator data
      */
     snapshot->integrator_data = m_integrator_variables;
@@ -513,23 +508,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         }
     }
 
-    //parse walls
-    {
-    unsigned int nw = 0;
-    f.read((char*)&nw, sizeof(unsigned int));
-    for (unsigned int j = 0; j < nw; j++)
-        {
-        Scalar ox, oy, oz, nx, ny, nz;
-        f.read((char*)&(ox), sizeof(Scalar));
-        f.read((char*)&(oy), sizeof(Scalar));
-        f.read((char*)&(oz), sizeof(Scalar));
-        f.read((char*)&(nx), sizeof(Scalar));
-        f.read((char*)&(ny), sizeof(Scalar));
-        f.read((char*)&(nz), sizeof(Scalar));
-        m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
-        }
-    }
-
     // parse rigid bodies
     {
     unsigned int n_bodies = 0;
@@ -597,8 +575,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
-    if (m_walls.size() > 0)
-        m_exec_conf->msg->notice(2) << m_walls.size() << " walls" << endl;
     }
 
 void export_HOOMDBinaryInitializer()

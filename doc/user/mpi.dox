@@ -251,7 +251,6 @@ These features are not currently supported in MPI execution
 - Rigid bodies
 - integrate.mode_minimize_fire
 - integrate.berendsen
-- wall.lj
 
 Unsupported features may be made available in later releases.
 

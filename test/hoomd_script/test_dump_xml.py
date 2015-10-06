@@ -41,7 +41,6 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(mass=False);
         xml.set_params(diameter=False);
         xml.set_params(type=True);
-        xml.set_params(wall=True);
         xml.set_params(bond=True);
         xml.set_params(image=True);
         xml.set_params(all=True);

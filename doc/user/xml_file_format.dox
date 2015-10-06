@@ -136,7 +136,6 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b angle (\ref sec_xml_angle)
  - \b dihedral (\ref sec_xml_dihedral)
  - \b improper (\ref sec_xml_improper)
- - \b wall (\ref sec_xml_wall)
 
 \section sec_xml_box Simulation box specification
 
@@ -571,25 +570,5 @@ Specifying the improper dihedrals themselves doesn't result in any additional fo
 that, you must specify an improper force (see \link hoomd_script.improper improper\endlink). Coefficients for the
 associated improper force can be set separately for each improper type by name (for example,
 see \link hoomd_script.improper.harmonic improper.harmonic\endlink).
-
-\section sec_xml_wall Walls in the simulation box
-
-The `<wall>` node specifies any number of walls in the simulation box. Walls have no
-meaning unless a wall force such as \link hoomd_script.wall.lj wall.lj\endlink is specified
-in the simulation. <br>
-\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
-\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
-Version: 1.0 and newer
-
-Example:
-~~~~
-<wall>
-<coord ox="1.0" oy="2.0" oz="3.0" nx="4.0" ny="5.0" nz="6.0"/>
-<coord ox="7.0" oy="8.0" oz="9.0" nx="10.0" ny="11.0" nz="-12.0"/>
-</wall>
-~~~~
-
-Every wall is specified by a plane. The vector (\em ox, \em oy, \em oz) is the origin, a point
-in the plane and (\em nx, \em ny, \em nz) is the normal.
 
 */

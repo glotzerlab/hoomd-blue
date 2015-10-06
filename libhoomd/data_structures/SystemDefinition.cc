@@ -96,7 +96,6 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_n_dimensions = 3;
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
-    m_wall_data = boost::shared_ptr<WallData>(new WallData());
 
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     m_rigid_data->initializeData();
@@ -132,8 +131,6 @@ SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> >
     #endif
 
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
-
-    m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot->wall_data));
 
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 
@@ -177,7 +174,6 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param dihedrals True if dihedral data should be saved
  *  \param impropers True if improper data should be saved
  *  \param rigid True if rigid data should be saved
- *  \param wall True if wall data should be saved
  *  \param integrators True if integrator data should be saved
  */
 template <class Real>
@@ -187,7 +183,6 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
                                                    bool dihedrals,
                                                    bool impropers,
                                                    bool rigid,
-                                                   bool walls,
                                                    bool integrators)
     {
     boost::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
@@ -244,15 +239,6 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
     else
         snap->has_rigid_data = false;
 
-    if (walls)
-        {
-        for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
-            snap->wall_data.push_back(m_wall_data->getWall(i));
-        if (snap->wall_data.size())
-            snap->has_wall_data = true;
-        }
-    else
-        snap->has_wall_data = false;
 
     if (integrators)
         {
@@ -300,13 +286,6 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     if (snapshot->has_rigid_data)
         m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
 
-    if (snapshot->has_wall_data)
-        {
-        m_wall_data->removeAllWalls();
-        for (unsigned int i = 0; i < snapshot->wall_data.size(); ++i)
-            m_wall_data->addWall(snapshot->wall_data[i]);
-        }
-
     // it is an error to load variables for more integrators than are
     // currently registered
     if (snapshot->has_integrator_data)
@@ -336,7 +315,6 @@ template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSn
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool rigid,
-                                                                                              bool walls,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot);
 
@@ -349,7 +327,6 @@ template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeS
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool rigid,
-                                                                                              bool walls,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr< SnapshotSystemData<double> > snapshot);
 
@@ -369,7 +346,6 @@ void export_SystemDefinition()
     .def("getAngleData", &SystemDefinition::getAngleData)
     .def("getDihedralData", &SystemDefinition::getDihedralData)
     .def("getImproperData", &SystemDefinition::getImproperData)
-    .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)

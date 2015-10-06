@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDDumpWriter.h"
 #include "BondedGroupData.h"
-#include "WallData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -84,7 +83,7 @@ using namespace boost;
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart)
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
-        m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false),
+        m_output_type(false), m_output_bond(false), m_output_angle(false),
         m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
         m_output_charge(false), m_output_orientation(false), m_output_moment_inertia(false), m_vizsigma_set(false),
         m_mode_restart(mode_restart)
@@ -149,12 +148,6 @@ void HOOMDDumpWriter::setOutputBond(bool enable)
 void HOOMDDumpWriter::setOutputAngle(bool enable)
     {
     m_output_angle = enable;
-    }
-/*! \param enable Set to true to output walls to the XML file on the next call to analyze()
-*/
-void HOOMDDumpWriter::setOutputWall(bool enable)
-    {
-    m_output_wall = enable;
     }
 /*! \param enable Set to true to output dihedrals to the XML file on the next call to analyze()
 */
@@ -476,22 +469,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</improper>" << "\n";
         }
 
-    // if the wall flag is true, output the walls to the xml file
-    if (m_output_wall)
-        {
-        f << "<wall>" << "\n";
-        boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
-
-        // loop over all walls and write them out
-        for (unsigned int i = 0; i < wall_data->getNumWalls(); i++)
-            {
-            Wall wall = wall_data->getWall(i);
-            f << "<coord ox=\"" << wall.origin_x << "\" oy=\"" << wall.origin_y << "\" oz=\"" << wall.origin_z <<
-            "\" nx=\"" << wall.normal_x << "\" ny=\"" << wall.normal_y << "\" nz=\"" << wall.normal_z << "\" />" << "\n";
-            }
-        f << "</wall>" << "\n";
-        }
-
     // If the charge flag is true output the mass of all particles to the file
     if (m_output_charge)
         {
@@ -621,7 +598,6 @@ void export_HOOMDDumpWriter()
     .def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
     .def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
     .def("setOutputImproper", &HOOMDDumpWriter::setOutputImproper)
-    .def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)

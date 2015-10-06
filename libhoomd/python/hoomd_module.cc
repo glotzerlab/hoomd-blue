@@ -79,7 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
 #include "BondTablePotential.h"
-#include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
@@ -500,7 +499,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // initializers
     export_RandomInitializer();
-    export_RandomInitializerWithWalls();
     export_SimpleCubicInitializer();
     export_HOOMDInitializer();
     export_HOOMDBinaryInitializer();
@@ -542,7 +540,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
     export_EAMForceCompute();
-    export_LJWallForceCompute();
     export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();

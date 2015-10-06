@@ -142,11 +142,6 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     unsigned int i1 = idata->registerIntegrator();
     idata->setIntegratorVariables(i1, iv1);
 
-    // add a couple walls for fun
-    sysdef1->getWallData()->addWall(Wall(1,0,0, 0,1,0));
-    sysdef1->getWallData()->addWall(Wall(0,1,0, 0,0,1));
-    sysdef1->getWallData()->addWall(Wall(0,0,1, 1,0,0));
-
     // add a few bonds too
     sysdef1->getBondData()->addBondedGroup(Bond(0, 0, 1));
     sysdef1->getBondData()->addBondedGroup(Bond(1, 1, 0));

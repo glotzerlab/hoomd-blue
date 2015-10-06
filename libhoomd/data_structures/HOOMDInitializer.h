@@ -59,7 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "BondedGroupData.h"
-#include "WallData.h"
 #include "xmlParser.h"
 #include "BondedGroupData.h"
 
@@ -186,8 +185,6 @@ class HOOMDInitializer
         void parseImproperNode(const XMLNode& node);
         //! Parse charge node
         void parseChargeNode(const XMLNode& node);
-        //! Parse wall node
-        void parseWallNode(const XMLNode& node);
         //! Parse orientation node
         void parseOrientationNode(const XMLNode& node);
         //! Parse moment inertia node
@@ -218,7 +215,6 @@ class HOOMDInitializer
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded
         std::vector< unsigned int > m_body_array;   //!< body values for all particles loaded
         std::vector< Scalar > m_charge_array;       //!< charge of the particles loaded
-        std::vector< Wall > m_walls;                //!< walls loaded from the file
         std::vector< BondData::members_t > m_bonds; //!< Bonds read in from the file
         std::vector< unsigned int> m_bond_types;    //!< Bond types read in from the file
         std::vector< AngleData::members_t > m_angles; //!< Angle read in from the file
