@@ -5,7 +5,7 @@ from hoomd_script import *
 import unittest
 import os
 
-# pair.yukawa
+# pair.morse
 class pair_morse_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -38,16 +38,30 @@ class pair_morse_tests (unittest.TestCase):
         p.set_params(mode="xplor");
         self.assertRaises(RuntimeError, p.set_params, mode="blah");
 
-    # test nlist subscribe
-    def test_nlist_subscribe(self):
+    # test nlist global subscribe
+    def test_nlist_global_subscribe(self):
         p = pair.morse(r_cut=2.5);
         p.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
 
         p.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+    
+    # test nlist subscribe
+    def test_nlist_subscribe(self):
+        nl = nlist.cell()
+        p = pair.morse(r_cut=2.5, nlist=nl);
+        self.assertEqual(globals.neighbor_list, None)
+
+        p.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+
+        p.pair_coeff.set('A', 'A', r_cut = 2.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
 
     def tearDown(self):
         init.reset();

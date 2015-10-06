@@ -1900,6 +1900,8 @@ void ParticleData::setType(unsigned int tag, unsigned int typ)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
         h_pos.data[idx].w = __int_as_scalar(typ);
+        // signal that the types have changed
+        notifyParticleSort();
         }
     }
 
@@ -2897,7 +2899,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getPosNP()
+PyObject* SnapshotParticleData<Real>::getPosNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2909,7 +2911,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getPosNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getVelNP()
+PyObject* SnapshotParticleData<Real>::getVelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2921,7 +2923,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getVelNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getAccelNP()
+PyObject* SnapshotParticleData<Real>::getAccelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2933,7 +2935,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getAccelNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getTypeNP()
+PyObject* SnapshotParticleData<Real>::getTypeNP()
     {
     return num_util::makeNumFromData(&type[0], type.size());
     }
@@ -2942,7 +2944,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getTypeNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getMassNP()
+PyObject* SnapshotParticleData<Real>::getMassNP()
     {
     return num_util::makeNumFromData(&mass[0], mass.size());
     }
@@ -2951,7 +2953,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getMassNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getChargeNP()
+PyObject* SnapshotParticleData<Real>::getChargeNP()
     {
     return num_util::makeNumFromData(&charge[0], charge.size());
     }
@@ -2960,7 +2962,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getChargeNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getDiameterNP()
+PyObject* SnapshotParticleData<Real>::getDiameterNP()
     {
     return num_util::makeNumFromData(&diameter[0], diameter.size());
     }
@@ -2969,7 +2971,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getDiameterNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getImageNP()
+PyObject* SnapshotParticleData<Real>::getImageNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2981,7 +2983,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getImageNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getBodyNP()
+PyObject* SnapshotParticleData<Real>::getBodyNP()
     {
     return num_util::makeNumFromData(&body[0], body.size());
     }
@@ -2990,7 +2992,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getBodyNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getOrientationNP()
+PyObject* SnapshotParticleData<Real>::getOrientationNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();

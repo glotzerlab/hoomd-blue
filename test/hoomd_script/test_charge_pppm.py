@@ -9,14 +9,14 @@ import os
 class charge_pppm_tests (unittest.TestCase):
     def setUp(self):
         print
-        s = init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
         for i in range(0,50):
-            s.particles[i].charge = -1;
+            self.s.particles[i].charge = -1;
 
         for i in range(50,100):
-            s.particles[i].charge = 1;
+            self.s.particles[i].charge = 1;
 
     # basic test of creation and param setting
     def test(self):
@@ -26,6 +26,10 @@ class charge_pppm_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
+        
+        del all
+        del c
+        
 
     # Cannot test pppm multiple times currently because of implementation limitations
     ## test missing coefficients
@@ -46,6 +50,7 @@ class charge_pppm_tests (unittest.TestCase):
         #c.enable();
 
     def tearDown(self):
+        del self.s
         init.reset();
 
 

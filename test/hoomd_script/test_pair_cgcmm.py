@@ -30,11 +30,19 @@ class pair_cgcmm_tests (unittest.TestCase):
         cgcmm = pair.cgcmm(r_cut=3.0);
         self.assertRaises(RuntimeError, cgcmm.update_coeffs);
 
-   # test nlist subscribe
-    def test_nlist_subscribe(self):
+    # test nlist global subscribe
+    def test_nlist_global_subscribe(self):
         cgcmm = pair.cgcmm(r_cut=2.5);
         globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+    
+    # test nlist subscribe
+    def test_nlist_subscribe(self):
+        nl = nlist.cell()
+        cgcmm = pair.cgcmm(r_cut=2.5, nlist=nl);
+        nl.update_rcut();
+        self.assertEqual(globals.neighbor_list, None)
+        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
 
     # test adding types
     def test_type_add(self):

@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -89,7 +89,7 @@ void fslj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Exec
     pdata_2->setPosition(0, make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1, make_scalar3(1.3,0.0,0.0));
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.5), Scalar(0.4)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.5), Scalar(0.4)));
     boost::shared_ptr<PotentialPairForceShiftedLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(1.5));
     fc_no_shift->setShiftMode(PotentialPairForceShiftedLJ::no_shift);

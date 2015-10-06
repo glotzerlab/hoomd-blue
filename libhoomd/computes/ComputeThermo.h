@@ -244,7 +244,7 @@ class ComputeThermo : public Compute
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
-        vector<string> m_logname_list;  //!< Cache all generated logged quantities names
+        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
 
         //! Does the actual computation
         virtual void computeProperties();

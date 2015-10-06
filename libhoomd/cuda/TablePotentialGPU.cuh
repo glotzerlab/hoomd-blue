@@ -70,12 +70,14 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const BoxDim& box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
-                                     const Index2D& nli,
+                                     const unsigned int *d_head_list,
                                      const Scalar2 *d_tables,
                                      const Scalar4 *d_params,
+                                     const unsigned int size_nlist,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size,
-                                     const unsigned int compute_capability);
+                                     const unsigned int compute_capability,
+                                     const unsigned int max_tex1d_width);
 
 #endif

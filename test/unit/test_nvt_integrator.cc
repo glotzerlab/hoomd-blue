@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "AllPairPotentials.h"
-#include "NeighborList.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -1193,8 +1193,8 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     boost::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
     boost::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
-    boost::shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
-    boost::shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist1(new NeighborListTree(sysdef1, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist2(new NeighborListTree(sysdef2, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));

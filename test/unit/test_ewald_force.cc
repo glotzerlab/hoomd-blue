@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -101,7 +101,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     pdata_3->setCharge(1,1.0);
     pdata_3->setCharge(2,-1.0);
 
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairEwald> fc_3 = ewald_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
@@ -187,7 +187,7 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairEwald> fc1 = ewald_creator1(sysdef, nlist);
     boost::shared_ptr<PotentialPairEwald> fc2 = ewald_creator2(sysdef, nlist);

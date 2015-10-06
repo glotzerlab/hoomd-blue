@@ -59,6 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+
+using namespace std;
 using namespace boost::python;
 
 /*! \file TwoStepNVT.h

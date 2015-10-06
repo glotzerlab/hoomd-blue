@@ -114,7 +114,7 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_pt
                                                                 const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << endl;
+    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -131,7 +131,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
-        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << endl;
+        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -156,7 +156,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -178,11 +178,14 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             box,
                             d_n_neigh.data,
                             d_nlist.data,
-                            nli,
+                            d_head_list.data,
                             d_rcutsq.data,
                             d_ronsq.data,
+                            this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
-                            this->m_tuner->getParam()),
+                            this->m_tuner->getParam(),
+                            this->m_exec_conf->getComputeCapability()/10,
+                            this->m_exec_conf->dev_prop.maxTexture1DLinear),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

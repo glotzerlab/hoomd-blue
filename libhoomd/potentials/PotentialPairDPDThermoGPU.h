@@ -207,7 +207,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -242,8 +242,9 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              box,
                              d_n_neigh.data,
                              d_nlist.data,
-                             nli,
+                             d_head_list.data,
                              d_rcutsq.data,
+                             this->m_nlist->getNListArray().getPitch(),
                              this->m_pdata->getNTypes(),
                              block_size,
                              this->m_seed,
@@ -253,7 +254,8 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_shift_mode,
                              flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                              threads_per_particle,
-                             this->m_exec_conf->getComputeCapability()/10),
+                             this->m_exec_conf->getComputeCapability()/10,
+                             this->m_exec_conf->dev_prop.maxTexture1DLinear),
              d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

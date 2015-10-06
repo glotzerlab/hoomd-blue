@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTGPU.h"
 #endif
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 #include "AllPairPotentials.h"
 
@@ -526,7 +526,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
     fc3->setRcut(0, 0, Scalar(1.3));
 

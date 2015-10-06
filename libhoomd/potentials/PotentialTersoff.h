@@ -155,6 +155,12 @@ class PotentialTersoff : public ForceCompute
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old potential coefficients when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_typpair_idx.getW())
+                return;
+
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
@@ -181,7 +187,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << endl;
+    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
 
     assert(m_pdata);
     assert(m_nlist);
@@ -204,7 +210,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
-    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << endl;
+    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_num_type_change_connection.disconnect();
     }
 
@@ -278,7 +284,7 @@ void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
 template< class evaluator >
 std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }
@@ -297,7 +303,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
     else
         {
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                  << std::endl << endl;
+                  << std::endl << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -328,7 +334,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -351,6 +357,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        const unsigned int head_i = h_head_list.data[i];
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
@@ -363,7 +370,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         for (unsigned int j = 0; j < size; j++)
             {
             // access the index of neighbor j (MEM TRANSFER: 1 scalar)
-            unsigned int jj = h_nlist.data[nli(i, j)];
+            unsigned int jj = h_nlist.data[head_i + j];
             assert(jj < m_pdata->getN());
 
             // access the position and type of particle j
@@ -402,7 +409,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 for (unsigned int k = 0; k < size; k++)
                     {
                     // access the index of neighbor k
-                    unsigned int kk = h_nlist.data[nli(i,k)];
+                    unsigned int kk = h_nlist.data[head_i + k];
                     assert(kk < m_pdata->getN());
 
                     // access the position and type of neighbor k
@@ -460,7 +467,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 for (unsigned int k = 0; k < size; k++)
                     {
                     // access the index of neighbor k
-                    unsigned int kk = h_nlist.data[nli(i, k)];
+                    unsigned int kk = h_nlist.data[head_i + k];
                     assert(kk < m_pdata->getN());
 
                     // access the position and type of neighbor k

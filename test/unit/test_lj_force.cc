@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -100,7 +100,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     h_pos.data[1].x = Scalar(pow(2.0,1.0/6.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairLJ> fc_3 = lj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
@@ -246,7 +246,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairLJ> fc_6 = lj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
@@ -340,7 +340,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
     boost::shared_ptr<PotentialPairLJ> fc2 = lj_creator2(sysdef, nlist);
@@ -422,7 +422,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     h_pos.data[1].x = Scalar(2.8); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
     boost::shared_ptr<PotentialPairLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
     fc_no_shift->setShiftMode(PotentialPairLJ::no_shift);
