@@ -100,7 +100,7 @@ class EvaluatorWalls
 
 		typedef wall_type field_type;
 
-		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), idx(i), field(f), params(p)
+		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), m_idx(i), m_field(f), m_params(p)
 			{
 			}
 
@@ -186,20 +186,19 @@ class EvaluatorWalls
 			vec3<Scalar> dxv;
 			// initialize virial
 			bool energy_shift = true;
-			for (unsigned int k = 0; k < field.numSpheres; k++)
+			for (unsigned int k = 0; k < m_field.numSpheres; k++)
 				{
-				dxv = wall_eval_dist(field.Spheres[k], position, m_box);
+				dxv = wall_eval_dist(m_field.Spheres[k], position, m_box);
 				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
-				if (rsq > params.ronsq)
+				if (rsq > m_params.ronsq)
 					{
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-					//cout << "evaluator params " << params.params.x << " " << params.params.y << "rcut = " << params.rcutsq << " ronsq = "<< params.ronsq << endl;
-		            evaluator eval(rsq, params.rcutsq, params.params); //TODO: Fix hardcoding
+		            evaluator eval(rsq, m_params.rcutsq, m_params.params); //TODO: Fix hardcoding
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
@@ -216,26 +215,24 @@ class EvaluatorWalls
 	                    virial[3] += force_divr*dx.y*dx.y;
 	                    virial[4] += force_divr*dx.y*dx.z;
 	                    virial[5] += force_divr*dx.z*dx.z;
-	                 //    cout << "Force is " << F.x << ", " << F.y << ", " << F.z <<endl;
-		               	// cout << "dx is " << dx.x << ", " << dx.y << ", " << dx.z <<endl;
 						}
 					}
 				}
 
-			for (unsigned int k = 0; k < field.numCylinders; k++)
+			for (unsigned int k = 0; k < m_field.numCylinders; k++)
 				{
-				dxv = wall_eval_dist(field.Cylinders[k], position, m_box);
+				dxv = wall_eval_dist(m_field.Cylinders[k], position, m_box);
 				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
 
-	            if (rsq > params.ronsq)
+	            if (rsq > m_params.ronsq)
 		            {
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, params.rcutsq, params.params);
+		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
@@ -251,20 +248,20 @@ class EvaluatorWalls
 						}
 					}
 				}
-			for (unsigned int k = 0; k < field.numPlanes; k++)
+			for (unsigned int k = 0; k < m_field.numPlanes; k++)
 				{
-				dxv = wall_eval_dist(field.Planes[k], position, m_box);
+				dxv = wall_eval_dist(m_field.Planes[k], position, m_box);
 				Scalar3 dx = -vec_to_scalar3(dxv);
 
 				// calculate r_ij squared (FLOPS: 5)
 	            Scalar rsq = dot(dx, dx);
 
-	            if (rsq > params.ronsq)
+	            if (rsq > m_params.ronsq)
 		            {
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, params.rcutsq, params.params);
+		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
 
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -300,9 +297,9 @@ class EvaluatorWalls
     protected:
         Scalar3 		m_pos;                //!< particle position
         BoxDim 			m_box;                 //!< box dimensions
-        unsigned int 	idx;
-        field_type 		field;			  //!< contains all information about the walls.
-        param_type 		params;
+        unsigned int 	m_idx;
+        field_type 		m_field;			  //!< contains all information about the walls.
+        param_type 		m_params;
 	};
 
 template < class evaluator >
