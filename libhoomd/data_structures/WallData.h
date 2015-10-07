@@ -109,7 +109,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(true)
+    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
         {
         vec3<Scalar> nvec;
         nvec = normal;
@@ -119,47 +119,68 @@ struct PlaneWall
         }
     vec3<Scalar>    normal;
     vec3<Scalar>    origin;
-    bool            inside; //TODO: Figure out if it can be removed without messing up HPMC walls. Meaningless usage since it could simply be defined by the negative of the given normal.
     };
 
-/*template <class WallShape>
-DEVICE inline Scalar wall_dist_eval(const WallShape& wall, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
+DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
     {
-    return false;//something else needs to happen here and particle shape was removed, anything need to be added?
-    };
-
-template <class evlauator>
-DEVICE inline Scalar wall_dist_eval<SphereWall>(const SphereWall& wall, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
-    {
-    vec3<Scalar> t = position - box_origin;
-    box.minImage(t);
+    // t-=wall.origin;
+    // vec3<Scalar> shifted_pos(t);
+    // Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
+    // Scalar r = wall.r - sqrt(rxyz_sq);
+    vec3<Scalar> t = position;
     t-=wall.origin;
     vec3<Scalar> shifted_pos(t);
-    Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z; // sq distance from the container origin.
-    Scalar wall_dist = wall.r - sqrt(rxyz_sq);
-    return wall_dist;
+    Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
+    if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
+        {
+        t *= wall.r/rxyz;
+        vec3<Scalar> dx = t - shifted_pos;
+        return dx;
+        }
+    else
+        {
+        return vec3<Scalar>(0.0,0.0,0.0);
+        }
     };
 
-template <class evlauator>
-DEVICE inline Scalar wall_dist_eval<CylinderWall>(const CylinderWall& wall, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
+DEVICE inline vec3<Scalar> wall_eval_dist(const CylinderWall& wall, const vec3<Scalar>& position, const BoxDim& box)
     {
-    vec3<Scalar> t = position - box_origin;
-    box.minImage(t);
+    // t-=wall.origin;
+    // vec3<Scalar> shifted_pos=rotate(wall.q_reorientation,t);
+    // Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
+    // Scalar r = wall.r - sqrt(rxy_sq);
+    vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos=rotate(wall.q_reorientation,t);
-    Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y; // sq distance from the container central axis.
-    Scalar wall_dist = wall.r - sqrt(rxy_sq); //any way around the sqrt use? probably not, could only do if pair potentials were based off r_sq
-    return wall_dist;
+    vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
+    shifted_pos.z = 0;
+    Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
+    if (((rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
+        {
+        t = (wall.r / rxy) * shifted_pos;
+        vec3<Scalar> dx = t - shifted_pos;
+        dx = rotate(conj(wall.q_reorientation),dx);
+        return dx;
+        }
+    else
+        {
+        return vec3<Scalar>(0.0,0.0,0.0);
+        }
     };
 
-template <class evlauator>  //make clear in documentation that plane placement is only considered inside 1 box?
-DEVICE inline Scalar wall_dist_eval<PlaneWall>(const PlaneWall& wall, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
-    {
-    vec3<Scalar> t = position - box_origin;
-    box.minImage(t);
-    Scalar wall_dist =dot(wall.normal,t)-dot(wall.normal,wall.origin);
-    //Scalar n_length=sqrt(wall.normal.x*wall.normal.x + wall.normal.y*wall.normal.y + wall.normal.z*wall.normal.z); taken out because it makes more sense to normalize the vector once rather than many times
-    //wall_dist = wall_dist/n_length;
-    return wall_dist;
-    };*/
+DEVICE inline vec3<Scalar> wall_eval_dist(const PlaneWall& wall, const vec3<Scalar>& position, const BoxDim& box)
+    // {
+    // Scalar r =dot(wall.normal,t)-dot(wall.normal,wall.origin);
+    vec3<Scalar> t = position;
+    Scalar wall_dist = dot(wall.normal,wall.origin) - dot(wall.normal,t);
+    if (wall_dist > 0.0)
+        {
+        vec3<Scalar> dx = wall_dist * wall.normal;
+        return dx;
+        }
+    else
+        {
+        return vec3<Scalar>(0.0,0.0,0.0);
+        }
+    };
+
 #endif

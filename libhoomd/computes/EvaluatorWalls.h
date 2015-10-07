@@ -100,77 +100,11 @@ class EvaluatorWalls
 
 		typedef wall_type field_type;
 
+		//TODO: box and m_box may be completely unused, therefore no need to store, might be able to remove
 		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), m_idx(i), m_field(f), m_params(p)
 			{
 			}
 
-		DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
-		    {
-		    // vec3<Scalar> t = position - box_origin;
-		    // box.minImage(t);
-		    // t-=wall.origin;
-		    // vec3<Scalar> shifted_pos(t);
-		    // Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
-		    // Scalar r = wall.r - sqrt(rxyz_sq);
-			vec3<Scalar> t = position;
-			t-=wall.origin;
-			vec3<Scalar> shifted_pos(t);
-			Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
-				{
-				t *= wall.r/rxyz;
-				vec3<Scalar> dx = t - shifted_pos;
-				return dx;
-				}
-			else
-				{
-				return vec3<Scalar>(0.0,0.0,0.0);
-				}
-		    };
-
-		DEVICE inline vec3<Scalar> wall_eval_dist(const CylinderWall& wall, const vec3<Scalar>& position, const BoxDim& box)
-		    {
-		    // vec3<Scalar> t = position - box_origin;
-		    // box.minImage(t);
-		    // t-=wall.origin;
-		    // vec3<Scalar> shifted_pos=rotate(wall.q_reorientation,t);
-		    // Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
-		    // Scalar r = wall.r - sqrt(rxy_sq);
-			vec3<Scalar> t = position;
-	        t-=wall.origin;
-	        vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
-			shifted_pos.z = 0;
-	        Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
-			if (((rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
-				{
-		        t = (wall.r / rxy) * shifted_pos;
-		        vec3<Scalar> dx = t - shifted_pos;
-				dx = rotate(conj(wall.q_reorientation),dx);
-				return dx;
-				}
-			else
-				{
-				return vec3<Scalar>(0.0,0.0,0.0);
-				}
-		    };
-
-		DEVICE inline vec3<Scalar> wall_eval_dist(const PlaneWall& wall, const vec3<Scalar>& position, const BoxDim& box)
-		    {
-		    // vec3<Scalar> t = position - box_origin;
-		    // box.minImage(t);
-		    // Scalar r =dot(wall.normal,t)-dot(wall.normal,wall.origin);
-			vec3<Scalar> t = position;
-			Scalar wall_dist = dot(wall.normal,wall.origin) - dot(wall.normal,t);
-			if (wall_dist > 0.0)
-				{
-				vec3<Scalar> dx = wall_dist * wall.normal;
-				return dx;
-				}
-			else
-				{
-				return vec3<Scalar>(0.0,0.0,0.0);
-				}
-			};
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
@@ -191,103 +125,48 @@ class EvaluatorWalls
 			vec3<Scalar> dxv;
 			// initialize virial
 			bool energy_shift = true; //Forces V(r) at r_cut to be continuous
-			for (unsigned int k = 0; k < m_field.numSpheres; k++)
-				{
-				dxv = wall_eval_dist(m_field.Spheres[k], position, m_box);
-				Scalar3 dx = -vec_to_scalar3(dxv);
 
-				// calculate r_ij squared (FLOPS: 5)
-	            Scalar rsq = dot(dx, dx);
-				if (rsq > m_params.ronsq)
+			DEVICE void evalLoopEvalOverWalls(numWalls, wallsArray)
+				{
+					for (unsigned int k = 0; k < numWalls; k++)
 					{
-		            // compute the force and potential energy
-		            Scalar force_divr = Scalar(0.0);
-		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
-					if (evaluator::needsDiameter())
-						eval.setDiameter(di, Scalar(0.0));
-		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+					dxv = vecPointToWall(wallsArray[k], position, m_box);
+					Scalar3 dx = vec_to_scalar3(dxv);
 
-		            if (evaluated)
-		                {
+					// calculate r_ij squared (FLOPS: 5)
+		            Scalar rsq = dot(dx, dx);
+					if (rsq > m_params.ronsq)
+						{
+			            // compute the force and potential energy
+			            Scalar force_divr = Scalar(0.0);
+			            Scalar pair_eng = Scalar(0.0);
+			            evaluator eval(rsq, m_params.rcutsq, m_params.params);
+						if (evaluator::needsDiameter())
+							eval.setDiameter(di, Scalar(0.0));
+			            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
-		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-		                // add the force, potential energy and virial to the particle i
-		                // (FLOPS: 8)
-		                F += dx*force_divr;
-		                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-	                    virial[0] += force_divr*dx.x*dx.x;
-	                    virial[1] += force_divr*dx.x*dx.y;
-	                    virial[2] += force_divr*dx.x*dx.z;
-	                    virial[3] += force_divr*dx.y*dx.y;
-	                    virial[4] += force_divr*dx.y*dx.z;
-	                    virial[5] += force_divr*dx.z*dx.z;
+			            if (evaluated)
+			                {
+
+			                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+			                // add the force, potential energy and virial to the particle i
+			                // (FLOPS: 8)
+			                F -= dx*force_divr;
+			                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+		                    virial[0] += force_divr*dx.x*dx.x;
+		                    virial[1] += force_divr*dx.x*dx.y;
+		                    virial[2] += force_divr*dx.x*dx.z;
+		                    virial[3] += force_divr*dx.y*dx.y;
+		                    virial[4] += force_divr*dx.y*dx.z;
+		                    virial[5] += force_divr*dx.z*dx.z;
+							}
 						}
 					}
 				}
 
-			for (unsigned int k = 0; k < m_field.numCylinders; k++)
-				{
-				dxv = wall_eval_dist(m_field.Cylinders[k], position, m_box);
-				Scalar3 dx = -vec_to_scalar3(dxv);
-
-				// calculate r_ij squared (FLOPS: 5)
-	            Scalar rsq = dot(dx, dx);
-
-	            if (rsq > m_params.ronsq)
-		            {
-		            // compute the force and potential energy
-		            Scalar force_divr = Scalar(0.0);
-		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
-		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-		            if (evaluated)
-		                {
-		                F += dx*force_divr;
-		                energy += pair_eng;
-	                    virial[0] += force_divr*dx.x*dx.x;
-	                    virial[1] += force_divr*dx.x*dx.y;
-	                    virial[2] += force_divr*dx.x*dx.z;
-	                    virial[3] += force_divr*dx.y*dx.y;
-	                    virial[4] += force_divr*dx.y*dx.z;
-	                    virial[5] += force_divr*dx.z*dx.z;
-						}
-					}
-				}
-			for (unsigned int k = 0; k < m_field.numPlanes; k++)
-				{
-				dxv = wall_eval_dist(m_field.Planes[k], position, m_box);
-				Scalar3 dx = -vec_to_scalar3(dxv);
-
-				// calculate r_ij squared (FLOPS: 5)
-	            Scalar rsq = dot(dx, dx);
-
-	            if (rsq > m_params.ronsq)
-		            {
-		            // compute the force and potential energy
-		            Scalar force_divr = Scalar(0.0);
-		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
-
-		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-		            if (evaluated)
-		                {
-		                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-		                // add the force, potential energy and virial to the particle i
-		                // (FLOPS: 8)
-		                F += dx*force_divr;
-		                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-	                    virial[0] += force_divr*dx.x*dx.x;
-	                    virial[1] += force_divr*dx.x*dx.y;
-	                    virial[2] += force_divr*dx.x*dx.z;
-	                    virial[3] += force_divr*dx.y*dx.y;
-	                    virial[4] += force_divr*dx.y*dx.z;
-	                    virial[5] += force_divr*dx.z*dx.z;
-						}
-					}
-				}
+			evalLoopEvalOverWalls(m_field.numSpheres, m_field.Spheres);
+			evalLoopEvalOverWalls(m_field.numCylinders, m_field.Cylinders);
+			evalLoopEvalOverWalls(m_field.numPlanes, m_field.Planes);
 			};
 
         #ifndef NVCC
@@ -319,7 +198,7 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
 	return params;
 	}
 
-template< class evaluator>
+template< class evaluator >
 void export_wall_params_helpers()
 	{
 	class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
@@ -330,7 +209,7 @@ void export_wall_params_helpers()
 	def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
 	}
 
-template <class evaluator>
+template < class evaluator >
 void export_PotentialExternalWall(const std::string& name)
 	{
 	export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
