@@ -174,6 +174,11 @@ class EvaluatorWalls
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
+			if (evaluator::needsDiameter())
+				{
+				ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+				di = h_diameter.data[m_idx];
+				}
 			F.x = Scalar(0.0);
             F.y = Scalar(0.0);
             F.z = Scalar(0.0);
@@ -185,7 +190,7 @@ class EvaluatorWalls
 			vec3<Scalar> position = vec3<Scalar>(m_pos);
 			vec3<Scalar> dxv;
 			// initialize virial
-			bool energy_shift = true;
+			bool energy_shift = true; //Forces V(r) at r_cut to be continuous
 			for (unsigned int k = 0; k < m_field.numSpheres; k++)
 				{
 				dxv = wall_eval_dist(m_field.Spheres[k], position, m_box);
@@ -198,7 +203,9 @@ class EvaluatorWalls
 		            // compute the force and potential energy
 		            Scalar force_divr = Scalar(0.0);
 		            Scalar pair_eng = Scalar(0.0);
-		            evaluator eval(rsq, m_params.rcutsq, m_params.params); //TODO: Fix hardcoding
+		            evaluator eval(rsq, m_params.rcutsq, m_params.params);
+					if (evaluator::needsDiameter())
+						eval.setDiameter(di, Scalar(0.0));
 		            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 		            if (evaluated)
