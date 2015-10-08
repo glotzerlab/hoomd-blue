@@ -50,7 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: jproc
 
 /*! \file WallData.h
-    \brief Contains declarations for WallData.
+    \brief Contains declarations for all types (currently Sphere, Cylinder, and
+    Plane) of WallData and associated utilities.
  */
 #ifndef WALL_DATA_H
 #define WALL_DATA_H
@@ -60,10 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "VectorMath.h"
 #include <cstdlib>
 #include <vector>
-#include <boost/python.hpp>
-#include <string.h>
 
-
+//! SphereWall Constructor
 struct SphereWall
     {
     SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), inside(ins), origin(vec3<Scalar>(orig)) {}
@@ -72,6 +71,7 @@ struct SphereWall
     vec3<Scalar>    origin;
     };
 
+//! CylinderWall Constructor
 struct CylinderWall
     {
     CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad), inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
@@ -88,25 +88,25 @@ struct CylinderWall
         if (real_part < Scalar(1.0e-6) * norm_uv)
             {
                 real_part=Scalar(0.0);
-                w=fabs(znorm.x) > fabs(znorm.z) ? vec3<Scalar>(-znorm.y, znorm.x, 0.0)
-                : vec3<Scalar>(0.0, -znorm.z, znorm.y);
+                w=fabs(znorm.x) > fabs(znorm.z) ? vec3<Scalar>(-znorm.y, znorm.x, 0.0) : vec3<Scalar>(0.0, -znorm.z, znorm.y);
             }
         else
             {
                 w=cross(znorm,zvec);
                 real_part=Scalar(real_part);
             }
-            q_reorientation=quat<Scalar>(real_part,w);
-            Scalar norm=fast::rsqrt(norm2(q_reorientation));
-            q_reorientation=norm*q_reorientation;
+            quatAxisToZRot=quat<Scalar>(real_part,w);
+            Scalar norm=fast::rsqrt(norm2(quatAxisToZRot));
+            quatAxisToZRot=norm*quatAxisToZRot;
         }
     Scalar          r;
     bool            inside;
     vec3<Scalar>    origin;
     vec3<Scalar>    axis;
-    quat<Scalar>    q_reorientation;
+    quat<Scalar>    quatAxisToZRot;
     };
 
+//! PlaneWall Constructor
 struct PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
@@ -121,12 +121,8 @@ struct PlaneWall
     vec3<Scalar>    origin;
     };
 
-DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Scalar>& position, const BoxDim& box)
+DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
-    // t-=wall.origin;
-    // vec3<Scalar> shifted_pos(t);
-    // Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
-    // Scalar r = wall.r - sqrt(rxyz_sq);
     vec3<Scalar> t = position;
     t-=wall.origin;
     vec3<Scalar> shifted_pos(t);
@@ -143,22 +139,18 @@ DEVICE inline vec3<Scalar> wall_eval_dist(const SphereWall& wall, const vec3<Sca
         }
     };
 
-DEVICE inline vec3<Scalar> wall_eval_dist(const CylinderWall& wall, const vec3<Scalar>& position, const BoxDim& box)
+DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
-    // t-=wall.origin;
-    // vec3<Scalar> shifted_pos=rotate(wall.q_reorientation,t);
-    // Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
-    // Scalar r = wall.r - sqrt(rxy_sq);
     vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos = rotate(wall.q_reorientation,t);
-    shifted_pos.z = 0;
+    vec3<Scalar> shifted_pos = rotate(wall.quatAxisToZRot,t);
+    shifted_pos.z = 0.0;
     Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
     if (((rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
         {
         t = (wall.r / rxy) * shifted_pos;
         vec3<Scalar> dx = t - shifted_pos;
-        dx = rotate(conj(wall.q_reorientation),dx);
+        dx = rotate(conj(wall.quatAxisToZRot),dx);
         return dx;
         }
     else
@@ -167,9 +159,8 @@ DEVICE inline vec3<Scalar> wall_eval_dist(const CylinderWall& wall, const vec3<S
         }
     };
 
-DEVICE inline vec3<Scalar> wall_eval_dist(const PlaneWall& wall, const vec3<Scalar>& position, const BoxDim& box)
-    // {
-    // Scalar r =dot(wall.normal,t)-dot(wall.normal,wall.origin);
+DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
+    {
     vec3<Scalar> t = position;
     Scalar wall_dist = dot(wall.normal,wall.origin) - dot(wall.normal,t);
     if (wall_dist > 0.0)
@@ -181,6 +172,35 @@ DEVICE inline vec3<Scalar> wall_eval_dist(const PlaneWall& wall, const vec3<Scal
         {
         return vec3<Scalar>(0.0,0.0,0.0);
         }
+    };
+
+DEVICE inline bool insideWall(const SphereWall& wall, const vec3<Scalar>& position)
+    {
+    t-=wall.origin;
+    vec3<Scalar> shifted_pos(t);
+    Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
+    Scalar d = wall.r - sqrt(rxyz_sq);
+    bool inside = (d > 0.0) ? true : false;
+    return inside;
+    };
+
+DEVICE inline bool insideWall(const CylinderWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    t-=wall.origin;
+    vec3<Scalar> shifted_pos=rotate(wall.quatAxisToZRot,t);
+    Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
+    Scalar d = wall.r - sqrt(rxy_sq);
+    bool inside = (d > 0.0) ? true : false;
+    return inside;
+    };
+
+DEVICE inline bool insideWall(const PlaneWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    Scalar d = dot(wall.normal,wall.origin) - dot(wall.normal,t);
+    bool inside = (d > 0.0) ? true : false;
+    return inside;
     };
 
 #endif

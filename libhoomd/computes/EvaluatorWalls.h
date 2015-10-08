@@ -100,11 +100,9 @@ class EvaluatorWalls
 
 		typedef wall_type field_type;
 
-		//TODO: box and m_box may be completely unused, therefore no need to store, might be able to remove
-		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_box(box), m_idx(i), m_field(f), m_params(p)
+		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_idx(i), m_field(f), m_params(p)
 			{
 			}
-
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
@@ -130,7 +128,7 @@ class EvaluatorWalls
 				{
 					for (unsigned int k = 0; k < numWalls; k++)
 					{
-					dxv = vecPointToWall(wallsArray[k], position, m_box);
+					dxv = vecInsPtToWall(wallsArray[k], position);
 					Scalar3 dx = vec_to_scalar3(dxv);
 
 					// calculate r_ij squared (FLOPS: 5)
@@ -182,7 +180,6 @@ class EvaluatorWalls
 
     protected:
         Scalar3 		m_pos;                //!< particle position
-        BoxDim 			m_box;                 //!< box dimensions
         unsigned int 	m_idx;
         field_type 		m_field;			  //!< contains all information about the walls.
         param_type 		m_params;
