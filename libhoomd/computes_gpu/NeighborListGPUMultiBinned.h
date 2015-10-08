@@ -79,7 +79,8 @@ class NeighborListGPUMultiBinned : public NeighborListGPU
         NeighborListGPUMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                    Scalar r_cut,
                                    Scalar r_buff,
-                                   boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+                                   boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                                   boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
         //! Destructor
         virtual ~NeighborListGPUMultiBinned();

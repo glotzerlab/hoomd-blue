@@ -99,7 +99,7 @@ void CellListStencil::compute(unsigned int timestep)
     assert(m_rstencil.size() >= m_pdata->getNTypes());
 
     if (m_prof)
-        m_prof->push("compute");
+        m_prof->push("Stencil");
 
     // compute the size of the bins in each dimension so that we know how big each is
     const uint3 dim = m_cl->getDim();
@@ -221,4 +221,10 @@ bool CellListStencil::shouldCompute(unsigned int timestep)
         }
     
     return false;
+    }
+
+void export_CellListStencil()
+    {
+    class_<CellListStencil, boost::shared_ptr<CellListStencil>, bases<Compute>, boost::noncopyable >
+        ("CellListStencil", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList> >());
     }

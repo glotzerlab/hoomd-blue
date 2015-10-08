@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
+#include "CellListStencil.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
@@ -512,6 +513,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // computes
     export_Compute();
     export_CellList();
+    export_CellListStencil();
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();

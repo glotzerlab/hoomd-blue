@@ -762,11 +762,15 @@ class stencil(_nlist):
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_cl = hoomd.CellList(globals.system_definition)
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
+            globals.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
         else:
             self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
+            globals.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListGPUMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
 
         self.cpp_nlist.setEvery(1, True)
 

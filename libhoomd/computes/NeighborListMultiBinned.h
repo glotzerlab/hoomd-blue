@@ -76,7 +76,8 @@ class NeighborListMultiBinned : public NeighborList
         NeighborListMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                 Scalar r_cut,
                                 Scalar r_buff,
-                                boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+                                boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                                boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
         //! Destructor
         virtual ~NeighborListMultiBinned();
@@ -86,6 +87,14 @@ class NeighborListMultiBinned : public NeighborList
         
         //! Set the cutoff radius by pair type
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+
+        //! Change the underlying cell width
+        void setCellWidth(Scalar cell_width)
+            {
+            m_override_cell_width = true;
+            m_needs_restencil = true;
+            m_cl->setNominalWidth(cell_width);
+            }
 
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
@@ -97,12 +106,13 @@ class NeighborListMultiBinned : public NeighborList
     private:
         boost::shared_ptr<CellList> m_cl;           //!< The cell list
         boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        bool m_override_cell_width;                 //!< Flag to override the cell width
 
         boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
-        bool m_rcut_change;                                 //!< Flag for rcut changing
+        bool m_needs_restencil;                             //!< Flag for updating the stencil
         void slotRCutChange()
             {
-            m_rcut_change = true;
+            m_needs_restencil = true;
             }
 
         //! Update the stencil radius

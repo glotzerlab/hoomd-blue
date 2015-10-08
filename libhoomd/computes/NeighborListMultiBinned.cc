@@ -68,8 +68,10 @@ using namespace boost::python;
 NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                                  Scalar r_cut,
                                                  Scalar r_buff,
-                                                 boost::shared_ptr<CellList> cl)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_rcut_change(true)
+                                                 boost::shared_ptr<CellList> cl,
+                                                 boost::shared_ptr<CellListStencil> cls)
+    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
+      m_needs_restencil(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListMultiBinned" << endl;
 
@@ -77,15 +79,16 @@ NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinit
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
+    // construct the cell list stencil generator for the current cell list
+    if (!m_cls)
+        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
     
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
-
-    // construct the cell list stencil generator for the current cell list
-    m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotRCutChange, this));
     }
@@ -99,33 +102,43 @@ NeighborListMultiBinned::~NeighborListMultiBinned()
 void NeighborListMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborList::setRCutPair(typ1,typ2,r_cut);
     
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListMultiBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborList::setMaximumDiameter(d_max);
 
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListMultiBinned::updateRStencil()
@@ -151,10 +164,10 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
     m_cl->compute(timestep);
 
     // update the stencil radii if there was a change
-    if (m_rcut_change)
+    if (m_needs_restencil)
         {
         updateRStencil();
-        m_rcut_change = false;
+        m_needs_restencil = false;
         }
     m_cls->compute(timestep);
 
@@ -363,6 +376,6 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
 void export_NeighborListMultiBinned()
     {
     class_<NeighborListMultiBinned, boost::shared_ptr<NeighborListMultiBinned>, bases<NeighborList>, boost::noncopyable >
-        ("NeighborListMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
-        ;
+        ("NeighborListMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+        .def("setCellWidth", &NeighborListMultiBinned::setCellWidth);
     }

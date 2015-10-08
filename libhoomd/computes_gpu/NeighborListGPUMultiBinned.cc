@@ -66,14 +66,20 @@ using namespace boost::python;
 NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                                        Scalar r_cut,
                                                        Scalar r_buff,
-                                                       boost::shared_ptr<CellList> cl)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_override_cell_width(false), m_needs_restencil(true), m_needs_resort(true)
+                                                       boost::shared_ptr<CellList> cl,
+                                                       boost::shared_ptr<CellListStencil> cls)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
+      m_needs_restencil(true), m_needs_resort(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUMultiBinned" << std::endl;
 
     // create a default cell list if one was not specified
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+
+    // construct the default cell list stencil generator for the current cell list if one was not specified already
+    if (!m_cls)
+        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     // types are always required now
@@ -115,9 +121,6 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
 
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
-
-    // construct the cell list stencil generator for the current cell list
-    m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUMultiBinned::slotRCutChange, this));
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUMultiBinned::slotMaxNumChanged, this));
@@ -355,6 +358,6 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
 void export_NeighborListGPUMultiBinned()
     {
     class_<NeighborListGPUMultiBinned, boost::shared_ptr<NeighborListGPUMultiBinned>, bases<NeighborListGPU>, boost::noncopyable >
-        ("NeighborListGPUMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
+        ("NeighborListGPUMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUMultiBinned::setCellWidth);
     }
