@@ -67,7 +67,7 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
                                                        Scalar r_cut,
                                                        Scalar r_buff,
                                                        boost::shared_ptr<CellList> cl)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_rcut_change(true)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_override_cell_width(false), m_needs_restencil(true), m_needs_resort(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUMultiBinned" << std::endl;
 
@@ -121,6 +121,7 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
 
     m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUMultiBinned::slotRCutChange, this));
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUMultiBinned::slotMaxNumChanged, this));
+    m_sort_conn = m_pdata->connectParticleSort(boost::bind(&NeighborListGPUMultiBinned::slotParticleSort, this));
 
     // needs realloc on size change...
     GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
@@ -132,39 +133,49 @@ NeighborListGPUMultiBinned::~NeighborListGPUMultiBinned()
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUMultiBinned" << std::endl;
     m_rcut_change_conn.disconnect();
     m_max_numchange_conn.disconnect();
+    m_sort_conn.disconnect();
     }
 
 void NeighborListGPUMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
 
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListGPUMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
 
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListGPUMultiBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborListGPU::setMaximumDiameter(d_max);
 
-    Scalar rmin = getMinRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmin += m_d_max - Scalar(1.0);
+    if (!m_override_cell_width)
+        {
+        Scalar rmin = getMinRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmin += m_d_max - Scalar(1.0);
         
-    m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        }
     }
 
 void NeighborListGPUMultiBinned::updateRStencil()
@@ -234,15 +245,19 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
     m_cl->compute(timestep);
 
     // update the stencil radii if there was a change
-    if (m_rcut_change)
+    if (m_needs_restencil)
         {
         updateRStencil();
-        m_rcut_change = false;
+        m_needs_restencil = false;
         }
     m_cls->compute(timestep);
 
     // sort the particles by type
-    sortTypes();
+    if (m_needs_resort)
+        {
+        sortTypes();
+        m_needs_resort = false;
+        }
 
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
@@ -340,5 +355,6 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
 void export_NeighborListGPUMultiBinned()
     {
     class_<NeighborListGPUMultiBinned, boost::shared_ptr<NeighborListGPUMultiBinned>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >());
+        ("NeighborListGPUMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
+        .def("setCellWidth", &NeighborListGPUMultiBinned::setCellWidth);
     }

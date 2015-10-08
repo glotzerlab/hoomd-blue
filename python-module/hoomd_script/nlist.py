@@ -742,7 +742,7 @@ class stencil(_nlist):
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, cell_width=None, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -777,7 +777,7 @@ class stencil(_nlist):
         
         # save the user defined parameters
         util._disable_status_lines = True
-        self.set_params(r_buff, check_period, d_max, dist_check)
+        self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
         util._disable_status_lines = False
 
     ## Change neighbor list parameters
@@ -836,7 +836,7 @@ class stencil(_nlist):
     # nlist.set_params(deterministic=True)
     # option.set_autotuner_params(enable=False)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, cell_width=None, deterministic=None):
         util.print_status_line();
 
         if self.cpp_nlist is None:
@@ -850,6 +850,9 @@ class stencil(_nlist):
 
         if check_period is not None:
             self.cpp_nlist.setEvery(check_period, dist_check);
+
+        if cell_width is not None:
+            self.cpp_nlist.setCellWidth(cell_width)
 
         if d_max is not None:
             self.cpp_nlist.setMaximumDiameter(d_max);
