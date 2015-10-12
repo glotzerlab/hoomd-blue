@@ -130,6 +130,7 @@ uint3 CellList::computeDimensions()
         dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
 
         // expand for ghost width if communicating ghosts
+#ifdef ENABLE_MPI
         if (m_comm)
             {
             const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
@@ -144,6 +145,7 @@ uint3 CellList::computeDimensions()
             if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
                 dim.z += static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
             }
+#endif
 
         // decrease the number of bins if it exceeds the max and repeat the sizing procedure
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -302,6 +304,7 @@ void CellList::initializeWidth()
 
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
+#ifdef ENABLE_MPI
     if (m_comm)
         {
         Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
@@ -317,6 +320,7 @@ void CellList::initializeWidth()
                 m_ghost_width.z = ghost_width;
             }
         }
+#endif
 
     // initialize dimensions and width
     m_dim = computeDimensions();
