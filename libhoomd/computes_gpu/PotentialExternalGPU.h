@@ -118,6 +118,10 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    // if (evaluator::needsDiameter()) TODO:Handle diam passing for evaluators that require it
+    //     {
+    //     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    //     }
     const BoxDim& box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);

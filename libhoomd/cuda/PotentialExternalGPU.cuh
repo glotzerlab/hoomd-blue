@@ -134,9 +134,11 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, idx, box, params[typei], *field);
+    evaluator eval(Xi, box, params[typei], *field);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
+    // if (evaluator::needsDiameter())
+    //     eval.setDiameter(di);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;
