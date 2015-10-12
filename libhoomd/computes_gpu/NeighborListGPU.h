@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborList.h"
+#include "NeighborListGPU.cuh"
 #include "GPUFlags.h"
 #include "Autotuner.h"
 
@@ -65,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLISTGPU_H__
 
 //! Neighbor list build on the GPU
-/*! Implements the O(N^2) neighbor list build on the GPU. Also implements common functions (like distance check)
+/*! Implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
 
     GPU kernel methods are defined in NeighborListGPU.cuh and defined in NeighborListGPU.cu.
@@ -89,11 +90,16 @@ class NeighborListGPU : public NeighborList
             m_checkn = 1;
             m_distcheck_scheduled = false;
             m_last_schedule_tstep = 0;
+            
+            // flag to say how big to resize
+            GPUFlags<unsigned int> req_size_nlist(exec_conf);
+            m_req_size_nlist.swap(req_size_nlist);
 
             // create cuda event
             cudaEventCreate(&m_event,cudaEventDisableTiming);
 
             m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
+            m_tuner_head_list.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_head_list", this->m_exec_conf));
             }
 
         //! Destructor
@@ -116,6 +122,9 @@ class NeighborListGPU : public NeighborList
             NeighborList::setAutotunerParams(enable, period);
             m_tuner_filter->setPeriod(period/10);
             m_tuner_filter->setEnabled(enable);
+            
+            m_tuner_head_list->setPeriod(period/10);
+            m_tuner_head_list->setEnabled(enable);
             }
 
         //! Benchmark the filter kernel
@@ -139,14 +148,11 @@ class NeighborListGPU : public NeighborList
             }
         #endif
 
-        //! Schedule the distance check kernel
-        /*! \param timestep Current time step
-         */
-        void scheduleDistanceCheck(unsigned int timestep);
-
     protected:
         GPUArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
-
+        
+        GPUFlags<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
+        
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 
@@ -162,10 +168,14 @@ class NeighborListGPU : public NeighborList
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+        
+        //! Build the head list for neighbor list indexing on the GPU
+        virtual void buildHeadList();
 
-    private:
-        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
-
+        //! Schedule the distance check kernel
+        /*! \param timestep Current time step
+         */
+        void scheduleDistanceCheck(unsigned int timestep);
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
         bool m_distcheck_scheduled;         //!< True if a distance check kernel has been queued
         unsigned int m_last_schedule_tstep; //!< Time step of last kernel schedule
@@ -174,6 +184,12 @@ class NeighborListGPU : public NeighborList
         #ifdef ENABLE_MPI
         boost::signals2::connection m_callback_connection; //!< Connection to Communicator
         #endif
+
+    private:
+        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
+        boost::scoped_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
+
+        GPUArray<unsigned int> m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
 //! Exports NeighborListGPU to python

@@ -73,6 +73,7 @@ from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import variant;
 from hoomd_script import pair;
+from hoomd_script import nlist as nl # to avoid naming conflicts
 
 import math;
 import sys;
@@ -109,13 +110,14 @@ class pppm(force._force):
     #
     # \param group Group on which to apply long range PPPM forces. The short range part is always applied between
     #              all particles.
+    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
     #
     # \b Example:
     # \code
     # charged = group.charged();
     # pppm = charge.pppm(group=charged)
     # \endcode
-    def __init__(self, group):
+    def __init__(self, group, nlist=None):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -128,13 +130,18 @@ class pppm(force._force):
         force._force.__init__(self);
         # create the c++ mirror class
 
-        # update the neighbor list
-        neighbor_list = pair._update_global_nlist(0.0)
-        neighbor_list.subscribe(lambda: self.log*0.0)
+        # PPPM doesn't really need a neighbor list, so subscribe call back as None
+        if nlist is None:
+            self.nlist = nl._subscribe_global_nlist(lambda : None)
+        else: # otherwise, subscribe the specified neighbor list
+            self.nlist = nlist
+            self.nlist.subscribe(lambda : None)
+            self.nlist.update_rcut()
+
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
+            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, self.nlist.cpp_nlist, group.cpp_group);
         else:
-            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
+            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, self.nlist.cpp_nlist, group.cpp_group);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -143,7 +150,7 @@ class pppm(force._force):
 
         # initialize the short range part of electrostatics
         util._disable_status_lines = True;
-        self.ewald = pair.ewald(r_cut = 0.0);
+        self.ewald = pair.ewald(r_cut = 0.0, nlist = self.nlist);
         util._disable_status_lines = False;
 
     # overrride disable and enable to work with both of the forces
@@ -256,10 +263,10 @@ class pppm(force._force):
             globals.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
 
-        if globals.neighbor_list.cpp_nlist.getFilterDiameter():
-            globals.msg.warning("Neighbor diameter filtering is enabled, PPPM may not correct for all excluded interactions\n");
+        if self.nlist.cpp_nlist.getDiameterShift():
+            globals.msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
 
-        if globals.neighbor_list.cpp_nlist.getFilterBody():
+        if self.nlist.cpp_nlist.getFilterBody():
             globals.msg.warning("Neighbor body filtering is enabled, PPPM may not correct for all excluded interactions\n");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):

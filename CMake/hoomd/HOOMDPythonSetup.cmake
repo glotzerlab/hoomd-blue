@@ -50,14 +50,14 @@ endif()
 # always link the dynamic python library
 get_filename_component(_python_lib_first ${_python_dynamic_lib_name} NAME)
 
-find_path(PYTHON_INCLUDE_DIR Python.h
+find_path(HOOMD_PYTHON_INCLUDE_DIR Python.h
           HINTS ${_python_include_hint}
           NO_DEFAULT_PATH)
 
 # add a blank suffix to the beginning to find the Python framework
 set(_old_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
 set(CMAKE_FIND_LIBRARY_SUFFIXES ";${CMAKE_FIND_LIBRARY_SUFFIXES}")
-find_library(PYTHON_LIBRARY
+find_library(HOOMD_PYTHON_LIBRARY
              NAMES ${_python_lib_first} python${_python_version_no_dots} python${PYTHON_VERSION}
              HINTS ${_python_prefix_hint} ${_python_static_hint} ${_python_lib_hint}
              PATH_SUFFIXES lib64 lib libs
@@ -66,13 +66,10 @@ find_library(PYTHON_LIBRARY
 set(${CMAKE_FIND_LIBRARY_SUFFIXES} _old_suffixes)
 
 MARK_AS_ADVANCED(
-  PYTHON_LIBRARY
-  PYTHON_INCLUDE_DIR
+  HOOMD_PYTHON_LIBRARY
+  HOOMD_PYTHON_INCLUDE_DIR
   BOOST_PYTHON_COMPONENT
 )
 
-SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
-SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
-
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG PYTHON_LIBRARIES PYTHON_INCLUDE_DIRS)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG HOOMD_PYTHON_LIBRARY HOOMD_PYTHON_INCLUDE_DIR)

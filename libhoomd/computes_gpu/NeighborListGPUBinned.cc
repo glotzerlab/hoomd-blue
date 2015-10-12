@@ -73,9 +73,9 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
-    m_cl->setComputeTDB(false);
+    // types are always required now
+    m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
 
     CHECK_CUDA_ERROR();
@@ -118,12 +118,8 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_tuner->setSync(m_pdata->getDomainDecomposition());
     #endif
 
-    // When running on compute 1.x, textures are allocated with the height equal to the number of cells
-    // limit the number of cells to the maximum texture dimension
-    if(m_exec_conf->getComputeCapability() < 200)
-        {
-        m_cl->setMaxCells(exec_conf->dev_prop.maxTexture2D[1]);
-        }
+    // call this class's special setRCut
+    setRCut(r_cut, r_buff);
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
@@ -143,7 +139,22 @@ void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
 
-    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+
+    m_cl->setNominalWidth(rmax);
+    }
+
+void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
+    {
+    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
+
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+
+    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
@@ -151,37 +162,19 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     NeighborListGPU::setMaximumDiameter(d_max);
 
     // need to update the cell list settings appropriately
-    m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
-    }
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
 
-void NeighborListGPUBinned::setFilterBody(bool filter_body)
-    {
-    NeighborListGPU::setFilterBody(filter_body);
-
-    // need to update the cell list settings appropriately
-    if (m_filter_body || m_filter_diameter)
-        m_cl->setComputeTDB(true);
-    else
-        m_cl->setComputeTDB(false);
-    }
-
-void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
-    {
-    NeighborListGPU::setFilterDiameter(filter_diameter);
-
-    // need to update the cell list settings appropriately
-    if (m_filter_body || m_filter_diameter)
-        m_cl->setComputeTDB(true);
-    else
-        m_cl->setComputeTDB(false);
+    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
-        throw runtime_error("Error computing neighbor list");
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
+        throw std::runtime_error("Error computing neighbor list");
         }
 
     m_cl->compute(timestep);
@@ -203,116 +196,70 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
-    // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
-    // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
+    // the maximum cutoff that any particle can participate in
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-    Scalar rmaxsq = rmax*rmax;
+
+    ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << std::endl;
+        throw std::runtime_error("Error updating neighborlist bins");
         }
 
-    if(m_exec_conf->getComputeCapability() >= 200)
-        {
-        // we should not call the tuner with MPI sync enabled
-        // if the kernel is launched more than once in the same timestep,
-        // since those kernel launches may occur only on some, not all MPI ranks
-        bool tune = !m_param && m_last_tuned_timestep != timestep;
+    // we should not call the tuner with MPI sync enabled
+    // if the kernel is launched more than once in the same timestep,
+    // since those kernel launches may occur only on some, not all MPI ranks
+    bool tune = !m_param && m_last_tuned_timestep != timestep;
 
-        if (tune) this->m_tuner->begin();
-        unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
-        unsigned int block_size = param / 10000;
-        unsigned int threads_per_particle = param % 10000;
+    if (tune) this->m_tuner->begin();
+    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
+    unsigned int block_size = param / 10000;
+    unsigned int threads_per_particle = param % 10000;
 
-        gpu_compute_nlist_binned(d_nlist.data,
-                                 d_n_neigh.data,
-                                 d_last_pos.data,
-                                 m_conditions.getDeviceFlags(),
-                                 m_nlist_indexer,
-                                 d_pos.data,
-                                 d_body.data,
-                                 d_diameter.data,
-                                 m_pdata->getN(),
-                                 d_cell_size.data,
-                                 d_cell_xyzf.data,
-                                 d_cell_tdb.data,
-                                 d_cell_adj.data,
-                                 m_cl->getCellIndexer(),
-                                 m_cl->getCellListIndexer(),
-                                 m_cl->getCellAdjIndexer(),
-                                 box,
-                                 rmaxsq,
-                                 threads_per_particle,
-                                 block_size,
-                                 m_filter_body,
-                                 m_filter_diameter,
-                                 m_cl->getGhostWidth(),
-                                 m_exec_conf->getComputeCapability()/10);
-        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        if (tune) this->m_tuner->end();
+    gpu_compute_nlist_binned(d_nlist.data,
+                             d_n_neigh.data,
+                             d_last_pos.data,
+                             d_conditions.data,
+                             d_Nmax.data,
+                             d_head_list.data,
+                             d_pos.data,
+                             d_body.data,
+                             d_diameter.data,
+                             m_pdata->getN(),
+                             d_cell_size.data,
+                             d_cell_xyzf.data,
+                             d_cell_tdb.data,
+                             d_cell_adj.data,
+                             m_cl->getCellIndexer(),
+                             m_cl->getCellListIndexer(),
+                             m_cl->getCellAdjIndexer(),
+                             box,
+                             d_r_cut.data,
+                             m_r_buff,
+                             m_pdata->getNTypes(),
+                             threads_per_particle,
+                             block_size,
+                             m_filter_body,
+                             m_diameter_shift,
+                             m_cl->getGhostWidth(),
+                             m_exec_conf->getComputeCapability()/10);
+    if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (tune) this->m_tuner->end();
 
-        m_last_tuned_timestep = timestep;
-        }
-    else
-        {
-        #ifndef SINGLE_PRECISION
-        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work in double precision on compute 1.x" << endl;
-        throw runtime_error("Error computing neighbor list");
-        #endif
-
-        unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
-
-        // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
-        if (needReallocateCudaArrays())
-            {
-            allocateCudaArrays();
-            cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
-            }
-
-        // update the values in those arrays
-        if (m_prof) m_prof->push(m_exec_conf, "copy");
-        cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
-        if (m_filter_body || m_filter_diameter)
-            cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
-
-        if (m_prof) m_prof->pop(m_exec_conf);
-
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        gpu_compute_nlist_binned_1x(d_nlist.data,
-                                    d_n_neigh.data,
-                                    d_last_pos.data,
-                                    m_conditions.getDeviceFlags(),
-                                    m_nlist_indexer,
-                                    d_pos.data,
-                                    d_body.data,
-                                    d_diameter.data,
-                                    m_pdata->getN(),
-                                    d_cell_size.data,
-                                    dca_cell_xyzf,
-                                    dca_cell_tdb,
-                                    dca_cell_adj,
-                                    m_cl->getCellIndexer(),
-                                    box,
-                                    rmaxsq,
-                                    m_block_size,
-                                    m_filter_body,
-                                    m_filter_diameter,
-                                    m_cl->getGhostWidth());
-
-        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+    m_last_tuned_timestep = timestep;
 
     if (m_prof)
         m_prof->pop(m_exec_conf);

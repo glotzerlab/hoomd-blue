@@ -58,7 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
+#include "HOOMDMath.h"
 #include "Index1D.h"
+#include "ParticleData.cuh"
 
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
 cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
@@ -66,31 +68,35 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const Scalar maxshiftsq,
+                                             const Scalar *d_rcut_max,
+                                             const Scalar r_buff,
+                                             const unsigned int ntypes,
+                                             const Scalar lambda_min,
                                              const Scalar3 lambda,
                                              const unsigned int checkn);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              unsigned int *d_nlist,
-                             const Index2D& nli,
+                             const unsigned int *d_head_list,
                              const unsigned int *d_n_ex,
                              const unsigned int *d_ex_list,
                              const Index2D& exli,
                              const unsigned int N,
                              const unsigned int block_size);
 
-//! Kernel driver for gpu_compute_nlist_nsq_kernel()
-cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
-                                  unsigned int *d_n_neigh,
-                                  Scalar4 *d_last_updated_pos,
-                                  unsigned int *d_conditions,
-                                  const Index2D& nli,
-                                  const Scalar4 *d_pos,
-                                  const unsigned int N,
-                                  const unsigned int n_ghost,
-                                  const BoxDim& box,
-                                  const Scalar r_maxsq);
+//! Kernel driver to build head list on gpu
+cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
+                                      unsigned int *d_alt_head_list,
+                                      unsigned int *d_req_size_nlist,
+                                      void *d_tmp_storage,
+                                      size_t &tmp_storage_bytes,
+                                      const unsigned int *d_Nmax,
+                                      const Scalar4 *d_pos,
+                                      const unsigned int N,
+                                      const unsigned int n_types,
+                                      const unsigned int block_size);
+
 
 //! GPU function to update the exclusion list on the device
 cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,

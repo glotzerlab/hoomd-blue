@@ -61,6 +61,8 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+using namespace std;
+
 /*! \file FIREEnergyMinimizerRigidGPU.h
     \brief Contains code for the FIREEnergyMinimizerRigidGPU class
 */

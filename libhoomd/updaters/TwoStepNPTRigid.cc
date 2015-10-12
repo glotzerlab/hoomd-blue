@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTRigid.h"
 
 #include <boost/python.hpp>
+
+using namespace std;
 using namespace boost::python;
 #include <math.h>
 

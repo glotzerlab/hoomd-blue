@@ -162,7 +162,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -183,10 +183,13 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
                                      box,
                                      d_n_neigh.data,
                                      d_nlist.data,
-                                     nli,
+                                     d_head_list.data,
+                                     this->m_nlist->getNListArray().getPitch(),
                                      eam_tex_data,
                                      eam_arrays,
-                                     eam_data);
+                                     eam_data,
+                                     m_exec_conf->getComputeCapability()/10,
+                                     m_exec_conf->dev_prop.maxTexture1DLinear);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

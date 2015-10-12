@@ -719,7 +719,7 @@ def read_snapshot(snapshot):
     # check if initialization has already occured
     if is_initialized():
         globals.msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error creating random polymers");
+        raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
     snapshot._broadcast(my_exec_conf);

@@ -58,8 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // bring in math.h
 #ifndef NVCC
-#define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 #endif
 
 // error out if we are in a plugin and hoomd_config has not been included
@@ -201,6 +200,7 @@ HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     return a;
     }
 
+
 //! Vector subtraction
 HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)
     {
@@ -208,6 +208,15 @@ HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)
                         a.y - b.y,
                         a.z - b.z);
     }
+//! Vector subtraction
+HOSTDEVICE inline Scalar3& operator-= (Scalar3 &a, const Scalar3 &b)
+    {
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+    return a;
+    }
+
 //! Vector multiplication (component-wise)
 HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar3 &b)
     {

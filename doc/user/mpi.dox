@@ -183,7 +183,7 @@ A one-dimensional decomposition is enforced if the `--linear`
 \subsection sec_mpi_rbuff Neighbor list buffer length (r_buff)
 
 The optimum value of the \b r_buff value of the neighbor list
-(\link hoomd_script.pair.nlist.set_params() nlist.set_params()\endlink)
+(\link hoomd_script.nlist.set_params() nlist.set_params()\endlink)
 may be different between single- and multi-GPU runs. In multi-GPU
 runs, the buffering length also determines the width of the ghost layer
 runs and sets the size of messages exchanged between the processors.
@@ -223,7 +223,7 @@ Inside the command script, the current partition can be queried using
    One reason for slow performance can be the distance check, which, by default,
    is applied every step to check if the neighbor list needs to be rebuild. It requires
    synchronization between all MPI ranks and is therefore slow.
-   See \link hoomd_script.pair.nlist nlist \endlink on how to increase
+   See \link hoomd_script.nlist.set_params nlist \endlink on how to increase
    the interval (\b check_period) between distance checks, to improve performance.
 
 - <b> My simulation crashes on multiple GPUs when I set ENABLE_MPI_CUDA=ON</b><br>

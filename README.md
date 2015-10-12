@@ -35,7 +35,7 @@ or develop complex workflows all with python code in your job.
 
 Here is a simple example.
 
-```
+```python
 from hoomd_script import *
 context.initialize()
 

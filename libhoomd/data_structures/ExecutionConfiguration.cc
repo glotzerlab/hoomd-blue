@@ -364,10 +364,6 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     int flags = 0;
     if (min_cpu)
         {
-        if (CUDART_VERSION < 2020)
-            msg->notice(2) << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
-            msg->notice(2) << "against a version of CUDA prior to 2.2" << endl;
-
         flags |= cudaDeviceBlockingSync;
         }
     else
@@ -446,12 +442,6 @@ void ExecutionConfiguration::printGPUStats()
     s << std::endl;
     // We print this information in rank order
     msg->collectiveNoticeStr(1,s.str());
-
-    // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
-    if (dev_prop.major <= 1 && dev_prop.minor <= 1)
-        {
-        msg->notice(2) << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
-        }
     }
 
 //! Element in a priority sort of GPUs

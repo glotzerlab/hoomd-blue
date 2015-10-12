@@ -114,20 +114,20 @@ class EAMForceCompute : public ForceCompute
         Scalar dr;                                     //!< Undocumented parameter
         Scalar rdrho;                                  //!< Undocumented parameter
         Scalar rdr;                                    //!< Undocumented parameter
-        vector<Scalar> mass;                           //!< Undocumented parameter
-        vector<int> types;                             //!< Undocumented parameter
-        vector<string> names;                          //!< Undocumented parameter
+        std::vector<Scalar> mass;                           //!< Undocumented parameter
+        std::vector<int> types;                             //!< Undocumented parameter
+        std::vector<std::string> names;                          //!< Undocumented parameter
         unsigned int nr;                               //!< Undocumented parameter
         unsigned int nrho;                             //!< Undocumented parameter
 
 
-        vector<Scalar> electronDensity;                //!< array rho(r)
-        vector<Scalar2> pairPotential;                  //!< array Z(r)
-        vector<Scalar> embeddingFunction;              //!< array F(rho)
+        std::vector<Scalar> electronDensity;                //!< array rho(r)
+        std::vector<Scalar2> pairPotential;                  //!< array Z(r)
+        std::vector<Scalar> embeddingFunction;              //!< array F(rho)
 
-        vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
-        vector<Scalar> derivativePairPotential;        //!< array Z'(r)
-        vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
+        std::vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
+        std::vector<Scalar> derivativePairPotential;        //!< array Z'(r)
+        std::vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

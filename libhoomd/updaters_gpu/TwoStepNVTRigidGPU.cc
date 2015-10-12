@@ -83,7 +83,7 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << std::endl;
         throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
         }
 
