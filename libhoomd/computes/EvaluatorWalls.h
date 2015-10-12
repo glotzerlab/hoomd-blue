@@ -74,6 +74,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
 // boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
 
+#include "Compute.h"
+#include <boost/shared_ptr.hpp>
+#include <boost/python.hpp>
+#include <boost/bind.hpp>
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 #include "WallData.h"
@@ -100,17 +104,25 @@ class EvaluatorWalls
 
 		typedef wall_type field_type;
 
-		DEVICE EvaluatorWalls(Scalar3 pos, unsigned int i, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_idx(i), m_field(f), m_params(p)
+		DEVICE EvaluatorWalls(Scalar3 pos, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_field(f), m_params(p)
 			{
+			}
+
+		//! Test if evaluator needs Diameter
+		DEVICE static bool needsDiameter()
+			{
+			return evaluator::needsDiameter();
+			}
+		//! Accept the optional diameter value
+		/*! \param di Diameter of particle i
+		*/
+		DEVICE void setDiameter(Scalar diameter)
+			{
+			di = diameter;
 			}
 
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
-			if (evaluator::needsDiameter())
-				{
-				ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-				di = h_diameter.data[m_idx];
-				}
 			F.x = Scalar(0.0);
             F.y = Scalar(0.0);
             F.z = Scalar(0.0);
@@ -124,47 +136,108 @@ class EvaluatorWalls
 			// initialize virial
 			bool energy_shift = true; //Forces V(r) at r_cut to be continuous
 
-			DEVICE void evalLoopEvalOverWalls(numWalls, wallsArray)
+			for (unsigned int k = 0; k < m_field.numSpheres; k++)
 				{
-					for (unsigned int k = 0; k < numWalls; k++)
+				dxv = vecInsPtToWall(m_field.Spheres[k], position);
+				Scalar3 dx = -vec_to_scalar3(dxv);
+
+				// calculate r_ij squared (FLOPS: 5)
+				Scalar rsq = dot(dx, dx);
+				if (rsq > m_params.ronsq)
 					{
-					dxv = vecInsPtToWall(wallsArray[k], position);
-					Scalar3 dx = vec_to_scalar3(dxv);
+					// compute the force and potential energy
+					Scalar force_divr = Scalar(0.0);
+					Scalar pair_eng = Scalar(0.0);
+					evaluator eval(rsq, m_params.rcutsq, m_params.params);
+					if (evaluator::needsDiameter())
+						eval.setDiameter(di, Scalar(0.0));
+					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
-					// calculate r_ij squared (FLOPS: 5)
-		            Scalar rsq = dot(dx, dx);
-					if (rsq > m_params.ronsq)
+					if (evaluated)
 						{
-			            // compute the force and potential energy
-			            Scalar force_divr = Scalar(0.0);
-			            Scalar pair_eng = Scalar(0.0);
-			            evaluator eval(rsq, m_params.rcutsq, m_params.params);
-						if (evaluator::needsDiameter())
-							eval.setDiameter(di, Scalar(0.0));
-			            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
-			            if (evaluated)
-			                {
-
-			                //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-			                // add the force, potential energy and virial to the particle i
-			                // (FLOPS: 8)
-			                F -= dx*force_divr;
-			                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-		                    virial[0] += force_divr*dx.x*dx.x;
-		                    virial[1] += force_divr*dx.x*dx.y;
-		                    virial[2] += force_divr*dx.x*dx.z;
-		                    virial[3] += force_divr*dx.y*dx.y;
-		                    virial[4] += force_divr*dx.y*dx.z;
-		                    virial[5] += force_divr*dx.z*dx.z;
-							}
+						//Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						// add the force, potential energy and virial to the particle i
+						// (FLOPS: 8)
+						F += dx*force_divr;
+						energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						virial[0] += force_divr*dx.x*dx.x;
+						virial[1] += force_divr*dx.x*dx.y;
+						virial[2] += force_divr*dx.x*dx.z;
+						virial[3] += force_divr*dx.y*dx.y;
+						virial[4] += force_divr*dx.y*dx.z;
+						virial[5] += force_divr*dx.z*dx.z;
 						}
 					}
 				}
+			for (unsigned int k = 0; k < m_field.numCylinders; k++)
+				{
+				dxv = vecInsPtToWall(m_field.Cylinders[k], position);
+				Scalar3 dx = -vec_to_scalar3(dxv);
 
-			evalLoopEvalOverWalls(m_field.numSpheres, m_field.Spheres);
-			evalLoopEvalOverWalls(m_field.numCylinders, m_field.Cylinders);
-			evalLoopEvalOverWalls(m_field.numPlanes, m_field.Planes);
+				// calculate r_ij squared (FLOPS: 5)
+				Scalar rsq = dot(dx, dx);
+				if (rsq > m_params.ronsq)
+					{
+					// compute the force and potential energy
+					Scalar force_divr = Scalar(0.0);
+					Scalar pair_eng = Scalar(0.0);
+					evaluator eval(rsq, m_params.rcutsq, m_params.params);
+					if (evaluator::needsDiameter())
+						eval.setDiameter(di, Scalar(0.0));
+					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+					if (evaluated)
+						{
+
+						//Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						// add the force, potential energy and virial to the particle i
+						// (FLOPS: 8)
+						F += dx*force_divr;
+						energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						virial[0] += force_divr*dx.x*dx.x;
+						virial[1] += force_divr*dx.x*dx.y;
+						virial[2] += force_divr*dx.x*dx.z;
+						virial[3] += force_divr*dx.y*dx.y;
+						virial[4] += force_divr*dx.y*dx.z;
+						virial[5] += force_divr*dx.z*dx.z;
+						}
+					}
+				}
+			for (unsigned int k = 0; k < m_field.numPlanes; k++)
+				{
+				dxv = vecInsPtToWall(m_field.Planes[k], position);
+				Scalar3 dx = -vec_to_scalar3(dxv);
+
+				// calculate r_ij squared (FLOPS: 5)
+				Scalar rsq = dot(dx, dx);
+				if (rsq > m_params.ronsq)
+					{
+					// compute the force and potential energy
+					Scalar force_divr = Scalar(0.0);
+					Scalar pair_eng = Scalar(0.0);
+					evaluator eval(rsq, m_params.rcutsq, m_params.params);
+					if (evaluator::needsDiameter())
+						eval.setDiameter(di, Scalar(0.0));
+					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+					if (evaluated)
+						{
+
+						//Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						// add the force, potential energy and virial to the particle i
+						// (FLOPS: 8)
+						F += dx*force_divr;
+						energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+						virial[0] += force_divr*dx.x*dx.x;
+						virial[1] += force_divr*dx.x*dx.y;
+						virial[2] += force_divr*dx.x*dx.z;
+						virial[3] += force_divr*dx.y*dx.y;
+						virial[4] += force_divr*dx.y*dx.z;
+						virial[5] += force_divr*dx.z*dx.z;
+						}
+					}
+				}
 			};
 
         #ifndef NVCC
@@ -180,9 +253,9 @@ class EvaluatorWalls
 
     protected:
         Scalar3 		m_pos;                //!< particle position
-        unsigned int 	m_idx;
         field_type 		m_field;			  //!< contains all information about the walls.
         param_type 		m_params;
+		Scalar			di;
 	};
 
 template < class evaluator >
@@ -193,6 +266,7 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
 	params.rcutsq = rcutsq;
 	params.ronsq = ronsq;
 	return params;
+	const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
 	}
 
 template< class evaluator >

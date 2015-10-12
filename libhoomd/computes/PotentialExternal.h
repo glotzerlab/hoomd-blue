@@ -209,7 +209,13 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        evaluator eval(X, idx, box, params, m_field);
+        evaluator eval(X, box, params, m_field);
+        if (evaluator::needsDiameter())
+            {
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            Scalar di = h_diameter.data[idx];
+            eval.setDiameter(di);
+            }
         eval.evalForceEnergyAndVirial(F, energy, virial);
 
         // apply the constraint force

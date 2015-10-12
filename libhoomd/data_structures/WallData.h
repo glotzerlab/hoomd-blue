@@ -176,6 +176,7 @@ DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scal
 
 DEVICE inline bool insideWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
+    vec3<Scalar> t = position;
     t-=wall.origin;
     vec3<Scalar> shifted_pos(t);
     Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;

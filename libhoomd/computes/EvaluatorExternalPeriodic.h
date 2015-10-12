@@ -109,7 +109,7 @@ class EvaluatorExternalPeriodic
             \param box box dimensions
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, unsigned int i, const BoxDim& box, const param_type& params, const field_type& field)
+        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params, const field_type& field)
             : m_pos(X),
               m_box(box)
             {
@@ -118,6 +118,13 @@ class EvaluatorExternalPeriodic
             m_interfaceWidth = params.z;
             m_periodicity =SCALARASINT(params.w);
             }
+
+        //! External Periodic doesn't need diameters
+        DEVICE static bool needsDiameter() { return false; }
+        //! Accept the optional diameter value
+        /*! \param di Diameter of particle i
+        */
+        DEVICE void setDiameter(Scalar di) { }
 
         //! Evaluate the force, energy and virial
         /*! \param F force vector
