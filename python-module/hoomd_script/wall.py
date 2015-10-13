@@ -54,10 +54,12 @@ from hoomd_script import globals;
 from hoomd_script import force;
 from hoomd_script import util;
 from hoomd_script import meta;
+import hoomd;
+import math;
 
 class wallpotential(external._external_force):
     def __init__(self, walls, name=""):
-        _external_force.__init__(self, name);
+        external._external_force.__init__(self, name);
         self.field_coeff = walls;
         self.required_coeffs = ["r_cut", "r_on"];
 

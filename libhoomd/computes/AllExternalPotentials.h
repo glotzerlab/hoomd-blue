@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 
 #ifdef ENABLE_CUDA
-#include "AllDriverPotentialExternalGPU.cuh"
 #include "PotentialExternalGPU.h"
 #endif
 
