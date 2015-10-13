@@ -59,11 +59,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AnisoPotentialPairGPU.cuh"
 #include "EvaluatorPairGB.h"
+#include "EvaluatorPairDipole.h"
 
 //! Compute dipole forces and torques on the GPU with EvaluatorPairDipole
 
 cudaError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t&,
             const EvaluatorPairGB::param_type*);
 
-#endif
+cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
+            const EvaluatorPairDipole::param_type*);
 
+#endif

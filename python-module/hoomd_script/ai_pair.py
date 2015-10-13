@@ -287,3 +287,54 @@ class gb(ai_pair):
         lpar = coeff['lpar'];
 
         return hoomd.make_scalar3(epsilon, lperp, lpar);
+
+##     Create dipole-dipole, dipole-charge, or charge-charge anisotropic interactions
+#
+#
+class dipole(ai_pair):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        ## tell the base class how we operate
+
+        # initialize the base class
+        ai_pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = pair._subscribe_global_nlist(lambda : self.get_rcut());
+
+        ## create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.AnisoPotentialPairDipole(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairDipole;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.AnisoPotentialPairDipoleGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairDipoleGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        ## setup the coefficent options
+        self.required_coeffs = ['mu_i', 'mu_j', 'A', 'kappa', 'qqrd2e', 'mu_hat_i', 'mu_hat_j'];
+
+        self.pair_coeff.set_default_coeff('mu_i',1.0);
+        self.pair_coeff.set_default_coeff('mu_j',1.0);
+        self.pair_coeff.set_default_coeff('A',1.0);
+        self.pair_coeff.set_default_coeff('kappa',0.0);
+        self.pair_coeff.set_default_coeff('qqrd2e',1.0);
+        self.pair_coeff.set_default_coeff('mu_hat_i', (0.0, 0.0, 1.0));
+        self.pair_coeff.set_default_coeff('mu_hat_j', (0.0, 0.0, 1.0));
+
+    def process_coeff(self, coeff):
+        mu_i = float(coeff['mu_i']);
+        mu_j = float(coeff['mu_j']);
+        mu_hat_i = coeff['mu_hat_i'];
+        mu_hat_j = coeff['mu_hat_j'];
+        A = float(coeff['A']);
+        kappa = float(coeff['kappa']);
+        qqrd2e = float(coeff['qqrd2e']);
+
+        mu_i_scalar3 = hoomd.make_scalar3(*[mu_i*component for component in mu_hat_i]);
+        mu_j_scalar3 = hoomd.make_scalar3(*[mu_j*component for component in mu_hat_j]);
+
+        return hoomd.EvaluatorPairDipoleParams(mu_i_scalar3, mu_j_scalar3, A, kappa, qqrd2e)

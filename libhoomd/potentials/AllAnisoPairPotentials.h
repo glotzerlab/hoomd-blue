@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AnisoPotentialPair.h"
 
 #include "EvaluatorPairGB.h"
+#include "EvaluatorPairDipole.h"
 
 #ifdef ENABLE_CUDA
 #include "AnisoPotentialPairGPU.h"
@@ -69,13 +70,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Pair potential force compute for Gay-Berne forces and torques
 typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
+//! Pair potential force compute for dipole forces and torques
+typedef AnisoPotentialPair<EvaluatorPairDipole> AnisoPotentialPairDipole;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> AnisoPotentialPairGBGPU;
+//! Pair potential force compute for dipole forces and torques on the GPU
+typedef AnisoPotentialPairGPU<EvaluatorPairDipole,gpu_compute_pair_aniso_forces_dipole> AnisoPotentialPairDipoleGPU;
 #endif
 
-// 
+//
 
 #endif // __ALL_ANISO_PAIR_POTENTIALS_H__
-
