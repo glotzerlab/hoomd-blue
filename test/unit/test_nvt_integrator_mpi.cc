@@ -77,6 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CommunicatorGPU.h"
 #endif
 
+using namespace std;
 using namespace boost;
 
 void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
