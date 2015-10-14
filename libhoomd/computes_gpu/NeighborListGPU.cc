@@ -270,30 +270,15 @@ void NeighborListGPU::buildHeadList()
         
     if (m_prof) m_prof->push(exec_conf, "head-list");
 
-    // resize the temporary head list array if necessary
-    if (m_alt_head_list.getNumElements() < m_head_list.getNumElements())
-        {
-        GPUArray<unsigned int> alt_head_list(m_head_list.getNumElements(), m_exec_conf);
-        m_alt_head_list.swap(alt_head_list);
-        }
-
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_alt_head_list(m_alt_head_list, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
 
     m_req_size_nlist.resetFlags(0);
 
-    // initialize and allocate
-    void *d_tmp_storage = NULL;
-    size_t tmp_storage_bytes = 0;
-
     m_tuner_head_list->begin();
     gpu_nlist_build_head_list(d_head_list.data,
-                              d_alt_head_list.data,
                               m_req_size_nlist.getDeviceFlags(),
-                              d_tmp_storage,
-                              tmp_storage_bytes,
                               d_Nmax.data,
                               d_pos.data,
                               m_pdata->getN(),
@@ -302,23 +287,6 @@ void NeighborListGPU::buildHeadList()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_head_list->end();
-
-    // allocate temporary storage (unsigned char = 1 B)
-    size_t alloc_bytes = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
-    ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_bytes);
-    d_tmp_storage = (void*)d_alloc();
-
-    // prefix sum
-    gpu_nlist_build_head_list(d_head_list.data,
-                              d_alt_head_list.data,
-                              m_req_size_nlist.getDeviceFlags(),
-                              d_tmp_storage,
-                              tmp_storage_bytes,
-                              d_Nmax.data,
-                              d_pos.data,
-                              m_pdata->getN(),
-                              m_pdata->getNTypes(),
-                              m_tuner_head_list->getParam());
 
     unsigned int req_size_nlist = m_req_size_nlist.readFlags();
     resizeNlist(req_size_nlist);
