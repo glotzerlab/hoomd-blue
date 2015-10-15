@@ -219,6 +219,38 @@ class NeighborList : public Compute
             return m_storage_mode;
             }
 
+        //! Get the maximum of all rcut
+        Scalar getMaxRCut()
+            {
+            if (m_rcut_changed) updateRList();
+            return m_rcut_max_max;
+            }
+
+        //! Get the maximum of all the rlist
+        Scalar getMaxRList()
+            {
+            Scalar max_rlist = getMaxRCut() + m_r_buff;
+            if (m_diameter_shift)
+                max_rlist += m_d_max - Scalar(1.0);
+            return max_rlist;
+            }
+
+        //! Get the minimum of all rcut
+        Scalar getMinRCut()
+            {
+            if (m_rcut_changed) updateRList();
+            return m_rcut_min;
+            }
+
+        //! Get the minimum of all rlist
+        Scalar getMinRList()
+            {
+            Scalar min_rlist = getMinRCut() + m_r_buff;
+            if (m_diameter_shift)
+                min_rlist += m_d_max - Scalar(1.0);
+            return min_rlist;
+            }
+
         // @}
         //! \name Statistics
         // @{
@@ -374,6 +406,12 @@ class NeighborList : public Compute
             forceUpdate();
             }
 
+        //! Get the maximum diameter value
+        Scalar getMaximumDiameter()
+            {
+            return m_d_max;
+            }
+
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int type) const
             {
@@ -393,12 +431,6 @@ class NeighborList : public Compute
                 {
                 return Scalar(0.0);
                 }
-            }
-
-        //! Get the maximum diameter value
-        Scalar getMaximumDiameter()
-            {
-            return m_d_max;
             }
 
         // @}
@@ -532,20 +564,6 @@ class NeighborList : public Compute
         boost::signals2::connection connectRCutChange(const boost::function<void ()> &func)
             {
             return m_rcut_signal.connect(func);
-            }
-
-        //! Get the maximum of all rcut
-        Scalar getMaxRCut()
-            {
-            if (m_rcut_changed) updateRList();
-            return m_rcut_max_max;
-            }
-
-        //! Get the minimum of all rcut
-        Scalar getMinRCut()
-            {
-            if (m_rcut_changed) updateRList();
-            return m_rcut_min;
             }
 
     private:

@@ -863,6 +863,86 @@ class stencil(_nlist):
 
         if deterministic is not None:
             self.cpp_cl.setSortCellList(deterministic)
+
+    ## Make a series of short runs to determine the fastest performing r_buff setting
+    # \param warmup Number of time steps to run() to warm up the benchmark
+    # \param min_width
+    # \param max_width
+    # \param jumps Number of different r_buff values to test
+    # \param steps Number of time steps to run() at each point
+    # \param set_max_check_period Set to True to enable automatic setting of the maximum nlist check_period
+    #
+    # tune() executes \a warmup time steps. Then it sets the nlist \a cell_width value to \a min_width and runs for
+    # \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a cell_width value
+    # completing at \a max_width in \a jumps jumps. Status information is printed out to the screen, and the optimal
+    # \a cell_width value is left set for further runs() to continue at optimal settings.
+    #
+    # Each benchmark is repeated 3 times and the median value chosen. In total, (warmup + 3*jump*steps) time steps
+    # are run().
+    #
+    # \returns optimal_cell_width
+    #
+    # \MPI_SUPPORTED
+    def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
+        util.print_status_line()
+
+        # check if initialization has occurred
+        if not init.is_initialized():
+            globals.msg.error("Cannot tune r_buff before initialization\n");
+
+        if self.cpp_nlist is None:
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            raise RuntimeError('Error tuning neighbor list')
+
+        min_cell_width = min_width
+        if min_cell_width is None:
+            min_cell_width = 0.5*self.cpp_nlist.getMinRList()
+        max_cell_width = max_width
+        if max_cell_width is None:
+            max_cell_width = self.cpp_nlist.getMaxRList()
+
+        # make the warmup run
+        hoomd_script.run(warmup);
+
+        # initialize scan variables
+        dr = (max_cell_width - min_cell_width) / (jumps - 1);
+        width_list = [];
+        tps_list = [];
+
+        # loop over all desired r_buff points
+        for i in range(0,jumps):
+            # set the current r_buff
+            cw = min_cell_width + i * dr;
+            self.set_params(cell_width=cw);
+
+            # run the benchmark 3 times
+            tps = [];
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+
+            # record the median tps of the 3
+            tps.sort();
+            tps_list.append(tps[1]);
+            width_list.append(cw);
+
+        # find the fastest r_buff
+        fastest = tps_list.index(max(tps_list));
+        fastest_width = width_list[fastest];
+
+        # set the fastest and rerun the warmup steps to identify the max check period
+        self.set_params(cell_width=fastest_width);
+
+        # notify the user of the benchmark results
+        globals.msg.notice(2, "cell width = " + str(width_list) + '\n');
+        globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        globals.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+
+        # return the results to the script
+        return fastest_width
 stencil.cur_id = 0
 
 ## Fast neighbor list for size asymmetric particles

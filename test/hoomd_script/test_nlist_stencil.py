@@ -43,6 +43,11 @@ class nlist_stencil_tests (unittest.TestCase):
     # test tuning
     def test_tune(self):
         self.nl.tune(warmup=100, r_min=0.1, r_max=0.25, jumps=10, steps=50)
+
+    # test cell width tuning
+    def test_tune_cell_width(self):
+        self.nl.tune_cell_width(warmup=100, jumps=10, steps=50)
+        self.nl.tune_cell_width(warmup=10, min_width=0.1, max_width=0.25, jumps=5, steps=5)
     
     # test multiple neighbor lists can coexist with different parameters
     def test_multi(self):
