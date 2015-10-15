@@ -225,7 +225,7 @@ def all():
 
     # create the group
     selector = hoomd.ParticleSelectorAll(globals.system_definition)
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, True);
 
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
