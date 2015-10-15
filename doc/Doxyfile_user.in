@@ -742,6 +742,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/box.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/aniso.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/autotuner.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/restartable_jobs.dox" \

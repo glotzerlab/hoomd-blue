@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,16 +47,34 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*!
+/*! \page page_aniso Anisotropic Particles
 
-\page page_concepts Concepts
+\section sec_aniso Anisotropic particle support in HOOMD-blue
 
-1. \subpage page_units
-2. \subpage page_box
-3. \subpage page_xml_file_format
-4. \subpage page_aniso
-5. \subpage page_mpi
-6. \subpage page_autotuner
-7. \subpage page_restartable_jobs
+HOOMD-blue natively supports the integration of rotational degrees of
+freedom of anisotropic particles. When any anisotropic potential, such
+as those found in \link hoomd_script.ai_pair ai_pair\endlink is defined in the
+system, integrators automatically integrate the rotational and
+translational degrees of freedom of the system.
+
+Anisotropic particles have a number of properties accessible using the particle data API:
+ - orientation, Quaternion to rotate the particle from its base orientation to its current orientation, in order \f$(real, imag_x, imag_y, imag_z)\f$
+ - angular_momentum, Conjugate quaternion representing the particle's angular momentum, see below
+ - moment_inertia, principal moments of inertia \f$(I_{xx}, I_{yy}, I_{zz})\f$
+ - net_torque, net torque on the particle
+
+\section sec_angmom Quaternions for angular momentum
+
+Particle angular momenta are stored in quaternion form; to compute the
+angular momentum vector \f$\vec{L}\f$ using the particle's angular
+momentum quaternion \f$\mathbf{s} = (s_r, s_x, s_y, s_z)\f$ follows
+the description in Miller, J. Chem. Phys. 116, 2002 with particle
+quaternions \f$(q_r, q_x, q_y, q_z)\f$:
+
+\f{eqnarray*}
+        L_x = & \vec{s} \cdot (-q_x, q_r, q_z, -q_y) \\
+        L_y = & \vec{s} \cdot (-q_y, -q_z, q_r, q_x) \\
+        L_z = & \vec{s} \cdot (-q_z, q_y, -q_x, q_r)
+\f}
 
 */

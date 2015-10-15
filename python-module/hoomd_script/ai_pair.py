@@ -193,31 +193,31 @@ class ai_pair(pair.pair):
 # The interaction energy for this anisotropic pair potential is (\cite Allen2006):
 #
 # \f{eqnarray*}
-# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \left( \zeta^{-12} -
-#                       \left( \zeta{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
+# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \zeta^{-12} -
+#                       \zeta{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
 #                     = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
 # \f},
 # where
-# \f{equation*}
-# \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}{\sigma_{\mathrm{min}}}\right)
+# \f{equation}
+# \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)
 # \f},
 #
-# \f{equation*}
-# \sigma^{-2} = \frac12 \hat\vec r\cdot\vec H^{-1}\cdot\hat\vec r
+# \f{equation}
+# \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}\cdot\vec{H^{-1}}\cdot\hat{\vec{r}}
 # \f},
 #
-# \f{equation*}
-# \vec H = 2 \ell_\perp^2 \vec 1+ (\ell_\par^2 - \ell_\perp^2) (\vec e_i \otimes e_i + \vec e_j \otimes e_j)
+# \f{equation}
+# \vec{H} = 2 \ell_\perp^2 \vec{1} + (\ell_\parallel^2 - \ell_\perp^2) (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
 # \f},
-# with \f$ \sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\par) \f$.
+# with \f$ \sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel) \f$.
 #
 # The cut-off parameter \f$ r_{\mathrm{cut}} \f$ is defined for two particles oriented
 # parallel along the \b long axis, i.e.
 # \f$ \zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} +
-# \sigma_{\mathrm{min}}{\sigma_{\mathrm{min}}}\right)\f$
-# where \f$ \sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\par) \f$ .
+# \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)\f$
+# where \f$ \sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel) \f$ .
 #
-# The quantities \f$ \ell_\par \f$ and \f$ \ell_\perp \f$ denote the semi-axis lengths parallel
+# The quantities \f$ \ell_\parallel \f$ and \f$ \ell_\perp \f$ denote the semi-axis lengths parallel
 # and perpendicular to particle orientation.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
@@ -290,6 +290,36 @@ class gb(ai_pair):
 
 ##     Create dipole-dipole, dipole-charge, or charge-charge anisotropic interactions
 #
+#  This class computes the (screened) interaction between pairs of
+#  particles with dipoles and electrostatic charges. The total energy
+#  computed is
+#
+#  \f{equation}
+#  U_{dipole} = U_{dd} + U_{de} + U_{ee}
+#  \f},
+#
+#  where
+#
+#  \f{equation}
+#  U_{dd} = A e^{-\kappa r} \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3} - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})(\vec{\mu_j}\cdot \vec{r_{ji}})}{r^5}\right)
+#  \f},
+#
+#  \f{equation}
+#  U_{de} = A e^{-\kappa r} \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3} - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}\right)
+#  \f},
+#
+#  \f{equation}
+#  U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
+#  \f}
+#
+# The following coefficients may be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - mu_i - magnitude of \f$ \mu \f$ for particle type i (default value 1.0)
+# - mu_j - magnitude of \f$ \mu \f$ for particle type j (default value 1.0)
+# - A - electrostatic energy scale \f$A\f$ (default value 1.0)
+# - kappa - inverse screening length \f$\kappa\f$ (default value 1.0)
+# - mu_hat_i - unit vector for dipole orientation \f$\vec{\mu_i} = \mu_i \hat{\mu_i}\f$ (default value (0, 0, 1))
+# - mu_hat_j - unit vector for dipole orientation \f$\vec{\mu_j} = \mu_j \hat{\mu_j}\f$ (default value (0, 0, 1))
 #
 class dipole(ai_pair):
     def __init__(self, r_cut, name=None):
@@ -317,12 +347,19 @@ class dipole(ai_pair):
         ## setup the coefficent options
         self.required_coeffs = ['mu_i', 'mu_j', 'A', 'kappa', 'qqrd2e', 'mu_hat_i', 'mu_hat_j'];
 
+        # mu_i: dipole magnitude of type i
         self.pair_coeff.set_default_coeff('mu_i',1.0);
+        # mu_j: dipole magnitude of type j
         self.pair_coeff.set_default_coeff('mu_j',1.0);
+        # A: electrostatic energy scale
         self.pair_coeff.set_default_coeff('A',1.0);
+        # kappa: inverse screening length
         self.pair_coeff.set_default_coeff('kappa',0.0);
+        # qqrd2e: unused (TODO: remove)
         self.pair_coeff.set_default_coeff('qqrd2e',1.0);
+        # mu_hat_i: dipole orientation of type i
         self.pair_coeff.set_default_coeff('mu_hat_i', (0.0, 0.0, 1.0));
+        # mu_hat_j: dipole orientation of type j
         self.pair_coeff.set_default_coeff('mu_hat_j', (0.0, 0.0, 1.0));
 
     def process_coeff(self, coeff):

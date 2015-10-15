@@ -107,7 +107,6 @@ struct EvaluatorPairDipoleParams
     DEVICE inline  EvaluatorPairDipoleParams()
         {
         }
-      // made mu_i and mu_j of type Scalar3
     DEVICE inline  EvaluatorPairDipoleParams(Scalar3 _mu_i, Scalar3 _mu_j, Scalar _A, Scalar _kappa, Scalar _qqrd2e)
       : mu_i(_mu_i), mu_j(_mu_j), A(_A), kappa(_kappa), qqrd2e(_qqrd2e)
         {
@@ -208,6 +207,7 @@ class EvaluatorPairDipole
 	    Scalar mu_i_sq = mu_i.x*mu_i.x + mu_i.y*mu_i.y + mu_i.z*mu_i.z;
 	    Scalar mu_j_sq = mu_j.x*mu_j.x + mu_j.y*mu_j.y + mu_j.z*mu_j.z;
 
+            // dipole-dipole
             if (mu_i_sq != Scalar(0.0) && mu_j_sq != Scalar(0.0))
                 {
                 Scalar r7inv = r5inv*r2inv;
@@ -239,6 +239,7 @@ class EvaluatorPairDipole
 
                 e += prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr);
                 }
+            // dipole i - electrostatic j
             if (mu_i_sq != Scalar(0.0) && q_j != Scalar(0.0))
                 {
                 Scalar pidotr = p_i.x*dx + p_i.y*dy + p_i.z*dz;
@@ -256,6 +257,7 @@ class EvaluatorPairDipole
 
                 e += -q_j*r3inv*pidotr*prefactor;
                 }
+            // electrostatic i - dipole j
             if (q_i != Scalar(0.0) && mu_j_sq != Scalar(0.0))
                 {
                 Scalar pjdotr = p_j.x*dx + p_j.y*dy + p_j.z*dz;
@@ -273,6 +275,7 @@ class EvaluatorPairDipole
 
                 e += q_i*r3inv*pjdotr*prefactor;
                 }
+            // electrostatic-electrostatic
             if (q_i != Scalar(0.0) && q_j != Scalar(0.0))
                 {
                 Scalar fforce = prefactor*q_i*q_j*(kappa+rinv)*r2inv;
