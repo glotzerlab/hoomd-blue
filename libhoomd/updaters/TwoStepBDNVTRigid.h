@@ -88,6 +88,9 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
 
+        //! Update the temperature
+        virtual void setT(boost::shared_ptr<Variant> T);
+
         //! Performs the second step
         virtual void integrateStepTwo(unsigned int timestep);
 

@@ -7,9 +7,9 @@ if (ENABLE_CUDA)
 	# the package is needed
 	find_package(CUDA REQUIRED REQUIRED)
 
-	if (${CUDA_VERSION} VERSION_LESS 4.0)
-		message(SEND_ERROR "CUDA 3.2 and older are not supported")
-	endif (${CUDA_VERSION} VERSION_LESS 4.0)
+	if (${CUDA_VERSION} VERSION_LESS 5.0)
+		message(SEND_ERROR "CUDA 5.0 or newer is required")
+	endif (${CUDA_VERSION} VERSION_LESS 5.0)
 
     # Find Thrust
     find_package(Thrust)
@@ -52,12 +52,8 @@ if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 5.99)
         set(CUDA_ARCH_LIST 20 30 35 50 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CUDA_VERSION VERSION_GREATER 4.99)
+    else (CUDA_VERSION VERSION_GREATER 4.99)
         set(CUDA_ARCH_LIST 20 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CUDA_VERSION VERSION_GREATER 4.1)
-        set(CUDA_ARCH_LIST 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    else()
-        set(CUDA_ARCH_LIST 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
@@ -69,6 +65,10 @@ if (ENABLE_CUDA)
     list(SORT _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
     add_definitions(-DCUDA_ARCH=${_cuda_min_arch})
+
+    if (_cuda_min_arch LESS 20)
+        message(SEND_ERROR "SM1x builds are not supported")
+    endif ()
 
     # only generage ptx code for the maximum supported CUDA_ARCH (saves on file size)
     list(REVERSE _cuda_arch_list_sorted)

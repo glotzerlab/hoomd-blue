@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 using namespace boost::python;
 
 #include <stdexcept>
@@ -118,6 +119,13 @@ void TablePotential::slotNumTypesChange()
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
+
+    // skip the reallocation if the number of types does not change
+    // this keeps old parameters when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if ((2*m_pdata->getNTypes()-1) == m_params.getNumElements())
+        return;
+
 
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);

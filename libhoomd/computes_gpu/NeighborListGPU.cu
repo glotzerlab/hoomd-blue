@@ -55,7 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListGPU.cuh"
 
-#include "cub/cub.cuh"
+#include <thrust/scan.h>
+#include <thrust/device_ptr.h>
 
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
@@ -428,9 +429,7 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
 
 /*!
  * \param d_head_list The head list of indexes to compute for reading the neighbor list
- * \param d_req_size_nlist The required size of the neighbor list flat array
- * \param d_tmp_storage Temporary storage in device memory
- * \param tmp_storage_bytes Size of temporary storage in bytes
+ * \param d_req_size_nlist Flag for the total size of the neighbor list
  * \param d_Nmax The number of neighbors to size per particle type
  * \param d_pos Particle positions and types
  * \param N the number of particles on this rank
@@ -440,55 +439,41 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
  * \return cudaSuccess on completion
  *
  * \b Implementation
- * This function must be called twice to build the head list. In the first call (when \a d_tmp_storage is NULL),
- * the head list is filled with the number of neighbors per particle and the amount of temporary storage space needed
- * to compute the head list is saved in \a tmp_storage_bytes. This amount of memory must then be allocated on the
- * device in \a d_tmp_storage before this function is called again. In the second call, an exclusive prefix sum is
- * performed in place on this list using the CUB libraries and a single thread is used to perform compute the total
+ * \a d_head_list is filled with the number of neighbors per particle. An exclusive prefix sum is
+ * performed in place on \a d_head_list using the thrust libraries and a single thread is used to perform compute the total
  * size of the neighbor list while still on device.
  */
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
-                                      void *d_tmp_storage,
-                                      size_t &tmp_storage_bytes,
                                       const unsigned int *d_Nmax,
                                       const Scalar4 *d_pos,
                                       const unsigned int N,
                                       const unsigned int ntypes,
                                       const unsigned int block_size)
     {
-    if (d_tmp_storage == NULL) // initialization
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
         {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-           cudaFuncAttributes attr;
-           cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
-           max_block_size = attr.maxThreadsPerBlock;
-            }
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-        unsigned int run_block_size = min(block_size, max_block_size);
-        unsigned int shared_bytes = ntypes*sizeof(unsigned int);
-    
-        // initialize each particle with its number of neighbors
-        gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
-                                                                                                d_req_size_nlist,
-                                                                                                d_Nmax,
-                                                                                                d_pos,
-                                                                                                N,
-                                                                                                ntypes);
-    
-        // size the temporary storage
-        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
-        }
-    else
-        {
-        // perform the exclusive sum
-        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
-    
-        // compute the total number on the GPU from the last element (it would be nice if the cub code could do this)
-        gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
-        }
+    unsigned int run_block_size = min(block_size, max_block_size);
+    unsigned int shared_bytes = ntypes*sizeof(unsigned int);
+
+    // initialize each particle with its number of neighbors
+    gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
+                                                                                            d_req_size_nlist,
+                                                                                            d_Nmax,
+                                                                                            d_pos,
+                                                                                            N,
+                                                                                            ntypes);
+
+    thrust::device_ptr<unsigned int> t_head_list = thrust::device_pointer_cast(d_head_list);
+    thrust::exclusive_scan(t_head_list, t_head_list+N, t_head_list);
+
+    gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
     
     return cudaSuccess;
     }

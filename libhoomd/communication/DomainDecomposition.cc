@@ -69,6 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <numeric>
 
+using namespace std;
 using namespace boost::python;
 
 //! Constructor

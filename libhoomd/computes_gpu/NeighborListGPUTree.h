@@ -145,9 +145,16 @@ class NeighborListGPUTree : public NeighborListGPU
         //! Notification of a change in the number of types
         void slotNumTypesChanged()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old parameters when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_prev_ntypes)
+                return;
+
             m_type_changed = true;
             }
-            
+        
+        unsigned int m_prev_ntypes;                         //!< Previous number of types
         bool m_type_changed;                                //!< Flag if types changed
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
         

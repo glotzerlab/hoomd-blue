@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
+using namespace std;
 using namespace boost::python;
 
 #include <vector>

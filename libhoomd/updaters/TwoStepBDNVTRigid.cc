@@ -56,6 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
+
+using namespace std;
 using namespace boost::python;
 
 /*! \file TwoStepBDNVTRigid.cc
@@ -111,6 +113,13 @@ TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
 
 void TwoStepBDNVTRigid::slotNumTypesChange()
     {
+    // skip the reallocation if the number of types does not change
+    // this keeps old parameters when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if (m_pdata->getNTypes() == m_gamma.size())
+        return;
+
+
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
@@ -139,6 +148,16 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
 
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
+    }
+
+//! Update the temperature
+/*! \param T New temperature to set
+*/
+void TwoStepBDNVTRigid::setT(boost::shared_ptr<Variant> T)
+    {
+    m_T = T;
+    // do we need to set m_temperature??
+    // this->m_temperature = T;
     }
 
 /*! \param timestep Current time step
@@ -269,5 +288,6 @@ void export_TwoStepBDNVTRigid()
                          bool
                          >())
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
+        .def("setT", &TwoStepBDNVTRigid::setT)
         ;
     }

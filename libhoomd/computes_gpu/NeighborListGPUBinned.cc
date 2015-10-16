@@ -117,7 +117,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     // synchronize over MPI
     m_tuner->setSync(m_pdata->getDomainDecomposition());
     #endif
-    
+
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
     }
@@ -138,22 +138,22 @@ NeighborListGPUBinned::~NeighborListGPUBinned()
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
-    
+
     Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-        
+
     m_cl->setNominalWidth(rmax);
     }
-    
+
 void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
-    
+
     Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-        
+
     m_cl->setNominalWidth(rmax);
     }
 
@@ -165,7 +165,7 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-        
+
     m_cl->setNominalWidth(rmax);
     }
 
@@ -173,8 +173,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
-        throw runtime_error("Error computing neighbor list");
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
+        throw std::runtime_error("Error computing neighbor list");
         }
 
     m_cl->compute(timestep);
@@ -207,7 +207,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-    
+
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
@@ -215,59 +215,51 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << std::endl;
+        throw std::runtime_error("Error updating neighborlist bins");
         }
 
-    if(m_exec_conf->getComputeCapability() >= 200)
-        {
-        // we should not call the tuner with MPI sync enabled
-        // if the kernel is launched more than once in the same timestep,
-        // since those kernel launches may occur only on some, not all MPI ranks
-        bool tune = !m_param && m_last_tuned_timestep != timestep;
+    // we should not call the tuner with MPI sync enabled
+    // if the kernel is launched more than once in the same timestep,
+    // since those kernel launches may occur only on some, not all MPI ranks
+    bool tune = !m_param && m_last_tuned_timestep != timestep;
 
-        if (tune) this->m_tuner->begin();
-        unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
-        unsigned int block_size = param / 10000;
-        unsigned int threads_per_particle = param % 10000;
+    if (tune) this->m_tuner->begin();
+    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
+    unsigned int block_size = param / 10000;
+    unsigned int threads_per_particle = param % 10000;
 
-        gpu_compute_nlist_binned(d_nlist.data,
-                                 d_n_neigh.data,
-                                 d_last_pos.data,
-                                 d_conditions.data,
-                                 d_Nmax.data,
-                                 d_head_list.data,
-                                 d_pos.data,
-                                 d_body.data,
-                                 d_diameter.data,
-                                 m_pdata->getN(),
-                                 d_cell_size.data,
-                                 d_cell_xyzf.data,
-                                 d_cell_tdb.data,
-                                 d_cell_adj.data,
-                                 m_cl->getCellIndexer(),
-                                 m_cl->getCellListIndexer(),
-                                 m_cl->getCellAdjIndexer(),
-                                 box,
-                                 d_r_cut.data,
-                                 m_r_buff,
-                                 m_pdata->getNTypes(),
-                                 threads_per_particle,
-                                 block_size,
-                                 m_filter_body,
-                                 m_diameter_shift,
-                                 m_cl->getGhostWidth(),
-                                 m_exec_conf->getComputeCapability()/10);
-        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        if (tune) this->m_tuner->end();
+    gpu_compute_nlist_binned(d_nlist.data,
+                             d_n_neigh.data,
+                             d_last_pos.data,
+                             d_conditions.data,
+                             d_Nmax.data,
+                             d_head_list.data,
+                             d_pos.data,
+                             d_body.data,
+                             d_diameter.data,
+                             m_pdata->getN(),
+                             d_cell_size.data,
+                             d_cell_xyzf.data,
+                             d_cell_tdb.data,
+                             d_cell_adj.data,
+                             m_cl->getCellIndexer(),
+                             m_cl->getCellListIndexer(),
+                             m_cl->getCellAdjIndexer(),
+                             box,
+                             d_r_cut.data,
+                             m_r_buff,
+                             m_pdata->getNTypes(),
+                             threads_per_particle,
+                             block_size,
+                             m_filter_body,
+                             m_diameter_shift,
+                             m_cl->getGhostWidth(),
+                             m_exec_conf->getComputeCapability()/10);
+    if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (tune) this->m_tuner->end();
 
-        m_last_tuned_timestep = timestep;
-        }
-    else
-    	{
-    	m_exec_conf->msg->error() << "nlist: Compute 1.x cards are no longer supported, sorry." << endl;
-        throw runtime_error("Error building neighborlist bins");
-    	}
+    m_last_tuned_timestep = timestep;
 
     if (m_prof)
         m_prof->pop(m_exec_conf);

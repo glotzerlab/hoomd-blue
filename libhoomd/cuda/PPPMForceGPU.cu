@@ -145,27 +145,10 @@ static __device__ inline double atomicAdd(double* address, double val)
 
 #endif
 
-//! Implements workaround atomic Scalar addition on sm_1x hardware
-__device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
-    {
-#if (__CUDA_ARCH__ < 200) && defined SINGLE_PRECISION
-    Scalar old = value;
-    Scalar new_old;
-    do
-        {
-        new_old = atomicExch(address, Scalar(0.0));
-        new_old += old;
-        }
-    while ((old = atomicExch(address, new_old))!=Scalar(0.0));
-#else
-    atomicAdd(address, value);
-#endif
-    }
-
 //! The developer has chosen not to document this function
 __device__ inline void AddToGridpoint(int X, int Y, int Z, CUFFTCOMPLEX* array, Scalar value, int Ny, int Nz)
     {
-    atomicFloatAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
+    atomicAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
 
 
@@ -1067,15 +1050,8 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         // prefetch neighbor index
         unsigned int next_j = d_nlist[nli(idx, 0)];
 
-#if (__CUDA_ARCH__ < 200)
-        for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
-#else
             for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-#endif
                 {
-#if (__CUDA_ARCH__ < 200)
-                if (neigh_idx < n_neigh)
-#endif
                     {
                     // read the current neighbor index (MEM TRANSFER: 4 bytes)
                     // prefetch the next value and set the current one
@@ -1110,16 +1086,9 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     virial[4] += dx.y * dx.z * force_div2r;
                     virial[5] += dx.z * dx.z * force_div2r;
 
-#if (__CUDA_ARCH__ >= 200)
                     force.x += dx.x * force_divr;
                     force.y += dx.y * force_divr;
                     force.z += dx.z * force_divr;
-#else
-                    // fmad causes momentum drift here, prevent it from being used
-                    force.x += __fmul_rn(dx.x, force_divr);
-                    force.y += __fmul_rn(dx.y, force_divr);
-                    force.z += __fmul_rn(dx.z, force_divr);
-#endif
 
                     force.w += pair_eng;
                     }

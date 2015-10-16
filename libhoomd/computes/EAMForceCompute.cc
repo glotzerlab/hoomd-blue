@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 #include <boost/dynamic_bitset.hpp>
+using namespace std;
 using namespace boost;
 using namespace boost::python;
 #include <stdexcept>

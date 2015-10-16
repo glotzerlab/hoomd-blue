@@ -596,13 +596,13 @@ class npt(_integration_method):
     # \b Examples:
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
-    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
+    # integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0)
     # # orthorhombic symmetry
-    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none")
+    # integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="none")
     # # tetragonal symmetry
-    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="xy")
+    # integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="xy")
     # # triclinic symmetry
-    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
+    # integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
     def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None, rescale_all=None):
         util.print_status_line();
@@ -1104,7 +1104,7 @@ class nve_rigid(_integration_method):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='nguyen2011',
                          author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],

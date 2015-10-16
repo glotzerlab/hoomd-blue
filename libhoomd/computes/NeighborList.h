@@ -533,7 +533,7 @@ class NeighborList : public Compute
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
-        vector<unsigned int> m_update_periods;    //!< Steps between updates
+        std::vector<unsigned int> m_update_periods;    //!< Steps between updates
 
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
