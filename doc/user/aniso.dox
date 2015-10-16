@@ -68,7 +68,7 @@ Anisotropic particles have a number of properties accessible using the particle 
 Particle angular momenta are stored in quaternion form; to compute the
 angular momentum vector \f$\vec{L}\f$ using the particle's angular
 momentum quaternion \f$\mathbf{s} = (s_r, s_x, s_y, s_z)\f$ follows
-the description in Miller, J. Chem. Phys. 116, 2002 with particle
+the description in Miller 2002 \cite Miller2002 with particle
 quaternions \f$(q_r, q_x, q_y, q_z)\f$:
 
 \f{eqnarray*}
