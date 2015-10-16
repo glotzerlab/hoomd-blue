@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CachedAllocator.h"
 
+using namespace std;
+
 #include <boost/bind.hpp>
 using namespace boost;
 

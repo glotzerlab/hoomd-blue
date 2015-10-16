@@ -71,6 +71,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TO_POS4(v) make_scalar4(v.x,v.y,v.z,h_pos.data[rtag].w)
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
+
+using namespace std;
+
 template<class LB>
 void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
