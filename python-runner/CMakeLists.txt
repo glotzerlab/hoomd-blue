@@ -16,7 +16,7 @@ else (PYTHON_SITEDIR)
     fix_cudart_rpath(hoomd)
 
     # set the rpath so that the exe can find libs stashed in lib/hoomd/python-module
-    set_target_properties(hoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../lib/hoomd/python-module")
+    set_target_properties(hoomd PROPERTIES INSTALL_RPATH "$ORIGIN/../lib/hoomd/python-module")
 
     if (ENABLE_MPI)
        # if we are compiling with MPI support built in, set appropriate
@@ -34,4 +34,3 @@ else (PYTHON_SITEDIR)
     install(TARGETS hoomd
             RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 endif (PYTHON_SITEDIR)
-
