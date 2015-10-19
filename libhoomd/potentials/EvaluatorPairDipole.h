@@ -107,13 +107,13 @@ struct EvaluatorPairDipoleParams
     DEVICE inline  EvaluatorPairDipoleParams()
         {
         }
-    DEVICE inline  EvaluatorPairDipoleParams(Scalar3 _mu_i, Scalar3 _mu_j, Scalar _A, Scalar _kappa, Scalar _qqrd2e)
-      : mu_i(_mu_i), mu_j(_mu_j), A(_A), kappa(_kappa), qqrd2e(_qqrd2e)
+    DEVICE inline  EvaluatorPairDipoleParams(Scalar3 _mu_i, Scalar3 _mu_j, Scalar _A, Scalar _kappa)
+      : mu_i(_mu_i), mu_j(_mu_j), A(_A), kappa(_kappa)
         {
         }
 
       Scalar3 mu_i , mu_j;
-      Scalar A, kappa, qqrd2e;
+      Scalar A, kappa;
     };
 
 
@@ -308,7 +308,7 @@ class EvaluatorPairDipole
         // make this classes parameters available to python
         static void export_params()
             {
-            class_<EvaluatorPairDipoleParams>("EvaluatorPairDipoleParams",init<Scalar3, Scalar3, Scalar, Scalar, Scalar>());
+            class_<EvaluatorPairDipoleParams>("EvaluatorPairDipoleParams",init<Scalar3, Scalar3, Scalar, Scalar>());
             }
         #endif
 
@@ -319,7 +319,6 @@ class EvaluatorPairDipole
         Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constuctor
         Scalar3 mu_i,mu_j;           //!< Stored dipole magnitude of ith and jth particle from constuctor
         Scalar A, kappa;            //!< Stored magnitude and inverse screeing length
-        Scalar qqrd2e;              //!< Stored conversion factor q^2/r to energy w/ dielectric constant
     };
 
 

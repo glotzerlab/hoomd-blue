@@ -314,12 +314,12 @@ class gb(ai_pair):
 #
 # The following coefficients may be set per unique %pair of particle types. See hoomd_script.pair or
 # the \ref page_quick_start for information on how to set coefficients.
-# - mu_i - magnitude of \f$ \mu \f$ for particle type i (default value 1.0)
-# - mu_j - magnitude of \f$ \mu \f$ for particle type j (default value 1.0)
-# - A - electrostatic energy scale \f$A\f$ (default value 1.0)
-# - kappa - inverse screening length \f$\kappa\f$ (default value 1.0)
-# - mu_hat_i - unit vector for dipole orientation \f$\vec{\mu_i} = \mu_i \hat{\mu_i}\f$ (default value (0, 0, 1))
-# - mu_hat_j - unit vector for dipole orientation \f$\vec{\mu_j} = \mu_j \hat{\mu_j}\f$ (default value (0, 0, 1))
+# - mu_i - magnitude of \f$ \mu \f$ for particle type i
+# - mu_j - magnitude of \f$ \mu \f$ for particle type j
+# - A - electrostatic energy scale \f$A\f$
+# - kappa - inverse screening length \f$\kappa\f$
+# - mu_hat_i - scaling vector for dipole orientation \f$\vec{\mu_i} = \mu_i \hat{\mu_i}\f$ (default value (0, 0, 1))
+# - mu_hat_j - scaling vector for dipole orientation \f$\vec{\mu_j} = \mu_j \hat{\mu_j}\f$ (default value (0, 0, 1))
 #
 class dipole(ai_pair):
     def __init__(self, r_cut, name=None):
@@ -345,18 +345,8 @@ class dipole(ai_pair):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         ## setup the coefficent options
-        self.required_coeffs = ['mu_i', 'mu_j', 'A', 'kappa', 'qqrd2e', 'mu_hat_i', 'mu_hat_j'];
+        self.required_coeffs = ['mu_i', 'mu_j', 'A', 'kappa', 'mu_hat_i', 'mu_hat_j'];
 
-        # mu_i: dipole magnitude of type i
-        self.pair_coeff.set_default_coeff('mu_i',1.0);
-        # mu_j: dipole magnitude of type j
-        self.pair_coeff.set_default_coeff('mu_j',1.0);
-        # A: electrostatic energy scale
-        self.pair_coeff.set_default_coeff('A',1.0);
-        # kappa: inverse screening length
-        self.pair_coeff.set_default_coeff('kappa',0.0);
-        # qqrd2e: unused (TODO: remove)
-        self.pair_coeff.set_default_coeff('qqrd2e',1.0);
         # mu_hat_i: dipole orientation of type i
         self.pair_coeff.set_default_coeff('mu_hat_i', (0.0, 0.0, 1.0));
         # mu_hat_j: dipole orientation of type j
@@ -369,9 +359,8 @@ class dipole(ai_pair):
         mu_hat_j = coeff['mu_hat_j'];
         A = float(coeff['A']);
         kappa = float(coeff['kappa']);
-        qqrd2e = float(coeff['qqrd2e']);
 
         mu_i_scalar3 = hoomd.make_scalar3(*[mu_i*component for component in mu_hat_i]);
         mu_j_scalar3 = hoomd.make_scalar3(*[mu_j*component for component in mu_hat_j]);
 
-        return hoomd.EvaluatorPairDipoleParams(mu_i_scalar3, mu_j_scalar3, A, kappa, qqrd2e)
+        return hoomd.EvaluatorPairDipoleParams(mu_i_scalar3, mu_j_scalar3, A, kappa)
