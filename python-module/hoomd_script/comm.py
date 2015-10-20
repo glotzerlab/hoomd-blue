@@ -286,11 +286,6 @@ class decomposition():
             if self.uniform_z and self.nz > 0:
                 self.z = [1.0/self.nz]*(self.nz-1)
 
-            if get_rank() == 0:
-                print self.x
-                print self.y
-                print self.z
-
             sum_x = sum_y = sum_z = 0.0
             tol = 1.0e-5
             for i in self.x:
