@@ -1,7 +1,8 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -81,3 +82,4 @@ cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
 cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
 #endif // __TWO_STEP_NPH_RIGID_CUH__
+

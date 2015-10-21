@@ -1,7 +1,8 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -75,11 +76,16 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
                             boost::shared_ptr<ParticleGroup> group,
                             boost::shared_ptr<ComputeThermo> thermo_group,
                             boost::shared_ptr<ComputeThermo> thermo_all,
+                            const std::string& suffix,
                             Scalar tau,
                             Scalar tauP,
                             boost::shared_ptr<Variant> T,
                             boost::shared_ptr<Variant> P,
-                            bool skip_restart=false);
+                            couplingMode couple,
+                            unsigned int flags,
+                            unsigned int tchain=5,
+                            unsigned int pchain=5,
+                            unsigned int iter=5);
 
         virtual ~TwoStepNPTRigidGPU() {};
 
@@ -112,3 +118,4 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
 void export_TwoStepNPTRigidGPU();
 
 #endif // #ifndef __TWO_STEP_NPT_RIGID_GPU_H__
+

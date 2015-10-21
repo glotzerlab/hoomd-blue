@@ -1,7 +1,8 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -69,11 +70,12 @@ struct gpu_npt_rigid_data
     unsigned int nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
     Scalar4* new_box;        //!< New box size
-    Scalar    dilation;      //!< Box size change
+    Scalar4  dilation;       //!< Box size change
 
-    Scalar  eta_dot_t0;      //!< Thermostat translational velocity
-    Scalar  eta_dot_r0;      //!< Thermostat rotational velocity
-    Scalar  epsilon_dot;     //!< Barostat velocity
+    Scalar4  scale_t;        //!< Translational velocity scaling factor
+    Scalar   scale_r;        //!< Conjugate momentum scaling factor
+    Scalar4  scale_v;        //!< Translational velocity scaling factor due to barostatting
+    Scalar4  epsilon_dot;    //!< Barostat velocity
 
     Scalar *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
     Scalar *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
@@ -91,16 +93,17 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    Scalar deltaT);
 
 //! Kernel driver for the second part of the NPT update called by TwoStepNPTRigidGPU
-cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    Scalar4 *d_net_force,
-                                    Scalar *d_net_virial,
-                                    const BoxDim& box,
-                                    const gpu_npt_rigid_data &npt_rdata,
-                                    Scalar deltaT);
+cudaError_t gpu_npt_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   Scalar *d_net_virial,
+                                   const BoxDim& box,
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   Scalar deltaT);
 
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
 #endif // __TWO_STEP_NPT_RIGID_CUH__
+

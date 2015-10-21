@@ -115,8 +115,8 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
                                                             unsigned int *d_rigid_group,
                                                             unsigned int n_group_bodies,
                                                             unsigned int n_bodies,
-                                                            Scalar nvt_rdata_eta_dot_t0,
-                                                            Scalar nvt_rdata_eta_dot_r0,
+                                                            Scalar4 nvt_rdata_scale_t,
+                                                            Scalar nvt_rdata_scale_r,
                                                             Scalar* nvt_rdata_partial_Ksum_t,
                                                             Scalar* nvt_rdata_partial_Ksum_r,
                                                             BoxDim box,
@@ -134,13 +134,8 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
     Scalar4 moment_inertia, com, vel, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
     int3 body_image;
     Scalar4 mbody, tbody, fquat;
-
+    Scalar tmp, akin_t, akin_r;
     Scalar dt_half = Scalar(0.5) * deltaT;
-    Scalar   tmp, scale_t, scale_r, akin_t, akin_r;
-    tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_t0;
-    scale_t = fast::exp(tmp);
-    tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_r0;
-    scale_r = fast::exp(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
@@ -162,9 +157,9 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
     vel2.x = vel.x + dtfm * force.x;
     vel2.y = vel.y + dtfm * force.y;
     vel2.z = vel.z + dtfm * force.z;
-    vel2.x *= scale_t;
-    vel2.y *= scale_t;
-    vel2.z *= scale_t;
+    vel2.x *= nvt_rdata_scale_t.x;
+    vel2.y *= nvt_rdata_scale_t.y;
+    vel2.z *= nvt_rdata_scale_t.z;
     vel2.w = vel.w;
 
     tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
@@ -188,10 +183,10 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
     conjqm2.z = conjqm.z + deltaT * fquat.z;
     conjqm2.w = conjqm.w + deltaT * fquat.w;
 
-    conjqm2.x *= scale_r;
-    conjqm2.y *= scale_r;
-    conjqm2.z *= scale_r;
-    conjqm2.w *= scale_r;
+    conjqm2.x *= nvt_rdata_scale_r;
+    conjqm2.y *= nvt_rdata_scale_r;
+    conjqm2.z *= nvt_rdata_scale_r;
+    conjqm2.w *= nvt_rdata_scale_r;
 
     // step 1.4 to 1.13 - use no_squish rotate to update p and q
     no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
@@ -239,13 +234,13 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
     \param deltaT Amount of real time to step forward in one time step
 
 */
-cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    Scalar4 *d_net_force,
-                                    const BoxDim& box,
-                                    const gpu_nvt_rigid_data& nvt_rdata,
-                                    Scalar deltaT)
+cudaError_t gpu_nvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   const BoxDim& box,
+                                   const gpu_nvt_rigid_data& nvt_rdata,
+                                   Scalar deltaT)
     {
     assert(d_net_force);
 
@@ -259,25 +254,25 @@ cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
     dim3 body_threads(block_size, 1, 1);
 
     gpu_nvt_rigid_step_one_body_kernel<<< body_grid, body_threads  >>>(rigid_data.com,
-                                                            rigid_data.vel,
-                                                            rigid_data.angmom,
-                                                            rigid_data.angvel,
-                                                            rigid_data.orientation,
-                                                            rigid_data.body_image,
-                                                            rigid_data.conjqm,
-                                                            rigid_data.body_mass,
-                                                            rigid_data.moment_inertia,
-                                                            rigid_data.force,
-                                                            rigid_data.torque,
-                                                            rigid_data.body_indices,
-                                                            n_group_bodies,
-                                                            n_bodies,
-                                                            nvt_rdata.eta_dot_t0,
-                                                            nvt_rdata.eta_dot_r0,
-                                                            nvt_rdata.partial_Ksum_t,
-                                                            nvt_rdata.partial_Ksum_r,
-                                                            box,
-                                                            deltaT);
+                                                                       rigid_data.vel,
+                                                                       rigid_data.angmom,
+                                                                       rigid_data.angvel,
+                                                                       rigid_data.orientation,
+                                                                       rigid_data.body_image,
+                                                                       rigid_data.conjqm,
+                                                                       rigid_data.body_mass,
+                                                                       rigid_data.moment_inertia,
+                                                                       rigid_data.force,
+                                                                       rigid_data.torque,
+                                                                       rigid_data.body_indices,
+                                                                       n_group_bodies,
+                                                                       n_bodies,
+                                                                       nvt_rdata.scale_t,
+                                                                       nvt_rdata.scale_r,
+                                                                       nvt_rdata.partial_Ksum_t,
+                                                                       nvt_rdata.partial_Ksum_r,
+                                                                       box,
+                                                                       deltaT);
 
 
     return cudaSuccess;
@@ -309,23 +304,21 @@ cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
 */
 
 extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(Scalar4* rdata_vel,
-                                                          Scalar4* rdata_angmom,
-                                                          Scalar4* rdata_angvel,
-                                                          Scalar4* rdata_orientation,
-                                                          Scalar4* rdata_conjqm,
-                                                          Scalar *d_rigid_mass,
-                                                          Scalar4 *d_rigid_mi,
-                                                          Scalar4 *d_rigid_force,
-                                                          Scalar4 *d_rigid_torque,
-                                                          unsigned int *d_rigid_group,
-                                                          unsigned int n_group_bodies,
-                                                          unsigned int n_bodies,
-                                                          Scalar nvt_rdata_eta_dot_t0,
-                                                          Scalar nvt_rdata_eta_dot_r0,
-                                                          Scalar* nvt_rdata_partial_Ksum_t,
-                                                          Scalar* nvt_rdata_partial_Ksum_r,
-                                                          BoxDim box,
-                                                          Scalar deltaT)
+                                                              Scalar4* rdata_angmom,
+                                                              Scalar4* rdata_angvel,
+                                                              Scalar4* rdata_orientation,
+                                                              Scalar4* rdata_conjqm,
+                                                              Scalar *d_rigid_mass,
+                                                              Scalar4 *d_rigid_mi,
+                                                              Scalar4 *d_rigid_force,
+                                                              Scalar4 *d_rigid_torque,
+                                                              unsigned int *d_rigid_group,
+                                                              unsigned int n_group_bodies,
+                                                              unsigned int n_bodies,
+                                                              Scalar4 nvt_rdata_scale_t,
+                                                              Scalar nvt_rdata_scale_r,
+                                                              BoxDim box,
+                                                              Scalar deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -336,13 +329,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(Scalar4* rdata_vel
     Scalar4 moment_inertia, vel, ex_space, ey_space, ez_space, orientation, conjqm;
     Scalar4 force, torque;
     Scalar4 mbody, tbody, fquat;
-
     Scalar dt_half = Scalar(0.5) * deltaT;
-    Scalar   tmp, scale_t, scale_r, akin_t, akin_r;
-    tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_t0;
-    scale_t = fast::exp(tmp);
-    tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_r0;
-    scale_r = fast::exp(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
 
@@ -361,23 +348,20 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(Scalar4* rdata_vel
 
     // update the velocity
     Scalar4 vel2;
-    vel2.x = scale_t * vel.x + dtfm * force.x;
-    vel2.y = scale_t * vel.y + dtfm * force.y;
-    vel2.z = scale_t * vel.z + dtfm * force.z;
+    vel2.x = nvt_rdata_scale_t.x * vel.x + dtfm * force.x;
+    vel2.y = nvt_rdata_scale_t.y * vel.y + dtfm * force.y;
+    vel2.z = nvt_rdata_scale_t.z * vel.z + dtfm * force.z;
     vel2.w = Scalar(0.0);
-
-    tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
-    akin_t = body_mass * tmp;
 
     // update angular momentum
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
     quatvec(orientation, tbody, fquat);
 
     Scalar4  conjqm2, angmom2;
-    conjqm2.x = scale_r * conjqm.x + deltaT * fquat.x;
-    conjqm2.y = scale_r * conjqm.y + deltaT * fquat.y;
-    conjqm2.z = scale_r * conjqm.z + deltaT * fquat.z;
-    conjqm2.w = scale_r * conjqm.w + deltaT * fquat.w;
+    conjqm2.x = nvt_rdata_scale_r * conjqm.x + deltaT * fquat.x;
+    conjqm2.y = nvt_rdata_scale_r * conjqm.y + deltaT * fquat.y;
+    conjqm2.z = nvt_rdata_scale_r * conjqm.z + deltaT * fquat.z;
+    conjqm2.w = nvt_rdata_scale_r * conjqm.w + deltaT * fquat.w;
 
     invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
@@ -391,16 +375,11 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(Scalar4* rdata_vel
     Scalar4 angvel2;
     computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
 
-    akin_r = angmom2.x * angvel2.x + angmom2.y * angvel2.y + angmom2.z * angvel2.z;
-
     // write out results
     rdata_vel[idx_body] = vel2;
     rdata_angmom[idx_body] = angmom2;
     rdata_angvel[idx_body] = angvel2;
     rdata_conjqm[idx_body] = conjqm2;
-
-    nvt_rdata_partial_Ksum_t[group_idx] = akin_t;
-    nvt_rdata_partial_Ksum_r[group_idx] = akin_r;
     }
 
 /*! \param rigid_data Rigid body data to step forward 1/2 step
@@ -430,23 +409,21 @@ cudaError_t gpu_nvt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
     gpu_nvt_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel,
-                                                                rigid_data.angmom,
-                                                                rigid_data.angvel,
-                                                                rigid_data.orientation,
-                                                                rigid_data.conjqm,
-                                                                rigid_data.body_mass,
-                                                                rigid_data.moment_inertia,
-                                                                rigid_data.force,
-                                                                rigid_data.torque,
-                                                                rigid_data.body_indices,
-                                                                n_group_bodies,
-                                                                n_bodies,
-                                                                nvt_rdata.eta_dot_t0,
-                                                                nvt_rdata.eta_dot_r0,
-                                                                nvt_rdata.partial_Ksum_t,
-                                                                nvt_rdata.partial_Ksum_r,
-                                                                box,
-                                                                deltaT);
+                                                                      rigid_data.angmom,
+                                                                      rigid_data.angvel,
+                                                                      rigid_data.orientation,
+                                                                      rigid_data.conjqm,
+                                                                      rigid_data.body_mass,
+                                                                      rigid_data.moment_inertia,
+                                                                      rigid_data.force,
+                                                                      rigid_data.torque,
+                                                                      rigid_data.body_indices,
+                                                                      n_group_bodies,
+                                                                      n_bodies,
+                                                                      nvt_rdata.scale_t,
+                                                                      nvt_rdata.scale_r,
+                                                                      box,
+                                                                      deltaT);
 
 
     return cudaSuccess;

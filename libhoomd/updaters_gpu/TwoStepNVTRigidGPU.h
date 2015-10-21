@@ -49,6 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "TwoStepNVTRigid.h"
 
 #ifndef __TWO_STEP_NVT_RIGID_GPU_H__
@@ -57,10 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file TwoStepNVTRigidGPU.h
     \brief Declares the TwoStepNVTRigidGPU class
 */
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements velocity-verlet NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
@@ -74,10 +74,11 @@ class TwoStepNVTRigidGPU : public TwoStepNVTRigid
         TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                             boost::shared_ptr<ParticleGroup> group,
                             boost::shared_ptr<ComputeThermo> thermo,
-                            boost::shared_ptr<Variant> T,
-                            Scalar tau,
                             const std::string& suffix,
-                            bool skip_restart=false);
+                            boost::shared_ptr<Variant> T,
+                            Scalar tau=10.0,
+                            unsigned int tchain=5,
+                            unsigned int iter=5);
 
         virtual ~TwoStepNVTRigidGPU() {};
 
@@ -99,3 +100,4 @@ class TwoStepNVTRigidGPU : public TwoStepNVTRigid
 void export_TwoStepNVTRigidGPU();
 
 #endif // #ifndef __TWO_STEP_NVT_RIGID_GPU_H__
+

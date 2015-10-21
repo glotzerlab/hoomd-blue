@@ -49,19 +49,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-
-
 #include "TwoStepBDNVTRigidGPU.h"
 #include "TwoStepNVERigidGPU.cuh"
 #include "TwoStepBDNVTGPU.cuh"
 #include "TwoStepBDNVTRigidGPU.cuh"
-
 #include <boost/python.hpp>
-using namespace boost::python;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
+using namespace boost::python;
+using namespace boost;
 
 /*! \file TwoStepBDNVTRigidGPU.h
     \brief Contains code for the TwoStepBDNVTRigidPU class
@@ -69,6 +66,7 @@ using namespace std;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param suffix Suffix to attach to the end of log quantity names
     \param T Controlled temperature
     \param seed An interger seed for random number generator
     \param gamma_diam Flag for using particle diameter-dependent gamma
@@ -86,8 +84,6 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
         m_exec_conf->msg->error() << "Creating a TwoStepBDNVTRigidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepBDNVTRigidGPU");
         }
-
-    setup();
     }
 
 /*! \param timestep Current time step
@@ -96,16 +92,22 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
 */
 void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
+    if (m_first_step)
+        {
+        setup();
+        m_first_step = false;
+        }
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
 
-    // access to the force and virial
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-
     // profile this step
     if (m_prof)
-        m_prof->push(m_exec_conf, "BD NVT rigid step 1");
+        m_prof->push("BD NVT rigid step 1");
+
+    // access to the force and virial
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -169,12 +171,12 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -186,13 +188,13 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
 
+    // profile this step
+    if (m_prof)
+        m_prof->push("BD NVT rigid step 2");
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "BD NVT rigid step 2");
 
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
@@ -261,7 +263,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     args.d_gamma = d_gamma.data;
     args.n_types = m_gamma.getNumElements();
     args.gamma_diam = m_gamma_diam;
-    args.T = m_T->getValue(timestep);
+    args.T = m_temperature->getValue(timestep);
     args.timestep = timestep;
     args.seed = m_seed;
 
@@ -277,7 +279,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     D);
 
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     gpu_rigid_force(d_rdata,
@@ -287,7 +289,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_net_torque.data,
                     box,
                     m_deltaT);
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // perform the update on the GPU
@@ -299,12 +301,12 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 void export_TwoStepBDNVTRigidGPU()
