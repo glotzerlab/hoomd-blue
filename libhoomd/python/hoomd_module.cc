@@ -539,7 +539,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_tersoff_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
-    EvaluatorPairDipole::export_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
