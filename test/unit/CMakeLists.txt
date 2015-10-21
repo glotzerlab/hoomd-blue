@@ -91,6 +91,7 @@ set(TEST_LIST
     test_table_dihedral_force
     test_table_angle_force
     test_gridshift_correct
+    test_dipole_force
     test_gayberne_force
     test_opls_dihedral_force
     )
