@@ -318,6 +318,17 @@ class gb(ai_pair):
 # - A - electrostatic energy scale \f$A\f$ (default value 1.0)
 # - kappa - inverse screening length \f$\kappa\f$
 #
+# \b Example:
+# \code
+# # A/A interact only with screened electrostatics
+# dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+# dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# \MPI_SUPPORTED
 class dipole(ai_pair):
     def __init__(self, r_cut, name=None):
         util.print_status_line();
@@ -351,9 +362,6 @@ class dipole(ai_pair):
         A = float(coeff['A']);
         kappa = float(coeff['kappa']);
 
-        mu_i_scalar3 = hoomd.make_scalar3(*[mu_i*component for component in mu_hat_i]);
-        mu_j_scalar3 = hoomd.make_scalar3(*[mu_j*component for component in mu_hat_j]);
-
         params = hoomd.make_scalar3(mu, A, kappa)
 
-        return hoomd.EvaluatorPairDipoleParams(mu_i_scalar3, mu_j_scalar3, A, kappa)
+        return params
