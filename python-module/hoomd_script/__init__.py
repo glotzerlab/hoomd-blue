@@ -92,7 +92,8 @@ from hoomd_script import comm;
 from hoomd_script import meta;
 from hoomd_script import cite;
 from hoomd_script import data;
-from hoomd_script import context
+from hoomd_script import context;
+from hoomd_script import ai_pair;
 
 from hoomd import WalltimeLimitReached;
 
@@ -108,44 +109,6 @@ globals.msg.notice(1, hoomd.output_version_info())
 
 # ensure creation of global bibliography to print HOOMD base citations
 cite._ensure_global_bib()
-
-## \internal
-# \brief Internal python variable
-__all__ = [ "analyze",
-            "bond",
-            "benchmark",
-            "angle",
-            "cite",
-            "context",
-            "dihedral",
-            "data",
-            "improper",
-            "dump",
-            "force",
-            "external",
-            "constrain",
-            "globals",
-            "group",
-            "init",
-            "integrate",
-            "meta",
-            "option",
-            "nlist",
-            "pair",
-            "sorter",
-            "update",
-            "wall",
-            "variant",
-            "run",
-            "run_upto",
-            "get_step",
-            "tune",
-            "hoomd",
-            "compute",
-            "charge",
-            "get_hoomd_script_version",
-            "comm",
-            "ai_pair"];
 
 _default_excepthook = sys.excepthook;
 
