@@ -111,7 +111,7 @@ TwoStepNHRigid::TwoStepNHRigid(boost::shared_ptr<SystemDefinition> sysdef,
     m_iter = iter;
     m_couple = couple_xyz;
 
-    m_mtk_term1 = m_mtk_term1 = Scalar(0.0);
+    m_mtk_term1 = m_mtk_term2 = Scalar(0.0);
     m_akin_t = m_akin_r = Scalar(0.0);
     m_nf_t = m_nf_r = m_g_f = Scalar(0.0);
     }
