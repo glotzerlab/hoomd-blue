@@ -4,7 +4,7 @@
 
 ## v1.2.1
 
-Released TBD
+Released 2015/10/22
 
 *Bug fixes*
 
