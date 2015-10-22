@@ -186,32 +186,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     // advance thermostat
     advanceThermostat(timestep, false);
 
-    // access all the needed data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-
-    // perform the update on the GPU
-    m_tuner_one->begin();
-    gpu_nvt_mtk_step_one(d_pos.data,
-                     d_vel.data,
-                     d_accel.data,
-                     d_image.data,
-                     d_index_array.data,
-                     group_size,
-                     box,
-                     m_tuner_one->getParam(),
-                     m_exp_thermo_fac,
-                     m_deltaT);
-
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_one->end();
-
     // done profiling
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -230,27 +204,28 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
 
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    // perform the update on the GPU
-    m_tuner_two->begin();
-    gpu_nvt_mtk_step_two(d_vel.data,
-                     d_accel.data,
-                     d_index_array.data,
-                     group_size,
-                     d_net_force.data,
-                     m_tuner_two->getParam(),
-                     m_deltaT,
-                     m_exp_thermo_fac);
+        {
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        // perform the update on the GPU
+        m_tuner_two->begin();
+        gpu_nvt_mtk_step_two(d_vel.data,
+                         d_accel.data,
+                         d_index_array.data,
+                         group_size,
+                         d_net_force.data,
+                         m_tuner_two->getParam(),
+                         m_deltaT,
+                         m_exp_thermo_fac);
 
-    m_tuner_two->end();
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_two->end();
+        }
 
     if (m_aniso)
         {
