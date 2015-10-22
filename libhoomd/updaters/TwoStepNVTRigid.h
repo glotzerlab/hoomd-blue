@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "TwoStepNVERigid.h"
+#include "TwoStepNHRigid.h"
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -66,10 +66,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TWO_STEP_NVT_RIGID_H__
 
 //! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics. Particle positions and velocities are
-    updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
-    each particle.
+/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics.
+    Particle positions and velocities are updated according to the velocity verlet algorithm.
+    The forces that drive this motion are defined external to this class in ForceCompute.
+    Any number of ForceComputes can be given, the resulting forces will be summed to produce
+    a net force on each particle.
 
     Integrator variables mapping:
      - [0] -> eta_t
@@ -80,40 +81,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup updaters
 */
 
-class TwoStepNVTRigid : public TwoStepNVERigid
+class TwoStepNVTRigid : public TwoStepNHRigid
     {
     public:
         //! Constructor
         TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<ParticleGroup> group,
                         boost::shared_ptr<ComputeThermo> thermo,
+                        const std::string& suffix,
                         boost::shared_ptr<Variant> T,
                         Scalar tau,
-                        const std::string& suffix,
-                        bool skip_restart=false);
+                        unsigned int tchain,
+                        unsigned int iter);
         ~TwoStepNVTRigid();
 
-        //! Setup the initial net forces, torques and angular momenta
-        void setup();
-
-        //! Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+        virtual void setup();
 
         //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
-
-        //! First step of velocit Verlet integration
-        virtual void integrateStepOne(unsigned int timestep);
-
-        //! Second step of velocit Verlet integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
     protected:
-        //! Integrator variables
-        virtual void setRestartIntegratorVariables();
-
-        //! Names of log variables
-        std::vector<std::string> m_log_names;
     };
 
 //! Exports the TwoStepNVTRigid class to python

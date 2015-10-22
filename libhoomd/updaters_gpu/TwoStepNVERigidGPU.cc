@@ -47,19 +47,16 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
-
-
+// Maintainer: ndtrung
 
 #include "TwoStepNVERigidGPU.h"
 #include "TwoStepNVERigidGPU.cuh"
-
 #include <boost/python.hpp>
-using namespace boost::python;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
+using namespace boost::python;
+using namespace boost;
 
 /*! \file TwoStepNVERigidGPU.h
     \brief Contains code for the TwoStepNVERigidGPU class
@@ -75,11 +72,9 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU with no GPUs in the execution configuration" << endl;
-        throw std::runtime_error("Error initializing TwoStepNVEGPU");
+        m_exec_conf->msg->error() << "Creating a TwoStepNVERigidGPU with no GPUs in the execution configuration" << endl;
+        throw std::runtime_error("Error initializing TwoStepNVERigidGPU");
         }
-
-    setup();
     }
 
 /*! \param timestep Current time step
@@ -88,16 +83,22 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     {
+    // profile this step
+    if (m_prof)
+        m_prof->push("NVE rigid step 1");
+
+    if (m_first_step)
+        {
+        setup();
+        m_first_step = false;
+        }
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
 
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVE rigid step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -163,12 +164,12 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -180,14 +181,14 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
 
+    // profile this step
+    if (m_prof)
+        m_prof->push("NVE rigid step 2");
+
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVE rigid step 2");
 
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -260,12 +261,12 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 void export_TwoStepNVERigidGPU()
@@ -274,3 +275,4 @@ void export_TwoStepNVERigidGPU()
         ("TwoStepNVERigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         ;
     }
+
