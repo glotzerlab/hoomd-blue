@@ -74,6 +74,15 @@ if (ENABLE_CUDA)
     list(REVERSE _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
     list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
+
+# embed the CUDA libraries into the lib dir
+if (ENABLE_EMBED_CUDA)
+    # determine the directory of the found cuda libs
+    get_filename_component(_cuda_libdir ${CUDA_CUDART_LIBRARY} PATH)
+    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcudart.* ${_cuda_libdir}/libcufft.*)
+    install(PROGRAMS ${_cuda_libs} DESTINATION ${LIB_INSTALL_DIR})
+endif ()
+
 endif (ENABLE_CUDA)
 
 # automatically handle setting ccbin to /usr when needed
