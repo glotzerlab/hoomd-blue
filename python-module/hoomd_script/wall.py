@@ -59,6 +59,8 @@ from hoomd_script import util;
 from hoomd_script import meta;
 import hoomd;
 
+import math;
+
 class group():
     # Max number of each wall geometry must match c++ defintions
     _max_n_sphere_walls=20;
@@ -127,7 +129,7 @@ class group():
             raise RuntimeError("del_plane failed")
 
     def get_metadata(self):
-        data = meta._metadata_from_dict(eval(str(self._dict__)));
+        data = meta._metadata_from_dict(eval(str(self.__dict__)));
         return data;
 
     def __str__(self):

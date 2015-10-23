@@ -70,6 +70,7 @@ struct external_potential_args_t
               const unsigned int _virial_pitch,
               const unsigned int _N,
               const Scalar4 *_d_pos,
+              const Scalar *_d_diameter,
               const BoxDim& _box,
               const unsigned int _block_size)
                 : d_force(_d_force),
@@ -78,6 +79,7 @@ struct external_potential_args_t
                   box(_box),
                   N(_N),
                   d_pos(_d_pos),
+                  d_diameter(_d_diameter),
                   block_size(_block_size)
         {
         };
@@ -88,6 +90,7 @@ struct external_potential_args_t
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4 *d_pos;           //!< Device array of particle positions
+    const Scalar *d_diameter;       //!< particle diameters
     const unsigned int block_size;  //!< Block size to execute
     };
 
