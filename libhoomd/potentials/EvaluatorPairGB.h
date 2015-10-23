@@ -58,8 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #endif
 
-#define MIN(i,j) ((i > j) ? j : i)
-#define MAX(i,j) ((i > j) ? i : j)
+#define HOOMD_GB_MIN(i,j) ((i > j) ? j : i)
+#define HOOMD_GB_MAX(i,j) ((i > j) ? i : j)
 
 #include "VectorMath.h"
 
@@ -130,7 +130,7 @@ class EvaluatorPairGB
             \param qj Charge of particle j
         */
         DEVICE void setCharge(Scalar qi, Scalar qj){}
-           
+
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
             \param pair_eng Output parameter to write the computed pair energy.
@@ -169,7 +169,7 @@ class EvaluatorPairGB
             Scalar phi = Scalar(1.0/2.0)*dot(dr, kappa)/rsq;
             Scalar sigma = fast::rsqrt(phi);
 
-            Scalar sigma_min = Scalar(2.0)*MIN(lperp,lpar);
+            Scalar sigma_min = Scalar(2.0)*HOOMD_GB_MIN(lperp,lpar);
 
             Scalar zeta = (r-sigma+sigma_min)/sigma_min;
             Scalar zetasq = zeta*zeta;
@@ -178,7 +178,7 @@ class EvaluatorPairGB
             Scalar dUdphi,dUdr;
 
             // define r_cut to be along the long axis
-            Scalar sigma_max = Scalar(2.0)*MAX(lperp,lpar);
+            Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(lperp,lpar);
             Scalar zetacut = (rcut-sigma_max+sigma_min)/sigma_min;
             Scalar zetacutsq = zetacut*zetacut;
 
@@ -239,7 +239,6 @@ class EvaluatorPairGB
     };
 
 
-#undef MIN
-#undef MAX
+#undef HOOMD_GB_MIN
+#undef HOOMD_GB_MAX
 #endif // __EVALUATOR_PAIR_GB_H__
-
