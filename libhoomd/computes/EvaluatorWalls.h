@@ -296,22 +296,22 @@ wall_type make_wall_field_params(boost::python::object walls)
 		for(unsigned int i = 0; i < w.numSpheres; i++)
 			{
 			Scalar 	r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
-			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("origin"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("_origin"));
 			bool 	inside =boost::python::extract<bool>(walls.attr("spheres")[i].attr("inside"));
 			w.Spheres[i] = SphereWall(r, origin, inside);
 			}
 		for(unsigned int i = 0; i < w.numCylinders; i++)
 			{
 			Scalar 	r = boost::python::extract<Scalar>(walls.attr("cylinders")[i].attr("r"));
-			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("origin"));
-			Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("axis"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_origin"));
+			Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_axis"));
 			bool 	inside =boost::python::extract<bool>(walls.attr("cylinders")[i].attr("inside"));
 			w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
 			}
 		for(unsigned int i = 0; i < w.numPlanes; i++)
 			{
-			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("origin"));
-			Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("normal"));
+			Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
+			Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
 			w.Planes[i] = PlaneWall(origin, normal);
 			}
 		return w;
