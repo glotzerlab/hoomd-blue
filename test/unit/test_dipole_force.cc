@@ -119,7 +119,6 @@ void dipole_force_particle_test(dipoleforce_creator dipole_creator, boost::share
     GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
     GPUArray<Scalar4>& torque_array_1 =  fc_2->getTorqueArray();
-    unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar4> h_torque_1(torque_array_1,access_location::host,access_mode::read);

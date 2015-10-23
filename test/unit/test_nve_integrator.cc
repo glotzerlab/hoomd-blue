@@ -456,7 +456,7 @@ void nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration> exec_conf,
     std::cout << "Testing anisotropic mode" << std::endl;
     unsigned int n_equil_steps = 150000;
     std::cout << "Equilibrating for " << n_equil_steps << " time steps..." << std::endl;
-    int i =0;
+    unsigned int i =0;
 
     for (i=0; i< n_equil_steps; i++)
         {
