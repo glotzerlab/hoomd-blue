@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ConstForceCompute.h"
+#include "ComputeThermo.h"
 #include "TwoStepNVE.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepNVEGPU.h"
@@ -64,8 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "AllPairPotentials.h"
+#include "AllAnisoPairPotentials.h"
+#include "NeighborListBinned.h"
 #include "NeighborListTree.h"
 #include "Initializers.h"
+#include "RandomGenerator.h"
 
 #include <math.h>
 
@@ -384,6 +388,109 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
         }
     }
 
+void nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration> exec_conf, twostepnve_creator nve_creator)
+{
+    // initialize random particle system
+    Scalar phi_p = 0.2;
+    unsigned int N = 150;
+    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
+    BoxDim box_g(L);
+    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
+    std::vector<string> types;
+    types.push_back("A");
+    std::vector<unsigned int> bonds;
+    std::vector<string> bond_types;
+    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
+    rand_init.setSeparationRadius("A", .5);
+
+    rand_init.generate();
+
+    boost::shared_ptr<SnapshotSystemData<Scalar> > snap;
+    snap = rand_init.getSnapshot();
+
+    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+
+    Scalar r_cut = Scalar(3.0);
+    Scalar r_buff = Scalar(0.4);
+    boost::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
+
+    nlist_1->setStorageMode(NeighborList::full);
+    boost::shared_ptr<AnisoPotentialPairGB> fc_1 = boost::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
+
+    fc_1->setRcut(0, 0, r_cut);
+
+    // setup some values for alpha and sigma
+    Scalar epsilon = Scalar(1.0);
+    Scalar lperp = Scalar(0.45);
+    Scalar lpar = Scalar(0.5);
+    fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    // If we want accurate calculation of potential energy, we need to apply the
+    // energy shift
+    fc_1->setShiftMode(AnisoPotentialPairGB::shift);
+
+    Scalar deltaT = Scalar(0.0025);
+    boost::shared_ptr<IntegratorTwoStep> nve_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+
+    boost::shared_ptr<TwoStepNVE> two_step_nve_1 = nve_creator(sysdef_1, group_all_1);
+;
+    nve_1->addIntegrationMethod(two_step_nve_1);
+    nve_1->addForceCompute(fc_1);
+
+    unsigned int ndof = nve_1->getNDOF(group_all_1);
+    thermo_1->setNDOF(ndof);
+    unsigned int ndof_rot = nve_1->getRotationalNDOF(group_all_1);
+    thermo_1->setRotationalNDOF(ndof_rot);
+
+    nve_1->prepRun(0);
+
+    PDataFlags flags;
+    flags[pdata_flag::potential_energy] = 1;
+    flags[pdata_flag::rotational_ke] = 1;
+    pdata_1->setFlags(flags);
+
+    // equilibrate
+    std::cout << "Testing anisotropic mode" << std::endl;
+    unsigned int n_equil_steps = 150000;
+    std::cout << "Equilibrating for " << n_equil_steps << " time steps..." << std::endl;
+    int i =0;
+
+    for (i=0; i< n_equil_steps; i++)
+        {
+        nve_1->update(i);
+        if (i % 1000 == 0)
+            std::cout << i << std::endl;
+        }
+
+    // 0.2  % tolerance for conserved quantity
+    Scalar H_tol = 0.2;
+
+    // conserved quantity
+    thermo_1->compute(i+1);
+    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+    std::cout << "Initial energy: " << H_ini << std::endl;
+
+    int n_measure_steps = 25000;
+    std::cout << "Measuring conserved quantity for another " << n_measure_steps << " time steps..." << std::endl;
+    for (i=n_equil_steps; i< n_equil_steps+n_measure_steps; i++)
+        {
+        // get conserved quantity
+        nve_1->update(i);
+
+        thermo_1->compute(i+1);
+
+        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+
+        if (i % 1000 == 0)
+            std::cout << i << ' ' << H << std::endl;
+
+        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        }
+    }
+
 //! TwoStepNVE factory for the unit tests
 boost::shared_ptr<TwoStepNVE> base_class_nve_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group)
     {
@@ -419,6 +526,13 @@ BOOST_AUTO_TEST_CASE( TwoStepNVE_boundary_tests )
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+
+//! Performs a basic equilibration test of TwoStepNVE
+BOOST_AUTO_TEST_CASE( TwoStepNVE_aniso_test )
+    {
+    nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nve_creator, _1, _2));
+    }
+
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
 //! boost test case for base class integration tests
@@ -448,6 +562,12 @@ BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_compare_test(nve_creator, nve_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+//! boost test case for testing aniso integration
+BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_aniso_tests)
+    {
+    nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nve_creator, _1, _2));
     }
 
 #endif
