@@ -219,7 +219,7 @@ void SFCPackUpdater::applySortOrder()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_angmom.data[i] = scal4_tmp[i];
 
-    // sort angular momentum
+    // sort moment of inertia
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal3_tmp[i] = h_inertia.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -265,12 +265,6 @@ void SFCPackUpdater::applySortOrder()
             scal4_tmp[i] = h_orientation.data[m_sort_order[i]];
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             h_orientation.data[i] = scal4_tmp[i];
-        }
-        {
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            scal4_tmp[i] = h_angmom.data[m_sort_order[i]];
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            h_angmom.data[i] = scal4_tmp[i];
         }
 
     // sort image
