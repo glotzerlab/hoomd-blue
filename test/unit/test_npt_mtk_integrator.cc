@@ -594,7 +594,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
 
     rand_init.generate();
 
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr<SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
