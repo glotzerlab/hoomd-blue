@@ -220,6 +220,10 @@ struct SnapshotParticleData {
     boost::python::numeric::array getBodyNP();
     //! Get orientation as a numpy array
     boost::python::numeric::array getOrientationNP();
+    //! Get moment of inertia as a numpy array
+    boost::python::numeric::array getMomentInertiaNP();
+    //! Get angular momentum as a numpy array
+    boost::python::numeric::array getAngmomNP();
     //! Get the type names for python
     boost::python::list getTypes();
     //! Set the type names from python

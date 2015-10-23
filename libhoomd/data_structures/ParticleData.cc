@@ -3052,6 +3052,30 @@ boost::python::numeric::array SnapshotParticleData<Real>::getOrientationNP()
     return num_util::makeNumFromData((Real*)&orientation[0], dims);
     }
 
+/*! \returns a numpy array that wraps the moment of inertia data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getMomentInertiaNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = inertia.size();
+    dims[1] = 3;
+    return num_util::makeNumFromData((Real*)&inertia[0], dims);
+    }
+
+/*! \returns a numpy array that wraps the angular momentum data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getAngmomNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = angmom.size();
+    dims[1] = 4;
+    return num_util::makeNumFromData((Real*)&angmom[0], dims);
+    }
+
 /*! \returns A python list of type names
 */
 template <class Real>
@@ -3093,6 +3117,8 @@ void export_SnapshotParticleData()
     .add_property("image", &SnapshotParticleData<float>::getImageNP)
     .add_property("body", &SnapshotParticleData<float>::getBodyNP)
     .add_property("orientation", &SnapshotParticleData<float>::getOrientationNP)
+    .add_property("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
+    .add_property("angmom", &SnapshotParticleData<float>::getAngmomNP)
     .add_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
@@ -3109,6 +3135,8 @@ void export_SnapshotParticleData()
     .add_property("image", &SnapshotParticleData<double>::getImageNP)
     .add_property("body", &SnapshotParticleData<double>::getBodyNP)
     .add_property("orientation", &SnapshotParticleData<double>::getOrientationNP)
+    .add_property("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
+    .add_property("angmom", &SnapshotParticleData<double>::getAngmomNP)
     .add_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)

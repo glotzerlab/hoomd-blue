@@ -2358,6 +2358,9 @@ class SnapshotParticleData:
         self.image = None;
         self.body = None;
         self.types = None;
+        self.orientation = None;
+        self.moment_inertia = None;
+        self.angmom = None;
 
     ## \property N
     # Number of particles in the snapshot
@@ -2367,6 +2370,9 @@ class SnapshotParticleData:
 
     ## \property position
     # Nx3 numpy array containing the position of each particle (float or double)
+
+    ## \property orientation
+    # Nx4 numpy array containing the orientation quaternion of each particle (float or double)
 
     ## \property velocity
     # Nx3 numpy array containing the velocity of each particle (float or double)
@@ -2391,6 +2397,12 @@ class SnapshotParticleData:
 
     ## \property body
     # N length numpy array containing the body of each particle (32-bit unsigned int)
+
+    ## \property moment_inertia
+    # Nx3 length numpy array containing the principal moments of inertia of each particle (float or double)
+
+    ## \property angmom
+    # Nx4 length numpy array containing the angular momentum quaternion of each particle (float or double)
 
     ## Resize the snapshot to hold N particles
     #
