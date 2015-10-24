@@ -189,6 +189,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -218,7 +219,6 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         evaluator eval(X, box, params, m_field);
         if (evaluator::needsDiameter())
             {
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
             Scalar di = h_diameter.data[idx];
             eval.setDiameter(di);
             }

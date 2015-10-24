@@ -557,9 +557,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialExternalWall<EvaluatorPairMie>("WallsPotentialMie");
     export_PotentialExternalWall<EvaluatorPairGauss>("WallsPotentialGauss");
     export_PotentialExternalWall<EvaluatorPairMorse>("WallsPotentialMorse");
-    //export_PotentialExternalWall<EvaluatorPairZBL>("WallsPotentialZBL");
-    //export_PotentialExternalWall<EvaluatorPairEwald>("WallsPotentialEwald");
-    //export_PotentialExternalWall<EvaluatorPairMoliere>("WallsPotentialMoliere");
 
 #ifdef ENABLE_CUDA
     export_CellListGPU();
@@ -599,6 +596,13 @@ BOOST_PYTHON_MODULE(hoomd)
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
+    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
+    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>("WallsPotentialYukawaGPU");
+    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>("WallsPotentialSLJGPU");
+    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>("WallsPotentialForceShiftedLJGPU");
+    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>("WallsPotentialMieGPU");
+    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>("WallsPotentialGaussGPU");
+    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>("WallsPotentialMorseGPU");
 
 #endif
 

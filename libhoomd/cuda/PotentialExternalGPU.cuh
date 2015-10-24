@@ -114,6 +114,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
+                                               const Scalar *d_diameter,
                                                const BoxDim box,
                                                const typename evaluator::param_type *params,
                                                const typename evaluator::field_type *field)
@@ -127,6 +128,11 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
     Scalar4 posi = d_pos[idx];
+    Scalar di;
+    if (evaluator::needsDiameter())
+        di = d_diameter[idx];
+    else
+        di += Scalar(1.0); // shutup compiler warning
 
     // initialize the force to 0
     Scalar3 force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -140,8 +146,8 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     evaluator eval(Xi, box, params[typei], *field);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
-    // if (evaluator::needsDiameter())
-    //     eval.setDiameter(di);
+    if (evaluator::needsDiameter())
+        eval.setDiameter(di);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;
@@ -153,37 +159,6 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
         d_virial[k*virial_pitch+idx] = virial[k];
     }
 
-//! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! \param external_potential_args Other arugments to pass onto the kernel
-    \param d_params Parameters for the potential
-
-    This is just a driver function for gpu_compute_external_forces(), see it for details.
-*/
-/*
-template< class evaluator >
-cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
-    {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
-
-    // setup the grid to run the kernel
-    dim3 grid( external_potential_args.N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
-    // bind the position texture
-    gpu_compute_external_forces_kernel<evaluator>
-           <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.N, external_potential_args.d_pos, external_potential_args.box, d_params);
-
-    return cudaSuccess;
-    };
-*/
 #endif
 
 template< class evaluator >

@@ -64,6 +64,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
+
+#include <boost/shared_ptr.hpp>
+#include <boost/python.hpp>
+#include <boost/bind.hpp>
+#include "HOOMDMath.h"
+#include "VectorMath.h"
+#include "WallData.h"
+
+
 // sets the max numbers for each wall geometry type
 // if modified, the same number should be modified in the python module
 #define MAX_N_SWALLS 20
@@ -74,13 +83,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
 // boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
 
-#include "Compute.h"
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
-#include "HOOMDMath.h"
-#include "VectorMath.h"
-#include "WallData.h"
+
 
 struct wall_type{
 	SphereWall 		Spheres[MAX_N_SWALLS];
@@ -266,8 +269,9 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
 	params.rcutsq = rcutsq;
 	params.ronsq = ronsq;
 	return params;
-	const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
 	}
+#endif //__EVALUATOR__WALLS_H__
+#ifndef NVCC
 
 template< class evaluator >
 void export_wall_params_helpers()
@@ -322,6 +326,4 @@ void export_wall_field_helpers()
 	class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
 	def("make_wall_field_params", &make_wall_field_params);
 	}
-
-
-#endif //__EVALUATOR__WALLS_H__
+#endif

@@ -78,9 +78,6 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMie;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGauss;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawa;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorse;
-//typedef PotentialExternal<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBL;
-//typedef PotentialExternal<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwald;
-//typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliere;
 
 
 #ifdef ENABLE_CUDA
@@ -93,9 +90,6 @@ typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMi
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGaussGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYukawaGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorseGPU;
-//typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairZBL> > WallsPotentialZBLGPU;
-//typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairEwald> > WallsPotentialEwaldGPU;
-//typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMoliere> > WallsPotentialMoliereGPU;
 
 #endif
 

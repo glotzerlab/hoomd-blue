@@ -230,11 +230,11 @@ class wallpotential(external._external_force):
 
     def get_metadata(self):
         data=external._external_force.get_metadata(self);
-        data['walls'] = self.field_coeff.get_metadata();
+        data['walls_struct'] = self.field_coeff.get_metadata();
         return data
 
 
-
+# TODO: note on potentials that are and are not included
 # class ewald(wallpotential):
 
 
@@ -242,6 +242,9 @@ class wallpotential(external._external_force):
 
 
 # class zbl(wallpotential):
+
+
+# TODO: add dpdthermo and dpdljthermo maybe? don't require diam, but have seperate GPU so mabye not
 
 
 class lj(wallpotential):

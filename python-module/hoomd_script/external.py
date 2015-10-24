@@ -303,6 +303,7 @@ class _external_force(force._force):
         self.update_coeffs()
 
         data['force_coeff'] = self.force_coeff
+        #field_coeff not included here, see wall.py for specific implementation
         return data
 
 
