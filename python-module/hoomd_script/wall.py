@@ -217,9 +217,7 @@ class plane_wall:
 
     def __repr__(self):
         return "{'origin':%s, 'normal': %s}" % (str(self.origin), str(self.normal));
-=======
-import math;
->>>>>>> fc69de73cb4297c1eed236446bcc3655e84b7267
+
 
 class wallpotential(external._external_force):
     def __init__(self, walls, name=""):
