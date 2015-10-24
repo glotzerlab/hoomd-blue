@@ -60,8 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GPUARRAY_H__
 #define __GPUARRAY_H__
 
-// 4 GB limit for a single GPU buffer
-#define MAXALLOCBYTES 0xffffffff
+// 4 GB is considered a large allocation for a single GPU buffer, and user should be warned
+#define LARGEALLOCBYTES 0xffffffff
 
 // for vector types
 #ifdef ENABLE_CUDA
@@ -641,12 +641,10 @@ template<class T> void GPUArray<T>::allocate()
     if (m_num_elements == 0)
         return;
 
-    if (m_num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
+    // notify at a high level if a large allocation is about to occur
+    if (m_num_elements > LARGEALLOCBYTES/(unsigned int)sizeof(T) && m_exec_conf)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                      << std::endl << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        m_exec_conf->msg->notice(7) << "GPUArray is trying to allocate a very large (>4GB) amount of memory." << std::endl;
         }
 
 #ifdef ENABLE_CUDA
@@ -1204,12 +1202,10 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         return;
         };
 
-    if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
+    // notify at a high level if a large allocation is about to occur
+    if (m_num_elements > LARGEALLOCBYTES/(unsigned int)sizeof(T) && m_exec_conf)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                      << std::endl << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        m_exec_conf->msg->notice(7) << "GPUArray is trying to allocate a very large (>4GB) amount of memory." << std::endl;
         }
 
     if (m_exec_conf)
@@ -1251,12 +1247,10 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         return;
         };
 
-    if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
+    // notify at a high level if a large allocation is about to occur
+    if (m_num_elements > LARGEALLOCBYTES/(unsigned int)sizeof(T) && m_exec_conf)
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                      << std::endl << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        m_exec_conf->msg->notice(7) << "GPUArray is trying to allocate a very large (>4GB) amount of memory." << std::endl;
         }
 
     resize2DHostArray(m_pitch, new_pitch, m_height, height);

@@ -49,11 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-
-
 #include "QuaternionMath.h"
 #include "TwoStepBDNVTRigid.h"
-
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 
@@ -66,20 +63,23 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param suffix Suffix to attach to the end of log quantity names
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
     \param gamma_diam Set gamma to the particle diameter of each particle if true, otherwise use a per-type
                       gamma via setGamma()
 */
 TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool gamma_diam)
-    : TwoStepNVERigid(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
+                                     boost::shared_ptr<ParticleGroup> group,
+                                     boost::shared_ptr<Variant> T,
+                                     unsigned int seed,
+                                     bool gamma_diam)
+    : TwoStepNVERigid(sysdef, group), m_seed(seed), m_gamma_diam(gamma_diam)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVTRigid" << endl;
 
+    m_temperature = T;
+ 
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -119,7 +119,6 @@ void TwoStepBDNVTRigid::slotNumTypesChange()
     if (m_pdata->getNTypes() == m_gamma.size())
         return;
 
-
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
@@ -150,16 +149,6 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
     h_gamma.data[typ] = gamma;
     }
 
-//! Update the temperature
-/*! \param T New temperature to set
-*/
-void TwoStepBDNVTRigid::setT(boost::shared_ptr<Variant> T)
-    {
-    m_T = T;
-    // do we need to set m_temperature??
-    // this->m_temperature = T;
-    }
-
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -169,11 +158,11 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
 
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-
     // profile this step
     if (m_prof)
         m_prof->push("BD NVT rigid step 2");
+
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     {
     // Modify the net forces with the random and drag forces
@@ -187,7 +176,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = m_temperature->getValue(timestep);
     const Scalar D = Scalar(m_sysdef->getNDimensions());
 
     // initialize the RNG
@@ -221,7 +210,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
 
-
         if (D < 3.0)
             bd_fz = Scalar(0.0);
 
@@ -229,7 +217,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         h_net_force.data[j].y += bd_fy;
         h_net_force.data[j].z += bd_fz;
         }
-
     }
 
     // Perform the second step like in TwoStepNVERigid
@@ -252,24 +239,23 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
 
-    Scalar dt_half = 0.5 * m_deltaT;
-
     // 2nd step: final integration
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
 
-        Scalar dtfm = dt_half / body_mass_handle.data[body];
+        Scalar dtfm = m_dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
         vel_handle.data[body].z += dtfm * force_handle.data[body].z;
 
-        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
-        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
-        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+        angmom_handle.data[body].x += m_dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += m_dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += m_dt_half * torque_handle.data[body].z;
 
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-                               ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+                               ex_space_handle.data[body], ey_space_handle.data[body],
+                               ez_space_handle.data[body], angvel_handle.data[body]);
         }
     } // out of scope for handles
 
@@ -288,6 +274,5 @@ void export_TwoStepBDNVTRigid()
                          bool
                          >())
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
-        .def("setT", &TwoStepBDNVTRigid::setT)
         ;
     }

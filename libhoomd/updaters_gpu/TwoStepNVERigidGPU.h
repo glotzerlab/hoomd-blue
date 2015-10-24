@@ -49,11 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#include "TwoStepNVERigid.h"
-
-#ifndef __TWO_STEP_NVE_RIGID_GPU_H__
-#define __TWO_STEP_NVE_RIGID_GPU_H__
-
 /*! \file TwoStepNVERigidGPU.h
     \brief Declares the TwoStepNVERigidGPU class
 */
@@ -61,6 +56,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include "TwoStepNVERigid.h"
+
+#ifndef __TWO_STEP_NVE_RIGID_GPU_H__
+#define __TWO_STEP_NVE_RIGID_GPU_H__
+
 
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU
@@ -85,3 +86,4 @@ class TwoStepNVERigidGPU : public TwoStepNVERigid
 void export_TwoStepNVERigidGPU();
 
 #endif // #ifndef __TWO_STEP_NVE_RIGID_GPU_H__
+

@@ -49,18 +49,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+/*! \file TwoStepBDNVTGPU.h
+    \brief Declares the TwoStepBDNVTGPU class
+*/
+
 #include "TwoStepBDNVTRigid.h"
 
 #ifndef __TWO_STEP_BDNVT_RIGID_GPU_H__
 #define __TWO_STEP_BDNVT_RIGID_GPU_H__
 
-/*! \file TwoStepNVEGPU.h
-    \brief Declares the TwoStepNVEGPU class
-*/
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU with the Langevin thermostat
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU

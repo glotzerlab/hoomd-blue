@@ -386,7 +386,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
     body_force[threadIdx.x] = sum_force;
     body_torque[threadIdx.x] = sum_torque;
 
-   __syncthreads();
+    __syncthreads();
 
     // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
     // just within its own group
@@ -412,8 +412,8 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
     // thread 0 within this body writes out the total force and torque for the body
     if ((threadIdx.x & thread_mask) == 0 && idx_body[m] != -1)
         {
-        rdata_force[idx_body[m]] = make_scalar4(body_force[threadIdx.x].x, body_force[threadIdx.x].y, body_force[threadIdx.x].z, Scalar(0.0));
-        rdata_torque[idx_body[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, Scalar(0.0));
+        rdata_force[idx_body[m]] = make_scalar4(body_force[threadIdx.x].x, body_force[threadIdx.x].y, body_force[threadIdx.x].z, 0.0f);
+        rdata_torque[idx_body[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
         }
     }
 
@@ -521,7 +521,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel
 
     Scalar body_mass;
     Scalar4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
-    Scalar dt_half = Scalar(0.5) * deltaT;
+    Scalar dt_half = (Scalar)0.5f * deltaT;
 
     unsigned int idx_body = d_rigid_group[group_idx];
 

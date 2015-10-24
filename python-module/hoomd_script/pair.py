@@ -2425,7 +2425,7 @@ class tersoff(pair):
 # non-bonded particle %pair in the simulation.
 #
 # \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
+# V_{\mathrm{mie}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
 #                   \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}

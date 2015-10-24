@@ -107,6 +107,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
+#include "TwoStepNHRigid.h"
 #include "TwoStepNVERigid.h"
 #include "TwoStepNVTRigid.h"
 #include "TwoStepNPTRigid.h"
@@ -635,6 +636,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDNVT();
     export_TwoStepNPTMTK();
     export_Berendsen();
+    export_TwoStepNHRigid();
     export_TwoStepNVERigid();
     export_TwoStepNVTRigid();
     export_TwoStepNPHRigid();
