@@ -318,7 +318,7 @@ class coeff:
             cur_pair = (b,a);
         else:
             return None;
-        
+
         if coeff_name in self.values[cur_pair]:
             return self.values[cur_pair][coeff_name];
         else:
@@ -352,8 +352,8 @@ class rcut:
         # create the pair if it hasn't been created yet
         if (not (a,b) in self.values) and (not (b,a) in self.values):
             self.values[(a,b)] = -1.0; # negative means this hasn't been set yet since it is invalid
-           
-        # find the pair we seek    
+
+        # find the pair we seek
         if (a,b) in self.values:
             cur_pair = (a,b);
         elif (b,a) in self.values:
@@ -361,9 +361,9 @@ class rcut:
         else:
             globals.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
             raise RuntimeError("Error fetching pair in nlist.r_cut.ensure_pair");
-        
+
         return cur_pair;
-            
+
     ## \internal
     # \brief Forces a change of a single r_cut
     # \details
@@ -373,7 +373,7 @@ class rcut:
     # \param cutoff Cutoff radius
     def set_pair(self, a, b, cutoff):
         cur_pair = self.ensure_pair(a,b);
-        
+
         # set the cutoff with simple error checking
         try:
             cutoff = float(cutoff);
@@ -393,17 +393,17 @@ class rcut:
     # \param cutoff Cutoff radius
     def merge_pair(self,a,b,cutoff):
         cur_pair = self.ensure_pair(a,b);
-        
+
         # update the cutoff to the largest value for this pair with simple error checking
         try:
             cutoff = float(cutoff);
             if cutoff < 0.0:
                 globals.msg.error("Cutoff must be non-negative float\n");
             else:
-                self.values[cur_pair] = max(cutoff,self.values[cur_pair]); 
+                self.values[cur_pair] = max(cutoff,self.values[cur_pair]);
         except ValueError:
             globals.msg.error("Cutoff must be non-negative float\n");
-            
+
     ## \internal
     # \brief Gets the value of a single %pair coefficient
     # \param self Python required self variable
@@ -412,7 +412,7 @@ class rcut:
     def get_pair(self, a, b):
         cur_pair = self.ensure_pair(a,b);
         return self.values[cur_pair];
-    
+
     ## \internal
     # \brief Merges two rcut objects by maximum cutoff
     # \param self Python required self variable
@@ -421,7 +421,7 @@ class rcut:
         for pair in rcut_obj.values:
             (a,b) = pair;
             self.merge_pair(a,b,rcut_obj.values[pair]);
-        
+
     ## \internal
     # \brief Sanity check on rcut values
     # \param self Python required self variable
@@ -445,10 +445,10 @@ class rcut:
             for j in range(i,ntypes):
                 a = type_list[i];
                 b = type_list[j];
-                    
+
                 # ensure the pair
                 cur_pair = self.ensure_pair(a,b);
-                
+
                 if self.values[cur_pair] < 0.0:
                     msg = "Pair " + str((a,b)) + "cutoff (" + str(self.values[cur_pair]) + ") is invalid.\n";
                     globals.msg.error(msg);
@@ -481,7 +481,7 @@ class nlist:
         # default values for r_cut and r_buff will be overridden by pair potentials' individual rcut classes
         r_cut = 0.0;
         default_r_buff = 0.4;
-        
+
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_cl = cl_c = hoomd.CellList(globals.system_definition);
@@ -775,7 +775,7 @@ def _subscribe_global_nlist(cb):
     # create a global neighbor list if it doesn't exist
     if globals.neighbor_list is None:
         globals.neighbor_list = nlist();
-    
+
     # subscribe and force an update
     globals.neighbor_list.subscribe(cb);
     globals.neighbor_list.update_rcut();
@@ -936,14 +936,14 @@ class pair(force._force):
                 max_rcut = max(max_rcut, r_cut);
 
         return max_rcut;
-    
+
     ## \internal
     # \brief Get the r_cut pair dictionary
     # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
     def get_rcut(self):
         if not self.log:
             return None
-            
+
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -967,7 +967,7 @@ class pair(force._force):
                     # so if something goes wrong there, HOOMD will grind to a halt.
                     # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
                     r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
-                
+
         if not r_cut_dict.verify():
             globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
             raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
@@ -1081,7 +1081,7 @@ class lj(pair):
 
         # initialize the base class
         pair.__init__(self, r_cut, name);
-        
+
         neighbor_list = _subscribe_global_nlist(lambda:self.get_rcut())
 
         # create the c++ mirror class
@@ -1094,11 +1094,11 @@ class lj(pair):
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
-        
+
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
@@ -1284,7 +1284,7 @@ class slj(pair):
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
-        
+
         # SLJ requires diameter shifting to be on
         neighbor_list.cpp_nlist.setDiameterShift(True);
         neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
@@ -1578,7 +1578,7 @@ class cgcmm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
-        
+
         # this class extends force, so we need to store the r_cut explicitly as a member
         # to be used in get_rcut
         # the authors of this potential also did not incorporate pairwise cutoffs, so we just use
@@ -1616,7 +1616,7 @@ class cgcmm(force._force):
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
-                
+
         if not r_cut_dict.verify():
             globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
             raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
@@ -1794,14 +1794,14 @@ class table(force._force):
 
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
-    
+
     ## \internal
     # \brief Get the r_cut pair dictionary
     # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
     def get_rcut(self):
         if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
             return None
-            
+
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1820,7 +1820,7 @@ class table(force._force):
                 else:
                     # using the largest of all the set rmax
                     r_cut_dict.set_pair(type_list[i],type_list[j], self.global_r_cut);
-                
+
         if not r_cut_dict.verify():
             globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
             raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
@@ -2351,7 +2351,7 @@ class eam(force._force):
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
             neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
-            
+
             #Load neighbor list to compute.
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
@@ -2359,7 +2359,7 @@ class eam(force._force):
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
             neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
-            
+
             #Load neighbor list to compute.
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
