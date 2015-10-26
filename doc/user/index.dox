@@ -205,8 +205,8 @@ Table of contents:
  - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
 
 \section sec_index_aniso Anisotropic pair potentials
- - \link hoomd_script.ai_pair.dipole ai_pair.dipole\endlink - <i>Screened dipole %pair %force </i>
- - \link hoomd_script.ai_pair.gb ai_pair.gb\endlink - <i>Gay-Berne %pair %force </i>
+ - \link hoomd_script.pair.dipole pair.dipole\endlink - <i>Screened dipole %pair %force </i>
+ - \link hoomd_script.pair.gb pair.gb\endlink - <i>Gay-Berne %pair %force </i>
 
 \section sec_index_manybody Many-body potentials
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>

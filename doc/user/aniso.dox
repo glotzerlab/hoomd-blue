@@ -52,25 +52,34 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \section sec_aniso Anisotropic particle support in HOOMD-blue
 
 HOOMD-blue natively supports the integration of rotational degrees of freedom of anisotropic particles. When
-any anisotropic potential, such as those found in \link hoomd_script.ai_pair ai_pair\endlink is defined in the
-system, integrators automatically integrate the rotational and translational degrees of freedom of the system.
+any anisotropic potential is defined in the system, integrators automatically integrate the rotational and
+translational degrees of freedom of the system. Anisotropic integration can also be explicitly enabled or
+disabled through the `aniso` argument of \ref hoomd_script.integrate.mode_standard
 
 Anisotropic particles have a number of properties accessible using the particle data API:
  - orientation, Quaternion to rotate the particle from its base orientation to its current orientation, in order \f$(real, imag_x, imag_y, imag_z)\f$
- - angular_momentum, Conjugate quaternion representing the particle's angular momentum, see below
+ - angular_momentum, Conjugate quaternion representing the particle's angular momentum, see \ref sec_angmom below
  - moment_inertia, principal moments of inertia \f$(I_{xx}, I_{yy}, I_{zz})\f$
- - net_torque, net torque on the particle
+ - net_torque, net torque on the particle in the global reference frame
 
 \section sec_angmom Quaternions for angular momentum
 
-Particle angular momenta are stored in quaternion form; to compute the angular momentum vector \f$\vec{L}\f$
-using the particle's angular momentum quaternion \f$\mathbf{s} = (s_r, s_x, s_y, s_z)\f$ follows the
-description in Miller 2002 \cite Miller2002 with particle quaternions \f$(q_r, q_x, q_y, q_z)\f$:
+Particle angular momenta are stored in quaternion form as defined in Kamberaj 2005 \cite Kamberaj2005 : the
+angular momentum quaternion \f$\mathbf{P}\f$ is defined with respect to the orientation quaternion of the
+particle \f$\mathbf{q}\f$ and the angular momentum of the particle, lifted into pure imaginary queternion form
+\f$\mathbf{S}^{(4)}\f$ as:
 
-\f{eqnarray*}
-        L_x = & \vec{s} \cdot (-q_x, q_r, q_z, -q_y) \\
-        L_y = & \vec{s} \cdot (-q_y, -q_z, q_r, q_x) \\
-        L_z = & \vec{s} \cdot (-q_z, q_y, -q_x, q_r)
-\f}
+\f{equation}
+\mathbf{P} = 2 \mathbf{q} \times \mathbf{S}^{(4)}
+\f};
+
+in other words, the angular momentum vector \f$\vec{S}\f$ with respect to the principal axis of the particle is
+
+\f{equation}
+\vec{S} = \frac{1}{2}im(\mathbf{q}^* \times \mathbf{P})
+\f},
+
+where \f$\mathbf{q}^*\f$ is the conjugate of the particle's orientation quaternion and \f$\times\f$ is
+quaternion multiplication.
 
 */
