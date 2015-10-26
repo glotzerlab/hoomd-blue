@@ -2437,7 +2437,7 @@ void SnapshotParticleData<Real>::resize(unsigned int N)
     body.resize(N,NO_BODY);
     orientation.resize(N,quat<Real>(1.0,vec3<Real>(0.0,0.0,0.0)));
     angmom.resize(N,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
-    inertia.resize(N,vec3<Real>(1.0,1.0,1.0));
+    inertia.resize(N,vec3<Real>(0.0,0.0,0.0));
     size = N;
     }
 
