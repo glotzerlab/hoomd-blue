@@ -93,7 +93,6 @@ from hoomd_script import meta;
 from hoomd_script import cite;
 from hoomd_script import data;
 from hoomd_script import context;
-from hoomd_script import ai_pair;
 
 from hoomd import WalltimeLimitReached;
 
