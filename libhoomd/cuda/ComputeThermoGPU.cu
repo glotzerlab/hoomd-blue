@@ -256,30 +256,25 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
         quat<Scalar> q(d_orientation[idx]);
         quat<Scalar> p(d_angmom[idx]);
         vec3<Scalar> I(d_inertia[idx]);
+        quat<Scalar> s(Scalar(0.5)*conj(q)*p);
 
         Scalar ke_rot(0.0);
 
         if (I.x >= EPSILON)
             {
-            quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
-            Scalar s = dot(p,q1);
-            ke_rot += s*s/I.x;
+            ke_rot += s.v.x*s.v.x/I.x;
             }
         if (I.y >= EPSILON)
             {
-            quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
-            Scalar s = dot(p,q2);
-            ke_rot += s*s/I.y;
+            ke_rot += s.v.y*s.v.y/I.y;
             }
         if (I.z >= EPSILON)
             {
-            quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
-            Scalar s = dot(p,q3);
-            ke_rot += s*s/I.z;
+            ke_rot += s.v.z*s.v.z/I.z;
             }
 
         // compute our contribution to the sum
-        my_element = ke_rot*Scalar(1.0/8.0);
+        my_element = ke_rot*Scalar(1.0/2.0);
         }
     else
         {

@@ -284,29 +284,24 @@ void ComputeThermo::computeProperties()
             Scalar3 I = h_inertia.data[j];
             quat<Scalar> q(h_orientation.data[j]);
             quat<Scalar> p(h_angmom.data[j]);
+            quat<Scalar> s(Scalar(0.5)*conj(q)*p);
 
             // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
             if (I.x >= EPSILON)
                 {
-                quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
-                Scalar s = dot(p,q1);
-                ke_rot_total += s*s/I.x;
+                ke_rot_total += s.v.x*s.v.x/I.x;
                 }
             if (I.y >= EPSILON)
                 {
-                quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
-                Scalar s = dot(p,q2);
-                ke_rot_total += s*s/I.y;
+                ke_rot_total += s.v.y*s.v.y/I.y;
                 }
             if (I.z >= EPSILON)
                 {
-                quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
-                Scalar s = dot(p,q3);
-                ke_rot_total += s*s/I.z;
+                ke_rot_total += s.v.z*s.v.z/I.z;
                 }
             }
 
-        ke_rot_total /= Scalar(8.0);
+        ke_rot_total /= Scalar(2.0);
         }
 
     // total potential energy
