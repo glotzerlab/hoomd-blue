@@ -343,13 +343,14 @@ class _integration_method(meta._metadata):
 class mode_standard(_integrator):
     ## Specifies the standard integration mode
     # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt (in time units)
+    # \param aniso Whether to integrate rotational degrees of freedom (bool), default None (autodetect)
     #
     # \b Examples:
     # \code
     # integrate.mode_standard(dt=0.005)
     # integrator_mode = integrate.mode_standard(dt=0.001)
     # \endcode
-    def __init__(self, dt):
+    def __init__(self, dt, aniso=None):
         util.print_status_line();
 
         # initialize base class
@@ -357,7 +358,8 @@ class mode_standard(_integrator):
 
         # Store metadata
         self.dt = dt
-        self.metadata_fields = ['dt']
+        self.aniso = aniso
+        self.metadata_fields = ['dt', 'aniso']
 
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
@@ -365,8 +367,21 @@ class mode_standard(_integrator):
 
         globals.system.setIntegrator(self.cpp_integrator);
 
+        util._disable_status_lines = True;
+        if aniso is not None:
+            self.set_params(aniso=aniso)
+        util._disable_status_lines = False;
+
+    ## \internal
+    #  \brief Cached set of anisotropic mode enums for ease of access
+    _aniso_modes = {
+        None: hoomd.IntegratorAnisotropicMode.Automatic,
+        True: hoomd.IntegratorAnisotropicMode.Anisotropic,
+        False: hoomd.IntegratorAnisotropicMode.Isotropic}
+
     ## Changes parameters of an existing integration mode
     # \param dt New time step delta (if set) (in time units)
+    # \param aniso Anisotropic integration mode (bool), default None (autodetect)
     #
     # To change the parameters of an existing integration mode, you must save it in a variable when it is
     # specified, like so:
@@ -377,8 +392,9 @@ class mode_standard(_integrator):
     # \b Examples:
     # \code
     # integrator_mode.set_params(dt=0.007)
+    # integrator_mode.set_params(dt=0.005, aniso=False)
     # \endcode
-    def set_params(self, dt=None):
+    def set_params(self, dt=None, aniso=None):
         util.print_status_line();
         self.check_initialization();
 
@@ -386,6 +402,15 @@ class mode_standard(_integrator):
         if dt is not None:
             self.dt = dt
             self.cpp_integrator.setDeltaT(dt);
+
+        if aniso is not None:
+            if aniso in self._aniso_modes:
+                anisoMode = self._aniso_modes[aniso]
+            else:
+                globals.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                raise RuntimeError("Error setting anisotropic integration mode.");
+            self.aniso = aniso
+            self.cpp_integrator.setAnisotropicMode(anisoMode)
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
