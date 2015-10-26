@@ -9,7 +9,10 @@ import os
 class pair_dipole_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        system = init.create_random(N=100, phi_p=0.05);
+        snap = system.take_snapshot(all=True)
+        snap.particles.angmom[:] = 1
+        system.restore_snapshot(snap)
 
         sorter.set_params(grid=8)
 

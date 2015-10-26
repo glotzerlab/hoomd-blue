@@ -250,6 +250,10 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     boost::shared_ptr<SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
+    // have to set moment of inertia to actually test aniso integration
+    for(unsigned int i(0); i < snap->particle_data.size; ++i)
+        snap->particle_data.inertia[i] = vec3<Scalar>(1.0, 1.0, 1.0);
+
     boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
     boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));

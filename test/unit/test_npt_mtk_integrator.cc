@@ -597,6 +597,10 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
     boost::shared_ptr<SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
+    // have to set moment of inertia to actually test aniso integration
+    for(unsigned int i(0); i < snap->particle_data.size; ++i)
+        snap->particle_data.inertia[i] = vec3<Scalar>(1.0, 1.0, 1.0);
+
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
