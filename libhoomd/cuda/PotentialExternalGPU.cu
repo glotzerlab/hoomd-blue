@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type field)
     {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -87,33 +87,33 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, c
         return cudaSuccess;
     };
 // template< template <class T> class evaluator>
-// cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field)
+// cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type field)
 //     {
-//         return cudaError_t gpu_cpef<evaluator>(external_potential_args, *d_params, *field);
+//         return cudaError_t gpu_cpef<evaluator>(external_potential_args, *d_params, field);
 //     };
 //Instantiate external evaluator templates
 
 //! Evaluator for External Periodic potentials.
-template cudaError_t gpu_cpef<EvaluatorExternalPeriodic>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalPeriodic::param_type *d_params, const typename EvaluatorExternalPeriodic::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorExternalPeriodic>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalPeriodic::param_type *d_params, const typename EvaluatorExternalPeriodic::field_type field);
 
 //! Evaluator for electric fields
-template cudaError_t gpu_cpef<EvaluatorExternalElectricField>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalElectricField::param_type *d_params, const typename EvaluatorExternalElectricField::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorExternalElectricField>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalElectricField::param_type *d_params, const typename EvaluatorExternalElectricField::field_type field);
 
 //! Evaluator for Lennard-Jones pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairLJ>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairLJ>::field_type field);
 //! Evaluator for Gaussian pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairGauss> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairGauss>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairGauss>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairGauss> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairGauss>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairGauss>::field_type field);
 //! Evaluator for Yukawa pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairYukawa> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairYukawa>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairYukawa>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairYukawa> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairYukawa>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairYukawa>::field_type field);
 //! Evaluator for Shifted Lennard-Jones pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairSLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairSLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairSLJ>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairSLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairSLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairSLJ>::field_type field);
 //! Evaluator for Morse pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairMorse> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairMorse>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairMorse>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairMorse> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairMorse>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairMorse>::field_type field);
 // //! Evaluator for Dissipative Particle Dynamics pair potential.
-// template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairDPDThermo> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairDPDThermo>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairDPDThermo>::field_type *field);
+// template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairDPDThermo> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairDPDThermo>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairDPDThermo>::field_type field);
 // //! Evaluator for Dissipative Particle Dynamics with Lennard-Jones pair potential.
-// template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairDPDLJThermo> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairDPDLJThermo>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairDPDLJThermo>::field_type *field);
+// template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairDPDLJThermo> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairDPDLJThermo>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairDPDLJThermo>::field_type field);
 //! Evaluator for Force Shifted Lennard-Jones pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairForceShiftedLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairForceShiftedLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairForceShiftedLJ>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairForceShiftedLJ> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairForceShiftedLJ>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairForceShiftedLJ>::field_type field);
 //! Evaluator for Mie pair potential.
-template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairMie> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairMie>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairMie>::field_type *field);
+template cudaError_t gpu_cpef<EvaluatorWalls<EvaluatorPairMie> >(const external_potential_args_t& external_potential_args, const typename EvaluatorWalls<EvaluatorPairMie>::param_type *d_params, const typename EvaluatorWalls<EvaluatorPairMie>::field_type field);

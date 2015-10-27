@@ -121,7 +121,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                const Scalar *d_charge,
                                                const BoxDim box,
                                                const typename evaluator::param_type *params,
-                                               const typename evaluator::field_type *field)
+                                               const typename evaluator::field_type field)
     {
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -153,14 +153,14 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, box, params[typei], *field);
+    evaluator eval(Xi, box, params[typei], field);
 
-    eval.evalForceEnergyAndVirial(force, energy, virial);
     if (evaluator::needsDiameter())
         eval.setDiameter(di);
     if (evaluator::needsCharge())
         eval.setCharge(qi);
 
+    eval.evalForceEnergyAndVirial(force, energy, virial);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;
@@ -175,5 +175,5 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 #endif
 
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type *field);
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args, const typename evaluator::param_type *d_params, const typename evaluator::field_type field);
 #endif // __POTENTIAL_PAIR_GPU_CUH__
