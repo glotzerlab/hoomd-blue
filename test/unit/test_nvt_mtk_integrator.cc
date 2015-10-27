@@ -332,6 +332,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     int n_measure_steps = 25000;
     std::cout << "Measuring temperature and conserved quantity for another " << n_measure_steps << " time steps..." << std::endl;
     Scalar avg_T(0.0);
+    Scalar avg_T_trans(0.0);
     Scalar avg_T_rot(0.0);
     for (i=n_equil_steps; i< n_equil_steps+n_measure_steps; i++)
         {
@@ -344,7 +345,8 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
         thermo_1->compute(i+1);
 
         avg_T += thermo_1->getTemperature();
-        avg_T_rot += Scalar(2.0)*thermo_1->getRotationalKineticEnergy()/thermo_1->getRotationalNDOF();
+        avg_T_trans += thermo_1->getTranslationalTemperature();
+        avg_T_rot += thermo_1->getRotationalTemperature();
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
@@ -352,8 +354,10 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
         }
 
     avg_T /= n_measure_steps;
+    avg_T_trans /= n_measure_steps;
     avg_T_rot /= n_measure_steps;
     MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_trans, T_tol);
     MY_BOOST_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
     }
 
@@ -461,6 +465,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_test )
     {
     test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
+
 //! Performs a basic equilibration test of TwoStepNVTMTK
 BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_aniso_test )
     {
