@@ -274,25 +274,26 @@ class _external_force(force._force):
             fcoeff = self.process_field_coeff(self.field_coeff);
             self.cpp_force.setField(fcoeff);
 
-        # check that the force coefficients are valid
-        if not self.force_coeff.verify(coeff_list):
-           globals.msg.error("Not all force coefficients are set\n");
-           raise RuntimeError("Error updating force coefficients");
+        if self.required_coeffs is not None:
+            # check that the force coefficients are valid
+            if not self.force_coeff.verify(coeff_list):
+               globals.msg.error("Not all force coefficients are set\n");
+               raise RuntimeError("Error updating force coefficients");
 
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            # set all the params
+            ntypes = globals.system_definition.getParticleData().getNTypes();
+            type_list = [];
+            for i in range(0,ntypes):
+                type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-        for i in range(0,ntypes):
-            # build a dict of the coeffs to pass to proces_coeff
-            coeff_dict = {};
-            for name in coeff_list:
-                coeff_dict[name] = self.force_coeff.get(type_list[i], name);
+            for i in range(0,ntypes):
+                # build a dict of the coeffs to pass to proces_coeff
+                coeff_dict = {};
+                for name in coeff_list:
+                    coeff_dict[name] = self.force_coeff.get(type_list[i], name);
 
-            param = self.process_coeff(coeff_dict);
-            self.cpp_force.setParams(i, param);
+                param = self.process_coeff(coeff_dict);
+                self.cpp_force.setParams(i, param);
 
     ## \internal
     # \brief Get metadata
@@ -363,4 +364,53 @@ class periodic(_external_force):
 
         return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
 
+## Electric field
+#
+# The command %e_field specifies that an external %force should be
+# added to every particle in the simulation that results from an electric field.
+#
+# The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
+#
+#    \f[
+#    V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
+#    \f]
+#
+#    where \f$q_i\f$ is the particle charge and \f$\vec{E}\f$ is the field vector
+#
+# \MPI_SUPPORTED
+class e_field(_external_force):
+    ## Apply a force derived from an electric field to all particles
+    #
+    # \b Examples:
+    # \code
+    # # Apply an electric field in the x-direction
+    # e_field = external.e_field((1,0,0))
+    # \endcode
+
+    def __init__(self, field, name=""):
+        util.print_status_line();
+
+        # initialize the base class
+        _external_force.__init__(self, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialExternalElectricField(globals.system_definition,self.name);
+        else:
+            self.cpp_force = hoomd.PotentialExternalElectricFieldGPU(globals.system_definition,self.name);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = None;
+
+        self.field_coeff = tuple(field)
+
+    def process_coeff(self, coeff):
+        pass;
+
+    def process_field_coeff(self, field):
+        return hoomd.make_scalar3(field[0],field[1],field[2])
+
+#
 # See wall.py for wall potentials which are based on _external_force

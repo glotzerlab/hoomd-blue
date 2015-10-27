@@ -190,6 +190,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -221,6 +222,11 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
             {
             Scalar di = h_diameter.data[idx];
             eval.setDiameter(di);
+            }
+        if (evaluator::needsCharge())
+            {
+            Scalar qi = h_charge.data[idx];
+            eval.setCharge(qi);
             }
         eval.evalForceEnergyAndVirial(F, energy, virial);
 

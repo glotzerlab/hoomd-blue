@@ -49,8 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
-#define __EVALUATOR_EXTERNAL_PERIODIC_H__
+#ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
+#define __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
 
 #ifndef NVCC
 #include <string>
@@ -72,51 +72,34 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// SCALARASINT resolves to __scalar_as_int on the device and to __scalar_as_int on the host
-#ifdef NVCC
-#define SCALARASINT(x) __scalar_as_int(x)
-#else
-#define SCALARASINT(x) __scalar_as_int(x)
-#endif
-
-//! Class for evaluating sphere constraints
+//! Class for evaluating an electric field
 /*! <b>General Overview</b>
-    EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration profile
-    in the system, e.g. to generate a periodic phase in a system of diblock copolymers.
-
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
 
     \f[
-    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(p \vec{b}_i\cdot\vec{r}\right)\right]
+    V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
     \f]
 
-    where \f$A\f$ is the ordering parameter, \f$\vec{b}_i\f$ is the reciprocal lattice vector direction
-    \f$i=0..2\f$, \f$p\f$ the periodicity and \f$w\f$ the interface width
-    (relative to the distance \f$2\pi/|\mathbf{b_i}|\f$ between planes in the \f$i\f$-direction).
-    The modulation is one-dimensional. It extends along the lattice vector \f$\mathbf{a}_i\f$ of the
-    simulation cell.
+    where \f$E\f$ is the strength of the electric field and \f$q_i\f$ is the charge of particle i.
 */
-class EvaluatorExternalPeriodic
+class EvaluatorExternalElectricField
     {
     public:
 
         //! type of parameters this external potential accepts
-        typedef Scalar4 param_type;
-        typedef struct field{}field_type;
+        typedef struct param{} param_type;
+        typedef Scalar3 field_type;
 
         //! Constructs the constraint evaluator
         /*! \param X position of particle
             \param box box dimensions
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params, const field_type& field)
+        DEVICE EvaluatorExternalElectricField(Scalar3 X, const BoxDim& box, const param_type& params, const field_type& field)
             : m_pos(X),
-              m_box(box)
+              m_box(box),
+              m_field(field)
             {
-            m_index=  SCALARASINT(params.x);
-            m_orderParameter = params.y;
-            m_interfaceWidth = params.z;
-            m_periodicity =SCALARASINT(params.w);
             }
 
         //! External Periodic doesn't need diameters
@@ -127,11 +110,11 @@ class EvaluatorExternalPeriodic
         DEVICE void setDiameter(Scalar di) { }
 
         //! External Periodic doesn't need charges
-        DEVICE static bool needsCharge() { return false; }
+        DEVICE static bool needsCharge() { return true; }
         //! Accept the optional diameter value
         /*! \param qi Charge of particle i
         */
-        DEVICE void setCharge(Scalar qi) { }
+        DEVICE void setCharge(Scalar qi) { m_qi = qi; }
 
         //! Evaluate the force, energy and virial
         /*! \param F force vector
@@ -140,50 +123,15 @@ class EvaluatorExternalPeriodic
         */
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
             {
-            Scalar3 a2 = make_scalar3(0,0,0);
-            Scalar3 a3 = make_scalar3(0,0,0);
+            F = m_qi * m_field;
+            energy = -m_qi * dot(m_field,m_pos);
 
-            F.x = Scalar(0.0);
-            F.y = Scalar(0.0);
-            F.z = Scalar(0.0);
-            energy = Scalar(0.0);
-
-            // For this potential, since it uses scaled positions, the virial is always zero.
-            for (unsigned int i = 0; i < 6; i++)
-                virial[i] = Scalar(0.0);
-
-            Scalar V_box = m_box.getVolume();
-            // compute the vector pointing from P to V
-            if (m_index == 0)
-                {
-                a2 = m_box.getLatticeVector(1);
-                a3 = m_box.getLatticeVector(2);
-                }
-            else if (m_index == 1)
-                {
-                a2 = m_box.getLatticeVector(2);
-                a3 = m_box.getLatticeVector(0);
-                }
-            else if (m_index == 2)
-                {
-                a2 = m_box.getLatticeVector(0);
-                a3 = m_box.getLatticeVector(1);
-                }
-
-            Scalar3 b = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y,
-                                                      a2.z*a3.x-a2.x*a3.z,
-                                                      a2.x*a3.y-a2.y*a3.x)/V_box;
-            Scalar clipParameter, arg, clipcos, tanH, sechSq;
-
-            Scalar3 q = b*m_periodicity;
-            clipParameter   = Scalar(1.0)/Scalar(2.0*M_PI)/(m_periodicity*m_interfaceWidth);
-            arg = dot(m_pos,q);
-            clipcos = clipParameter*fast::cos(arg);
-            tanH = tanhf(clipcos);
-            sechSq = (Scalar(1.0) - tanH*tanH);
-
-            F = m_orderParameter*sechSq*clipParameter*fast::sin(arg)*q;
-            energy = m_orderParameter*tanH;
+            virial[0] = F.x*m_pos.x;
+            virial[1] = F.x*m_pos.y;
+            virial[2] = F.x*m_pos.z;
+            virial[3] = F.y*m_pos.y;
+            virial[4] = F.y*m_pos.z;
+            virial[5] = F.z*m_pos.z;
             }
 
         #ifndef NVCC
@@ -193,17 +141,15 @@ class EvaluatorExternalPeriodic
         */
         static std::string getName()
             {
-            return std::string("periodic");
+            return std::string("e_field");
             }
         #endif
 
     protected:
         Scalar3 m_pos;                //!< particle position
         BoxDim m_box;                 //!< box dimensions
-        unsigned int m_index;         //!< cartesian index of direction along which the lammellae should be orientied
-        Scalar m_orderParameter;      //!< ordering parameter
-        Scalar m_interfaceWidth;      //!< width of interface between lamellae (relative to box length)
-        unsigned int m_periodicity;   //!< number of lamellae of each type
+        Scalar m_qi;                  //!< particle charge
+        Scalar3 m_field;              //!< the field vector
    };
 
 

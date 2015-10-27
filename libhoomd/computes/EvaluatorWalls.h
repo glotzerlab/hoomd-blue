@@ -124,6 +124,21 @@ class EvaluatorWalls
 			di = diameter;
 			}
 
+		//! Accept the optional charge value
+		/*! \param qi Charge of particle i
+		*/
+		DEVICE void setCharge(Scalar charge)
+			{
+			qi = charge;
+			}
+
+	
+		//! Test if evaluator needs charge
+		DEVICE static bool needsCharge()
+			{
+			return evaluator::needsCharge();
+			}
+	
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
 			F.x = Scalar(0.0);
@@ -154,6 +169,9 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
+					if (evaluator::needsCharge())
+						eval.setCharge(qi, Scalar(0.0));
+	
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -188,6 +206,9 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
+					if (evaluator::needsCharge())
+						eval.setCharge(qi, Scalar(0.0));
+	
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -222,6 +243,9 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
+					if (evaluator::needsCharge())
+						eval.setCharge(qi, Scalar(0.0));
+	
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -258,7 +282,8 @@ class EvaluatorWalls
         Scalar3 		m_pos;                //!< particle position
         field_type 		m_field;			  //!< contains all information about the walls.
         param_type 		m_params;
-		Scalar			di;
+		Scalar di;
+        Scalar qi;
 	};
 
 template < class evaluator >

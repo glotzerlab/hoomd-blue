@@ -71,6 +71,7 @@ struct external_potential_args_t
               const unsigned int _N,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
+              const Scalar *_d_charge,
               const BoxDim& _box,
               const unsigned int _block_size)
                 : d_force(_d_force),
@@ -80,6 +81,7 @@ struct external_potential_args_t
                   N(_N),
                   d_pos(_d_pos),
                   d_diameter(_d_diameter),
+                  d_charge(_d_charge),
                   block_size(_block_size)
         {
         };
@@ -91,6 +93,7 @@ struct external_potential_args_t
     const unsigned int N;           //!< Number of particles
     const Scalar4 *d_pos;           //!< Device array of particle positions
     const Scalar *d_diameter;       //!< particle diameters
+    const Scalar *d_charge;         //!< particle charges
     const unsigned int block_size;  //!< Block size to execute
     };
 
@@ -115,6 +118,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,
+                                               const Scalar *d_charge,
                                                const BoxDim box,
                                                const typename evaluator::param_type *params,
                                                const typename evaluator::field_type field)
@@ -128,11 +132,17 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
     Scalar4 posi = d_pos[idx];
-    Scalar di;
+    Scalar di,qi;
     if (evaluator::needsDiameter())
         di = d_diameter[idx];
     else
         di += Scalar(1.0); // shutup compiler warning
+
+    if (evaluator::needsCharge())
+        qi = d_charge[idx];
+    else
+        qi = Scalar(0.0); // shutup compiler warning
+
 
     // initialize the force to 0
     Scalar3 force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -145,9 +155,12 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
     evaluator eval(Xi, box, params[typei], field);
 
-    eval.evalForceEnergyAndVirial(force, energy, virial);
     if (evaluator::needsDiameter())
         eval.setDiameter(di);
+    if (evaluator::needsCharge())
+        eval.setCharge(qi);
+
+    eval.evalForceEnergyAndVirial(force, energy, virial);
 
     // now that the force calculation is complete, write out the result)
     d_force[idx].x = force.x;
