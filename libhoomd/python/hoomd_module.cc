@@ -551,6 +551,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PPPMForceCompute();
     export_wall_field_helpers();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
+    export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
     export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
     export_PotentialExternalWall<EvaluatorPairYukawa>("WallsPotentialYukawa");
     export_PotentialExternalWall<EvaluatorPairSLJ>("WallsPotentialSLJ");
@@ -597,6 +598,7 @@ BOOST_PYTHON_MODULE(hoomd)
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
+    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>("WallsPotentialYukawaGPU");
     export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>("WallsPotentialSLJGPU");

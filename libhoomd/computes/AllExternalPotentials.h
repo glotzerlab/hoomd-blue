@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialExternal.h"
 #include "EvaluatorExternalPeriodic.h"
+#include "EvaluatorExternalElectricField.h"
 #include "EvaluatorWalls.h"
 #include "AllPairPotentials.h"
 
@@ -71,6 +72,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! External potential to impose periodic structure
 typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
+
+//! Electric field
+typedef PotentialExternal<EvaluatorExternalElectricField> PotentialExternalElectricField;
+
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJ;
@@ -83,6 +88,7 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMor
 #ifdef ENABLE_CUDA
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
+typedef PotentialExternalGPU<EvaluatorExternalElectricField> PotentialExternalElectricFieldGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJGPU;

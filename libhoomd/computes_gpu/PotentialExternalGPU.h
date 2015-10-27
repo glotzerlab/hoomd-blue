@@ -118,15 +118,13 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
-    // if (evaluator::needsDiameter()) TODO:Handle diam passing for evaluators that require it
-    //     {
-    //     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
-    //     }
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
+
     const BoxDim& box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_diam(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     typename evaluator::field_type field;
     this->m_tuner->begin();
@@ -135,7 +133,8 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
                          d_pos.data,
-                         d_diam.data,
+                         d_diameter.data,
+                         d_charge.data,
                          box,
                          this->m_tuner->getParam()), d_params.data, &field);
     this->m_tuner->end();
