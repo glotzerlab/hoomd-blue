@@ -383,8 +383,8 @@ class e_field(_external_force):
     #
     # \b Examples:
     # \code
-    # # Apply an electric field in the xdirection
-    # e_field = external.e_field()
+    # # Apply an electric field in the x-direction
+    # e_field = external.e_field((1,0,0))
     # \endcode
 
     def __init__(self, field, name=""):
@@ -404,13 +404,13 @@ class e_field(_external_force):
         # setup the coefficient options
         self.required_coeffs = None;
 
-        self.field = tuple(field)
+        self.field_coeff = tuple(field)
 
     def process_coeff(self, coeff):
         pass;
 
     def process_field_coeff(self, field):
-        return hoomd.make_scalar3(field[0],field[1],field[1])
+        return hoomd.make_scalar3(field[0],field[1],field[2])
 
 #
 # See wall.py for wall potentials which are based on _external_force
