@@ -307,7 +307,7 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGrou
         res += (*method)->getRotationalNDOF(group);
         }
 
-    return res - m_sysdef->getNDimensions();
+    return res;
     }
 
 /*!  \param mode Anisotropic integration mode to set

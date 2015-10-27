@@ -166,9 +166,9 @@ class ComputeThermo : public Compute
             #ifdef ENABLE_MPI
             if (!m_properties_reduced) reduceProperties();
             #endif
-            // return NaN if the flags are not valid
+            // return NaN if the flags are not valid or we have no rotational DOF
             PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::rotational_kinetic_energy])
+            if (flags[pdata_flag::rotational_kinetic_energy] && m_ndof_rot)
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
                 return Scalar(2.0)/m_ndof_rot*h_properties.data[thermo_index::rotational_kinetic_energy];

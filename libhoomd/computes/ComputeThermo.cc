@@ -76,7 +76,7 @@ using namespace std;
 ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_ndof(1)
+    : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
