@@ -302,7 +302,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
 
     PDataFlags flags;
     flags[pdata_flag::potential_energy] = 1;
-    flags[pdata_flag::rotational_ke] = 1;
+    flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata_1->setFlags(flags);
 
     bool flag = false;
@@ -326,7 +326,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
 
     // conserved quantity
     thermo_1->compute(i+1);
-    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
     H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
 
     int n_measure_steps = 25000;
@@ -346,7 +346,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
         avg_T += thermo_1->getTemperature();
         avg_T_rot += Scalar(2.0)*thermo_1->getRotationalKineticEnergy()/thermo_1->getRotationalNDOF();
 
-        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
         MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
         }

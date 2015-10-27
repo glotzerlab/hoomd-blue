@@ -375,12 +375,10 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
     if (threadIdx.x == 0)
         {
         // compute final quantities
-        Scalar ke_total = final_sum.x * Scalar(0.5);
+        Scalar ke_trans_total = final_sum.x * Scalar(0.5);
         Scalar pe_total = final_sum.y;
         Scalar W = final_sum.z + external_virial;
         Scalar ke_rot_total = final_sum.w;
-        // compute the temperature
-        Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(ndof);
 
         // compute the pressure
         // volume/area & other 2D stuff needed
@@ -401,14 +399,13 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar pressure =  (Scalar(2.0) * ke_total / Scalar(D) + W) / volume;
+        Scalar pressure =  (Scalar(2.0) * ke_trans_total / Scalar(D) + W) / volume;
 
         // fill out the GPUArray
-        d_properties[thermo_index::temperature] = temperature;
-        d_properties[thermo_index::pressure] = pressure;
-        d_properties[thermo_index::kinetic_energy] = Scalar(ke_total);
+        d_properties[thermo_index::translational_kinetic_energy] = Scalar(ke_trans_total);
+        d_properties[thermo_index::rotational_kinetic_energy] = Scalar(ke_rot_total);
         d_properties[thermo_index::potential_energy] = Scalar(pe_total);
-        d_properties[thermo_index::rotational_ke] = Scalar(ke_rot_total);
+        d_properties[thermo_index::pressure] = pressure;
         }
     }
 

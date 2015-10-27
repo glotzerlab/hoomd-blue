@@ -443,7 +443,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     // compute the current thermodynamic properties
     m_thermo->compute(timestep+1);
 
-    Scalar curr_T_trans = m_thermo->getTemperature();
+    Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
     Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/m_T->getValue(timestep) - Scalar(1.0));

@@ -609,7 +609,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
     flags[pdata_flag::pressure_tensor] = 1;
     flags[pdata_flag::isotropic_virial] = 1;
     flags[pdata_flag::potential_energy] = 1;
-    flags[pdata_flag::rotational_ke] = 1;
+    flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata->setFlags(flags);
 
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
@@ -740,8 +740,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
         Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
         Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
         Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
-        Scalar rotational_ke = thermo_group_t->getRotationalKineticEnergy();
-        Scalar H_ref = enthalpy + barostat_energy + thermostat_energy + rotational_ke; // the conserved quantity
+        Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.25 % accuracy for conserved quantity
         Scalar H_tol = 0.25;
@@ -773,12 +772,12 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
                 box = pdata->getBox();
                 volume = box.getVolume();
                 Scalar ke = thermo_group_t->getKineticEnergy();
+                Scalar rotational_ke = thermo_group_t->getRotationalKineticEnergy();
                 Scalar pe = thermo_group_t->getPotentialEnergy();
                 enthalpy =  ke + pe + P * volume;
                 barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
                 thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
-                rotational_ke = thermo_group_t->getRotationalKineticEnergy();
-                Scalar H = enthalpy + barostat_energy + thermostat_energy + rotational_ke;
+                Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P*volume << std::endl;
                 std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy << " rot KE: " << rotational_ke << std::endl;
                 MY_BOOST_CHECK_CLOSE(H_ref,H,H_tol);
@@ -797,8 +796,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, boost::share
         enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
         barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
         thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
-        rotational_ke = thermo_group_t->getRotationalKineticEnergy();
-        Scalar H_final = enthalpy + barostat_energy + thermostat_energy + rotational_ke;
+        Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
         MY_BOOST_CHECK_CLOSE(H_ref,H_final,H_tol);

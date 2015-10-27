@@ -453,7 +453,7 @@ void nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration> exec_conf,
 
     PDataFlags flags;
     flags[pdata_flag::potential_energy] = 1;
-    flags[pdata_flag::rotational_ke] = 1;
+    flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata_1->setFlags(flags);
 
     // equilibrate
@@ -474,7 +474,7 @@ void nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration> exec_conf,
 
     // conserved quantity
     thermo_1->compute(i+1);
-    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
     std::cout << "Initial energy: " << H_ini << std::endl;
 
     int n_measure_steps = 25000;
@@ -486,7 +486,7 @@ void nve_updater_aniso_test(boost::shared_ptr<ExecutionConfiguration> exec_conf,
 
         thermo_1->compute(i+1);
 
-        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
 
         if (i % 1000 == 0)
             std::cout << i << ' ' << H << std::endl;

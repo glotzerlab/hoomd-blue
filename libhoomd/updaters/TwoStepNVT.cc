@@ -430,7 +430,7 @@ void TwoStepNVT::advanceThermostat(unsigned int timestep)
 
     // update the state variables Xi and eta
     Scalar xi_prev = xi;
-    Scalar curr_T = m_thermo->getTemperature();
+    Scalar curr_T = m_thermo->getTranslationalTemperature();
     xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
     eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
 

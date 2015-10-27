@@ -182,7 +182,7 @@ void ComputeThermoGPU::computeProperties()
                         box,
                         args,
                         flags[pdata_flag::pressure_tensor],
-                        flags[pdata_flag::rotational_ke]);
+                        flags[pdata_flag::rotational_kinetic_energy]);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

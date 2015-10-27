@@ -182,9 +182,15 @@ _compute.cur_id = 0;
 #  - <b>num_particles</b><i>_groupname</i> - \f$ N \f$ - number of particles in the group
 #  - <b>ndof</b><i>_groupname</i>  - \f$ N_{\mathrm{dof}} \f$ - number of degrees of freedom given to the group by
 #    integrate commands
+#  - <b>translational_ndof</b><i>_groupname</i>  - \f$ N_{\mathrm{dof}} \f$ - number of translational degrees of
+#    freedom given to the group by integrate commands
+#  - <b>rotational_ndof</b><i>_groupname</i>  - \f$ N_{\mathrm{dof}} \f$ - number of rotational degrees of
+#    freedom given to the group by integrate commands
 #  - <b>potential_energy</b><i>_groupname</i> - \f$ U \f$ - potential energy that the group contributes to the entire
 #    system (in energy units)
 #  - <b>kinetic_energy</b><i>_groupname</i> - \f$ K \f$ - total kinetic energy of all particles in the group (in energy units)
+#  - <b>translational_kinetic_energy</b><i>_groupname</i> - \f$ K \f$ - translational kinetic energy of all particles in the group (in energy units)
+#  - <b>rotational_kinetic_energy</b><i>_groupname</i> - \f$ K \f$ - rotational kinetic energy of all particles in the group (in energy units)
 #  - <b>temperature</b><i>_groupname</i> - \f$ T \f$ - instantaneous thermal energy of the group (in energy units). Calculated as
 #    \f$ T = 2 \cdot \frac{K}{N_{\mathrm{dof}}} \f$
 #  - <b>pressure</b><i>_groupname</i> - \f$ P \f$ - instantaneous pressure of the group (in pressure units). Calculated as

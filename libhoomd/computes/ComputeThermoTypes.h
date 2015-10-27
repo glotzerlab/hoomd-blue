@@ -63,20 +63,18 @@ struct thermo_index
     //! The enum
     enum Enum
         {
-        temperature=0,       //!< Index for the computed temperature in the GPUArray
-        pressure,            //!< Index for the computed pressure in the GPUArray
-        kinetic_energy,      //!< Index for the kinetic energy in the GPUArray
+        translational_kinetic_energy=0,      //!< Index for the kinetic energy in the GPUArray
+        rotational_kinetic_energy,       //!< Rotational kinetic energy
         potential_energy,    //!< Index for the potential energy in the GPUArray
+        pressure,            //!< Total pressure
         pressure_xx,         //!< Index for the xx component of the pressure tensor in the GPUArray
         pressure_xy,         //!< Index for the xy component of the pressure tensor in the GPUArray
         pressure_xz,         //!< Index for the xz component of the pressure tensor in the GPUArray
         pressure_yy,         //!< Index for the yy component of the pressure tensor in the GPUArray
         pressure_yz,         //!< Index for the yz component of the pressure tensor in the GPUArray
         pressure_zz,         //!< Index for the zz component of the pressure tensor in the GPUArray
-        rotational_ke,       //!< Rotational kinetic energy
         num_quantities       // final element to count number of quantities
         };
-
     };
 
 //! structure for storing the components of the pressure tensor

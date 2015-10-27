@@ -134,7 +134,7 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
         virtual PDataFlags getRequestedPDataFlags()
             {
             PDataFlags flags;
-            if (m_aniso) flags[pdata_flag::rotational_ke] = 1;
+            if (m_aniso) flags[pdata_flag::rotational_kinetic_energy] = 1;
             return flags;
             }
 

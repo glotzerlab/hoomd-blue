@@ -738,7 +738,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getKineticEnergy();
+    Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
     couplingMode couple = m_couple;
@@ -868,7 +868,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
 
-    Scalar curr_T_trans = m_thermo_group->getTemperature();
+    Scalar curr_T_trans = m_thermo_group->getTranslationalTemperature();
     Scalar T = m_T->getValue(timestep);
 
     // update the state variables Xi and eta
