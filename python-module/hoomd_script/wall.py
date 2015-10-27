@@ -52,16 +52,21 @@
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall geometry and forces.
 #
-# Walls currently supports these geometries: spheres, planes, and cylinders.
-# Walls currently supports these potentials: lj, gauss, slj, yukawa, morse,
-# force_shifted_lj, and mie.
+#  Walls currently supports these geometries:\n \link wall.sphere_wall
+# spheres\endlink, \link wall.cylinder_wall cylinders\endlink, \link
+# wall.plane_wall planes\endlink \n Walls currently supports these
+# potentials:\n \link wall.lj lj\endlink, \link wall.gauss gauss\endlink, \link
+# wall.slj slj\endlink, \link wall.yukawa yukawa\endlink, \link wall.morse
+# morse\endlink, \link wall.force_shifted_lj force_shifted_lj\endlink, and \link
+# wall.mie mie\endlink.
 #
 # Walls can add forces to any particles within a certain distance of each wall.
 #
-# Walls are created using the group commands. See group for more details.
-# By themselves, wall groups do nothing. Only when you specify a wall force (i.e.
-# wall.lj),  are forces actually applied between the wall and the particle.
-# See hoomd_script.wall.wallpotential for more details of implementing a force.
+# Walls are created using the \link wall.group group\endlink commands. See \link
+# wall.group group\endlink for more details. By themselves, wall groups do
+# nothing. Only when you specify a wall force (i.e. wall.lj),  are forces actually
+# applied between the wall and the particle. See hoomd_script.wall.wallpotential
+# for more details of implementing a force.
 
 from hoomd_script import external;
 from hoomd_script import globals;
@@ -71,37 +76,42 @@ from hoomd_script import meta;
 import hoomd;
 import math;
 
-## Defines the %wall group.
+#           *** Helpers ***
+
+## Defines the %wall group used by wall potentials.
 #
 # All wall forces use a wall group as an input so it is necessary to create a
-# wall.group object before any wall.force can be created. Current supported
-# geometries are spheres, cylinder, and planes. The maximum number of each type of
-# wall is 20, 20, and 60 respectively.
+# %wall.%group object before any wall.force can be created, however modifications
+# of the created wall structure can occur at any time before run() command is
+# used. Current supported geometries are spheres, cylinder, and planes. The
+# maximum number of each type of wall is 20, 20, and 60 respectively per group.
 #
 # \note \par
 # The entire structure can easily be viewed by printing the wall.group object.
-#
+# Print intentionally only displays exactly what will be passed to the wall force.
+# This can be seen in the example in \link hoomd_script.wall.sphere_wall
+# sphere_wall\endlink.
 # \note \par
 # While all x,y,z coordinates can be given as a list or tuple, only origin
-# parameters are points  in x,y,z space. Normal and axis parameters are vectors
-# and must have a magnitude.
-#
+# parameters are points in x,y,z space. Normal and axis parameters are vectors and
+# must have a nonzero magnitude. The examples in \link
+# hoomd_script.wall.sphere_wall sphere_wall\endlink demonstrates this in the
+# default parameters.
 # \note \par
 # Although members of the structure can be modified directly,  using the
-# convenience functions (i.e. add_sphere, del_sphere) will keep track of the total
+# convenience functions (i.e. add_sphere(), del_sphere()) will keep track of the total
 # number of each type implemented and give warnings if the maximum number of any
 # type is reached. If the structure is modified outside the demonstrated scope,
-# the group object update function should be called.
-#
+# the member function /ref hoomd_script.wall.group.update() update must be called.
 # \note \par
-# Wall structure modifications between run() calls will be implemented in
-# the next run. However, modifications must be done carefully since moving the
-# wall can result in particles moving to a relative positions which causes
-# exceptionally high forces resulting in particles moving many times the box length
-# in one move.
+# Wall structure modifications between \link hoomd_script.run() run()\endlink
+# calls will be implemented in the next run. However, modifications must be done
+# carefully since moving the wall can result in particles moving to a relative
+# positions which causes exceptionally high forces resulting in particles moving
+# many times the box length in one move.
 #
-# \b Example:\n
-# In[0]:
+# \b Example:
+# \n In[0]:
 # \code
 # wallstructure=wall.group(name="arbitrary name")
 # wallstructure.add_sphere(r=1.0,origin=(0,1,3))
@@ -187,7 +197,7 @@ class group():
         self.planes=[];
 
     ## Adds a sphere to the %wall group.
-    #
+    # Adds a sphere with the specified parameters to the wallgroup.spheres list.
     # \param r Sphere radius (in distance units)
     # \param origin Sphere origin (in x,y,z coordinates)
     # \param inside Sphere distance evaluation from inside/outside surface (defaults to True)
@@ -200,7 +210,7 @@ class group():
             raise RuntimeError('Maximum number of sphere walls already used.');
 
     ## Adds a cylinder to the %wall group.
-    #
+    # Adds a cylinder with the specified parameters to the wallgroup.cylinders list.
     # \param r Cylinder radius (in distance units)
     # \param origin Cylinder origin (in x,y,z coordinates)
     # \param axis Cylinder axis vector (in x,y,z coordinates)
@@ -214,7 +224,7 @@ class group():
             raise RuntimeError('Maximum number of cylinder walls already used.');
 
     ## Adds a plane to the %wall group.
-    #
+    # Adds a plane with the specified parameters to the wallgroup.planes list.
     # \param origin Plane origin (in x,y,z coordinates)
     # \param normal Plane normal vector (in x,y,z coordinates)
     def add_plane(self, origin, normal):
@@ -226,6 +236,7 @@ class group():
             raise RuntimeError('Maximum number of plane walls already used.');
 
     ## Deletes the sphere or spheres in index.
+    # Removes the specified sphere or spheres from the wallgroup.spheres list.
     # \param index The index of sphere(s) desired to delete. Accepts int, range, and lists.
     def del_sphere(self, index):
         if type(index) is int: index = [index];
@@ -241,6 +252,7 @@ class group():
                 raise RuntimeError("del_sphere failed")
 
     ## Deletes the cylinder or cylinders in index.
+    # Removes the specified cylinder or cylinders from the wallgroup.cylinders list.
     # \param index The index of cylinder(s) desired to delete. Accepts int, range, and lists.
     def del_cylinder(self, index):
         if type(index) is int: index = [index];
@@ -256,6 +268,7 @@ class group():
                 raise RuntimeError("del_cylinder failed")
 
     ## Deletes the plane or planes in index.
+    # Removes the specified plane or planes from the wallgroup.planes list.
     # \param index The index of plane(s) desired to delete. Accepts int, range, and lists.
     def del_plane(self, index):
         if type(index) is int: index = [index];
@@ -270,13 +283,9 @@ class group():
                 globals.msg.error("Specified index for deletion is not valid.\n");
                 raise RuntimeError("del_plane failed")
 
-    ## \internal
-    # \brief Return metadata for this wall structure
-    def get_metadata(self):
-        data = meta._metadata_from_dict(eval(str(self.__dict__)));
-        return data;
-
     ## Updates counting variables of the wall.group object and checks for validity of input
+    #
+    #
     def update(self):
         self.num_spheres=len(self.spheres);
         self.num_cylinders=len(self.cylinders);
@@ -290,6 +299,12 @@ class group():
         if self.num_planes>group._max_n_plane_walls:
             globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
             raise RuntimeError('Maximum number of plane walls already used.');
+
+    ## \internal
+    # \brief Return metadata for this wall structure
+    def get_metadata(self):
+        data = meta._metadata_from_dict(eval(str(self.__dict__)));
+        return data;
 
     ## \internal
     # \brief Returns output for print
@@ -309,7 +324,65 @@ class group():
         output+="}";
         return output;
 
-## Class that populates the spheres[] array in the wall.group object.
+## Sphere wall object
+# Class that populates the spheres[] array in the wall.group object.
+# Object which contains all the geometric information needed to define a sphere.
+# This function is not recommended for common use and should mainly be used for
+# reference. Helper functions \link wall.group.add_sphere add_sphere\endlink and
+# \link wall.group.del_sphere del_sphere\endlink exist to properly update the
+# entire wall structure. If these functions are used as in the example below, it
+# is important to note that update must be called.
+#
+# This function is mainly available for utility of users in use cases like the one below
+# and for reference in modifying the wall group structure's spheres members.
+#
+# The following example is intended to demonstrate cylinder_walls and plane_walls
+# as well. Note that the distinction between points and vectors is reflected in
+# the default parameters.
+# \n \b Example
+# \n In[0]:\code # walls=wall.group()
+# walls.spheres+=[wall.sphere_wall()]*5
+# walls.spheres+=[wall.sphere_wall(r=1)]*5
+# walls.cylinders+=[wall.cylinder_wall(r=3)]*5
+# walls.planes+=[wall.plane_wall()]*5
+# print(walls)
+# \endcode
+# Out[0]:\code
+# Wall_Data_Sturucture:
+# spheres:0{}
+# cylinders:0{}
+# planes:0{}
+# \endcode
+# In[1]:\code
+# walls.update()
+# print(walls)
+# \endcode
+# Out[1]:\code
+# Wall_Data_Sturucture:
+# spheres:10{
+# [0:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [1:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [2:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [3:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [4:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [5:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [6:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [7:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [8:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
+# [9:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]}
+# cylinders:5{
+# [0:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
+# [1:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
+# [2:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
+# [3:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
+# [4:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
+# planes:5{
+# [0:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
+# [1:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
+# [2:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
+# [3:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
+# [4:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]}
+# \endcode
 class sphere_wall:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r;
@@ -329,7 +402,19 @@ class sphere_wall:
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
 
-## Class that populates the cylinders[] array in the wall.group object.
+## Cylinder wall object
+# Class that populates the cylinders[] array in the wall.group object.
+# Object which contains all the geometric information needed to define a cylinder.
+# This function is not recommended for common use and should mainly be used for
+# reference. Helper functions \link wall.group.add_cylinder add_cylinder\endlink and
+# \link wall.group.del_cylinder del_cylinder\endlink exist to properly update the
+# entire wall structure. If these functions are used as in the example below, it
+# is important to note that update must be called.
+#
+# This function is mainly available for utility of users in use cases like the example
+# and for reference in modifying the wall group structure's cylinders members.\n
+#
+# For an example see \link hoomd_script.wall.sphere_wall sphere_wall\endlink.
 class cylinder_wall:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
         self.r = r;
@@ -357,7 +442,19 @@ class cylinder_wall:
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
-## Class that populates the planes[] array in the wall.group object.
+## Plane wall object
+# Class that populates the planes[] array in the wall.group object.
+# Object which contains all the geometric information needed to define a plane.
+# This function is not recommended for common use and should mainly be used for
+# reference. Helper functions \link wall.group.add_plane add_plane\endlink and
+# \link wall.group.del_plane del_plane\endlink exist to properly update the
+# entire wall structure. If these functions are used as in the example below, it
+# is important to note that update must be called.
+#
+# This function is mainly available for utility of users in use cases like the example
+# and for reference in modifying the wall group structure's planes members.
+#
+# For an example see \link hoomd_script.wall.sphere_wall sphere_wall\endlink.
 class plane_wall:
     def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
         self._origin = hoomd.make_scalar3(*origin);
@@ -383,43 +480,55 @@ class plane_wall:
     def __repr__(self):
         return "{'origin':%s, 'normal': %s}" % (str(self.origin), str(self.normal));
 
+#           *** Potentials ***
 
 ## Generic %wall %force
 #
 # wall.wallpotential is not a command hoomd scripts should execute directly.
-# Rather, it is a base command that provides common features to all standard
-# %wall forces. Rather than repeating all of that documentation in many
-# different places, it is collected here.
+# Rather, it is a base command that provides common features to all standard %wall
+# forces. Rather than repeating all of that documentation in many different
+# places, it is collected here.
 #
 # All %wall %force commands specify that a given potential energy and %force be
 # computed on all particles in the system within a cutoff distance \f$
-# r_{\mathrm{cut}} \f$ from each wall in the given wall group
-#
-# The %force \f$ \vec{F}\f$ is \f{eqnarray*} \vec{F}  = & -\nabla V(r) & r <
-# r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\ \f} where \f$
-# \vec{r} \f$ is the vector pointing from the particle to the %wall, and \f$ V(r)
-# \f$ is evaluated in the same manner as when mode is shift for the analogous pair
-# potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
-# V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f} and \f$ V_{\mathrm{pair}}(r) \f$ is
-# the specific %pair potential chosen by the respective command.
+# r_{\mathrm{cut}} \f$ from each wall in the given wall group. The %force \f$
+# \vec{F}\f$ is where \f$ \vec{r} \f$ is the vector pointing from the particle to
+# the %wall and \f$ V_{\mathrm{pair}}(r) \f$ is the specific %pair potential
+# chosen by the respective command. \f{eqnarray*} \vec{F}  = & -\nabla V(r) & r <
+# r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\ \f}   \f$
+# V(r) \f$ is evaluated in the same manner as when mode is shift for the analogous
+# pair potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
+# V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f}
 #
 # The following coefficients must be set per unique particle types.
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+#     -<i>Optional: Defaults to 0.0</i>
 # - All parameters required by the %pair potential base for the wall potential
 #
 #
-# \b Example:
+# <b>Generic Example:</b>\n
+# Note that the walls object below must be created before it is given as an
+# argument to the force object. However, walls can be modified at any time before
+# run() is called and it will update itself appropriately. See wall.group() for
+# more details about specifying the walls to be used.
 # \code
-#
+# walls=wall.group()
+# # Edit walls
+# my_force=wall.pairpotential(walls)
+# my_force.force_coeff.set('A', all required arguments)
+# my_force.force_coeff.set(['B','C'],r_on=0.3, all required arguments)
 # \endcode
+# A specific example can be found in wall.lj
 #
+# There is no global r_cut intentionally since the r_cut value
+# determines the shift of the potential and the parameter should be thought about.
 # \note \par
 # If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False the particle type
 # %wall interaction is excluded.
 # \note \par
-# Wall potentials are only based on the same potential energy calculations
-# as pair potentials. Features of pair potentials such as global r_cut,
+# While wall potentials are based on the same potential energy calculations
+# as pair potentials, Features of pair potentials such as global r_cut,
 # specified neighborlists, and alternative force shifting modes are not
 # supported.
 class wallpotential(external._external_force):
@@ -451,7 +560,20 @@ class wallpotential(external._external_force):
         external._external_force.update_coeffs(self);
 
 ## Lennard-Jones %wall %force
-# See pair.lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Lennard-Jones potential.
+# See pair.lj for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation #
+# \b LJ Example
+# Note that the base pair.lj requires the parameters sigma and epsilon and has a
+# default alpha. The additional r_cut parameter is required per type by all wall
+# potentials.
+# \code
+# walls=wall.group()
+# lj=wall.lj(walls)
+# lj.force_coeff.set('A',r_cut=3.0,r_on=0.0,sigma=1.0,epsilon=1.0)
+# lj.force_coeff.set(['B','C'],r_cut=1.5,sigma=0.5,epsilon=1.0)
+# \endcode
+# \note \par
 class lj(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -474,6 +596,7 @@ class lj(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
+        self.force_coeff.set_default_coeff('r_on', 0.0);
         self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -486,7 +609,9 @@ class lj(wallpotential):
         return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Gaussian %wall %force
-# See pair.gauss for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Gaussian potential.
+# See pair.gauss for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation
 class gauss(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -508,6 +633,7 @@ class gauss(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma'];
+        self.force_coeff.set_default_coeff('r_on', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -515,7 +641,9 @@ class gauss(wallpotential):
         return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Shifted Lennard-Jones %wall %force
-# See pair.slj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Shifted Lennard-Jones potential.
+# See pair.slj for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation
 class slj(wallpotential):
     def __init__(self, walls, d_max=None, name=""):
         util.print_status_line();
@@ -544,7 +672,8 @@ class slj(wallpotential):
 
         # setup the coefficient options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
+        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -556,7 +685,9 @@ class slj(wallpotential):
         return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Yukawa %wall %force
-# See pair.yukawa for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Yukawa potential.
+# See pair.yukawa for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation
 class yukawa(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -578,6 +709,7 @@ class yukawa(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'kappa'];
+        self.force_coeff.set_default_coeff('r_on', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -585,7 +717,9 @@ class yukawa(wallpotential):
         return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Morse %wall %force
-# See pair.morse for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Morse potential.
+# See pair.morse for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation
 class morse(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -608,6 +742,7 @@ class morse(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['D0', 'alpha', 'r0'];
+        self.force_coeff.set_default_coeff('r_on', 0.0);
 
     def process_coeff(self, coeff):
         D0 = coeff['D0'];
@@ -617,6 +752,7 @@ class morse(wallpotential):
         return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Force-shifted Lennard-Jones %wall %force
+# Wall force evaluated using the Force-shifted Lennard-Jones potential.
 # See pair.force_shifted_lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class force_shifted_lj(wallpotential):
     def __init__(self, walls, name=""):
@@ -640,7 +776,8 @@ class force_shifted_lj(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
+        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -652,7 +789,9 @@ class force_shifted_lj(wallpotential):
         return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
 ## Mie potential %wall %force
-# See pair.mie for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+# Wall force evaluated using the Mie potential.
+# See pair.mie for force details and base parameters and wall.wallpotential for
+# generalized %wall %force implementation
 class mie(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -675,6 +814,7 @@ class mie(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];
+        self.force_coeff.set_default_coeff('r_on', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = float(coeff['epsilon']);

@@ -102,6 +102,7 @@ Table of contents:
  - Helpers
    - \ref sec_index_group
    - \ref sec_index_variant
+   - \ref sec_index_wall_helpers
 
  - Miscellaneous
   - \ref sec_index_tuning
@@ -272,6 +273,12 @@ Table of contents:
 
 \section sec_index_variant Variants
  - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>Linearly interpolated variant</i>
+
+\section sec_index_wall_helpers Wall geometry helpers
+ - \link hoomd_script.wall.group() wall.group\endlink - <i>Creates wall structure for input to wall potentials</i>
+ - \link hoomd_script.wall.sphere_wall() wall.sphere_wall\endlink - <i>Creates a sphere definition</i>
+ - \link hoomd_script.wall.cylinder_wall() wall.cylinder_wall\endlink - <i>Creates a cylinder definition</i>
+ - \link hoomd_script.wall.plane_wall() wall.plane_wall\endlink - <i>Creates a plane definition</i>
 
 <h2>Miscellaneous commands</h2>
 \section sec_index_tuning Tune
