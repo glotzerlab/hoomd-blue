@@ -81,3 +81,4 @@ cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
 cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
 #endif // __TWO_STEP_NPH_RIGID_CUH__
+

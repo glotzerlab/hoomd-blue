@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#include "TwoStepNVERigid.h"
+#include "TwoStepNHRigid.h"
 #include "Variant.h"
 #include "ComputeThermo.h"
 
@@ -67,38 +67,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NPH ensemble
 /*! Implements Nose-Hoover NPH integration through the IntegrationMethodTwoStep interface
 
-    This class and TwoStepNVTRigid are supposed to be re-organized due to shared member functions
-
     \ingroup updaters
 */
-class TwoStepNPHRigid : public TwoStepNVERigid
+class TwoStepNPHRigid : public TwoStepNHRigid
     {
     public:
         //! Constructs the integration method and associates it with the system
         TwoStepNPHRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo_group,
-                   boost::shared_ptr<ComputeThermo> thermo_all,
-                   Scalar tauP,
-                   boost::shared_ptr<Variant> P,
-                   bool skip_restart=false);
+                        boost::shared_ptr<ParticleGroup> group,
+                        boost::shared_ptr<ComputeThermo> thermo_group,
+                        boost::shared_ptr<ComputeThermo> thermo_all,
+                        const std::string& suffix,
+                        Scalar tauP,
+                        boost::shared_ptr<Variant> P,
+                        couplingMode couple,
+                        unsigned int flags,
+                        unsigned int pchain,
+                        unsigned int iter);
         virtual ~TwoStepNPHRigid();
 
         //! Computes initial forces and torques and initializes thermostats/barostats
         virtual void setup();
 
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        //! Returns logged values
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
     protected:
-        //! Integrator variables
-        virtual void setRestartIntegratorVariables();
     };
 
 //! Exports the TwoStepNPHRigid class to python
 void export_TwoStepNPHRigid();
 
 #endif // #ifndef __TWO_STEP_NPH_RIGID_H__
+

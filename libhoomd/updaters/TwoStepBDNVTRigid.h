@@ -49,13 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-/*! \file TwoStepBDNVTRigid.h
-    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
-*/
-
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+/*! \file TwoStepBDNVTRigid.h
+    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
+*/
 
 #include "TwoStepNVERigid.h"
 #include "Variant.h"
@@ -64,10 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __TWO_STEP_BD_NVT_RIGID_H__
 #define __TWO_STEP_BD_NVT_RIGID_H__
 
-
-/*! \file TwoStepBDNVTRigid.h
- \brief Declares the TwoStepBDNVTRigid class
- */
 
 //! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
@@ -88,14 +84,10 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
 
-        //! Update the temperature
-        virtual void setT(boost::shared_ptr<Variant> T);
-
         //! Performs the second step
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
 

@@ -72,12 +72,16 @@ class TwoStepNPHRigidGPU : public TwoStepNPHRigid
     public:
         //! Constructs the integration method and associates it with the system
         TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ParticleGroup> group,
-                            boost::shared_ptr<ComputeThermo> thermo_group,
-                            boost::shared_ptr<ComputeThermo> thermo_all,
-                            Scalar tauP,
-                            boost::shared_ptr<Variant> P,
-                            bool skip_restart=false);
+                           boost::shared_ptr<ParticleGroup> group,
+                           boost::shared_ptr<ComputeThermo> thermo_group,
+                           boost::shared_ptr<ComputeThermo> thermo_all,
+                           const std::string& suffix,
+                           Scalar tauP,
+                           boost::shared_ptr<Variant> P,
+                           couplingMode couple,
+                           unsigned int flags,
+                           unsigned int pchain=5,
+                           unsigned int iter=5);
 
         virtual ~TwoStepNPHRigidGPU() {};
 
@@ -110,3 +114,4 @@ class TwoStepNPHRigidGPU : public TwoStepNPHRigid
 void export_TwoStepNPHRigidGPU();
 
 #endif // #ifndef __TWO_STEP_NPH_RIGID_GPU_H__
+

@@ -1082,7 +1082,7 @@ class bdnvt(_integration_method):
 ## NVE Integration for rigid bodies
 #
 # integrate.nve_rigid performs constant volume, constant energy simulations on rigid bodies
-# The integration scheme is implemented from \cite Miller2002 .
+# The integration scheme is implemented from \cite Miller2002.
 #
 # Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
@@ -1143,7 +1143,7 @@ class nve_rigid(_integration_method):
 ## NVT Integration for rigid bodies
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
-# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005.
 #
 # Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
@@ -1168,7 +1168,7 @@ class nvt_rigid(_integration_method):
     # integrate.nvt_rigid(group=all, T=1.0, tau=10.0)
     # integrator = integrate.nvt_rigid(group=all, tau=5.0, T=1.0)
     # \endcode
-    def __init__(self, group, T, tau):
+    def __init__(self, group, T, tau, tchain=None, iter=None):
         util.print_status_line();
 
         # register the citation
@@ -1203,11 +1203,17 @@ class nvt_rigid(_integration_method):
         # setup suffix
         suffix = '_' + group.name;
 
+        if tchain is None:
+            tchain = 5;
+
+        if iter is None:
+            iter = 5;
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
+            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, suffix, T.cpp_variant, tau, tchain, iter);
         else:
-            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
+            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, suffix, T.cpp_variant, tau, tchain, iter);
 
         self.cpp_method.validateGroup()
 
@@ -1389,7 +1395,40 @@ class bdnvt_rigid(_integration_method):
 ## NPT Integration for rigid bodies
 #
 # integrate.npt_rigid performs constant pressure, constant temperature simulations of the rigid bodies in the system.
-# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005.
+#
+# By default, integrate.npt_rigid performs integration in a cubic box under hydrostatic pressure by simultaneously
+# rescaling the lengths \a Lx, \a Ly and \a Lz of the simulation box.
+#
+# integrate.npt_rigid can also work with other sets of \a couplings and with other box degrees of freedom
+# that are put under barostat control.
+#
+# \a Couplings define which diagonal elements of the pressure tensor \f$ P_{\alpha,\beta} \f$
+# should be averaged over, so that the corresponding box lengths are rescaled by the same amount.
+#
+# Valid \a couplings are:<br>
+# - \b none (all box lengths are updated independently)
+# - \b xy (\a Lx and \a Ly are coupled)
+# - \b xz (\a Lx and \a Lz are coupled)
+# - \b yz (\a Ly and \a Lz are coupled)
+# - \b xyz (\a Lx and \a Ly and \a Lz are coupled)
+#
+# The default coupling is \b xyz, i.e. the ratios between all box lengths stay constant.
+#
+# <em>Degrees of freedom</em> of the box specify which lengths and tilt factors of the box should be updated,
+# and how particle coordinates and velocities should be rescaled.
+#
+# Valid keywords for degrees of freedom are:
+# - \b x (the box length Lx is updated)
+# - \b y (the box length Ly is updated)
+# - \b z (the box length Lz is updated)
+# - \b xy (the tilt factor xy is updated)
+# - \b xz (the tilt factor xz is updated)
+# - \b yz (the tilt factor yz is updated)
+# - \b all (all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together)
+#
+# Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
+# are updated.
 #
 # Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
@@ -1407,6 +1446,14 @@ class npt_rigid(_integration_method):
     # \param tauP Time constatnt for the barostat (in time units)
     # \param T Temperature set point for the thermostat (in energy units)
     # \param P Pressure set point for the barostat (in pressure units)
+    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
+    # \param x If True, the box length Lx is updated
+    # \param y If True, the box length Ly is updated
+    # \param z If True, the box length Lz is updated
+    # \param xy If True, the tilt factor xy is updated
+    # \param xz If True, the tilt factor xz is updated
+    # \param yz If True, the tilt factor yz is updated
+    # \param all If True, all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together
     #
     # \a T (and P) can be a variant type, allowing for temperature (and pressure) ramps in simulation runs.
     #
@@ -1416,7 +1463,7 @@ class npt_rigid(_integration_method):
     # integrate.npt_rigid(group=all, T=1.0, tau=10.0, P=1.0, tauP=1.0)
     #
     # \endcode
-    def __init__(self, group, T, tau, P, tauP):
+    def __init__(self, group, T, tau, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, tchain=None, pchain=None, iter=None):
         util.print_status_line();
 
         # register the citation
@@ -1446,15 +1493,78 @@ class npt_rigid(_integration_method):
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
 
-         # create the compute thermo
+        # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
 
+        # setup suffix
+        suffix = '_' + group.name;
+
+        if tchain is None:
+            tchain = 5;
+
+        if pchain is None:
+            pchain = 5;
+
+        if iter is None:
+            iter = 5;
+
+        # need to know if we are running 2D simulations
+        twod = (globals.system_definition.getNDimensions() == 2);
+        if twod:
+            globals.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
+
+        if twod:
+            # silently ignore any couplings that involve z
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
+                raise RuntimeError("Error setting up NPT integration.");
+        else:
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
+                raise RuntimeError("Error setting up NPT integration.");
+
+        # set degrees of freedom flags
+        # silently ignore z related degrees of freedom when running in 2d
+        flags = 0;
+        if x or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_x
+        if y or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_y
+        if (z or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_z
+        if xy or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_xy
+        if (xz or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_xz
+        if (yz or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_yz
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, suffix, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, tchain, pchain, iter);
         else:
-            self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, suffix, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, tchain, pchain, iter);
 
         self.cpp_method.validateGroup()
 
@@ -1507,7 +1617,39 @@ class npt_rigid(_integration_method):
 ## NPH Integration for rigid bodies
 #
 # integrate.nph_rigid performs constant pressure, constant enthalpy simulations of the rigid bodies in the system.
-# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005.
+# By default, integrate.npt_rigid performs integration in a cubic box under hydrostatic pressure by simultaneously
+# rescaling the lengths \a Lx, \a Ly and \a Lz of the simulation box.
+#
+# integrate.npt_rigid can also work with other sets of \a couplings and with other box degrees of freedom
+# that are put under barostat control.
+#
+# \a Couplings define which diagonal elements of the pressure tensor \f$ P_{\alpha,\beta} \f$
+# should be averaged over, so that the corresponding box lengths are rescaled by the same amount.
+#
+# Valid \a couplings are:<br>
+# - \b none (all box lengths are updated independently)
+# - \b xy (\a Lx and \a Ly are coupled)
+# - \b xz (\a Lx and \a Lz are coupled)
+# - \b yz (\a Ly and \a Lz are coupled)
+# - \b xyz (\a Lx and \a Ly and \a Lz are coupled)
+#
+# The default coupling is \b xyz, i.e. the ratios between all box lengths stay constant.
+#
+# <em>Degrees of freedom</em> of the box specify which lengths and tilt factors of the box should be updated,
+# and how particle coordinates and velocities should be rescaled.
+#
+# Valid keywords for degrees of freedom are:
+# - \b x (the box length Lx is updated)
+# - \b y (the box length Ly is updated)
+# - \b z (the box length Lz is updated)
+# - \b xy (the tilt factor xy is updated)
+# - \b xz (the tilt factor xz is updated)
+# - \b yz (the tilt factor yz is updated)
+# - \b all (all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together)
+#
+# Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
+# are updated.
 #
 # Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
@@ -1523,6 +1665,14 @@ class nph_rigid(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param tauP Time constatnt for the barostat (in time units)
     # \param P Pressure set point for the barostat (in pressure units)
+    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
+    # \param x If True, the box length Lx is updated
+    # \param y If True, the box length Ly is updated
+    # \param z If True, the box length Lz is updated
+    # \param xy If True, the tilt factor xy is updated
+    # \param xz If True, the tilt factor xz is updated
+    # \param yz If True, the tilt factor yz is updated
+    # \param all If True, all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together
     #
     # \a P can be a variant type, allowing for pressure ramping in simulation runs.
     #
@@ -1532,7 +1682,7 @@ class nph_rigid(_integration_method):
     # integrate.nph_rigid(group=all, P=1.0, tauP=1.0)
     #
     # \endcode
-    def __init__(self, group, P, tauP):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, pchain=None, iter=None):
         util.print_status_line();
 
         # register the citation
@@ -1561,15 +1711,75 @@ class nph_rigid(_integration_method):
         # setup the variant inputs
         P = variant._setup_variant_input(P);
 
-         # create the compute thermo
+        # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
 
+        if pchain is None:
+            pchain = 5;
+
+        if iter is None:
+            iter = 5;
+
+        # setup suffix
+        suffix = '_' + group.name;
+
+        # need to know if we are running 2D simulations
+        twod = (globals.system_definition.getNDimensions() == 2);
+        if twod:
+            globals.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
+
+        if twod:
+            # silently ignore any couplings that involve z
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
+                raise RuntimeError("Error setting up NPH integration.");
+        else:
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNHRigid.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
+                raise RuntimeError("Error setting up NPH integration.");
+
+        # set degrees of freedom flags
+        # silently ignore z related degrees of freedom when running in 2d
+        flags = 0;
+        if x or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_x
+        if y or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_y
+        if (z or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_z
+        if xy or all:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_xy
+        if (xz or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_xz
+        if (yz or all) and not twod:
+            flags |= hoomd.TwoStepNHRigid.baroFlags.baro_yz
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPHRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPHRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, suffix, tauP, P.cpp_variant, cpp_couple, flags, pchain, iter);
         else:
-            self.cpp_method = hoomd.TwoStepNPHRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPHRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, suffix, tauP, P.cpp_variant, cpp_couple, flags, pchain, iter);
 
         self.cpp_method.validateGroup()
 
