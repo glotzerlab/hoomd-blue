@@ -190,7 +190,7 @@ Table of contents:
  - \link hoomd_script.nlist.cell nlist.cell\endlink - <i>Cell-list constructed neighbor list </i>
  - \link hoomd_script.nlist.tree nlist.tree\endlink - <i>Fast neighbor list for size asymmetric particles </i>
  - \link hoomd_script.nlist nlist\endlink - <i>Legacy wrappers for the global neighbor list</i>
- 
+
 \section sec_index_pair Pair potentials
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>CMM coarse-grain model %pair %force </i>
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i>
@@ -236,6 +236,12 @@ Table of contents:
 
 \section sec_index_wall Wall potentials
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.gauss wall.gauss\endlink - <i>Gaussian %wall %force </i>
+ - \link hoomd_script.wall.slj wall.slj\endlink - <i>Shifted Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.yukawa wall.yukawa\endlink - <i>Yukawa %wall %force </i>
+ - \link hoomd_script.wall.morse wall.morse\endlink - <i>Morse %wall %force </i>
+ - \link hoomd_script.wall.force_shifted_lj wall.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.mie wall.mie\endlink - <i>Mie potential %wall %force </i>
 
 \section sec_index_constraint Constraint forces
  - \link hoomd_script.constrain.sphere constrain.sphere\endlink - <i>Constrain particles to the surface of a sphere </i>

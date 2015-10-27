@@ -21,10 +21,10 @@
 # * All publications and presentations based on HOOMD-blue, including any reports
 # or published results obtained, in whole or in part, with HOOMD-blue, will
 # acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
+# http:/\codeblue.umich.edu/hoomd-blue/citations.html
 
 # * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
+# http:/\codeblue.umich.edu/hoomd-blue/
 
 # * Apart from the above required attributions, neither the name of the copyright
 # holder nor the names of HOOMD-blue's contributors may be used to endorse or
@@ -49,8 +49,19 @@
 
 # Maintainer: jproc
 
-## \package hoomd_script.external
-# \brief Commands that create external forces on particles
+## \package hoomd_script.wall
+# \brief Commands that specify %wall geometry and forces.
+#
+# Walls currently supports these geometries: spheres, planes, and cylinders.
+# Walls currently supports these potentials: lj, gauss, slj, yukawa, morse,
+# force_shifted_lj, and mie.
+#
+# Walls can add forces to any particles within a certain distance of each wall.
+#
+# Walls are created using the group commands. See group for more details.
+# By themselves, wall groups do nothing. Only when you specify a wall force (i.e.
+# wall.lj),  are forces actually applied between the wall and the particle.
+# See hoomd_script.wall.wallpotential for more details of implementing a force.
 
 from hoomd_script import external;
 from hoomd_script import globals;
@@ -60,11 +71,112 @@ from hoomd_script import meta;
 import hoomd;
 import math;
 
+## Defines the %wall group.
+#
+# All wall forces use a wall group as an input so it is necessary to create a
+# wall.group object before any wall.force can be created. Current supported
+# geometries are spheres, cylinder, and planes. The maximum number of each type of
+# wall is 20, 20, and 60 respectively.
+#
+# \note \par
+# The entire structure can easily be viewed by printing the wall.group object.
+#
+# \note \par
+# While all x,y,z coordinates can be given as a list or tuple, only origin
+# parameters are points  in x,y,z space. Normal and axis parameters are vectors
+# and must have a magnitude.
+#
+# \note \par
+# Although members of the structure can be modified directly,  using the
+# convenience functions (i.e. add_sphere, del_sphere) will keep track of the total
+# number of each type implemented and give warnings if the maximum number of any
+# type is reached. If the structure is modified outside the demonstrated scope,
+# the group object update function should be called.
+#
+# \note \par
+# Wall structure modifications between run() calls will be implemented in
+# the next run. However, modifications must be done carefully since moving the
+# wall can result in particles moving to a relative positions which causes
+# exceptionally high forces resulting in particles moving many times the box length
+# in one move.
+#
+# \b Example:\n
+# In[0]:
+# \code
+# wallstructure=wall.group(name="arbitrary name")
+# wallstructure.add_sphere(r=1.0,origin=(0,1,3))
+# wallstructure.add_sphere(1.0,[0,-1,3],inside=False)
+# wallstructure.add_cylinder(r=1.0,origin=(1,1,1),axis=(0,0,3),inside=True)
+# wallstructure.add_cylinder(4.0,[0,0,0],(1,0,1))
+# wallstructure.add_cylinder(5.5,(1,1,1),(3,-1,1),False)
+# wallstructure.add_plane(origin=(3,2,1),normal=(2,1,4))
+# wallstructure.add_plane((0,0,0),(10,2,1))
+# wallstructure.add_plane((0,0,0),(0,2,1))
+# print(wallstructure)
+# \endcode
+# Out[0]:
+# \code
+# Wall_Data_Sturucture:arbitrary name
+# spheres:2{
+# [0:	Radius=1.0	Origin=(0.0, 1.0, 3.0)	Inside=True]
+# [1:	Radius=1.0	Origin=(0.0, -1.0, 3.0)	Inside=False]}
+# cylinders:3{
+# [0:	Radius=1.0	Origin=(1.0, 1.0, 1.0)	Axis=(0.0, 0.0, 3.0)	Inside=True]
+# [1:	Radius=4.0	Origin=(0.0, 0.0, 0.0)	Axis=(1.0, 0.0, 1.0)	Inside=True]
+# [2:	Radius=5.5	Origin=(1.0, 1.0, 1.0)	Axis=(3.0, -1.0, 1.0)	Inside=False]}
+# planes:3{
+# [0:	Origin=(3.0, 2.0, 1.0)	Normal=(2.0, 1.0, 4.0)]
+# [1:	Origin=(0.0, 0.0, 0.0)	Normal=(10.0, 2.0, 1.0)]
+# [2:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 2.0, 1.0)]}
+# \endcode
+# In[1]:
+# \code
+# wallstructure.del_plane(range(3))
+# wallstructure.del_cylinder([0,2])
+# wallstructure.del_sphere(1)
+# print(wallstructure)
+# \endcode
+# Out[1]:
+# \code
+# Wall_Data_Sturucture:arbitrary name
+# spheres:1{
+# [0:	Radius=1.0	Origin=(0.0, 1.0, 3.0)	Inside=True]}
+# cylinders:1{
+# [0:	Radius=4.0	Origin=(0.0, 0.0, 0.0)	Axis=(1.0, 0.0, 1.0)	Inside=True]}
+# planes:0{}
+# \endcode
+# In[2]:
+# \code
+# wallstructure.spheres[0].r=2.0
+# wallstructure.cylinders[0].origin=[1,2,1]
+# wallstructure.cylinders[0].axis=(0,0,1)
+# print(wallstructure)
+# \endcode
+# Out[2]:
+# \code
+# Wall_Data_Sturucture:arbitrary name
+# spheres:1{
+# [0:	Radius=2.0	Origin=(0.0, 1.0, 3.0)	Inside=True]}
+# cylinders:1{
+# [0:	Radius=4.0	Origin=(1.0, 2.0, 1.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
+# planes:0{}
+# \endcode
 class group():
-    # Max number of each wall geometry must match c++ defintions
+    # Max number of each wall geometry must match c++ definitions
     _max_n_sphere_walls=20;
     _max_n_cylinder_walls=20;
     _max_n_plane_walls=60;
+
+    ## Creates the wall group which can be named to easily find in the metadata.
+    # Required to call and create an object before walls can be added to that
+    # object.
+    # \param name Name of the wall structure (string, defaults to empty string).
+    #
+    # \b Example:
+    # \code
+    # wall_object=wall.group()
+    # named_wall_object=wall.group(name='Arbitrary Wall Name')
+    # \endcode
     def __init__(self,name=''):
         self.name=name;
         self.num_spheres=0;
@@ -74,6 +186,11 @@ class group():
         self.cylinders=[];
         self.planes=[];
 
+    ## Adds a sphere to the %wall group.
+    #
+    # \param r Sphere radius (in distance units)
+    # \param origin Sphere origin (in x,y,z coordinates)
+    # \param inside Sphere distance evaluation from inside/outside surface (defaults to True)
     def add_sphere(self, r, origin, inside=True):
         if self.num_spheres<group._max_n_sphere_walls:
             self.spheres.append(sphere_wall(r,origin,inside));
@@ -81,6 +198,13 @@ class group():
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of sphere walls.\n");
             raise RuntimeError('Maximum number of sphere walls already used.');
+
+    ## Adds a cylinder to the %wall group.
+    #
+    # \param r Cylinder radius (in distance units)
+    # \param origin Cylinder origin (in x,y,z coordinates)
+    # \param axis Cylinder axis vector (in x,y,z coordinates)
+    # \param inside Cylinder distance evaluation from inside/outside surface (defaults to True)
     def add_cylinder(self, r, origin, axis, inside=True):
         if self.num_cylinders<group._max_n_cylinder_walls:
             self.cylinders.append(cylinder_wall(r, origin, axis, inside));
@@ -88,6 +212,11 @@ class group():
         else:
             globals.msg.error("Trying to specify more than the maximum allowable number of cylinder walls.\n");
             raise RuntimeError('Maximum number of cylinder walls already used.');
+
+    ## Adds a plane to the %wall group.
+    #
+    # \param origin Plane origin (in x,y,z coordinates)
+    # \param normal Plane normal vector (in x,y,z coordinates)
     def add_plane(self, origin, normal):
         if self.num_planes<group._max_n_plane_walls:
             self.planes.append(plane_wall(origin, normal));
@@ -96,41 +225,74 @@ class group():
             globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
             raise RuntimeError('Maximum number of plane walls already used.');
 
+    ## Deletes the sphere or spheres in index.
+    # \param index The index of sphere(s) desired to delete. Accepts int, range, and lists.
     def del_sphere(self, index):
-        if type(index) is list: index = set(index);
-        elif type(index) is range: index = set(list(index));
-        elif type(index) is not set: index = set([index]);
-        if (self.num_spheres-index)>0:
-            del(self.spheres[index]);
-            self.num_spheres-=1;
-        else:
-            globals.msg.error("Specified index for deletion is not available.\n");
-            raise RuntimeError("del_sphere failed")
-    def del_cylinder(self, index):
-        if type(index) is list: index = set(index);
-        elif type(index) is range: index = set(list(index));
-        elif type(index) is not set: index = set([index]);
-        if (self.num_cylinders-index)>0:
-            del(self.cylinders[index]);
-            self.num_cylinders-=1;
-        else:
-            globals.msg.error("Specified index for deletion is not valid.\n");
-            raise RuntimeError("del_cylinder failed")
-    def del_plane(self, index):
-        if type(index) is list: index = set(index);
-        elif type(index) is range: index = set(list(index));
-        elif type(index) is not set: index = set([index]);
-        if (self.num_planes-index)>0:
-            del(self.planes[index]);
-            self.num_planes-=1;
-        else:
-            globals.msg.error("Specified index for deletion is not valid.\n");
-            raise RuntimeError("del_plane failed")
+        if type(index) is int: index = [index];
+        elif type(index) is range: index = list(index);
+        index=list(set(index));
+        index.sort(reverse=True);
+        for i in index:
+            try:
+                del(self.spheres[i]);
+                self.num_spheres-=1;
+            except IndexValueError:
+                globals.msg.error("Specified index for deletion is not valid.\n");
+                raise RuntimeError("del_sphere failed")
 
+    ## Deletes the cylinder or cylinders in index.
+    # \param index The index of cylinder(s) desired to delete. Accepts int, range, and lists.
+    def del_cylinder(self, index):
+        if type(index) is int: index = [index];
+        elif type(index) is range: index = list(index);
+        index=list(set(index));
+        index.sort(reverse=True);
+        for i in index:
+            try:
+                del(self.cylinders[i]);
+                self.num_cylinders-=1;
+            except IndexValueError:
+                globals.msg.error("Specified index for deletion is not valid.\n");
+                raise RuntimeError("del_cylinder failed")
+
+    ## Deletes the plane or planes in index.
+    # \param index The index of plane(s) desired to delete. Accepts int, range, and lists.
+    def del_plane(self, index):
+        if type(index) is int: index = [index];
+        elif type(index) is range: index = list(index);
+        index=list(set(index));
+        index.sort(reverse=True);
+        for i in index:
+            try:
+                del(self.planes[i]);
+                self.num_planes-=1;
+            except IndexValueError:
+                globals.msg.error("Specified index for deletion is not valid.\n");
+                raise RuntimeError("del_plane failed")
+
+    ## \internal
+    # \brief Return metadata for this wall structure
     def get_metadata(self):
         data = meta._metadata_from_dict(eval(str(self.__dict__)));
         return data;
 
+    ## Updates counting variables of the wall.group object and checks for validity of input
+    def update(self):
+        self.num_spheres=len(self.spheres);
+        self.num_cylinders=len(self.cylinders);
+        self.num_planes=len(self.planes);
+        if self.num_spheres>group._max_n_sphere_walls:
+            globals.msg.error("Trying to specify more than the maximum allowable number of sphere walls.\n");
+            raise RuntimeError('Maximum number of sphere walls already used.');
+        if self.num_cylinders>group._max_n_cylinder_walls:
+            globals.msg.error("Trying to specify more than the maximum allowable number of cylinder walls.\n");
+            raise RuntimeError('Maximum number of cylinder walls already used.');
+        if self.num_planes>group._max_n_plane_walls:
+            globals.msg.error("Trying to specify more than the maximum allowable number of plane walls.\n");
+            raise RuntimeError('Maximum number of plane walls already used.');
+
+    ## \internal
+    # \brief Returns output for print
     def __str__(self):
         output="Wall_Data_Sturucture:%s\nspheres:%s{"%(self.name, self.num_spheres);
         for index in range(self.num_spheres):
@@ -147,6 +309,7 @@ class group():
         output+="}";
         return output;
 
+## Class that populates the spheres[] array in the wall.group object.
 class sphere_wall:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r;
@@ -166,6 +329,7 @@ class sphere_wall:
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
 
+## Class that populates the cylinders[] array in the wall.group object.
 class cylinder_wall:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
         self.r = r;
@@ -193,6 +357,7 @@ class cylinder_wall:
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
+## Class that populates the planes[] array in the wall.group object.
 class plane_wall:
     def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
         self._origin = hoomd.make_scalar3(*origin);
@@ -219,6 +384,44 @@ class plane_wall:
         return "{'origin':%s, 'normal': %s}" % (str(self.origin), str(self.normal));
 
 
+## Generic %wall %force
+#
+# wall.wallpotential is not a command hoomd scripts should execute directly.
+# Rather, it is a base command that provides common features to all standard
+# %wall forces. Rather than repeating all of that documentation in many
+# different places, it is collected here.
+#
+# All %wall %force commands specify that a given potential energy and %force be
+# computed on all particles in the system within a cutoff distance \f$
+# r_{\mathrm{cut}} \f$ from each wall in the given wall group
+#
+# The %force \f$ \vec{F}\f$ is \f{eqnarray*} \vec{F}  = & -\nabla V(r) & r <
+# r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\ \f} where \f$
+# \vec{r} \f$ is the vector pointing from the particle to the %wall, and \f$ V(r)
+# \f$ is evaluated in the same manner as when mode is shift for the analogous pair
+# potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
+# V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f} and \f$ V_{\mathrm{pair}}(r) \f$ is
+# the specific %pair potential chosen by the respective command.
+#
+# The following coefficients must be set per unique particle types.
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+# - All parameters required by the %pair potential base for the wall potential
+#
+#
+# \b Example:
+# \code
+#
+# \endcode
+#
+# \note \par
+# If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False the particle type
+# %wall interaction is excluded.
+# \note \par
+# Wall potentials are only based on the same potential energy calculations
+# as pair potentials. Features of pair potentials such as global r_cut,
+# specified neighborlists, and alternative force shifting modes are not
+# supported.
 class wallpotential(external._external_force):
     def __init__(self, walls, name=""):
         external._external_force.__init__(self, name);
@@ -228,25 +431,27 @@ class wallpotential(external._external_force):
     def process_field_coeff(self, coeff):
         return hoomd.make_wall_field_params(coeff);
 
+    ## \internal
+    # \brief Return metadata for this wall potential
     def get_metadata(self):
         data=external._external_force.get_metadata(self);
         data['walls_struct'] = self.field_coeff.get_metadata();
         return data
 
+    ## \internal
+    # \brief Fixes negative values to zero before squaring
+    def update_coeffs(self):
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        for i in range(0,ntypes):
+            type=globals.system_definition.getParticleData().getNameByType(i);
+            if self.force_coeff.values[type]['r_cut']<=0:
+                self.force_coeff.values[type]['r_cut']=0;
+            if self.force_coeff.values[type]['r_on']<=0:
+                self.force_coeff.values[type]['r_on']=0;
+        external._external_force.update_coeffs(self);
 
-# TODO: note on potentials that are and are not included
-# class ewald(wallpotential):
-
-
-# class moliere(wallpotential):
-
-
-# class zbl(wallpotential):
-
-
-# TODO: add dpdthermo and dpdljthermo maybe? don't require diam, but have seperate GPU so mabye not
-
-
+## Lennard-Jones %wall %force
+# See pair.lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class lj(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -280,6 +485,8 @@ class lj(wallpotential):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
+## Gaussian %wall %force
+# See pair.gauss for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class gauss(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -307,9 +514,10 @@ class gauss(wallpotential):
         sigma = coeff['sigma'];
         return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-
+## Shifted Lennard-Jones %wall %force
+# See pair.slj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class slj(wallpotential):
-    def __init__(self, walls, r_cut, d_max=None, name=""):
+    def __init__(self, walls, d_max=None, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -347,15 +555,8 @@ class slj(wallpotential):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-    def set_params(self, mode=None):
-        util.print_status_line();
-
-        if mode == "xplor":
-            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
-            raise RuntimeError("Error changing parameters in wallpotential force");
-
-        wallpotential.set_params(self, mode=mode);
-
+## Yukawa %wall %force
+# See pair.yukawa for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class yukawa(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -383,7 +584,8 @@ class yukawa(wallpotential):
         kappa = coeff['kappa'];
         return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
-
+## Morse %wall %force
+# See pair.morse for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class morse(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -414,6 +616,8 @@ class morse(wallpotential):
 
         return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
+## Force-shifted Lennard-Jones %wall %force
+# See pair.force_shifted_lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class force_shifted_lj(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
@@ -447,6 +651,8 @@ class force_shifted_lj(wallpotential):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
 
+## Mie potential %wall %force
+# See pair.mie for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class mie(wallpotential):
     def __init__(self, walls, name=""):
         util.print_status_line();
