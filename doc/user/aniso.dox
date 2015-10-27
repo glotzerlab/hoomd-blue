@@ -66,7 +66,7 @@ Anisotropic particles have a number of properties accessible using the particle 
 
 Particle angular momenta are stored in quaternion form as defined in Kamberaj 2005 \cite Kamberaj2005 : the
 angular momentum quaternion \f$\mathbf{P}\f$ is defined with respect to the orientation quaternion of the
-particle \f$\mathbf{q}\f$ and the angular momentum of the particle, lifted into pure imaginary queternion form
+particle \f$\mathbf{q}\f$ and the angular momentum of the particle, lifted into pure imaginary quaternion form
 \f$\mathbf{S}^{(4)}\f$ as:
 
 \f{equation}
