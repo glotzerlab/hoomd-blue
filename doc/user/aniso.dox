@@ -56,6 +56,10 @@ any anisotropic potential is defined in the system, integrators automatically in
 translational degrees of freedom of the system. Anisotropic integration can also be explicitly enabled or
 disabled through the `aniso` argument of \ref hoomd_script.integrate.mode_standard
 
+\note Rotational degrees of freedom given a moment of inertia of 0 (the default value) are not integrated or
+considered for temperature computation. Always set the moment of inertia for rotational degrees of freedom
+which should be integrated.
+
 Anisotropic particles have a number of properties accessible using the particle data API:
  - orientation, Quaternion to rotate the particle from its base orientation to its current orientation, in order \f$(real, imag_x, imag_y, imag_z)\f$
  - angular_momentum, Conjugate quaternion representing the particle's angular momentum, see \ref sec_angmom below
