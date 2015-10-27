@@ -593,7 +593,7 @@ class box_resize(_updater):
         if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
-## Adjusts the boundaries of a domain decomposition on a regular 3D grid.
+## Adjusts the boundaries of a domain %decomposition on a regular 3D grid.
 #
 # Every \a period steps, the boundaries of the processor domains are adjusted to distribute the particle load close
 # to evenly between them. The load imbalance is defined as the number of particles owned by a rank divided by the
@@ -626,6 +626,12 @@ class box_resize(_updater):
 # For example, if there is a planar vapor-liquid interface normal to the \f$z\f$ axis, then it may be advantageous to
 # disable balancing along \f$x\f$ and \f$y\f$.
 #
+# In systems that are well-behaved, there is minimal overhead of balancing with a small \a period. However, if the
+# system is not capable of being balanced (for example, due to the density distribution or minimum domain size), having
+# a small \a period and high \a maxiter may lead to a large performance loss. In such systems, it is currently best to
+# either balance infrequently or to balance once in a short test run and then set the decomposition statically in a
+# separate initialization.
+#
 # Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
 #
 # \MPI_SUPPORTED
@@ -640,14 +646,13 @@ class balance(_updater):
     # \param period Balancing will be attempted every \a period time steps
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
-    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1, phase=-1):
+    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=-1):
         util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
-        # globals.decomposition being None is equivalent to (a) not having a decomposition or (b) having a regular
-        # decomposition that doesn't support balancing
+        # balancing cannot be done without mpi
         if not hoomd.is_MPI_available():
             globals.msg.warning("Ignoring balance command, not supported in current configuration.\n")
             return

@@ -107,7 +107,7 @@ def barrier():
     if hoomd.is_MPI_available():
         globals.exec_conf.barrier()
 
-## Balances the domain decomposition
+## Balances the domain %decomposition
 #
 # A single domain %decomposition is defined for the simulation.
 # A standard domain %decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
@@ -128,16 +128,22 @@ def barrier():
 # available), then a default uniform spacing is chosen. For the best control, the user should specify the number of
 # ranks in each dimension even if uniform spacing is desired.
 #
+# decomposition can only be called *before* the system is initialized, at which point the particles are decomposed.
+# An error is raised if the system is already initialized.
+#
+# The %decomposition can be adjusted dynamically if the best static decomposition is not known, or the system
+# composition is changing dynamically. For this associated command, see update.balance().
+#
 # \warning The %decomposition command will override specified command line options.
 #
 class decomposition():
     ## Create a balanced domain decomposition
-    # \param x First nx-1 fractional domain widths
-    # \param y First ny-1 fractional domain widths
-    # \param z First nz-1 fractional domain widths
-    # \param nx Number of processors to uniformly space in x dimension (if x list is None)
-    # \param ny Number of processors to uniformly space in y dimension (if y list is None)
-    # \param nz Number of processors to uniformly space in z dimension (if z list is None)
+    # \param x First nx-1 fractional domain widths (if \a nx is None)
+    # \param y First ny-1 fractional domain widths (if \a ny is None)
+    # \param z First nz-1 fractional domain widths (if \a nz is None)
+    # \param nx Number of processors to uniformly space in x dimension (if \a x is None)
+    # \param ny Number of processors to uniformly space in y dimension (if \a y is None)
+    # \param nz Number of processors to uniformly space in z dimension (if \a z is None)
     #
     # Priority is always given to specified arguments over the command line arguments. If one of these is not set but
     # a command line option is, then the command line option is used. Otherwise, a default %decomposition is chosen.
@@ -148,7 +154,7 @@ class decomposition():
     # comm.decomposition(nx=2, y=0.8, z=[0.2,0.3])
     # \endcode
     #
-    # \note This command must be invoked *before* the system is initialized because particles are decomposed at this time.
+    # \warning This command must be invoked *before* the system is initialized because particles are decomposed at this time.
     #
     # \note The domain size cannot be chosen arbitrarily small. There are restrictions placed on the %decomposition by the
     #       ghost layer width set by the %pair potentials. An error will be raised at run time if the ghost layer width
@@ -210,12 +216,12 @@ class decomposition():
             globals.decomposition = self
 
     ## Set parameters for the decomposition before initialization.
-    # \param x First nx-1 fractional domain widths
-    # \param y First ny-1 fractional domain widths
-    # \param z First nz-1 fractional domain widths
-    # \param nx Number of processors to uniformly space in x dimension (if x list is None)
-    # \param ny Number of processors to uniformly space in y dimension (if y list is None)
-    # \param nz Number of processors to uniformly space in z dimension (if z list is None)
+    # \param x First nx-1 fractional domain widths (if \a nx is None)
+    # \param y First ny-1 fractional domain widths (if \a ny is None)
+    # \param z First nz-1 fractional domain widths (if \a nz is None)
+    # \param nx Number of processors to uniformly space in x dimension (if \a x is None)
+    # \param ny Number of processors to uniformly space in y dimension (if \a y is None)
+    # \param nz Number of processors to uniformly space in z dimension (if \a z is None)
     #
     # \b Examples:
     # \code
