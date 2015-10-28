@@ -327,6 +327,6 @@ class decomposition():
             self.cpp_dd = hoomd.DomainDecomposition(globals.exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
-        except TypeError,te:
+        except TypeError as te:
             globals.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
