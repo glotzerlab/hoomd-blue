@@ -177,8 +177,8 @@ class PotentialPair : public ForceCompute
                                             InputIterator first2, InputIterator last2,
                                             Scalar& energy );
         //! Calculates the energy between two lists of particles.
-        Scalar computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
-                                                    boost::python::numeric::array tags2);
+        Scalar computeEnergyBetweenSetsPythonList(  PyObject* tags1,
+                                                    PyObject* tags2);
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -196,6 +196,13 @@ class PotentialPair : public ForceCompute
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
             {
+            // skip the reallocation if the number of types does not change
+            // this keeps old potential coefficients when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_typpair_idx.getW())
+                return;
+
+            // if the number of types is different, built a new indexer and reallocate memory
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
@@ -223,7 +230,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
-    m_exec_conf->msg->notice(5) << "Constructing PotentialPair<" << evaluator::getName() << ">" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
     assert(m_pdata);
     assert(m_nlist);
@@ -246,7 +253,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
 template< class evaluator >
 PotentialPair< evaluator >::~PotentialPair()
     {
-    m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
     m_num_type_change_connection.disconnect();
     }
@@ -321,7 +328,7 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
 template< class evaluator >
 std::vector< std::string > PotentialPair< evaluator >::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }
@@ -738,8 +745,8 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
 
 //! Calculates the energy between two lists of particles.
 template < class evaluator >
-Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
-                                                                        boost::python::numeric::array tags2 )
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject* tags1,
+                                                                        PyObject* tags2 )
     {
     Scalar eng = 0.0;
     num_util::check_contiguous(tags1);

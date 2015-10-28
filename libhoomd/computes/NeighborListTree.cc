@@ -325,8 +325,13 @@ void NeighborListTree::traverseTree()
             if (!m_num_per_type[cur_pair_type])
                 continue;
 
-            // Determine the minimum r_cut_i (no diameter shifting, with buffer) for this particle
-            Scalar r_cut_i = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)]+m_r_buff;
+            // Check if this tree type should be excluded by r_cut(i,j) <= 0.0
+            Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)];
+            if (r_cut <= Scalar(0.0))
+                continue;
+
+            // Determine the minimum r_cut_i (no diameter shifting, with buffer) for this particle   
+            Scalar r_cut_i = r_cut + m_r_buff;
             
             // we save the r_cutsq before diameter shifting, as we will shift later, and reuse the r_cut_i now
             Scalar r_cutsq_i = r_cut_i*r_cut_i;

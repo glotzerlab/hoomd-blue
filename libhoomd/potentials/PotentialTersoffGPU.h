@@ -114,7 +114,7 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_pt
                                                                 const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << endl;
+    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -131,7 +131,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
-        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << endl;
+        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -184,7 +184,8 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
                             this->m_tuner->getParam(),
-                            this->m_exec_conf->getComputeCapability()/10),
+                            this->m_exec_conf->getComputeCapability()/10,
+                            this->m_exec_conf->dev_prop.maxTexture1DLinear),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

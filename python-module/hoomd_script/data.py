@@ -857,6 +857,10 @@ class system_data(meta._metadata):
     # system.restore_snapshot(snapshot)
     # \endcode
     #
+    # \warning restore_snapshot() may invalidate force coefficients, neighborlist r_cut values, and other per type quantities if called within a callback
+    #          during a run(). You can restore a snapshot during a run only if the snapshot is of a previous state of the currently running system.
+    #          Otherwise, you need to use restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
+    #
     # \sa hoomd_script.data
     # \MPI_SUPPORTED
     def restore_snapshot(self, snapshot):

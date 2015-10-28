@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "VectorMath.h"
 
 #include <boost/python.hpp>
+
+using namespace std;
 using namespace boost::python;
 
 /*! \file TwoStepNVE.h

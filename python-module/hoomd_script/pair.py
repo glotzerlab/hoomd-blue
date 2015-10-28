@@ -78,9 +78,9 @@
 
 from hoomd_script import globals;
 from hoomd_script import force;
+from hoomd_script import nlist as nl # to avoid naming conflicts
 import hoomd;
 from hoomd_script import util;
-from hoomd_script import tune;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import variant;
@@ -324,464 +324,6 @@ class coeff:
         else:
             return None;
 
-## \internal
-# \brief %nlist r_cut matrix
-# \details
-# Holds the maximum cutoff radius by pair type, and gracefully updates maximum cutoffs as new pairs are added
-class rcut:
-
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # Initialize the dictionary that will hold r_cut
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-
-    ## \var values
-    # \internal
-    # \brief Contains the matrix of set r_cut values in a dictionary
-
-    ## \internal
-    # \brief Ensures a pair exists for the type by creating one if it doesn't exist
-    # \details
-    # \param self Python required self variable
-    # \param a Atom type A
-    # \param b Atom type B
-    def ensure_pair(self,a,b):
-        # create the pair if it hasn't been created yet
-        if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = -1.0; # negative means this hasn't been set yet since it is invalid
-
-        # find the pair we seek
-        if (a,b) in self.values:
-            cur_pair = (a,b);
-        elif (b,a) in self.values:
-            cur_pair = (b,a);
-        else:
-            globals.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
-            raise RuntimeError("Error fetching pair in nlist.r_cut.ensure_pair");
-
-        return cur_pair;
-
-    ## \internal
-    # \brief Forces a change of a single r_cut
-    # \details
-    # \param self Python required self variable
-    # \param a Atom type A
-    # \param b Atom type B
-    # \param cutoff Cutoff radius
-    def set_pair(self, a, b, cutoff):
-        cur_pair = self.ensure_pair(a,b);
-
-        # set the cutoff with simple error checking
-        try:
-            cutoff = float(cutoff);
-            if cutoff < 0.0:
-                globals.msg.error("Cutoff must be non-negative float\n");
-            else:
-                self.values[cur_pair] = cutoff;
-        except ValueError:
-            globals.msg.error("Cutoff must be non-negative float\n");
-
-    ## \internal
-    # \brief Attempts to update a single r_cut
-    # \details Similar to set_pair, but updates to the larger r_cut value
-    # \param self Python required self variable
-    # \param a Atom type A
-    # \param b Atom type B
-    # \param cutoff Cutoff radius
-    def merge_pair(self,a,b,cutoff):
-        cur_pair = self.ensure_pair(a,b);
-
-        # update the cutoff to the largest value for this pair with simple error checking
-        try:
-            cutoff = float(cutoff);
-            if cutoff < 0.0:
-                globals.msg.error("Cutoff must be non-negative float\n");
-            else:
-                self.values[cur_pair] = max(cutoff,self.values[cur_pair]);
-        except ValueError:
-            globals.msg.error("Cutoff must be non-negative float\n");
-
-    ## \internal
-    # \brief Gets the value of a single %pair coefficient
-    # \param self Python required self variable
-    # \param a First name in the type pair
-    # \param b Second name in the type pair
-    def get_pair(self, a, b):
-        cur_pair = self.ensure_pair(a,b);
-        return self.values[cur_pair];
-
-    ## \internal
-    # \brief Merges two rcut objects by maximum cutoff
-    # \param self Python required self variable
-    # \param rcut_obj The other rcut to merge in
-    def merge(self,rcut_obj):
-        for pair in rcut_obj.values:
-            (a,b) = pair;
-            self.merge_pair(a,b,rcut_obj.values[pair]);
-
-    ## \internal
-    # \brief Sanity check on rcut values
-    # \param self Python required self variable
-    #
-    # This can only be run after the system has been initialized
-    def verify(self):
-        # first, check that the system has been initialized
-        if not init.is_initialized():
-            globals.msg.error("Cannot verify pair coefficients before initialization\n");
-            raise RuntimeError('Error verifying pair coefficients');
-
-        # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-
-        # loop over all possible pairs and verify that all required variables are set
-        valid = True;
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                a = type_list[i];
-                b = type_list[j];
-
-                # ensure the pair
-                cur_pair = self.ensure_pair(a,b);
-
-                if self.values[cur_pair] < 0.0:
-                    msg = "Pair " + str((a,b)) + "cutoff (" + str(self.values[cur_pair]) + ") is invalid.\n";
-                    globals.msg.error(msg);
-                    valid = False;
-        return valid;
-
-## Interface for controlling neighbor list parameters
-#
-# A neighbor list should not be directly created by the user. One will be automatically
-# created when the first %pair %force is specified. The cutoff radius is set to the
-# maximum of that set for all defined %pair forces.
-#
-# Any bonds defined in the simulation are automatically used to exclude bonded particle
-# pairs from appearing in the neighbor list. Use the command reset_exclusions() to change this behavior.
-#
-# Neighborlists are properly and efficiently calculated in 2D simulations if the z dimension of the box is small,
-# but non-zero and the dimensionally of the system is set \b before the first pair force is specified.
-#
-class nlist:
-    ## \internal
-    # \brief Constructs a neighbor list
-    # \details
-    # \param self Python required instance variable
-    def __init__(self):
-        # check if initialization has occured
-        if not init.is_initialized():
-            globals.msg.error("Cannot create neighbor list before initialization\n");
-            raise RuntimeError('Error creating neighbor list');
-
-        # default values for r_cut and r_buff will be overridden by pair potentials' individual rcut classes
-        r_cut = 0.0;
-        default_r_buff = 0.4;
-
-        # create the C++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_cl = cl_c = hoomd.CellList(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl")
-            self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
-        else:
-            self.cpp_cl = cl_g = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_g, "auto_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
-
-        self.cpp_nlist.setEvery(1, True);
-        self.is_exclusion_overridden = False;
-        self.exclusions = None
-
-        globals.system.addCompute(self.cpp_nlist, "auto_nlist");
-
-        # save the parameters we set
-        ## here we switch self.r_cut to be an empty rcut object ##
-        self.r_cut = rcut();
-        self.r_buff = default_r_buff;
-
-        # save a list of subscribers that may have a say in determining the maximum r_cut
-        self.subscriber_callbacks = [];
-
-    ## \internal
-    # \brief Adds a subscriber to the neighbor list
-    # \param callable is a 0 argument callable object that returns the rcut object for all cutoff pairs in potential
-    # All \a callables will be called at the beginning of each run() to determine the maximum r_cut needed for that run.
-    #
-    def subscribe(self, callable):
-        self.subscriber_callbacks.append(callable);
-
-    ## \internal
-    # \brief Updates r_cut based on the subscriber's requests
-    # \details This method is triggered every time the run command is called
-    #
-    def update_rcut(self):
-        r_cut_max = rcut();
-        for c in self.subscriber_callbacks:
-            rcut_obj = c();
-            if rcut_obj is not None:
-                r_cut_max.merge(rcut_obj);
-
-        self.r_cut = r_cut_max;
-        for pair in self.r_cut.values:
-            (a,b) = pair
-            i = globals.system_definition.getParticleData().getTypeByName(a);
-            j = globals.system_definition.getParticleData().getTypeByName(b);
-            self.cpp_nlist.setRCutPair(i,j, self.r_cut.values[pair]);
-
-    ## \internal
-    # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
-    def update_exclusions_defaults(self):
-        if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
-            util._disable_status_lines = True;
-            # update exclusions using stored values
-            self.reset_exclusions(exclusions=self.exclusions)
-            util._disable_status_lines = False;
-        elif not self.is_exclusion_overridden:
-            util._disable_status_lines = True;
-            self.reset_exclusions(exclusions=['body', 'bond']);
-            util._disable_status_lines = False;
-
-
-    ## Change neighbor list parameters
-    #
-    # \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
-    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list
-    #        needs updating
-    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
-    #        run() commands. (in distance units)
-    # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
-    #        \a check_period steps
-    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
-    #
-    # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
-    # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
-    # to be updated less often, but more particles are included leading to slower %force computations.
-    # Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
-    # slowing overall performance again. The sweet spot for the best performance needs to be found by
-    # experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
-    # simulations.
-    #
-    # As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
-    # no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
-    # the neighbor list may not be updated when it needs to be.
-    #
-    # For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
-    # needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
-    # of approximately 2 percent.
-    #
-    # \a check_period should be set so that no particle
-    # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
-    # \b build is counted and printed in the neighbor list statistics at the end of a run().
-    #
-    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
-    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj,
-    # pair.slj will
-    # automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used)
-    # by using nlist.set_params() after the
-    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
-    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
-    # than necessary if
-    # d_max is greater than 1.0.
-    #
-    # A single global neighbor list is created for the entire simulation.
-    #
-    # \note For truly deterministic simulations, also the autotuner should be disabled.
-    # This can significantly decrease performance.
-    #
-    # \b Example:
-    # \code
-    # nlist.set_params(deterministic=True)
-    # option.set_autotuner_params(enable=False)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # nlist.set_params(r_buff = 0.9)
-    # nlist.set_params(check_period = 11)
-    # nlist.set_params(r_buff = 0.7, check_period = 4)
-    # nlist.set_params(d_max = 3.0)
-    # \endcode
-    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
-        util.print_status_line();
-
-        if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
-            raise RuntimeError('Error setting neighbor list parameters');
-
-        # update the parameters
-        if r_buff is not None:
-            self.cpp_nlist.setRBuff(r_buff);
-            self.r_buff = r_buff;
-
-        if check_period is not None:
-            self.cpp_nlist.setEvery(check_period, dist_check);
-
-        if d_max is not None:
-            self.cpp_nlist.setMaximumDiameter(d_max);
-
-        if deterministic is not None:
-            self.cpp_cl.setSortCellList(deterministic)
-
-    ## Resets all exclusions in the neighborlist
-    #
-    # \param exclusions Select which interactions should be excluded from the %pair interaction calculation.
-    #
-    # By default, the following are excluded from short range %pair interactions.
-    # - Directly bonded particles
-    # - Particles that are in the same rigid body
-    #
-    # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
-    # the exclusion for bonded particles.
-    #
-    # Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
-    # All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
-    #
-    # Valid types are:
-    # - \b %bond - Exclude particles that are directly bonded together
-    # - \b %angle - Exclude the two outside particles in all defined angles.
-    # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
-    # - \b %body - Exclude particles that belong to the same body
-    #
-    # The following types are determined solely by the bond topology. Every chain of particles in the simulation
-    # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit
-    # angles or dihedrals are defined.
-    # - \b 1-2  - Same as bond
-    # - \b 1-3  - Exclude particles connected with a sequence of two bonds.
-    # - \b 1-4  - Exclude particles connected with a sequence of three bonds.
-    #
-    # \b Examples:
-    # \code
-    # nlist.reset_exclusions(exclusions = ['1-2'])
-    # nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
-    # nlist.reset_exclusions(exclusions = ['bond', 'angle'])
-    # nlist.reset_exclusions(exclusions = [])
-    # \endcode
-    #
-    def reset_exclusions(self, exclusions = None):
-        util.print_status_line();
-        self.is_exclusion_overridden = True;
-
-        if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
-            raise RuntimeError('Error resetting exclusions');
-
-        # clear all of the existing exclusions
-        self.cpp_nlist.clearExclusions();
-        self.cpp_nlist.setFilterBody(False);
-
-        if exclusions is None:
-            # confirm that no exclusions are left.
-            self.cpp_nlist.countExclusions();
-            return
-
-        # store exclusions for later use
-        self.exclusions = list(exclusions)
-
-        # exclusions given directly in bond/angle/dihedral notation
-        if 'bond' in exclusions:
-            self.cpp_nlist.addExclusionsFromBonds();
-            exclusions.remove('bond');
-
-        if 'angle' in exclusions:
-            self.cpp_nlist.addExclusionsFromAngles();
-            exclusions.remove('angle');
-
-        if 'dihedral' in exclusions:
-            self.cpp_nlist.addExclusionsFromDihedrals();
-            exclusions.remove('dihedral');
-
-        if 'body' in exclusions:
-            self.cpp_nlist.setFilterBody(True);
-            exclusions.remove('body');
-
-        # exclusions given in 1-2/1-3/1-4 notation.
-        if '1-2' in exclusions:
-            self.cpp_nlist.addExclusionsFromBonds();
-            exclusions.remove('1-2');
-
-        if '1-3' in exclusions:
-            self.cpp_nlist.addOneThreeExclusionsFromTopology();
-            exclusions.remove('1-3');
-
-        if '1-4' in exclusions:
-            self.cpp_nlist.addOneFourExclusionsFromTopology();
-            exclusions.remove('1-4');
-
-        # if there are any items left in the exclusion list, we have an error.
-        if len(exclusions) > 0:
-            globals.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
-            raise RuntimeError('Error resetting exclusions');
-
-        # collect and print statistics about the number of exclusions.
-        self.cpp_nlist.countExclusions();
-
-    ## Benchmarks the neighbor list computation
-    # \param n Number of iterations to average the benchmark over
-    #
-    # \b Examples:
-    # \code
-    # t = nlist.benchmark(n = 100)
-    # \endcode
-    #
-    # The value returned by benchmark() is the average time to perform the neighbor list
-    # computation, in milliseconds. The benchmark is performed by taking the current
-    # positions of all particles in the simulation and repeatedly calculating the neighbor list.
-    # Thus, you can benchmark different situations as you need to by simply
-    # running a simulation to achieve the desired state before running benchmark().
-    #
-    # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run
-    # directly after the particle data is initialized with an init command, then the
-    # results of the benchmark will not be typical of the time needed during the actual
-    # simulation. Particles are not reordered to improve cache performance until at least
-    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
-    #
-    def benchmark(self, n):
-        # check that we have been initialized properly
-        if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
-            raise RuntimeError('Error benchmarking neighbor list');
-
-        # run the benchmark
-        return self.cpp_nlist.benchmark(int(n))
-
-    ## Query the maximum possible check_period
-    # query_update_period examines the counts of nlist rebuilds during the previous run() command.
-    # It returns \c s-1, where s is the smallest update period experienced during that time.
-    # Use it after a medium-length warm up run with check_period=1 to determine what check_period to set
-    # for production runs.
-    #
-    # \note If the previous run() was short, insufficient sampling may cause the queried update period
-    # to be large enough to result in dangerous builds during longer runs. Unless you use a really long
-    # warm up run, subtract an additional 1 from this when you set check_period for additional safety.
-    #
-    def query_update_period(self):
-        if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
-            raise RuntimeError('Error setting neighbor list parameters');
-
-        return self.cpp_nlist.getSmallestRebuild()-1;
-
-## \internal
-# \brief Creates the global neighbor list
-# \details
-# \param cb Callable function passed to subscribe()
-# If no neighbor list has been created, create one. If there is one, subscribe the new potential and update the rcut
-def _subscribe_global_nlist(cb):
-    # create a global neighbor list if it doesn't exist
-    if globals.neighbor_list is None:
-        globals.neighbor_list = nlist();
-
-    # subscribe and force an update
-    globals.neighbor_list.subscribe(cb);
-    globals.neighbor_list.update_rcut();
-
-    return globals.neighbor_list;
-
 ## Generic %pair %force
 #
 # pair.pair is not a command hoomd scripts should execute directly. Rather, it is a base command that provides common
@@ -835,6 +377,10 @@ def _subscribe_global_nlist(cb):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
+# If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False, the particle type %pair interaction is excluded from the neighbor
+# list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
+# with large size disparity. Functionally, this is equivalent to setting \f$ r_{\mathrm{cut}} = 0 \f$ in the %pair force
+# because negative \f$ r_{\mathrm{cut}} \f$ has no physical meaning.
 class pair(force._force):
     ## \internal
     # \brief Initialize the pair force
@@ -844,16 +390,27 @@ class pair(force._force):
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         # initialize the base class
         force._force.__init__(self, name);
 
+        # convert r_cut False to a floating point type
+        if r_cut is False:
+            r_cut = -1.0
         self.global_r_cut = r_cut;
 
         # setup the coefficent matrix
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
         self.pair_coeff.set_default_coeff('r_on', self.global_r_cut);
+
+        # if no neighbor list is supplied, use the default global neighborlist
+        if nlist is None:
+            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
+        else: # otherwise, subscribe the specified neighbor list
+            self.nlist = nlist
+            self.nlist.subscribe(lambda:self.get_rcut())
+            self.nlist.update_rcut()
 
     ## Set parameters controlling the way forces are computed
     #
@@ -913,8 +470,10 @@ class pair(force._force):
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
+
+                # rcut can now have "invalid" C++ values, which we round up to zero
+                self.cpp_force.setRcut(i, j, max(coeff_dict['r_cut'], 0.0));
+                self.cpp_force.setRon(i, j, max(coeff_dict['r_on'], 0.0));
 
     ## \internal
     # \brief Get the maximum r_cut value set for any type pair
@@ -939,7 +498,7 @@ class pair(force._force):
 
     ## \internal
     # \brief Get the r_cut pair dictionary
-    # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
+    # \returns The rcut(i,j) dict if logging is on, and None if logging is off
     def get_rcut(self):
         if not self.log:
             return None
@@ -951,29 +510,21 @@ class pair(force._force):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
-        r_cut_dict = rcut();
+        r_cut_dict = nl.rcut();
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                if r_cut is not None:
-                    # set the pair in our dictionary (not updating, so force the set)
-                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
-                else:
-                    # using default value for the pair
-                    # it doesn't concern us that the pair has not been explicitly set yet
-                    # because the cutoff will be filled with the default value (or a new value) when
-                    # we pair_coeff.set, and these coefficients will be validated later anyway
-                    # so if something goes wrong there, HOOMD will grind to a halt.
-                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
+
+                if r_cut is not None: # use the defined value
+                    if r_cut is False: # interaction is turned off
+                        r_cut_dict.set_pair(type_list[i],type_list[j], -1.0);
+                    else:
+                        r_cut_dict.set_pair(type_list[i],type_list[j], r_cut);
+                else: # use the global default
                     r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
 
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+        return r_cut_dict;
 
     ## \internal
     # \brief Return metadata for this pair potential
@@ -1055,13 +606,14 @@ class pair(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1074,23 +626,21 @@ class lj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        neighbor_list = _subscribe_global_nlist(lambda:self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJ;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -1146,13 +696,14 @@ class lj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1164,24 +715,21 @@ class gauss(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGauss;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGaussGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -1235,7 +783,7 @@ class gauss(pair):
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials..
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
 # the maximum possible actual r_cut in simulation
@@ -1248,6 +796,7 @@ class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     # \param d_max Maximum diameter particles in the simulation will have (in distance units)
     #
@@ -1269,13 +818,13 @@ class slj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, d_max=None, name=None):
+    def __init__(self, r_cut, nlist=None, d_max=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
+        pair.__init__(self, r_cut, nlist, name);
 
         # update the neighbor list
         if d_max is None :
@@ -1283,19 +832,17 @@ class slj(pair):
             d_max = sysdef.getParticleData().getMaxDiameter()
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
-
         # SLJ requires diameter shifting to be on
-        neighbor_list.cpp_nlist.setDiameterShift(True);
-        neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
+        self.nlist.cpp_nlist.setDiameterShift(True);
+        self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJ;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -1375,13 +922,14 @@ class slj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class yukawa(pair):
     ## Specify the Yukawa %pair %force
     #
     # \param r_cut Default cutoff radius (in units of distance)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1393,24 +941,21 @@ class yukawa(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawa;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawaGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -1455,7 +1000,7 @@ class yukawa(pair):
 # The cutoff radius \a r_cut passed into the initial pair.ewald command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
 #       for you.
@@ -1465,6 +1010,7 @@ class ewald(pair):
     ## Specify the Ewald %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1476,24 +1022,21 @@ class ewald(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairEwald(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairEwald(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairEwald;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairEwaldGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairEwaldGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairEwaldGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -1558,6 +1101,7 @@ class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
     #
     # \param r_cut Cuttoff radius (see documentation above) (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -1567,7 +1111,7 @@ class cgcmm(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, nlist=None):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -1588,21 +1132,26 @@ class cgcmm(force._force):
         # setup the coefficent matrix
         self.pair_coeff = coeff();
 
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        # if no neighbor list is supplied, use the default global neighborlist
+        if nlist is None:
+            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
+        else: # otherwise, subscribe the specified neighbor list
+            self.nlist = nlist
+            self.nlist.subscribe(lambda:self.get_rcut())
+            self.nlist.update_rcut()
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+            self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, self.nlist.cpp_nlist, r_cut);
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, self.nlist.cpp_nlist, r_cut);
             self.cpp_force.setBlockSize(128);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
     def get_rcut(self):
-        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+        if not self.log:
             return None
 
         # go through the list of only the active particle types in the sim
@@ -1612,17 +1161,12 @@ class cgcmm(force._force):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
-        r_cut_dict = rcut();
+        r_cut_dict = nl.rcut();
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
 
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+        return r_cut_dict;
 
     def update_coeffs(self):
         # check that the pair coefficents are valid
@@ -1745,30 +1289,32 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
-    def __init__(self, width, r_cut=0, name=None):
+    def __init__(self, width, nlist=None, name=None):
         util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
 
-        # default r_cut for the neighbor list, this is pretty silly to use something other than 0 though
-        self.global_r_cut = r_cut
-
         # setup the coefficent matrix
         self.pair_coeff = coeff();
 
-        # create the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        # if no neighbor list is supplied, use the default global neighborlist
+        if nlist is None:
+            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
+        else: # otherwise, subscribe the specified neighbor list
+            self.nlist = nlist
+            self.nlist.subscribe(lambda:self.get_rcut())
+            self.nlist.update_rcut()
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
+            self.cpp_force = hoomd.TablePotential(globals.system_definition, self.nlist.cpp_nlist, int(width), self.name);
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, self.nlist.cpp_nlist, int(width), self.name);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1797,9 +1343,9 @@ class table(force._force):
 
     ## \internal
     # \brief Get the r_cut pair dictionary
-    # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
+    # \returns rcut(i,j) dict if logging is on, and None otherwise
     def get_rcut(self):
-        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+        if not self.log:
             return None
 
         # go through the list of only the active particle types in the sim
@@ -1809,24 +1355,14 @@ class table(force._force):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
-        r_cut_dict = rcut();
+        r_cut_dict = nl.rcut();
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
-                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'rmax');
-                if r_cut is not None:
-                    # set the pair in our dictionary (not updating, so force the set)
-                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
-                else:
-                    # using the largest of all the set rmax
-                    r_cut_dict.set_pair(type_list[i],type_list[j], self.global_r_cut);
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], 'rmax');
+                r_cut_dict.set_pair(type_list[i],type_list[j], rmax);
 
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+        return r_cut_dict;
 
     def get_max_rcut(self):
         # loop only over current particle types
@@ -1980,13 +1516,14 @@ class table(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class morse(pair):
     ## Specify the Morse %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1998,24 +1535,21 @@ class morse(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorse;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorseGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2087,7 +1621,7 @@ class morse(pair):
 # The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
@@ -2099,6 +1633,7 @@ class dpd(pair):
     # \param T Temperature of thermostat (in energy units)
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -2110,7 +1645,7 @@ class dpd(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, T, seed=1, name=None):
+    def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
         util.print_status_line();
 
         # register the citation
@@ -2130,18 +1665,15 @@ class dpd(pair):
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPD;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2223,13 +1755,14 @@ class dpd(pair):
 # The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class dpd_conservative(pair):
     ## Specify the DPD conservative %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -2242,7 +1775,7 @@ class dpd_conservative(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # register the citation
@@ -2262,18 +1795,15 @@ class dpd_conservative(pair):
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPD;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2313,11 +1843,13 @@ class eam(force._force):
     #
     # \param file Filename with potential tables in Alloy or FS format
     # \param type Type of file potential ('Alloy', 'FS')
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+    #
     # \b Example:
     # \code
     # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
     # \endcode
-    def __init__(self, file, type):
+    def __init__(self, file, type, nlist=None):
         c = cite.article(cite_key = 'morozov2011',
                          author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
                          title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
@@ -2348,21 +1880,23 @@ class eam(force._force):
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);
-            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
-            r_cut_new = self.cpp_force.get_r_cut();
-            neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
-
-            #Load neighbor list to compute.
-            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
             self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
-            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
-            r_cut_new = self.cpp_force.get_r_cut();
-            neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
 
-            #Load neighbor list to compute.
-            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+        #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
+        r_cut_new = self.cpp_force.get_r_cut();
+        # if no neighbor list is supplied, use the default global neighborlist
+        if nlist is None:
+            self.nlist = nl._subscribe_global_nlist(lambda : r_cut_new)
+        else: # otherwise, subscribe the specified neighbor list
+            self.nlist = nlist
+            self.nlist.subscribe(lambda:self.get_rcut())
+            self.nlist.update_rcut()
+
+        #Load neighbor list to compute.
+        self.cpp_force.set_neighbor_list(self.nlist);
+        if globals.exec_conf.isCUDAEnabled():
+            self.nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
         globals.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
@@ -2444,7 +1978,7 @@ class eam(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.dpdlj command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
@@ -2457,6 +1991,7 @@ class dpdlj(pair):
     # \param T Temperature of thermostat (in energy units)
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -2468,7 +2003,7 @@ class dpdlj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, T, seed=1, name=None):
+    def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
         util.print_status_line();
 
         # register the citation
@@ -2488,18 +2023,15 @@ class dpdlj(pair):
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPD;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPDGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2605,13 +2137,14 @@ class dpdlj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.force_shifted_lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class force_shifted_lj(pair):
     ## Specify the force-shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -2622,24 +2155,21 @@ class force_shifted_lj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairForceShiftedLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairForceShiftedLJ;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairForceShiftedLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2684,6 +2214,7 @@ class moliere(pair):
     ## Specify the Moliere %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \code
@@ -2693,24 +2224,21 @@ class moliere(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
     # started with run().
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMoliere(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMoliere(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliere;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliereGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2760,6 +2288,7 @@ class zbl(pair):
     ## Specify the ZBL %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \code
@@ -2769,24 +2298,21 @@ class zbl(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
     # started with run().
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairZBL(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairZBL(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBL;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBLGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2827,29 +2353,27 @@ class tersoff(pair):
     ## Specify the Tersoff force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        #update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # this potential cannot handle a half neighbor list
-        neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+        self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialTersoff(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialTersoff(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoff;
         else:
-            self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -2944,6 +2468,7 @@ class mie(pair):
     ## Specify the Mie potential %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -2956,24 +2481,21 @@ class mie(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
+        pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMie(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMie(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMie;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMieGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMieGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMieGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -3160,7 +2682,7 @@ class gb(ai_pair):
         ai_pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -3234,7 +2756,7 @@ class dipole(ai_pair):
         ai_pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
 
         ## create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():

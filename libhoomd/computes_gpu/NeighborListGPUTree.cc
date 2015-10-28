@@ -65,6 +65,8 @@ using namespace boost;
 #include "Communicator.h"
 #endif
 
+using namespace std;
+
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
@@ -72,6 +74,13 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
       m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
+
+    // fermi cards are currently buggy, disable them
+    if (m_exec_conf->getComputeCapability() < 300)
+        {
+        m_exec_conf->msg->error() << "nlist: BVH tree neighbor lists are not supported on Fermi (sm_20) devices." << endl;
+        throw runtime_error("BVH tree neighbor list not supported by device");
+        }
     
     m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListGPUTree::slotNumTypesChanged, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListGPUTree::slotBoxChanged, this));
@@ -88,6 +97,8 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     allocateTree();
     
     calcTypeBits();
+
+    m_prev_ntypes = m_pdata->getNTypes();
     }
 
 NeighborListGPUTree::~NeighborListGPUTree()
@@ -205,6 +216,7 @@ void NeighborListGPUTree::setupTree()
         
         // all done with the type reallocation
         m_type_changed = false;
+        m_prev_ntypes = m_pdata->getNTypes();
         }
         
     if (m_box_changed)
@@ -520,9 +532,16 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
-
-        // allocate temporary storage (unsigned char = 1 B)
-        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+        /*
+         * Always allocate at least 4 bytes. In CUB 1.4.1, sorting N < the tile size (which I believe is a thread block)
+         * does not require any temporary storage, and tmp_storage_bytes returns 0. But, d_tmp_storage must be not NULL
+         * for the sort to occur on the second pass. C++ standards forbid specifying a pointer to memory that
+         * isn't properly allocated / doesn't exist (for example, a pointer to an odd address), so we allocate a small
+         * bit of memory as temporary storage that isn't used.
+         */
+        size_t alloc_size = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
+        // unsigned char = 1 B
+        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
         d_tmp_storage = (void *)d_alloc();
 
         // perform the sort
@@ -535,7 +554,7 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_morton,
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
-                              m_n_type_bits);    
+                              m_n_type_bits);
         }
         
     // we want the sorted data in the real data because the alt is just a tmp holder

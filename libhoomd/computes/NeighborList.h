@@ -373,14 +373,27 @@ class NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth() const
+        virtual Scalar getGhostLayerWidth(unsigned int type) const
             {
-            Scalar r_max = m_rcut_max_max + m_r_buff;
-            if (m_diameter_shift);
-                r_max += m_d_max - Scalar(1.0);
-            return r_max;
+            ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
+            const Scalar rcut_max_i = h_rcut_max.data[type];
+
+            if (rcut_max_i > Scalar(0.0)) // ensure communication is required
+                {
+                Scalar rmax = rcut_max_i + m_r_buff;
+
+                // diameter shifting requires to communicate a larger rlist
+                if (m_diameter_shift)
+                    rmax += m_d_max - Scalar(1.0);
+                return rmax;
+                }
+            else
+                {
+                return Scalar(0.0);
+                }
             }
 
+        //! Get the maximum diameter value
         Scalar getMaximumDiameter()
             {
             return m_d_max;
@@ -520,7 +533,7 @@ class NeighborList : public Compute
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
-        vector<unsigned int> m_update_periods;    //!< Steps between updates
+        std::vector<unsigned int> m_update_periods;    //!< Steps between updates
 
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);

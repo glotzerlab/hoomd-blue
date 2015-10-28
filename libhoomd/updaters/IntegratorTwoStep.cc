@@ -66,6 +66,8 @@ using namespace boost;
 #include "Communicator.h"
 #endif
 
+using namespace std;
+
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false),
       m_aniso_mode(Automatic)

@@ -60,6 +60,8 @@ using namespace boost::python;
 #include "Communicator.h"
 #endif
 
+using namespace std;
+
 /*! \file IntegrationMethodTwoStep.h
     \brief Contains code for the IntegrationMethodTwoStep class
 */

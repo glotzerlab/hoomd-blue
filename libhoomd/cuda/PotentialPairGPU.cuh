@@ -91,7 +91,8 @@ struct pair_args_t
               const unsigned int _shift_mode,
               const unsigned int _compute_virial,
               const unsigned int _threads_per_particle,
-              const unsigned int _compute_capability)
+              const unsigned int _compute_capability,
+              const unsigned int _max_tex1d_width)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -112,7 +113,8 @@ struct pair_args_t
                   shift_mode(_shift_mode),
                   compute_virial(_compute_virial),
                   threads_per_particle(_threads_per_particle),
-                  compute_capability(_compute_capability)
+                  compute_capability(_compute_capability),
+                  max_tex1d_width(_max_tex1d_width)
         {
         };
 
@@ -137,11 +139,10 @@ struct pair_args_t
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
     const unsigned int compute_capability;  //!< Compute capability (20 30 35, ...)
+    const unsigned int max_tex1d_width;     //!< Maximum width of a linear 1D texture
     };
 
 #ifdef NVCC
-// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
-#define MAX_TEXTURE_WIDTH 0x8000000
 
 #if (__CUDA_ARCH__ >= 300)
 // need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
@@ -342,7 +343,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
-        
+
         unsigned int next_j(0);
         if (use_gmem_nlist)
             {
@@ -462,16 +463,9 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                     }
 
                 // add up the force vector components (FLOPS: 7)
-                #if (__CUDA_ARCH__ >= 200)
                 force.x += dx.x * force_divr;
                 force.y += dx.y * force_divr;
                 force.z += dx.z * force_divr;
-                #else
-                // fmad causes momentum drift here, prevent it from being used
-                force.x += __fmul_rn(dx.x, force_divr);
-                force.y += __fmul_rn(dx.y, force_divr);
-                force.z += __fmul_rn(dx.z, force_divr);
-                #endif
 
                 force.w += pair_eng;
                 }
@@ -547,13 +541,25 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
-    
+
     // bind the neighborlist texture if it will fit
-    if (pair_args.size_neigh_list <= MAX_TEXTURE_WIDTH)
+    if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
         {
         pair_nlist_tex.normalized = false;
         pair_nlist_tex.filterMode = cudaFilterModePoint;
         cudaBindTexture(0, pair_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
+        }
+    }
+
+inline void gpu_pair_force_unbind_textures(const pair_args_t pair_args)
+    {
+    cudaUnbindTexture(pdata_pos_tex);
+    cudaUnbindTexture(pdata_diam_tex);
+    cudaUnbindTexture(pdata_charge_tex);
+
+    if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
+        {
+        cudaUnbindTexture(pair_nlist_tex);
         }
     }
 
@@ -605,6 +611,8 @@ inline void launch_compute_pair_force_kernel(const pair_args_t& pair_args,
       pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
       pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
       tpp);
+
+    if (pair_args.compute_capability < 35) gpu_pair_force_unbind_textures(pair_args);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -623,7 +631,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.ntypes > 0);
 
     // Launch kernel
-    if (pair_args.compute_capability < 35 && pair_args.size_neigh_list > MAX_TEXTURE_WIDTH)
+    if (pair_args.compute_capability < 35 && pair_args.size_neigh_list > pair_args.max_tex1d_width)
         { // fall back to slow global loads when the neighbor list is too big for texture memory
         if (pair_args.compute_virial)
             {
@@ -724,6 +732,5 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
 
     return cudaSuccess;
     }
-#undef MAX_TEXTURE_WIDTH
 #endif
 #endif // __POTENTIAL_PAIR_GPU_CUH__

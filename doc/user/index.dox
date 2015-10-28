@@ -85,6 +85,7 @@ Table of contents:
  - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
+ - \ref sec_index_nlist
  - \ref sec_index_meta
  - Potentials
    - \ref sec_index_pair
@@ -108,6 +109,7 @@ Table of contents:
   - \ref sec_index_tuning
   - \ref sec_index_benchmark
   - \ref sec_index_communicate
+  - \ref sec_index_citation
 
 \section sec_index_run Run
  - \link hoomd_script.get_step() get_step\endlink - <i>Gets the current time step</i>
@@ -186,6 +188,11 @@ Table of contents:
 
 <h2>Potentials</h2>
 
+\section sec_index_nlist Neighbor lists
+ - \link hoomd_script.nlist.cell nlist.cell\endlink - <i>Cell-list constructed neighbor list </i>
+ - \link hoomd_script.nlist.tree nlist.tree\endlink - <i>Fast neighbor list for size asymmetric particles </i>
+ - \link hoomd_script.nlist nlist\endlink - <i>Legacy wrappers for the global neighbor list</i>
+ 
 \section sec_index_pair Pair potentials
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>CMM coarse-grain model %pair %force </i>
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i>
@@ -202,7 +209,7 @@ Table of contents:
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>Yukawa %pair %force </i>
  - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force</i>
  - \link hoomd_script.pair.force_shifted_lj pair.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %pair %force </i>
- - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
+ - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force </i>
 
 \section sec_index_aniso Anisotropic pair potentials
  - \link hoomd_script.pair.dipole pair.dipole\endlink - <i>Screened dipole %pair %force </i>
@@ -280,5 +287,7 @@ Table of contents:
  - \link hoomd_script.comm.get_rank() comm.get_rank\endlink - <i>Return the rank of the current process</i>
  - \link hoomd_script.comm.get_partition() comm.get_partition\endlink - <i>Return the partition of the current process</i>
 
+\section sec_index_citation Citations
+ - \link hoomd_script.cite.save() cite.save\endlink - <i>Save citations to a bibtex file.</i>
 
 */

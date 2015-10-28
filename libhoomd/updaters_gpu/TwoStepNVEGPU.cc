@@ -59,6 +59,8 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+using namespace std;
+
 /*! \file TwoStepNVEGPU.h
     \brief Contains code for the TwoStepNVEGPU class
 */

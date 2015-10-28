@@ -301,7 +301,7 @@ class Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar ()>& subscriber)
+        boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
             {
             return m_ghost_layer_width_requests.connect(subscriber);
             }
@@ -369,19 +369,16 @@ class Communicator
         //! Get the ghost communication flags
         CommFlags getFlags() { return m_flags; }
 
-        //! Set width of ghost layer
-        /*! \param ghost_width The width of the ghost layer
-         */
-        void setGhostLayerWidth(Scalar ghost_width)
-            {
-            assert(ghost_width > 0);
-            m_r_ghost = ghost_width;
-            }
-
-        //! Get the current ghost layer width
-        Scalar getGhostLayerWidth() const
+        //! Get the current ghost layer width array
+        const GPUArray<Scalar>& getGhostLayerWidth() const
             {
             return m_r_ghost;
+            }
+        
+        //! Get the current maximum ghost layer width
+        Scalar getGhostLayerMaxWidth() const
+            {
+            return m_r_ghost_max;
             }
 
         //! Set the ghost communication flags
@@ -600,8 +597,10 @@ class Communicator
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
         BoxDim m_global_box;                     //!< Global simulation box
-        Scalar m_r_ghost;                        //!< Width of ghost layer
-        Scalar m_r_buff;                         //!< Width of skin layer
+        GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
+        Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+        //! Update the ghost width array
+        void updateGhostWidth();
 
         GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
@@ -611,7 +610,7 @@ class Communicator
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
-        boost::signals2::signal<Scalar(), ghost_layer_max>
+        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
         boost::signals2::signal<void (unsigned int timestep)>
@@ -671,9 +670,9 @@ class Communicator
             {
             Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
-            if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
-                (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
-                (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+            if ((m_r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (m_r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (m_r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
                 m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
                 throw std::runtime_error("Error during communication");
@@ -704,6 +703,22 @@ class Communicator
 
         //! Connection to the signal notifying when ghost particles are removed
         boost::signals2::connection m_ghost_particles_removed_connection;
+
+        //! Connection to the signal notifying when number of types change
+        boost::signals2::connection m_num_type_change_connection;
+
+        //! Reallocate the ghost layer width arrays when number of types change
+        void slotNumTypesChanged()
+            {
+            // skip the reallocation if the number of types does not change
+            // this keeps old parameters when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_r_ghost.getNumElements())
+                return;
+
+            GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
+            m_r_ghost.swap(r_ghost);
+            }
 
         //! Helper function to initialize adjacency arrays
         void initializeNeighborArrays();

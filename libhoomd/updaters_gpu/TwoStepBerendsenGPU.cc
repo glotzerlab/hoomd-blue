@@ -61,6 +61,8 @@ using namespace boost::python;
 #include<boost/bind.hpp>
 using namespace boost;
 
+using namespace std;
+
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
     \param thermo Compute for themodynamic properties

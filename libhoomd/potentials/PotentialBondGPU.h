@@ -149,7 +149,10 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
-    BoxDim box = this->m_pdata->getBox();
+
+    // we are using the minimum image of the global box here
+    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain length)
+    BoxDim box = this->m_pdata->getGlobalBox();
 
     // access parameters
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
@@ -198,7 +201,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 
         if (h_flags.data[0] & 1)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

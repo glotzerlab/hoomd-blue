@@ -504,7 +504,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
  * of the range of Morton codes corresponding to this tree, then it always returns -1. If the Morton codes for i and j
  * are identical, then the longest prefix of i and j is used as a tie breaker.
  */
-__device__ inline int delta(const unsigned int *d_morton_codes,
+__device__ inline int delta(const uint32_t *d_morton_codes,
                             unsigned int i,
                             unsigned int j,
                             int min_idx,
@@ -515,13 +515,15 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
         return -1;
         }
     
-    unsigned int first_code = d_morton_codes[i];
-    unsigned int last_code = d_morton_codes[j];
+    uint32_t first_code = d_morton_codes[i];
+    uint32_t last_code = d_morton_codes[j];
     
     // if codes match, then use index as tie breaker
+    // the number of shared bits is equal to the 32 bits in the integer, plus the number of bits shared between the
+    // indexes (offset from the start of the node range to make things simpler)
     if (first_code == last_code)
         {
-        return __clz(i ^ j);
+        return (32 + __clz((i-min_idx) ^ (j-min_idx)));
         }
     else
         {
@@ -541,7 +543,7 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
  *       Tero Karras, "Maximizing parallelism in the construction of BVHs, octrees, and k-d trees", 
  *       High Performance Graphics (2012).
  */
-__device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
+__device__ inline uint2 determineRange(const uint32_t *d_morton_codes,
                                        const int min_idx,
                                        const int max_idx,
                                        const int idx)
@@ -597,12 +599,12 @@ __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
  * \returns the leaf index corresponding to the split in Morton codes
  * See determineRange for original source of algorithm.
  */
-__device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
+__device__ inline unsigned int findSplit(const uint32_t *d_morton_codes,
                                          const unsigned int first,
                                          const unsigned int last)
     {
-    unsigned int first_code = d_morton_codes[first];
-    unsigned int last_code = d_morton_codes[last];
+    uint32_t first_code = d_morton_codes[first];
+    uint32_t last_code = d_morton_codes[last];
     
     // if codes match, then just split evenly
     if (first_code == last_code)
@@ -1080,7 +1082,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         {
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
-            s_r_list[cur_offset + threadIdx.x] = d_r_cut[cur_offset + threadIdx.x]+r_buff;
+            Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
+            // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+            s_r_list[cur_offset + threadIdx.x] = (r_cut > Scalar(0.0)) ? r_cut+r_buff : Scalar(-1.0);
             }
             
         if (cur_offset + threadIdx.x < ntypes)
@@ -1121,6 +1125,10 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         {
         // Check primary box
         const Scalar r_cut_i = s_r_list[typpair_idx(type_i,cur_pair_type)];
+        
+        // Skip this tree type if it is not needed
+        if (r_cut_i <= Scalar(0.0))
+            continue;
         
         // stash the r_cutsq before any diameter shifting
         const Scalar r_cutsq_i = r_cut_i*r_cut_i;
@@ -1335,7 +1343,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         
         head_list_tex.normalized = false;
         head_list_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*(N+nghosts));
+        error = cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*N);
         if (error != cudaSuccess)
             return error;
         }
@@ -1480,7 +1488,31 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     max_diam,
                                                                                     ntypes);
         }
-    
+
+    // unbind the textures
+    if (compute_capability < 35)
+        {
+        cudaError_t error = cudaUnbindTexture(pdata_pos_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(leaf_xyzf_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(leaf_db_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(aabb_node_bounds_tex);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaUnbindTexture(head_list_tex);
+        if (error != cudaSuccess)
+            return error;
+        }
+
     return cudaSuccess;
     }
 

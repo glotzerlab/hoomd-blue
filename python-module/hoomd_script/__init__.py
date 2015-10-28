@@ -252,6 +252,11 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
         globals.neighbor_list.update_exclusions_defaults();
+    
+    # update all user-defined neighbor lists
+    for nl in globals.neighbor_lists:
+        nl.update_rcut()
+        nl.update_exclusions_defaults()
 
     # detect 0 hours remaining properly
     if limit_hours == 0.0:

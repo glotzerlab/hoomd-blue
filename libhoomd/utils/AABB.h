@@ -219,7 +219,7 @@ struct AABB
 
         #endif
         }
-        
+
     //! Construct an AABB from a point with a particle tag
     /*! \param _position Position of the point
         \param _tag Global particle tag id

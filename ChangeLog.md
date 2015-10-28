@@ -2,21 +2,28 @@
 
 [TOC]
 
-## Next feature release
+## v1.2.0
+
+Released 2015/09/30
 
 *New features*
 
 * Performance improvements for systems with large particle size disparity
 * Bounding volume hierarchy (tree) neighbor list computation
 * Neighbor lists have separate `r_cut` values for each pair of types
-
-## Next bugfix release
-
-Released TBD
+* addInfo callback for dump.pos allows user specified information in pos files
 
 *Bug fixes*
 
 * Fix `test_pair_set_energy` unit test, which failed on numpy < 1.9.0
+* Analyze.log now accepts unicode strings.
+* Fixed a bug where calling `restore_snapshot()` during a run zeroed potential parameters.
+* Fix segfault on exit with python 3.4
+* Add `cite.save()` to documentation
+* Fix a problem were bond forces are computed incorrectly in some MPI configurations
+* Fix bug in pair.zbl
+* Add pair.zbl to the documentation
+* Use `HOOMD_PYTHON_LIBRARY` to avoid problems with modified CMake builds that preset `PYTHON_LIBRARY`
 
 ## v1.1.1
 
@@ -88,12 +95,6 @@ del system.particles[0]
 *Removed*
 
 * Several `option` commands for controlling the execution configuration. Replaced with `context.initialize`.
-
-## Next maintenance release
-
-*Bug fixes*
-
-* *none*
 
 ## v1.0.5
 

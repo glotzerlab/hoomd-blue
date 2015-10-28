@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ namespace cub {
  * @{
  */
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS    // Do not document
 
 /// CUB_PTX_ARCH reflects the PTX version targeted by the active compiler pass (or zero during the host pass).
 #ifndef __CUDA_ARCH__
@@ -55,15 +56,15 @@ namespace cub {
     #define CUB_PTX_ARCH __CUDA_ARCH__
 #endif
 
-
 /// Whether or not the source targeted by the active compiler pass is allowed to  invoke device kernels or methods from the CUDA runtime API.
-#if (CUB_PTX_ARCH == 0) || defined(CUB_CDP)
+#if !defined(__CUDA_ARCH__) || (__CUDA_ARCH__>= 350 && defined(__CUDACC_RDC__))
     #define CUB_RUNTIME_ENABLED
     #define CUB_RUNTIME_FUNCTION __host__ __device__
 #else
     #define CUB_RUNTIME_FUNCTION __host__
 #endif
 
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 
 /// Number of threads per warp (log)

@@ -331,7 +331,7 @@ class ComputeThermo : public Compute
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
         unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
-        vector<string> m_logname_list;  //!< Cache all generated logged quantities names
+        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
 
         //! Does the actual computation
         virtual void computeProperties();

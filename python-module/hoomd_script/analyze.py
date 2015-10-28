@@ -500,7 +500,7 @@ class log(_analyzer):
         # set the logged quantities
         quantity_list = hoomd.std_vector_string();
         for item in quantities:
-            quantity_list.append(item);
+            quantity_list.append(str(item));
         self.cpp_analyzer.setLoggedQuantities(quantity_list);
 
         # add the logger to the list of loggers
@@ -537,7 +537,7 @@ class log(_analyzer):
             # set the logged quantities
             quantity_list = hoomd.std_vector_string();
             for item in quantities:
-                quantity_list.append(item);
+                quantity_list.append(str(item));
             self.cpp_analyzer.setLoggedQuantities(quantity_list);
 
         if delimiter:

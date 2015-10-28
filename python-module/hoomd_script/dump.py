@@ -731,6 +731,9 @@ class pos(analyze._analyzer):
     #        is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it.
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This 
+    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo 
+    #        may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
     #
     # \b Examples:
     # \code
@@ -742,7 +745,7 @@ class pos(analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     #
-    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1):
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
         util.print_status_line();
 
         # initialize base class
@@ -750,14 +753,23 @@ class pos(analyze._analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.POSDumpWriter(globals.system_definition, filename);
-
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+
+        if addInfo is not None:
+            self.cpp_analyzer.setAddInfo(addInfo);
+
         if period is not None:
             self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         else:
             self.enabled = False;
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.unwrap_rigid = unwrap_rigid
+        self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
 
     def set_def(self, typ, shape):
         v = globals.system_definition.getParticleData().getTypeByName(typ);
