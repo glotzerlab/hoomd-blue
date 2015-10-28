@@ -3056,7 +3056,7 @@ PyObject* SnapshotParticleData<Real>::getOrientationNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getMomentInertiaNP()
+PyObject* SnapshotParticleData<Real>::getMomentInertiaNP()
     {
     std::vector<intp> dims(2);
     dims[0] = inertia.size();
@@ -3068,7 +3068,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getMomentInertiaNP()
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-boost::python::numeric::array SnapshotParticleData<Real>::getAngmomNP()
+PyObject* SnapshotParticleData<Real>::getAngmomNP()
     {
     std::vector<intp> dims(2);
     dims[0] = angmom.size();

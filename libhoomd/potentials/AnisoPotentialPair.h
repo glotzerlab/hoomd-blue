@@ -200,7 +200,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existant type! "
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
@@ -221,7 +221,7 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existant type! "
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
@@ -238,7 +238,7 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
 template< class aniso_evaluator >
 std::vector< std::string > AnisoPotentialPair< aniso_evaluator >::getProvidedLogQuantities()
     {
-    vector<string> list;
+    std::vector<std::string> list;
     list.push_back(m_log_name);
     return list;
     }
@@ -255,8 +255,8 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& qua
         }
     else
         {
-        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair"
-                  << std::endl << endl;
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair"
+                                  << std::endl << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
