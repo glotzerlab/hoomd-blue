@@ -114,6 +114,7 @@ if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
 
     # define every test together with the number of processors
     ADD_TO_MPI_TESTS(test_communication 8)
+    ADD_TO_MPI_TESTS(test_load_balancer 8)
     ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
 endif()
 

@@ -163,6 +163,7 @@ Table of contents:
  - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>Rescales particle velocities </i>
  - \link hoomd_script.update.sort update.sort\endlink - <i>Sorts particles in memory to improve cache coherency</i>
  - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>Zeroes system momentum </i>
+ - \link hoomd_script.update.balance update.balance\endlink - <i>Adjusts domain decomposition boundaries to balance load</i>
 
 \section sec_index_compute Compute
  - \link hoomd_script.compute.thermo compute.thermo\endlink - <i>Compute thermodynamic properties of a group of particles </i>

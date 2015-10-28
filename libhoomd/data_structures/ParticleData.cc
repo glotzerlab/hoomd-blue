@@ -856,7 +856,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 global_box.setPeriodic(periodic);
                 global_box.wrap(pos, img, flags);
 
-                unsigned int rank = h_cart_ranks.data[di(i,j,k)];
+                // place particle using actual domain fractions, not global box fraction
+                unsigned int rank = m_decomposition->placeParticle(m_global_box, pos);
 
                 if (rank >= n_ranks)
                     {
@@ -1700,6 +1701,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
 
         // get rank where the particle should be according to new position
         unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos);
+        bcast(new_rank, 0, m_exec_conf->getMPICommunicator());
 
         // should the particle migrate?
         if (new_rank != owner_rank)
