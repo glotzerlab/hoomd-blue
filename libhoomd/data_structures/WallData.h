@@ -76,26 +76,26 @@ struct CylinderWall
     {
     CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad), inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
         {
-        vec3<Scalar> zvec;
-        zvec=axis;
-        vec3<Scalar> znorm(0,0,1);
+        vec3<Scalar> zVec=axis;
+        vec3<Scalar> zNorm(0.0,0.0,1.0);
 
-        //method source: http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
-        Scalar norm_uv=sqrt(dot(znorm,znorm) * dot(zvec,zvec));
-        Scalar real_part=norm_uv + dot(znorm,zvec);
+        // method source: http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+        // easily simplified due to zNorm being a normalized vector
+        Scalar normVec=sqrt(dot(zVec,zVec));
+        Scalar realPart=normVec + dot(zNorm,zVec);
         vec3<Scalar> w;
 
-        if (real_part < Scalar(1.0e-6) * norm_uv)
+        if (realPart < Scalar(1.0e-6) * normVec)
             {
-                real_part=Scalar(0.0);
-                w=fabs(znorm.x) > fabs(znorm.z) ? vec3<Scalar>(-znorm.y, znorm.x, 0.0) : vec3<Scalar>(0.0, -znorm.z, znorm.y);
+                realPart=Scalar(0.0);
+                w=vec3<Scalar>(0.0, -1.0, 0.0);
             }
         else
             {
-                w=cross(znorm,zvec);
-                real_part=Scalar(real_part);
+                w=cross(zNorm,zVec);
+                realPart=Scalar(realPart);
             }
-            quatAxisToZRot=quat<Scalar>(real_part,w);
+            quatAxisToZRot=quat<Scalar>(realPart,w);
             Scalar norm=fast::rsqrt(norm2(quatAxisToZRot));
             quatAxisToZRot=norm*quatAxisToZRot;
         }
@@ -111,26 +111,28 @@ struct PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
         {
-        vec3<Scalar> nvec;
-        nvec = normal;
-        Scalar n_length;
-        n_length=fast::rsqrt(nvec.x*nvec.x + nvec.y*nvec.y + nvec.z*nvec.z);
-        normal=nvec*n_length;
+        vec3<Scalar> nVec;
+        nVec = normal;
+        Scalar invNormLength;
+        invNormLength=fast::rsqrt(nVec.x*nVec.x + nVec.y*nVec.y + nVec.z*nVec.z);
+        normal=nVec*invNormLength;
         }
     vec3<Scalar>    normal;
     vec3<Scalar>    origin;
     };
 
-DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
+//! Point to wall vector for a point inside a sphere wall geometry
+// DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
+vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos(t);
-    Scalar rxyz = sqrt(dot(shifted_pos,shifted_pos));
-    if (((rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
+    vec3<Scalar> shiftedPos(t);
+    Scalar rxyz = sqrt(dot(shiftedPos,shiftedPos));
+    if (((rxyz > 0.0) && (rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
         {
         t *= wall.r/rxyz;
-        vec3<Scalar> dx = t - shifted_pos;
+        vec3<Scalar> dx = t - shiftedPos;
         return dx;
         }
     else
@@ -139,17 +141,19 @@ DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Sca
         }
     };
 
-DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
+//! Point to wall vector for a point inside a cylinder wall geometry
+// DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
+vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos = rotate(wall.quatAxisToZRot,t);
-    shifted_pos.z = 0.0;
-    Scalar rxy = sqrt(dot(shifted_pos,shifted_pos));
-    if (((rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
+    vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot,t);
+    shiftedPos.z = 0.0;
+    Scalar rxy = sqrt(dot(shiftedPos,shiftedPos));
+    if (((rxy > 0.0) && (rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
         {
-        t = (wall.r / rxy) * shifted_pos;
-        vec3<Scalar> dx = t - shifted_pos;
+        t = (wall.r / rxy) * shiftedPos;
+        vec3<Scalar> dx = t - shiftedPos;
         dx = rotate(conj(wall.quatAxisToZRot),dx);
         return dx;
         }
@@ -159,13 +163,16 @@ DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<S
         }
     };
 
-DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
+// TODO: Figure out how to re-enable inline below but "ignored"? in test_walldata
+//! Point to wall vector for a point inside a plane wall geometry
+// DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
+vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
-    Scalar wall_dist = dot(wall.normal,wall.origin) - dot(wall.normal,t);
-    if (wall_dist > 0.0)
+    Scalar wallDist = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+    if (wallDist > 0.0)
         {
-        vec3<Scalar> dx = wall_dist * wall.normal;
+        vec3<Scalar> dx = -wallDist * wall.normal;
         return dx;
         }
     else
@@ -174,34 +181,38 @@ DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scal
         }
     };
 
-DEVICE inline bool insideWall(const SphereWall& wall, const vec3<Scalar>& position)
+//! Distance of point to inside sphere wall geometry
+// DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
+Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos(t);
-    Scalar rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
-    Scalar d = wall.r - sqrt(rxyz_sq);
-    bool inside = (d > 0.0) ? true : false;
-    return inside;
+    vec3<Scalar> shiftedPos(t);
+    Scalar rxyz2 = shiftedPos.x*shiftedPos.x + shiftedPos.y*shiftedPos.y + shiftedPos.z*shiftedPos.z;
+    Scalar d = wall.r - sqrt(rxyz2);
+    d = (wall.inside) ? d : -d;
+    return d;
     };
 
-DEVICE inline bool insideWall(const CylinderWall& wall, const vec3<Scalar>& position)
+//! Distance of point to inside cylinder wall geometry
+// DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
+Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
-    vec3<Scalar> shifted_pos=rotate(wall.quatAxisToZRot,t);
-    Scalar rxy_sq= shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y;
-    Scalar d = wall.r - sqrt(rxy_sq);
-    bool inside = (d > 0.0) ? true : false;
-    return inside;
+    vec3<Scalar> shiftedPos=rotate(wall.quatAxisToZRot,t);
+    Scalar rxy2= shiftedPos.x*shiftedPos.x + shiftedPos.y*shiftedPos.y;
+    Scalar d = wall.r - sqrt(rxy2);
+    d = (wall.inside) ? d : -d;
+    return d;
     };
 
-DEVICE inline bool insideWall(const PlaneWall& wall, const vec3<Scalar>& position)
+//! Distance of point to inside plane wall geometry
+// DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
+Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     Scalar d = dot(wall.normal,wall.origin) - dot(wall.normal,t);
-    bool inside = (d > 0.0) ? true : false;
-    return inside;
+    return d;
     };
-
 #endif

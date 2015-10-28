@@ -491,13 +491,13 @@ class plane_wall:
 #
 # All %wall %force commands specify that a given potential energy and %force be
 # computed on all particles in the system within a cutoff distance \f$
-# r_{\mathrm{cut}} \f$ from each wall in the given wall group. The %force \f$
-# \vec{F}\f$ is where \f$ \vec{r} \f$ is the vector pointing from the particle to
-# the %wall and \f$ V_{\mathrm{pair}}(r) \f$ is the specific %pair potential
-# chosen by the respective command. \f{eqnarray*} \vec{F}  = & -\nabla V(r) & r <
-# r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\ \f}   \f$
-# V(r) \f$ is evaluated in the same manner as when mode is shift for the analogous
-# pair potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
+# r_{\mathrm{cut}} \f$ from each wall in the given wall \link wall.group
+# group\endlink. The %force \f$ \vec{F}\f$ is where \f$ \vec{r} \f$ is the vector
+# pointing from the particle to the %wall and \f$ V_{\mathrm{pair}}(r) \f$ is the
+# specific %pair potential chosen by the respective command. \f{eqnarray*} \vec{F}  = &
+# -\nabla V(r) & r < r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\
+# \f}   \f$ V(r) \f$ is evaluated in the same manner as when mode is shift for the
+# analogous pair potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
 # V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f}
 #
 # The following coefficients must be set per unique particle types.
@@ -510,8 +510,8 @@ class plane_wall:
 # <b>Generic Example:</b>\n
 # Note that the walls object below must be created before it is given as an
 # argument to the force object. However, walls can be modified at any time before
-# run() is called and it will update itself appropriately. See wall.group() for
-# more details about specifying the walls to be used.
+# run() is called and it will update itself appropriately. See \link wall.group
+# wall.group()\endlink for more details about specifying the walls to be used.
 # \code
 # walls=wall.group()
 # # Edit walls
@@ -562,11 +562,12 @@ class wallpotential(external._external_force):
 ## Lennard-Jones %wall %force
 # Wall force evaluated using the Lennard-Jones potential.
 # See pair.lj for force details and base parameters and wall.wallpotential for
-# generalized %wall %force implementation #
-# \b LJ Example
-# Note that the base pair.lj requires the parameters sigma and epsilon and has a
-# default alpha. The additional r_cut parameter is required per type by all wall
-# potentials.
+# generalized %wall %force implementation
+#
+# \b Example\n
+# Note that the base pair.lj requires the parameters <c>sigma</c> and <c>epsilon</c> and has a
+# default <c>alpha</c>. The additional <c>r_cut</c> parameter is required per type by all wall
+# potentials and all wall potentials have a default <c>r_on</c> of 0.0.
 # \code
 # walls=wall.group()
 # lj=wall.lj(walls)

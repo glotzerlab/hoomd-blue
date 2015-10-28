@@ -91,6 +91,7 @@ set(TEST_LIST
     test_table_angle_force
     test_gridshift_correct
     test_opls_dihedral_force
+    test_walldata
     )
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
