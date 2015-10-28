@@ -176,7 +176,7 @@ class decomposition():
             raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that there are ranks available for decomposition
-        if globals.exec_conf.getNRanks() == 1:
+        if get_num_ranks() == 1:
             globals.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
             return
         else:
