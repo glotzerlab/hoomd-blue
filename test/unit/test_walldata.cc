@@ -108,9 +108,9 @@ BOOST_AUTO_TEST_CASE( construction )
     MY_BOOST_CHECK_CLOSE(Plane.origin.x, 5.214, tol);
     MY_BOOST_CHECK_CLOSE(Plane.origin.y, 1.32, tol);
     MY_BOOST_CHECK_CLOSE(Plane.origin.z, 8.143, tol);
-    MY_BOOST_CHECK_CLOSE(Plane.normal.x, 3.62, tol);
-    MY_BOOST_CHECK_CLOSE(Plane.normal.y, 2.151, tol);
-    MY_BOOST_CHECK_CLOSE(Plane.normal.z, 8.1, tol);
+    MY_BOOST_CHECK_CLOSE(Plane.normal.x, 0.39653241, tol);
+    MY_BOOST_CHECK_CLOSE(Plane.normal.y, 0.23561912, tol);
+    MY_BOOST_CHECK_CLOSE(Plane.normal.z, 0.88726866, tol);
     }
 
 BOOST_AUTO_TEST_CASE( sphere_wall_math )
