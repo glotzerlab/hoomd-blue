@@ -35,5 +35,8 @@ if (ENABLE_MPI)
     endif(ENABLE_MPI_CUDA)
 endif(ENABLE_MPI)
 
+# define Eigen should be MPL 2 only
+add_definitions(-DEIGEN_MPL2_ONLY)
+
 # define this as a main hoomd build (as opposed to a plugin build)
 add_definitions(-DBUILDING_HOOMD)
