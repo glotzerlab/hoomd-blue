@@ -369,12 +369,24 @@ class Communicator
         //! Get the ghost communication flags
         CommFlags getFlags() { return m_flags; }
 
+        //! Get the number of unique neighbors
+        unsigned int getNUniqueNeighbors() const
+            {
+            return m_n_unique_neigh;
+            }
+
+        //! Get the array of unique neighbors
+        const GPUArray<unsigned int>& getUniqueNeighbors() const
+            {
+            return m_unique_neighbors;
+            }
+
         //! Get the current ghost layer width array
         const GPUArray<Scalar>& getGhostLayerWidth() const
             {
             return m_r_ghost;
             }
-        
+
         //! Get the current maximum ghost layer width
         Scalar getGhostLayerMaxWidth() const
             {

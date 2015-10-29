@@ -370,8 +370,12 @@ class imd(_analyzer):
 #   (see compute.thermo for detailed definitions):
 #   - **num_particles**
 #   - **ndof**
+#   - **translational_ndof**
+#   - **rotational_ndof**
 #   - **potential_energy** (in energy units)
 #   - **kinetic_energy** (in energy units)
+#   - **translational_kinetic_energy** (in energy units)
+#   - **rotational_kinetic_energy** (in energy units)
 #   - **temperature** (in thermal energy units)
 #   - **pressure** (in pressure units)
 #   - **pressure_xx**, **pressure_xy**, **pressure_xz**, **pressure_yy**, **pressure_yz**, **pressure_zz** (in pressure units)

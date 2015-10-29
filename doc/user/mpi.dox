@@ -66,7 +66,9 @@ HOOMD-blue supports multi-GPU (and multi-CPU) simulations using MPI. It uses
 a spatial domain decomposition approach similar to the one used by LAMMPS.
 Every GPU is assigned a sub-domain of the simulation box, the dimensions of which
 are calculated by dividing the lengths of the simulation box by the
-number of processors per dimension. The product of the number of processors along
+number of processors per dimension. These domain boundaries can also be adjusted
+to different fractional widths while still maintaining a 3d grid, which can be
+advantageous in systems with density gradients. The product of the number of processors along
 all dimensions must equal the number of processors in the MPI job. As in single-GPU
 simulations, there is a one-to-one mapping between host CPU cores (MPI ranks)
 and the GPUs.
@@ -200,6 +202,16 @@ number of GPUs per replica, invoke HOOMD-blue with the <b>--nrank=n</b>
 
 Inside the command script, the current partition can be queried using
 \link hoomd_script.comm.get_partition() comm.get_partition()\endlink .
+
+\subsection sec_mpi_balance Dynamic load balancing
+HOOMD-blue supports non-uniform domain decomposition for systems with density gradients. A static domain decomposition
+on a regular 3d grid but non-uniform widths can be constructed using
+\link hoomd_script.comm.decomposition comm.decomposition\endlink. Here, either the number of processors in a uniform
+decomposition or the fractional widths of \f$n-1\f$ domains can be set. Dynamic load balancing can be applied
+to any domain decomposition either one time or periodically throughout the simulation using
+\link hoomd_script.update.balance update.balance\endlink. The domain boundaries are adjusted to attempt to place an
+equal number of particles on each rank. The overhead from periodically updating the domain boundaries is reasonably
+small, so most simulations with non-uniform particle distributions will benefit from periodic dynamic load balancing.
 
 \section sec_mpi_troubleshooting Troubleshooting
 

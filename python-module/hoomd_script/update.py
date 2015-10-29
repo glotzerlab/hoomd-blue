@@ -593,5 +593,117 @@ class box_resize(_updater):
         if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
+## Adjusts the boundaries of a domain %decomposition on a regular 3D grid.
+#
+# Every \a period steps, the boundaries of the processor domains are adjusted to distribute the particle load close
+# to evenly between them. The load imbalance is defined as the number of particles owned by a rank divided by the
+# average number of particles per rank if the particles had a uniform distribution:
+# \f[
+# I = \frac{N(i)}{N / P}
+# \f]
+# where \f$ N(i) \f$ is the number of particles on processor \f$i\f$, \f$N\f$ is the total number of particles, and
+# \f$P\f$ is the number of ranks.
+#
+# In order to adjust the load imbalance, the sizes are rescaled by the inverse of the imbalance factor. To reduce
+# oscillations and communication overhead, a domain cannot move more than 5% of its current size in a single
+# rebalancing step, and the edge of a domain cannot move more than half the distance to its neighbors.
+#
+# Simulations with interfaces (so that there is a particle density gradient) or clustering should benefit from load
+# balancing. The potential speedup is roughly \f$I-1.0\f$, so that if the largest imbalance is 1.4, then the user
+# can expect a roughly 40% speedup in the simulation. This is of course an estimate that assumes that all algorithms
+# are roughly linear in \f$N\f$, all GPUs are fully occupied, and the simulation is limited by the speed of the slowest
+# processor. It also assumes that all particles roughly equal. If you have a simulation where, for example, some particles
+# have significantly more pair force neighbors than others, this estimate of the load imbalance may not produce the
+# optimal results.
+#
+# A load balancing adjustment is only performed when the maximum load imbalance exceeds a \a tolerance. The ideal load
+# balance is 1.0, so setting \a tolerance less than 1.0 will force an adjustment every \a period. The load balancer
+# can attempt multiple iterations of balancing every \a period, and up to \a maxiter attempts can be made. The optimal
+# values of \a period and \a maxiter will depend on your simulation.
+#
+# Load balancing can be performed independently and sequentially for each dimension of the simulation box. A small
+# performance increase may be obtained by disabling load balancing along dimensions that are known to be homogeneous.
+# For example, if there is a planar vapor-liquid interface normal to the \f$z\f$ axis, then it may be advantageous to
+# disable balancing along \f$x\f$ and \f$y\f$.
+#
+# In systems that are well-behaved, there is minimal overhead of balancing with a small \a period. However, if the
+# system is not capable of being balanced (for example, due to the density distribution or minimum domain size), having
+# a small \a period and high \a maxiter may lead to a large performance loss. In such systems, it is currently best to
+# either balance infrequently or to balance once in a short test run and then set the decomposition statically in a
+# separate initialization.
+#
+# Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
+#
+# \MPI_SUPPORTED
+class balance(_updater):
+    ## Create a load balancer
+    #
+    # \param x If true, balance in x dimension
+    # \param y If true, balance in y dimension
+    # \param z If true, balance in z dimension
+    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
+    # \param maxiter Maximum number of iterations to attempt in a single step
+    # \param period Balancing will be attempted every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=-1):
+        util.print_status_line();
+
+        # initialize base class
+        _updater.__init__(self);
+
+        # balancing cannot be done without mpi
+        if not hoomd.is_MPI_available():
+            globals.msg.warning("Ignoring balance command, not supported in current configuration.\n")
+            return
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
+        else:
+            self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);
+
+        self.setupUpdater(period,phase)
+
+        # stash arguments to metadata
+        self.metadata_fields = ['tolerance','maxiter','period','phase']
+        self.period = period
+        self.phase = phase
+
+        # configure the parameters
+        util._disable_status_lines = True
+        self.set_params(x,y,z,tolerance, maxiter)
+        util._disable_status_lines = False
+
+    ## Change load balancing parameters
+    #
+    # \param x If true, balance in x dimension
+    # \param y If true, balance in y dimension
+    # \param z If true, balance in z dimension
+    # \param tolerance Load imbalance tolerance (if <= 1.0, always rebalance)
+    # \param maxiter Maximum number of iterations to attempt in a single step
+    #
+    # \b Examples:
+    # \code
+    # balance.set_params(x=True, y=False)
+    # balance.set_params(tolerance=0.02, maxiter=5)
+    # \endcode
+    def set_params(self, x=None, y=None, z=None, tolerance=None, maxiter=None):
+        util.print_status_line()
+        self.check_initialization()
+
+        if x is not None:
+            self.cpp_updater.enableDimension(0, x)
+        if y is not None:
+            self.cpp_updater.enableDimension(1, y)
+        if z is not None:
+            self.cpp_updater.enableDimension(2, z)
+        if tolerance is not None:
+            self.tolerance = tolerance
+            self.cpp_updater.setTolerance(self.tolerance)
+        if maxiter is not None:
+            self.maxiter = maxiter
+            self.cpp_updater.setMaxIterations(self.maxiter)
+
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;

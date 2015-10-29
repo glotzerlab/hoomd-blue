@@ -54,6 +54,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ComputeThermo.h"
+#include <boost/python.hpp>
+#include "VectorMath.h"
+using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -73,7 +76,7 @@ using namespace std;
 ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_ndof(1)
+    : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
@@ -82,11 +85,17 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);
-    m_logname_list.push_back(string("pressure") + suffix);
+    m_logname_list.push_back(string("translational_temperature") + suffix);
+    m_logname_list.push_back(string("rotational_temperature") + suffix);
     m_logname_list.push_back(string("kinetic_energy") + suffix);
+    m_logname_list.push_back(string("translational_kinetic_energy") + suffix);
+    m_logname_list.push_back(string("rotational_kinetic_energy") + suffix);
     m_logname_list.push_back(string("potential_energy") + suffix);
     m_logname_list.push_back(string("ndof") + suffix);
+    m_logname_list.push_back(string("translational_ndof") + suffix);
+    m_logname_list.push_back(string("rotational_ndof") + suffix);
     m_logname_list.push_back(string("num_particles") + suffix);
+    m_logname_list.push_back(string("pressure") + suffix);
     m_logname_list.push_back(string("pressure_xx") + suffix);
     m_logname_list.push_back(string("pressure_xy") + suffix);
     m_logname_list.push_back(string("pressure_xz") + suffix);
@@ -143,45 +152,69 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else if (quantity == m_logname_list[1])
         {
-        return getPressure();
+        return getTranslationalTemperature();
         }
     else if (quantity == m_logname_list[2])
         {
-        return getKineticEnergy();
+        return getRotationalTemperature();
         }
     else if (quantity == m_logname_list[3])
         {
-        return getPotentialEnergy();
+        return getKineticEnergy();
         }
     else if (quantity == m_logname_list[4])
         {
-        return Scalar(m_ndof);
+        return getTranslationalKineticEnergy();
         }
     else if (quantity == m_logname_list[5])
         {
-        return Scalar(m_group->getNumMembersGlobal());
+        return getRotationalKineticEnergy();
         }
     else if (quantity == m_logname_list[6])
         {
-        return Scalar(getPressureTensor().xx);
+        return getPotentialEnergy();
         }
     else if (quantity == m_logname_list[7])
         {
-        return Scalar(getPressureTensor().xy);
+        return Scalar(m_ndof + m_ndof_rot);
         }
     else if (quantity == m_logname_list[8])
         {
-        return Scalar(getPressureTensor().xz);
+        return Scalar(m_ndof);
         }
     else if (quantity == m_logname_list[9])
         {
-        return Scalar(getPressureTensor().yy);
+        return Scalar(m_ndof_rot);
         }
     else if (quantity == m_logname_list[10])
         {
-        return Scalar(getPressureTensor().yz);
+        return Scalar(m_group->getNumMembersGlobal());
         }
     else if (quantity == m_logname_list[11])
+        {
+        return getPressure();
+        }
+    else if (quantity == m_logname_list[12])
+        {
+        return Scalar(getPressureTensor().xx);
+        }
+    else if (quantity == m_logname_list[13])
+        {
+        return Scalar(getPressureTensor().xy);
+        }
+    else if (quantity == m_logname_list[14])
+        {
+        return Scalar(getPressureTensor().xz);
+        }
+    else if (quantity == m_logname_list[15])
+        {
+        return Scalar(getPressureTensor().yy);
+        }
+    else if (quantity == m_logname_list[16])
+        {
+        return Scalar(getPressureTensor().yz);
+        }
+    else if (quantity == m_logname_list[17])
         {
         return Scalar(getPressureTensor().zz);
         }
@@ -217,7 +250,7 @@ void ComputeThermo::computeProperties()
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
 
     // total kinetic energy
-    double ke_total = 0.0;
+    double ke_trans_total = 0.0;
 
     PDataFlags flags = m_pdata->getFlags();
 
@@ -243,7 +276,7 @@ void ComputeThermo::computeProperties()
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
-        ke_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
+        ke_trans_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
     else
         {
@@ -251,13 +284,49 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            ke_total += (double)h_vel.data[j].w*( (double)h_vel.data[j].x * (double)h_vel.data[j].x
+            ke_trans_total += (double)h_vel.data[j].w*( (double)h_vel.data[j].x * (double)h_vel.data[j].x
                                                 + (double)h_vel.data[j].y * (double)h_vel.data[j].y
                                                 + (double)h_vel.data[j].z * (double)h_vel.data[j].z);
 
             }
 
-        ke_total *= Scalar(0.5);
+        ke_trans_total *= Scalar(0.5);
+        }
+
+    // total rotational kinetic energy
+    double ke_rot_total = 0.0;
+
+    if (flags[pdata_flag::rotational_kinetic_energy])
+        {
+        // Calculate rotational part of kinetic energy
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            Scalar3 I = h_inertia.data[j];
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            quat<Scalar> s(Scalar(0.5)*conj(q)*p);
+
+            // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
+            if (I.x >= EPSILON)
+                {
+                ke_rot_total += s.v.x*s.v.x/I.x;
+                }
+            if (I.y >= EPSILON)
+                {
+                ke_rot_total += s.v.y*s.v.y/I.y;
+                }
+            if (I.z >= EPSILON)
+                {
+                ke_rot_total += s.v.z*s.v.z/I.z;
+                }
+            }
+
+        ke_rot_total /= Scalar(2.0);
         }
 
     // total potential energy
@@ -313,9 +382,6 @@ void ComputeThermo::computeProperties()
             }
         }
 
-    // compute the temperature
-    Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(m_ndof);
-
     // compute the pressure
     // volume/area & other 2D stuff needed
     BoxDim global_box = m_pdata->getGlobalBox();
@@ -336,7 +402,7 @@ void ComputeThermo::computeProperties()
         }
 
     // pressure: P = (N * K_B * T + W)/V
-    Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
+    Scalar pressure =  (2.0 * ke_trans_total / Scalar(D) + W) / volume;
 
     // pressure tensor = (kinetic part + virial) / V
     Scalar pressure_xx = (pressure_kinetic_xx + virial_xx) / volume;
@@ -348,10 +414,10 @@ void ComputeThermo::computeProperties()
 
     // fill out the GPUArray
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);
-    h_properties.data[thermo_index::temperature] = temperature;
-    h_properties.data[thermo_index::pressure] = pressure;
-    h_properties.data[thermo_index::kinetic_energy] = Scalar(ke_total);
+    h_properties.data[thermo_index::translational_kinetic_energy] = Scalar(ke_trans_total);
+    h_properties.data[thermo_index::rotational_kinetic_energy] = Scalar(ke_rot_total);
     h_properties.data[thermo_index::potential_energy] = Scalar(pe_total);
+    h_properties.data[thermo_index::pressure] = pressure;
     h_properties.data[thermo_index::pressure_xx] = pressure_xx;
     h_properties.data[thermo_index::pressure_xy] = pressure_xy;
     h_properties.data[thermo_index::pressure_xz] = pressure_xz;
@@ -388,9 +454,12 @@ void export_ComputeThermo()
                       boost::shared_ptr<ParticleGroup>,
                       const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
+    .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)
     .def("getTemperature", &ComputeThermo::getTemperature)
     .def("getPressure", &ComputeThermo::getPressure)
     .def("getKineticEnergy", &ComputeThermo::getKineticEnergy)
+    .def("getTranslationalKineticEnergy", &ComputeThermo::getTranslationalKineticEnergy)
+    .def("getRotationalKineticEnergy", &ComputeThermo::getRotationalKineticEnergy)
     .def("getPotentialEnergy", &ComputeThermo::getPotentialEnergy)
     ;
     }

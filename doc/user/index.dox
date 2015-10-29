@@ -59,9 +59,10 @@ Welcome to the user documentation for HOOMD-blue!
     1. \ref page_units
     2. \ref page_box
     3. \ref page_xml_file_format
-    4. \ref page_mpi
-    5. \ref page_autotuner
-    6. \ref page_restartable_jobs
+    4. \ref page_aniso
+    5. \ref page_mpi
+    6. \ref page_autotuner
+    7. \ref page_restartable_jobs
 6. \subpage page_command_list
 7. \subpage page_conversion_scripts
 9. \subpage page_license
@@ -88,6 +89,7 @@ Table of contents:
  - \ref sec_index_meta
  - Potentials
    - \ref sec_index_pair
+   - \ref sec_index_aniso
    - \ref sec_index_manybody
    - \ref sec_index_bond
    - \ref sec_index_angle
@@ -164,6 +166,7 @@ Table of contents:
  - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>Rescales particle velocities </i>
  - \link hoomd_script.update.sort update.sort\endlink - <i>Sorts particles in memory to improve cache coherency</i>
  - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>Zeroes system momentum </i>
+ - \link hoomd_script.update.balance update.balance\endlink - <i>Adjusts domain decomposition boundaries to balance load</i>
 
 \section sec_index_compute Compute
  - \link hoomd_script.compute.thermo compute.thermo\endlink - <i>Compute thermodynamic properties of a group of particles </i>
@@ -209,6 +212,10 @@ Table of contents:
  - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force</i>
  - \link hoomd_script.pair.force_shifted_lj pair.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force </i>
+
+\section sec_index_aniso Anisotropic pair potentials
+ - \link hoomd_script.pair.dipole pair.dipole\endlink - <i>Screened dipole %pair %force </i>
+ - \link hoomd_script.pair.gb pair.gb\endlink - <i>Gay-Berne %pair %force </i>
 
 \section sec_index_manybody Many-body potentials
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>

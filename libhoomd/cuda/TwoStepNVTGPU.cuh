@@ -81,4 +81,24 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
                              Scalar Xi,
                              Scalar deltaT);
 
+//! Kernel driver for the angular part of the first half step of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_angular_step_one(Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT,
+                             Scalar exp_fac);
+
+//! Kernel driver for the angular part of the second half step of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_angular_step_two(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT,
+                             Scalar exp_fac);
+
 #endif //__TWO_STEP_NVT_GPU_CUH__

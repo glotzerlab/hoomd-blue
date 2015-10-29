@@ -128,6 +128,17 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
 
+        //! Get needed pdata flags
+        /*! in anisotropic mode, we need the rotational kinetic energy
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            if (m_aniso) flags[pdata_flag::rotational_kinetic_energy] = 1;
+            return flags;
+            }
+
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
@@ -136,9 +147,8 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
         std::string m_log_name;         //!< Name of the reservior quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
-        Scalar m_curr_T;                //!< Current temperature
 
-        // advance the thermostat
+        //! advance the thermostat
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */

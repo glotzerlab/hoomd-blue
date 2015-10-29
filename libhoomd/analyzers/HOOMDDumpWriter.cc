@@ -85,8 +85,8 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
         m_output_type(false), m_output_bond(false), m_output_angle(false),
         m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
-        m_output_charge(false), m_output_orientation(false), m_output_moment_inertia(false), m_vizsigma_set(false),
-        m_mode_restart(mode_restart)
+        m_output_charge(false), m_output_orientation(false), m_output_angmom(false),
+        m_output_moment_inertia(false), m_vizsigma_set(false), m_mode_restart(mode_restart)
     {
     m_exec_conf->msg->notice(5) << "Constructing HOOMDDumpWriter: " << base_fname << endl;
     }
@@ -188,6 +188,13 @@ void HOOMDDumpWriter::setOutputOrientation(bool enable)
     m_output_orientation = enable;
     }
 
+/*! \param enable Set to true to output orientation to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputAngularMomentum(bool enable)
+    {
+    m_output_angmom = enable;
+    }
+
 /*! \param enable Set to true to output moment_inertia to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
@@ -240,7 +247,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.5\">" << "\n";
+    f << "<hoomd_xml version=\"1.6\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
       << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
@@ -507,7 +514,27 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</orientation>" << "\n";
         }
 
-    // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
+    // if the angmom flag is set, write out the angular momentum quaternion to the XML file
+    if (m_output_angmom)
+        {
+        f << "<angmom num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+            {
+            // use the rtag data to output the particles in the order they were read in
+            Scalar4 angmom = quat_to_scalar4(snapshot.angmom[j]);
+            f << angmom.x << " " << angmom.y << " " << angmom.z << " " << angmom.w << "\n";
+            if (!f.good())
+                {
+                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+        f << "</angmom>" << "\n";
+        }
+
+
+    // if the moment_inertia flag is set, write out the principal moments of inertia to the XML file
     if (m_output_moment_inertia)
         {
         f << "<moment_inertia num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
@@ -515,10 +542,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
             {
             // inertia tensors are stored by tag
-            InertiaTensor I = snapshot.inertia_tensor[i];
-            for (unsigned int c = 0; c < 5; c++)
-                f << I.components[c] << " ";
-            f << I.components[5] << "\n";
+            Scalar3 I = vec_to_scalar3(snapshot.inertia[i]);
+            f << I.x << " " << I.y << " " << I.z << "\n";
 
             if (!f.good())
                 {
@@ -601,6 +626,8 @@ void export_HOOMDDumpWriter()
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
+    .def("setOutputAngularMomentum", &HOOMDDumpWriter::setOutputAngularMomentum)
+    .def("setOutputMomentInertia", &HOOMDDumpWriter::setOutputMomentInertia)
     .def("setVizSigma", &HOOMDDumpWriter::setVizSigma)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;

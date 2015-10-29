@@ -76,7 +76,8 @@ TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ComputeThermo> thermo,
                                    Scalar tau,
                                    boost::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
+      m_warned_aniso(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBerendsen" << endl;
 
@@ -98,13 +99,20 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     if (group_size == 0)
         return;
 
+    if (m_aniso && !m_warned_aniso)
+        {
+        m_exec_conf->msg->warning() << "integrate.berendsen: this integrator "
+            "does not support anisotropic degrees of freedom" << endl;
+        m_warned_aniso = true;
+        }
+
     // profile this step
     if (m_prof)
         m_prof->push("Berendsen step 1");
 
     // compute the current thermodynamic properties and get the temperature
     m_thermo->compute(timestep);
-    Scalar curr_T = m_thermo->getTemperature();
+    Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
     Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));

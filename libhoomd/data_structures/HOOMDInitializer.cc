@@ -103,6 +103,7 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
     m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
+    m_parser_map["angmom"] = bind(&HOOMDInitializer::parseAngularMomentumNode, this, _1);
 
     // read in the file
     readFile(fname);
@@ -222,7 +223,13 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
     if (m_type_mapping.size()) pdata.type_mapping = m_type_mapping;
 
     // Initialize moments of inertia
-    if (m_moment_inertia.size()) pdata.inertia_tensor = m_moment_inertia;
+    if (m_moment_inertia.size())
+        {
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            {
+            pdata.inertia[i] = vec3<Scalar>(m_moment_inertia[i]);
+            }
+        }
 
     // Initialize orientations
     if (m_orientation.size())
@@ -230,6 +237,15 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             {
             pdata.orientation[i] = quat<Scalar>(m_orientation[i]);
+            }
+        }
+
+    // Initialize angular momenta
+    if (m_angmom.size())
+        {
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            {
+            pdata.angmom[i] = quat<Scalar>(m_angmom[i]);
             }
         }
 
@@ -339,15 +355,14 @@ void HOOMDInitializer::readFile(const string &fname)
         throw runtime_error("Error reading xml file");
         }
 
-    string xml_version;
     if (root_node.isAttributeSet("version"))
         {
-        xml_version = root_node.getAttribute("version");
+        m_xml_version = root_node.getAttribute("version");
         }
     else
         {
         m_exec_conf->msg->notice(2) << "No version specified in hoomd_xml root node: assuming 1.0" << endl;
-        xml_version = string("1.0");
+        m_xml_version = string("1.0");
         }
 
     // right now, the version tag doesn't do anything: just warn if it is not a valid version
@@ -358,11 +373,12 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.3");
     valid_versions.push_back("1.4");
     valid_versions.push_back("1.5");
+    valid_versions.push_back("1.6");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
         {
-        if (xml_version == *i)
+        if (m_xml_version == *i)
             {
             valid = true;
             break;
@@ -370,7 +386,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     if (!valid)
         m_exec_conf->msg->warning() << endl
-             << "hoomd_xml file with version not in the range 1.0-1.5  specified,"
+             << "hoomd_xml file with version not in the range 1.0-1.6  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
 
     // the file was parsed successfully by the XML reader. Extract the information now
@@ -493,6 +509,13 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
+    if (m_angmom.size() != 0 && m_angmom.size() != m_pos_array.size())
+        {
+        m_exec_conf->msg->error() << endl << m_angmom.size() << " angmom values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+
 
     // notify the user of what we have accomplished
     m_exec_conf->msg->notice(2) << "--- hoomd_xml file read summary" << endl;
@@ -522,6 +545,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_orientation.size() << " orientations" << endl;
     if (m_moment_inertia.size() > 0)
         m_exec_conf->msg->notice(2) << m_moment_inertia.size() << " moments of inertia" << endl;
+    if (m_angmom.size() > 0)
+        m_exec_conf->msg->notice(2) << m_angmom.size() << " angular moments" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -975,6 +1000,34 @@ void HOOMDInitializer::parseOrientationNode(const XMLNode &node)
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b angmom node and fills out m_angmom. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseAngularMomentumNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("angmom"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        Scalar mx, my, mz, mw;
+        parser >> mx >> my >> mz >> mw;
+        if (parser.good())
+            m_angmom.push_back(make_scalar4(mx, my, mz, mw));
+        }
+    }
+
+
+/*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b moment_inertia node and fills out m_moment_inertia. The number
     of particles in the array is determined dynamically.
 */
@@ -992,11 +1045,27 @@ void HOOMDInitializer::parseMomentInertiaNode(const XMLNode &node)
 
     istringstream parser;
     parser.str(all_text);
+    bool read_offdiagonal = (m_xml_version == "1.4" || m_xml_version == "1.5");
+
+    if (read_offdiagonal)
+        {
+        m_exec_conf->msg->warning() << "Ignoring off-diagonal moments of inertia in this XML file version < 1.6"
+            << std::endl;
+        }
+
     while (parser.good())
         {
-        InertiaTensor I;
-        for (unsigned int i = 0; i < 6; i++)
-            parser >> I.components[i];
+        Scalar3 I;
+        Scalar tmp;
+        parser >> I.x;
+        if (read_offdiagonal)
+            {
+            parser >> tmp;
+            parser >> tmp;
+            }
+        parser >> I.y;
+        if (read_offdiagonal) parser >> tmp;
+        parser >> I.z;
 
         if (parser.good())
             m_moment_inertia.push_back(I);

@@ -22,10 +22,10 @@ class integrate_nvt_tests (unittest.TestCase):
         run(100);
 
     # tests mtk=False
-    def test(self):
+    def test_no_mtk(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        integrate.nvt(all, T=1.2, tau=0.5,mtk=False);
+        integrate.nvt(all, T=1.2, tau=0.5, mtk=False);
         run(100);
 
     # test set_params

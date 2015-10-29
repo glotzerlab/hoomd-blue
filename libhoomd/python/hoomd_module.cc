@@ -82,6 +82,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
+#include "AllAnisoPairPotentials.h"
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
@@ -179,9 +180,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "DomainDecomposition.h"
+#include "LoadBalancer.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
+#include "LoadBalancerGPU.h"
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
@@ -536,6 +539,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_tersoff_params();
+    export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
+    export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
@@ -581,6 +586,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB> ("AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole> ("AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
     export_BondTablePotentialGPU();
@@ -668,8 +675,10 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_MPI
     export_Communicator();
     export_DomainDecomposition();
+    export_LoadBalancer();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();
+    export_LoadBalancerGPU();
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 

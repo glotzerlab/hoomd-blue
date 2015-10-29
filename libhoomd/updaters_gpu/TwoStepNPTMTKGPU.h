@@ -76,6 +76,7 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
         TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
                    boost::shared_ptr<ComputeThermo> thermo_group,
+                   boost::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,

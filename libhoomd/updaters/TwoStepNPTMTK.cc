@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "TwoStepNPTMTK.h"
+#include "VectorMath.h"
 
 #include <boost/python.hpp>
 using namespace std;
@@ -75,7 +76,8 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_group Own ComputeThermo to compute thermo properties of the integrated \a group (at half time step)
+    \param thermo_group_full_tstep ComputeThermo to compute thermo properties of the integrated \a group at full time step
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
@@ -86,6 +88,7 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
 TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        boost::shared_ptr<ComputeThermo> thermo_group,
+                       boost::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
@@ -93,8 +96,9 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group),
-      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph), m_rescale_all(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
+      m_ndof(0), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph),
+      m_rescale_all(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -113,17 +117,16 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    // choose dummy values for the current temp and pressure
-    m_curr_group_T = 0.0;
-
-    if (!restartInfoTestValid(v, "npt_mtk", 8))
+    if (!restartInfoTestValid(v, "npt_mtk", 10))
         {
         v.type = "npt_mtk";
-        v.variable.resize(8,Scalar(0.0));
+        v.variable.resize(10,Scalar(0.0));
         setValidRestart(false);
         }
     else
+        {
         setValidRestart(true);
+        }
 
     setIntegratorVariables(v);
 
@@ -144,58 +147,65 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    // update degrees of freedom
-    m_ndof = m_thermo_group->getNDOF();
-
-    // compute the current thermodynamic properties
-    m_thermo_group->compute(timestep);
-
-    // compute temperature for the next half time step
-    m_curr_group_T = m_thermo_group->getTemperature();
-
-    // compute pressure for the next half time step
-    PressureTensor P = m_thermo_group->getPressureTensor();
-
-    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-        {
-        Scalar extP = m_P->getValue(timestep);
-        P.xx = P.yy = P.zz = extP;
-        P.xy = P.xz = P.yz = Scalar(0.0);
-        }
-
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& eta = v.variable[0];  // Thermostat variable
-    Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
-    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
-    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
-    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
-    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
-    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+    // update degrees of freedom for MTK term
+    m_ndof = m_thermo_group->getNDOF();
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
+    advanceBarostat(timestep);
 
-    Scalar exp_thermo_fac(1.0);
-    if (! m_nph)
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
+
+    // Martyna-Tobias-Klein correction
+    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+
+    // update the propagator matrix using current barostat momenta
+    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
+
+    // advance box lengths
+    BoxDim global_box = m_pdata->getGlobalBox();
+    Scalar3 a = global_box.getLatticeVector(0);
+    Scalar3 b = global_box.getLatticeVector(1);
+    Scalar3 c = global_box.getLatticeVector(2);
+
+    // (a,b,c) are the columns of the (upper triangular) cell parameter matrix
+    // multiply with upper triangular matrix
+    a.x = m_mat_exp_r[0] * a.x;
+    b.x = m_mat_exp_r[0] * b.x + m_mat_exp_r[1] * b.y;
+    b.y = m_mat_exp_r[3] * b.y;
+    c.x = m_mat_exp_r[0] * c.x + m_mat_exp_r[1] * c.y + m_mat_exp_r[2] * c.z;
+    c.y = m_mat_exp_r[3] * c.y + m_mat_exp_r[4] * c.z;
+    c.z = m_mat_exp_r[5] * c.z;
+
+    // update box dimensions
+    bool twod = m_sysdef->getNDimensions()==2;
+
+    global_box.setL(make_scalar3(a.x,b.y,c.z));
+    Scalar xy = b.x/b.y;
+
+    Scalar xz(0.0);
+    Scalar yz(0.0);
+
+    if (!twod)
         {
-        // advance thermostat (xi, eta) half a time step
-        Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
-        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep)*
-              exp(-xi_prime*m_deltaT) - Scalar(1.0));
-
-        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
-
-        // precompute loop invariant quantities
-        exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        xz = c.x/c.z;
+        yz = c.y/c.z;
         }
 
-    // update the propagator matrix
-    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
+    global_box.setTiltFactors(xy, xz, yz);
+
+    // set global box
+    m_pdata->setGlobalBox(global_box);
+    m_V = global_box.getVolume(twod);  // volume
 
     if (m_rescale_all)
         {
@@ -223,6 +233,10 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
+        // precompute loop invariant quantity
+        Scalar xi_trans = v.variable[1];
+        Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*(xi_trans+mtk)*m_deltaT);
+
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
@@ -231,17 +245,16 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             Scalar3 accel = h_accel.data[j];
             Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
-            // apply thermostat update of velocity
-            v *= exp_thermo_fac;
+            // advance velocity
+            v += m_deltaT/Scalar(2.0) * accel;
 
-            // update velocity and position by multiplication with upper triangular matrices
+            // apply barostat by multiplying with matrix exponential
             v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z;
             v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z;
             v.z = m_mat_exp_v[5] * v.z;
 
-            v.x += m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-            v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-            v.z += m_mat_exp_v_int[5] * accel.z;
+            // apply thermostat update of velocity
+            v *= exp_thermo_fac;
 
             if (! m_rescale_all)
                 {
@@ -266,63 +279,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             }
         } // end of GPUArray scope
 
-    // advance box lengths
-    BoxDim global_box = m_pdata->getGlobalBox();
-    Scalar3 a = global_box.getLatticeVector(0);
-    Scalar3 b = global_box.getLatticeVector(1);
-    Scalar3 c = global_box.getLatticeVector(2);
-
-    // (a,b,c) are the columns of the (upper triangular) cell parameter matrix
-    // multiply with upper triangular matrix
-    a.x = m_mat_exp_r[0] * a.x;
-    b.x = m_mat_exp_r[0] * b.x + m_mat_exp_r[1] * b.y;
-    b.y = m_mat_exp_r[3] * b.y;
-    c.x = m_mat_exp_r[0] * c.x + m_mat_exp_r[1] * c.y + m_mat_exp_r[2] * c.z;
-    c.y = m_mat_exp_r[3] * c.y + m_mat_exp_r[4] * c.z;
-    c.z = m_mat_exp_r[5] * c.z;
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-
-        MPI_Bcast(&a,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&b,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&c,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    // update box dimensions
-    bool twod = m_sysdef->getNDimensions()==2;
-
-    global_box.setL(make_scalar3(a.x,b.y,c.z));
-    Scalar xy = b.x/b.y;
-
-    Scalar xz(0.0);
-    Scalar yz(0.0);
-
-    if (!twod)
-        {
-        xz = c.x/c.z;
-        yz = c.y/c.z;
-        }
-
-    global_box.setTiltFactors(xy, xz, yz);
-
-    // set global box
-    m_pdata->setGlobalBox(global_box);
-
-    m_V = global_box.getVolume(twod);  // volume
-
-    // Get new (local) box
+    // Get new local box
     BoxDim box = m_pdata->getBox();
 
         {
@@ -334,7 +291,135 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
-   setIntegratorVariables(v);
+    // Integration of angular degrees of freedom using sympletic and
+    // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
+    if (m_aniso)
+        {
+        // precompute loop invariant quantity
+        Scalar xi_rot = v.variable[8];
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
+
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+            p += m_deltaT*q*t;
+
+            // apply thermostat
+            p = p*exp_thermo_fac_rot;
+
+            quat<Scalar> p1, p2, p3; // permutated quaternions
+            quat<Scalar> q1, q2, q3;
+            Scalar phi1, cphi1, sphi1;
+            Scalar phi2, cphi2, sphi2;
+            Scalar phi3, cphi3, sphi3;
+
+            if (!z_zero)
+                {
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            if (!y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+
+            if (!x_zero)
+                {
+                p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
+                q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+                phi1 = Scalar(1./4.)/I.x*dot(p,q1);
+                cphi1 = slow::cos(m_deltaT*phi1);
+                sphi1 = slow::sin(m_deltaT*phi1);
+
+                p=cphi1*p+sphi1*p1;
+                q=cphi1*q+sphi1*q1;
+                }
+
+            if (! y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+
+            if (! z_zero)
+                {
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            // renormalize (improves stability)
+            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+
+            h_orientation.data[j] = quat_to_scalar4(q);
+            h_angmom.data[j] = quat_to_scalar4(p);
+            }
+        }
+
+    if (! m_nph)
+        {
+        // propagate thermostat variables forward
+        advanceThermostat(timestep);
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        v = getIntegratorVariables();
+        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        setIntegratorVariables(v);
+        }
+    #endif
 
     // done profiling
     if (m_prof)
@@ -355,24 +440,19 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
         m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
-    Scalar& eta = v.variable[0];  // Thermostat variable
-    Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
-    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
-    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
-    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
-    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
-    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+    Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
 
-    // precalculate loop-invariant quantities
     {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    // Kinetic energy * 2
-    Scalar m_v2_sum(0.0);
+    // precompute loop invariant quantity
+    Scalar xi_trans = v.variable[1];
+    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+    Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*(xi_trans+mtk)*m_deltaT);
 
     // perform second half step of NPT integration
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -390,93 +470,69 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
         // update velocity by multiplication with upper triangular matrix
         Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+
+        // apply thermostat
+        v = v*exp_thermo_fac;
+
+        // apply barostat by multiplying with matrix exponential
         v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z;
         v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z;
         v.z = m_mat_exp_v[5] * v.z;
 
-        v.x += m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-        v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-        v.z += m_mat_exp_v_int[5] * accel.z;
+        // advance velocity
+        v += m_deltaT/Scalar(2.0) * accel;
 
         // store velocity
         h_vel.data[j].x = v.x; h_vel.data[j].y = v.y; h_vel.data[j].z = v.z;
-
-        // reduce E_kin
-        m_v2_sum += m*(v.x*v.x + v.y*v.y + v.z*v.z);
         }
 
-#ifdef ENABLE_MPI
-    if (m_comm)
-        MPI_Allreduce(MPI_IN_PLACE, &m_v2_sum, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
-#endif
-
-    Scalar exp_v_fac_thermo(1.0);
-    if (!m_nph)
+    if (m_aniso)
         {
-        // Advance thermostat half a time step
-        Scalar T_prime =  m_v2_sum/m_thermo_group->getNDOF();
-        Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
-        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(T_prime/m_T->getValue(timestep) *
-              exp(-xi_prime*m_deltaT) - Scalar(1.0));
+        // angular degrees of freedom
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
-        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
+        // precompute loop invariant quantity
+        Scalar xi_rot = v.variable[8];
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
 
-        exp_v_fac_thermo = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        // apply rotational (NO_SQUISH) equations of motion
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // thermostat angular degrees of freedom
+            p = p*exp_thermo_fac_rot;
+
+            // advance p(t+deltaT/2)->p(t+deltaT)
+            p += m_deltaT*q*t;
+
+            h_angmom.data[j] = quat_to_scalar4(p);
+            }
         }
-
-    // rescale velocities
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-
-        Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        vel = vel*exp_v_fac_thermo;
-        h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
-        }
-
     } // end GPUArray scope
 
-    if (m_prof)
-        m_prof->pop();
-
-    // compute the current thermodynamic properties
-    m_thermo_group->compute(timestep+1);
-
-    if (m_prof)
-        m_prof->push("NPT step 2");
-
-    // compute temperature for the next half time step
-    m_curr_group_T = m_thermo_group->getTemperature();
-
-    // compute pressure for the next half time step
-    PressureTensor P = m_thermo_group->getPressureTensor();
-
-    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-        {
-        Scalar extP = m_P->getValue(timestep);
-        P.xx = P.yy = P.zz = extP;
-        P.xy = P.xz = P.yz = Scalar(0.0);
-        }
-
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-    setIntegratorVariables(v);
+    advanceBarostat(timestep+1);
 
     // done profiling
     if (m_prof)
@@ -500,11 +556,20 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         {
         my_quantity_flag = true;
         IntegratorVariables v = getIntegratorVariables();
-        Scalar& eta = v.variable[0];
-        Scalar& xi = v.variable[1];
+        Scalar eta = v.variable[0];
+        Scalar xi = v.variable[1];
 
         Scalar thermostat_energy = m_thermo_group->getNDOF()*m_T->getValue(timestep)
                                    *(eta + m_tau*m_tau*xi*xi/Scalar(2.0));
+
+        if (m_aniso)
+            {
+            Scalar xi_rot = v.variable[8];
+            Scalar eta_rot = v.variable[9];
+            thermostat_energy += m_thermo_group->getRotationalNDOF()*m_T->getValue(timestep)
+                                   *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
+            }
+
         return thermostat_energy;
         }
     else if (quantity == m_log_names[1])
@@ -512,21 +577,23 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         my_quantity_flag = true;
         IntegratorVariables v = getIntegratorVariables();
 
-        Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
-        Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
-        Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
-        Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
-        Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
-        Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+        Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
+        Scalar nuxy = v.variable[3];  // Barostat tensor, xy component
+        Scalar nuxz = v.variable[4];  // Barostat tensor, xz component
+        Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
+        Scalar nuyz = v.variable[6];  // Barostat tensor, yz component
+        Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
 
-        Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-        Scalar barostat_energy = Scalar(0.0);
-        barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
+        unsigned int d = m_sysdef->getNDimensions();
+        Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
+        Scalar barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
 
         return barostat_energy;
         }
     else
+        {
         return Scalar(0);
+        }
     }
 
 /*! \param nuxx Barostat matrix, xx element
@@ -539,13 +606,9 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
 void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz)
     {
     // calculate some factors needed for the update matrix
-    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
-    Scalar3 v_fac = make_scalar3(-Scalar(1.0/4.0)*(nuxx+mtk_term_2),
-                           -Scalar(1.0/4.0)*(nuyy+mtk_term_2),
-                           -Scalar(1.0/4.0)*(nuzz+mtk_term_2));
-    Scalar3 exp_v_fac = make_scalar3(exp(v_fac.x*m_deltaT),
-                               exp(v_fac.y*m_deltaT),
-                               exp(v_fac.z*m_deltaT));
+    Scalar3 v_fac = make_scalar3(-Scalar(1.0/4.0)*nuxx,
+                           -Scalar(1.0/4.0)*nuyy,
+                           -Scalar(1.0/4.0)*nuzz);
     Scalar3 exp_v_fac_2 = make_scalar3(exp(Scalar(2.0)*v_fac.x*m_deltaT),
                                exp(Scalar(2.0)*v_fac.y*m_deltaT),
                                exp(Scalar(2.0)*v_fac.z*m_deltaT));
@@ -623,28 +686,6 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     m_mat_exp_v[4] = -m_deltaT*Scalar(1.0/4.0)*nuyz*(exp_v_fac_2.y + exp_v_fac_2.z); // yz
     m_mat_exp_v[5] = exp_v_fac_2.z;                                                  // zz
 
-    // integrated matrix exponential over deltaT
-    Scalar3 xz_fac_v = make_scalar3((Scalar(1.0)+g_v.x)*(Scalar(1.0)+g_v.x)+h_v.x,
-                                    (Scalar(1.0)+g_v.y)*(Scalar(1.0)+g_v.y)+h_v.y,
-                                    (Scalar(1.0)+g_v.z)*(Scalar(1.0)+g_v.z)+h_v.z);
-
-    m_mat_exp_v_int[0] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.x*f_v.x;                   // xx
-    m_mat_exp_v_int[1] = -nuxy*m_deltaT*m_deltaT*Scalar(1.0/16.0)
-                         *(exp_v_fac.x*f_v.x*(Scalar(1.0)+g_v.x)
-                          +exp_v_fac.y*f_v.y*(Scalar(1.0)+g_v.y));                     // xy
-    m_mat_exp_v_int[2] = -nuxz*m_deltaT*m_deltaT*Scalar(1.0/16.0)
-                         *(exp_v_fac.x*f_v.x*(Scalar(1.0)+g_v.x)
-                          +exp_v_fac.z*f_v.z*(Scalar(1.0)+g_v.z))
-                         +m_deltaT*m_deltaT*m_deltaT*nuxy*nuyz*Scalar(1.0/256.0)
-                          *(exp_v_fac.x*f_v.x*xz_fac_v.x
-                           +Scalar(2.0)*exp_v_fac.y*f_v.y*xz_fac_v.y
-                           +exp_v_fac.z*f_v.z*xz_fac_v.z);                             // xz
-    m_mat_exp_v_int[3] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.y*f_v.y;                   // yy
-    m_mat_exp_v_int[4] = -nuyz*m_deltaT*m_deltaT*Scalar(1.0/16.0)
-                         *(exp_v_fac.x*f_v.y*(Scalar(1.0)+g_v.y)
-                          +exp_v_fac.z*f_v.z*(Scalar(1.0)+g_v.z));                     // yz
-    m_mat_exp_v_int[5] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.z*f_v.z;                   // zz
-
     // Matrix exp. for position update
     m_mat_exp_r[0] = exp_r_fac_2.x;                                                    // xx
     m_mat_exp_r[1] = m_deltaT*Scalar(1.0/2.0)*nuxy*(exp_r_fac_2.x + exp_r_fac_2.y);    // xy
@@ -679,14 +720,30 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     }
 
 //! Helper function to advance the barostat parameters
-void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
-                                    PressureTensor &P, unsigned int timestep)
+void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     {
+    // compute thermodynamic properties at full time step
+    m_thermo_group_t->compute(timestep);
+
+    // compute pressure for the next half time step
+    PressureTensor P = m_thermo_group_t->getPressureTensor();
+
+    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
+        {
+        Scalar extP = m_P->getValue(timestep);
+        P.xx = P.yy = P.zz = extP;
+        P.xy = P.xz = P.yz = Scalar(0.0);
+        }
+
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
+    // Martyna-Tobias-Klein correction
+    unsigned int d = m_sysdef->getNDimensions();
+    Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
+    Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
+    mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
     couplingMode couple = m_couple;
+
     // disable irrelevant couplings
     if (! (m_flags & baro_x))
         {
@@ -724,6 +781,7 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
+
     if (couple == couple_none)
         {
         P_diag.x = P.xx;
@@ -760,12 +818,81 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
         }
 
     // update barostat matrix
-    if (m_flags & baro_x) nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_P->getValue(timestep)) + mtk_term;
-    if (m_flags & baro_xy) nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
-    if (m_flags & baro_xz) nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
-    if (m_flags & baro_y) nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_P->getValue(timestep)) + mtk_term;
-    if (m_flags & baro_yz) nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
-    if (m_flags & baro_z) nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_P->getValue(timestep)) + mtk_term;
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+
+    if (m_flags & baro_x)
+        {
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_P->getValue(timestep)) + mtk_term;
+        }
+
+    if (m_flags & baro_xy)
+        {
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        }
+
+    if (m_flags & baro_xz)
+        {
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        }
+
+    if (m_flags & baro_y)
+        {
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_P->getValue(timestep)) + mtk_term;
+        }
+
+    if (m_flags & baro_yz)
+        {
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        }
+
+    if (m_flags & baro_z)
+        {
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        }
+
+    // store integrator variables
+    setIntegratorVariables(v);
+    }
+
+void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
+    {
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& eta = v.variable[0];
+    Scalar& xi = v.variable[1];
+
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(timestep);
+
+    Scalar curr_T_trans = m_thermo_group->getTranslationalTemperature();
+    Scalar T = m_T->getValue(timestep);
+
+    // update the state variables Xi and eta
+    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));
+    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));
+    eta += xi_prime*m_deltaT;
+
+    if (m_aniso)
+        {
+        // update thermostat for rotational DOF
+        Scalar &xi_rot = v.variable[8];
+        Scalar &eta_rot = v.variable[9];
+
+        Scalar curr_ke_rot = m_thermo_group->getRotationalKineticEnergy();
+        unsigned int ndof_rot = m_thermo_group->getRotationalNDOF();
+
+        Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
+        xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
+
+        eta_rot += xi_prime_rot*m_deltaT;
+        }
+
+    setIntegratorVariables(v);
     }
 
 void export_TwoStepNPTMTK()
@@ -773,6 +900,7 @@ void export_TwoStepNPTMTK()
     scope in_npt_mtk = class_<TwoStepNPTMTK, boost::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNPTMTK", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
+                       boost::shared_ptr<ComputeThermo>,
                        boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,

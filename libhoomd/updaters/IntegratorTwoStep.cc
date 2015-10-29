@@ -69,7 +69,8 @@ using namespace boost;
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false)
+    : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false),
+      m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
     }
@@ -293,12 +294,63 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
     return res - m_sysdef->getNDimensions() - getNDOFRemoved();
     }
 
+/*! \param group Group over which to count degrees of freedom.
+    IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
+*/
+unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+    {
+    int res = 0;
+
+    // loop through all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // dd them all together
+        res += (*method)->getRotationalNDOF(group);
+        }
+
+    return res;
+    }
+
+/*!  \param mode Anisotropic integration mode to set
+     Set the anisotropic integration mode
+*/
+void IntegratorTwoStep::setAnisotropicMode(AnisotropicMode mode)
+    {
+    m_aniso_mode = mode;
+    }
+
 /*! Compute accelerations if needed for the first step.
     If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
     are available for the logger. This solves ticket #393
 */
 void IntegratorTwoStep::prepRun(unsigned int timestep)
     {
+    bool aniso = false;
+
+    // set (an-)isotropic integration mode
+    switch (m_aniso_mode)
+        {
+        case Anisotropic:
+            aniso = true;
+            if(!getAnisotropic())
+                m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
+                    " with no forces coupling to orientation" << endl;
+            break;
+        case Isotropic:
+            if(getAnisotropic())
+                m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
+                    " with anisotropic forces defined" << endl;
+        case Automatic:
+        default:
+            aniso = getAnisotropic();
+            break;
+        }
+
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        (*method)->setAnisotropic(aniso);
+
     // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
@@ -379,5 +431,13 @@ void export_IntegratorTwoStep()
         ("IntegratorTwoStep", init< boost::shared_ptr<SystemDefinition>, Scalar >())
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
+        .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
         ;
+
+    enum_<IntegratorTwoStep::AnisotropicMode>("IntegratorAnisotropicMode")
+        .value("Automatic", IntegratorTwoStep::Automatic)
+        .value("Anisotropic", IntegratorTwoStep::Anisotropic)
+        .value("Isotropic", IntegratorTwoStep::Isotropic)
+        ;
+
     }

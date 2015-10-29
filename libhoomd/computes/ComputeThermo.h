@@ -76,9 +76,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     and there is no need for them to be accessible via the GPUArray.
 
     Computed quantities available in the GPUArray:
-     - temperature of the group
+     - temperature of the group from translational degrees of freedom
+     - temperature of the group from rotational degrees of freedom
      - pressure (valid for the all group)
-     - kinetic energy
+     - translational kinetic energy
+     - rotational kinetic energy
      - potential energy
 
     Values available all the time
@@ -118,16 +120,63 @@ class ComputeThermo : public Compute
             return m_ndof;
             }
 
-        //! Returns the temperature last computed by compute()
-        /*! \returns Instantaneous temperature of the system
-        */
+        //! Change the number of degrees of freedom
+        void setRotationalNDOF(unsigned int ndof)
+            {
+            m_ndof_rot = ndof;
+            }
+
+        //! Get the number of degrees of freedom
+        unsigned int getRotationalNDOF()
+            {
+            return m_ndof_rot;
+            }
+
+        //! Returns the overall temperature last computed by compute()
+        /*! \returns Instantaneous overall temperature of the system
+         */
         Scalar getTemperature()
+        {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            Scalar prefactor = Scalar(2.0)/(m_ndof + m_ndof_rot);
+            return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
+                              h_properties.data[thermo_index::rotational_kinetic_energy]);
+        }
+
+        //! Returns the translational temperature last computed by compute()
+        /*! \returns Instantaneous translational temperature of the system
+        */
+        Scalar getTranslationalTemperature()
             {
             #ifdef ENABLE_MPI
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermo_index::temperature];
+            return Scalar(2.0)/m_ndof*h_properties.data[thermo_index::translational_kinetic_energy];
+            }
+
+        //! Returns the rotational temperature last computed by compute()
+        /*! \returns Instantaneous rotational temperature of the system
+        */
+        Scalar getRotationalTemperature()
+            {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+            // return NaN if the flags are not valid or we have no rotational DOF
+            PDataFlags flags = m_pdata->getFlags();
+            if (flags[pdata_flag::rotational_kinetic_energy] && m_ndof_rot)
+                {
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return Scalar(2.0)/m_ndof_rot*h_properties.data[thermo_index::rotational_kinetic_energy];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
             }
 
         //! Returns the pressure last computed by compute()
@@ -153,17 +202,54 @@ class ComputeThermo : public Compute
                 }
             }
 
-        //! Returns the kinetic energy last computed by compute()
-        /*! \returns Instantaneous kinetic energy of the system
+        //! Returns the translational kinetic energy last computed by compute()
+        /*! \returns Instantaneous translational kinetic energy of the system
         */
-        Scalar getKineticEnergy()
+        Scalar getTranslationalKineticEnergy()
             {
             #ifdef ENABLE_MPI
             if (!m_properties_reduced) reduceProperties();
             #endif
 
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermo_index::kinetic_energy];
+            return h_properties.data[thermo_index::translational_kinetic_energy];
+            }
+
+        //! Returns the rotational kinetic energy last computed by compute()
+        /*! \returns Instantaneous rotational kinetic energy of the system
+        */
+        Scalar getRotationalKineticEnergy()
+            {
+            // return NaN if the flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            if (flags[pdata_flag::rotational_kinetic_energy])
+                {
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::rotational_kinetic_energy];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
+            }
+
+        //! Returns the total kinetic energy last computed by compute()
+        /*! \returns Instantaneous total kinetic energy of the system
+        */
+        Scalar getKineticEnergy()
+            {
+            // return only translational component if the flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            if (flags[pdata_flag::rotational_kinetic_energy])
+                {
+                return (h_properties.data[thermo_index::translational_kinetic_energy] +
+                        h_properties.data[thermo_index::rotational_kinetic_energy]);
+                }
+            else
+                {
+                return h_properties.data[thermo_index::translational_kinetic_energy];
+                }
             }
 
         //! Returns the potential energy last computed by compute()
@@ -243,7 +329,8 @@ class ComputeThermo : public Compute
     protected:
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
-        unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
+        unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
+        unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
 
         //! Does the actual computation
