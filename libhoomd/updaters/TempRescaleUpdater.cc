@@ -95,7 +95,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 
     assert(m_thermo);
     m_thermo->compute(timestep);
-    Scalar cur_temp = m_thermo->getTemperature();
+    Scalar cur_temp = m_thermo->getTranslationalTemperature();
 
     if (m_prof) m_prof->push("TempRescale");
 

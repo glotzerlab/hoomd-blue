@@ -100,7 +100,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
 
     // compute the current thermodynamic quantities and get the temperature
     m_thermo->compute(timestep);
-    Scalar curr_T = m_thermo->getTemperature();
+    Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
     Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));

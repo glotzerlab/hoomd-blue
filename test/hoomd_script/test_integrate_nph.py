@@ -60,8 +60,9 @@ class integrate_nph_tests (unittest.TestCase):
     def test_empty_mtk(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
         mode = integrate.mode_standard(dt=0.005);
-        nve = integrate.nph(group=empty, P=1.0, tau=0.5, tauP=0.5)
-        run(1);
+        with self.assertRaises(RuntimeError):
+            nph = integrate.nph(group=empty, P=1.0, tau=0.5, tauP=0.5)
+            run(1);
 
     def tearDown(self):
         init.reset();

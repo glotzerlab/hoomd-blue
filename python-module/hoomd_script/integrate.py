@@ -211,6 +211,10 @@ class _integrator(meta._metadata):
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
 
+            ndof_rot = self.cpp_integrator.getRotationalNDOF(t.group.cpp_group);
+            t.cpp_compute.setRotationalNDOF(ndof_rot);
+
+
 ## \internal
 # \brief Base class for integration methods
 #
@@ -339,13 +343,14 @@ class _integration_method(meta._metadata):
 class mode_standard(_integrator):
     ## Specifies the standard integration mode
     # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt (in time units)
+    # \param aniso Whether to integrate rotational degrees of freedom (bool), default None (autodetect)
     #
     # \b Examples:
     # \code
     # integrate.mode_standard(dt=0.005)
     # integrator_mode = integrate.mode_standard(dt=0.001)
     # \endcode
-    def __init__(self, dt):
+    def __init__(self, dt, aniso=None):
         util.print_status_line();
 
         # initialize base class
@@ -353,7 +358,8 @@ class mode_standard(_integrator):
 
         # Store metadata
         self.dt = dt
-        self.metadata_fields = ['dt']
+        self.aniso = aniso
+        self.metadata_fields = ['dt', 'aniso']
 
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
@@ -361,8 +367,21 @@ class mode_standard(_integrator):
 
         globals.system.setIntegrator(self.cpp_integrator);
 
+        util._disable_status_lines = True;
+        if aniso is not None:
+            self.set_params(aniso=aniso)
+        util._disable_status_lines = False;
+
+    ## \internal
+    #  \brief Cached set of anisotropic mode enums for ease of access
+    _aniso_modes = {
+        None: hoomd.IntegratorAnisotropicMode.Automatic,
+        True: hoomd.IntegratorAnisotropicMode.Anisotropic,
+        False: hoomd.IntegratorAnisotropicMode.Isotropic}
+
     ## Changes parameters of an existing integration mode
     # \param dt New time step delta (if set) (in time units)
+    # \param aniso Anisotropic integration mode (bool), default None (autodetect)
     #
     # To change the parameters of an existing integration mode, you must save it in a variable when it is
     # specified, like so:
@@ -373,8 +392,9 @@ class mode_standard(_integrator):
     # \b Examples:
     # \code
     # integrator_mode.set_params(dt=0.007)
+    # integrator_mode.set_params(dt=0.005, aniso=False)
     # \endcode
-    def set_params(self, dt=None):
+    def set_params(self, dt=None, aniso=None):
         util.print_status_line();
         self.check_initialization();
 
@@ -382,6 +402,15 @@ class mode_standard(_integrator):
         if dt is not None:
             self.dt = dt
             self.cpp_integrator.setDeltaT(dt);
+
+        if aniso is not None:
+            if aniso in self._aniso_modes:
+                anisoMode = self._aniso_modes[aniso]
+            else:
+                globals.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                raise RuntimeError("Error setting anisotropic integration mode.");
+            self.aniso = aniso
+            self.cpp_integrator.setAnisotropicMode(anisoMode)
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
@@ -436,10 +465,9 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
 
         # create the compute thermo
-        # as an optimization, NVT (without MTK) on the GPU uses the thermo is a way that produces incorrect values for the pressure
-        # if we are given the overall group_all, create a new group so that the invalid pressure is not passed to
-        # analyze.log
-        if group is globals.group_all and not mtk:
+        # the NVT integrator uses the ComputeThermo in such a way that ComputeThermo stores half-time step
+        # values. By assigning a separate ComputeThermo to the integrator, we are still able to log full time step values
+        if group is globals.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
             util._disable_status_lines = True;
@@ -617,6 +645,10 @@ class npt(_integration_method):
                 T=1.0
                 tau=1.0
 
+        if len(group) == 0:
+            globals.msg.error("integrate.npt: Need a non-empty group.\n");
+            raise RuntimeError("Error setting up NPT integration.");
+
         # initialize base class
         _integration_method.__init__(self);
 
@@ -624,9 +656,18 @@ class npt(_integration_method):
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
 
-        # create the compute thermo
-        thermo_group = compute._get_unique_thermo(group=group);
-        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+        # create the compute thermo for half time steps
+        if group is globals.group_all:
+            group_copy = copy.copy(group);
+            group_copy.name = "__npt_all";
+            util._disable_status_lines = True;
+            thermo_group = compute.thermo(group_copy);
+            util._disable_status_lines = False;
+        else:
+            thermo_group = compute._get_unique_thermo(group=group);
+
+        # create the compute thermo for full time step
+        thermo_group_t = compute._get_unique_thermo(group=group);
 
         # need to know if we are running 2D simulations
         twod = (globals.system_definition.getNDimensions() == 2);
@@ -681,9 +722,9 @@ class npt(_integration_method):
             flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
         else:
-            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)

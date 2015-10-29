@@ -83,6 +83,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
+#include "AllAnisoPairPotentials.h"
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
@@ -539,6 +540,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_tersoff_params();
+    export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
+    export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
@@ -575,6 +578,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB> ("AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole> ("AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
     export_BondTablePotentialGPU();
@@ -669,4 +674,3 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
-

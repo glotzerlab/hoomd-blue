@@ -239,12 +239,39 @@ class IntegrationMethodTwoStep : boost::noncopyable
             }
 #endif
 
+        //! Set (an-)isotropic integration mode
+        /*! \param aniso True if anisotropic integration is requested
+         */
+        void setAnisotropic(bool aniso)
+            {
+            // warn if we are moving isotropic->anisotropic and we
+            // find no rotational degrees of freedom
+            if (!m_aniso && aniso && !this->getRotationalNDOF(m_group))
+                {
+                    m_exec_conf->msg->warning() << "Integrator #"<<  m_integrator_id <<
+                        ": Anisotropic integration requested, but no rotational "
+                        "degrees of freedom found for its group" << std::endl;
+                }
+
+            m_aniso = aniso;
+            }
+
+        //! Compute rotational degrees of freedom
+        /*! \param query_group The group of particles to compute rotational DOF for
+         */
+        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> query_group);
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        bool m_aniso;                                       //!< True if anisotropic integration is requested
+
+        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
+        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
+        // merge conflicts.
         Scalar m_deltaT;                                    //!< The time step
 
         //! helper function to get the integrator variables from the particle data
@@ -266,7 +293,6 @@ class IntegrationMethodTwoStep : boost::noncopyable
         void setValidRestart(bool b) { m_valid_restart = b; }
 
     protected:
-        bool m_no_wrap_particles[3];                           //!< True if particles should not be wrapped across boundaries in a given direction
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
 #endif

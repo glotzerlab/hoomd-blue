@@ -95,6 +95,7 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/autotuner.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/concepts.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/restartable_jobs.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/aniso.dox
                         )
 
 file(GLOB _user_doxygen_sources

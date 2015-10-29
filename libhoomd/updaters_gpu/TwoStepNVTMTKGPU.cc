@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.cuh"
+#include "TwoStepNVEGPU.cuh"
 #include "TwoStepNPTMTKGPU.cuh"
 
 #ifdef ENABLE_MPI
@@ -100,7 +101,6 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
-
     m_tuner_rescale.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_rescale", this->m_exec_conf));
 
     // generate power-of-two block sizes
@@ -131,40 +131,62 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 1");
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep);
+        {
+        // access all the needed data
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    // compute temperature for the next half time step
-    m_curr_T = m_thermo->getTemperature();
+        BoxDim box = m_pdata->getBox();
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+        // perform the update on the GPU
+        m_tuner_one->begin();
+        gpu_nvt_mtk_step_one(d_pos.data,
+                         d_vel.data,
+                         d_accel.data,
+                         d_image.data,
+                         d_index_array.data,
+                         group_size,
+                         box,
+                         m_tuner_one->getParam(),
+                         m_exp_thermo_fac,
+                         m_deltaT);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_one->end();
+        }
+
+    if (m_aniso)
+        {
+        // angular degrees of freedom, step one
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        gpu_nve_angular_step_one(d_orientation.data,
+                             d_angmom.data,
+                             d_inertia.data,
+                             d_net_torque.data,
+                             d_index_array.data,
+                             group_size,
+                             m_deltaT,
+                             exp_fac);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     // advance thermostat
     advanceThermostat(timestep, false);
-
-    // access all the needed data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-
-    // perform the update on the GPU
-    m_tuner_one->begin();
-    gpu_nvt_mtk_step_one(d_pos.data,
-                     d_vel.data,
-                     d_accel.data,
-                     d_image.data,
-                     d_index_array.data,
-                     group_size,
-                     box,
-                     m_tuner_one->getParam(),
-                     m_exp_thermo_fac,
-                     m_deltaT);
-
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_one->end();
 
     // done profiling
     if (m_prof)
@@ -184,87 +206,53 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
 
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    // perform the update on the GPU
-    m_tuner_two->begin();
-    gpu_nvt_mtk_step_two(d_vel.data,
-                     d_accel.data,
-                     d_index_array.data,
-                     group_size,
-                     d_net_force.data,
-                     m_tuner_two->getParam(),
-                     m_deltaT);
-
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    m_tuner_two->end();
-
-
         {
-        // get block size from autotuner
-        unsigned int block_size = m_tuner_reduce->getParam();
-        unsigned int num_blocks = m_group->getNumMembers() / block_size + 1;
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
-        // resize scratch if necessary
-        m_scratch.resize(num_blocks);
+        // perform the update on the GPU
+        m_tuner_two->begin();
+        gpu_nvt_mtk_step_two(d_vel.data,
+                         d_accel.data,
+                         d_index_array.data,
+                         group_size,
+                         d_net_force.data,
+                         m_tuner_two->getParam(),
+                         m_deltaT,
+                         m_exp_thermo_fac);
 
-        // recalulate temperature
-        ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_two->end();
+        }
 
-        // update number of blocks to current group size
-        m_tuner_reduce->begin();
-        gpu_npt_mtk_temperature(d_temperature.data,
-                                d_vel.data,
-                                d_scratch.data,
-                                num_blocks,
-                                block_size,
-                                d_index_array.data,
-                                group_size,
-                                m_thermo->getNDOF());
+    if (m_aniso)
+        {
+        // second part of angular update
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        gpu_nve_angular_step_two(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 exp_fac);
+
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-
-        m_tuner_reduce->end();
         }
-
-    // read back intermediate temperature from GPU
-        {
-        ArrayHandle<Scalar> h_temperature(m_temperature, access_location::host, access_mode::read);
-        m_curr_T= *h_temperature.data;
-        }
-
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        MPI_Allreduce(MPI_IN_PLACE, &m_curr_T, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
-        }
-    #endif
-
-
-    // get temperature and advance thermostat
-    advanceThermostat(timestep+1,true);
-
-    m_tuner_rescale->begin();
-    unsigned int block_size = m_tuner_rescale->getParam();
-
-    // rescale velocities
-    gpu_npt_mtk_thermostat(d_vel.data,
-                           d_index_array.data,
-                           group_size,
-                           m_exp_thermo_fac,
-                           block_size);
-
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    m_tuner_rescale->end();
 
     // done profiling
     if (m_prof)
