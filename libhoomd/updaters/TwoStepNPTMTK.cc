@@ -892,17 +892,6 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         eta_rot += xi_prime_rot*m_deltaT;
         }
 
-    Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
-    Scalar nuxy = v.variable[3];  // Barostat tensor, xy component
-    Scalar nuxz = v.variable[4];  // Barostat tensor, xz component
-    Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
-    Scalar nuyz = v.variable[6];  // Barostat tensor, yz component
-    Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
-
-    unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*T*m_tauP*m_tauP;
-    Scalar barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
-
     setIntegratorVariables(v);
     }
 
