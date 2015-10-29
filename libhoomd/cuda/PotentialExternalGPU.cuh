@@ -132,7 +132,8 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
     Scalar4 posi = d_pos[idx];
-    Scalar di,qi;
+    Scalar di;
+    Scalar qi;
     if (evaluator::needsDiameter())
         di = d_diameter[idx];
     else

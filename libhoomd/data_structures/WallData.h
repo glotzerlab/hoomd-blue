@@ -56,11 +56,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef WALL_DATA_H
 #define WALL_DATA_H
 
-
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 #include <cstdlib>
 #include <vector>
+#include <string.h>
+
+#ifdef NVCC
+#define DEVICE __device__
+#else
+#define DEVICE
+#endif
 
 //! SphereWall Constructor
 struct SphereWall
@@ -122,8 +128,7 @@ struct PlaneWall
     };
 
 //! Point to wall vector for a point inside a sphere wall geometry
-// DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
-vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
@@ -142,8 +147,7 @@ vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position
     };
 
 //! Point to wall vector for a point inside a cylinder wall geometry
-// DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
-vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
@@ -163,16 +167,14 @@ vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& positi
         }
     };
 
-// TODO: Figure out how to re-enable inline below but "ignored"? in test_walldata
 //! Point to wall vector for a point inside a plane wall geometry
-// DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
-vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
-    Scalar wallDist = dot(wall.normal,t) - dot(wall.normal,wall.origin);
-    if (wallDist > 0.0)
+    Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+    if (d > 0.0)
         {
-        vec3<Scalar> dx = -wallDist * wall.normal;
+        vec3<Scalar> dx = -d * wall.normal;
         return dx;
         }
     else
@@ -182,8 +184,7 @@ vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
     };
 
 //! Distance of point to inside sphere wall geometry
-// DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
-Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
+DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
@@ -195,8 +196,7 @@ Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
     };
 
 //! Distance of point to inside cylinder wall geometry
-// DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
-Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
+DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
@@ -208,8 +208,7 @@ Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
     };
 
 //! Distance of point to inside plane wall geometry
-// DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
-Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
+DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
     Scalar d = dot(wall.normal,wall.origin) - dot(wall.normal,t);

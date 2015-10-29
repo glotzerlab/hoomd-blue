@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
 
-//! Applys a constraint force to keep a group of particles on a sphere
+//! Applys an external force to particles based on position
 /*! \ingroup computes
 */
 template<class evaluator>

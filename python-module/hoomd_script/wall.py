@@ -86,6 +86,11 @@ import math;
 # used. Current supported geometries are spheres, cylinder, and planes. The
 # maximum number of each type of wall is 20, 20, and 60 respectively per group.
 #
+# An effective use of wall forces <b>requires</b> considering the geometry of the
+# system. Walls are only evaluated in one simulation box and are not periodic. It
+# is therefore important to ensure that the walls that intersect with a periodic
+# boundary meet.
+#
 # \note \par
 # The entire structure can easily be viewed by printing the wall.group object.
 # Print intentionally only displays exactly what will be passed to the wall force.
@@ -520,6 +525,18 @@ class plane_wall:
 # my_force.force_coeff.set(['B','C'],r_on=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
+#
+# \note \par
+# An effective use of wall forces <b>requires</b> considering the geometry of the
+# system. Each wall is only evaluated in one simulation box and thus is not
+# periodic. Forces will be evaluated and added to all particles from all walls in
+# the wall \link wall.group group\endlink. Additionally there are no safeguards
+# requireing a wall to exist inside the box to have interactions. This means that
+# an attractive force existing outside the simulation box would pull particles
+# across the periodic boundary where they would immediately cease to have any
+# interaction with that wall. It is therefore up to the user to use walls in a
+# physically meaningful manner. This includes the geometry of the walls, their
+# interactions, as noted here their location.
 #
 # There is no global r_cut intentionally since the r_cut value
 # determines the shift of the potential and the parameter should be thought about.

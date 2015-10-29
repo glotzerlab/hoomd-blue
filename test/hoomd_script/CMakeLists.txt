@@ -21,11 +21,11 @@ get_target_property(HOOMD_EXE hoomd LOCATION)
 
 # use mpirun -n 1 in MPI builds, otherwise, just run hoomd
 if (ENABLE_MPI)
-    add_test(NAME script-${_test_name}-cpu 
+    add_test(NAME script-${_test_name}-cpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
     if (ENABLE_CUDA)
-        add_test(NAME script-${_test_name}-gpu 
+        add_test(NAME script-${_test_name}-gpu
                  COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                          ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
     endif (ENABLE_CUDA)
@@ -87,10 +87,10 @@ else (CMAKE_MINOR_VERSION GREATER 7)
 get_target_property(HOOMD_EXE hoomd LOCATION)
 if (ENABLE_CUDA)
 if (ENABLE_MPI)
-    add_test(NAME script-${_test_name}-racecheck-gpu 
+    add_test(NAME script-${_test_name}-racecheck-gpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
-    add_test(NAME script-${_test_name}-memcheck-gpu 
+    add_test(NAME script-${_test_name}-memcheck-gpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
 else()
@@ -125,7 +125,7 @@ SET(EXCLUDE_FROM_MPI
     test_integrate_nve_rigid
     test_pair_cgcmm
     test_update_rescale_temp
-    test_wall_lj
+    test_walls
     )
 
 if (ENABLE_MPI)

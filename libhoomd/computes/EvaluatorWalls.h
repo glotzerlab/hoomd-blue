@@ -56,15 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EVALUATOR_WALLS_H__
 #define __EVALUATOR_WALLS_H__
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
-#define DEVICE __device__
-#else
-#define DEVICE
-#endif
-
-
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
@@ -72,6 +63,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "VectorMath.h"
 #include "WallData.h"
 
+#undef DEVICE
+#ifdef NVCC
+#define DEVICE __device__
+#else
+#define DEVICE
+#endif
 
 // sets the max numbers for each wall geometry type
 // if modified, the same number should be modified in the python module
@@ -83,8 +80,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
 // boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
 
-
-
 struct wall_type{
 	SphereWall 		Spheres[MAX_N_SWALLS];
 	CylinderWall 	Cylinders[MAX_N_CWALLS];
@@ -95,6 +90,9 @@ struct wall_type{
 
 };
 
+//! Applys a wall force from all walls in the field parameter
+/*! \ingroup computes
+*/
 template<class evaluator>
 class EvaluatorWalls
 	{
@@ -107,6 +105,7 @@ class EvaluatorWalls
 
 		typedef wall_type field_type;
 
+		//! Constructs the external wall potential evaluator
 		DEVICE EvaluatorWalls(Scalar3 pos, const BoxDim& box, const param_type& p, const field_type& f) : m_pos(pos), m_field(f), m_params(p)
 			{
 			}
@@ -116,6 +115,7 @@ class EvaluatorWalls
 			{
 			return evaluator::needsDiameter();
 			}
+
 		//! Accept the optional diameter value
 		/*! \param di Diameter of particle i
 		*/
@@ -124,21 +124,18 @@ class EvaluatorWalls
 			di = diameter;
 			}
 
+		//! Charges not supported by walls evals
+		DEVICE static bool needsCharge()
+			{
+			return false;
+			}
+
 		//! Accept the optional charge value
 		/*! \param qi Charge of particle i
 		*/
-		DEVICE void setCharge(Scalar charge)
-			{
-			qi = charge;
-			}
+		DEVICE void setCharge(Scalar charge) {}
 
-	
-		//! Test if evaluator needs charge
-		DEVICE static bool needsCharge()
-			{
-			return evaluator::needsCharge();
-			}
-	
+		//! Generates force and energy from standard evaluators using wall geometry functions
 		DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
 			{
 			F.x = Scalar(0.0);
@@ -169,9 +166,7 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
-					if (evaluator::needsCharge())
-						eval.setCharge(qi, Scalar(0.0));
-	
+
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -206,9 +201,7 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
-					if (evaluator::needsCharge())
-						eval.setCharge(qi, Scalar(0.0));
-	
+
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -243,9 +236,7 @@ class EvaluatorWalls
 					evaluator eval(rsq, m_params.rcutsq, m_params.params);
 					if (evaluator::needsDiameter())
 						eval.setDiameter(di, Scalar(0.0));
-					if (evaluator::needsCharge())
-						eval.setCharge(qi, Scalar(0.0));
-	
+
 					bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
 					if (evaluated)
@@ -283,7 +274,6 @@ class EvaluatorWalls
         field_type 		m_field;			  //!< contains all information about the walls.
         param_type 		m_params;
 		Scalar di;
-        Scalar qi;
 	};
 
 template < class evaluator >
@@ -297,7 +287,10 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
 	}
 #endif //__EVALUATOR__WALLS_H__
 #ifndef NVCC
+// #ifndef __EVALATORWALLS_EXPORTS__
+// #define __EVALATORWALLS_EXPORTS__
 
+//! Exports helper function for parameters based on standard evaluators
 template< class evaluator >
 void export_wall_params_helpers()
 	{
@@ -309,6 +302,7 @@ void export_wall_params_helpers()
 	def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
 	}
 
+//! Combines exports of evaluators and parameter helper functions
 template < class evaluator >
 void export_PotentialExternalWall(const std::string& name)
 	{
@@ -316,6 +310,7 @@ void export_PotentialExternalWall(const std::string& name)
 	export_wall_params_helpers<evaluator>();
 	}
 
+//! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(boost::python::object walls)
 	{
 		wall_type w;
@@ -346,9 +341,11 @@ wall_type make_wall_field_params(boost::python::object walls)
 		return w;
 	}
 
+//! Exports walls helper function
 void export_wall_field_helpers()
 	{
 	class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
 	def("make_wall_field_params", &make_wall_field_params);
 	}
+// #endif //__EVALATORWALLS_EXPORTS__
 #endif
