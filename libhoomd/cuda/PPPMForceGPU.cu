@@ -224,6 +224,12 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
 
+            if (nxi < 0 || nxi >= Nx || nyi < 0 || nyi >= Ny || nzi < 0 || nzi >= Nz)
+                {
+                // ignore
+                return;
+                }
+
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
             dz = shiftone+(Scalar)nzi-pos_frac.z;
@@ -399,6 +405,12 @@ void calculate_forces_kernel(Scalar4 *d_force,
             nxi = __scalar2int_rd(pos_frac.x + shift);
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
+
+            if (nxi < 0 || nxi >= Nx || nyi < 0 || nyi >= Ny || nzi < 0 || nzi >= Nz)
+                {
+                // ignore
+                return;
+                }
 
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
