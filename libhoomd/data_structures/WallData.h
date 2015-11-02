@@ -69,6 +69,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! SphereWall Constructor
+/*! \param r Radius of the sphere
+    \param origin The x,y,z coordinates of the center of the sphere
+    \param inside Determines if the geometry is evaluated with respect to the inner surface (or outer if false)
+*/
 struct SphereWall
     {
     SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), inside(ins), origin(vec3<Scalar>(orig)) {}
@@ -78,6 +82,12 @@ struct SphereWall
     };
 
 //! CylinderWall Constructor
+/*! \param r Radius of the sphere
+    \param origin The x,y,z coordinates of a point on the cylinder axis
+    \param axis A x,y,z vector along the cylinder axis used to define the axis
+    \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space such that the axis of the cylinder is parallel to the z' axis
+    \param inside Determines if the geometry is evaluated with respect to the inner surface (or outer if false)
+*/
 struct CylinderWall
     {
     CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad), inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
@@ -113,6 +123,9 @@ struct CylinderWall
     };
 
 //! PlaneWall Constructor
+/*! \param origin The x,y,z coordinates of a point on the cylinder axis
+    \param normal The x,y,z normal vector of the plane (normalized upon input)
+*/
 struct PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))

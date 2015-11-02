@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "BoxDim.h"
 
-/*! \file EvaluatorExternalPeriodic.h
+/*! \file EvaluatorExternalElectricField.h
     \brief Defines the external potential evaluator to induce a periodic ordered phase
 */
 

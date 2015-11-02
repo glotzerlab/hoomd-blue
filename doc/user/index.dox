@@ -256,6 +256,7 @@ Table of contents:
 
  \section sec_index_external External forces
  - \link hoomd_script.external.periodic external.periodic\endlink - <i>One-dimension periodic potential</i>
+ - \link hoomd_script.external.e_field external.e_field\endlink - <i>Apply a force derived from an electric field to all particles</i>
 
  \section sec_index_other Other forces
  - \link hoomd_script.force.constant force.constant\endlink - <i>Constant %force </i>

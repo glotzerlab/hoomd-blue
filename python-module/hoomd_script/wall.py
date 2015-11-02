@@ -65,7 +65,7 @@
 # Walls are created using the \link wall.group group\endlink commands. See \link
 # wall.group group\endlink for more details. By themselves, wall groups do
 # nothing. Only when you specify a wall force (i.e. wall.lj),  are forces actually
-# applied between the wall and the particle. See hoomd_script.wall.wallpotential
+# applied between the wall and the particle. See wall.wallpotential
 # for more details of implementing a force.
 
 from hoomd_script import external;
@@ -500,14 +500,15 @@ class plane_wall:
 # group\endlink. The %force \f$ \vec{F}\f$ is where \f$ \vec{r} \f$ is the vector
 # pointing from the particle to the %wall and \f$ V_{\mathrm{pair}}(r) \f$ is the
 # specific %pair potential chosen by the respective command. \f{eqnarray*} \vec{F}  = &
-# -\nabla V(r) & r < r_{\mathrm{cut}} \\ = & 0           & r \ge r_{\mathrm{cut}} \\
-# \f}   \f$ V(r) \f$ is evaluated in the same manner as when mode is shift for the
-# analogous pair potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
+# -\nabla V(r) & r_{\mathrm{min}} \le r < r_{\mathrm{cut}} \\ = & 0           & r
+# \ge r_{\mathrm{cut}} \\ = & 0             & r < r_{\mathrm{min}} \f}   \f$ V(r)
+# \f$ is evaluated in the same manner as when mode is shift for the analogous pair
+# potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
 # V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f}
 #
 # The following coefficients must be set per unique particle types.
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+# - \f$ r_{\mathrm{min}} \f$ - \c r_min (in distance units)
 #     -<i>Optional: Defaults to 0.0</i>
 # - All parameters required by the %pair potential base for the wall potential
 #
@@ -522,7 +523,7 @@ class plane_wall:
 # # Edit walls
 # my_force=wall.pairpotential(walls)
 # my_force.force_coeff.set('A', all required arguments)
-# my_force.force_coeff.set(['B','C'],r_on=0.3, all required arguments)
+# my_force.force_coeff.set(['B','C'],r_min=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
 #
@@ -552,7 +553,7 @@ class wallpotential(external._external_force):
     def __init__(self, walls, name=""):
         external._external_force.__init__(self, name);
         self.field_coeff = walls;
-        self.required_coeffs = ["r_cut", "r_on"];
+        self.required_coeffs = ["r_cut", "r_min"];
 
     def process_field_coeff(self, coeff):
         return hoomd.make_wall_field_params(coeff);
@@ -572,8 +573,8 @@ class wallpotential(external._external_force):
             type=globals.system_definition.getParticleData().getNameByType(i);
             if self.force_coeff.values[type]['r_cut']<=0:
                 self.force_coeff.values[type]['r_cut']=0;
-            if self.force_coeff.values[type]['r_on']<=0:
-                self.force_coeff.values[type]['r_on']=0;
+            if self.force_coeff.values[type]['r_min']<=0:
+                self.force_coeff.values[type]['r_min']=0;
         external._external_force.update_coeffs(self);
 
 ## Lennard-Jones %wall %force
@@ -584,11 +585,11 @@ class wallpotential(external._external_force):
 # \b Example\n
 # Note that the base pair.lj requires the parameters <c>sigma</c> and <c>epsilon</c> and has a
 # default <c>alpha</c>. The additional <c>r_cut</c> parameter is required per type by all wall
-# potentials and all wall potentials have a default <c>r_on</c> of 0.0.
+# potentials and all wall potentials have a default <c>r_min</c> of 0.0.
 # \code
 # walls=wall.group()
 # lj=wall.lj(walls)
-# lj.force_coeff.set('A',r_cut=3.0,r_on=0.0,sigma=1.0,epsilon=1.0)
+# lj.force_coeff.set('A',r_cut=3.0,r_min=0.0,sigma=1.0,epsilon=1.0)
 # lj.force_coeff.set(['B','C'],r_cut=1.5,sigma=0.5,epsilon=1.0)
 # \endcode
 # \note \par
@@ -614,7 +615,7 @@ class lj(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
         self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -624,7 +625,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -651,15 +652,19 @@ class gauss(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
+# Note that because slj is dependent upon particle diameters the following
+# correction is necessary to the force details in the pair.slj description. \n In
+# wall.slj \f$ \Delta = d_i/2 - 1 \f$ where \f$ d_i \f$ is the diameter of
+# particle \f$ i \f$. \n
 # See pair.slj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class slj(wallpotential):
@@ -690,7 +695,7 @@ class slj(wallpotential):
 
         # setup the coefficient options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
         self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -700,7 +705,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -727,12 +732,12 @@ class yukawa(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'kappa'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -760,14 +765,14 @@ class morse(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['D0', 'alpha', 'r0'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
 
     def process_coeff(self, coeff):
         D0 = coeff['D0'];
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -794,7 +799,7 @@ class force_shifted_lj(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
         self.force_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
@@ -804,7 +809,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -832,7 +837,7 @@ class mie(wallpotential):
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];
-        self.force_coeff.set_default_coeff('r_on', 0.0);
+        self.force_coeff.set_default_coeff('r_min', 0.0);
 
     def process_coeff(self, coeff):
         epsilon = float(coeff['epsilon']);
@@ -844,4 +849,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_on']*coeff['r_on']);
+        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);

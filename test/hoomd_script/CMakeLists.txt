@@ -125,12 +125,8 @@ SET(EXCLUDE_FROM_MPI
     test_integrate_nve_rigid
     test_pair_cgcmm
     test_update_rescale_temp
-<<<<<<< HEAD
     test_walls
-=======
-    test_wall_lj
     test_communication
->>>>>>> remotes/origin/master
     )
 
 if (ENABLE_MPI)
