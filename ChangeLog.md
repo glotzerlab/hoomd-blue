@@ -2,6 +2,17 @@
 
 [TOC]
 
+## Upcoming release - v1.3.0
+
+Released TBD
+
+*New features*
+
+* Automatically laad balanced domain decomposition simulations.
+* Anisotropic particle integrators.
+* Gay-Berne pair potential.
+* Dipole pair potential.
+
 ## v1.2.1
 
 Released 2015/10/22
