@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 #include "WallData.h"
+// #include "ExecutionConfiguration.h"
 
 #undef DEVICE
 #ifdef NVCC
@@ -127,13 +128,17 @@ class EvaluatorWalls
         //! Charges not supported by walls evals
         DEVICE static bool needsCharge()
             {
-            return false;
+            return evaluator::needsCharge();
             }
 
         //! Accept the optional charge value
         /*! \param qi Charge of particle i
+        Walls charge currently assigns a charge of 0 to the walls.
         */
-        DEVICE void setCharge(Scalar charge) {}
+        DEVICE void setCharge(Scalar charge)
+            {
+            qi = charge;
+            }
 
         //! Generates force and energy from standard evaluators using wall geometry functions
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
@@ -166,6 +171,8 @@ class EvaluatorWalls
                     evaluator eval(rsq, m_params.rcutsq, m_params.params);
                     if (evaluator::needsDiameter())
                         eval.setDiameter(di, Scalar(0.0));
+                    if (evaluator::needsCharge())
+                        eval.setCharge(qi, Scalar(0.0));
 
                     bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -201,6 +208,8 @@ class EvaluatorWalls
                     evaluator eval(rsq, m_params.rcutsq, m_params.params);
                     if (evaluator::needsDiameter())
                         eval.setDiameter(di, Scalar(0.0));
+                    if (evaluator::needsCharge())
+                        eval.setCharge(qi, Scalar(0.0));
 
                     bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -236,6 +245,8 @@ class EvaluatorWalls
                     evaluator eval(rsq, m_params.rcutsq, m_params.params);
                     if (evaluator::needsDiameter())
                         eval.setDiameter(di, Scalar(0.0));
+                    if (evaluator::needsCharge())
+                        eval.setCharge(qi, Scalar(0.0));
 
                     bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -270,10 +281,11 @@ class EvaluatorWalls
         #endif
 
     protected:
-        Scalar3         m_pos;                //!< particle position
-        field_type         m_field;              //!< contains all information about the walls.
-        param_type         m_params;
-        Scalar di;
+        Scalar3     m_pos;                //!< particle position
+        field_type  m_field;              //!< contains all information about the walls.
+        param_type  m_params;
+        Scalar      di;
+        Scalar      qi;
     };
 
 template < class evaluator >
@@ -313,10 +325,19 @@ void export_PotentialExternalWall(const std::string& name)
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(boost::python::object walls)
     {
-        wall_type w;
-        w.numSpheres = boost::python::extract<unsigned int>(walls.attr("num_spheres"));
-        w.numCylinders = boost::python::extract<unsigned int>(walls.attr("num_cylinders"));
-        w.numPlanes = boost::python::extract<unsigned int>(walls.attr("num_planes"));
+    wall_type w;
+    w.numSpheres = boost::python::len(walls.attr("spheres"));
+    w.numCylinders = boost::python::len(walls.attr("cylinders"));
+    w.numPlanes = boost::python::len(walls.attr("planes"));
+
+    if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
+        {
+        boost::shared_ptr<ExecutionConfiguration> m_exec_conf;
+        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed was specified in a wall force." << std::endl;
+        throw std::runtime_error("Error loading wall group.");
+        }
+    else
+        {
         for(unsigned int i = 0; i < w.numSpheres; i++)
             {
             Scalar     r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
@@ -339,6 +360,7 @@ wall_type make_wall_field_params(boost::python::object walls)
             w.Planes[i] = PlaneWall(origin, normal);
             }
         return w;
+        }
     }
 
 //! Exports walls helper function
