@@ -62,7 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 #include "WallData.h"
-// #include "ExecutionConfiguration.h"
 
 #undef DEVICE
 #ifdef NVCC
@@ -332,8 +331,7 @@ wall_type make_wall_field_params(boost::python::object walls)
 
     if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
         {
-        boost::shared_ptr<ExecutionConfiguration> m_exec_conf;
-        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed was specified in a wall force." << std::endl;
+        std::cerr << "A number of walls greater than the maximum number allowed was specified in a wall force." << std::endl;
         throw std::runtime_error("Error loading wall group.");
         }
     else
