@@ -129,6 +129,8 @@ Jens Glaser, University of Michigan
  - Testing of angle.table and dihedral.table
  - Replicate command
  - metadata output
+ - anisotropic particle integrators
+ - Gay-Berne pair potential
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials
@@ -182,6 +184,10 @@ Erin Teich, University of Michigan
 
 Joseph Berleant, University of Michigan
  - fix python 3.4 segfault
+
+Matthew Spellings, Univeristy of Michigan
+ - anisotropic particle integrators
+ - Gay-Berne, dipole pair potentials
 
 <hr>
 <h1>Source code</h1>
