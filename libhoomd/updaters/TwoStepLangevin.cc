@@ -49,9 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-
-
-#include "TwoStepBDNVT.h"
+#include "TwoStepLangevin.h"
+#include "saruprng.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -61,104 +60,40 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 using namespace std;
 
-/*! \file TwoStepBDNVT.h
-    \brief Contains code for the TwoStepBDNVT class
+/*! \file TwoStepLangevin.h
+    \brief Contains code for the TwoStepLangevin class
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
-    \param gamma_diam Set gamma to the particle diameter of each particle if true, otherwise use a per-type
-                      gamma via setGamma()
+    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
+    \param lambda Scale factor to convert diameter to gamma
     \param suffix Suffix to attach to the end of log quantity names
 */
-TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
+TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
-                           bool gamma_diam,
+                           bool use_lambda,
+                           Scalar lambda,
                            const std::string& suffix)
-    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false), m_warned_aniso(false)
+    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
     {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVT" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
 
-    // Hash the User's Seed to make it less likely to be a low positive integer
-    m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
-
-    // set a named, but otherwise blank set of integrator variables
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "bdnvt", 0))
-        {
-        v.type = "bdnvt";
-        v.variable.resize(0);
-        setValidRestart(false);
-        }
-    else
-        setValidRestart(true);
-
-    setIntegratorVariables(v);
-
-    // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
-    m_gamma.swap(gamma);
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i < m_gamma.size(); i++)
-        h_gamma.data[i] = Scalar(1.0);
-
-    m_log_name = string("bdnvt_reservoir_energy") + suffix;
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TwoStepBDNVT::slotNumTypesChange, this));
+    m_log_name = string("langevin_reservoir_energy") + suffix;
     }
 
-TwoStepBDNVT::~TwoStepBDNVT()
+TwoStepLangevin::~TwoStepLangevin()
     {
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepBDNVT" << endl;
-    m_num_type_change_connection.disconnect();
-    }
-
-void TwoStepBDNVT::slotNumTypesChange()
-    {
-    // skip the reallocation if the number of types does not change
-    // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
-    if (m_pdata->getNTypes() == m_gamma.size())
-        return;
-
-    // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = m_gamma.size();
-    m_gamma.resize(m_pdata->getNTypes());
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
-        h_gamma.data[i] = Scalar(1.0);
-    }
-
-/*! \param typ Particle type to set gamma for
-    \param gamma The gamma value to set
-*/
-void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
-    {
-    // check for user errors
-    if (m_gamma_diam)
-        {
-        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma when it is set to be the diameter! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepBDNVT");
-        }
-    if (typ >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma for a non existant type! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepBDNVT");
-        }
-
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    h_gamma.data[typ] = gamma;
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevin" << endl;
     }
 
 /*! Returns a list of log quantities this compute calculates
 */
-std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
+std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
     {
     vector<string> result;
     if (m_tally)
@@ -171,7 +106,7 @@ std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
     \param my_quantity_flag passed as false, changed to true if quanity logged here
 */
 
-Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
     {
     if (m_tally && quantity == m_log_name)
         {
@@ -183,44 +118,81 @@ Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int times
     }
 
 /*! \param timestep Current time step
+    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
+          method.
+*/
+void TwoStepLangevin::integrateStepOne(unsigned int timestep)
+    {
+    unsigned int group_size = m_group->getNumMembers();
+
+    // profile this step
+    if (m_prof)
+        m_prof->push("Langevin step 1");
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+    const BoxDim& box = m_pdata->getBox();
+
+    // perform the first half step of velocity verlet
+    // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
+    // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        Scalar dx = h_vel.data[j].x*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT*m_deltaT;
+        Scalar dy = h_vel.data[j].y*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT*m_deltaT;
+        Scalar dz = h_vel.data[j].z*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT*m_deltaT;
+
+        h_pos.data[j].x += dx;
+        h_pos.data[j].y += dy;
+        h_pos.data[j].z += dz;
+        // particles may have been moved slightly outside the box by the above steps, wrap them back into place
+        box.wrap(h_pos.data[j], h_image.data[j]);
+
+        h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
+        }
+
+    // done profiling
+    if (m_prof)
+        m_prof->pop();
+    }
+
+/*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumMembers();
-#else
-    unsigned int group_size = m_group->getNumMembers();
-#endif
-    if (group_size == 0)
-        return;
 
     if (m_aniso && !m_warned_aniso)
         {
-        m_exec_conf->msg->warning() << "integrate.bdnvt: this thermostat "
+        m_exec_conf->msg->warning() << "integrate.langevin: this thermostat "
             "does not operate on rotational degrees of freedom" << endl;
         m_warned_aniso = true;
         }
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
-
     // profile this step
     if (m_prof)
-        m_prof->push("NVE step 2");
+        m_prof->push("Langevin step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
 
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
-    const Scalar D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
     // initialize the RNG
     Saru saru(m_seed, timestep);
@@ -236,13 +208,13 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
 
         // first, calculate the BD forces
         // Generate three random numbers
-        Scalar rx = saru.d(-1,1);
-        Scalar ry = saru.d(-1,1);
-        Scalar rz =  saru.d(-1,1);
+        Scalar rx = saru.s(-1,1);
+        Scalar ry = saru.s(-1,1);
+        Scalar rz =  saru.s(-1,1);
 
         Scalar gamma;
-        if (m_gamma_diam)
-            gamma = h_diameter.data[j];
+        if (m_use_lambda)
+            gamma = m_lambda*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
@@ -250,12 +222,12 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
             }
 
         // compute the bd force
-        Scalar coeff = sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
+        Scalar coeff = fast::sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
 
-        if (D < 3.0)
+        if (D < 3)
             bd_fz = Scalar(0.0);
 
         // then, calculate acceleration from the net force
@@ -271,22 +243,11 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
 
         // tally the energy transfer from the bd thermal reservor to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
-
-        // limit the movement of the particles
-        if (m_limit)
-            {
-            Scalar vel = sqrt(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z );
-            if ( (vel*m_deltaT) > m_limit_val)
-                {
-                h_vel.data[j].x = h_vel.data[j].x / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].y = h_vel.data[j].y / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].z = h_vel.data[j].z / vel * m_limit_val / m_deltaT;
-                }
-            }
         }
 
     // update energy reservoir
-    if (m_tally) {
+    if (m_tally)
+        {
         #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -295,26 +256,24 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         #endif
         m_reservoir_energy -= bd_energy_transfer*m_deltaT;
         m_extra_energy_overdeltaT = 0.5*bd_energy_transfer;
-
-       }
+        }
 
     // done profiling
     if (m_prof)
         m_prof->pop();
     }
 
-void export_TwoStepBDNVT()
+void export_TwoStepLangevin()
     {
-    class_<TwoStepBDNVT, boost::shared_ptr<TwoStepBDNVT>, bases<TwoStepNVE>, boost::noncopyable>
-        ("TwoStepBDNVT", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         boost::shared_ptr<Variant>,
-                         unsigned int,
-                         bool,
-                         const std::string&
-                         >())
-        .def("setT", &TwoStepBDNVT::setT)
-        .def("setGamma", &TwoStepBDNVT::setGamma)
-        .def("setTally", &TwoStepBDNVT::setTally)
+    class_<TwoStepLangevin, boost::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
+        ("TwoStepLangevin", init< boost::shared_ptr<SystemDefinition>,
+                            boost::shared_ptr<ParticleGroup>,
+                            boost::shared_ptr<Variant>,
+                            unsigned int,
+                            bool,
+                            Scalar,
+                            const std::string&
+                            >())
+        .def("setTally", &TwoStepLangevin::setTally)
         ;
     }

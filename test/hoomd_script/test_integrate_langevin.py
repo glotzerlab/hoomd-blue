@@ -5,8 +5,8 @@ from hoomd_script import *
 import unittest
 import os
 
-# unit tests for integrate.bdnvt
-class integrate_bdnvt_tests (unittest.TestCase):
+# unit tests for integrate.langevin
+class integrate_langevin_tests (unittest.TestCase):
     def setUp(self):
         print
         self.s = init.create_random(N=100, phi_p=0.05);
@@ -18,33 +18,27 @@ class integrate_bdnvt_tests (unittest.TestCase):
     def test(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        bd = integrate.bdnvt(all, T=1.2, limit=0.1, seed=52);
+        bd = integrate.langevin(all, T=1.2, seed=52);
         run(100);
         bd.disable();
-        bd = integrate.bdnvt(all, T=1.2, limit=0.1);
+        bd = integrate.langevin(all, T=1.2, seed=1, dscale=1.0);
         run(100);
         bd.disable();
-        bd = integrate.bdnvt(all, T=1.2);
-        run(100);
-        bd.disable();
-        bd = integrate.bdnvt(all, T=1.2, gamma_diam=True);
-        run(100);
-        bd.disable();
-        bd = integrate.bdnvt(all, T=1.2, gamma_diam=True,tally=True);
+        bd = integrate.langevin(all, T=1.2, seed=1, dscale=1.0, tally=True);
         run(100);
         bd.disable();
 
     # test set_params
     def test_set_params(self):
         all = group.all();
-        bd = integrate.bdnvt(all, T=1.2);
+        bd = integrate.langevin(all, T=1.2, seed=1);
         bd.set_params(T=1.3);
         bd.set_params(tally=False);
 
     # test set_gamma
     def test_set_gamma(self):
         all = group.all();
-        bd = integrate.bdnvt(all, T=1.2);
+        bd = integrate.langevin(all, T=1.2, seed=1);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
 
@@ -52,13 +46,13 @@ class integrate_bdnvt_tests (unittest.TestCase):
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
         mode = integrate.mode_standard(dt=0.005);
-        nve = integrate.bdnvt(group=empty, T=1.2)
+        nve = integrate.langevin(group=empty, T=1.2, seed=1)
         run(1);
 
     # test adding types
     def test_add_type(self):
         all = group.all();
-        bd = integrate.bdnvt(all, T=1.2);
+        bd = integrate.langevin(all, T=1.2, seed=1);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
         run(100);

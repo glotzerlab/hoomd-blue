@@ -53,9 +53,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "IntegratorTwoStep.h"
-#include "TwoStepBDNVT.h"
+#include "TwoStepLangevin.h"
 #ifdef ENABLE_CUDA
-#include "TwoStepBDNVTGPU.h"
+#include "TwoStepLangevinGPU.h"
 #endif
 
 #include "NeighborListTree.h"
@@ -68,7 +68,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file bdnvt_updater_test.cc
-    \brief Implements unit tests for TwoStepBDNVT and descendants
+    \brief Implements unit tests for TwoStepLangevin and descendants
     \ingroup unit_tests
 */
 
@@ -77,7 +77,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<boost::shared_ptr<TwoStepBDNVT> (boost::shared_ptr<SystemDefinition> sysdef,
+typedef boost::function<boost::shared_ptr<TwoStepLangevin> (boost::shared_ptr<SystemDefinition> sysdef,
                                                   boost::shared_ptr<ParticleGroup> group,
                                                   Scalar T,
                                                   unsigned int seed,
@@ -119,7 +119,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
@@ -305,7 +305,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
     cout << "Temperature set at " << Temp << endl;
-    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 1);
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 1);
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
@@ -437,7 +437,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
@@ -522,7 +522,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     cout << "Creating 1000 LJ particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 358, 0);
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 358, 0);
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
@@ -595,26 +595,26 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
 
 
 //! BD_NVTUpdater factory for the unit tests
-boost::shared_ptr<TwoStepBDNVT> base_class_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+boost::shared_ptr<TwoStepLangevin> base_class_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                                   boost::shared_ptr<ParticleGroup> group,
                                                   Scalar Temp,
                                                   unsigned int seed,
                                                   bool use_diam)
     {
     boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    return boost::shared_ptr<TwoStepBDNVT>(new TwoStepBDNVT(sysdef, group, T_variant, seed, use_diam));
+    return boost::shared_ptr<TwoStepLangevin>(new TwoStepLangevin(sysdef, group, T_variant, seed, use_diam, 1.0));
     }
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
-boost::shared_ptr<TwoStepBDNVT> gpu_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+boost::shared_ptr<TwoStepLangevin> gpu_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                             boost::shared_ptr<ParticleGroup> group,
                                             Scalar Temp,
                                             unsigned int seed,
                                             bool use_diam)
     {
     boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    return boost::shared_ptr<TwoStepBDNVT>(new TwoStepBDNVTGPU(sysdef, group, T_variant, seed, use_diam));
+    return boost::shared_ptr<TwoStepLangevin>(new TwoStepLangevinGPU(sysdef, group, T_variant, seed, use_diam, 1.0));
     }
 #endif
 

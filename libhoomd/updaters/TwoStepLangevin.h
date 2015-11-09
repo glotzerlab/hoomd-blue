@@ -49,56 +49,43 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepNVE.h"
-#include "Variant.h"
-#include "saruprng.h"
+#include "TwoStepLangevinBase.h"
 
-#ifndef __TWO_STEP_BDNVT_H__
-#define __TWO_STEP_BDNVT_H__
+#ifndef __TWO_STEP_LANGEVIN_H__
+#define __TWO_STEP_LANGEVIN_H__
 
-/*! \file TwoStepBDNVT.h
-    \brief Declares the TwoStepBDNVT class
+/*! \file TwoStepLangevin.h
+    \brief Declares the TwoStepLangevin class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-//! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
-/*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
-    IntegrationMethodTwoStep interface
+//! Integrates part of the system forward in two steps with Langevin dynamics
+/*! Implements Langevin dynamics.
 
-    Brownian dyanmics modifies standard NVE integration with two additional forces, a random force and a drag force.
-    To implement this as simply as possible, we will leveraging the existing TwoStepNVE clas and derive from it. The
-    additions needed are a random number generator and some storage for gamma and temperature settings. The NVE
-    integration is modified by overrideing integrateStepTwo() to add in the needed bd forces.
+    Langevin dynamics modifies standard NVE integration with two additional forces, a random force and a drag force.
+    This implementation is very similar to TwoStepNVE with the additional forces. Note that this is not a really proper
+    Langevin integrator, but it works well in practice.
 
     \ingroup updaters
 */
-class TwoStepBDNVT : public TwoStepNVE
+class TwoStepLangevin : public TwoStepLangevinBase
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
+        TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<ParticleGroup> group,
                      boost::shared_ptr<Variant> T,
                      unsigned int seed,
-                     bool gamma_diam,
+                     bool use_lambda,
+                     Scalar lambda,
                      const std::string& suffix = std::string(""));
-        virtual ~TwoStepBDNVT();
-
-        //! Set a new temperature
-        /*! \param T new temperature to set */
-        void setT(boost::shared_ptr<Variant> T)
-            {
-            m_T = T;
-            }
-
-        //! Sets gamma for a given particle type
-        void setGamma(unsigned int typ, Scalar gamma);
+        virtual ~TwoStepLangevin();
 
         //! Turn on or off Tally
-        /*! \param tally if true, tallies energy exchange from bd thermal reservoir */
+        /*! \param tally if true, tallies energy exchange from the thermal reservoir */
         void setTally(bool tally)
             {
             m_tally= tally;
@@ -111,29 +98,19 @@ class TwoStepBDNVT : public TwoStepNVE
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! Performs the second step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
-        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
-        Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
-        Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
+        Scalar m_reservoir_energy;         //!< The energy of the reservoir the system is coupled to.
+        Scalar m_extra_energy_overdeltaT;  //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
-        std::string m_log_name;           //!< Name of the reservior quantity that we log
-        bool m_warned_aniso;              //!< true if we've already warned that we don't support aniso
-
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
+        std::string m_log_name;            //!< Name of the reservoir quantity that we log
     };
 
-//! Exports the TwoStepBDNVT class to python
-void export_TwoStepBDNVT();
+//! Exports the TwoStepLangevin class to python
+void export_TwoStepLangevin();
 
-#endif // #ifndef __TWO_STEP_BDNVT_H__
+#endif // #ifndef __TWO_STEP_LANGEVIN_H__
