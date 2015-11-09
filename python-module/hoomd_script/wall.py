@@ -574,7 +574,7 @@ class wallpotential(external._external_force):
 # \endcode
 # \note \par
 class lj(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -611,7 +611,7 @@ class lj(wallpotential):
 # See pair.gauss for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class gauss(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -646,7 +646,7 @@ class gauss(wallpotential):
 # See pair.slj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class slj(wallpotential):
-    def __init__(self, walls, d_max=None, name=""):
+    def __init__(self, walls, r_cut=False, d_max=None, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -689,7 +689,7 @@ class slj(wallpotential):
 # See pair.yukawa for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class yukawa(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -720,7 +720,7 @@ class yukawa(wallpotential):
 # See pair.morse for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class morse(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -753,7 +753,7 @@ class morse(wallpotential):
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
 # See pair.force_shifted_lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class force_shifted_lj(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -790,7 +790,7 @@ class force_shifted_lj(wallpotential):
 # See pair.mie for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class mie(wallpotential):
-    def __init__(self, walls, name=""):
+    def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -823,3 +823,4 @@ class mie(wallpotential):
         mie3 = n
         mie4 = m
         return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+                                                                                                                                                                                                                                                                                                             
