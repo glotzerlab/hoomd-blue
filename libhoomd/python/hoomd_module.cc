@@ -420,10 +420,8 @@ void initialize_mpi()
 string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
-    #ifdef ENABLE_MPI
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
-    #endif
     return string(proc_name);
     }
 
@@ -457,6 +455,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // register clean-up function
     Py_AtExit(finalize_mpi);
+    def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
     // setup needed for numpy
@@ -465,7 +464,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("abort_mpi", abort_mpi);
     def("mpi_barrier_world", mpi_barrier_world);
-    def("get_mpi_proc_name", get_mpi_proc_name);
 
     def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
