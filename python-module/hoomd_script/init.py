@@ -770,6 +770,20 @@ def _perform_common_init_tasks():
             # set Communicator in C++ System
             globals.system.setCommunicator(cpp_communicator)
 
+## Get the current processor name
+#
+# platform.node() can spawn forked processes in some version of MPI.
+# This avoids that problem by using MPI information about the hostname directly
+# when it is available. MPI is initialized on module load if it is available,
+# so this data is accessible immediately.
+#
+# \returns String name for the current processor
+# \internal
+def _get_proc_name():
+    if hoomd.is_MPI_available():
+        return hoomd.get_mpi_proc_name()
+    else:
+        return platform.node()
 
 ## Backward compatible initialization
 #
@@ -795,7 +809,8 @@ def _create_exec_conf():
 
     # error out on nyx/flux if the auto mode is set
     if globals.options.mode == 'auto':
-        if (re.match("flux*", platform.node()) is not None) or (re.match("nyx*", platform.node()) is not None):
+        host = _get_proc_name()
+        if "flux" in host or "nyx" in host:
             globals.msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
             raise RuntimeError("Error initializing");
         exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
