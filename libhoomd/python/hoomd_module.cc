@@ -416,6 +416,15 @@ void initialize_mpi()
         }
     }
 
+//! Get the processor name associated to this rank
+string get_mpi_proc_name()
+    {
+    char proc_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(proc_name, &name_len);
+    return string(proc_name);
+    }
+
 //! Finalize MPI environment
 void finalize_mpi()
     {
@@ -454,6 +463,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("abort_mpi", abort_mpi);
     def("mpi_barrier_world", mpi_barrier_world);
+    def("get_mpi_proc_name", get_mpi_proc_name);
 
     def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
