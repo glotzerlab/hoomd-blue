@@ -420,8 +420,10 @@ void initialize_mpi()
 string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
+    #ifdef ENABLE_MPI
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
+    #endif
     return string(proc_name);
     }
 
