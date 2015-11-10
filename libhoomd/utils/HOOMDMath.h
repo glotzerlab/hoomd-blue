@@ -557,6 +557,23 @@ inline HOSTDEVICE double acos(double x)
     }
 }
 
+template<class Real, class RNG>
+inline Real HOSTDEVICE gaussian_rng(RNG rng, Real sigma)
+    {
+    // use Box-Muller transformation to get a gaussian random number
+    float x1, x2, w, y1;
+
+    do  {
+        x1 = rng.s(-1.0, 1.0);
+        x2 = rng.s(-1.0, 1.0);
+        w = x1 * x1 + x2 * x2;
+        } while ( w >= Real(1.0) );
+
+    w = fast::sqrt((Scalar(-2.0) * log(w)) / w);
+    y1 = x1 * w;
+
+    return y1 * sigma;
+    }
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

@@ -108,6 +108,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTMTK.h"
 #include "TwoStepLangevinBase.h"
 #include "TwoStepLangevin.h"
+#include "TwoStepBD.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNHRigid.h"
@@ -628,6 +629,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVTMTK();
     export_TwoStepLangevinBase();
     export_TwoStepLangevin();
+    export_TwoStepBD();
     export_TwoStepNPTMTK();
     export_Berendsen();
     export_TwoStepNHRigid();

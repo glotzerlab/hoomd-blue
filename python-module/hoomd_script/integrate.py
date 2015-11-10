@@ -327,8 +327,9 @@ class _integration_method(meta._metadata):
 # techniques.
 #
 # The following commands can be used to specify the integration methods used by integrate.mode_standard.
-# - integrate.bdnvt
+# - integrate.brownian
 # - integrate.bdnvt_rigid
+# - integrate.langevin
 # - integrate.nve
 # - integrate.nve_rigid
 # - integrate.nvt
@@ -974,6 +975,10 @@ class nve(_integration_method):
 # to be consistent with the specified drag and temperature, \f$ T \f$.
 # When \f$ T=0 \f$, the random force \f$ \vec{F}_\mathrm{R}=0 \f$.
 #
+# Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
+# systems using a small gamma. This assumption is valid when underdamped: \f$ \frac{m}{\gamma} \gg \delta t \f$.
+# Use integrate.brownian if your system is not underdamped.
+#
 # You can specify \f$ \gamma \f$ in two ways. 1) Use set_gamma() to specify it directly, with
 # independent values for each particle type in the system. 2) Specify \f$ \lambda \f$ which scales the particle
 # diameter to \f$ \gamma = \lambda d_i \f$. The units of \f$ \lambda \f$ are mass / distance / time.
@@ -1073,6 +1078,144 @@ class langevin(_integration_method):
 
         if tally is not None:
             self.cpp_method.setTally(tally);
+
+    ## Set gamma for a particle type
+    # \param a Particle type name
+    # \param gamma \f$ \gamma \f$ for particle type \a (in units of force/velocity)
+    #
+    # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
+    # by name. The default is 1.0 if not specified for a type.
+    #
+    # It is not an error to specify gammas for particle types that do not exist in the simulation.
+    # This can be useful in defining a single simulation script for many different types of particles
+    # even when some simulations only include a subset.
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma('A', gamma=2.0)
+    # \endcode
+    #
+    def set_gamma(self, a, gamma):
+        util.print_status_line();
+        self.check_initialization();
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # change the parameters
+        for i in range(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma(i,gamma);
+
+## Brownian dynamics
+#
+# integrate.brownian integrates particles forward in time according to the overdamped Langevin equations of motion,
+# sometimes called Brownian dynamics, or the diffusive limit.
+# \f[ \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + \vec{F}_\mathrm{R}}{\gamma}, \f]
+# \f[ \langle \vec{F}_\mathrm{R} \rangle = 0, \f]
+# \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 k_\mathrm{B} T \gamma / \delta t, \f]
+# \f[ \langle \vec{v}(t) \rangle = 0, \f]
+# \f[ \langle |\vec{v}(t)|^2 \rangle = D k_\mathrm{B} T / m, \f]
+# where \f$ \vec{F}_\mathrm{C} \f$ is the force on the particle from all potentials and constraint forces,
+# \f$ \gamma \f$ is the drag coefficient, \f$ \vec{F}_\mathrm{R} \f$
+# is a uniform random force, \f$ \vec{v} \f$ is the particle's velocity, and \f$ D \f$ is the dimensionality
+# of the system. The magnitude of the random force is chosen via the fluctuation-dissipation theorem
+# to be consistent with the specified drag and temperature, \f$ T \f$.
+# When \f$ T=0 \f$, the random force \f$ \vec{F}_\mathrm{R}=0 \f$.
+#
+# In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
+# integrate.brownian draws a new velocity distribution consistent with the current set temperature so that
+# compute.thermo will report appropriate temperatures if logged or needed by other commands.
+#
+# Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
+# overdamped: \f$ \frac{m}{\gamma} \ll \delta t \f$. Use integrate.langevin if your system is not overdamped.
+#
+# You can specify \f$ \gamma \f$ in two ways. 1) Use set_gamma() to specify it directly, with
+# independent values for each particle type in the system. 2) Specify \f$ \lambda \f$ which scales the particle
+# diameter to \f$ \gamma = \lambda d_i \f$. The units of \f$ \lambda \f$ are mass / distance / time.
+#
+# integrate.brownian must be used with integrate.mode_standard.
+#
+# \MPI_SUPPORTED
+class brownian(_integration_method):
+    ## Specifies the Brownian dynamics integrator
+    # \param group Group of particles to apply this method to.
+    # \param T Temperature of the simulation (in energy units).
+    # \param seed Random seed to use for generating \f$ \vec{F}_\mathrm{R} \f$.
+    # \param dscale Control \f$ \lambda \f$ options. If 0 or False, use \f$ \gamma \f$ values set per type. If non-zero, \f$ \gamma = \lambda d_i \f$.
+    #
+    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
+    #
+    # A compute.thermo is automatically created and associated with \a group.
+    #
+    # \warning When restarting a simulation, the energy of the reservoir will be reset to zero.
+    #
+    # \b Examples:
+    # \code
+    # all = group.all();
+    # integrator = integrate.brownian(group=all, T=1.0, seed=5)
+    # integrator = integrate.brownian(group=all, T=1.0, dscale=1.5)
+    # typeA = group.type('A');
+    # integrator = integrate.brownian(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+    # \endcode
+    def __init__(self, group, T, seed, dscale=False):
+        util.print_status_line();
+
+        # initialize base class
+        _integration_method.__init__(self);
+
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
+
+        if dscale is False or dscale == 0:
+            use_lambda = False;
+        else:
+            use_lambda = True;
+
+        # initialize the reflected c++ class
+        if not globals.exec_conf.isCUDAEnabled():
+            my_class = hoomd.TwoStepBD;
+        else:
+            my_class = hoomd.TwoStepBDGPU;
+
+        self.cpp_method = my_class(globals.system_definition,
+                                   group.cpp_group,
+                                   T.cpp_variant,
+                                   seed,
+                                   use_lambda,
+                                   float(dscale));
+
+        self.cpp_method.validateGroup()
+
+        # store metadata
+        self.group = group
+        self.T = T
+        self.seed = seed
+        self.dscale = dscale
+        self.metadata_fields = ['group', 'T', 'seed', 'dscale']
+
+    ## Change brownian integrator parameters
+    # \param T New temperature (if set) (in energy units)
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(T=2.0)
+    # \endcode
+    def set_params(self, T=None):
+        util.print_status_line();
+        self.check_initialization();
+
+        # change the parameters
+        if T is not None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_method.setT(T.cpp_variant);
+            self.T = T
 
     ## Set gamma for a particle type
     # \param a Particle type name
