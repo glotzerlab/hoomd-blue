@@ -139,22 +139,23 @@ class EvaluatorWalls
             qi = charge;
             }
 
-        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, vec3<Scalar> dxv, bool inside)
+        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, vec3<Scalar> drv, bool inside)
             {
             if (m_params.rshift>Scalar(0.0) || inside)
                 {
-                Scalar3 dx = -vec_to_scalar3(dxv);
+                Scalar3 dr = -vec_to_scalar3(drv);
                 // calculate r_ij squared (FLOPS: 5)
-                Scalar rsq = (inside) ? dot(dx, dx) : Scalar(0.0);
+                Scalar rsq = dot(dr, dr);
+                Scalar rsq_eff = (inside) ? rsq : Scalar(0.0);
                 if (m_params.rshift > 0.0)
                     {
-                    rsq += m_params.rshift*m_params.rshift;
-                    dx = (inside) ? dx : -dx;
+                    rsq_eff += m_params.rshift*m_params.rshift + 2*m_params.rshift*fast::sqrt(rsq_eff);
+                    dr = (inside) ? dr : -dr;
                     }
                 // compute the force and potential energy
                 Scalar force_divr = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
-                evaluator eval(rsq, m_params.rcutsq, m_params.params);
+                evaluator eval(rsq_eff, m_params.rcutsq, m_params.params);
                 if (evaluator::needsDiameter())
                     eval.setDiameter(di, Scalar(0.0));
                 if (evaluator::needsCharge())
@@ -165,18 +166,16 @@ class EvaluatorWalls
 
                 if (evaluated)
                     {
-
-                    //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
                     // add the force, potential energy and virial to the particle i
                     // (FLOPS: 8)
-                    F += dx*force_divr;
-                    energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                    virial[0] += force_divr*dx.x*dx.x;
-                    virial[1] += force_divr*dx.x*dx.y;
-                    virial[2] += force_divr*dx.x*dx.z;
-                    virial[3] += force_divr*dx.y*dx.y;
-                    virial[4] += force_divr*dx.y*dx.z;
-                    virial[5] += force_divr*dx.z*dx.z;
+                    F += dr*force_divr; //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                    energy += (inside) ? pair_eng : pair_eng + rsq * force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                    virial[0] += force_divr*dr.x*dr.x;
+                    virial[1] += force_divr*dr.x*dr.y;
+                    virial[2] += force_divr*dr.x*dr.z;
+                    virial[3] += force_divr*dr.y*dr.y;
+                    virial[4] += force_divr*dr.y*dr.z;
+                    virial[5] += force_divr*dr.z*dr.z;
                     }
                 }
             }
@@ -194,23 +193,23 @@ class EvaluatorWalls
 
             // convert type as little as possible
             vec3<Scalar> position = vec3<Scalar>(m_pos);
-            vec3<Scalar> dxv;
+            vec3<Scalar> drv;
             bool inside = false; //keeps compiler from complaining
 
             for (unsigned int k = 0; k < m_field.numSpheres; k++)
                 {
-                dxv = vecPtToWall(m_field.Spheres[k], position, inside);
-                callEvaluator(F, energy, virial, dxv, inside);
+                drv = vecPtToWall(m_field.Spheres[k], position, inside);
+                callEvaluator(F, energy, virial, drv, inside);
                 }
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
-                dxv = vecPtToWall(m_field.Cylinders[k], position, inside);
-                callEvaluator(F, energy, virial, dxv, inside);
+                drv = vecPtToWall(m_field.Cylinders[k], position, inside);
+                callEvaluator(F, energy, virial, drv, inside);
                 }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
-                dxv = vecPtToWall(m_field.Planes[k], position, inside);
-                callEvaluator(F, energy, virial, dxv, inside);
+                drv = vecPtToWall(m_field.Planes[k], position, inside);
+                callEvaluator(F, energy, virial, drv, inside);
                 }
             };
 

@@ -140,7 +140,7 @@ struct PlaneWall
     vec3<Scalar>    origin;
     };
 
-//! Point to wall vector for a point inside a sphere wall geometry
+//! Point to wall vector for a sphere wall geometry
 DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
@@ -161,7 +161,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar
         }
     };
 
-//! Point to wall vector for a point inside a cylinder wall geometry
+//! Point to wall vector for a cylinder wall geometry
 DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
@@ -184,7 +184,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scal
         }
     };
 
-//! Point to wall vector for a point inside a plane wall geometry
+//! Point to wall vector for a plane wall geometry
 DEVICE inline vec3<Scalar> vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
@@ -194,7 +194,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const PlaneWall& wall, const vec3<Scalar>
     return dx;
     };
 
-//! Distance of point to inside sphere wall geometry
+//! Distance of point to inside sphere wall geometry, not really distance, +- based on if it's inside or not
 DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
@@ -206,7 +206,7 @@ DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& positi
     return d;
     };
 
-//! Distance of point to inside cylinder wall geometry
+//! Distance of point to inside cylinder wall geometry, not really distance, +- based on if it's inside or not
 DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
@@ -218,7 +218,7 @@ DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& posi
     return d;
     };
 
-//! Distance of point to inside plane wall geometry
+//! Distance of point to inside plane wall geometry, not really distance, +- based on if it's inside or not
 DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
