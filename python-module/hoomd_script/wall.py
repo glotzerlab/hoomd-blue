@@ -531,7 +531,7 @@ class wallpotential(external._external_force):
 
         # convert r_cut False to a floating point type
         if (r_cut==False):
-            r_cut = -1.0
+            r_cut = 0.0
         self.global_r_cut = r_cut;
         self.force_coeff.set_default_coeff('r_cut', self.global_r_cut);
 

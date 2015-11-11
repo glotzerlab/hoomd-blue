@@ -101,7 +101,6 @@ class EvaluatorWalls
             typename evaluator::param_type params;
             Scalar rcutsq;
             Scalar rshift;
-            bool outsidelinear;
         } param_type;
 
         typedef wall_type field_type;
@@ -153,34 +152,31 @@ class EvaluatorWalls
                     dx = (inside) ? dx : -dx;
                     }
                 // compute the force and potential energy
-                if (rsq>0.0)
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+                evaluator eval(rsq, m_params.rcutsq, m_params.params);
+                if (evaluator::needsDiameter())
+                    eval.setDiameter(di, Scalar(0.0));
+                if (evaluator::needsCharge())
+                    eval.setCharge(qi, Scalar(0.0));
+
+                // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
+
+                if (evaluated)
                     {
-                    Scalar force_divr = Scalar(0.0);
-                    Scalar pair_eng = Scalar(0.0);
-                    evaluator eval(rsq, m_params.rcutsq, m_params.params);
-                    if (evaluator::needsDiameter())
-                        eval.setDiameter(di, Scalar(0.0));
-                    if (evaluator::needsCharge())
-                        eval.setCharge(qi, Scalar(0.0));
 
-                    bool energy_shift = true; //Forces V(r) at r_cut to be continuous
-                    bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-                    if (evaluated)
-                        {
-
-                        //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                        // add the force, potential energy and virial to the particle i
-                        // (FLOPS: 8)
-                        F += dx*force_divr;
-                        energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                        virial[0] += force_divr*dx.x*dx.x;
-                        virial[1] += force_divr*dx.x*dx.y;
-                        virial[2] += force_divr*dx.x*dx.z;
-                        virial[3] += force_divr*dx.y*dx.y;
-                        virial[4] += force_divr*dx.y*dx.z;
-                        virial[5] += force_divr*dx.z*dx.z;
-                        }
+                    //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                    // add the force, potential energy and virial to the particle i
+                    // (FLOPS: 8)
+                    F += dx*force_divr;
+                    energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                    virial[0] += force_divr*dx.x*dx.x;
+                    virial[1] += force_divr*dx.x*dx.y;
+                    virial[2] += force_divr*dx.x*dx.z;
+                    virial[3] += force_divr*dx.y*dx.y;
+                    virial[4] += force_divr*dx.y*dx.z;
+                    virial[5] += force_divr*dx.z*dx.z;
                     }
                 }
             }
