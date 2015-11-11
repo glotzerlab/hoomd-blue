@@ -52,9 +52,9 @@
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall geometry and forces.
 #
-#  Walls currently supports these geometries:\n \link wall.sphere_wall
-# spheres\endlink, \link wall.cylinder_wall cylinders\endlink, \link
-# wall.plane_wall planes\endlink \n Walls currently supports these
+#  Walls currently supports these geometries:\n \link wall.sphere
+# spheres\endlink, \link wall.cylinder cylinders\endlink, \link
+# wall.plane planes\endlink \n Walls currently supports these
 # potentials:\n \link wall.lj lj\endlink, \link wall.gauss gauss\endlink, \link
 # wall.slj slj\endlink, \link wall.yukawa yukawa\endlink, \link wall.morse
 # morse\endlink, \link wall.force_shifted_lj force_shifted_lj\endlink, and \link
@@ -94,13 +94,13 @@ import math;
 # \note \par
 # The entire structure can easily be viewed by printing the wall.group object.
 # Print intentionally only displays exactly what will be passed to the wall force.
-# This can be seen in the example in \link hoomd_script.wall.sphere_wall
-# sphere_wall\endlink.
+# This can be seen in the example in \link hoomd_script.wall.sphere
+# sphere\endlink.
 # \note \par
 # While all x,y,z coordinates can be given as a list or tuple, only origin
 # parameters are points in x,y,z space. Normal and axis parameters are vectors and
 # must have a nonzero magnitude. The examples in \link
-# hoomd_script.wall.sphere_wall sphere_wall\endlink demonstrates this in the
+# hoomd_script.wall.sphere sphere\endlink demonstrates this in the
 # default parameters.
 # \note \par
 # Wall structure modifications between \link hoomd_script.run() run()\endlink
@@ -182,7 +182,7 @@ class group():
     # \code
     # empty_wall_object=wall.group()
     # named_wall_object=wall.group(name='Arbitrary Wall Name')
-    # full_wall_object=wall.group([wall.sphere_wall()]*20,[wall.cylinder_wall()]*20,[wall.plane_wall()]*60)
+    # full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60)
     # \endcode
     def __init__(self,*walls,name=''):
         self.name=name;
@@ -194,24 +194,24 @@ class group():
 
     ## Generic wall add for wall objects.
     # Generic convenience function to add any wall object to the group.
-    # Accepts \link hoomd_script.wall.sphere_wall sphere_wall\endlink, \link
-    # hoomd_script.wall.cylinder_wall cylinder_wall\endlink, \link
-    # hoomd_script.wall.plane_wall plane_wall\endlink, and lists of any
+    # Accepts \link hoomd_script.wall.sphere sphere\endlink, \link
+    # hoomd_script.wall.cylinder cylinder\endlink, \link
+    # hoomd_script.wall.plane plane\endlink, and lists of any
     # combination of these.
     def add(self,wall):
-        if (type(wall)==type(sphere_wall())):
+        if (type(wall)==type(sphere())):
             self.spheres.append(wall);
-        elif (type(wall)==type(cylinder_wall())):
+        elif (type(wall)==type(cylinder())):
             self.cylinders.append(wall);
-        elif (type(wall)==type(plane_wall())):
+        elif (type(wall)==type(plane())):
             self.planes.append(wall);
         elif (type(wall)==list):
             for wall_el in wall:
-                if (type(wall_el)==type(sphere_wall())):
+                if (type(wall_el)==type(sphere())):
                     self.spheres.append(wall_el);
-                elif (type(wall_el)==type(cylinder_wall())):
+                elif (type(wall_el)==type(cylinder())):
                     self.cylinders.append(wall_el);
-                elif (type(wall_el)==type(plane_wall())):
+                elif (type(wall_el)==type(plane())):
                     self.planes.append(wall_el);
         else:
             print("Input of type "+str(type(wall))+" is not allowed.");
@@ -222,7 +222,7 @@ class group():
     # \param origin Sphere origin (in x,y,z coordinates)
     # \param inside Sphere distance evaluation from inside/outside surface (defaults to True)
     def add_sphere(self, r, origin, inside=True):
-        self.spheres.append(sphere_wall(r,origin,inside));
+        self.spheres.append(sphere(r,origin,inside));
 
     ## Adds a cylinder to the %wall group.
     # Adds a cylinder with the specified parameters to the wallgroup.cylinders list.
@@ -231,14 +231,14 @@ class group():
     # \param axis Cylinder axis vector (in x,y,z coordinates)
     # \param inside Cylinder distance evaluation from inside/outside surface (defaults to True)
     def add_cylinder(self, r, origin, axis, inside=True):
-        self.cylinders.append(cylinder_wall(r, origin, axis, inside));
+        self.cylinders.append(cylinder(r, origin, axis, inside));
 
     ## Adds a plane to the %wall group.
     # Adds a plane with the specified parameters to the wallgroup.planes list.
     # \param origin Plane origin (in x,y,z coordinates)
     # \param normal Plane normal vector (in x,y,z coordinates)
     def add_plane(self, origin, normal):
-        self.planes.append(plane_wall(origin, normal));
+        self.planes.append(plane(origin, normal));
 
     ## Deletes the sphere or spheres in index.
     # Removes the specified sphere or spheres from the wallgroup.spheres list.
@@ -324,15 +324,15 @@ class group():
 # This function is mainly available for utility of users in use cases like the one below
 # and for reference in modifying the wall group structure's spheres members.
 #
-# The following example is intended to demonstrate cylinder_walls and plane_walls
+# The following example is intended to demonstrate cylinders and planes
 # as well. Note that the distinction between points and vectors is reflected in
 # the default parameters.
 # \n \b Example
 # \n In[0]:\code # walls=wall.group()
-# walls.spheres+=[wall.sphere_wall()]*5
-# walls.spheres+=[wall.sphere_wall(r=1)]*5
-# walls.cylinders+=[wall.cylinder_wall(r=3)]*5
-# walls.planes+=[wall.plane_wall()]*5
+# walls.spheres+=[wall.sphere()]*5
+# walls.spheres+=[wall.sphere(r=1)]*5
+# walls.cylinders+=[wall.cylinder(r=3)]*5
+# walls.planes+=[wall.plane()]*5
 # print(walls)
 # \endcode
 # Out[0]:\code
@@ -361,7 +361,7 @@ class group():
 # [3:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
 # [4:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]}
 # \endcode
-class sphere_wall:
+class sphere:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r;
         self._origin = hoomd.make_scalar3(*origin);
@@ -392,8 +392,8 @@ class sphere_wall:
 # This function is mainly available for utility of users in use cases like the example
 # and for reference in modifying the wall group structure's cylinders members.\n
 #
-# For an example see \link hoomd_script.wall.sphere_wall sphere_wall\endlink.
-class cylinder_wall:
+# For an example see \link hoomd_script.wall.sphere sphere\endlink.
+class cylinder:
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
         self.r = r;
         self._origin = hoomd.make_scalar3(*origin);
@@ -432,8 +432,8 @@ class cylinder_wall:
 # This function is mainly available for utility of users in use cases like the example
 # and for reference in modifying the wall group structure's planes members.
 #
-# For an example see \link hoomd_script.wall.sphere_wall sphere_wall\endlink.
-class plane_wall:
+# For an example see \link hoomd_script.wall.sphere sphere\endlink.
+class plane:
     def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
         self._origin = hoomd.make_scalar3(*origin);
         self._normal = hoomd.make_scalar3(*normal);
@@ -481,7 +481,7 @@ class plane_wall:
 #
 # The following coefficients must be set per unique particle types.
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-# - \f$ r_{\mathrm{min}} \f$ - \c r_min (in distance units)
+# - \f$ r_{\mathrm{min}} \f$ - \c r_shift (in distance units)
 #     -<i>Optional: Defaults to 0.0</i>
 # - All parameters required by the %pair potential base for the wall potential
 #
@@ -496,7 +496,7 @@ class plane_wall:
 # # Edit walls
 # my_force=wall.pairpotential(walls)
 # my_force.force_coeff.set('A', all required arguments)
-# my_force.force_coeff.set(['B','C'],r_min=0.3, all required arguments)
+# my_force.force_coeff.set(['B','C'],r_shift=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
 #
@@ -526,17 +526,17 @@ class wallpotential(external._external_force):
     def __init__(self, walls, r_cut, name=""):
         external._external_force.__init__(self, name);
         self.field_coeff = walls;
-        self.required_coeffs = ["r_cut", "r_min"];
-        self.force_coeff.set_default_coeff('r_min', 0.0);
+        self.required_coeffs = ["r_cut", "r_shift"];
+        self.force_coeff.set_default_coeff('r_shift', 0.0);
 
         # convert r_cut False to a floating point type
-        if r_cut is False:
+        if (r_cut==False):
             r_cut = -1.0
         self.global_r_cut = r_cut;
         self.force_coeff.set_default_coeff('r_cut', self.global_r_cut);
 
     def process_field_coeff(self, coeff):
-        return hoomd.make_wall_field_params(coeff);
+        return hoomd.make_wall_field_params(coeff, globals.exec_conf);
 
     ## \internal
     # \brief Return metadata for this wall potential
@@ -553,8 +553,6 @@ class wallpotential(external._external_force):
             type=globals.system_definition.getParticleData().getNameByType(i);
             if self.force_coeff.values[type]['r_cut']<=0:
                 self.force_coeff.values[type]['r_cut']=0;
-            if self.force_coeff.values[type]['r_min']<=0:
-                self.force_coeff.values[type]['r_min']=0;
         external._external_force.update_coeffs(self);
 
 ## Lennard-Jones %wall %force
@@ -565,11 +563,11 @@ class wallpotential(external._external_force):
 # \b Example\n
 # Note that the base pair.lj requires the parameters <c>sigma</c> and <c>epsilon</c> and has a
 # default <c>alpha</c>. The additional <c>r_cut</c> parameter is required per type by all wall
-# potentials and all wall potentials have a default <c>r_min</c> of 0.0.
+# potentials and all wall potentials have a default <c>r_shift</c> of 0.0.
 # \code
 # walls=wall.group()
 # lj=wall.lj(walls)
-# lj.force_coeff.set('A',r_cut=3.0,r_min=0.0,sigma=1.0,epsilon=1.0)
+# lj.force_coeff.set('A',r_cut=3.0,r_shift=0.0,sigma=1.0,epsilon=1.0)
 # lj.force_coeff.set(['B','C'],r_cut=1.5,sigma=0.5,epsilon=1.0)
 # \endcode
 # \note \par
@@ -604,7 +602,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -635,7 +633,7 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
@@ -682,7 +680,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -713,7 +711,7 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -747,7 +745,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -783,7 +781,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
+        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -822,5 +820,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_min']*coeff['r_min']);
-                                                                                                                                                                                                                                                                                                             
+        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);

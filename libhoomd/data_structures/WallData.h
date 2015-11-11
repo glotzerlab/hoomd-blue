@@ -141,34 +141,37 @@ struct PlaneWall
     };
 
 //! Point to wall vector for a point inside a sphere wall geometry
-DEVICE inline vec3<Scalar> vecInsPtToWall(const SphereWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
     vec3<Scalar> shiftedPos(t);
     Scalar rxyz = sqrt(dot(shiftedPos,shiftedPos));
-    if (((rxyz > 0.0) && (rxyz < wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside)))
+    if (rxyz > 0.0)
         {
+        inside = (((rxyz <= wall.r) && wall.inside) || ((rxyz >= wall.r) && !(wall.inside))) ? true : false;
         t *= wall.r/rxyz;
         vec3<Scalar> dx = t - shiftedPos;
         return dx;
         }
     else
         {
+        inside = true;
         return vec3<Scalar>(0.0,0.0,0.0);
         }
     };
 
 //! Point to wall vector for a point inside a cylinder wall geometry
-DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
     t-=wall.origin;
     vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot,t);
     shiftedPos.z = 0.0;
     Scalar rxy = sqrt(dot(shiftedPos,shiftedPos));
-    if (((rxy > 0.0) && (rxy < wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside)))
+    if (rxy > 0.0)
         {
+        inside = (((rxy <= wall.r) && wall.inside) || ((rxy >= wall.r) && !(wall.inside))) ? true : false;
         t = (wall.r / rxy) * shiftedPos;
         vec3<Scalar> dx = t - shiftedPos;
         dx = rotate(conj(wall.quatAxisToZRot),dx);
@@ -176,24 +179,19 @@ DEVICE inline vec3<Scalar> vecInsPtToWall(const CylinderWall& wall, const vec3<S
         }
     else
         {
+        inside = true;
         return vec3<Scalar>(0.0,0.0,0.0);
         }
     };
 
 //! Point to wall vector for a point inside a plane wall geometry
-DEVICE inline vec3<Scalar> vecInsPtToWall(const PlaneWall& wall, const vec3<Scalar>& position)
+DEVICE inline vec3<Scalar> vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
     Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
-    if (d > 0.0)
-        {
-        vec3<Scalar> dx = -d * wall.normal;
-        return dx;
-        }
-    else
-        {
-        return vec3<Scalar>(0.0,0.0,0.0);
-        }
+    inside = (d >= 0.0) ? true : false;
+    vec3<Scalar> dx = -d * wall.normal;
+    return dx;
     };
 
 //! Distance of point to inside sphere wall geometry
