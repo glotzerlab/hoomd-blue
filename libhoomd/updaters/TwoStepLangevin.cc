@@ -193,7 +193,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
-
     // initialize the RNG
     Saru saru(m_seed, timestep);
 
@@ -208,9 +207,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
         // first, calculate the BD forces
         // Generate three random numbers
-        Scalar rx = saru.s(-1,1);
-        Scalar ry = saru.s(-1,1);
-        Scalar rz =  saru.s(-1,1);
+        Scalar rx = saru.s<Scalar>(-1,1);
+        Scalar ry = saru.s<Scalar>(-1,1);
+        Scalar rz =  saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)

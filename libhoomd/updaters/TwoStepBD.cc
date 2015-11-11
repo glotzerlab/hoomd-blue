@@ -127,9 +127,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         // compute the random force
-        Scalar rx = saru.d(-1,1);
-        Scalar ry = saru.d(-1,1);
-        Scalar rz =  saru.d(-1,1);
+        Scalar rx = saru.s<Scalar>(-1,1);
+        Scalar ry = saru.s<Scalar>(-1,1);
+        Scalar rz =  saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)
