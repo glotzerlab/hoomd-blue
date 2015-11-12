@@ -968,10 +968,10 @@ class nve(_integration_method):
 # integrate.langevin integrates particles forward in time according to the Langevin equations of motion:
 # \f[ m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}, \f]
 # \f[ \langle \vec{F}_\mathrm{R} \rangle = 0, \f]
-# \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 D k_\mathrm{B} T \gamma / \delta t, \f]
+# \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k_\mathrm{B} T \gamma / \delta t, \f]
 # where \f$ \vec{F}_\mathrm{C} \f$ is the force on the particle from all potentials and constraint forces,
 # \f$ \gamma \f$ is the drag coefficient, \f$ \vec{v} \f$ is the particle's velocity, \f$ \vec{F}_\mathrm{R} \f$
-# is a uniform random force, and \f$ D \f$ is the dimensionality of the system (2 or 3).  The magnitude of
+# is a uniform random force, and \f$ d \f$ is the dimensionality of the system (2 or 3).  The magnitude of
 # the random force is chosen via the fluctuation-dissipation theorem
 # to be consistent with the specified drag and temperature, \f$ T \f$.
 # When \f$ T=0 \f$, the random force \f$ \vec{F}_\mathrm{R}=0 \f$.
@@ -1118,10 +1118,10 @@ class langevin(_integration_method):
 # \f[ \langle \vec{F}_\mathrm{R} \rangle = 0, \f]
 # \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 D k_\mathrm{B} T \gamma / \delta t, \f]
 # \f[ \langle \vec{v}(t) \rangle = 0, \f]
-# \f[ \langle |\vec{v}(t)|^2 \rangle = D k_\mathrm{B} T / m, \f]
+# \f[ \langle |\vec{v}(t)|^2 \rangle = d k_\mathrm{B} T / m, \f]
 # where \f$ \vec{F}_\mathrm{C} \f$ is the force on the particle from all potentials and constraint forces,
 # \f$ \gamma \f$ is the drag coefficient, \f$ \vec{F}_\mathrm{R} \f$
-# is a uniform random force, \f$ \vec{v} \f$ is the particle's velocity, and \f$ D \f$ is the dimensionality
+# is a uniform random force, \f$ \vec{v} \f$ is the particle's velocity, and \f$ d \f$ is the dimensionality
 # of the system. The magnitude of the random force is chosen via the fluctuation-dissipation theorem
 # to be consistent with the specified drag and temperature, \f$ T \f$.
 # When \f$ T=0 \f$, the random force \f$ \vec{F}_\mathrm{R}=0 \f$.
