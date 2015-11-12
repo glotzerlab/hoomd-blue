@@ -140,8 +140,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             gamma = h_gamma.data[type];
             }
 
-        // compute the bd force
-        Scalar coeff = fast::sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
+        // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
+        // it is not the dimensionality of the system
+        Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*currentTemp/m_deltaT);
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -150,13 +151,10 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             Fr_z = Scalar(0.0);
 
         // update position
-        Scalar dx = (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma;
-        Scalar dy = (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
-        Scalar dz = (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
+        h_pos.data[j].x = (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma;
+        h_pos.data[j].y = (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
+        h_pos.data[j].z = (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
 
-        h_pos.data[j].x += dx;
-        h_pos.data[j].y += dy;
-        h_pos.data[j].z += dz;
         // particles may have been moved slightly outside the box by the above steps, wrap them back into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
