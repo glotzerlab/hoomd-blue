@@ -1116,7 +1116,7 @@ class langevin(_integration_method):
 # sometimes called Brownian dynamics, or the diffusive limit.
 # \f[ \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + \vec{F}_\mathrm{R}}{\gamma}, \f]
 # \f[ \langle \vec{F}_\mathrm{R} \rangle = 0, \f]
-# \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 D k_\mathrm{B} T \gamma / \delta t, \f]
+# \f[ \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k_\mathrm{B} T \gamma / \delta t, \f]
 # \f[ \langle \vec{v}(t) \rangle = 0, \f]
 # \f[ \langle |\vec{v}(t)|^2 \rangle = d k_\mathrm{B} T / m, \f]
 # where \f$ \vec{F}_\mathrm{C} \f$ is the force on the particle from all potentials and constraint forces,
