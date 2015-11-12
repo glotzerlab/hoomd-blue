@@ -49,11 +49,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-
-
-#include "TwoStepBDNVTGPU.h"
+#include "TwoStepLangevinGPU.h"
 #include "TwoStepNVEGPU.cuh"
-#include "TwoStepBDNVTGPU.cuh"
+#include "TwoStepLangevinGPU.cuh"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -66,31 +64,32 @@ using namespace boost;
 
 using namespace std;
 
-/*! \file TwoStepBDNVTGPU.h
-    \brief Contains code for the TwoStepBDNVTGPU class
+/*! \file TwoStepLangevinGPU.h
+    \brief Contains code for the TwoStepLangevinGPU class
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
-    \param gamma_diam Set gamma to the particle diameter of each particle if true, otherwise use a per-type
-                      gamma via setGamma()
+    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
+    \param lambda Scale factor to convert diameter to gamma
     \param suffix Suffix to attach to the end of log quantity names
 */
-TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<ParticleGroup> group,
-                                 boost::shared_ptr<Variant> T,
-                                 unsigned int seed,
-                                 bool gamma_diam,
-                                 const std::string& suffix)
-    : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam, suffix)
+TwoStepLangevinGPU::TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                       boost::shared_ptr<ParticleGroup> group,
+                                       boost::shared_ptr<Variant> T,
+                                       unsigned int seed,
+                                       bool use_lambda,
+                                       Scalar lambda,
+                                       const std::string& suffix)
+    : TwoStepLangevin(sysdef, group, T, seed, use_lambda, lambda, suffix)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU what CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepNVEGPU");
+        m_exec_conf->msg->error() << "Creating a TwoStepLangevinGPU what CUDA is disabled" << endl;
+        throw std::runtime_error("Error initializing TwoStepLangevinGPU");
         }
 
     // allocate the sum arrays
@@ -109,14 +108,13 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 
-    This method is copied directoy from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple
-    inheritance.
+    This method is copied directoy from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
 */
-void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
     {
     // profile this step
     if (m_prof)
-        m_prof->push(m_exec_conf, "NVE step 1");
+        m_prof->push(m_exec_conf, "Langevin step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -137,9 +135,9 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
                      group_size,
                      box,
                      m_deltaT,
-                     m_limit,
-                     m_limit_val,
-                     m_zero_force,
+                     false,
+                     0,
+                     false,
                      256);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -153,16 +151,16 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)
-        m_prof->push(m_exec_conf, "NVE step 2");
+        m_prof->push(m_exec_conf, "Langevin step 2");
 
     // get the dimensionality of the system
-    const Scalar D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int D = m_sysdef->getNDimensions();
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
@@ -181,10 +179,11 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        bdnvt_step_two_args args;
+        langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = m_gamma.getNumElements();
-        args.gamma_diam = m_gamma_diam;
+        args.use_lambda = m_use_lambda;
+        args.lambda = m_lambda;
         args.T = m_T->getValue(timestep);
         args.timestep = timestep;
         args.seed = m_seed;
@@ -194,23 +193,20 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         args.num_blocks = m_num_blocks;
         args.tally = m_tally;
 
-        gpu_bdnvt_step_two(d_pos.data,
-                           d_vel.data,
-                           d_accel.data,
-                           d_diameter.data,
-                           d_tag.data,
-                           d_index_array.data,
-                           group_size,
-                           d_net_force.data,
-                           args,
-                           m_deltaT,
-                           D,
-                           m_limit,
-                           m_limit_val);
+        gpu_langevin_step_two(d_pos.data,
+                              d_vel.data,
+                              d_accel.data,
+                              d_diameter.data,
+                              d_tag.data,
+                              d_index_array.data,
+                              group_size,
+                              d_net_force.data,
+                              args,
+                              m_deltaT,
+                              D);
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-
         }
 
     if (m_tally)
@@ -230,15 +226,16 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepBDNVTGPU()
+void export_TwoStepLangevinGPU()
     {
-    class_<TwoStepBDNVTGPU, boost::shared_ptr<TwoStepBDNVTGPU>, bases<TwoStepBDNVT>, boost::noncopyable>
-        ("TwoStepBDNVTGPU", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         boost::shared_ptr<Variant>,
-                         unsigned int,
-                         bool,
-                         const std::string&
-                         >())
+    class_<TwoStepLangevinGPU, boost::shared_ptr<TwoStepLangevinGPU>, bases<TwoStepLangevin>, boost::noncopyable>
+        ("TwoStepLangevinGPU", init< boost::shared_ptr<SystemDefinition>,
+                               boost::shared_ptr<ParticleGroup>,
+                               boost::shared_ptr<Variant>,
+                               unsigned int,
+                               bool,
+                               Scalar,
+                               const std::string&
+                               >())
         ;
     }

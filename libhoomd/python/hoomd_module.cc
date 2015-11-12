@@ -142,7 +142,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
-#include "TwoStepBDNVTGPU.h"
+#include "TwoStepLangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
@@ -646,7 +646,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepNVTMTKGPU();
-    export_TwoStepBDNVTGPU();
+    export_TwoStepLangevinGPU();
     export_TwoStepNPTMTKGPU();
     export_BerendsenGPU();
     export_TwoStepNVERigidGPU();

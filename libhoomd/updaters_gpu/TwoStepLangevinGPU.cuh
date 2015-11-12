@@ -49,58 +49,44 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepBDNVT.h"
-
-#ifndef __TWO_STEP_BDNVT_GPU_H__
-#define __TWO_STEP_BDNVT_GPU_H__
-
-/*! \file TwoStepBDNVTGPU.h
-    \brief Declares the TwoStepBDNVTGPU class
+/*! \file TwoStepLangevinGPU.cuh
+    \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
-//! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
-/*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
-    IntegrationMethodTwoStep interface, runs on the GPU.
+#ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
+#define __TWO_STEP_LANGEVIN_GPU_CUH__
 
-    This class must inherit from TwoStepBDNVT so that it has that interface. However, is based off of the NVE
-    integration base routines. Rather than doing some evil multiple inheritance here, the integrateStepOne() from
-    TwoStepNVEGPU will simply be duplicated here.
-
-    In order to implement integrateStepTwo with the added BD forces, integrateStepTwo needs is reimplemened for
-    BDNVT.
-
-    \ingroup updaters
-*/
-class TwoStepBDNVTGPU : public TwoStepBDNVT
+//! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
+struct langevin_step_two_args
     {
-    public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<Variant> T,
-                        unsigned int seed,
-                        bool gamma_diam,
-                        const std::string& suffix = std::string(""));
-        virtual ~TwoStepBDNVTGPU() {};
-
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
-
-    protected:
-        unsigned int m_block_size;              //!< block size for partial sum memory
-        unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
-        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
+    Scalar *d_gamma;          //!< Device array listing per-type gammas
+    unsigned int n_types;     //!< Number of types in \a d_gamma
+    bool use_lambda;          //!< Set to true to scale diameters by lambda to get gamma
+    Scalar lambda;            //!< Scale factor to convert diameter to lambda
+    Scalar T;                 //!< Current temperature
+    unsigned int timestep;    //!< Current timestep
+    unsigned int seed;        //!< User chosen random number seed
+    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
+    unsigned int block_size;  //!<  Block size
+    unsigned int num_blocks;  //!<  Number of blocks
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
-//! Exports the TwoStepBDNVTGPU class to python
-void export_TwoStepBDNVTGPU();
+//! Kernel driver for the second part of the Langevin update called by TwoStepLangevinGPU
+cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar3 *d_accel,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4 *d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D);
 
-#endif // #ifndef __TWO_STEP_BDNVT_GPU_H__
+#endif //__TWO_STEP_LANGEVIN_GPU_CUH__

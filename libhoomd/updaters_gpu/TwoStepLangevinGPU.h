@@ -49,45 +49,51 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-/*! \file TwoStepBDNVTGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+#include "TwoStepLangevin.h"
+
+#ifndef __TWO_STEP_LANGEVIN_GPU_H__
+#define __TWO_STEP_LANGEVIN_GPU_H__
+
+/*! \file TwoStepLangevinGPU.h
+    \brief Declares the TwoStepLangevinGPU class
 */
 
-#include "ParticleData.cuh"
-#include "HOOMDMath.h"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TWO_STEP_BDNVT_GPU_CUH__
-#define __TWO_STEP_BDNVT_GPU_CUH__
+//! Implements Langevin dynamics on the GPU
+/*! GPU accelerated version of TwoStepLangevin
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
-struct bdnvt_step_two_args
+    \ingroup updaters
+*/
+class TwoStepLangevinGPU : public TwoStepLangevin
     {
-    Scalar *d_gamma;         //!< Device array listing per-type gammas
-    unsigned int n_types;   //!< Number of types in \a d_gamma
-    bool gamma_diam;        //!< Set to true to use diameters as gammas
-    Scalar T;                //!< Current temperature
-    unsigned int timestep;  //!< Current timestep
-    unsigned int seed;      //!< User chosen random number seed
-    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
-    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
-    unsigned int block_size;  //!<  Block size
-    unsigned int num_blocks;  //!<  Number of blocks
-    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                           boost::shared_ptr<ParticleGroup> group,
+                           boost::shared_ptr<Variant> T,
+                           unsigned int seed,
+                           bool use_lambda,
+                           Scalar lambda,
+                           const std::string& suffix = std::string(""));
+        virtual ~TwoStepLangevinGPU() {};
+
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+
+    protected:
+        unsigned int m_block_size;               //!< block size for partial sum memory
+        unsigned int m_num_blocks;               //!< number of memory blocks reserved for partial sum memory
+        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
+        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
     };
 
-//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
-                               Scalar4 *d_vel,
-                               Scalar3 *d_accel,
-                               const Scalar *d_diameter,
-                               const unsigned int *d_tag,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               Scalar4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               Scalar deltaT,
-                               Scalar D,
-                               bool limit,
-                               Scalar limit_val);
+//! Exports the TwoStepLangevinGPU class to python
+void export_TwoStepLangevinGPU();
 
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
+#endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__
