@@ -86,8 +86,10 @@ typedef double2 cufftDoubleComplex;
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
 // Handle both single and double precision through a define
@@ -558,7 +560,7 @@ inline HOSTDEVICE double acos(double x)
 }
 
 template<class Real, class RNG>
-inline Real HOSTDEVICE gaussian_rng(RNG rng, Real sigma)
+inline Real DEVICE gaussian_rng(RNG rng, Real sigma)
     {
     // use Box-Muller transformation to get a gaussian random number
     float x1, x2, w, y1;
@@ -577,5 +579,6 @@ inline Real HOSTDEVICE gaussian_rng(RNG rng, Real sigma)
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
+#undef DEVICE
 
 #endif // __HOOMD_MATH_H__

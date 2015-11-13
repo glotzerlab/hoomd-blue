@@ -85,10 +85,9 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysde
                                        const std::string& suffix)
     : TwoStepLangevin(sysdef, group, T, seed, use_lambda, lambda, suffix)
     {
-    // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepLangevinGPU what CUDA is disabled" << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepLangevinGPU while CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepLangevinGPU");
         }
 
