@@ -100,6 +100,7 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
     m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
+    m_parser_map["constraints"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
@@ -317,6 +318,23 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
         }
 
     idata.type_mapping = m_improper_type_mapping;
+
+    /*
+     * Initialize improper data
+     */
+    ConstraintData::Snapshot& cdata = snapshot->constraint_data;
+
+    // allocate memory
+    cdata.resize(m_constraints.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_constraints.size(); i++)
+        {
+        cdata.groups[i] = m_constraints[i];
+        cdata.type_id[i] = m_constraint_types[i];
+        }
+
+    cdata.type_mapping = m_constraint_type_mapping;
 
     /*
      * Initialize walls
@@ -545,6 +563,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
+    if (m_constraints.size() > 0)
+        m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_walls.size() > 0)
@@ -954,6 +974,40 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b constraint node and fills out m_constraints. The number
+    of constraints in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseConstraintsNode(const XMLNode &node)
+    {
+    // check that this is actually a constraint node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("constraint"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        string type_name;
+        unsigned int a, b;
+        parser >> type_name >> a >> b;
+        if (parser.good())
+            {
+            ConstraintData::members_t constraint;
+            constraint.tag[0] = a; constraint.tag[1] = b;
+            m_constraints.push_back(constraint);
+            m_constraint_types.push_back(getConstraintTypeId(type_name));
+            }
+        }
+    }
+
+
+/*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b charge node and fills out m_charge_array. The number
     of particles in the array is determined dynamically.
 */
@@ -1234,6 +1288,23 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     // add a new one if it is not found
     m_improper_type_mapping.push_back(name);
     return (unsigned int)m_improper_type_mapping.size()-1;
+    }
+
+/*! \param name Name to get type id of
+    If \a name has already been added, this returns the type index of that name.
+    If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getConstraintTypeId(const std::string& name)
+    {
+    // search for the type mapping
+    for (unsigned int i = 0; i < m_constraint_type_mapping.size(); i++)
+        {
+        if (m_constraint_type_mapping[i] == name)
+            return i;
+        }
+    // add a new one if it is not found
+    m_constraint_type_mapping.push_back(name);
+    return (unsigned int)m_constraint_type_mapping.size()-1;
     }
 
 void export_HOOMDInitializer()

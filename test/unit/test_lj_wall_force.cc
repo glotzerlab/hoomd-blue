@@ -79,7 +79,7 @@ typedef boost::function<boost::shared_ptr<LJWallForceCompute> (boost::shared_ptr
 void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3 particle test will check proper wall force computation among all 3 axes
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {

@@ -79,7 +79,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, 0,  exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1)); // put atom a at (-1,0,0.1)
@@ -179,7 +179,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // build a 6 particle system with particles across each boundary
     // also test more than one type of angle
     unsigned int num_angles_to_test = 2;
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     pdata_6->setPosition(0,make_scalar3(-9.6, 0.0, 0.0));
@@ -261,7 +261,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     // make a square of particles

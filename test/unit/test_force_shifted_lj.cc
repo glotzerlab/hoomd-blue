@@ -82,7 +82,7 @@ typedef boost::function<boost::shared_ptr<PotentialPairForceShiftedLJ> (boost::s
 //! Test the ability of the lj force compute to actually calucate forces
 void fslj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 

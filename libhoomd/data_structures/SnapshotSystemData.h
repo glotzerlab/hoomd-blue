@@ -93,6 +93,7 @@ struct SnapshotSystemData {
     AngleData::Snapshot angle_data;         //!< The angle data
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data
     ImproperData::Snapshot improper_data;    //!< The improper data
+    ConstraintData::Snapshot constraint_data;//!< The constraint data
     SnapshotRigidData rigid_data;          //!< The rigid body data
     std::vector<Wall> wall_data;           //!< The wall data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
@@ -102,6 +103,7 @@ struct SnapshotSystemData {
     bool has_angle_data;                   //!< True if snapshot contains angle data
     bool has_dihedral_data;                //!< True if snapshot contains dihedral data
     bool has_improper_data;                //!< True if snapshot contains improper data
+    bool has_constraint_data;              //!< True if snapshot contains constraint data
     bool has_rigid_data;                   //!< True if snapshot contains rigid data
     bool has_wall_data;                    //!< True if snapshot contains wall data
     bool has_integrator_data;              //!< True if snapshot contains integrator data
@@ -117,6 +119,7 @@ struct SnapshotSystemData {
         has_angle_data = true;
         has_dihedral_data = true;
         has_improper_data = true;
+        has_constraint_data = true;
         has_rigid_data = true;
         has_wall_data = true;
         has_integrator_data = true;

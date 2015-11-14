@@ -90,7 +90,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     // Also particle 2 would not be within the cutoff of particle 1 if it were not the case that particle 1 has a shifted potential.
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
@@ -239,7 +239,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));

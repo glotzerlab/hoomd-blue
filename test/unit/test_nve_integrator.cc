@@ -95,7 +95,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     // check that the nve updater can actually integrate particle positions and velocities correctly
     // start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
@@ -168,7 +168,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
 void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // create a simple 1 particle system
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
@@ -241,7 +241,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     // there are way too many permutations to test here, so I will simply
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles set to move across each boundary
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_6, 0, pdata_6->getN()-1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_6, selector_all));

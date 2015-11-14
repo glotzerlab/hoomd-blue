@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_improper_types = 1;
 
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    boost::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
 
     // set recognizable values for the particle

@@ -85,7 +85,7 @@ typedef boost::function<boost::shared_ptr<AnisoPotentialPairDipole> (boost::shar
 //! Test the ability of the Gay Berne force compute to actually calucate forces
 void dipole_force_particle_test(dipoleforce_creator dipole_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 

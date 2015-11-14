@@ -809,4 +809,15 @@ extern char name_improper_data[];
 //! Definition of ImproperData
 typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
 
+/*
+ * ConstraintData
+ *
+ * constraints use the same data type as bonds
+ */
+extern char name_constraint_data[];
+
+//! Definition of ConstraintData
+typedef BondedGroupData<2, Bond, name_constraint_data> ConstraintData;
+
+
 #endif

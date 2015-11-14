@@ -80,7 +80,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
@@ -145,7 +145,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     {
@@ -275,7 +275,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
 template <class NL>
 void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     // check that pair cutoffs are set independently
         {
@@ -349,7 +349,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 
     // check what happens with particle resize by first keeping number below the 8 default, and then bumping over this
     // do this with size 18 so that NeighborListGPU is forced to use kernel call with multiple levels at m_bin_size = 4
-    boost::shared_ptr<SystemDefinition> sysdef_18(new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_18(new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_18 = sysdef_18->getParticleData();
         {
         ArrayHandle<Scalar4> h_pos(pdata_18->getPositions(), access_location::host, access_mode::readwrite);
@@ -478,7 +478,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 template <class NL>
 void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     // test 1: 4 types, but missing two in the middle
         {
@@ -684,7 +684,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
 template <class NL>
 void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
@@ -757,7 +757,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
 template <class NL>
 void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
@@ -837,7 +837,7 @@ void neighborlist_diameter_shift_tests(boost::shared_ptr<ExecutionConfiguration>
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
@@ -1012,7 +1012,7 @@ template <class NL>
 void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // Initialize a system of 3 particles each having a distinct type
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     // put the particles on top of each other, the worst case scenario for inclusion / exclusion since the distance

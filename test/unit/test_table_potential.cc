@@ -78,7 +78,7 @@ typedef boost::function<boost::shared_ptr<TablePotential> (boost::shared_ptr<Sys
 void table_potential_basic_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
@@ -269,7 +269,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
 void table_potential_type_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {

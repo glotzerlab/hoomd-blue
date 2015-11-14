@@ -78,6 +78,7 @@ SystemDefinition::SystemDefinition()
     \param n_angle_types Number of angle types to create
     \param n_dihedral_types Number of diehdral types to create
     \param n_improper_types Number of improper types to create
+    \param n_constraint_types Number of constraint types to create
     \param exec_conf The ExecutionConfiguration HOOMD is to be run on
 
     Creating SystemDefinition with this constructor results in
@@ -92,6 +93,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
+                                   unsigned int n_constraint_types,
                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                    boost::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -106,6 +108,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
+    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, n_constraint_types));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
@@ -154,6 +157,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> >
 
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
+    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
@@ -178,6 +182,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param angles True if angle data should be saved
  *  \param dihedrals True if dihedral data should be saved
  *  \param impropers True if improper data should be saved
+ *  \param constraints True if constraint data should be saved
  *  \param rigid True if rigid data should be saved
  *  \param wall True if wall data should be saved
  *  \param integrators True if integrator data should be saved
@@ -188,6 +193,7 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
                                                    bool angles,
                                                    bool dihedrals,
                                                    bool impropers,
+                                                   bool constraints,
                                                    bool rigid,
                                                    bool walls,
                                                    bool integrators)
@@ -237,6 +243,14 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
         }
     else
         snap->has_improper_data = false;
+
+    if (constraints)
+        {
+        m_constraint_data->takeSnapshot(snap->constraint_data);
+        snap->has_constraint_data = true;
+        }
+    else
+        snap->has_constraint_data = false;
 
     if (rigid)
         {
@@ -299,6 +313,9 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     if (snapshot->has_improper_data)
         m_improper_data->initializeFromSnapshot(snapshot->improper_data);
 
+    if (snapshot->has_constraint_data)
+        m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
+
     if (snapshot->has_rigid_data)
         m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
 
@@ -337,6 +354,7 @@ template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSn
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
+                                                                                              bool constraints,
                                                                                               bool rigid,
                                                                                               bool walls,
                                                                                               bool integrators);
@@ -350,6 +368,7 @@ template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeS
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
+                                                                                              bool constraints,
                                                                                               bool rigid,
                                                                                               bool walls,
                                                                                               bool integrators);
@@ -358,8 +377,8 @@ template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())

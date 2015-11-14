@@ -717,6 +717,7 @@ class system_data(meta._metadata):
         self.angles = angle_data(sysdef.getAngleData());
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
+        self.constraints = bond_data(sysdef.getConstraintData());
         self.bodies = body_data(sysdef.getRigidData());
 
         # base class constructor
@@ -730,7 +731,7 @@ class system_data(meta._metadata):
     # in the snapshot.
     #
     # \param particles If true, particle data is included in the snapshot
-    # \param bonds If true, bond, angle, dihedral, and improper data is included in the snapshot
+    # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
     # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
@@ -769,9 +770,9 @@ class system_data(meta._metadata):
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
         else:
             raise ValueError("dtype must be float or double");
 
@@ -895,6 +896,7 @@ class system_data(meta._metadata):
         data['angles'] = self.angles
         data['dihedrals'] = self.dihedrals
         data['impropers'] = self.impropers
+        data['constraints'] = self.constraints
         data['bodies'] = self.bodies
 
         data['timestep'] = globals.system.getCurrentTimeStep()

@@ -72,6 +72,7 @@ char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_constraint_data[] = "constraint";
 
 /*
  * Implementation of BondedGroupData methods
@@ -1261,3 +1262,6 @@ template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std
 
 template class BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+
+template class BondedGroupData<2, Bond, name_constraint_data>;
+template void export_BondedGroupData<ConstraintData,Bond>(std::string name,std::string snapshot_name, bool export_struct);

@@ -126,6 +126,7 @@ class SystemDefinition
                          unsigned int n_angle_types=0,
                          unsigned int n_dihedral_types=0,
                          unsigned int n_improper_types=0,
+                         unsigned int n_constraint_types=0,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
 
@@ -179,6 +180,12 @@ class SystemDefinition
             return m_improper_data;
             }
 
+        //! Access the constraint data defined for the simulation
+        boost::shared_ptr<ConstraintData> getConstraintData()
+            {
+            return m_constraint_data;
+            }
+
         //! Returns the integrator variables (if applicable)
         boost::shared_ptr<IntegratorData> getIntegratorData()
             {
@@ -198,6 +205,7 @@ class SystemDefinition
                                                            bool angles,
                                                            bool dihedrals,
                                                            bool impropers,
+                                                           bool constraints,
                                                            bool rigid,
                                                            bool walls,
                                                            bool integrators);
@@ -215,6 +223,7 @@ class SystemDefinition
         boost::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
         boost::shared_ptr<ImproperData> m_improper_data;    //!< Improper data for the system
+        boost::shared_ptr<ConstraintData> m_constraint_data;//!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
     };
 
