@@ -315,6 +315,6 @@ class distance(_constraint_force):
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
         else:
-            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
+            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition);
 
         globals.system.addCompute(self.cpp_force, self.force_name);

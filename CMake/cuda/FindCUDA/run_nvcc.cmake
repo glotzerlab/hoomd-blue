@@ -55,25 +55,27 @@ if(NOT generated_file)
 endif()
 
 # Set these up as variables to make reading the generated file easier
-set(CMAKE_COMMAND "@CMAKE_COMMAND@")
-set(source_file "@source_file@")
-set(NVCC_generated_dependency_file "@NVCC_generated_dependency_file@")
-set(cmake_dependency_file "@cmake_dependency_file@")
-set(CUDA_make2cmake "@CUDA_make2cmake@")
-set(CUDA_parse_cubin "@CUDA_parse_cubin@")
-set(build_cubin @build_cubin@)
+set(CMAKE_COMMAND "@CMAKE_COMMAND@") # path
+set(source_file "@source_file@") # path
+set(NVCC_generated_dependency_file "@NVCC_generated_dependency_file@") # path
+set(cmake_dependency_file "@cmake_dependency_file@") # path
+set(CUDA_make2cmake "@CUDA_make2cmake@") # path
+set(CUDA_parse_cubin "@CUDA_parse_cubin@") # path
+set(build_cubin @build_cubin@) # bool
+set(CUDA_HOST_COMPILER "@CUDA_HOST_COMPILER@") # path
 # We won't actually use these variables for now, but we need to set this, in
 # order to force this file to be run again if it changes.
-set(generated_file_path "@generated_file_path@")
-set(generated_file_internal "@generated_file@")
-set(generated_cubin_file_internal "@generated_cubin_file@")
+set(generated_file_path "@generated_file_path@") # path
+set(generated_file_internal "@generated_file@") # path
+set(generated_cubin_file_internal "@generated_cubin_file@") # path
 
-set(CUDA_NVCC_EXECUTABLE "@CUDA_NVCC_EXECUTABLE@")
-set(CUDA_NVCC_FLAGS "@CUDA_NVCC_FLAGS@;;@CUDA_WRAP_OPTION_NVCC_FLAGS@")
+set(CUDA_NVCC_EXECUTABLE "@CUDA_NVCC_EXECUTABLE@") # path
+set(CUDA_NVCC_FLAGS @CUDA_NVCC_FLAGS@ ;; @CUDA_WRAP_OPTION_NVCC_FLAGS@) # list
 @CUDA_NVCC_FLAGS_CONFIG@
-set(nvcc_flags "@nvcc_flags@")
-set(CUDA_NVCC_INCLUDE_ARGS "@CUDA_NVCC_INCLUDE_ARGS@")
-set(format_flag "@format_flag@")
+set(nvcc_flags @nvcc_flags@) # list
+set(CUDA_NVCC_INCLUDE_ARGS "@CUDA_NVCC_INCLUDE_ARGS@") # list (needs to be in quotes to handle spaces properly).
+set(format_flag "@format_flag@") # string
+set(cuda_language_flag @cuda_language_flag@) # list
 
 if(build_cubin AND NOT generated_cubin_file)
   message(FATAL_ERROR "You must specify generated_cubin_file on the command line")
@@ -102,8 +104,15 @@ endif()
 # Add the build specific configuration flags
 list(APPEND CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS_${build_configuration}})
 
-if(DEFINED CCBIN)
-  set(CCBIN -ccbin "${CCBIN}")
+# Any -ccbin existing in CUDA_NVCC_FLAGS gets highest priority
+list( FIND CUDA_NVCC_FLAGS "-ccbin" ccbin_found0 )
+list( FIND CUDA_NVCC_FLAGS "--compiler-bindir" ccbin_found1 )
+if( ccbin_found0 LESS 0 AND ccbin_found1 LESS 0 AND CUDA_HOST_COMPILER )
+  if (CUDA_HOST_COMPILER STREQUAL "$(VCInstallDir)bin" AND DEFINED CCBIN)
+    set(CCBIN -ccbin "${CCBIN}")
+  else()
+    set(CCBIN -ccbin "${CUDA_HOST_COMPILER}")
+  endif()
 endif()
 
 # cuda_execute_process - Executes a command with optional command echo and status message.
@@ -118,7 +127,7 @@ endif()
 # and other return variables are present after executing the process.
 macro(cuda_execute_process status command)
   set(_command ${command})
-  if(NOT _command STREQUAL "COMMAND")
+  if(NOT "x${_command}" STREQUAL "xCOMMAND")
     message(FATAL_ERROR "Malformed call to cuda_execute_process.  Missing COMMAND as second argument. (command = ${command})")
   endif()
   if(verbose)
@@ -139,7 +148,7 @@ macro(cuda_execute_process status command)
     endforeach()
     # Echo the command
     execute_process(COMMAND ${CMAKE_COMMAND} -E echo ${cuda_execute_process_string})
-  endif(verbose)
+  endif()
   # Run the command
   execute_process(COMMAND ${ARGN} RESULT_VARIABLE CUDA_result )
 endmacro()
@@ -150,18 +159,39 @@ cuda_execute_process(
   COMMAND "${CMAKE_COMMAND}" -E remove "${generated_file}"
   )
 
+# For CUDA 2.3 and below, -G -M doesn't work, so remove the -G flag
+# for dependency generation and hope for the best.
+set(depends_CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}")
+set(CUDA_VERSION @CUDA_VERSION@)
+if(CUDA_VERSION VERSION_LESS "3.0")
+  cmake_policy(PUSH)
+  # CMake policy 0007 NEW states that empty list elements are not
+  # ignored.  I'm just setting it to avoid the warning that's printed.
+  cmake_policy(SET CMP0007 NEW)
+  # Note that this will remove all occurances of -G.
+  list(REMOVE_ITEM depends_CUDA_NVCC_FLAGS "-G")
+  cmake_policy(POP)
+endif()
+
+# nvcc doesn't define __CUDACC__ for some reason when generating dependency files.  This
+# can cause incorrect dependencies when #including files based on this macro which is
+# defined in the generating passes of nvcc invokation.  We will go ahead and manually
+# define this for now until a future version fixes this bug.
+set(CUDACC_DEFINE -D__CUDACC__)
+
 # Generate the dependency file
 cuda_execute_process(
   "Generating dependency file: ${NVCC_generated_dependency_file}"
   COMMAND "${CUDA_NVCC_EXECUTABLE}"
-  "${source_file}"
-  ${CUDA_NVCC_FLAGS}
-  ${nvcc_flags}
-  ${CCBIN}
-  ${nvcc_host_compiler_flags}
-  -DNVCC
   -M
+  ${CUDACC_DEFINE}
+  "${source_file}"
   -o "${NVCC_generated_dependency_file}"
+  ${CCBIN}
+  ${nvcc_flags}
+  ${nvcc_host_compiler_flags}
+  ${depends_CUDA_NVCC_FLAGS}
+  -DNVCC
   ${CUDA_NVCC_INCLUDE_ARGS}
   )
 
@@ -209,12 +239,13 @@ cuda_execute_process(
   "Generating ${generated_file}"
   COMMAND "${CUDA_NVCC_EXECUTABLE}"
   "${source_file}"
-  ${CUDA_NVCC_FLAGS}
-  ${nvcc_flags}
-  ${CCBIN}
-  ${nvcc_host_compiler_flags}
-  -DNVCC
+  ${cuda_language_flag}
   ${format_flag} -o "${generated_file}"
+  ${CCBIN}
+  ${nvcc_flags}
+  ${nvcc_host_compiler_flags}
+  ${CUDA_NVCC_FLAGS}
+  -DNVCC
   ${CUDA_NVCC_INCLUDE_ARGS}
   )
 
@@ -256,4 +287,4 @@ if( build_cubin )
     -P "${CUDA_parse_cubin}"
     )
 
-endif( build_cubin )
+endif()

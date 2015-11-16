@@ -37,12 +37,11 @@
 
 file(READ ${input_file} depend_text)
 
-if (${depend_text} MATCHES ".+")
+if (NOT "${depend_text}" STREQUAL "")
 
   # message("FOUND DEPENDS")
 
-  # Remember, four backslashes is escaped to one backslash in the string.
-  string(REGEX REPLACE "\\\\ " " " depend_text ${depend_text})
+  string(REPLACE "\\ " " " depend_text ${depend_text})
 
   # This works for the nvcc -M generated dependency files.
   string(REGEX REPLACE "^.* : " "" depend_text ${depend_text})
@@ -54,15 +53,29 @@ if (${depend_text} MATCHES ".+")
 
     string(REGEX REPLACE "^ +" "" file ${file})
 
-    if(NOT IS_DIRECTORY ${file})
+    # OK, now if we had a UNC path, nvcc has a tendency to only output the first '/'
+    # instead of '//'.  Here we will test to see if the file exists, if it doesn't then
+    # try to prepend another '/' to the path and test again.  If it still fails remove the
+    # path.
+
+    if(NOT EXISTS "${file}")
+      if (EXISTS "/${file}")
+        set(file "/${file}")
+      else()
+        message(WARNING " Removing non-existent dependency file: ${file}")
+        set(file "")
+      endif()
+    endif()
+
+    if(NOT IS_DIRECTORY "${file}")
       # If softlinks start to matter, we should change this to REALPATH.  For now we need
       # to flatten paths, because nvcc can generate stuff like /bin/../include instead of
       # just /include.
       get_filename_component(file_absolute "${file}" ABSOLUTE)
       list(APPEND dependency_list "${file_absolute}")
-    endif(NOT IS_DIRECTORY ${file})
+    endif()
 
-  endforeach(file)
+  endforeach()
 
 else()
   # message("FOUND NO DEPENDS")

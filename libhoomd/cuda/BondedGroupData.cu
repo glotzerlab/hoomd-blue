@@ -114,6 +114,7 @@ __global__ void gpu_group_scatter_kernel(
     const unsigned int *d_rtag,
     group_t *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     unsigned int pidx_group_table_pitch
     )
     {
@@ -155,6 +156,7 @@ __global__ void gpu_group_scatter_kernel(
 
     d_pidx_group_table[offset] = p;
     d_pidx_gpos_table[offset] = gpos;
+    d_pidx_gidx_table[offset] = group_idx;
     }
 
 template<unsigned int group_size, typename group_t>
@@ -171,6 +173,7 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
@@ -232,6 +235,7 @@ void gpu_update_group_table(
             d_rtag,
             d_pidx_group_table,
             d_pidx_gpos_table,
+            d_pidx_gidx_table,
             pidx_group_table_pitch);
         }
     }
@@ -254,6 +258,7 @@ template void gpu_update_group_table<2>(
     unsigned int &flag,
     group_storage<2> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
@@ -276,6 +281,7 @@ template void gpu_update_group_table<3>(
     unsigned int &flag,
     group_storage<3> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
@@ -298,6 +304,7 @@ template void gpu_update_group_table<4>(
     unsigned int &flag,
     group_storage<4> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,

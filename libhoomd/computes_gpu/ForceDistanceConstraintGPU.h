@@ -49,7 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include "ForceConstraint.h"
+#include "ForceDistanceConstraint.h"
+
+#include "Autotuner.h"
+
+#include <cublas_v2.h>
+#include <cusolverDn.h>
 
 /*! \file ForceDistanceConstraint.h
     \brief Declares a class to implement pairwise distance constraint
@@ -59,55 +64,54 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __ForceDistanceConstraint_H__
-#define __ForceDistanceConstraint_H__
+#ifndef __ForceDistanceConstraintGPU_H__
+#define __ForceDistanceConstraintGPU_H__
 
 #include "GPUVector.h"
 
-/*! Implements a pairwise distance constraint using the algorithm of
-
-    [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
-    [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
+/*! Implements a pairwise distance constraint on the GPU
 
     See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
 */
-class ForceDistanceConstraint : public ForceConstraint
+class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        virtual ~ForceDistanceConstraintGPU();
 
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved()
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            return m_sysdef->getNDimensions()*m_cdata->getNGlobal();
+            m_tuner_fill->setPeriod(period);
+            m_tuner_force->setPeriod(period);
+
+            m_tuner_fill->setEnabled(enable);
+            m_tuner_force->setEnabled(enable);
             }
 
-        #ifdef ENABLE_MPI
-        //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
-        #endif
-
-
     protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
+        GPUVector<Scalar> m_C;                 //!< The RHS of the constraint linear system of equations (a matrix)
+        boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
+        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
-        GPUVector<Scalar> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
-        GPUVector<Scalar> m_cvec;                   //!< The vector on the RHS of the constraint equation
-        GPUVector<Scalar> m_lagrange;               //!< The solution for the lagrange multipliers
-
-        //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
+        cublasHandle_t m_cublas_handle;       //!< CUBLAS handle
+        cusolverDnHandle_t m_cusolver_handle; //!< cuSOLVER handle
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
 
         //! Solve the linear matrix-vector equation
         virtual void computeConstraintForces(unsigned int timestep);
+
+
     };
 
 //! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraint();
+void export_ForceDistanceConstraintGPU();
 
 #endif

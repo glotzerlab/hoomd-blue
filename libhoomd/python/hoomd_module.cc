@@ -170,6 +170,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
@@ -597,6 +598,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
+    export_ForceDistanceConstraintGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");

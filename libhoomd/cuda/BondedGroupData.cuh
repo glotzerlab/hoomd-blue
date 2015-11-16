@@ -103,6 +103,7 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
+    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,

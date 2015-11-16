@@ -100,7 +100,7 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
 
 void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
     {
-    // fill the matrix in row-major order
+    // fill the matrix in column-major order
     unsigned int n_constraint = m_cdata->getN();
 
     // access particle data
@@ -171,19 +171,19 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
 
             if (idx_m_a == idx_a)
                 {
-                h_cmatrix.data[n*n_constraint+m] += Scalar(4.0)*dot(qn,rm)/ma;
+                h_cmatrix.data[m*n_constraint+n] += Scalar(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_b == idx_a)
                 {
-                h_cmatrix.data[n*n_constraint+m] -= Scalar(4.0)*dot(qn,rm)/ma;
+                h_cmatrix.data[m*n_constraint+n] -= Scalar(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_a == idx_b)
                 {
-                h_cmatrix.data[n*n_constraint+m] -= Scalar(4.0)*dot(qn,rm)/mb;
+                h_cmatrix.data[m*n_constraint+n] -= Scalar(4.0)*dot(qn,rm)/mb;
                 }
             if (idx_m_b == idx_b)
                 {
-                h_cmatrix.data[n*n_constraint+m] += Scalar(4.0)*dot(qn,rm)/mb;
+                h_cmatrix.data[m*n_constraint+n] += Scalar(4.0)*dot(qn,rm)/mb;
                 }
             }
 
@@ -199,7 +199,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
 
 void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     {
-    typedef Matrix<Scalar, Dynamic, Dynamic, RowMajor> matrix_t;
+    typedef Matrix<Scalar, Dynamic, Dynamic, ColMajor> matrix_t;
     typedef Matrix<Scalar, Dynamic, 1> vec_t;
     typedef Map<matrix_t> matrix_map_t;
     typedef Map<vec_t> vec_map_t;
@@ -285,7 +285,7 @@ CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
     // FIXME
     //flags[comm_flag::net_force] = 1;
 
-    flags |= ForceCompute::getRequestedCommFlags(timestep);
+    flags |= ForceConstraint::getRequestedCommFlags(timestep);
 
     return flags;
     }

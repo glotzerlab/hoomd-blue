@@ -49,65 +49,58 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include "ForceConstraint.h"
+#include "HOOMDMath.h"
+#include "BondedGroupData.cuh"
+#include "Index1D.h"
+#include "BoxDim.h"
 
-/*! \file ForceDistanceConstraint.h
-    \brief Declares a class to implement pairwise distance constraint
-*/
+#include <cusolverDn.h>
+#include <cublas_v2.h>
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
+#define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 
-#ifndef __ForceDistanceConstraint_H__
-#define __ForceDistanceConstraint_H__
+cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
+                          unsigned int nptl_local,
+                          Scalar *d_matrix,
+                          Scalar *d_C,
+                          const Scalar4 *d_pos,
+                          const Scalar4 *d_vel,
+                          const Scalar4 *d_netforce,
+                          const group_storage<2> *d_gpu_clist,
+                          const Index2D & gpu_clist_indexer,
+                          const unsigned int *d_gpu_n_constraints,
+                          const unsigned int *d_gpu_cpos,
+                          const unsigned int *d_gpu_cidx,
+                          Scalar deltaT,
+                          const BoxDim box,
+                          unsigned int block_size);
 
-#include "GPUVector.h"
+cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
+    unsigned int n_constraint,
+    int &work_size,
+    cusolverDnHandle_t solver_handle);
 
-/*! Implements a pairwise distance constraint using the algorithm of
-
-    [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
-    [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
-
-    See Integrator for detailed documentation on constraint force implementation.
-    \ingroup computes
-*/
-class ForceDistanceConstraint : public ForceConstraint
-    {
-    public:
-        //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
-
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved()
-            {
-            return m_sysdef->getNDimensions()*m_cdata->getNGlobal();
-            }
-
-        #ifdef ENABLE_MPI
-        //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
-        #endif
-
-
-    protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
-
-        GPUVector<Scalar> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
-        GPUVector<Scalar> m_cvec;                   //!< The vector on the RHS of the constraint equation
-        GPUVector<Scalar> m_lagrange;               //!< The solution for the lagrange multipliers
-
-        //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
-
-        //! Populate the quantities in the constraint-force equatino
-        virtual void fillMatrixVector(unsigned int timestep);
-
-        //! Solve the linear matrix-vector equation
-        virtual void computeConstraintForces(unsigned int timestep);
-    };
-
-//! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraint();
-
+cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
+                                   Scalar *d_matrix,
+                                   Scalar *d_C,
+                                   const Scalar4 *d_pos,
+                                   const group_storage<2> *d_gpu_clist,
+                                   const Index2D & gpu_clist_indexer,
+                                   const unsigned int *d_gpu_n_constraints,
+                                   const unsigned int *d_gpu_cpos,
+                                   const unsigned int *d_gpu_cidx,
+                                   Scalar4 *d_force,
+                                   const BoxDim box,
+                                   unsigned int nptl_local,
+                                   unsigned int block_size,
+                                   cublasHandle_t cublas_handle,
+                                   cusolverDnHandle_t solver_handle,
+                                   Scalar *d_work,
+                                   Scalar *d_tau,
+                                   Scalar *d_Q,
+                                   Scalar *d_R,
+                                   Scalar *d_B,
+                                   int *d_devinfo,
+                                   unsigned int work_size);
 #endif

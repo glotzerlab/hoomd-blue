@@ -204,6 +204,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
     GPUVector<unsigned int> gpu_pos_table(m_exec_conf);
     m_gpu_pos_table.swap(gpu_pos_table);
 
+    GPUVector<unsigned int> gpu_idx_table(m_exec_conf);
+    m_gpu_idx_table.swap(gpu_idx_table);
+
     GPUVector<unsigned int> n_groups(m_exec_conf);
     m_n_groups.swap(n_groups);
 
@@ -750,11 +753,13 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), num_groups_max);
         m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
         m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
+        m_gpu_idx_table.resize(m_gpu_table_indexer.getNumElements());
 
             {
             ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
             ArrayHandle<members_t> h_gpu_table(m_gpu_table, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_gpu_pos_table(m_gpu_pos_table, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_gpu_idx_table(m_gpu_idx_table, access_location::host, access_mode::overwrite);
 
             // now, update the actual table
             // zero the number of bonded groups counter (again)
@@ -792,6 +797,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
                     h_gpu_table.data[m_gpu_table_indexer(idx1, num)] = h;
                     h_gpu_pos_table.data[m_gpu_table_indexer(idx1, num)] = gpos;
+                    h_gpu_idx_table.data[m_gpu_table_indexer(idx1, num)] = cur_group;
                     }
                 }
             }
@@ -813,6 +819,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
     m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH());
     m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
     m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
+    m_gpu_idx_table.resize(m_gpu_table_indexer.getNumElements());
 
     bool done = false;
     while (!done)
@@ -826,6 +833,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_gpu_pos_table(m_gpu_pos_table, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_gpu_idx_table(m_gpu_idx_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
 
             // allocate scratch buffers
@@ -851,6 +859,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 flag,
                 d_gpu_table.data,
                 d_gpu_pos_table.data,
+                d_gpu_idx_table.data,
                 m_gpu_table_indexer.getW(),
                 d_scratch_g.data,
                 d_scratch_idx.data,
@@ -881,6 +890,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH()+1);
             m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
             m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
+            m_gpu_idx_table.resize(m_gpu_table_indexer.getNumElements());
             m_next_flag++;
             }
         else
