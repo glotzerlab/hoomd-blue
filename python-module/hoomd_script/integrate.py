@@ -962,6 +962,14 @@ class nve(_integration_method):
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
 
+## \internal
+# Old style bdnvt
+def bdnvt(group, T, seed=0, gamma_diam=False, limit=None, tally=False):
+    if gamma_diam:
+        dscale = 1.0;
+    else:
+        dscale = False;
+    return langevin(group, T, seed, dscale, tally)
 
 ## Langevin dynamics
 #
