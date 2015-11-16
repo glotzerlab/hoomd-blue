@@ -147,11 +147,6 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
-
-    ArrayHandle<Scalar> h_vec(m_cvec, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_C(m_C, access_location::host, access_mode::read);
-    for (unsigned int n = 0; n < n_constraint; ++n)
-        h_vec.data[n] = h_C.data[n];
     }
 
 void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
