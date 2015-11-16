@@ -85,7 +85,7 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator, boost:
     // types of the particles : 0, 1, 0
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(1.7,0.0,0.0));

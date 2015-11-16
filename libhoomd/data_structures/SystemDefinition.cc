@@ -78,7 +78,6 @@ SystemDefinition::SystemDefinition()
     \param n_angle_types Number of angle types to create
     \param n_dihedral_types Number of diehdral types to create
     \param n_improper_types Number of improper types to create
-    \param n_constraint_types Number of constraint types to create
     \param exec_conf The ExecutionConfiguration HOOMD is to be run on
 
     Creating SystemDefinition with this constructor results in
@@ -93,7 +92,6 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
-                                   unsigned int n_constraint_types,
                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                    boost::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -108,7 +106,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
-    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, n_constraint_types));
+    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
@@ -377,8 +375,8 @@ template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
@@ -390,6 +388,7 @@ void export_SystemDefinition()
     .def("getAngleData", &SystemDefinition::getAngleData)
     .def("getDihedralData", &SystemDefinition::getDihedralData)
     .def("getImproperData", &SystemDefinition::getImproperData)
+    .def("getConstraintData", &SystemDefinition::getConstraintData)
     .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)

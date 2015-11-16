@@ -96,7 +96,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     // but instead taken from a known working implementation of the PPPM method
     // The box lengths and grid points are different in each direction
 
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
@@ -167,7 +167,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
     // set up triclinic box
     Scalar tilt(0.5);
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, 0,  exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 

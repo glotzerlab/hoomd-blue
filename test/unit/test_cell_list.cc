@@ -82,7 +82,7 @@ template <class CL>
 void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation box size 10
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
@@ -199,7 +199,7 @@ template <class CL>
 void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation box size 3
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
@@ -280,7 +280,7 @@ template <class CL>
 void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation a non-cubic box
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));

@@ -153,7 +153,7 @@ namespace boost
  *  \tpp group_size Size of groups
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
-template<unsigned int group_size, typename Group, const char *name>
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping = true>
 class BondedGroupData : boost::noncopyable
     {
     public:
@@ -816,8 +816,46 @@ typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
  */
 extern char name_constraint_data[];
 
+//! Definition of a constraint
+/*! Constraints are essentially bonds, but of a single type
+    The type information stores the constraint distance
+ */
+struct Constraint : public Bond {
+    //! Constructor
+    /*! \param d Constraint distance
+     * \param _a First bond member
+     * \param _b Second bond member
+     */
+    Constraint(Scalar d, unsigned int _a, unsigned int _b)
+        : Bond(__scalar_as_int(d), _a, _b)
+        { }
+
+    //! Constructor that takes a members_t (used internally by BondData)
+    /*! \param type
+     *  \param members group members
+     */
+    Constraint(unsigned int _type, members_t _members)
+        : Bond(_type,_members.tag[0],_members.tag[1]), d(__int_as_scalar(_type))
+        { }
+
+    //! This helper function needs to be provided for the templated ConstraintData to work correctly
+    static void export_to_python()
+        {
+        boost::python::class_<Constraint>("Constraint", init<Scalar, unsigned int, unsigned int>())
+            .def_readonly("d", &Constraint::d)
+            .def_readonly("a", &Constraint::a)
+            .def_readonly("b", &Constraint::b)
+        ;
+        }
+
+    unsigned int d;     //!< Constraint distance
+    unsigned int a;     //!< First constraint member
+    unsigned int b;     //!< Second constraint member
+    };
+
+
 //! Definition of ConstraintData
-typedef BondedGroupData<2, Bond, name_constraint_data> ConstraintData;
+typedef BondedGroupData<2, Constraint, name_constraint_data, false> ConstraintData;
 
 
 #endif

@@ -91,7 +91,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::share
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -235,7 +235,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
@@ -377,7 +377,7 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_p
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     pdata_6->setPosition(0,make_scalar3(-9.6,0.0,0.0));

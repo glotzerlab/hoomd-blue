@@ -79,7 +79,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one improper type !!!! NO IMPROPERS
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1,0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     {
@@ -241,7 +241,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 8 particle system with particles across each boundary
     // also test more than one type of impropers
-    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
     boost::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     {
@@ -364,7 +364,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
     boost::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     {

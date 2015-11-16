@@ -126,7 +126,6 @@ class SystemDefinition
                          unsigned int n_angle_types=0,
                          unsigned int n_dihedral_types=0,
                          unsigned int n_improper_types=0,
-                         unsigned int n_constraint_types=0,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
 

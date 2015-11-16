@@ -126,6 +126,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -502,7 +503,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
     export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
     export_BondedGroupData<ImproperData,Dihedral>("ImproperData","ImproperDataSnapshot",false);
-    export_BondedGroupData<ConstraintData,Bond>("ConstraintData","ConstraintDataSnapshot",false);
+    export_BondedGroupData<ConstraintData,Constraint>("ConstraintData","ConstraintDataSnapshot");
 
     // initializers
     export_RandomInitializer();
@@ -556,6 +557,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListBinned();
     export_NeighborListTree();
     export_ConstraintSphere();
+    export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
 #ifdef ENABLE_CUDA

@@ -276,3 +276,45 @@ class sphere(_constraint_force):
         self.P = P
         self.r = r
         self.metadata_fields = ['group','P', 'r']
+
+## Constrain pairwise particle distances
+#
+# The command constrain.distance specifies that forces will be applied to all particles pairs for
+# which constraints have been defined
+#
+# The constraint algorithm implemented is described in
+#
+# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
+# and
+# [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
+#
+# \sa hoomd_script.data.system_data
+#
+# \MPI_NOT_SUPPORTED
+class distance(_constraint_force):
+    ## Specify the pairwise %distance constraint %force
+    #
+    # \b Examples:
+    # \code
+    # constrain.distance()
+    # \endcode
+    def __init__(self):
+        util.print_status_line();
+
+        # FIXME:need to enable in MPI
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("constrain.distance is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error initializing constraint force.")
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
+        else:
+            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);

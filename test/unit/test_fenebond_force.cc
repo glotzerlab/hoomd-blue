@@ -80,7 +80,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
@@ -177,7 +177,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
@@ -258,7 +258,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     pdata_4->setFlags(~PDataFlags(0));
 

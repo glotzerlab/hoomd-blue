@@ -90,7 +90,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
@@ -228,7 +228,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
@@ -411,7 +411,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 

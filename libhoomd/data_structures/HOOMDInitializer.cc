@@ -327,14 +327,15 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
     // allocate memory
     cdata.resize(m_constraints.size());
 
-    // loop through all the dihedrals and add an dihedral for each
+    // loop through all the constraints and add a constraint for each
     for (unsigned int i = 0; i < m_constraints.size(); i++)
         {
         cdata.groups[i] = m_constraints[i];
-        cdata.type_id[i] = m_constraint_types[i];
+        cdata.type_id[i] = __scalar_as_int(m_constraint_distances[i]);
         }
 
-    cdata.type_mapping = m_constraint_type_mapping;
+    // initialize with empty vector
+    cdata.type_mapping = std::vector<std::string>();
 
     /*
      * Initialize walls
@@ -993,15 +994,15 @@ void HOOMDInitializer::parseConstraintsNode(const XMLNode &node)
     parser.str(all_text);
     while (parser.good())
         {
-        string type_name;
         unsigned int a, b;
-        parser >> type_name >> a >> b;
+        Scalar d;
+        parser >> a >> b >> d;
         if (parser.good())
             {
             ConstraintData::members_t constraint;
             constraint.tag[0] = a; constraint.tag[1] = b;
             m_constraints.push_back(constraint);
-            m_constraint_types.push_back(getConstraintTypeId(type_name));
+            m_constraint_distances.push_back(d);
             }
         }
     }
@@ -1288,23 +1289,6 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     // add a new one if it is not found
     m_improper_type_mapping.push_back(name);
     return (unsigned int)m_improper_type_mapping.size()-1;
-    }
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDInitializer::getConstraintTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_constraint_type_mapping.size(); i++)
-        {
-        if (m_constraint_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_constraint_type_mapping.push_back(name);
-    return (unsigned int)m_constraint_type_mapping.size()-1;
     }
 
 void export_HOOMDInitializer()

@@ -717,7 +717,7 @@ class system_data(meta._metadata):
         self.angles = angle_data(sysdef.getAngleData());
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
-        self.constraints = bond_data(sysdef.getConstraintData());
+        self.constraints = constraint_data(sysdef.getConstraintData());
         self.bodies = body_data(sysdef.getRigidData());
 
         # base class constructor
@@ -1622,6 +1622,185 @@ class bond_data_proxy:
 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
+
+## \internal
+# \brief Access constraint data
+#
+# constraint_data provides access to the constraints in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# bond_data, documented by example.
+#
+class constraint_data(meta._metadata):
+    ## \internal
+    # \brief bond_data iterator
+    class constraint_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.tag = 0;
+        def __iter__(self):
+            return self;
+        def __next__(self):
+            if self.tag == len(self.data):
+                raise StopIteration;
+
+            result = self.data[self.tag];
+            self.tag += 1;
+            return result;
+
+        # support python2
+        next = __next__;
+
+    ## \internal
+    # \brief create a constraint_data
+    #
+    # \param bdata ConstraintData to connect
+    def __init__(self, cdata):
+        self.cdata = cdata;
+
+        # base class constructor
+        meta._metadata.__init__(self)
+
+    ## \internal
+    # \brief Add a new distance constraint
+    # \param a Tag of the first particle in the bond
+    # \param b Tag of the second particle in the bond
+    # \param d Distance of the constraint to add
+    # \returns Unique tag identifying this bond
+    def add(self, a, b, d):
+        return self.cdata.addBondedGroup(hoomd.Constraint(float(d), a, b));
+
+    ## \internal
+    # \brief Remove a bond by tag
+    # \param tag Unique tag of the bond to remove
+    def remove(self, tag):
+        self.cdata.removeBondedGroup(tag);
+
+    ## \var cdata
+    # \internal
+    # \brief ConstraintData to which this instance is connected
+
+    ## \internal
+    # \brief Get a constraint_data_proxy reference to the bond with contiguous id \a id
+    # \param id Constraint id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.cdata.getNthTag(id);
+        return constraint_data_proxy(self.cdata, tag);
+
+    ## \internal
+    # \brief Get a constriant_data_proxy reference to the bond with tag \a tag
+    # \param tag Bond tag to access
+    def get(self, tag):
+        if tag > self.cdata.getMaximumTag() or tag < 0:
+            raise IndexError;
+        return constraint_data_proxy(self.cdata, tag);
+
+    ## \internal
+    # \brief Set a constraint's properties
+    # \param id constraint id to set
+    # \param b Value containing properties to set
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change constraints once they are created');
+
+    ## \internal
+    # \brief Delete a constraint by id
+    # \param id Constraint id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.cdata.getNthTag(id);
+        self.cdata.removeBondedGroup(tag);
+
+    ## \internal
+    # \brief Get the number of bonds
+    def __len__(self):
+        return self.cdata.getNGlobal();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Constraint Data for %d constraints" % (self.cdata.getNGlobal());
+        return result
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return constraint_data.constraind_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this bond_data instance
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['N'] = len(self)
+        return data
+
+## Access a single constraint via a proxy
+#
+# constraint_data_proxy provides access to all of the properties of a single constraint in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# constraint_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : A unique integer attached to each constraint (not in any particular range). A constraint's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed constraint may be recycled).
+# - \c d            : A float indicating the constraint distance
+# - \c a            : An integer indexing the A particle in the constraint. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the constraint. Particle tags run from 0 to N-1;
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow
+# dynamic creation of new type names from within the python API.
+# \MPI_SUPPORTED
+class constraint_data_proxy:
+    ## \internal
+    # \brief create a constraint_data_proxy
+    #
+    # \param cdata ConstraintData to which this proxy belongs
+    # \param tag Tag of this constraint in \a cdata
+    def __init__(self, bdata, tag):
+        self.bdata = bdata;
+        self.tag = tag;
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "type         : " + str(self.type) + "\n";
+        return result;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "a":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constaint.a;
+        if name == "b":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constraint.b;
+        if name == "d":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constraint.d;
+
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
+        if name == "d":
+            raise AttributeError;
+
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
 
 ## \internal
 # \brief Access angle data

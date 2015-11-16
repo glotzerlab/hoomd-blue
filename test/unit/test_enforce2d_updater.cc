@@ -92,7 +92,7 @@ typedef boost::function<boost::shared_ptr<Enforce2DUpdater> (boost::shared_ptr<S
 void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 
     sysdef->setNDimensions(2);
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();

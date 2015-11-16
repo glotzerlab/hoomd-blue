@@ -78,7 +78,7 @@ typedef boost::function<boost::shared_ptr<OPLSDihedralForceCompute>  (boost::sha
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type - no dihedrals
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0,make_scalar3(1.0,0.0,0.0));
@@ -322,7 +322,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // test an 8-particle system with two non-overlapping dihedrals
-    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     pdata_8->setPosition(0, make_scalar3(1.0,0.0,0.0));
@@ -417,7 +417,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // test a 5-particle system with one dihedral type on two overlapping sets of particles
-    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     pdata_5->setPosition(0, make_scalar3(1.0,0.0,0.0));

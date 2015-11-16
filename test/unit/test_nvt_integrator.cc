@@ -1126,7 +1126,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     // check that the nvt updater can actually integrate particle positions and velocities correctly
     // start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));

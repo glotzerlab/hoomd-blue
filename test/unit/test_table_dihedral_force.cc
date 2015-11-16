@@ -79,7 +79,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0,make_scalar3(1.0,0.0,0.0));

@@ -89,7 +89,7 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 

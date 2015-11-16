@@ -83,7 +83,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -198,7 +198,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
 void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with the simplest possible test: 3 particles in a huge box with two bond types
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(3, BoxDim(1000.0), 1, 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(3, BoxDim(1000.0), 1, 2, 0, 0, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
