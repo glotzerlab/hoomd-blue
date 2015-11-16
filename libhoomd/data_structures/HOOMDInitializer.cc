@@ -100,7 +100,7 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
     m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
-    m_parser_map["constraints"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
+    m_parser_map["constraint"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
