@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               unsigned int nptl_local,
                                               Scalar *d_matrix,
-                                              Scalar *d_C,
+                                              Scalar *d_vec,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
                                               const Scalar4 *d_netforce,
@@ -239,7 +239,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         if (cpos == 0 || idx_na >= nptl_local || idx_nb >= nptl_local)
             {
             // fill vector component
-            d_C[n] = (dot(qn,qn)-d*d)/deltaT/deltaT
+            d_vec[n] = (dot(qn,qn)-d*d)/deltaT/deltaT
                 + Scalar(2.0)*dot(qn, vec3<Scalar>(d_netforce[idx_na])/ma-vec3<Scalar>(d_netforce[idx_nb])/mb);
             }
         }
@@ -248,7 +248,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
 cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
                           Scalar *d_matrix,
-                          Scalar *d_C,
+                          Scalar *d_vec,
                           const Scalar4 *d_pos,
                           const Scalar4 *d_vel,
                           const Scalar4 *d_netforce,
@@ -274,7 +274,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     unsigned int n_blocks = nptl_local/run_block_size + 1;
 
     // reset RHS matrix (b)
-    cudaMemset(d_C, 0, sizeof(Scalar)*n_constraint*n_constraint);
+    cudaMemset(d_vec, 0, sizeof(Scalar)*n_constraint);
 
     // reset A matrix
     cudaMemset(d_matrix, 0, sizeof(Scalar)*n_constraint*n_constraint);
@@ -284,7 +284,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         n_constraint,
         nptl_local,
         d_matrix,
-        d_C,
+        d_vec,
         d_pos,
         d_vel,
         d_netforce,
@@ -297,31 +297,6 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         box);
 
     return cudaSuccess;
-    }
-
-//! Initialize the unit diagonal matrix
-__global__ void gpu_init_unit_matrix_kernel(Scalar *d_Q, unsigned int n_constraint)
-    {
-    unsigned int idx = blockIdx.x*blockDim.x+threadIdx.x;
-
-    if (idx >= n_constraint) return;
-    d_Q[idx + n_constraint*idx] = Scalar(1.0);
-    }
-
-__global__ void gpu_matrix_copy_kernel(const Scalar * __restrict d_in1,
-    Scalar * __restrict d_out1,
-    const Scalar * __restrict d_in2,
-    Scalar * __restrict d_out2,
-    unsigned int n_constraint) {
-
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if ((i < n_constraint) && (j < n_constraint))
-        {
-        d_out1[j * n_constraint + i] = d_in1[j * n_constraint + i];
-        d_out2[j * n_constraint + i] = d_in2[j * n_constraint + i];
-        }
     }
 
 __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
@@ -402,7 +377,7 @@ cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
     {
     // compute work buffer size
     #ifdef SINGLE_PRECISION
-    cusolverDnSgeqrf_bufferSize(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, &work_size);
+    cusolverDnSpotrf_bufferSize(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, &work_size);
     #else
     #endif
 
@@ -411,7 +386,7 @@ cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
 
 cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_matrix,
-                                   Scalar *d_C,
+                                   Scalar *d_vec,
                                    const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D& gpu_clist_indexer,
@@ -425,51 +400,19 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    cublasHandle_t cublas_handle,
                                    cusolverDnHandle_t solver_handle,
                                    Scalar *d_work,
-                                   Scalar *d_tau,
-                                   Scalar *d_Q,
-                                   Scalar *d_R,
-                                   Scalar *d_B,
                                    int *d_devinfo,
                                    unsigned int work_size)
     {
-
-    unsigned block_size_Q = 256;
-    unsigned int n_blocks = n_constraint*n_constraint/block_size_Q + 1;
-
-    // initialize unit diagonal matrix
-    cudaMemset(d_Q, 0, sizeof(Scalar)*n_constraint*n_constraint);
-    gpu_init_unit_matrix_kernel<<<n_blocks,block_size_Q>>>(d_Q, n_constraint);
-
     #ifdef SINGLE_PRECISION
-    // QR factorization
-    cusolverDnSgeqrf(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, d_tau, d_work,
-        work_size, d_devinfo);
 
-    // Apply reflections using Q
-    cusolverDnSormqr(solver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, n_constraint, n_constraint,
-        n_constraint, d_matrix, n_constraint, d_tau, d_Q, n_constraint, d_work, work_size, d_devinfo);
+    // Cholesky factorization
+    cusolverDnSpotrf(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, d_work, work_size, d_devinfo);
 
-    // Apply reflections using C
-    cusolverDnSormqr(solver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_T, n_constraint, n_constraint,
-        n_constraint, d_matrix, n_constraint, d_tau, d_C, n_constraint, d_work, work_size, d_devinfo);
-
-    unsigned int block_size_copy = 32;
-    n_blocks = n_constraint / block_size_copy + 1;
-    dim3 grid(n_blocks,n_blocks);
-    dim3 threads(block_size_copy,block_size_copy);
-
-    // reduce size of linear system
-    gpu_matrix_copy_kernel<<<grid, threads>>>(d_matrix, d_R, d_C, d_B, n_constraint);
-
-    // solve Ax = b
-    const float alpha = 1.0;
-    cublasStrsm(cublas_handle, CUBLAS_SIDE_LEFT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_N, CUBLAS_DIAG_NON_UNIT,
-        n_constraint, n_constraint, &alpha, d_R, n_constraint, d_B, n_constraint);
-
+    cusolverDnSpotrs(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, 1, d_matrix, n_constraint, d_vec, n_constraint, d_devinfo);
     #else
     #endif
 
-    // the first column of d_B contains the solution for the Lagrange multipliers
+    // d_vec contains the Lagrange multipliers
 
     // fill out force array
     static unsigned int max_block_size = UINT_MAX;
@@ -482,7 +425,7 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
 
     // run configuration
     unsigned int run_block_size = min(block_size, max_block_size);
-    n_blocks = nptl_local/run_block_size + 1;
+    unsigned int n_blocks = nptl_local/run_block_size + 1;
 
     // invoke kernel
     gpu_fill_constraint_forces_kernel<<<n_blocks,run_block_size>>>(nptl_local,
@@ -492,7 +435,7 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
         d_gpu_n_constraints,
         d_gpu_cpos,
         d_gpu_cidx,
-        d_B,
+        d_vec,
         d_force,
         box);
 

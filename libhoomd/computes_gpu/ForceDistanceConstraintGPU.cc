@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : ForceDistanceConstraint(sysdef), m_C(m_exec_conf)
+        : ForceDistanceConstraint(sysdef)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
@@ -96,9 +96,6 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
     // fill the matrix in row-major order
     unsigned int n_constraint = m_cdata->getN();
 
-    // resize RHS
-    m_C.resize(n_constraint*n_constraint);
-
     // access particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
@@ -108,7 +105,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         {
         // access matrix elements
         ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_C(m_C, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::overwrite);
 
         // access GPU constraint table on device
         const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
@@ -126,7 +123,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             n_constraint,
             m_pdata->getN(),
             d_cmatrix.data,
-            d_C.data,
+            d_cvec.data,
             d_pos.data,
             d_vel.data,
             d_netforce.data,
@@ -158,18 +155,14 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     // access matrix and vector
     ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_C(m_C, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
 
     // get work area size
     int work_size = 0;
     gpu_compute_constraint_forces_buffer_size(d_cmatrix.data, n_constraint, work_size, m_cusolver_handle);
 
     // allocate temporary buffers
-    ScopedAllocation<Scalar> d_B(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<Scalar> d_Q(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<Scalar> d_R(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
     ScopedAllocation<Scalar> d_work(m_exec_conf->getCachedAllocator(), work_size);
-    ScopedAllocation<Scalar> d_tau(m_exec_conf->getCachedAllocator(), n_constraint);
     ScopedAllocation<int> d_devinfo(m_exec_conf->getCachedAllocator(), 1);
 
     // access particle data arrays
@@ -196,7 +189,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
     m_tuner_force->begin();
     gpu_compute_constraint_forces(n_constraint,
         d_cmatrix.data,
-        d_C.data,
+        d_cvec.data,
         d_pos.data,
         d_gpu_clist.data,
         gpu_table_indexer,
@@ -210,10 +203,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         m_cublas_handle,
         m_cusolver_handle,
         d_work.data,
-        d_tau.data,
-        d_Q.data,
-        d_R.data,
-        d_B.data,
         d_devinfo.data,
         work_size);
 

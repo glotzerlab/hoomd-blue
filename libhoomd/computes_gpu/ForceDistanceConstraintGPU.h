@@ -95,7 +95,6 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
             }
 
     protected:
-        GPUVector<Scalar> m_C;                 //!< The RHS of the constraint linear system of equations (a matrix)
         boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
