@@ -75,7 +75,6 @@ set(TEST_LIST
     test_cgcmm_force
     test_morse_force
     test_force_shifted_lj
-    test_nve_integrator
     test_nvt_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
@@ -105,7 +104,8 @@ set(TEST_LIST ${TEST_LIST}
     test_dpd_integrator
     test_bd_rigid_updater
     test_npt_mtk_integrator
-    test_nvt_mtk_integrator)
+    test_nvt_mtk_integrator
+    test_nve_integrator)
 endif()
 
 if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
