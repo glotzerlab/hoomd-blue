@@ -12,6 +12,12 @@ Released TBD
 * Anisotropic particle integrators.
 * Gay-Berne pair potential.
 * Dipole pair potential.
+* Brownian dynamics `integrate.brownian`
+* Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
+
+*Deprecated commands*
+
+* `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
 
 ## v1.2.1
 
