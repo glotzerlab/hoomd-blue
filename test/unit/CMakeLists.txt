@@ -50,6 +50,7 @@ set(TEST_LIST
     test_vec3
     test_messenger
     test_cell_list
+    test_cell_list_stencil
     test_const_external_field_dipole
     test_index1d
     test_gpu_array
