@@ -723,6 +723,40 @@ void NeighborList::addExclusionsFromDihedrals()
         addExclusion(dihedrals[i].tag[0], dihedrals[i].tag[3]);
     }
 
+/*! After calling addExclusionFromConstraints() all constraints specified in the attached ConstraintData will be
+    added as exlusions. Any additional constraints added after this will not be automatically added as exclusions.
+*/
+void NeighborList::addExclusionsFromConstraints()
+    {
+    boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
+
+    // access constraint data by snapshot
+    ConstraintData::Snapshot snapshot(constraint_data->getNGlobal());
+    constraint_data->takeSnapshot(snapshot);
+
+    // broadcast global constraint list
+    std::vector<ConstraintData::members_t> constraints;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            constraints = snapshot.groups;
+
+        bcast(constraints, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#endif
+        {
+        constraints = snapshot.groups;
+        }
+
+    // for each constraint
+    for (unsigned int i = 0; i < constraints.size(); i++)
+        // add an exclusion
+        addExclusion(constraints[i].tag[0], constraints[i].tag[1]);
+    }
+
 /*! \param tag1 First particle tag in the pair
     \param tag2 Second particle tag in the pair
     \return true if the particles \a tag1 and \a tag2 have been excluded from the neighbor list
@@ -1434,6 +1468,7 @@ void export_NeighborList()
                      .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
                      .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
                      .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
+                     .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
                      .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("setFilterBody", &NeighborList::setFilterBody)

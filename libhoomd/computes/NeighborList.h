@@ -316,6 +316,9 @@ class NeighborList : public Compute
         //! Add exclusions from dihedrals
         void addExclusionsFromDihedrals();
 
+        //! Add an exclusion for every bond in the ConstraintData
+        void addExclusionsFromConstraints();
+
         //! Test if an exclusion has been made
         bool isExcluded(unsigned int tag1, unsigned int tag2);
 
