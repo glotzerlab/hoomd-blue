@@ -81,7 +81,7 @@ class ForceDistanceConstraint : public ForceConstraint
         //! Return the number of DOF removed by this constraint
         virtual unsigned int getNDOFRemoved()
             {
-            return m_sysdef->getNDimensions()*m_cdata->getNGlobal();
+            return m_cdata->getNGlobal();
             }
 
         #ifdef ENABLE_MPI
