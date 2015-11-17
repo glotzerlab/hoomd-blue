@@ -965,6 +965,9 @@ class nve(_integration_method):
 ## \internal
 # Old style bdnvt
 def bdnvt(group, T, seed=0, gamma_diam=False, limit=None, tally=False):
+    globals.msg.warning("integrate.bdnvt is deprecated and will be removed.\n")
+    globals.msg.warning("Use integrate.langevin or integrate.brownian instead.\n");
+
     if gamma_diam:
         dscale = 1.0;
     else:
