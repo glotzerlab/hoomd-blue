@@ -348,6 +348,18 @@ class CellList : public Compute
 
         // @}
 
+        /*! \param func Function to call when the cell width changes
+            \return Connection to manage the signal/slot connection
+            Calls are performed by using boost::signals2. The function passed in
+            \a func will be called every time the CellList is notified of a change in the cell width
+            \note If the caller class is destroyed, it needs to disconnect the signal connection
+            via \b con.disconnect where \b con is the return value of this function.
+        */
+        boost::signals2::connection connectCellWidthChange(const boost::function<void ()> &func)
+            {
+            return m_width_change.connect(func);
+            }
+
     protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
@@ -411,6 +423,8 @@ class CellList : public Compute
 
         //! Resets the condition status
         virtual void resetConditions();
+
+        boost::signals2::signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
     };
 
 //! Export the CellList class to python

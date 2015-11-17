@@ -331,6 +331,9 @@ void CellList::initializeWidth()
                                   (L.y + Scalar(2.0)*m_ghost_width.y) / Scalar(m_dim.y),
                                   (L.z + Scalar(2.0)*m_ghost_width.z) / Scalar(m_dim.z));
 
+    // signal that the width has changed
+    m_width_change();
+
     if (m_prof)
         m_prof->pop();
 

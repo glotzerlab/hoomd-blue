@@ -74,6 +74,7 @@ CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_num_type_change_conn = m_pdata->connectNumTypesChange(boost::bind(&CellListStencil::slotTypeChange, this));
     m_box_change_conn = m_pdata->connectBoxChange(boost::bind(&CellListStencil::requestCompute, this));
+    m_width_change_conn = m_cl->connectCellWidthChange(boost::bind(&CellListStencil::requestCompute, this));
 
     // Default initialization is no stencil for any type
     m_rstencil = std::vector<Scalar>(m_pdata->getNTypes(), -1.0);
@@ -92,6 +93,7 @@ CellListStencil::~CellListStencil()
 
     m_num_type_change_conn.disconnect();
     m_box_change_conn.disconnect();
+    m_width_change_conn.disconnect();
     }
 
 void CellListStencil::compute(unsigned int timestep)

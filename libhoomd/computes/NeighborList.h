@@ -476,6 +476,18 @@ class NeighborList : public Compute
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
 
+        /*! \param func Function to call when the cutoff radius changes
+            \return Connection to manage the signal/slot connection
+            Calls are performed by using boost::signals2. The function passed in
+            \a func will be called every time the NeighborList is notified of a change in cutoff radius
+            \note If the caller class is destroyed, it needs to disconnect the signal connection
+            via \b con.disconnect where \b con is the return value of this function.
+        */
+        boost::signals2::connection connectRCutChange(const boost::function<void ()> &func)
+            {
+            return m_rcut_signal.connect(func);
+            }
+
    protected:
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
         GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
@@ -553,18 +565,6 @@ class NeighborList : public Compute
             return flags;
             }
         #endif
-
-        /*! \param func Function to call when the cutoff radius changes
-            \return Connection to manage the signal/slot connection
-            Calls are performed by using boost::signals2. The function passed in
-            \a func will be called every time the NeighborList is notified of a change in cutoff radius
-            \note If the caller class is destroyed, it needs to disconnect the signal connection
-            via \b con.disconnect where \b con is the return value of this function.
-        */
-        boost::signals2::connection connectRCutChange(const boost::function<void ()> &func)
-            {
-            return m_rcut_signal.connect(func);
-            }
 
     private:
         boost::signals2::signal<void ()> m_rcut_signal;     //!< Signal that is triggered when the cutoff radius changes

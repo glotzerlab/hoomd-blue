@@ -106,7 +106,6 @@ void celllist_stencil_basic_test(boost::shared_ptr<ExecutionConfiguration> exec_
     // update the nominal cell width so that there are only two cells in the box
     cl->setNominalWidth(Scalar(1.5));
     cl->compute(10);
-    cls->requestCompute(); // trigger an update due to the cell list resize (neighbor list ordinarily handles this)
     cls->compute(10);
     // stencils should cover the box but not duplicate it (8 cells)
         {
