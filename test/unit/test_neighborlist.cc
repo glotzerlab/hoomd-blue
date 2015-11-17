@@ -58,14 +58,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
-#include "NeighborListMultiBinned.h"
+#include "NeighborListStencil.h"
 #include "NeighborListTree.h"
 #include "Initializers.h"
 
 #ifdef ENABLE_CUDA
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
-#include "NeighborListGPUMultiBinned.h"
+#include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
 #endif
 
@@ -1145,50 +1145,50 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_type )
 // MULTI BINNED CPU
 ////////////////////
 //! basic test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_basic )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_basic )
     {
-    neighborlist_basic_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_basic_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! exclusion test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_exclusion )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! large exclusion test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_large_ex )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_large_ex_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! body filter test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_body_filter)
+BOOST_AUTO_TEST_CASE( NeighborListStencil_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_filter_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! diameter filter test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_diameter_shift )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_diameter_shift_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_particle_asymm )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_particle_asymm_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_cutoff_exclude )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! type test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_type )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_type )
     {
-    neighborlist_type_tests<NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_type_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for multi binned class
-BOOST_AUTO_TEST_CASE( NeighborListMultiBinned_comparison )
+BOOST_AUTO_TEST_CASE( NeighborListStencil_comparison )
     {
-    neighborlist_comparison_test<NeighborListBinned, NeighborListMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_comparison_test<NeighborListBinned, NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 ///////////////
@@ -1294,54 +1294,54 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
 // MULTI BINNED GPU
 ///////////////
 //! basic test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_basic )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_basic )
     {
-    neighborlist_basic_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_basic_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! exclusion test case for GPUMultiBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBMultiinned_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_exclusion_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! large exclusion test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_large_ex )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_large_ex_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! body filter test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_body_filter)
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_body_filter_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! diameter filter test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_diameter_shift )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_diameter_shift_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! particle asymmetry test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_particle_asymm )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_particle_asymm_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! cutoff exclusion test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_cutoff_exclude )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! type test case for GPUMultiBinned class
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_type )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_type )
     {
-    neighborlist_type_tests<NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_type_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUMultiBinned class against MultiBinned on cpu
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_cpu_comparison )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_cpu_comparison )
     {
-    neighborlist_comparison_test<NeighborListMultiBinned, NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborListStencil, NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUMultiBinned class against GPUBinned
-BOOST_AUTO_TEST_CASE( NeighborListGPUMultiBinned_binned_comparison )
+BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_binned_comparison )
     {
-    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUMultiBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 ///////////////

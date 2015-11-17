@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 
-/*! \file NeighborListMultiBinned.cc
-    \brief Defines NeighborListMultiBinned
+/*! \file NeighborListStencil.cc
+    \brief Defines NeighborListStencil
 */
 
-#include "NeighborListMultiBinned.h"
+#include "NeighborListStencil.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -74,15 +74,15 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                                                 Scalar r_cut,
-                                                 Scalar r_buff,
-                                                 boost::shared_ptr<CellList> cl,
-                                                 boost::shared_ptr<CellListStencil> cls)
+NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                                         Scalar r_cut,
+                                         Scalar r_buff,
+                                         boost::shared_ptr<CellList> cl,
+                                         boost::shared_ptr<CellListStencil> cls)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true)
     {
-    m_exec_conf->msg->notice(5) << "Constructing NeighborListMultiBinned" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
 
     // create a default cell list if one was not specified
     if (!m_cl)
@@ -99,16 +99,16 @@ NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinit
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListMultiBinned::slotRCutChange, this));
+    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListStencil::slotRCutChange, this));
     }
 
-NeighborListMultiBinned::~NeighborListMultiBinned()
+NeighborListStencil::~NeighborListStencil()
     {
-    m_exec_conf->msg->notice(5) << "Destroying NeighborListMultiBinned" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying NeighborListStencil" << endl;
     m_rcut_change_conn.disconnect();
     }
 
-void NeighborListMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
+void NeighborListStencil::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
 
@@ -122,7 +122,7 @@ void NeighborListMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
         }
     }
 
-void NeighborListMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
+void NeighborListStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborList::setRCutPair(typ1,typ2,r_cut);
     
@@ -136,7 +136,7 @@ void NeighborListMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, 
         }
     }
 
-void NeighborListMultiBinned::setMaximumDiameter(Scalar d_max)
+void NeighborListStencil::setMaximumDiameter(Scalar d_max)
     {
     NeighborList::setMaximumDiameter(d_max);
 
@@ -150,7 +150,7 @@ void NeighborListMultiBinned::setMaximumDiameter(Scalar d_max)
         }
     }
 
-void NeighborListMultiBinned::updateRStencil()
+void NeighborListStencil::updateRStencil()
     {
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
     std::vector<Scalar> rstencil(m_pdata->getNTypes(), -1.0);
@@ -168,7 +168,7 @@ void NeighborListMultiBinned::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
-void NeighborListMultiBinned::buildNlist(unsigned int timestep)
+void NeighborListStencil::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
 
@@ -382,9 +382,9 @@ void NeighborListMultiBinned::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListMultiBinned()
+void export_NeighborListStencil()
     {
-    class_<NeighborListMultiBinned, boost::shared_ptr<NeighborListMultiBinned>, bases<NeighborList>, boost::noncopyable >
-        ("NeighborListMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
-        .def("setCellWidth", &NeighborListMultiBinned::setCellWidth);
+    class_<NeighborListStencil, boost::shared_ptr<NeighborListStencil>, bases<NeighborList>, boost::noncopyable >
+        ("NeighborListStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+        .def("setCellWidth", &NeighborListStencil::setCellWidth);
     }

@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 
-/*! \file NeighborListGPUMultiBinned.cc
-    \brief Defines NeighborListGPUMultiBinned
+/*! \file NeighborListGPUStencil.cc
+    \brief Defines NeighborListGPUStencil
 */
 
-#include "NeighborListGPUMultiBinned.h"
-#include "NeighborListGPUMultiBinned.cuh"
+#include "NeighborListGPUStencil.h"
+#include "NeighborListGPUStencil.cuh"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -72,15 +72,15 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                                                       Scalar r_cut,
-                                                       Scalar r_buff,
-                                                       boost::shared_ptr<CellList> cl,
-                                                       boost::shared_ptr<CellListStencil> cls)
+NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                                               Scalar r_cut,
+                                               Scalar r_buff,
+                                               boost::shared_ptr<CellList> cl,
+                                               boost::shared_ptr<CellListStencil> cls)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true), m_needs_resort(true)
     {
-    m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUMultiBinned" << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUStencil" << std::endl;
 
     // create a default cell list if one was not specified
     if (!m_cl)
@@ -120,7 +120,7 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
             }
         }
 
-    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_multi_binned", this->m_exec_conf));
+    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_stencil", this->m_exec_conf));
     m_last_tuned_timestep = 0;
 
     #ifdef ENABLE_MPI
@@ -131,24 +131,24 @@ NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemD
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUMultiBinned::slotRCutChange, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUMultiBinned::slotMaxNumChanged, this));
-    m_sort_conn = m_pdata->connectParticleSort(boost::bind(&NeighborListGPUMultiBinned::slotParticleSort, this));
+    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUStencil::slotRCutChange, this));
+    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUStencil::slotMaxNumChanged, this));
+    m_sort_conn = m_pdata->connectParticleSort(boost::bind(&NeighborListGPUStencil::slotParticleSort, this));
 
     // needs realloc on size change...
     GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
     m_pid_map.swap(pid_map);
     }
 
-NeighborListGPUMultiBinned::~NeighborListGPUMultiBinned()
+NeighborListGPUStencil::~NeighborListGPUStencil()
     {
-    m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUMultiBinned" << std::endl;
+    m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
     m_rcut_change_conn.disconnect();
     m_max_numchange_conn.disconnect();
     m_sort_conn.disconnect();
     }
 
-void NeighborListGPUMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
+void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
 
@@ -162,7 +162,7 @@ void NeighborListGPUMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
         }
     }
 
-void NeighborListGPUMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
+void NeighborListGPUStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
 
@@ -176,7 +176,7 @@ void NeighborListGPUMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ
         }
     }
 
-void NeighborListGPUMultiBinned::setMaximumDiameter(Scalar d_max)
+void NeighborListGPUStencil::setMaximumDiameter(Scalar d_max)
     {
     NeighborListGPU::setMaximumDiameter(d_max);
 
@@ -190,7 +190,7 @@ void NeighborListGPUMultiBinned::setMaximumDiameter(Scalar d_max)
         }
     }
 
-void NeighborListGPUMultiBinned::updateRStencil()
+void NeighborListGPUStencil::updateRStencil()
     {
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
     std::vector<Scalar> rstencil(m_pdata->getNTypes(), -1.0);
@@ -212,7 +212,7 @@ void NeighborListGPUMultiBinned::updateRStencil()
  * Rearranges the particle indexes by type to reduce execution divergence during the neighbor list build.
  * Radix sort is (supposed to be) stable so that the spatial sorting from SFC is also preserved within a type.
  */
-void NeighborListGPUMultiBinned::sortTypes()
+void NeighborListGPUStencil::sortTypes()
     {
     if (m_prof) m_prof->push(m_exec_conf, "sort");
 
@@ -223,7 +223,7 @@ void NeighborListGPUMultiBinned::sortTypes()
     ScopedAllocation<unsigned int> d_types_alt(m_exec_conf->getCachedAllocator(), m_pdata->getN());
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_compute_nlist_multi_fill_types(d_pids.data, d_types(), d_pos.data, m_pdata->getN());
+    gpu_compute_nlist_stencil_fill_types(d_pids.data, d_types(), d_pos.data, m_pdata->getN());
 
     // only sort with more than one type
     if (m_pdata->getNTypes() > 1)
@@ -232,14 +232,14 @@ void NeighborListGPUMultiBinned::sortTypes()
         void *d_tmp_storage = NULL;
         size_t tmp_storage_bytes = 0;
         bool swap = false;
-        gpu_compute_nlist_multi_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+        gpu_compute_nlist_stencil_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
 
         size_t alloc_size = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
         // unsigned char = 1 B
         ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
         d_tmp_storage = (void *)d_alloc();
 
-        gpu_compute_nlist_multi_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+        gpu_compute_nlist_stencil_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
 
         if (swap)
             {
@@ -250,7 +250,7 @@ void NeighborListGPUMultiBinned::sortTypes()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
+void NeighborListGPUStencil::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
@@ -329,35 +329,35 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
     unsigned int threads_per_particle = param % 10000;
 
     // launch neighbor list kernel
-    gpu_compute_nlist_multi_binned(d_nlist.data,
-                                   d_n_neigh.data,
-                                   d_last_pos.data,
-                                   d_conditions.data,
-                                   d_Nmax.data,
-                                   d_head_list.data,
-                                   d_pid_map.data,
-                                   d_pos.data,
-                                   d_body.data,
-                                   d_diameter.data,
-                                   m_pdata->getN(),
-                                   d_cell_size.data,
-                                   d_cell_xyzf.data,
-                                   d_cell_tdb.data,
-                                   m_cl->getCellIndexer(),
-                                   m_cl->getCellListIndexer(),
-                                   d_stencil.data,
-                                   d_n_stencil.data,
-                                   stencil_idx,
-                                   box,
-                                   d_r_cut.data,
-                                   m_r_buff,
-                                   m_pdata->getNTypes(),
-                                   m_cl->getGhostWidth(),
-                                   m_filter_body,
-                                   m_diameter_shift,
-                                   threads_per_particle,
-                                   block_size,
-                                   m_exec_conf->getComputeCapability()/10);
+    gpu_compute_nlist_stencil_binned(d_nlist.data,
+                                     d_n_neigh.data,
+                                     d_last_pos.data,
+                                     d_conditions.data,
+                                     d_Nmax.data,
+                                     d_head_list.data,
+                                     d_pid_map.data,
+                                     d_pos.data,
+                                     d_body.data,
+                                     d_diameter.data,
+                                     m_pdata->getN(),
+                                     d_cell_size.data,
+                                     d_cell_xyzf.data,
+                                     d_cell_tdb.data,
+                                     m_cl->getCellIndexer(),
+                                     m_cl->getCellListIndexer(),
+                                     d_stencil.data,
+                                     d_n_stencil.data,
+                                     stencil_idx,
+                                     box,
+                                     d_r_cut.data,
+                                     m_r_buff,
+                                     m_pdata->getNTypes(),
+                                     m_cl->getGhostWidth(),
+                                     m_filter_body,
+                                     m_diameter_shift,
+                                     threads_per_particle,
+                                     block_size,
+                                     m_exec_conf->getComputeCapability()/10);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     if (tune) this->m_tuner->end();
@@ -368,9 +368,9 @@ void NeighborListGPUMultiBinned::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUMultiBinned()
+void export_NeighborListGPUStencil()
     {
-    class_<NeighborListGPUMultiBinned, boost::shared_ptr<NeighborListGPUMultiBinned>, bases<NeighborListGPU>, boost::noncopyable >
-        ("NeighborListGPUMultiBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
-        .def("setCellWidth", &NeighborListGPUMultiBinned::setCellWidth);
+    class_<NeighborListGPUStencil, boost::shared_ptr<NeighborListGPUStencil>, bases<NeighborListGPU>, boost::noncopyable >
+        ("NeighborListGPUStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+        .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

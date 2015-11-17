@@ -54,36 +54,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellListStencil.h"
 #include "Autotuner.h"
 
-/*! \file NeighborListGPUMultiBinned.h
-    \brief Declares the NeighborListGPUMultiBinned class
+/*! \file NeighborListGPUStencil.h
+    \brief Declares the NeighborListGPUStencil class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __NEIGHBORLISTGPUMULTIBINNED_H__
-#define __NEIGHBORLISTGPUMULTIBINNED_H__
+#ifndef __NEIGHBORLISTGPUSTENCIL_H__
+#define __NEIGHBORLISTGPUSTENCIL_H__
 
 //! Neighbor list build on the GPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the GPU using a cell list with multiple bin stencils.
 
-    GPU kernel methods are defined in NeighborListGPUMultiBinned.cuh and defined in NeighborListGPUMultiBinned.cu.
+    GPU kernel methods are defined in NeighborListGPUStencil.cuh and defined in NeighborListGPUStencil.cu.
 
     \ingroup computes
 */
-class NeighborListGPUMultiBinned : public NeighborListGPU
+class NeighborListGPUStencil : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                                   Scalar r_cut,
-                                   Scalar r_buff,
-                                   boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
-                                   boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
+        NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                               Scalar r_cut,
+                               Scalar r_buff,
+                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                               boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
         //! Destructor
-        virtual ~NeighborListGPUMultiBinned();
+        virtual ~NeighborListGPUStencil();
 
         //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
@@ -151,7 +151,7 @@ class NeighborListGPUMultiBinned : public NeighborListGPU
             }
     };
 
-//! Exports NeighborListGPUMultiBinned to python
-void export_NeighborListGPUMultiBinned();
+//! Exports NeighborListGPUStencil to python
+void export_NeighborListGPUStencil();
 
-#endif // __NEIGHBORLISTGPUMULTIBINNED_H__
+#endif // __NEIGHBORLISTGPUSTENCIL_H__

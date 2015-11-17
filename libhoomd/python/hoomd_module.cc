@@ -87,7 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
-#include "NeighborListMultiBinned.h"
+#include "NeighborListStencil.h"
 #include "NeighborListTree.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
@@ -151,7 +151,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
-#include "NeighborListGPUMultiBinned.h"
+#include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
@@ -551,7 +551,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();
-    export_NeighborListMultiBinned();
+    export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
     export_PPPMForceCompute();
@@ -560,7 +560,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CellListGPU();
     export_NeighborListGPU();
     export_NeighborListGPUBinned();
-    export_NeighborListGPUMultiBinned();
+    export_NeighborListGPUStencil();
     export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");

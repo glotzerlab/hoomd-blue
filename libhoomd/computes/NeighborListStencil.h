@@ -53,16 +53,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellList.h"
 #include "CellListStencil.h"
 
-/*! \file NeighborListMultiBinned.h
-    \brief Declares the NeighborListMultiBinned class
+/*! \file NeighborListStencil.h
+    \brief Declares the NeighborListStencil class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __NEIGHBORLISTMULTIBINNED_H__
-#define __NEIGHBORLISTMULTIBINNED_H__
+#ifndef __NEIGHBORLISTSTENCIL_H__
+#define __NEIGHBORLISTSTENCIL_H__
 
 //! Efficient neighbor list build on the CPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the CPU using a cell list with multiple bin stencils.
@@ -70,18 +70,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa CellListStencil
     \ingroup computes
 */
-class NeighborListMultiBinned : public NeighborList
+class NeighborListStencil : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                                Scalar r_cut,
-                                Scalar r_buff,
-                                boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
-                                boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
+        NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                            Scalar r_cut,
+                            Scalar r_buff,
+                            boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                            boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
         //! Destructor
-        virtual ~NeighborListMultiBinned();
+        virtual ~NeighborListStencil();
 
         //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
@@ -120,7 +120,7 @@ class NeighborListMultiBinned : public NeighborList
         void updateRStencil();
     };
 
-//! Exports NeighborListMultiBinned to python
-void export_NeighborListMultiBinned();
+//! Exports NeighborListStencil to python
+void export_NeighborListStencil();
 
-#endif // __NEIGHBORLISTMULTIBINNED_H__
+#endif // __NEIGHBORLISTSTENCIL_H__

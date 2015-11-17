@@ -788,13 +788,13 @@ class stencil(_nlist):
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
             globals.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_nlist = hoomd.NeighborListStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
         else:
             self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
             globals.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListGPUMultiBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_nlist = hoomd.NeighborListGPUStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
 
         self.cpp_nlist.setEvery(1, True)
 
