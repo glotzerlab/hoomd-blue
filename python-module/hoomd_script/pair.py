@@ -294,7 +294,7 @@ class coeff:
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
                         globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
-                              ", but is not used by the pair force");
+                              ", but is not used by the pair force\n");
                     else:
                         count += 1;
 
@@ -318,7 +318,7 @@ class coeff:
             cur_pair = (b,a);
         else:
             return None;
-        
+
         if coeff_name in self.values[cur_pair]:
             return self.values[cur_pair][coeff_name];
         else:
@@ -398,12 +398,12 @@ class pair(force._force):
         if r_cut is False:
             r_cut = -1.0
         self.global_r_cut = r_cut;
-        
+
         # setup the coefficent matrix
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
         self.pair_coeff.set_default_coeff('r_on', self.global_r_cut);
-        
+
         # if no neighbor list is supplied, use the default global neighborlist
         if nlist is None:
             self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
@@ -495,14 +495,14 @@ class pair(force._force):
                 max_rcut = max(max_rcut, r_cut);
 
         return max_rcut;
-    
+
     ## \internal
     # \brief Get the r_cut pair dictionary
     # \returns The rcut(i,j) dict if logging is on, and None if logging is off
     def get_rcut(self):
         if not self.log:
             return None
-            
+
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -515,7 +515,7 @@ class pair(force._force):
             for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                
+
                 if r_cut is not None: # use the defined value
                     if r_cut is False: # interaction is turned off
                         r_cut_dict.set_pair(type_list[i],type_list[j], -1.0);
@@ -644,11 +644,11 @@ class lj(pair):
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
-        
+
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
@@ -831,7 +831,7 @@ class slj(pair):
             sysdef = globals.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
-        
+
         # SLJ requires diameter shifting to be on
         self.nlist.cpp_nlist.setDiameterShift(True);
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
@@ -1122,7 +1122,7 @@ class cgcmm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
-        
+
         # this class extends force, so we need to store the r_cut explicitly as a member
         # to be used in get_rcut
         # the authors of this potential also did not incorporate pairwise cutoffs, so we just use
@@ -1131,7 +1131,7 @@ class cgcmm(force._force):
 
         # setup the coefficent matrix
         self.pair_coeff = coeff();
-        
+
         # if no neighbor list is supplied, use the default global neighborlist
         if nlist is None:
             self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
@@ -1165,6 +1165,7 @@ class cgcmm(force._force):
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
+
         return r_cut_dict;
 
     def update_coeffs(self):
@@ -1339,14 +1340,14 @@ class table(force._force):
 
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
-    
+
     ## \internal
     # \brief Get the r_cut pair dictionary
     # \returns rcut(i,j) dict if logging is on, and None otherwise
     def get_rcut(self):
         if not self.log:
             return None
-            
+
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -2425,7 +2426,7 @@ class tersoff(pair):
 # non-bonded particle %pair in the simulation.
 #
 # \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
+# V_{\mathrm{mie}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
 #                   \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
@@ -2513,3 +2514,271 @@ class mie(pair):
         mie3 = n
         mie4 = m
         return hoomd.make_scalar4(mie1, mie2, mie3, mie4);
+
+## Generic anisotropic %pair potential
+#
+# pair.ai_pair is not a command hoomd scripts should execute directly. Rather, it is a base command that
+# provides common features to all anisotropic %pair forces. Rather than repeating all of that documentation in a
+# dozen different places, it is collected here.
+#
+# All anisotropic %pair potential commands specify that a given potential energy, %force and torque be computedi
+# on all particle pairs in the system within a short range cutoff distance \f$ r_{\mathrm{cut}} \f$.
+# The interaction energy, forces and torque depend on the inter-particle separation
+# \f$ \vec r \f$ and on the orientations \f$\vec e_i, \vec e_j\f$, of the particles.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+class ai_pair(pair):
+    ## \internal
+    # \brief Initialize the pair force
+    # \details
+    # The derived class must set
+    #  - self.cpp_class (the pair class to instantiate)
+    #  - self.required_coeffs (a list of the coeff names the derived class needs)
+    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
+    #       self.cpp_force.set_params())
+    def __init__(self, r_cut, name=None):
+        # initialize the base class
+        force._force.__init__(self, name);
+
+        self.global_r_cut = r_cut;
+
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+        self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
+
+    ## Set parameters controlling the way forces are computed
+    #
+    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
+    #
+    # valid values for \a mode are: "none" (the default) and "shift"
+    #  - \b none - No shifting is performed and potentials are abruptly cut off
+    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+    #
+    # \b Examples:
+    # \code
+    # mypair.set_params(mode="shift")
+    # mypair.set_params(mode="no_shift")
+    # \endcode
+    #
+    def set_params(self, mode=None):
+        util.print_status_line();
+
+        if mode is not None:
+            if mode == "no_shift":
+                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
+            elif mode == "shift":
+                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
+            else:
+                globals.msg.error("Invalid mode\n");
+                raise RuntimeError("Error changing parameters in pair force");
+
+    def update_coeffs(self):
+        coeff_list = self.required_coeffs + ["r_cut"];
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify(coeff_list):
+            globals.msg.error("Not all pair coefficients are set\n");
+            raise RuntimeError("Error updating pair coefficients");
+
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                # build a dict of the coeffs to pass to process_coeff
+                coeff_dict = {};
+                for name in coeff_list:
+                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
+
+                param = self.process_coeff(coeff_dict);
+                self.cpp_force.setParams(i, j, param);
+                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
+
+## Gay-Berne anisotropic %pair potential
+#
+# The Gay-Berne potential computes the Lennard-Jones potential between anisotropic particles.
+#
+# This version of the Gay-Berne potential supports identical pairs of uniaxial ellipsoids,
+# with orientation-independent energy-well depth.
+#
+# The interaction energy for this anisotropic pair potential is (\cite Allen2006):
+#
+# \f{eqnarray*}
+# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \zeta^{-12} -
+#                       \zeta{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
+#                     = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+# \f},
+# where
+# \f{equation}
+# \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)
+# \f},
+#
+# \f{equation}
+# \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}\cdot\vec{H^{-1}}\cdot\hat{\vec{r}}
+# \f},
+#
+# \f{equation}
+# \vec{H} = 2 \ell_\perp^2 \vec{1} + (\ell_\parallel^2 - \ell_\perp^2) (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
+# \f},
+# with \f$ \sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel) \f$.
+#
+# The cut-off parameter \f$ r_{\mathrm{cut}} \f$ is defined for two particles oriented
+# parallel along the \b long axis, i.e.
+# \f$ \zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} +
+# \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)\f$
+# where \f$ \sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel) \f$ .
+#
+# The quantities \f$ \ell_\parallel \f$ and \f$ \ell_\perp \f$ denote the semi-axis lengths parallel
+# and perpendicular to particle orientation.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \ell_perp \f$ - \c lperp (in distance units)
+# - \f$ \ell_par \f$ - \c lpar (in distance units)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.gb is an anisotropic %pair potential and supports shifting the energy at the cut-off.
+# See hoomd_script.pair.pair for how to set this option.
+#
+# \b Example:
+# \code
+# gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
+# gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# \MPI_SUPPORTED
+class gb(ai_pair):
+    ## Specify the Gay-Berne %pair %force and torque
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # gb = pair.gb(r_cut=2.5)
+    # gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=1.0, lpar=1.5)
+    # gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        ai_pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.AnisoPotentialPairGB(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairGB;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.AnisoPotentialPairGBGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairGBGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'lperp', 'lpar'];
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        lperp = coeff['lperp'];
+        lpar = coeff['lpar'];
+
+        return hoomd.make_scalar3(epsilon, lperp, lpar);
+
+##     Create dipole-dipole, dipole-charge, or charge-charge anisotropic interactions
+#
+#  This class computes the (screened) interaction between pairs of
+#  particles with dipoles and electrostatic charges. The total energy
+#  computed is
+#
+#  \f{equation}
+#  U_{dipole} = U_{dd} + U_{de} + U_{ee}
+#  \f},
+#
+#  where
+#
+#  \f{equation}
+#  U_{dd} = A e^{-\kappa r} \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3} - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})(\vec{\mu_j}\cdot \vec{r_{ji}})}{r^5}\right)
+#  \f},
+#
+#  \f{equation}
+#  U_{de} = A e^{-\kappa r} \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3} - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}\right)
+#  \f},
+#
+#  \f{equation}
+#  U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
+#  \f}
+#
+# The following coefficients may be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - mu - magnitude of \f$ \vec{\mu} = \mu (1, 0, 0) \f$ for unrotated particles
+# - A - electrostatic energy scale \f$A\f$ (default value 1.0)
+# - kappa - inverse screening length \f$\kappa\f$
+#
+# \b Example:
+# \code
+# # A/A interact only with screened electrostatics
+# dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+# dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# \MPI_SUPPORTED
+class dipole(ai_pair):
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        ## tell the base class how we operate
+
+        # initialize the base class
+        ai_pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
+
+        ## create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.AnisoPotentialPairDipole(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairDipole;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.AnisoPotentialPairDipoleGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.AnisoPotentialPairDipoleGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        ## setup the coefficent options
+        self.required_coeffs = ['mu', 'A', 'kappa'];
+
+        self.pair_coeff.set_default_coeff('A', 1.0)
+
+    def process_coeff(self, coeff):
+        mu = float(coeff['mu']);
+        A = float(coeff['A']);
+        kappa = float(coeff['kappa']);
+
+        params = hoomd.make_scalar3(mu, A, kappa)
+
+        return params

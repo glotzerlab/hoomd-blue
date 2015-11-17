@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     create_directories(ph);
     std::string tmp_path = ph.string();
 
-    InertiaTensor I;
+    Scalar3 I;
 
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(35), Scalar(55), Scalar(125));
@@ -109,6 +109,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
 
     h_pos.data[0].x = Scalar(1.5);
@@ -131,8 +133,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[0] = NO_BODY;
 
-    I.set(0, 1, 2, 3, 4, 5);
-    pdata->setInertiaTensor(0, I);
+    I = make_scalar3(0, 1, 2);
+    h_moments.data[0] = I;
+    h_angmom.data[0] = make_scalar4(0,1,2,3);
 
     h_pos.data[1].x = Scalar(1.5);
     h_pos.data[1].y = Scalar(2.5);
@@ -154,8 +157,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[1] = 1;
 
-    I.set(5, 4, 3, 2, 1, 0);
-    pdata->setInertiaTensor(1, I);
+    I = make_scalar3(5, 4, 3);
+    h_moments.data[1] = I;
+    h_angmom.data[1] = make_scalar4(9,8,7,6);
 
     h_pos.data[2].x = Scalar(-1.5);
     h_pos.data[2].y = Scalar(2.5);
@@ -177,8 +181,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[2] = 1;
 
-    I.set(1, 11, 21, 31, 41, 51);
-    pdata->setInertiaTensor(2, I);
+    I = make_scalar3(1, 11, 21);
+    h_moments.data[2] = I;
+    h_angmom.data[2] = make_scalar4(1, 2, 3, 4);
 
     h_pos.data[3].x = Scalar(-1.5);
     h_pos.data[3].y = Scalar(2.5);
@@ -200,9 +205,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[3] = 0;
 
-    I.set(51, 41, 31, 21, 11, 1);
-    pdata->setInertiaTensor(3, I);
-
+    I = make_scalar3(51,41,31);
+    h_moments.data[3] = I;
+    h_angmom.data[3] = make_scalar4(51,41,31,21);
     }
 
     // add a couple walls for fun
@@ -247,7 +252,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -722,7 +727,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // fourteenth test: the moment_inertia array
+        // fourteenth test: the moment_inertia array
         {
         writer->setOutputBody(false);
         writer->setOutputMomentInertia(true);
@@ -743,23 +748,64 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 1 2 3 4 5");
+        BOOST_CHECK_EQUAL(line, "0 1 2");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "5 4 3 2 1 0");
+        BOOST_CHECK_EQUAL(line, "5 4 3");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1 11 21 31 41 51");
+        BOOST_CHECK_EQUAL(line, "1 11 21");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "51 41 31 21 11 1");
+        BOOST_CHECK_EQUAL(line, "51 41 31");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</moment_inertia>");
+        f.close();
+        }
+
+        // fifteenth test: the angmom array
+        {
+        writer->setOutputMomentInertia(false);
+        writer->setOutputAngularMomentum(true);
+
+        // write the file
+        writer->analyze(150);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000150.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<angmom num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0 1 2 3");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "9 8 7 6");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1 2 3 4");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "51 41 31 21");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</angmom>");
         f.close();
         }
 
@@ -843,7 +889,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -1007,7 +1053,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     // create a test input file
     ofstream f((tmp_path+"/test_input.xml").c_str());
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml version=\"1.3\">\n\
+<hoomd_xml version=\"1.6\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" xy=\".12\" xz=\".23\" yz=\".34\"/>\n\
 <position >\n\
@@ -1075,13 +1121,21 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 50.0\n\
 </charge>\n\
 <moment_inertia>\n\
-0 1 2 3 4 5\n\
-10 11 12 13 14 15\n\
-20 21 22 23 24 25\n\
-30 31 32 33 34 35\n\
-40 41 42 43 44 45\n\
-50 51 52 53 54 55\n\
+0 1 2 \n\
+10 11 12\n\
+20 21 22\n\
+30 31 32\n\
+40 41 42\n\
+50 51 52\n\
 </moment_inertia>\n\
+<angmom>\n\
+1 10 100 1000\n\
+2 20 200 2000\n\
+3 30 300 3000\n\
+4 40 400 4000\n\
+5 50 500 5000\n\
+6 60 600 6000\n\
+</angmom>\n\
 <wall>\n\
 <coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
 <coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
@@ -1139,6 +1193,8 @@ im_b 5 4 3 2\n\
     ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     for (int i = 0; i < 6; i++)
         {
@@ -1171,12 +1227,19 @@ im_b 5 4 3 2\n\
         BOOST_CHECK_EQUAL(h_rtag.data[i], (unsigned int)i);
 
         // check the moment_inertia values
-        InertiaTensor I;
-        I = pdata->getInertiaTensor(i);
-        for (unsigned int c = 0; c < 6; c++)
-            {
-            MY_BOOST_CHECK_CLOSE(I.components[c], i*10 + c, tol);
-            }
+        Scalar3 I;
+        I = h_moments.data[i];
+        MY_BOOST_CHECK_CLOSE(I.x, i*10, tol);
+        MY_BOOST_CHECK_CLOSE(I.y, i*10+1, tol);
+        MY_BOOST_CHECK_CLOSE(I.z, i*10+2, tol);
+
+        // check the angular momentum values
+        Scalar4 M;
+        M = h_angmom.data[i];
+        MY_BOOST_CHECK_CLOSE(M.x, i+1, tol);
+        MY_BOOST_CHECK_CLOSE(M.y, (i+1)*10, tol);
+        MY_BOOST_CHECK_CLOSE(M.z, (i+1)*100, tol);
+        MY_BOOST_CHECK_CLOSE(M.w, (i+1)*1000, tol);
         }
     }
 

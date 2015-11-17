@@ -80,9 +80,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <b>Mie specifics</b>
 
     EvaluatorPairMie evaluates the function:
-    \f[ V_{\mathrm{LJ}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
-                \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
-                  = & 0 & r \ge r_{\mathrm{cut}} \f]
+    \f[ V_{\mathrm{mie}}(r)  = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
+                \left( \frac{\sigma}{r} \right)^{m} \right] \f]
 
     The Mie potential does not need diameter or charge. Four parameters are specified and stored in a Scalar4. \a mie1 \a mie2
     \a mie3 and \a mie4 are stored in \a params.x \a params.y \a params.z and \a params.w respectively.

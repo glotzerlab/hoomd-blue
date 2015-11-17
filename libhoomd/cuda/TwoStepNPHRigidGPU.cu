@@ -61,30 +61,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff
 
-/*! Maclaurine expansion
-    \param x Point to take the expansion
-
-*/
-__device__ Scalar nph_maclaurin_series(Scalar x)
-    {
-    Scalar x2, x4;
-    x2 = x * x;
-    x4 = x2 * x2;
-    return (Scalar(1.0) + Scalar(1.0/6.0) * x2 + Scalar(1.0/120.0) * x4 + Scalar(1.0/5040.0) * x2 * x4 + Scalar(1.0/362880.0) * x4 * x4);
-    }
-
 /*! Kernel to zero virial contribution from particles from rigid bodies
     \param d_virial_rigid Virial contribution from particles in rigid bodies
     \param local_num Number of particles in this card
 */
 extern "C" __global__ void gpu_nph_rigid_zero_virial_rigid_kernel(Scalar *d_virial_rigid,
-                                                                 unsigned int local_num)
+                                                                  unsigned int local_num)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
 
     if (idx < local_num)
         {
-        d_virial_rigid[idx] = 0;
+        d_virial_rigid[idx] = Scalar(0.0);
         }
 
     }
@@ -105,7 +93,7 @@ extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4 *rdata_com,
                                                       unsigned int n_group_bodies,
                                                       unsigned int n_bodies,
                                                       BoxDim box,
-                                                      Scalar nph_rdata_dilation,
+                                                      Scalar4 nph_rdata_dilation,
                                                       unsigned int nph_rdata_dimension,
                                                       Scalar4 *nph_rdata_new_box)
     {
@@ -119,10 +107,10 @@ extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4 *rdata_com,
     Scalar3 L;
 
     // reset box to new size/shape
-    L.x = curL.x * nph_rdata_dilation;
-    L.y = curL.y * nph_rdata_dilation;
+    L.x = curL.x * nph_rdata_dilation.x;
+    L.y = curL.y * nph_rdata_dilation.y;
     if (nph_rdata_dimension == 3)
-        L.z = curL.z * nph_rdata_dilation;
+        L.z = curL.z * nph_rdata_dilation.z;
 
     // copy and setL
     BoxDim newBox = box;
@@ -170,27 +158,29 @@ extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4 *rdata_com,
 */
 
 extern "C" __global__ void gpu_nph_rigid_step_one_body_kernel(Scalar4* rdata_com,
-                                                            Scalar4* rdata_vel,
-                                                            Scalar4* rdata_angmom,
-                                                            Scalar4* rdata_angvel,
-                                                            Scalar4* rdata_orientation,
-                                                            int3* rdata_body_image,
-                                                            Scalar4* rdata_conjqm,
-                                                            Scalar *d_rigid_mass,
-                                                            Scalar4 *d_rigid_mi,
-                                                            Scalar4 *d_rigid_force,
-                                                            Scalar4 *d_rigid_torque,
-                                                            unsigned int *d_rigid_group,
-                                                            unsigned int n_group_bodies,
-                                                            unsigned int n_bodies,
-                                                            Scalar npt_rdata_epsilon_dot,
-                                                            Scalar* npt_rdata_partial_Ksum_t,
-                                                            Scalar* npt_rdata_partial_Ksum_r,
-                                                            unsigned int npt_rdata_nf_t,
-                                                            unsigned int npt_rdata_nf_r,
-                                                            unsigned int npt_rdata_dimension,
-                                                            BoxDim box,
-                                                            Scalar deltaT)
+                                                              Scalar4* rdata_vel,
+                                                              Scalar4* rdata_angmom,
+                                                              Scalar4* rdata_angvel,
+                                                              Scalar4* rdata_orientation,
+                                                              int3* rdata_body_image,
+                                                              Scalar4* rdata_conjqm,
+                                                              Scalar *d_rigid_mass,
+                                                              Scalar4 *d_rigid_mi,
+                                                              Scalar4 *d_rigid_force,
+                                                              Scalar4 *d_rigid_torque,
+                                                              unsigned int *d_rigid_group,
+                                                              unsigned int n_group_bodies,
+                                                              unsigned int n_bodies,
+                                                              Scalar4 npt_rdata_scale_t,
+                                                              Scalar npt_rdata_scale_r,
+                                                              Scalar4 npt_rdata_scale_v,
+                                                              Scalar* npt_rdata_partial_Ksum_t,
+                                                              Scalar* npt_rdata_partial_Ksum_r,
+                                                              unsigned int npt_rdata_nf_t,
+                                                              unsigned int npt_rdata_nf_r,
+                                                              unsigned int npt_rdata_dimension,
+                                                              BoxDim box,
+                                                              Scalar deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -204,19 +194,8 @@ extern "C" __global__ void gpu_nph_rigid_step_one_body_kernel(Scalar4* rdata_com
     Scalar4 moment_inertia, com, vel, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
     int3 body_image;
     Scalar4 mbody, tbody, fquat;
-
+    Scalar tmp, akin_t, akin_r;
     Scalar dt_half = Scalar(0.5) * deltaT;
-    Scalar onednft, onednfr, tmp, scale_t, scale_r, scale_v, akin_t, akin_r;
-
-    onednft = Scalar(1.0) + (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t+npt_rdata_nf_r);
-    onednfr = (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t+npt_rdata_nf_r);
-
-    tmp = Scalar(-1.0) * dt_half * onednft * npt_rdata_epsilon_dot;
-    scale_t = fast::exp(tmp);
-    tmp = Scalar(-1.0) * dt_half * onednfr * npt_rdata_epsilon_dot;
-    scale_r = fast::exp(tmp);
-    tmp = dt_half * npt_rdata_epsilon_dot;
-    scale_v = deltaT * fast::exp(tmp) * nph_maclaurin_series(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
@@ -238,19 +217,19 @@ extern "C" __global__ void gpu_nph_rigid_step_one_body_kernel(Scalar4* rdata_com
     vel2.x = vel.x + dtfm * force.x;
     vel2.y = vel.y + dtfm * force.y;
     vel2.z = vel.z + dtfm * force.z;
-    vel2.x *= scale_t;
-    vel2.y *= scale_t;
-    vel2.z *= scale_t;
-    vel2.w = vel.w;
+    vel2.x *= npt_rdata_scale_t.x;
+    vel2.y *= npt_rdata_scale_t.y;
+    vel2.z *= npt_rdata_scale_t.z;
+    vel2.w = Scalar(0.0);
 
     tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
     akin_t = body_mass * tmp;
 
     // update position
     Scalar3 pos2;
-    pos2.x = com.x + vel2.x * scale_v;
-    pos2.y = com.y + vel2.y * scale_v;
-    pos2.z = com.z + vel2.z * scale_v;
+    pos2.x = com.x + vel2.x * npt_rdata_scale_v.x;
+    pos2.y = com.y + vel2.y * npt_rdata_scale_v.y;
+    pos2.z = com.z + vel2.z * npt_rdata_scale_v.z;
 
     // time to fix the periodic boundary conditions
     box.wrap(pos2, body_image);
@@ -264,10 +243,10 @@ extern "C" __global__ void gpu_nph_rigid_step_one_body_kernel(Scalar4* rdata_com
     conjqm2.z = conjqm.z + deltaT * fquat.z;
     conjqm2.w = conjqm.w + deltaT * fquat.w;
 
-    conjqm2.x *= scale_r;
-    conjqm2.y *= scale_r;
-    conjqm2.z *= scale_r;
-    conjqm2.w *= scale_r;
+    conjqm2.x *= npt_rdata_scale_r;
+    conjqm2.y *= npt_rdata_scale_r;
+    conjqm2.z *= npt_rdata_scale_r;
+    conjqm2.w *= npt_rdata_scale_r;
 
     // use no_squish rotate to update p and q
     no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
@@ -345,7 +324,9 @@ cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                                                        rigid_data.body_indices,
                                                                        n_group_bodies,
                                                                        n_bodies,
-                                                                       npt_rdata.epsilon_dot,
+                                                                       npt_rdata.scale_t,
+                                                                       npt_rdata.scale_r,
+                                                                       npt_rdata.scale_v,
                                                                        npt_rdata.partial_Ksum_t,
                                                                        npt_rdata.partial_Ksum_r,
                                                                        npt_rdata.nf_t,
@@ -406,7 +387,8 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
                                                               unsigned int *d_rigid_group,
                                                               unsigned int n_group_bodies,
                                                               unsigned int n_bodies,
-                                                              Scalar npt_rdata_epsilon_dot,
+                                                              Scalar4 npt_rdata_scale_t,
+                                                              Scalar npt_rdata_scale_r,
                                                               Scalar* npt_rdata_partial_Ksum_t,
                                                               Scalar* npt_rdata_partial_Ksum_r,
                                                               unsigned int npt_rdata_nf_t,
@@ -424,17 +406,8 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
     Scalar4 moment_inertia, vel, ex_space, ey_space, ez_space, orientation, conjqm;
     Scalar4 force, torque;
     Scalar4 mbody, tbody, fquat;
-
+    Scalar tmp, akin_t, akin_r;
     Scalar dt_half = Scalar(0.5) * deltaT;
-    Scalar onednft, onednfr, tmp, scale_t, scale_r, akin_t, akin_r;
-
-    onednft = Scalar(1.0) + (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t+npt_rdata_nf_r);
-    onednfr = (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t+npt_rdata_nf_r);
-
-    tmp = Scalar(-1.0) * dt_half * onednft * npt_rdata_epsilon_dot;
-    scale_t = exp(tmp);
-    tmp = Scalar(-1.0) * dt_half * onednfr * npt_rdata_epsilon_dot;
-    scale_r = exp(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
 
@@ -453,10 +426,10 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
 
     // update the velocity
     Scalar4 vel2;
-    vel2.x = scale_t * vel.x + dtfm * force.x;
-    vel2.y = scale_t * vel.y + dtfm * force.y;
-    vel2.z = scale_t * vel.z + dtfm * force.z;
-    vel2.w = 0;
+    vel2.x = npt_rdata_scale_t.x * vel.x + dtfm * force.x;
+    vel2.y = npt_rdata_scale_t.y * vel.y + dtfm * force.y;
+    vel2.z = npt_rdata_scale_t.z * vel.z + dtfm * force.z;
+    vel2.w = Scalar(0.0);
 
     tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
     akin_t = body_mass * tmp;
@@ -466,10 +439,10 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
     quatvec(orientation, tbody, fquat);
 
     Scalar4  conjqm2, angmom2;
-    conjqm2.x = scale_r * conjqm.x + deltaT * fquat.x;
-    conjqm2.y = scale_r * conjqm.y + deltaT * fquat.y;
-    conjqm2.z = scale_r * conjqm.z + deltaT * fquat.z;
-    conjqm2.w = scale_r * conjqm.w + deltaT * fquat.w;
+    conjqm2.x = npt_rdata_scale_r * conjqm.x + deltaT * fquat.x;
+    conjqm2.y = npt_rdata_scale_r * conjqm.y + deltaT * fquat.y;
+    conjqm2.z = npt_rdata_scale_r * conjqm.z + deltaT * fquat.z;
+    conjqm2.w = npt_rdata_scale_r * conjqm.w + deltaT * fquat.w;
 
     invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
@@ -477,7 +450,7 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
     angmom2.x *= Scalar(0.5);
     angmom2.y *= Scalar(0.5);
     angmom2.z *= Scalar(0.5);
-    angmom2.w = 0;
+    angmom2.w = Scalar(0.0);
 
     // update angular velocity
     Scalar4 angvel2;
@@ -504,14 +477,14 @@ extern "C" __global__ void gpu_nph_rigid_step_two_body_kernel(Scalar4* rdata_vel
     \param deltaT Amount of real time to step forward in one time step
 
 */
-cudaError_t gpu_nph_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    Scalar4 *d_net_force,
-                                    Scalar *d_net_virial,
-                                    const BoxDim& box,
-                                    const gpu_npt_rigid_data& npt_rdata,
-                                    Scalar deltaT)
+cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   Scalar *d_net_virial,
+                                   const BoxDim& box,
+                                   const gpu_npt_rigid_data& npt_rdata,
+                                   Scalar deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
@@ -521,25 +494,26 @@ cudaError_t gpu_nph_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
     gpu_nph_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel,
-                                                                    rigid_data.angmom,
-                                                                    rigid_data.angvel,
-                                                                    rigid_data.orientation,
-                                                                    rigid_data.conjqm,
-                                                                    rigid_data.body_mass,
-                                                                    rigid_data.moment_inertia,
-                                                                    rigid_data.force,
-                                                                    rigid_data.torque,
-                                                                    rigid_data.body_indices,
-                                                                    n_group_bodies,
-                                                                    n_bodies,
-                                                                    npt_rdata.epsilon_dot,
-                                                                    npt_rdata.partial_Ksum_t,
-                                                                    npt_rdata.partial_Ksum_r,
-                                                                    npt_rdata.nf_t,
-                                                                    npt_rdata.nf_r,
-                                                                    npt_rdata.dimension,
-                                                                    box,
-                                                                    deltaT);
+                                                                     rigid_data.angmom,
+                                                                     rigid_data.angvel,
+                                                                     rigid_data.orientation,
+                                                                     rigid_data.conjqm,
+                                                                     rigid_data.body_mass,
+                                                                     rigid_data.moment_inertia,
+                                                                     rigid_data.force,
+                                                                     rigid_data.torque,
+                                                                     rigid_data.body_indices,
+                                                                     n_group_bodies,
+                                                                     n_bodies,
+                                                                     npt_rdata.scale_t,
+                                                                     npt_rdata.scale_r,
+                                                                     npt_rdata.partial_Ksum_t,
+                                                                     npt_rdata.partial_Ksum_r,
+                                                                     npt_rdata.nf_t,
+                                                                     npt_rdata.nf_r,
+                                                                     npt_rdata.dimension,
+                                                                     box,
+                                                                     deltaT);
 
 
     return cudaSuccess;
@@ -565,7 +539,8 @@ extern "C" __global__ void gpu_nph_rigid_reduce_ksum_kernel(Scalar* npt_rdata_pa
     Scalar* body_ke_t = nph_rigid_sdata;
     Scalar* body_ke_r = &nph_rigid_sdata[blockDim.x];
 
-    Scalar Ksum_t = 0, Ksum_r=0;
+    Scalar Ksum_t = Scalar(0.0);
+    Scalar Ksum_r = Scalar(0.0);
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < n_bodies; start += blockDim.x)
@@ -577,8 +552,8 @@ extern "C" __global__ void gpu_nph_rigid_reduce_ksum_kernel(Scalar* npt_rdata_pa
             }
         else
             {
-            body_ke_t[threadIdx.x] = 0;
-            body_ke_r[threadIdx.x] = 0;
+            body_ke_t[threadIdx.x] = Scalar(0.0);
+            body_ke_r[threadIdx.x] = Scalar(0.0);
             }
         __syncthreads();
 
@@ -630,3 +605,4 @@ cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data& npt_rdata)
 
     return cudaSuccess;
     }
+

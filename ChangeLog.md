@@ -2,6 +2,31 @@
 
 [TOC]
 
+## Upcoming release - v1.3.0
+
+Released TBD
+
+*New features*
+
+* Automatically laad balanced domain decomposition simulations.
+* Anisotropic particle integrators.
+* Gay-Berne pair potential.
+* Dipole pair potential.
+
+## v1.2.1
+
+Released 2015/10/22
+
+*Bug fixes*
+
+* Fix a crash when adding or removing particles and reinitializing
+* Fix a bug where simulations hung on sm 5.x GPUs with CUDA 7.5
+* Fix compile error with long tests enabled
+* Issue a warning instead of an error for memory allocations greater than 4 GiB.
+* Fix invalid RPATH when building inside `zsh`.
+* Fix incorrect simulations with `integrate.npt_rigid`
+* Label mie potential correctly in user documentation
+
 ## v1.2.0
 
 Released 2015/09/30

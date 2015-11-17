@@ -47,16 +47,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 // Maintainer: ndtrung
-
-
 
 #include "TwoStepNVTRigidGPU.h"
 #include "TwoStepNVTRigidGPU.cuh"
-
 #include <boost/python.hpp>
-using namespace boost::python;
 #include <boost/bind.hpp>
+#include <math.h>
+
+using namespace std;
+using namespace boost::python;
 using namespace boost;
 
 /*! \file TwoStepNVTRigidGPU.cc
@@ -68,42 +69,25 @@ using namespace boost;
     \param thermo compute for thermodynamic quantities
     \param T Controlled temperature
     \param tau Time constant
-    \param suffix Suffix to attach to the end of log quantity names
-    \param skip_restart Skip initialization of the restart information
+    \param tchain Number of thermostats in the thermostat chain
+    \param iter Number of inner iterations to update the thermostats
 */
 TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              boost::shared_ptr<ComputeThermo> thermo,
+                             const std::string& suffix,
                              boost::shared_ptr<Variant> T,
                              Scalar tau,
-                             const std::string& suffix,
-                             bool skip_restart)
-    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, suffix, skip_restart)
+                             unsigned int tchain,
+                             unsigned int iter)
+    : TwoStepNVTRigid(sysdef, group, thermo, suffix, T, tau, tchain, iter)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << std::endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
         }
-
-        setup();
-
-    // sanity check
-    if (m_n_bodies <= 0)
-        return;
-
-    GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
-    m_partial_Ksum_t.swap(partial_Ksum_t);
-
-    GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
-    m_partial_Ksum_r.swap(partial_Ksum_r);
-
-    GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
-    m_Ksum_t.swap(Ksum_t);
-
-    GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
-    m_Ksum_r.swap(Ksum_r);
     }
 
 /*! \param timestep Current time step
@@ -112,13 +96,35 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
+    if (m_first_step)
+        {
+        setup();
+
+        GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
+        m_partial_Ksum_t.swap(partial_Ksum_t);
+        GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
+        m_partial_Ksum_r.swap(partial_Ksum_r);
+        GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
+        m_Ksum_t.swap(Ksum_t);
+        GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
+        m_Ksum_r.swap(Ksum_r);
+
+        m_first_step = false;
+        }
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
 
     // profile this step
     if (m_prof)
-        m_prof->push(m_exec_conf, "NVT rigid step 1");
+        m_prof->push("NVT rigid step 1");
+
+    // velocity scaling factors for translation and rotation
+    Scalar scale_r;
+    Scalar3 scale_t;
+    scale_t.x = scale_t.y = scale_t.z = exp(-m_dt_half * m_eta_dot_t[0]);
+    scale_r = exp(-m_dt_half * m_eta_dot_r[0]);
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -130,6 +136,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+
+    { // request handles to GPU body arrays
 
     ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
@@ -178,15 +186,19 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
 
     gpu_nvt_rigid_data d_nvt_rdata;
     d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
+    d_nvt_rdata.scale_t = make_scalar4(scale_t.x,scale_t.y,scale_t.z,Scalar(0.0));
+    d_nvt_rdata.scale_r = scale_r;
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
+    d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
 
-    // perform the update on the GPU
+    // perform the first-half integration on the GPU
     gpu_nvt_rigid_step_one(d_rdata,
                            d_index_array.data,
                            group_size,
@@ -195,12 +207,28 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
                            d_nvt_rdata,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    // tally the body kinetic energies
+    gpu_nvt_rigid_reduce_ksum(d_nvt_rdata);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    } // release handles to body arrays for next step
+
+    // update the thermostat chain
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+
+    m_akin_t = Ksum_t_handle.data[0];
+    m_akin_r = Ksum_r_handle.data[0];
+
+    update_nh_tchain(m_akin_t, m_akin_r, timestep);
+    }
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -212,44 +240,15 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
 
-    // phase 1, reduce to find the final Ksum_t and Ksum_r
-    {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVT reducing");
-
-    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
-
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-    d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
-    d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
-
-    gpu_nvt_rigid_reduce_ksum(d_nvt_rdata);
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-    }
-
-    // phase 1.5, move the thermostat variables forward
-    {
-    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-
-    Scalar Ksum_t = Ksum_t_handle.data[0];
-    Scalar Ksum_r = Ksum_r_handle.data[0];
-    update_nhcp(Ksum_t, Ksum_r, timestep);
-    }
-
     // profile this step
     if (m_prof)
-        m_prof->push(m_exec_conf, "NVT rigid step 2");
+        m_prof->push( "NVT rigid step 2");
+
+    // velocity scaling factors for translation and rotation
+    Scalar scale_r;
+    Scalar3 scale_t;
+    scale_t.x = scale_t.y = scale_t.z = exp(-m_dt_half * m_eta_dot_t[0]);
+    scale_r = exp(-m_dt_half * m_eta_dot_r[0]);
 
     BoxDim box = m_pdata->getBox();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
@@ -308,15 +307,10 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
-    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
-
     gpu_nvt_rigid_data d_nvt_rdata;
     d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nvt_rdata.scale_t = make_scalar4(scale_t.x,scale_t.y,scale_t.z,Scalar(0.0));
+    d_nvt_rdata.scale_r = scale_r;
 
     gpu_rigid_force(d_rdata,
                     d_index_array.data,
@@ -336,12 +330,12 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                            d_nvt_rdata,
                            m_deltaT);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(m_exec_conf);
+        m_prof->pop();
     }
 
 void export_TwoStepNVTRigidGPU()
@@ -350,8 +344,11 @@ void export_TwoStepNVTRigidGPU()
         ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>,
         boost::shared_ptr<ParticleGroup>,
         boost::shared_ptr<ComputeThermo>,
+        const std::string&,
         boost::shared_ptr<Variant>,
         Scalar,
-        const std::string& >())
+        unsigned int,
+        unsigned int >())
         ;
     }
+

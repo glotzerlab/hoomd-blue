@@ -121,6 +121,7 @@ class TwoStepBDNVT : public TwoStepNVE
         Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         std::string m_log_name;           //!< Name of the reservior quantity that we log
+        bool m_warned_aniso;              //!< true if we've already warned that we don't support aniso
 
         GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
 

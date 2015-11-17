@@ -152,6 +152,10 @@ __global__ void gpu_apply_sorted_order_kernel(
         unsigned int *d_tag_alt,
         const Scalar4 *d_orientation,
         Scalar4 *d_orientation_alt,
+        const Scalar4 *d_angmom,
+        Scalar4 *d_angmom_alt,
+        const Scalar3 *d_inertia,
+        Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
         const Scalar4 *d_net_force,
@@ -177,6 +181,8 @@ __global__ void gpu_apply_sorted_order_kernel(
     unsigned int tag = d_tag[old_idx];
     d_tag_alt[idx] = tag;
     d_orientation_alt[idx] = d_orientation[old_idx];
+    d_angmom_alt[idx] = d_angmom[old_idx];
+    d_inertia_alt[idx] = d_inertia[old_idx];
     d_net_virial_alt[idx] = d_net_virial[old_idx];
     d_net_force_alt[idx] = d_net_force[old_idx];
     d_net_torque_alt[idx] = d_net_torque[old_idx];
@@ -206,6 +212,10 @@ void gpu_apply_sorted_order(
         unsigned int *d_tag_alt,
         const Scalar4 *d_orientation,
         Scalar4 *d_orientation_alt,
+        const Scalar4 *d_angmom,
+        Scalar4 *d_angmom_alt,
+        const Scalar3 *d_inertia,
+        Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
         const Scalar4 *d_net_force,
@@ -238,6 +248,10 @@ void gpu_apply_sorted_order(
         d_tag_alt,
         d_orientation,
         d_orientation_alt,
+        d_angmom,
+        d_angmom_alt,
+        d_inertia,
+        d_inertia_alt,
         d_net_virial,
         d_net_virial_alt,
         d_net_force,

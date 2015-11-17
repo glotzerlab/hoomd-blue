@@ -232,7 +232,7 @@ class ParticleGroup
         ~ParticleGroup();
 
         //! Updates the members tags of a particle group according to a selection
-        void updateMemberTags(bool force_update);
+        void updateMemberTags(bool force_update) const;
 
         // @}
         //! \name Accessor methods
@@ -243,6 +243,8 @@ class ParticleGroup
         */
         unsigned int getNumMembersGlobal() const
             {
+            checkRebuild();
+
             return (unsigned int)m_member_tags.getNumElements();
             }
 
@@ -251,8 +253,7 @@ class ParticleGroup
         */
         unsigned int getNumMembers() const
             {
-            // check if local members have changed
-            if (m_particles_sorted) rebuildIndexList();
+            checkRebuild();
 
             return m_num_local_members;
             }
@@ -263,6 +264,8 @@ class ParticleGroup
         */
         unsigned int getMemberTag(unsigned int i) const
             {
+            checkRebuild();
+
             assert(i < getNumMembersGlobal());
             ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
             return h_member_tags.data[i];
@@ -278,8 +281,7 @@ class ParticleGroup
         */
         unsigned int getMemberIndex(unsigned int j) const
             {
-            // check if local members have changed
-            if (m_particles_sorted) rebuildIndexList();
+            checkRebuild();
 
             assert(j < getNumMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
@@ -296,8 +298,7 @@ class ParticleGroup
         */
         bool isMember(unsigned int idx) const
             {
-            // check if local members have changed
-            if (m_particles_sorted) rebuildIndexList();
+            checkRebuild();
 
             ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
             return h_handle.data[idx] == 1;
@@ -312,8 +313,7 @@ class ParticleGroup
         */
         const GPUArray<unsigned int>& getIndexArray() const
             {
-            // check if local members have changed
-            if (m_particles_sorted) rebuildIndexList();
+            checkRebuild();
 
             return m_member_idx;
             }
@@ -347,7 +347,7 @@ class ParticleGroup
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a local member of the group
+        mutable GPUArray<unsigned char> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
@@ -355,21 +355,51 @@ class ParticleGroup
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
         mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
+        mutable bool m_reallocated;                     //!< True if particle data arrays have been reallocated
+        mutable bool m_global_ptl_num_change;           //!< True if the global particle number changed
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
         boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
-        bool m_warning_printed;                         //!< True if warning about static groups has been printed
+        mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
         #endif
+
         //! Helper function to resize array of member tags
-        void reallocate();
+        void reallocate() const;
 
         //! Helper function to rebuild the index lists after the particles have been sorted
         void rebuildIndexList() const;
+
+        //! Helper function to rebuild internal arrays
+        void checkRebuild() const
+            {
+            // carry out rebuild in correct order
+            if (m_global_ptl_num_change)
+                {
+                updateMemberTags(false);
+                m_global_ptl_num_change = false;
+                }
+            if (m_reallocated)
+                {
+                reallocate();
+                m_reallocated = false;
+                }
+             if (m_particles_sorted)
+                {
+                rebuildIndexList();
+                m_particles_sorted = false;
+                }
+            }
+
+        //! Helper function to be called when the particle data arrays are reallocated
+        void slotReallocate()
+            {
+            m_reallocated = true;
+            }
 
         //! Helper function to be called when the particles are resorted
         void slotParticleSort()
@@ -380,12 +410,11 @@ class ParticleGroup
         //! Helper function to be called when particles are added/removed
         void slotGlobalParticleNumChange()
             {
-            updateMemberTags(false);
+            m_global_ptl_num_change = true;
             }
 
-
         //! Helper function to build the 1:1 hash for tag membership
-        void buildTagHash();
+        void buildTagHash() const;
 
 #ifdef ENABLE_CUDA
         //! Helper function to rebuild the index lists afer the particles have been sorted

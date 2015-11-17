@@ -81,6 +81,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class IntegratorTwoStep : public Integrator
     {
     public:
+        //! Anisotropic integration mode: Automatic (detect whether
+        //! aniso forces are defined), Anisotropic (integrate
+        //! rotational degrees of freedom regardless of whether
+        //! anything is defining them), and Isotropic (don't integrate
+        //! rotational degrees of freedom)
+        enum AnisotropicMode {Automatic, Anisotropic, Isotropic};
+
         //! Constructor
         IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
@@ -111,6 +118,12 @@ class IntegratorTwoStep : public Integrator
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
 
+        //! Get the number of degrees of freedom granted to a given group
+        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group);
+
+        //! Set the anisotropic mode of the integrator
+        virtual void setAnisotropicMode(AnisotropicMode mode);
+
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
 
@@ -132,9 +145,10 @@ class IntegratorTwoStep : public Integrator
 
         std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
 
-        bool m_first_step;      //!< True before the first call to update()
-        bool m_prepared;        //!< True if preprun has been called
-        bool m_gave_warning;    //!< True if a warning has been given about no methods added
+        bool m_first_step;            //!< True before the first call to update()
+        bool m_prepared;              //!< True if preprun has been called
+        bool m_gave_warning;          //!< True if a warning has been given about no methods added
+        AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
 
     };
 

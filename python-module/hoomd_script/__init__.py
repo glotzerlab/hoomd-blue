@@ -92,7 +92,7 @@ from hoomd_script import comm;
 from hoomd_script import meta;
 from hoomd_script import cite;
 from hoomd_script import data;
-from hoomd_script import context
+from hoomd_script import context;
 
 from hoomd import WalltimeLimitReached;
 
@@ -108,9 +108,6 @@ globals.msg.notice(1, hoomd.output_version_info())
 
 # ensure creation of global bibliography to print HOOMD base citations
 cite._ensure_global_bib()
-
-## \internal
-# \brief Internal python variable
 
 _default_excepthook = sys.excepthook;
 

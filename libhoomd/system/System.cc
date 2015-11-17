@@ -644,7 +644,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         #endif
             {
             // re-throw original exception
-            throw ex;
+            throw;
             }
         }
 

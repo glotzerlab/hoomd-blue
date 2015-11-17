@@ -283,6 +283,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
       m_particles_sorted(true),
+      m_reallocated(false),
+      m_global_ptl_num_change(false),
       m_selector(selector),
       m_update_tags(update_tags),
       m_warning_printed(false)
@@ -302,7 +304,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
@@ -319,6 +321,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
       m_particles_sorted(true),
+      m_reallocated(false),
+      m_global_ptl_num_change(false),
       m_update_tags(false),
       m_warning_printed(false)
     {
@@ -363,7 +367,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
@@ -382,7 +386,7 @@ ParticleGroup::~ParticleGroup()
 
 /*! \param force_update If true, always update member tags
  */
-void ParticleGroup::updateMemberTags(bool force_update)
+void ParticleGroup::updateMemberTags(bool force_update) const
     {
     if (m_selector && !(m_update_tags || force_update) && ! m_warning_printed)
         {
@@ -465,7 +469,7 @@ void ParticleGroup::updateMemberTags(bool force_update)
     rebuildIndexList();
     }
 
-void ParticleGroup::reallocate()
+void ParticleGroup::reallocate() const
     {
     m_is_member.resize(m_pdata->getMaxN());
 
@@ -662,7 +666,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 
 /*! Builds the by-tag-lookup table for group membership
  */
-void ParticleGroup::buildTagHash()
+void ParticleGroup::buildTagHash() const
     {
     ArrayHandle<unsigned char> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
@@ -672,7 +676,9 @@ void ParticleGroup::buildTagHash()
 
     unsigned int num_members = m_member_tags.getNumElements();
     for (unsigned int member = 0; member < num_members; member++)
+        {
         h_is_member_tag.data[h_member_tags.data[member]] = 1;
+        }
     }
 
 /*! \pre m_member_tags has been filled out, listing all particle tags in the group

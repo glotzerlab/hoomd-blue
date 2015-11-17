@@ -1176,6 +1176,8 @@ class particle_data_proxy:
         result += "typeid      : " + str(self.typeid) + "\n";
         result += "body        : " + str(self.body) + "\n";
         result += "orientation : " + str(self.orientation) + "\n";
+        result += "mom. inertia: " + str(self.moment_inertia) + "\n";
+        result += "angular_momentum: " + str(self.angular_momentum) + "\n";
         result += "net_force   : " + str(self.net_force) + "\n";
         result += "net_energy  : " + str(self.net_energy) + "\n";
         result += "net_torque  : " + str(self.net_torque) + "\n";
@@ -1212,6 +1214,12 @@ class particle_data_proxy:
         if name == "orientation":
             o = self.pdata.getOrientation(self.tag);
             return (o.x, o.y, o.z, o.w);
+        if name == "angular_momentum":
+            a = self.pdata.getAngularMomentum(self.tag);
+            return (a.x, a.y, a.z, a.w);
+        if name == "moment_inertia":
+            m = self.pdata.getMomentsOfInertia(self.tag)
+            return (m.x, m.y, m.z);
         if name == "net_force":
             f = self.pdata.getPNetForce(self.tag);
             return (f.x, f.y, f.z);
@@ -1276,6 +1284,21 @@ class particle_data_proxy:
             o.z = float(value[2]);
             o.w = float(value[3]);
             self.pdata.setOrientation(self.tag, o);
+            return;
+        if name == "angular_momentum":
+            a = hoomd.Scalar4();
+            a.x = float(value[0]);
+            a.y = float(value[1]);
+            a.z = float(value[2]);
+            a.w = float(value[3]);
+            self.pdata.setAngularMomentum(self.tag, a);
+            return;
+        if name == "moment_inertia":
+            m = hoomd.Scalar3();
+            m.x = float(value[0]);
+            m.y = float(value[1]);
+            m.z = float(value[2]);
+            self.pdata.setMomentsOfInertia(self.tag, m);
             return;
         if name == "net_force":
             raise AttributeError;
@@ -2339,6 +2362,9 @@ class SnapshotParticleData:
         self.image = None;
         self.body = None;
         self.types = None;
+        self.orientation = None;
+        self.moment_inertia = None;
+        self.angmom = None;
 
     ## \property N
     # Number of particles in the snapshot
@@ -2348,6 +2374,9 @@ class SnapshotParticleData:
 
     ## \property position
     # Nx3 numpy array containing the position of each particle (float or double)
+
+    ## \property orientation
+    # Nx4 numpy array containing the orientation quaternion of each particle (float or double)
 
     ## \property velocity
     # Nx3 numpy array containing the velocity of each particle (float or double)
@@ -2372,6 +2401,12 @@ class SnapshotParticleData:
 
     ## \property body
     # N length numpy array containing the body of each particle (32-bit unsigned int)
+
+    ## \property moment_inertia
+    # Nx3 length numpy array containing the principal moments of inertia of each particle (float or double)
+
+    ## \property angmom
+    # Nx4 length numpy array containing the angular momentum quaternion of each particle (float or double)
 
     ## Resize the snapshot to hold N particles
     #
