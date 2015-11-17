@@ -70,9 +70,13 @@ import hoomd_script
 #
 # The simplest way to build a neighbor list is \f$ O(N^2) \f$: each particle loops over all other particles and only
 # includes those within the neighbor list cutoff. This algorithm is no longer implemented in HOOMD-blue because it is
-# slow and inefficient. Instead, two accelerated algorithms based on %cell lists and bounding volume hierarchy trees
-# are implemented. The %cell list implementation is fastest when the cutoff radius is similar between all %pair forces,
-# while the %tree implementation is faster when there is significant size disparity.
+# slow and inefficient. Instead, three accelerated algorithms based on %cell lists and bounding volume hierarchy trees
+# are implemented. The %cell list implementation is fastest when the cutoff radius is similar between all %pair forces
+# (smaller than 2:1 ratio). The %stencil implementation is a different variant of the cell list, and is usually fastest
+# when there is large disparity in the %pair cutoff radius and a high number fraction of particles with the
+# bigger cutoff (at least 30%%). The %tree implementation is faster when there is large size disparity and
+# the number fraction of big objects is low. Because the performance of these algorithms depends sensitively on your
+# system and hardware, you should carefully test which option is fastest for your simulation.
 #
 # Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$ 
 # will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
@@ -721,12 +725,31 @@ class cell(_nlist):
             self.cpp_cl.setSortCellList(deterministic)
 cell.cur_id = 0
 
-## %Cell list-based neighbor list using multiple stencils
+## %Cell list-based neighbor list using stencils
+#
+#
+# nlist.stencil creates a %cell list-based neighbor list object to which %pair potentials can be attached for computing
+# non-bonded pairwise interactions. %Cell listing allows for O(N) construction of the neighbor list. Particles are first
+# spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
+# list.
+#
+# This neighbor-list style differs from nlist.cell based on how the adjacent cells are searched for particles. The cell
+# list \a cell_width is set by default using the shortest active cutoff radius in the system. One "stencil" is computed
+# per particle type based on the largest cutoff radius that type participates in, which defines the bins that the
+# particle must search in. Distances to the bins in the stencil are precomputed so that certain particles can be
+# quickly excluded from the neighbor list, leading to improved performance compared to nlist.cell when there is size
+# disparity in the cutoff radius.
+#
+# The performance of the %stencil depends strongly on the choice of \a cell_width. The best performance is obtained
+# when the cutoff radii are multiples of the \a cell_width, and when the \a cell_width covers the simulation box with
+# a roughly integer number of cells. The \a cell_width can be set manually, or be automatically scanning through a range
+# of possible bin widths using stencil.tune_cell_width().
 #
 # \b Examples:
 # \code
 # nl_s = nlist.stencil(check_period = 1)
 # nl_s.tune()
+# nl_s.tune_cell_width(min_width=1.5, max_width=3.0)
 # \endcode
 #
 # \MPI_SUPPORTED
@@ -737,6 +760,7 @@ class stencil(_nlist):
     # \param check_period How often to attempt to rebuild the neighbor list
     # \param d_max The maximum diameter a particle will achieve, only used in conjunction with slj diameter shifting
     # \param dist_check Flag to enable / disable distance checking
+    # \param cell_width The underlying stencil bin width for the cell list
     # \param name Optional name for this neighbor list instance
     #
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
@@ -793,6 +817,7 @@ class stencil(_nlist):
     #        run() commands. (in distance units)
     # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
     #        \a check_period steps
+    # \param cell_width The underlying stencil bin width for the cell list
     # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
     #
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
@@ -864,23 +889,22 @@ class stencil(_nlist):
         if deterministic is not None:
             self.cpp_cl.setSortCellList(deterministic)
 
-    ## Make a series of short runs to determine the fastest performing r_buff setting
+    ## Make a series of short runs to determine the fastest performing bin width
     # \param warmup Number of time steps to run() to warm up the benchmark
-    # \param min_width
-    # \param max_width
-    # \param jumps Number of different r_buff values to test
+    # \param min_width Minimum %cell bin width to try
+    # \param max_width Maximum %cell bin width to try
+    # \param jumps Number of different bin width to test
     # \param steps Number of time steps to run() at each point
-    # \param set_max_check_period Set to True to enable automatic setting of the maximum nlist check_period
     #
-    # tune() executes \a warmup time steps. Then it sets the nlist \a cell_width value to \a min_width and runs for
-    # \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a cell_width value
-    # completing at \a max_width in \a jumps jumps. Status information is printed out to the screen, and the optimal
-    # \a cell_width value is left set for further runs() to continue at optimal settings.
+    # tune_cell_width() executes \a warmup time steps. Then it sets the nlist \a cell_width value to \a min_width and
+    # runs for \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a cell_width
+    # value completing at \a max_width in \a jumps jumps. Status information is printed out to the screen, and the
+    # optimal \a cell_width value is left set for further runs() to continue at optimal settings.
     #
     # Each benchmark is repeated 3 times and the median value chosen. In total, (warmup + 3*jump*steps) time steps
     # are run().
     #
-    # \returns optimal_cell_width
+    # \returns optimal_cell_width Optimal cell width
     #
     # \MPI_SUPPORTED
     def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
