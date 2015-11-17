@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Efficient neighbor list build on the CPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the CPU using a cell list with multiple bin stencils.
 
+    \sa CellListStencil
     \ingroup computes
 */
 class NeighborListMultiBinned : public NeighborList

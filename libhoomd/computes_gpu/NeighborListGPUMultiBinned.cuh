@@ -97,11 +97,13 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
                                            const unsigned int block_size,
                                            const unsigned int compute_capability);
 
+//! Kernel driver for filling the particle types for sorting
 cudaError_t gpu_compute_nlist_multi_fill_types(unsigned int *d_pids,
                                                unsigned int *d_types,
                                                const Scalar4 *d_pos,
                                                const unsigned int N);
 
+//! Wrapper to CUB sorting
 void gpu_compute_nlist_multi_sort_types(unsigned int *d_pids,
                                         unsigned int *d_pids_alt,
                                         unsigned int *d_types,

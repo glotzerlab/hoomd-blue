@@ -136,7 +136,7 @@ class NeighborListGPUMultiBinned : public NeighborListGPU
 
         //! Sort the particles by type
         void sortTypes();
-        GPUArray<unsigned int> m_pid_map;
+        GPUArray<unsigned int> m_pid_map;                   //!< Particle indexes sorted by type
         boost::signals2::connection m_max_numchange_conn;   //!< Connection to the maximum number of particles changing
         boost::signals2::connection m_sort_conn;            //!< Connection to the ParticleData sort signal
         bool m_needs_resort;                                //!< Flag to resort the particles

@@ -63,6 +63,15 @@ using namespace boost::python;
 #include "Communicator.h"
 #endif
 
+/*!
+ * \param sysdef System definition
+ * \param r_cut Default cutoff radius
+ * \param r_buff Neighbor list buffer width
+ * \param cl Cell list
+ * \param cls Cell list stencil
+ *
+ * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
+ */
 NeighborListGPUMultiBinned::NeighborListGPUMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                                        Scalar r_cut,
                                                        Scalar r_buff,
@@ -149,7 +158,7 @@ void NeighborListGPUMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 
@@ -163,7 +172,7 @@ void NeighborListGPUMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 
@@ -177,7 +186,7 @@ void NeighborListGPUMultiBinned::setMaximumDiameter(Scalar d_max)
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 
@@ -199,6 +208,10 @@ void NeighborListGPUMultiBinned::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
+/*!
+ * Rearranges the particle indexes by type to reduce execution divergence during the neighbor list build.
+ * Radix sort is (supposed to be) stable so that the spatial sorting from SFC is also preserved within a type.
+ */
 void NeighborListGPUMultiBinned::sortTypes()
     {
     if (m_prof) m_prof->push(m_exec_conf, "sort");

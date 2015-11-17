@@ -62,6 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost::python;
 
+/*!
+ * \param sysdef System definition
+ * \param cl Cell list to pair the stencil with
+ */
 CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<CellList> cl)
     : Compute(sysdef), m_cl(cl), m_compute_stencil(true)
@@ -108,14 +112,14 @@ void CellListStencil::compute(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
     const uchar3 periodic = box.getPeriodic();
 
-    Scalar r_list_max_max = *std::max_element(m_rstencil.begin(), m_rstencil.end());
-    int3 max_stencil_size = make_int3(static_cast<int>(ceil(r_list_max_max / cell_size.x)),
-                                      static_cast<int>(ceil(r_list_max_max / cell_size.y)),
-                                      static_cast<int>(ceil(r_list_max_max / cell_size.z)));
+    Scalar rstencil_max = *std::max_element(m_rstencil.begin(), m_rstencil.end());
+    int3 max_stencil_size = make_int3(static_cast<int>(ceil(rstencil_max / cell_size.x)),
+                                      static_cast<int>(ceil(rstencil_max / cell_size.y)),
+                                      static_cast<int>(ceil(rstencil_max / cell_size.z)));
     if (m_sysdef->getNDimensions() == 2) max_stencil_size.z = 0;
 
     // extremely rare: zero interactions, quit without generating stencils
-    if (r_list_max_max < Scalar(0.0))
+    if (rstencil_max < Scalar(0.0))
         {
         ArrayHandle<unsigned int> h_n_stencil(m_n_stencil, access_location::host, access_mode::overwrite);
         memset((void*)h_n_stencil.data, 0, sizeof(unsigned int)*m_pdata->getNTypes());
@@ -133,7 +137,7 @@ void CellListStencil::compute(unsigned int timestep)
         m_stencil.swap(stencil);
         }
 
-    // the cell in the middle of the box (will be used to guard against running over ends or double counting)
+    // the cell in the "middle" of the box (will be used to guard against running over ends or double counting)
     int3 origin = make_int3((dim.x-1)/2, (dim.y-1)/2, (dim.z-1)/2);
 
     ArrayHandle<Scalar4> h_stencil(m_stencil, access_location::host, access_mode::overwrite);

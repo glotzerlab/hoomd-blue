@@ -65,6 +65,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost::python;
 
+/*!
+ * \param sysdef System definition
+ * \param r_cut Default cutoff radius
+ * \param r_buff Neighbor list buffer width
+ * \param cl Cell list
+ * \param cls Cell list stencil
+ *
+ * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
+ */
 NeighborListMultiBinned::NeighborListMultiBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                                  Scalar r_cut,
                                                  Scalar r_buff,
@@ -109,7 +118,7 @@ void NeighborListMultiBinned::setRCut(Scalar r_cut, Scalar r_buff)
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 
@@ -123,7 +132,7 @@ void NeighborListMultiBinned::setRCutPair(unsigned int typ1, unsigned int typ2, 
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 
@@ -137,7 +146,7 @@ void NeighborListMultiBinned::setMaximumDiameter(Scalar d_max)
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
         
-        m_cl->setNominalWidth(Scalar(0.5)*rmin);
+        m_cl->setNominalWidth(rmin);
         }
     }
 

@@ -66,6 +66,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Calculates a stencil for a given cell list
 /*!
  * Generates a list of translation vectors to check from a CellList for a given search radius.
+ *
+ * A stencil is a list of offset vectors from a reference cell at (0,0,0) that must be searched for a given particle
+ * type based on a set search radius. All bins within that search radius are identified based on
+ * the current actual cell width. To use the stencil, the cell list bin for a given particle is identified, and then
+ * the offsets are added to that current cell to identify bins to search. Periodic boundaries must be correctly
+ * factored in during this step by wrapping search cells back through the boundary. The stencil generation ensures
+ * that cells are not duplicated.
+ *
+ * The minimum distance to each cell in the stencil from the reference is also precomputed and saved during stencil
+ * construction. This can be used to accelerate particle search from the cell list without distance check.
+ *
+ * The stencil is rebuilt any time the search radius or the box dimensions change.
+ *
+ * \sa NeighborListMultiBinned
+ *
+ * \ingroup computes
  */
 class CellListStencil : public Compute
     {

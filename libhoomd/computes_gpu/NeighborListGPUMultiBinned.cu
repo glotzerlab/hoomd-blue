@@ -96,8 +96,9 @@ struct warp_scan_sm30_multi
         }
     };
 
-//! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
+//! Kernel call for generating neighbor list on the GPU using multiple stencils (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
+    \tparam threads_per_particle Number of threads cooperatively computing the neighbor list
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
     \param d_last_updated_pos Particle positions at this update are written to this array
@@ -113,9 +114,9 @@ struct warp_scan_sm30_multi
     \param d_cell_tdb Cell contents (tdb array from CellList with)
     \param ci Cell indexer for indexing cells
     \param cli Cell list indexer for indexing into d_cell_xyzf
-    \param d_stencil
-    \param d_n_stencil
-    \param stencil_idx
+    \param d_stencil 2D array of stencil offsets per type
+    \param d_n_stencil Number of stencils per type
+    \param stencil_idx Indexer into \a d_stencil
     \param box Simulation box dimensions
     \param d_r_cut Cutoff radius stored by pair type r_cut(i,j)
     \param r_buff The maximum radius for which to include particles as neighbors
@@ -386,6 +387,14 @@ int get_max_block_size_multi(T func)
     return max_threads;
     }
 
+//! Bind the textures on sm <= 30
+/*!
+ * \param d_cell_xyzf Cell list particle array
+ * \param d_cell_tdb Cell list type-diameter-body array
+ * \param n_elements Number of elements in the cell list arrays
+ * \param d_stencil Stencil offset array
+ * \param n_stencil_elements Number of elements in the stencil offset array
+ */
 void gpu_nlist_multi_binned_bind_texture(const Scalar4 *d_cell_xyzf,
                                          const Scalar4 *d_cell_tdb,
                                          unsigned int n_elements,
@@ -753,6 +762,15 @@ cudaError_t gpu_compute_nlist_multi_binned(unsigned int *d_nlist,
     return cudaSuccess;
     }
 
+/*!
+ * \param d_pids Unsorted particle indexes
+ * \param d_types Unsorted particle types
+ * \param d_pos Particle position array
+ * \param N Number of particles
+ *
+ * \a d_pids and \a d_types are trivially initialized to their current (unsorted) values. They are later sorted in
+ * gpu_compute_nlist_multi_sort_types().
+ */
 __global__ void gpu_compute_nlist_multi_fill_types_kernel(unsigned int *d_pids,
                                                           unsigned int *d_types,
                                                           const Scalar4 *d_pos,
@@ -767,6 +785,12 @@ __global__ void gpu_compute_nlist_multi_fill_types_kernel(unsigned int *d_pids,
     d_pids[idx] = idx;
     }
 
+/*!
+ * \param d_pids Unsorted particle indexes
+ * \param d_types Unsorted particle types
+ * \param d_pos Particle position array
+ * \param N Number of particles
+ */
 cudaError_t gpu_compute_nlist_multi_fill_types(unsigned int *d_pids,
                                                unsigned int *d_types,
                                                const Scalar4 *d_pos,
@@ -779,6 +803,20 @@ cudaError_t gpu_compute_nlist_multi_fill_types(unsigned int *d_pids,
     return cudaSuccess;
     }
 
+/*!
+ * \param d_pids Array of unsorted particle indexes
+ * \param d_pids_alt Double buffer for particle indexes
+ * \param d_types Array of unsorted particle types
+ * \param d_types_alt Double buffer for particle types
+ * \param d_tmp_storage Temporary allocation for sorting
+ * \param tmp_storage_bytes Size of temporary allocation
+ * \param swap Flag to swap the sorted particle indexes into the correct buffer
+ * \param N number of particles
+ *
+ * This wrapper calls the CUB radix sorting methods, and so it needs to be called twice. Initially, \a d_tmp_storage
+ * should be NULL, and the necessary temporary storage is saved into \a tmp_storage_bytes. This space must then be
+ * allocated into \a d_tmp_storage, and on the second call, the sorting is performed.
+ */
 void gpu_compute_nlist_multi_sort_types(unsigned int *d_pids,
                                         unsigned int *d_pids_alt,
                                         unsigned int *d_types,
