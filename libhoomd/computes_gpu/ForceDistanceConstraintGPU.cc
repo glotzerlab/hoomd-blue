@@ -52,6 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceDistanceConstraintGPU.h"
 #include "ForceDistanceConstraintGPU.cuh"
 
+#include <cusolverDn.h>
+#include <cublas_v2.h>
+
 #include <string.h>
 
 #include <boost/python.hpp>
@@ -68,25 +71,21 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
 
-    cusparseCreate(&m_cusparse_handle);
-    cusolverSpCreate(&m_cusolver_handle);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    cublasStatus_t stat;
+    stat = cublasCreate(&m_cublas_handle);
+    if (stat != CUBLAS_STATUS_SUCCESS)
         {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        throw std::runtime_error("Error initializing CUBLAS.\n");
         }
-    #endif
 
-    CHECK_CUDA_ERROR();
+    cusolverDnCreate(&m_cusolver_handle);
     }
 
 //! Destructor
 ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     {
-    cusparseDestroy(m_cusparse_handle);
-    cusolverSpDestroy(m_cusolver_handle);
+    cublasDestroy(m_cublas_handle);
+    cusolverDnDestroy(m_cusolver_handle);
     }
 
 void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
@@ -154,19 +153,17 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     unsigned int n_constraint = m_cdata->getN();
 
-    // reallocate array of constraint forces
-    m_lagrange.resize(n_constraint);
-
     // access matrix and vector
     ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
+
+    // get work area size
+    int work_size = 0;
+    gpu_compute_constraint_forces_buffer_size(d_cmatrix.data, n_constraint, work_size, m_cusolver_handle);
 
     // allocate temporary buffers
-    ScopedAllocation<int> d_csr_rowptr(m_exec_conf->getCachedAllocator(), n_constraint+1);
-    ScopedAllocation<int> d_csr_colind(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<Scalar> d_csr_val(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<int> d_nnz(m_exec_conf->getCachedAllocator(), n_constraint);
+    ScopedAllocation<Scalar> d_work(m_exec_conf->getCachedAllocator(), work_size);
+    ScopedAllocation<int> d_devinfo(m_exec_conf->getCachedAllocator(), 1);
 
     // access particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -193,7 +190,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
     gpu_compute_constraint_forces(n_constraint,
         d_cmatrix.data,
         d_cvec.data,
-        d_nnz.data,
         d_pos.data,
         d_gpu_clist.data,
         gpu_table_indexer,
@@ -204,13 +200,11 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         box,
         n_ptl,
         m_tuner_force->getParam(),
-        m_cusparse_handle,
+        m_cublas_handle,
         m_cusolver_handle,
-        d_csr_rowptr.data,
-        d_csr_colind.data,
-        d_csr_val.data,
-        d_lagrange.data,
-        m_mgpu_context);
+        d_work.data,
+        d_devinfo.data,
+        work_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -52,9 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceDistanceConstraintGPU.cuh"
 
 #include <cuda_runtime_api.h>
-#include <cusparse.h>
-
-#include "kernels/reduce.cuh"
 
 /*! \file ForceDistanceConstraingGPU.cu
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
@@ -373,10 +370,23 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
     d_force[idx] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
     }
 
+cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
+    unsigned int n_constraint,
+    int &work_size,
+    cusolverDnHandle_t solver_handle)
+    {
+    // compute work buffer size
+    #ifdef SINGLE_PRECISION
+    cusolverDnSpotrf_bufferSize(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, &work_size);
+    #else
+    #endif
+
+    return cudaSuccess;
+    }
+
 cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_matrix,
                                    Scalar *d_vec,
-                                   int *d_nnz,
                                    const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D& gpu_clist_indexer,
@@ -387,37 +397,18 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    const BoxDim box,
                                    unsigned int nptl_local,
                                    unsigned int block_size,
-                                   cusparseHandle_t cusparse_handle,
-                                   cusolverSpHandle_t solver_handle,
-                                   int *d_csr_rowptr,
-                                   int *d_csr_colind,
-                                   Scalar *d_csr_val,
-                                   Scalar *d_lagrange,
-                                   mgpu::ContextPtr mgpu_context)
+                                   cublasHandle_t cublas_handle,
+                                   cusolverDnHandle_t solver_handle,
+                                   Scalar *d_work,
+                                   int *d_devinfo,
+                                   unsigned int work_size)
     {
     #ifdef SINGLE_PRECISION
-    // convert dense matrix to compressed sparse row
-    cusparseMatDescr_t descr;
-    cusparseCreateMatDescr(&descr);
 
-    // count zeros
-    int nnz = 0;
-    cusparseSnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
-        descr, d_matrix, n_constraint, d_nnz, &nnz);
+    // Cholesky factorization
+    cusolverDnSpotrf(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, d_work, work_size, d_devinfo);
 
-    // dense2csr
-    cusparseSdense2csr(cusparse_handle, n_constraint, n_constraint, descr, d_matrix, n_constraint, d_nnz,
-        d_csr_val, d_csr_rowptr, d_csr_colind);
-
-    // QR decomposition
-    const Scalar tol(1e-12);
-    int reorder = 0;
-    int singular = 0;
-    cusolverSpScsrlsvqr(solver_handle, n_constraint, nnz,
-        descr, d_csr_val, d_csr_rowptr, d_csr_colind,
-        d_vec, tol, reorder, d_lagrange, &singular);
-
-    cusparseDestroyMatDescr(descr);
+    cusolverDnSpotrs(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, 1, d_matrix, n_constraint, d_vec, n_constraint, d_devinfo);
     #else
     #endif
 
@@ -444,7 +435,7 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
         d_gpu_n_constraints,
         d_gpu_cpos,
         d_gpu_cidx,
-        d_lagrange,
+        d_vec,
         d_force,
         box);
 
