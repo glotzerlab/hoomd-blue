@@ -297,7 +297,7 @@ wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<
             {
             Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
             Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
-            Scalar3 inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
+            bool    inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
             w.Planes[i] = PlaneWall(origin, normal, inside);
             }
         return w;

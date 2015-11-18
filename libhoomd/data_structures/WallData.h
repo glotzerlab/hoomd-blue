@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 struct SphereWall
     {
-    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), origin(vec3<Scalar>(orig), inside(ins)) {}
+    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), origin(vec3<Scalar>(orig)), inside(ins) {}
     Scalar          r;
     vec3<Scalar>    origin;
     bool            inside;
@@ -90,7 +90,7 @@ struct SphereWall
 */
 struct CylinderWall
     {
-    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient), inside(ins))
+    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), inside(ins)
         {
         vec3<Scalar> zVec=axis;
         vec3<Scalar> zNorm(0.0,0.0,1.0);
@@ -129,7 +129,7 @@ struct CylinderWall
 */
 struct PlaneWall
     {
-    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0), bool ins = true) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig), inside(ins))
+    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0), bool ins = true) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(ins)
         {
         vec3<Scalar> nVec;
         nVec = normal;
