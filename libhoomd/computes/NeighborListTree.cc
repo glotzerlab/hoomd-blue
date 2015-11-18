@@ -259,6 +259,7 @@ void NeighborListTree::buildTree()
     {                           
     if (this->m_prof) this->m_prof->push("Build");
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::readwrite);
     
     // construct a point AABB for each particle owned by this rank, and push it into the right spot in the AABB list
     for (unsigned int i=0; i < m_pdata->getN()+m_pdata->getNGhosts(); ++i)
@@ -267,7 +268,7 @@ void NeighborListTree::buildTree()
         vec3<Scalar> my_pos(h_postype.data[i]);
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];
-        m_aabbs[my_aabb_idx] = AABB(my_pos,i);
+        h_aabbs.data[my_aabb_idx] = AABB(my_pos,i);
         }
     
     // call the tree build routine, one tree per type
@@ -275,7 +276,7 @@ void NeighborListTree::buildTree()
         {
         if (m_num_per_type[i] > 0)
             {
-            m_aabb_trees[i].buildTree(&m_aabbs[0] + m_type_head[i], m_num_per_type[i]);
+            m_aabb_trees[i].buildTree(&(h_aabbs.data[0]) + m_type_head[i], m_num_per_type[i]);
             }
         }
     if (this->m_prof) this->m_prof->pop();
