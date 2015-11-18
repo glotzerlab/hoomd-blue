@@ -104,7 +104,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-class BoxDim
+struct BoxDim
     {
     public:
         //! Constructs a useless box

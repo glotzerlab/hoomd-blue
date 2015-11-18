@@ -103,7 +103,7 @@ class EAMForceComputeGPU : public EAMForceCompute
         boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the EAMForceComputeGPU class to python

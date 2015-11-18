@@ -93,7 +93,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Forward declarations for some classes
 class SystemDefinition;
 class Profiler;
-class BoxDim;
+struct BoxDim;
 class ParticleData;
 
 // in 3d, there are 27 neighbors max.
