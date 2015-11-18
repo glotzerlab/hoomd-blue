@@ -52,18 +52,28 @@
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall geometry and forces.
 #
-#  Walls currently supports these geometries:\n \link wall.sphere
-# spheres\endlink, \link wall.cylinder cylinders\endlink, \link
-# wall.plane planes\endlink \n Walls currently supports these
-# potentials:\n \link wall.lj lj\endlink, \link wall.gauss gauss\endlink, \link
-# wall.slj slj\endlink, \link wall.yukawa yukawa\endlink, \link wall.morse
+# The following geometries are currently supported by wall potentials:\n \link
+# wall.sphere spheres\endlink, \link wall.cylinder cylinders\endlink, \link
+# wall.plane planes\endlink \n\n The following potentials are currently supported
+# by wall potentials:\n \link wall.lj lj\endlink, \link wall.gauss gauss\endlink,
+# \link wall.slj slj\endlink, \link wall.yukawa yukawa\endlink, \link wall.morse
 # morse\endlink, \link wall.force_shifted_lj force_shifted_lj\endlink, and \link
 # wall.mie mie\endlink.
 #
-# Walls can add forces to any particles within a certain distance of each wall.
+# Wall potentials can add forces to any particles within a certain distance, \f$
+# r_{\mathrm{cut}} \f$, of each wall and in the \link wall.wallpotential shifted
+# mode\endlink all particles deemed outside of the wall boundary as well.
 #
-# Walls are created using the \link wall.group group\endlink commands. See \link
-# wall.group group\endlink for more details. By themselves, wall groups do
+# Wall geometries are used to specify half-spaces. There are two half spaces for
+# each of the possible geometries included and each can be selected using the
+# inside parameter. In order to fully specify space, it is necessary that one half
+# space be closed and one open. It was chosen that the inside=True geometries
+# would be closed half-spaces and inside=False would be open half-spaces. See
+# wall.wallpotential for more infomation on how the concept of half-spaces is used
+# in implementing wall forces.
+#
+# Wall groups are used to pass wall geometries to wall forces. See \link
+# wall.group wall.group\endlink for more details. By themselves, wall groups do
 # nothing. Only when you specify a wall force (i.e. wall.lj),  are forces actually
 # applied between the wall and the particle. See wall.wallpotential
 # for more details of implementing a force.
@@ -86,6 +96,16 @@ import math;
 # used. Current supported geometries are spheres, cylinder, and planes. The
 # maximum number of each type of wall is 20, 20, and 60 respectively per group.
 #
+# The <b>inside</b> parameter used in each wall geometry is used to specify the
+# half-space that is to be used for the force implementation. See
+# wall.wallpotential for more general details and  \link wall.sphere
+# spheres\endlink, \link wall.cylinder cylinders\endlink, and \link wall.plane
+# planes\endlink for the meaning of inside in each geometry.
+#
+# There are multiple ways to achieve the same input wall group. This apparent
+# redundancy allows for several additional functionalies which will be
+# demonstrated below and in wall.sphere.
+#
 # An effective use of wall forces <b>requires</b> considering the geometry of the
 # system. Walls are only evaluated in one simulation box and are not periodic. It
 # is therefore important to ensure that the walls that intersect with a periodic
@@ -93,7 +113,6 @@ import math;
 #
 # \note \par
 # The entire structure can easily be viewed by printing the wall.group object.
-# Print intentionally only displays exactly what will be passed to the wall force.
 # This can be seen in the example in \link hoomd_script.wall.sphere
 # sphere\endlink.
 # \note \par
@@ -106,12 +125,14 @@ import math;
 # Wall structure modifications between \link hoomd_script.run() run()\endlink
 # calls will be implemented in the next run. However, modifications must be done
 # carefully since moving the wall can result in particles moving to a relative
-# positions which causes exceptionally high forces resulting in particles moving
+# position which causes exceptionally high forces resulting in particles moving
 # many times the box length in one move.
+#
 #
 # \b Example:
 # \n In[0]:
 # \code
+# # Creating wall geometry defintions using convenience functions
 # wallstructure=wall.group(name="arbitrary name")
 # wallstructure.add_sphere(r=1.0,origin=(0,1,3))
 # wallstructure.add_sphere(1.0,[0,-1,3],inside=False)
@@ -140,6 +161,7 @@ import math;
 # \endcode
 # In[1]:
 # \code
+# # Deleting wall geometry defintions using convenience functions in all accepted types
 # wallstructure.del_plane(range(3))
 # wallstructure.del_cylinder([0,2])
 # wallstructure.del_sphere(1)
@@ -156,6 +178,7 @@ import math;
 # \endcode
 # In[2]:
 # \code
+# # Modifying wall geometry defintions using convenience functions
 # wallstructure.spheres[0].r=2.0
 # wallstructure.cylinders[0].origin=[1,2,1]
 # wallstructure.cylinders[0].axis=(0,0,1)
@@ -182,7 +205,7 @@ class group():
     # \code
     # empty_wall_object=wall.group()
     # named_wall_object=wall.group(name='Arbitrary Wall Name')
-    # full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60)
+    # full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60,name="I'm so full")
     # \endcode
     def __init__(self,*walls,name=''):
         self.name=name;
@@ -198,7 +221,7 @@ class group():
     # hoomd_script.wall.cylinder cylinder\endlink, \link
     # hoomd_script.wall.plane plane\endlink, and lists of any
     # combination of these.
-    def add(self,wall):
+    def add(self,wall,index=False):
         if (type(wall)==type(sphere())):
             self.spheres.append(wall);
         elif (type(wall)==type(cylinder())):
@@ -213,6 +236,8 @@ class group():
                     self.cylinders.append(wall_el);
                 elif (type(wall_el)==type(plane())):
                     self.planes.append(wall_el);
+                else:
+                    print("Input of type "+str(type(wall_el))+" is not allowed. Skipping invalid list element...");
         else:
             print("Input of type "+str(type(wall))+" is not allowed.");
 
@@ -220,7 +245,7 @@ class group():
     # Adds a sphere with the specified parameters to the wallgroup.spheres list.
     # \param r Sphere radius (in distance units)
     # \param origin Sphere origin (in x,y,z coordinates)
-    # \param inside Sphere distance evaluation from inside/outside surface (defaults to True)
+    # \param inside Selects the half-space to be used (bool)
     def add_sphere(self, r, origin, inside=True):
         self.spheres.append(sphere(r,origin,inside));
 
@@ -229,7 +254,7 @@ class group():
     # \param r Cylinder radius (in distance units)
     # \param origin Cylinder origin (in x,y,z coordinates)
     # \param axis Cylinder axis vector (in x,y,z coordinates)
-    # \param inside Cylinder distance evaluation from inside/outside surface (defaults to True)
+    # \param inside Selects the half-space to be used (bool)
     def add_cylinder(self, r, origin, axis, inside=True):
         self.cylinders.append(cylinder(r, origin, axis, inside));
 
@@ -237,8 +262,9 @@ class group():
     # Adds a plane with the specified parameters to the wallgroup.planes list.
     # \param origin Plane origin (in x,y,z coordinates)
     # \param normal Plane normal vector (in x,y,z coordinates)
-    def add_plane(self, origin, normal):
-        self.planes.append(plane(origin, normal));
+    # \param inside Selects the half-space to be used (bool)
+    def add_plane(self, origin, normal, inside=True):
+        self.planes.append(plane(origin, normal, inside));
 
     ## Deletes the sphere or spheres in index.
     # Removes the specified sphere or spheres from the wallgroup.spheres list.
@@ -314,54 +340,56 @@ class group():
 
 ## Sphere wall object
 # Class that populates the spheres[] array in the wall.group object.
-# Object which contains all the geometric information needed to define a sphere.
-# This function is not recommended for common use and should mainly be used for
-# reference. Helper functions \link wall.group.add_sphere add_sphere\endlink and
-# \link wall.group.del_sphere del_sphere\endlink exist to properly update the
-# entire wall structure. If these functions are used as in the example below, it
-# is important to note that update must be called.
+# Object which contains all the geometric information needed to define the division of space by a sphere.\n
+# \n inside = True selects the space inside the radius of the sphere and includes the sphere surface.
+# \n inside = False selects the space outside the radius of the sphere.
 #
-# This function is mainly available for utility of users in use cases like the one below
-# and for reference in modifying the wall group structure's spheres members.
+# Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # The following example is intended to demonstrate cylinders and planes
 # as well. Note that the distinction between points and vectors is reflected in
 # the default parameters.
-# \n \b Example
-# \n In[0]:\code # walls=wall.group()
-# walls.spheres+=[wall.sphere()]*5
-# walls.spheres+=[wall.sphere(r=1)]*5
-# walls.cylinders+=[wall.cylinder(r=3)]*5
-# walls.planes+=[wall.plane()]*5
-# print(walls)
+# \n \b Examples
+# \n In[0]:\code
+# # One line initialization
+# one_line_walls=wall.group(wall.sphere(r=3,origin=(0,0,0)),wall.cylinder(r=2.5,axis=(0,0,1),inside=True), wall.plane(normal=(1,0,0)), name='one_line')
+# print(one_line_walls)
+# full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60,name="I'm so full of defaults")
+# # Sharing wall group elements and access by reference
+# common_sphere=wall.sphere()
+# linked_walls1=wall.group(common_sphere,wall.plane(origin=(3,0,0),normal=(-1,0,0)),name='linked_walls1')
+# linked_walls2=wall.group(common_sphere,wall.plane(origin=(-3,0,0),normal=(1,0,0)),name='linked_walls2')
+# common_sphere.r=5.0
+# linked_walls1.spheres[0].origin=(0,0,1)
+# print(linked_walls1)
+# print(linked_walls2)
 # \endcode
 # Out[0]:\code
-# Wall_Data_Sturucture:
-# spheres:10{
-# [0:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [1:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [2:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [3:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [4:	Radius=0.0	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [5:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [6:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [7:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [8:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]
-# [9:	Radius=1	Origin=(0.0, 0.0, 0.0)	Inside=True]}
-# cylinders:5{
-# [0:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
-# [1:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
-# [2:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
-# [3:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]
-# [4:	Radius=3	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
-# planes:5{
-# [0:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
-# [1:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
-# [2:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
-# [3:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]
-# [4:	Origin=(0.0, 0.0, 0.0)	Normal=(0.0, 0.0, 1.0)]}
+# Wall_Data_Sturucture:one_line
+# spheres:1{
+# [0:	Radius=3	Origin=(0.0, 0.0, 0.0)	Inside=True]}
+# cylinders:1{
+# [0:	Radius=2.5	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
+# planes:1{
+# [0:	Origin=(0.0, 0.0, 0.0)	Normal=(1.0, 0.0, 0.0)]}
+# Wall_Data_Sturucture:linked_walls1
+# spheres:1{
+# [0:	Radius=5.0	Origin=(0.0, 0.0, 1.0)	Inside=True]}
+# cylinders:0{}
+# planes:1{
+# [0:	Origin=(3.0, 0.0, 0.0)	Normal=(-1.0, 0.0, 0.0)]}
+# Wall_Data_Sturucture:linked_walls2
+# spheres:1{
+# [0:	Radius=5.0	Origin=(0.0, 0.0, 1.0)	Inside=True]}
+# cylinders:0{}
+# planes:1{
+# [0:	Origin=(-3.0, 0.0, 0.0)	Normal=(1.0, 0.0, 0.0)]}
 # \endcode
 class sphere:
+    ## Creates a sphere wall definition.
+    # \param r Sphere radius (in distance units)\n <i>Default : 0.0</i>
+    # \param origin Sphere origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
+    # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r;
         self._origin = hoomd.make_scalar3(*origin);
@@ -382,18 +410,19 @@ class sphere:
 
 ## Cylinder wall object
 # Class that populates the cylinders[] array in the wall.group object.
-# Object which contains all the geometric information needed to define a cylinder.
-# This function is not recommended for common use and should mainly be used for
-# reference. Helper functions \link wall.group.add_cylinder add_cylinder\endlink and
-# \link wall.group.del_cylinder del_cylinder\endlink exist to properly update the
-# entire wall structure. If these functions are used as in the example below, it
-# is important to note that update must be called.
+# Object which contains all the geometric information needed to define the division of space by a cylinder.\n
+# \n inside = True selects the space inside the radius of the cylinder and includes the cylinder surface.
+# \n inside = False selects the space outside the radius of the cylinder.
 #
-# This function is mainly available for utility of users in use cases like the example
-# and for reference in modifying the wall group structure's cylinders members.\n
+# Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
 class cylinder:
+    ## Creates a cylinder wall definition.
+    # \param r Cylinder radius (in distance units)\n <i>Default : 0.0</i>
+    # \param origin Cylinder origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
+    # \param axis Cylinder axis vector (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 1.0)</i>
+    # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
         self.r = r;
         self._origin = hoomd.make_scalar3(*origin);
@@ -422,21 +451,22 @@ class cylinder:
 
 ## Plane wall object
 # Class that populates the planes[] array in the wall.group object.
-# Object which contains all the geometric information needed to define a plane.
-# This function is not recommended for common use and should mainly be used for
-# reference. Helper functions \link wall.group.add_plane add_plane\endlink and
-# \link wall.group.del_plane del_plane\endlink exist to properly update the
-# entire wall structure. If these functions are used as in the example below, it
-# is important to note that update must be called.
+# Object which contains all the geometric information needed to define the division of space by a plane.\n
+# \n inside = True selects the space on the side of the plane to which the normal vector points and includes the plane surface.
+# \n inside = False selects the space on the side of the plane opposite the normal vector.
 #
-# This function is mainly available for utility of users in use cases like the example
-# and for reference in modifying the wall group structure's planes members.
+# Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
 class plane:
-    def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
+    ## Creates a plane wall definition.
+    # \param origin Plane origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
+    # \param normal Plane normal vector (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 1.0)</i>
+    # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
+    def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0), inside=True):
         self._origin = hoomd.make_scalar3(*origin);
         self._normal = hoomd.make_scalar3(*normal);
+        self.inside = inside;
 
     @property
     def origin(self):
@@ -453,10 +483,10 @@ class plane:
         self._normal = hoomd.make_scalar3(*normal);
 
     def __str__(self):
-        return "Origin=%s\tNormal=%s" % (str(self.origin), str(self.normal));
+        return "Origin=%s\tNormal=%s\tInside=%s" % (str(self.origin), str(self.normal), str(self.inside));
 
     def __repr__(self):
-        return "{'origin':%s, 'normal': %s}" % (str(self.origin), str(self.normal));
+        return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(self.origin), str(self.normal), str(self.inside));
 
 #           *** Potentials ***
 
@@ -467,23 +497,48 @@ class plane:
 # forces. Rather than repeating all of that documentation in many different
 # places, it is collected here.
 #
-# All %wall %force commands specify that a given potential energy and %force be
-# computed on all particles in the system within a cutoff distance \f$
-# r_{\mathrm{cut}} \f$ from each wall in the given wall \link wall.group
+#  All %wall %force commands specify that a given potential energy and %force be
+# computed on all particles in the system within a cutoff distance, \f$
+# r_{\mathrm{cut}} \f$, from each wall in the given wall \link wall.group
 # group\endlink. The %force \f$ \vec{F}\f$ is where \f$ \vec{r} \f$ is the vector
-# pointing from the particle to the %wall and \f$ V_{\mathrm{pair}}(r) \f$ is the
-# specific %pair potential chosen by the respective command. \f{eqnarray*} \vec{F}  = &
-# -\nabla V(r) & r_{\mathrm{min}} \le r < r_{\mathrm{cut}} \\ = & 0           & r
-# \ge r_{\mathrm{cut}} \\ = & 0             & r < r_{\mathrm{min}} \f}   \f$ V(r)
+# pointing from the particle to the %wall or half-space boundary and \f$
+# V_{\mathrm{pair}}(r) \f$ is the specific %pair potential chosen by the
+# respective command. Wall forces are implemented with the concept of half-spaces
+# in mind. There are two modes which are allowed currently in wall potentials:
+# standard and shifted.\n\n
+# <b>Standard Mode:</b>\n
+# In the standard mode, when \f$ r_{\mathrm{shift}} \le 0 \f$, the potential
+# energy is only applied to the half-space specified in the wall group. \f$ V(r)
 # \f$ is evaluated in the same manner as when mode is shift for the analogous pair
-# potentials. \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) -
-# V_{\mathrm{pair}}(r_{\mathrm{cut}}) \\ \f}
-#
+# potentials within the boundaries of the half-space.
+# \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) \f}
+# For inside=True (closed) half-spaces:
+# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\ = & 0 &
+# r \ge r_{\mathrm{cut}} \\ = & 0 & r < 0 \f}
+# For inside=False (open) half-spaces:
+# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\ = & 0 & r
+# \ge r_{\mathrm{cut}} \\ = & 0 & r \le 0 \f} \n\n
+# <b>Shifted Mode:</b>\n
+# In the non-standard or shifted mode which is activated when \f$
+# r_{\mathrm{shift}} > 0 \f$, the potential is shifted and linearly extrapolated
+# into the other half space; meaning <b>both</b> half-spaces are evaluated and the
+# \f$ r_{\mathrm{cut}} \f$ only applies in the half-space which is in the shifted
+# mode. This mode is not intended to be used with physical meaning but to allow
+# easy initialization of a confined system as well as allowing the user to place
+# reasoable bounds on the force experienced by particles evaluated as outside of
+# the half-space which this shifted mode is activated in.\n\n
+# For the half-space included in the geometry which has r_shift activated:
+# \f[V(r) = V_{\mathrm{pair}}(r+r_{\mathrm{shift}}) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) \f]
+# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \f}
+# For the other half-space:
+# \f[V(r) = V_{\mathrm{pair}}(r_{\mathrm{shift}}) -
+# V_{\mathrm{pair}}(r_{\mathrm{cut}}) - r\frac{\partial
+# V_{\mathrm{pair}}}{\partial r}(r_{\mathrm{shift}}) \f]
+# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r \f}
 # The following coefficients must be set per unique particle types.
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-# - \f$ r_{\mathrm{min}} \f$ - \c r_shift (in distance units)
-#     -<i>Optional: Defaults to 0.0</i>
 # - All parameters required by the %pair potential base for the wall potential
+# - \f$r_{\mathrm{cut}} \f$ - \c r_cut (in distance units) -<i>Optional: Defaults to global r_cut for the force if given or 0.0 if not</i>
+# - \f$ r_{\mathrm{shift}} \f$ -\c r_shift (in distance units) -<i>Optional: Defaults to 0.0</i>
 #
 #
 # <b>Generic Example:</b>\n
@@ -495,7 +550,8 @@ class plane:
 # walls=wall.group()
 # # Edit walls
 # my_force=wall.pairpotential(walls)
-# my_force.force_coeff.set('A', all required arguments)
+# my_force.force_coeff.set('A', all required arguments)0
+# my_force.force_coeff.set(['B','C'],r_cut=0.3, all required arguments)
 # my_force.force_coeff.set(['B','C'],r_shift=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
@@ -510,19 +566,19 @@ class plane:
 # across the periodic boundary where they would immediately cease to have any
 # interaction with that wall. It is therefore up to the user to use walls in a
 # physically meaningful manner. This includes the geometry of the walls, their
-# interactions, as noted here their location.
-#
-# There is no global r_cut intentionally since the r_cut value
-# determines the shift of the potential and the parameter should be thought about.
+# interactions, and as noted here their location.
 # \note \par
 # If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False the particle type
 # %wall interaction is excluded.
 # \note \par
 # While wall potentials are based on the same potential energy calculations
-# as pair potentials, Features of pair potentials such as global r_cut,
-# specified neighborlists, and alternative force shifting modes are not
-# supported.
+# as pair potentials, Features of pair potentials such as specified neighborlists,
+# and alternative force shifting modes are not supported.
 class wallpotential(external._external_force):
+    ## Creates a generic wall force
+    # \param walls Wall group containing half-space geometries for the force to act in.
+    # \param r_cut The global r_cut value for the force. Defaults to False or 0 if not specified.
+    # \param name The force name which will be used in the metadata and log files.
     def __init__(self, walls, r_cut, name=""):
         external._external_force.__init__(self, name);
         self.field_coeff = walls;
@@ -535,6 +591,8 @@ class wallpotential(external._external_force):
         self.global_r_cut = r_cut;
         self.force_coeff.set_default_coeff('r_cut', self.global_r_cut);
 
+    ## \internal
+    # \brief passes the wall field
     def process_field_coeff(self, coeff):
         return hoomd.make_wall_field_params(coeff, globals.exec_conf);
 
@@ -551,7 +609,7 @@ class wallpotential(external._external_force):
         ntypes = globals.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
             type=globals.system_definition.getParticleData().getNameByType(i);
-            if self.force_coeff.values[type]['r_cut']<=0:
+            if (self.force_coeff.values[type]['r_cut']<=0):
                 self.force_coeff.values[type]['r_cut']=0;
         external._external_force.update_coeffs(self);
 
@@ -562,16 +620,17 @@ class wallpotential(external._external_force):
 #
 # \b Example\n
 # Note that the base pair.lj requires the parameters <c>sigma</c> and <c>epsilon</c> and has a
-# default <c>alpha</c>. The additional <c>r_cut</c> parameter is required per type by all wall
-# potentials and all wall potentials have a default <c>r_shift</c> of 0.0.
+# default <c>alpha</c>.
 # \code
 # walls=wall.group()
-# lj=wall.lj(walls)
-# lj.force_coeff.set('A',r_cut=3.0,r_shift=0.0,sigma=1.0,epsilon=1.0)
+# lj=wall.lj(walls, r_cut=3.0)
+# lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)
 # lj.force_coeff.set(['B','C'],r_cut=1.5,sigma=0.5,epsilon=1.0)
 # \endcode
 # \note \par
 class lj(wallpotential):
+    ## Creates a lj wall force using the inputs
+    # See wall.wallpotential and pair.lj for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
@@ -609,6 +668,8 @@ class lj(wallpotential):
 # See pair.gauss for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class gauss(wallpotential):
+    ## Creates a gauss wall force using the inputs
+    # See wall.wallpotential and pair.gauss for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
@@ -638,12 +699,14 @@ class gauss(wallpotential):
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
 # Note that because slj is dependent upon particle diameters the following
-# correction is necessary to the force details in the pair.slj description. \n In
-# wall.slj \f$ \Delta = d_i/2 - 1 \f$ where \f$ d_i \f$ is the diameter of
-# particle \f$ i \f$. \n
+# correction is necessary to the force details in the pair.slj description. \n
+# \f$ \Delta = d_i/2 - 1 \f$ where \f$ d_i \f$ is the diameter of particle \f$ i
+# \f$. \n
 # See pair.slj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class slj(wallpotential):
+    ## Creates a slj wall force using the inputs
+    # See wall.wallpotential and pair.slj for more details.
     def __init__(self, walls, r_cut=False, d_max=None, name=""):
         util.print_status_line();
 
@@ -687,6 +750,8 @@ class slj(wallpotential):
 # See pair.yukawa for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class yukawa(wallpotential):
+    ## Creates a yukawa wall force using the inputs
+    # See wall.wallpotential and pair.yukawa for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
@@ -718,6 +783,8 @@ class yukawa(wallpotential):
 # See pair.morse for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class morse(wallpotential):
+    ## Creates a morse wall force using the inputs
+    # See wall.wallpotential and pair.morse for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
@@ -751,6 +818,8 @@ class morse(wallpotential):
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
 # See pair.force_shifted_lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
 class force_shifted_lj(wallpotential):
+    ## Creates a force_shifted_lj wall force using the inputs
+    # See wall.wallpotential and pair.force_shifted_lj for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 
@@ -788,6 +857,8 @@ class force_shifted_lj(wallpotential):
 # See pair.mie for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 class mie(wallpotential):
+    ## Creates a mie wall force using the inputs
+    # See wall.wallpotential and pair.mie for more details.
     def __init__(self, walls, r_cut=False, name=""):
         util.print_status_line();
 

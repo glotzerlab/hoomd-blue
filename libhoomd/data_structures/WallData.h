@@ -71,14 +71,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! SphereWall Constructor
 /*! \param r Radius of the sphere
     \param origin The x,y,z coordinates of the center of the sphere
-    \param inside Determines if the geometry is evaluated with respect to the inner surface (or outer if false)
+    \param inside Determines which half space is evaluated.
 */
 struct SphereWall
     {
-    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), inside(ins), origin(vec3<Scalar>(orig)) {}
+    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), origin(vec3<Scalar>(orig), inside(ins)) {}
     Scalar          r;
-    bool            inside;
     vec3<Scalar>    origin;
+    bool            inside;
     };
 
 //! CylinderWall Constructor
@@ -86,11 +86,11 @@ struct SphereWall
     \param origin The x,y,z coordinates of a point on the cylinder axis
     \param axis A x,y,z vector along the cylinder axis used to define the axis
     \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space such that the axis of the cylinder is parallel to the z' axis
-    \param inside Determines if the geometry is evaluated with respect to the inner surface (or outer if false)
+    \param inside Determines which half space is evaluated.
 */
 struct CylinderWall
     {
-    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad), inside(ins),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient))
+    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient), inside(ins))
         {
         vec3<Scalar> zVec=axis;
         vec3<Scalar> zNorm(0.0,0.0,1.0);
@@ -116,19 +116,20 @@ struct CylinderWall
             quatAxisToZRot=norm*quatAxisToZRot;
         }
     Scalar          r;
-    bool            inside;
     vec3<Scalar>    origin;
     vec3<Scalar>    axis;
     quat<Scalar>    quatAxisToZRot;
+    bool            inside;
     };
 
 //! PlaneWall Constructor
 /*! \param origin The x,y,z coordinates of a point on the cylinder axis
     \param normal The x,y,z normal vector of the plane (normalized upon input)
+    \param inside Determines which half space is evaluated.
 */
 struct PlaneWall
     {
-    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0)) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
+    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0), bool ins = true) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig), inside(ins))
         {
         vec3<Scalar> nVec;
         nVec = normal;
@@ -138,6 +139,7 @@ struct PlaneWall
         }
     vec3<Scalar>    normal;
     vec3<Scalar>    origin;
+    bool            inside;
     };
 
 //! Point to wall vector for a sphere wall geometry
@@ -149,7 +151,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar
     Scalar rxyz = sqrt(dot(shiftedPos,shiftedPos));
     if (rxyz > 0.0)
         {
-        inside = (((rxyz <= wall.r) && wall.inside) || ((rxyz >= wall.r) && !(wall.inside))) ? true : false;
+        inside = (((rxyz <= wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) ? true : false;
         t *= wall.r/rxyz;
         vec3<Scalar> dx = t - shiftedPos;
         return dx;
@@ -171,7 +173,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scal
     Scalar rxy = sqrt(dot(shiftedPos,shiftedPos));
     if (rxy > 0.0)
         {
-        inside = (((rxy <= wall.r) && wall.inside) || ((rxy >= wall.r) && !(wall.inside))) ? true : false;
+        inside = (((rxy <= wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside))) ? true : false;
         t = (wall.r / rxy) * shiftedPos;
         vec3<Scalar> dx = t - shiftedPos;
         dx = rotate(conj(wall.quatAxisToZRot),dx);
@@ -189,7 +191,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const PlaneWall& wall, const vec3<Scalar>
     {
     vec3<Scalar> t = position;
     Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
-    inside = (d >= 0.0) ? true : false;
+    inside = (((d >= 0.0) && wall.inside) || ((d < 0.0) && !(wall.inside))) ? true : false;
     vec3<Scalar> dx = -d * wall.normal;
     return dx;
     };
@@ -222,7 +224,8 @@ DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& posi
 DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
     vec3<Scalar> t = position;
-    Scalar d = dot(wall.normal,wall.origin) - dot(wall.normal,t);
+    Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+    d = (wall.inside) ? d : -d;
     return d;
     };
 #endif

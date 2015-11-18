@@ -167,7 +167,6 @@ class EvaluatorWalls
                 if (evaluated)
                     {
                     // add the force, potential energy and virial to the particle i
-                    // (FLOPS: 8)
                     F += dr*force_divr; //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
                     energy += (inside) ? pair_eng : pair_eng + rsq * force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
                     virial[0] += force_divr*dr.x*dr.x;
@@ -298,7 +297,8 @@ wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<
             {
             Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
             Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
-            w.Planes[i] = PlaneWall(origin, normal);
+            Scalar3 inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
+            w.Planes[i] = PlaneWall(origin, normal, inside);
             }
         return w;
         }
