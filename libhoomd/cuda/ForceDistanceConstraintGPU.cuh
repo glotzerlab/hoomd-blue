@@ -54,8 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "BoxDim.h"
 
-#include <cusolverDn.h>
-#include <cublas_v2.h>
+#include <cusolverSp.h>
+#include <cusparse.h>
 
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
                           Scalar *d_matrix,
-                          Scalar *d_C,
+                          Scalar *d_vec,
                           const Scalar4 *d_pos,
                           const Scalar4 *d_vel,
                           const Scalar4 *d_netforce,
@@ -76,14 +76,10 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const BoxDim box,
                           unsigned int block_size);
 
-cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
-    unsigned int n_constraint,
-    int &work_size,
-    cusolverDnHandle_t solver_handle);
-
 cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_matrix,
                                    Scalar *d_vec,
+                                   int *d_nnz,
                                    const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D & gpu_clist_indexer,
@@ -94,9 +90,11 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    const BoxDim box,
                                    unsigned int nptl_local,
                                    unsigned int block_size,
-                                   cublasHandle_t cublas_handle,
-                                   cusolverDnHandle_t solver_handle,
-                                   Scalar *d_work,
-                                   int *d_devinfo,
-                                   unsigned int work_size);
+                                   cusparseHandle_t cusparse_handle,
+                                   cusolverSpHandle_t solver_handle,
+                                   int *d_csr_rowptr,
+                                   int *d_csr_colind,
+                                   Scalar *d_csr_val,
+                                   Scalar *d_lagrange,
+                                   mgpu::ContextPtr mgpu_context);
 #endif
