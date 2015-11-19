@@ -15,6 +15,11 @@ Released TBD
 * Brownian dynamics `integrate.brownian`
 * Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
 
+*Bug fixes*
+
+* Fixed a bug where NVT integration hung when there were 0 particles in some domains.
+* Check SLURM environment variables for local MPI rank identification
+
 *Deprecated commands*
 
 * `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
