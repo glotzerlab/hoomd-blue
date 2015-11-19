@@ -173,67 +173,69 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         m_csr_colind.resize(n_constraint*n_constraint);
         m_csr_val.resize(n_constraint*n_constraint);
 
-        // access matrix and vector
-        ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
+            {
+            // access matrix and vector
+            ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
 
-        // access sparse matrix structural data
-        ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::readwrite);
-        ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::readwrite);
-        ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_csr_val(m_csr_val, access_location::device, access_mode::readwrite);
+            // access sparse matrix structural data
+            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::readwrite);
+            ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::readwrite);
+            ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_csr_val(m_csr_val, access_location::device, access_mode::readwrite);
 
-        // access particle data arrays
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            // access particle data arrays
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-        // access force array
-        ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+            // access force array
+            ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-        // access GPU constraint table on device
-        const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
-        const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
+            // access GPU constraint table on device
+            const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
+            const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
 
-        ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
-                                                 access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
+            ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
+                                                     access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
 
-        const BoxDim& box = m_pdata->getBox();
+            const BoxDim& box = m_pdata->getBox();
 
-        unsigned int n_ptl = m_pdata->getN();
+            unsigned int n_ptl = m_pdata->getN();
 
-        // compute constraint forces by solving linear system of equations
-        m_tuner_force->begin();
-        gpu_compute_constraint_forces(n_constraint,
-            d_cmatrix.data,
-            d_cvec.data,
-            d_nnz.data,
-            m_nnz_tot,
-            d_pos.data,
-            d_gpu_clist.data,
-            gpu_table_indexer,
-            d_gpu_n_constraints.data,
-            d_gpu_cpos.data,
-            d_gpu_cidx.data,
-            d_force.data,
-            box,
-            n_ptl,
-            m_tuner_force->getParam(),
-            m_cusparse_handle,
-            m_cusparse_mat_descr,
-            m_cusparse_solve_info,
-            m_constraints_dirty,
-            d_csr_rowptr.data,
-            d_csr_colind.data,
-            d_csr_val.data,
-            d_lagrange.data);
+            // compute constraint forces by solving linear system of equations
+            m_tuner_force->begin();
+            gpu_compute_constraint_forces(n_constraint,
+                d_cmatrix.data,
+                d_cvec.data,
+                d_nnz.data,
+                m_nnz_tot,
+                d_pos.data,
+                d_gpu_clist.data,
+                gpu_table_indexer,
+                d_gpu_n_constraints.data,
+                d_gpu_cpos.data,
+                d_gpu_cidx.data,
+                d_force.data,
+                box,
+                n_ptl,
+                m_tuner_force->getParam(),
+                m_cusparse_handle,
+                m_cusparse_mat_descr,
+                m_cusparse_solve_info,
+                m_constraints_dirty,
+                d_csr_rowptr.data,
+                d_csr_colind.data,
+                d_csr_val.data,
+                d_lagrange.data);
 
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
 
-        m_tuner_force->end();
+            m_tuner_force->end();
+            }
 
         // if we have just initialized the solver, re-run
         if (m_constraints_dirty)
