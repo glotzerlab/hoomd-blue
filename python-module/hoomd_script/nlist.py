@@ -609,7 +609,7 @@ class cell(_nlist):
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -635,7 +635,7 @@ class cell(_nlist):
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
 
-        self.cpp_nlist.setEvery(1, True)
+        self.cpp_nlist.setEvery(check_period, dist_check)
 
         globals.system.addCompute(self.cpp_nlist, self.name)
         
@@ -766,7 +766,7 @@ class stencil(_nlist):
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, cell_width=None, name=None):
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -796,7 +796,7 @@ class stencil(_nlist):
             globals.system.addCompute(cls, self.name + "_cls")
             self.cpp_nlist = hoomd.NeighborListGPUStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
 
-        self.cpp_nlist.setEvery(1, True)
+        self.cpp_nlist.setEvery(check_period, dist_check)
 
         globals.system.addCompute(self.cpp_nlist, self.name)
         
@@ -1005,7 +1005,7 @@ class tree(_nlist):
     #
     # \warning BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
     #
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -1021,7 +1021,7 @@ class tree(_nlist):
         else:
             self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, default_r_cut, default_r_buff)
 
-        self.cpp_nlist.setEvery(1, True)
+        self.cpp_nlist.setEvery(check_period, dist_check)
 
         if name is None:
             self.name = "tree_nlist_%d" % tree.cur_id
