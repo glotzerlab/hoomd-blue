@@ -377,22 +377,10 @@ cudaError_t gpu_compute_constraint_forces_buffer_size(Scalar *d_matrix,
     {
     // compute work buffer size
     #ifdef SINGLE_PRECISION
-    #ifdef USE_QR
-    // for QR factorization
-    cusolverDnSgeqrf_bufferSize(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, &work_size);
+    cusolverDnSpotrf_bufferSize(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, &work_size);
     #else
-    // for LU factorization
-    cusolverDnSgetrf_bufferSize(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, &work_size);
     #endif
-    #else // SINGLE_PRECISION
-    #ifdef USE_QR
-    // for QR factorization
-    cusolverDnDgeqrf_bufferSize(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, &work_size);
-    #else
-    // for LU factorization
-    cusolverDnDgetrf_bufferSize(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint, &work_size);
-    #endif
-    #endif
+
     return cudaSuccess;
     }
 
@@ -412,59 +400,16 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    cublasHandle_t cublas_handle,
                                    cusolverDnHandle_t solver_handle,
                                    Scalar *d_work,
-#ifdef USE_QR
-                                   Scalar *d_tau,
-#else
-                                   int *d_piv,
-#endif
                                    int *d_devinfo,
                                    unsigned int work_size)
     {
     #ifdef SINGLE_PRECISION
 
-    #ifdef USE_QR
-    // QR factorization
-    cusolverDnSgeqrf(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint,
-        d_tau, d_work, work_size, d_devinfo);
+    // Cholesky factorization
+    cusolverDnSpotrf(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, d_matrix, n_constraint, d_work, work_size, d_devinfo);
 
-    cusolverDnSormqr(solver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_T,
-        n_constraint, 1, n_constraint, d_matrix, n_constraint, d_tau,
-        d_vec, n_constraint, d_work, work_size, d_devinfo);
-
-    Scalar one(1.0);
-    cublasStrsm(cublas_handle, CUBLAS_SIDE_LEFT, CUBLAS_FILL_MODE_UPPER,
-        CUBLAS_OP_N, CUBLAS_DIAG_NON_UNIT,
-        n_constraint, 1, &one, d_matrix, n_constraint, d_vec, n_constraint);
+    cusolverDnSpotrs(solver_handle, CUBLAS_FILL_MODE_LOWER, n_constraint, 1, d_matrix, n_constraint, d_vec, n_constraint, d_devinfo);
     #else
-    // LU factorization
-    cusolverDnSgetrf(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint,
-        d_work, d_piv, d_devinfo);
-
-    cusolverDnSgetrs(solver_handle, CUBLAS_OP_N, n_constraint, 1, d_matrix, n_constraint, d_piv, d_vec,
-        n_constraint, d_devinfo);
-    #endif
-    #else // SINGLE_PRECISION
-    #ifdef USE_QR
-    // QR factorization
-    cusolverDnDgeqrf(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint,
-        d_tau, d_work, work_size, d_devinfo);
-
-    cusolverDnDormqr(solver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_T,
-        n_constraint, 1, n_constraint, d_matrix, n_constraint, d_tau,
-        d_vec, n_constraint, d_work, work_size, d_devinfo);
-
-    Scalar one(1.0);
-    cublasDtrsm(cublas_handle, CUBLAS_SIDE_LEFT, CUBLAS_FILL_MODE_UPPER,
-        CUBLAS_OP_N, CUBLAS_DIAG_NON_UNIT,
-        n_constraint, 1, &one, d_matrix, n_constraint, d_vec, n_constraint);
-    #else
-    // LU factorization
-    cusolverDnDgetrf(solver_handle, n_constraint, n_constraint, d_matrix, n_constraint,
-        d_work, d_piv, d_devinfo);
-
-    cusolverDnDgetrs(solver_handle, CUBLAS_OP_N, n_constraint, 1, d_matrix, n_constraint, d_piv, d_vec,
-        n_constraint, d_devinfo);
-    #endif
     #endif
 
     // d_vec contains the Lagrange multipliers

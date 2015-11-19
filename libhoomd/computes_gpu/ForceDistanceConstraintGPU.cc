@@ -163,11 +163,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     // allocate temporary buffers
     ScopedAllocation<Scalar> d_work(m_exec_conf->getCachedAllocator(), work_size);
-    #ifdef USE_QR
-    ScopedAllocation<Scalar> d_tau(m_exec_conf->getCachedAllocator(), n_constraint); // QR
-    #else
-    ScopedAllocation<int> d_piv(m_exec_conf->getCachedAllocator(), n_constraint);
-    #endif
     ScopedAllocation<int> d_devinfo(m_exec_conf->getCachedAllocator(), 1);
 
     // access particle data arrays
@@ -208,11 +203,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         m_cublas_handle,
         m_cusolver_handle,
         d_work.data,
-#ifdef USE_QR
-        d_tau.data, //QR
-#else
-        d_piv.data, //LU
-#endif
         d_devinfo.data,
         work_size);
 
