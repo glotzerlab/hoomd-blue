@@ -459,32 +459,48 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_csr_val,
                                    Scalar *d_lagrange)
     {
-    #ifdef SINGLE_PRECISION
     // convert dense matrix to compressed sparse row
     if (connectivity_changed)
         {
         // count zeros
+        #ifdef SINGLE_PRECISION
         cusparseSnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
             cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
+        #else
+        cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
+            cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
+        #endif
         }
 
     // update values in CSR format
+    #ifdef SINGLE_PRECISION
     cusparseSdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
+    #else
+    cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
+        d_csr_val, d_csr_rowptr, d_csr_colind);
+    #endif
 
     if (connectivity_changed)
         {
         // run the expensive analysis routine
+        #ifdef SINGLE_PRECISION
         cusparseScsrsv_analysis(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
             n_constraint, nnz, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info);
+        #else
+        cusparseDcsrsv_analysis(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            n_constraint, nnz, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info);
+        #endif
         }
 
     // solve the sparse systems of linear equations
     Scalar one(1.0);
+    #ifdef SINGLE_PRECISION
     cusparseScsrsv_solve(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n_constraint,
         &one, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info, d_vec, d_lagrange);
-
     #else
+    cusparseDcsrsv_solve(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n_constraint,
+        &one, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info, d_vec, d_lagrange);
     #endif
 
     // d_vec contains the Lagrange multipliers
