@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 
 // if defined, use QR, otherwise LU
-//#define USE_QR
+#define USE_QR
 
 cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
