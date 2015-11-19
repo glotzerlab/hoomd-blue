@@ -166,6 +166,7 @@ Michael P. Howard, Princeton University
  - Automatic citation list generator
  - Neighbor list memory footprint reduction
  - Bounding volume hierarchy (tree) neighbor lists
+ - Stenciled cell list (stencil) neighbor lists
  - Per-type MPI ghost layer communication
  - Dynamic load balancing
 
