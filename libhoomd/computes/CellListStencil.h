@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The stencil is rebuilt any time the search radius or the box dimensions change.
  *
- * \sa NeighborListMultiBinned
+ * \sa NeighborListStencil
  *
  * \ingroup computes
  */
