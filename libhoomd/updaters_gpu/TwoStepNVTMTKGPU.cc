@@ -124,8 +124,6 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     // profile this step
     if (m_prof)

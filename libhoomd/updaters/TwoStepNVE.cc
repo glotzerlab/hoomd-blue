@@ -122,8 +122,6 @@ void TwoStepNVE::removeLimit()
 void TwoStepNVE::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     // profile this step
     if (m_prof)
@@ -297,8 +295,6 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
 void TwoStepNVE::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

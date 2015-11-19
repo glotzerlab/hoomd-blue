@@ -92,8 +92,6 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(boost::shared_ptr<SystemDefinition> sys
 void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     if (m_prof)
         m_prof->push("Berendsen");
@@ -136,8 +134,6 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
 void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     if (m_prof)
         m_prof->push("Berendsen");
