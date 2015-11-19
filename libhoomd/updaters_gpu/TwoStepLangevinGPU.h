@@ -47,29 +47,53 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: joaander
 
-/*! \file TwoStepBDNVTRigidGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration for rigid bodies on the GPU. Used by TwoStepBDNVTRigidGPU.
+#include "TwoStepLangevin.h"
+
+#ifndef __TWO_STEP_LANGEVIN_GPU_H__
+#define __TWO_STEP_LANGEVIN_GPU_H__
+
+/*! \file TwoStepLangevinGPU.h
+    \brief Declares the TwoStepLangevinGPU class
 */
 
-#include "ParticleData.cuh"
-#include "TwoStepLangevinGPU.cuh"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TWO_STEP_BDNVT_RIGID_GPU_CUH__
-#define __TWO_STEP_BDNVT_RIGID_GPU_CUH__
+//! Implements Langevin dynamics on the GPU
+/*! GPU accelerated version of TwoStepLangevin
 
-//! Kernel driver for computing the Langevin forces for the BDNVT update called by TwoStepBDNVTRigidGPU
-cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const Scalar *d_diameter,
-                            const unsigned int *d_tag,
-                            unsigned int *d_group_members,
-                            unsigned int group_size,
-                            Scalar4 *d_net_force,
-                            const langevin_step_two_args& bdnvt_args,
-                            Scalar deltaT,
-                            Scalar D);
+    \ingroup updaters
+*/
+class TwoStepLangevinGPU : public TwoStepLangevin
+    {
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                           boost::shared_ptr<ParticleGroup> group,
+                           boost::shared_ptr<Variant> T,
+                           unsigned int seed,
+                           bool use_lambda,
+                           Scalar lambda,
+                           const std::string& suffix = std::string(""));
+        virtual ~TwoStepLangevinGPU() {};
 
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
 
-#endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+
+    protected:
+        unsigned int m_block_size;               //!< block size for partial sum memory
+        unsigned int m_num_blocks;               //!< number of memory blocks reserved for partial sum memory
+        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
+        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
+    };
+
+//! Exports the TwoStepLangevinGPU class to python
+void export_TwoStepLangevinGPU();
+
+#endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__

@@ -19,7 +19,7 @@ class constraint_sphere_tests (unittest.TestCase):
         all = group.all()
         constrain.sphere(group=all, P=(0,0,0), r=5)
         integrate.mode_standard(dt=0.005);
-        integrate.bdnvt(group=all, T=1.2);
+        integrate.langevin(group=all, T=1.2, seed=0);
         run(10);
 
     def test_error(self):

@@ -47,29 +47,31 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: joaander
 
-/*! \file TwoStepBDNVTRigidGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration for rigid bodies on the GPU. Used by TwoStepBDNVTRigidGPU.
+/*! \file TwoStepBDGPU.cuh
+    \brief Declares GPU kernel code for Brownian dynamics on the GPU. Used by TwoStepBDGPU.
 */
 
 #include "ParticleData.cuh"
 #include "TwoStepLangevinGPU.cuh"
+#include "HOOMDMath.h"
 
-#ifndef __TWO_STEP_BDNVT_RIGID_GPU_CUH__
-#define __TWO_STEP_BDNVT_RIGID_GPU_CUH__
+#ifndef __TWO_STEP_BD_GPU_CUH__
+#define __TWO_STEP_BD_GPU_CUH__
 
-//! Kernel driver for computing the Langevin forces for the BDNVT update called by TwoStepBDNVTRigidGPU
-cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const Scalar *d_diameter,
-                            const unsigned int *d_tag,
-                            unsigned int *d_group_members,
-                            unsigned int group_size,
-                            Scalar4 *d_net_force,
-                            const langevin_step_two_args& bdnvt_args,
-                            Scalar deltaT,
-                            Scalar D);
+//! Kernel driver for the first part of the Brownian update called by TwoStepBDGPU
+cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  int3 *d_image,
+                                  const BoxDim &box,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  const unsigned int *d_group_members,
+                                  const unsigned int group_size,
+                                  const Scalar4 *d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  const Scalar deltaT,
+                                  const unsigned int D);
 
-
-#endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
+#endif //__TWO_STEP_BD_GPU_CUH__

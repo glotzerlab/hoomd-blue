@@ -47,29 +47,46 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: joaander
 
-/*! \file TwoStepBDNVTRigidGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration for rigid bodies on the GPU. Used by TwoStepBDNVTRigidGPU.
+/*! \file TwoStepLangevinGPU.cuh
+    \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
 #include "ParticleData.cuh"
-#include "TwoStepLangevinGPU.cuh"
+#include "HOOMDMath.h"
 
-#ifndef __TWO_STEP_BDNVT_RIGID_GPU_CUH__
-#define __TWO_STEP_BDNVT_RIGID_GPU_CUH__
+#ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
+#define __TWO_STEP_LANGEVIN_GPU_CUH__
 
-//! Kernel driver for computing the Langevin forces for the BDNVT update called by TwoStepBDNVTRigidGPU
-cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const Scalar *d_diameter,
-                            const unsigned int *d_tag,
-                            unsigned int *d_group_members,
-                            unsigned int group_size,
-                            Scalar4 *d_net_force,
-                            const langevin_step_two_args& bdnvt_args,
-                            Scalar deltaT,
-                            Scalar D);
+//! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
+struct langevin_step_two_args
+    {
+    Scalar *d_gamma;          //!< Device array listing per-type gammas
+    unsigned int n_types;     //!< Number of types in \a d_gamma
+    bool use_lambda;          //!< Set to true to scale diameters by lambda to get gamma
+    Scalar lambda;            //!< Scale factor to convert diameter to lambda
+    Scalar T;                 //!< Current temperature
+    unsigned int timestep;    //!< Current timestep
+    unsigned int seed;        //!< User chosen random number seed
+    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
+    unsigned int block_size;  //!<  Block size
+    unsigned int num_blocks;  //!<  Number of blocks
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
+    };
 
+//! Kernel driver for the second part of the Langevin update called by TwoStepLangevinGPU
+cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar3 *d_accel,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4 *d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D);
 
-#endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
+#endif //__TWO_STEP_LANGEVIN_GPU_CUH__

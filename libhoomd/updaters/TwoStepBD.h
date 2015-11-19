@@ -47,29 +47,49 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: joaander
 
-/*! \file TwoStepBDNVTRigidGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration for rigid bodies on the GPU. Used by TwoStepBDNVTRigidGPU.
+#include "TwoStepLangevinBase.h"
+
+#ifndef __TWO_STEP_BD_H__
+#define __TWO_STEP_BD_H__
+
+/*! \file TwoStepLangevin.h
+    \brief Declares the TwoStepLangevin class
 */
 
-#include "ParticleData.cuh"
-#include "TwoStepLangevinGPU.cuh"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TWO_STEP_BDNVT_RIGID_GPU_CUH__
-#define __TWO_STEP_BDNVT_RIGID_GPU_CUH__
+//! Integrates part of the system forward in two steps with Brownian dynamics
+/*! Implements Brownian dynamics.
 
-//! Kernel driver for computing the Langevin forces for the BDNVT update called by TwoStepBDNVTRigidGPU
-cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const Scalar *d_diameter,
-                            const unsigned int *d_tag,
-                            unsigned int *d_group_members,
-                            unsigned int group_size,
-                            Scalar4 *d_net_force,
-                            const langevin_step_two_args& bdnvt_args,
-                            Scalar deltaT,
-                            Scalar D);
+    Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and assuming terminal
+    velocity.
 
+    \ingroup updaters
+*/
+class TwoStepBD : public TwoStepLangevinBase
+    {
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
+                     boost::shared_ptr<ParticleGroup> group,
+                     boost::shared_ptr<Variant> T,
+                     unsigned int seed,
+                     bool use_lambda,
+                     Scalar lambda);
+        virtual ~TwoStepBD();
 
-#endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
+        //! Performs the second step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    };
+
+//! Exports the TwoStepLangevin class to python
+void export_TwoStepBD();
+
+#endif // #ifndef __TWO_STEP_BD_H__

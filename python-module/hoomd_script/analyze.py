@@ -407,7 +407,7 @@ class imd(_analyzer):
 # - Wall potentials
 #   - **wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
 # - Integrators
-#   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
+#   - **langevin_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the Langevin integrator (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
 #   - **nvt_mtk_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT MTK thermostat (in energy units)
 #   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat

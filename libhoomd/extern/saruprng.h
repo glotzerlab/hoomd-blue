@@ -388,20 +388,6 @@ inline double Saru::d(double low, double high)
   return d<1>(low, high);
 }
 
-template<class Real>
-inline Real Saru::s()
-    {
-    // default implementation returns something ridiculous, so it is obvious when it is called
-    return -1000000000;
-    }
-
-template<class Real>
-inline Real Saru::s(Real low, Real high)
-    {
-    // default implementation returns something ridiculous, so it is obvious when it is called
-    return -1000000000;
-    }
-
 template<>
 inline float Saru::s()
     {

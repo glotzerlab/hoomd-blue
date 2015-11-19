@@ -148,8 +148,8 @@ Table of contents:
  - \link hoomd_script.integrate.mode_minimize_rigid_fire integrate.mode_minimize_rigid_fire\endlink - <i>Energy Minimizer (rigid bodies) (FIRE)</i>
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>Enables a variety of standard integration methods </i>
    - \link hoomd_script.integrate.berendsen integrate.berendsen\endlink - <i>NVT integration via the Berendsen thermostat</i>
-   - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>NVT integration via Brownian dynamics </i>
    - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>NVT integration of rigid bodies via Brownian Dynamics</i>
+   - \link hoomd_script.integrate.langevin integrate.langevin\endlink - <i>Langevin dynamics </i>
    - \link hoomd_script.integrate.nph integrate.nph\endlink - <i>NPH integration via the Andersen / modified Parrinello-Rahman barostat </i>
    - \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink - <i>NPH Integration of rigid bodies</i>
    - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>NPT Integration with various box-shape symmetries</i>
@@ -193,7 +193,7 @@ Table of contents:
  - \link hoomd_script.nlist.cell nlist.cell\endlink - <i>Cell-list constructed neighbor list </i>
  - \link hoomd_script.nlist.tree nlist.tree\endlink - <i>Fast neighbor list for size asymmetric particles </i>
  - \link hoomd_script.nlist nlist\endlink - <i>Legacy wrappers for the global neighbor list</i>
- 
+
 \section sec_index_pair Pair potentials
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>CMM coarse-grain model %pair %force </i>
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i>
