@@ -188,7 +188,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             }
 
         // get constraint distance
-        Scalar d = __int_as_scalar(m_cdata->getTypeByIndex(n));
+        Scalar d = m_cdata->getValueByIndex(n);
 
         // fill vector component
         h_cvec.data[n] = (dot(qn,qn)-d*d)/m_deltaT/m_deltaT;

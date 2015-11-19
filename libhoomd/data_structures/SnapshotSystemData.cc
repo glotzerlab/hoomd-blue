@@ -108,8 +108,8 @@ void SnapshotSystemData<Real>::broadcast(boost::shared_ptr<ExecutionConfiguratio
     }
 
 // instantiate both float and double snapshots
-template class SnapshotSystemData<float>;
-template class SnapshotSystemData<double>;
+template struct SnapshotSystemData<float>;
+template struct SnapshotSystemData<double>;
 
 void export_SnapshotSystemData()
     {

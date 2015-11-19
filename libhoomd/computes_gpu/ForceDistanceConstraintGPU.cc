@@ -122,7 +122,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
                                                  access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
+        ArrayHandle<typeval_t> d_group_typeval(m_cdata->getTypeValArray(), access_location::device, access_mode::read);
 
         // launch GPU kernel
         m_tuner_fill->begin();
@@ -138,7 +138,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             gpu_table_indexer,
             d_gpu_n_constraints.data,
             d_gpu_cpos.data,
-            d_gpu_cidx.data,
+            d_group_typeval.data,
             m_deltaT,
             m_pdata->getBox(),
             m_constraints_dirty,
@@ -199,7 +199,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
             ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
                                                      access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
 
             const BoxDim& box = m_pdata->getBox();
 
@@ -217,7 +216,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
                 gpu_table_indexer,
                 d_gpu_n_constraints.data,
                 d_gpu_cpos.data,
-                d_gpu_cidx.data,
                 d_force.data,
                 box,
                 n_ptl,

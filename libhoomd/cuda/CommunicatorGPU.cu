@@ -1213,7 +1213,7 @@ template<unsigned int group_size, typename group_t, typename ranks_t, typename p
 __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
     unsigned int n_groups,
     const group_t *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
@@ -1238,7 +1238,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
 
         packed_t el;
         el.tags = d_groups[group_idx];
-        el.type = d_group_type[group_idx];
+        el.typeval = d_group_typeval[group_idx];
         el.group_tag = d_group_tag[group_idx];
         el.ranks = d_group_ranks[group_idx];
         d_out_groups[out_idx] = el;
@@ -1270,7 +1270,7 @@ template<unsigned int group_size, typename group_t, typename ranks_t, typename p
 void gpu_scatter_and_mark_groups_for_removal(
     unsigned int n_groups,
     const group_t *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
@@ -1288,7 +1288,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     gpu_scatter_and_mark_groups_for_removal_kernel<group_size><<<n_blocks, block_size>>>(
         n_groups,
         d_groups,
-        d_group_type,
+        d_group_typeval,
         d_group_tag,
         d_group_rtag,
         d_group_ranks,
@@ -1306,8 +1306,8 @@ __global__ void gpu_remove_groups_kernel(
     unsigned int n_groups,
     const group_t *d_groups,
     group_t *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const ranks_t *d_group_ranks,
@@ -1328,7 +1328,7 @@ __global__ void gpu_remove_groups_kernel(
         {
         // scatter into output array
         d_groups_alt[out_idx] = d_groups[group_idx];
-        d_group_type_alt[out_idx] = d_group_type[group_idx];
+        d_group_typeval_alt[out_idx] = d_group_typeval[group_idx];
         d_group_tag_alt[out_idx] = group_tag;
         d_group_ranks_alt[out_idx] = d_group_ranks[group_idx];
 
@@ -1341,8 +1341,8 @@ template<typename group_t, typename ranks_t>
 void gpu_remove_groups(unsigned int n_groups,
     const group_t *d_groups,
     group_t *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const ranks_t *d_group_ranks,
@@ -1366,8 +1366,8 @@ void gpu_remove_groups(unsigned int n_groups,
         n_groups,
         d_groups,
         d_groups_alt,
-        d_group_type,
-        d_group_type_alt,
+        d_group_typeval,
+        d_group_typeval_alt,
         d_group_tag,
         d_group_tag_alt,
         d_group_ranks,
@@ -1402,7 +1402,7 @@ __global__ void gpu_add_groups_kernel(
     const packed_t *d_groups_in,
     const unsigned int *d_scan,
     group_t *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag)
@@ -1420,7 +1420,7 @@ __global__ void gpu_add_groups_kernel(
         unsigned int add_idx = n_groups + d_scan[recv_idx];
 
         d_groups[add_idx] = el.tags;
-        d_group_type[add_idx] = el.type;
+        d_group_typeval[add_idx] = el.typeval;
         d_group_tag[add_idx] = tag;
         d_group_ranks[add_idx] = el.ranks;
 
@@ -1434,7 +1434,7 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_t *d_groups_in,
     group_t *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
@@ -1470,7 +1470,7 @@ void gpu_add_groups(unsigned int n_groups,
         d_groups_in,
         d_tmp,
         d_groups,
-        d_group_type,
+        d_group_typeval,
         d_group_tag,
         d_group_ranks,
         d_group_rtag);
@@ -1655,7 +1655,7 @@ template void gpu_update_ranks_table<2>(
 template void gpu_scatter_and_mark_groups_for_removal<2>(
     unsigned int n_groups,
     const group_storage<2> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<2> *d_group_ranks,
@@ -1670,8 +1670,8 @@ template void gpu_scatter_and_mark_groups_for_removal<2>(
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<2> *d_groups,
     group_storage<2> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<2> *d_group_ranks,
@@ -1685,7 +1685,7 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<2> *d_groups_in,
     group_storage<2> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<2> *d_group_ranks,
     unsigned int *d_group_rtag,
@@ -1750,7 +1750,7 @@ template void gpu_update_ranks_table<3>(
 template void gpu_scatter_and_mark_groups_for_removal<3>(
     unsigned int n_groups,
     const group_storage<3> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<3> *d_group_ranks,
@@ -1765,8 +1765,8 @@ template void gpu_scatter_and_mark_groups_for_removal<3>(
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<3> *d_groups,
     group_storage<3> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<3> *d_group_ranks,
@@ -1780,7 +1780,7 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<3> *d_groups_in,
     group_storage<3> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<3> *d_group_ranks,
     unsigned int *d_group_rtag,
@@ -1845,7 +1845,7 @@ template void gpu_update_ranks_table<4>(
 template void gpu_scatter_and_mark_groups_for_removal<4>(
     unsigned int n_groups,
     const group_storage<4> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<4> *d_group_ranks,
@@ -1860,8 +1860,8 @@ template void gpu_scatter_and_mark_groups_for_removal<4>(
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<4> *d_groups,
     group_storage<4> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<4> *d_group_ranks,
@@ -1875,7 +1875,7 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<4> *d_groups_in,
     group_storage<4> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<4> *d_group_ranks,
     unsigned int *d_group_rtag,

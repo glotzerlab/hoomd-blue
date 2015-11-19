@@ -110,12 +110,12 @@ __global__ void gpu_group_scatter_kernel(
     const unsigned int *d_scratch_idx,
     const unsigned int *d_offset,
     const group_t *d_members,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_rtag,
     group_t *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
-    unsigned int *d_pidx_gidx_table,
-    unsigned int pidx_group_table_pitch
+    unsigned int pidx_group_table_pitch,
+    bool has_type_mapping
     )
     {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -132,8 +132,16 @@ __global__ void gpu_group_scatter_kernel(
     // construct compact group representation, excluding particle pidx
     group_t p;
 
-    // last element = group type
-    p.idx[group_size-1] = d_group_type[group_idx];
+    if (has_type_mapping)
+        {
+        // last element = group type
+        p.idx[group_size-1] = d_group_typeval[group_idx].type;
+        }
+    else
+        {
+        // last element = group index
+        p.idx[group_size-1] = group_idx;
+        }
 
     unsigned int j = 0;
 
@@ -156,7 +164,6 @@ __global__ void gpu_group_scatter_kernel(
 
     d_pidx_group_table[offset] = p;
     d_pidx_gpos_table[offset] = gpos;
-    d_pidx_gidx_table[offset] = group_idx;
     }
 
 template<unsigned int group_size, typename group_t>
@@ -164,7 +171,7 @@ void gpu_update_group_table(
     const unsigned int n_groups,
     const unsigned int N,
     const group_t* d_group_table,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_rtag,
     unsigned int *d_n_groups,
     unsigned int max_n_groups,
@@ -173,12 +180,12 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
-    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
+    bool has_type_mapping,
     mgpu::ContextPtr mgpu_context
     )
     {
@@ -231,12 +238,12 @@ void gpu_update_group_table(
             d_scratch_idx,
             d_offsets,
             d_group_table,
-            d_group_type,
+            d_group_typeval,
             d_rtag,
             d_pidx_group_table,
             d_pidx_gpos_table,
-            d_pidx_gidx_table,
-            pidx_group_table_pitch);
+            pidx_group_table_pitch,
+            has_type_mapping);
         }
     }
 
@@ -249,7 +256,7 @@ template void gpu_update_group_table<2>(
     const unsigned int n_groups,
     const unsigned int N,
     const union group_storage<2> *d_group_table,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_rtag,
     unsigned int *d_n_groups,
     unsigned int max_n_groups,
@@ -258,12 +265,12 @@ template void gpu_update_group_table<2>(
     unsigned int &flag,
     group_storage<2> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
-    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
+    bool has_type_mapping,
     mgpu::ContextPtr mgpu_context
     );
 
@@ -272,7 +279,7 @@ template void gpu_update_group_table<3>(
     const unsigned int n_groups,
     const unsigned int N,
     const union group_storage<3> *d_group_table,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_rtag,
     unsigned int *d_n_groups,
     unsigned int max_n_groups,
@@ -281,12 +288,12 @@ template void gpu_update_group_table<3>(
     unsigned int &flag,
     group_storage<3> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
-    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
+    bool has_type_mapping,
     mgpu::ContextPtr mgpu_context
     );
 
@@ -295,7 +302,7 @@ template void gpu_update_group_table<4>(
     const unsigned int n_groups,
     const unsigned int N,
     const union group_storage<4> *d_group_table,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_rtag,
     unsigned int *d_n_groups,
     unsigned int max_n_groups,
@@ -304,11 +311,11 @@ template void gpu_update_group_table<4>(
     unsigned int &flag,
     group_storage<4> *d_pidx_group_table,
     unsigned int *d_pidx_gpos_table,
-    unsigned int *d_pidx_gidx_table,
     const unsigned int pidx_group_table_pitch,
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
+    bool has_type_mapping,
     mgpu::ContextPtr mgpu_context
     );

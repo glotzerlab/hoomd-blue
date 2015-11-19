@@ -386,7 +386,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
             {
             ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_group_type(m_gdata->getTypesArray(), access_location::host, access_mode::read);
+            ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::read);
@@ -419,7 +419,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                     // insert into send map
                     typename group_data::packed_t el;
                     el.tags = h_groups.data[group_idx];
-                    el.type = h_group_type.data[group_idx];
+                    el.typeval = h_group_typeval.data[group_idx];
                     el.group_tag = h_group_tag.data[group_idx];
                     el.ranks = h_group_ranks.data[group_idx];
 
@@ -450,13 +450,13 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
         unsigned int new_ngroups;
             {
             ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_group_type(m_gdata->getTypesArray(), access_location::host, access_mode::read);
+            ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::read);
 
             // access alternate arrays to write to
             ArrayHandle<typename group_data::members_t> h_groups_alt(m_gdata->getAltMembersArray(), access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_group_type_alt(m_gdata->getAltTypesArray(), access_location::host, access_mode::overwrite);
+            ArrayHandle<typeval_t> h_group_typeval_alt(m_gdata->getAltTypeValArray(), access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_group_tag_alt(m_gdata->getAltTags(), access_location::host, access_mode::overwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks_alt(m_gdata->getAltRanksArray(), access_location::host, access_mode::overwrite);
 
@@ -473,7 +473,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                 if (keep)
                     {
                     h_groups_alt.data[n] = h_groups.data[group_idx];
-                    h_group_type_alt.data[n] = h_group_type.data[group_idx];
+                    h_group_typeval_alt.data[n] = h_group_typeval.data[group_idx];
                     h_group_tag_alt.data[n] = group_tag;
                     h_group_ranks_alt.data[n] = h_group_ranks.data[group_idx];
 
@@ -487,13 +487,13 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
         // resize alternate arrays to number of groups
         GPUVector<typename group_data::members_t>& alt_groups_array = m_gdata->getAltMembersArray();
-        GPUVector<unsigned int>& alt_group_type_array = m_gdata->getAltTypesArray();
+        GPUVector<typeval_t>& alt_group_typeval_array = m_gdata->getAltTypeValArray();
         GPUVector<unsigned int>& alt_group_tag_array = m_gdata->getAltTags();
         GPUVector<typename group_data::ranks_t>& alt_group_ranks_array = m_gdata->getAltRanksArray();
 
         assert(new_ngroups <= m_gdata->getN());
         alt_groups_array.resize(new_ngroups);
-        alt_group_type_array.resize(new_ngroups);
+        alt_group_typeval_array.resize(new_ngroups);
         alt_group_tag_array.resize(new_ngroups);
         alt_group_ranks_array.resize(new_ngroups);
 
@@ -652,19 +652,19 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
         // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
         GPUVector<typename group_data::members_t>& groups_array = m_gdata->getMembersArray();
-        GPUVector<unsigned int>& group_type_array = m_gdata->getTypesArray();
+        GPUVector<typeval_t>& group_typeval_array = m_gdata->getTypeValArray();
         GPUVector<unsigned int>& group_tag_array = m_gdata->getTags();
         GPUVector<typename group_data::ranks_t>& group_ranks_array = m_gdata->getRanksArray();
 
         groups_array.resize(new_ngroups);
-        group_type_array.resize(new_ngroups);
+        group_typeval_array.resize(new_ngroups);
         group_tag_array.resize(new_ngroups);
         group_ranks_array.resize(new_ngroups);
 
             {
             ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::members_t> h_groups(groups_array, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_group_type(group_type_array, access_location::host, access_mode::readwrite);
+            ArrayHandle<typeval_t> h_group_typeval(group_typeval_array, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_group_tag(group_tag_array, access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(group_ranks_array, access_location::host, access_mode::readwrite);
 
@@ -680,7 +680,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                 if (group_rtag == GROUP_NOT_LOCAL)
                     {
                     h_groups.data[add_idx] = el.tags;
-                    h_group_type.data[add_idx] = el.type;
+                    h_group_typeval.data[add_idx] = el.typeval;
                     h_group_tag.data[add_idx] = tag;
                     h_group_ranks.data[add_idx] = el.ranks;
 
@@ -693,7 +693,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
         // resize arrays to final size
         groups_array.resize(new_ngroups);
-        group_type_array.resize(new_ngroups);
+        group_typeval_array.resize(new_ngroups);
         group_tag_array.resize(new_ngroups);
         group_ranks_array.resize(new_ngroups);
 

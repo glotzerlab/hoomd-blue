@@ -70,7 +70,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               const Index2D gpu_clist_indexer,
                                               const unsigned int *d_gpu_n_constraints,
                                               const unsigned int *d_gpu_cpos,
-                                              const unsigned int *d_gpu_cidx,
+                                              const typeval_union *d_group_typeval,
                                               Scalar deltaT,
                                               const BoxDim box,
                                               bool fill_ones)
@@ -92,8 +92,11 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         // the other ptl in the constraint
         unsigned int cur_constraint_idx_i = cur_constraint_i.idx[0];
 
+        // constraint index
+        unsigned int n = cur_constraint_i.idx[1];
+
         // the constraint distance
-        Scalar d = __int_as_scalar(cur_constraint_i.idx[1]);
+        Scalar d = d_group_typeval[n].val;
 
         // indices of constrained ptls in correct order
         unsigned int idx_na, idx_nb;
@@ -108,8 +111,6 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
             idx_na = cur_constraint_idx_i;
             idx_nb = idx;
             }
-
-        unsigned int n = d_gpu_cidx[gpu_clist_indexer(idx,cidx_i)];
 
         // constraint separation
         vec3<Scalar> rn(vec3<Scalar>(d_pos[idx_na])-vec3<Scalar>(d_pos[idx_nb]));
@@ -127,6 +128,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         // constraint separation at t+2*deltaT
         vec3<Scalar> qn(rn + deltaT*rndot);
 
+        #if 0
         for (unsigned int cidx_j = 0; cidx_j < n_constraint_ptl; cidx_j++)
             {
             group_storage<2> cur_constraint_j = d_gpu_clist[gpu_clist_indexer(idx, cidx_j)];
@@ -147,7 +149,8 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 idx_mb = idx;
                 }
 
-            unsigned int m = d_gpu_cidx[gpu_clist_indexer(idx,cidx_j)];
+            // other constraint index
+            unsigned int m = cur_constraint_j.idx[1];
 
             // constraint separation
             vec3<Scalar> rm(vec3<Scalar>(d_pos[idx_ma])-vec3<Scalar>(d_pos[idx_mb]));
@@ -210,6 +213,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 d_matrix[m*n_constraint+n] = mat_element;
                 }
             }
+        #endif
 
         // load number of constraints per this ptl
         unsigned int n_constraint_i = d_gpu_n_constraints[cur_constraint_idx_i];
@@ -234,7 +238,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 idx_mb = cur_constraint_idx_i;
                 }
 
-            unsigned int m = d_gpu_cidx[gpu_clist_indexer(cur_constraint_idx_i,cidx_j)];
+            unsigned int m = cur_constraint_j.idx[1];
 
             // constraint separation
             vec3<Scalar> rm(vec3<Scalar>(d_pos[idx_ma])-vec3<Scalar>(d_pos[idx_mb]));
@@ -319,7 +323,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const Index2D & gpu_clist_indexer,
                           const unsigned int *d_gpu_n_constraints,
                           const unsigned int *d_gpu_cpos,
-                          const unsigned int *d_gpu_cidx,
+                          const typeval_union *d_group_typeval,
                           Scalar deltaT,
                           const BoxDim box,
                           bool connectivity_changed,
@@ -356,7 +360,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         gpu_clist_indexer,
         d_gpu_n_constraints,
         d_gpu_cpos,
-        d_gpu_cidx,
+        d_group_typeval,
         deltaT,
         box,
         connectivity_changed);
@@ -370,7 +374,6 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
                                         const Index2D gpu_clist_indexer,
                                         const unsigned int *d_gpu_n_constraints,
                                         const unsigned int *d_gpu_cpos,
-                                        const unsigned int *d_gpu_cidx,
                                         Scalar *d_lagrange,
                                         Scalar4 *d_force,
                                         const BoxDim box)
@@ -394,7 +397,8 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
         // the other ptl in the constraint
         unsigned int cur_constraint_idx = cur_constraint.idx[0];
 
-        unsigned int n = d_gpu_cidx[gpu_clist_indexer(idx,cidx)];
+        // group idx
+        unsigned int n = cur_constraint.idx[1];
 
         // position of ptl in constraint
         unsigned int cpos = d_gpu_cpos[gpu_clist_indexer(idx, cidx)];
@@ -445,7 +449,6 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    const Index2D& gpu_clist_indexer,
                                    const unsigned int *d_gpu_n_constraints,
                                    const unsigned int *d_gpu_cpos,
-                                   const unsigned int *d_gpu_cidx,
                                    Scalar4 *d_force,
                                    const BoxDim box,
                                    unsigned int nptl_local,
@@ -525,7 +528,6 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
         gpu_clist_indexer,
         d_gpu_n_constraints,
         d_gpu_cpos,
-        d_gpu_cidx,
         d_lagrange,
         d_force,
         box);
