@@ -52,9 +52,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceDistanceConstraint.h"
 
 #include "Autotuner.h"
+#include "util/mgpucontext.h"
 
-#include <cublas_v2.h>
-#include <cusolverDn.h>
+#include <cusparse.h>
+#include <cusolverSp.h>
+
 
 /*! \file ForceDistanceConstraint.h
     \brief Declares a class to implement pairwise distance constraint
@@ -98,8 +100,11 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
-        cublasHandle_t m_cublas_handle;       //!< CUBLAS handle
-        cusolverDnHandle_t m_cusolver_handle; //!< cuSOLVER handle
+        cusparseHandle_t m_cusparse_handle;     //!< CUSPARSE handle
+        cusolverSpHandle_t m_cusolver_handle; //!< cuSOLVER handle
+        mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
+
+        GPUVector<int> m_nnz;              //!< Vector of number of non-zero elements per row
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
