@@ -410,11 +410,11 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     // increment number of bonded groups
     m_nglobal++;
 
-    // set flag to rebuild GPU table
-    m_groups_dirty = true;
-
     // notifiy observers
     m_group_num_change_signal();
+
+    // set flag to rebuild GPU table and notify subscribers
+    setDirty();
 
     return tag;
     }
@@ -616,11 +616,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_recycled_tags.push(tag);
     m_nglobal--;
 
-    // set flag to trigger rebuild of GPU table
-    m_groups_dirty = true;
-
     // notifiy observers
     m_group_num_change_signal();
+
+    // set flag to trigger rebuild of GPU table and notify subscribers
+    setDirty();
     }
 
 /*! \param name Type name
@@ -1145,7 +1145,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 
     // notify observers
     m_group_num_change_signal();
-    m_groups_dirty = true;
+    setDirty();
     }
 #endif
 

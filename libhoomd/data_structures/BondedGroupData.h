@@ -541,9 +541,20 @@ class BondedGroupData : boost::noncopyable
             return m_group_num_change_signal.connect(func);
             }
 
+        //! Connects a function to be called every time the local number of bonded groups changes
+        boost::signals2::connection connectGroupsDirty(
+            const boost::function<void ()> &func)
+            {
+            return m_groups_dirty_signal.connect(func);
+            }
+
+
         //! Set a flag to trigger rebuild of index table
         void setDirty()
             {
+            // notify subscribers
+            m_groups_dirty_signal();
+
             m_groups_dirty = true;
             }
 
@@ -599,6 +610,7 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
+        boost::signals2::signal<void ()> m_groups_dirty_signal;    //!< Signal that is triggered when groups are added or deleted locally
 
         //! Initialize internal memory
         void initialize();

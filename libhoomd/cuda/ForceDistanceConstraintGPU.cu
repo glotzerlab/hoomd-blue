@@ -54,8 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime_api.h>
 #include <cusparse.h>
 
-#include "kernels/reduce.cuh"
-
 /*! \file ForceDistanceConstraingGPU.cu
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
 */
@@ -74,7 +72,8 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               const unsigned int *d_gpu_cpos,
                                               const unsigned int *d_gpu_cidx,
                                               Scalar deltaT,
-                                              const BoxDim box)
+                                              const BoxDim box,
+                                              bool fill_ones)
     {
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -160,19 +159,48 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
 
             if (idx_na == idx_ma)
                 {
-                mat_element += Scalar(4.0)*dot(qn,rm)/ma;
+                if (!fill_ones)
+                    {
+                    mat_element += Scalar(4.0)*dot(qn,rm)/ma;
+                    }
+                else
+                    {
+                    // fill with dummy value
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_na == idx_mb)
                 {
-                mat_element -= Scalar(4.0)*dot(qn,rm)/ma;
+                if (!fill_ones)
+                    {
+                    mat_element -= Scalar(4.0)*dot(qn,rm)/ma;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_nb == idx_ma)
                 {
-                mat_element -= Scalar(4.0)*dot(qn,rm)/mb;
+                if (!fill_ones)
+                    {
+                    mat_element -= Scalar(4.0)*dot(qn,rm)/mb;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_nb == idx_mb)
                 {
-                mat_element += Scalar(4.0)*dot(qn,rm)/mb;
+                if (!fill_ones)
+                    {
+                    mat_element += Scalar(4.0)*dot(qn,rm)/mb;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
 
             // write out matrix element once per unique particle pair (ghost particles occur only once)
@@ -216,19 +244,48 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
             Scalar mat_element(0.0);
             if (idx_na == idx_ma)
                 {
-                mat_element += Scalar(4.0)*dot(qn,rm)/ma;
+                if (!fill_ones)
+                    {
+                    mat_element += Scalar(4.0)*dot(qn,rm)/ma;
+                    }
+                else
+                    {
+                    // fill with dummy value
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_na == idx_mb)
                 {
-                mat_element -= Scalar(4.0)*dot(qn,rm)/ma;
+                if (!fill_ones)
+                    {
+                    mat_element -= Scalar(4.0)*dot(qn,rm)/ma;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_nb == idx_ma)
                 {
-                mat_element -= Scalar(4.0)*dot(qn,rm)/mb;
+                if (!fill_ones)
+                    {
+                    mat_element -= Scalar(4.0)*dot(qn,rm)/mb;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
             if (idx_nb == idx_mb)
                 {
-                mat_element += Scalar(4.0)*dot(qn,rm)/mb;
+                if (!fill_ones)
+                    {
+                    mat_element += Scalar(4.0)*dot(qn,rm)/mb;
+                    }
+                else
+                    {
+                    mat_element = Scalar(1.0);
+                    }
                 }
 
             // write out matrix element once per unique particle pair (ghost particles occur only once)
@@ -239,11 +296,14 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 }
             }
 
-        if (cpos == 0 || idx_na >= nptl_local || idx_nb >= nptl_local)
+        if (!fill_ones)
             {
-            // fill vector component
-            d_vec[n] = (dot(qn,qn)-d*d)/deltaT/deltaT
-                + Scalar(2.0)*dot(qn, vec3<Scalar>(d_netforce[idx_na])/ma-vec3<Scalar>(d_netforce[idx_nb])/mb);
+            if (cpos == 0 || idx_na >= nptl_local || idx_nb >= nptl_local)
+                {
+                // fill vector component
+                d_vec[n] = (dot(qn,qn)-d*d)/deltaT/deltaT
+                    + Scalar(2.0)*dot(qn, vec3<Scalar>(d_netforce[idx_na])/ma-vec3<Scalar>(d_netforce[idx_nb])/mb);
+                }
             }
         }
     }
@@ -262,6 +322,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const unsigned int *d_gpu_cidx,
                           Scalar deltaT,
                           const BoxDim box,
+                          bool connectivity_changed,
                           unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
@@ -297,7 +358,8 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         d_gpu_cpos,
         d_gpu_cidx,
         deltaT,
-        box);
+        box,
+        connectivity_changed);
 
     return cudaSuccess;
     }
@@ -377,6 +439,7 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_matrix,
                                    Scalar *d_vec,
                                    int *d_nnz,
+                                   int &nnz,
                                    const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D& gpu_clist_indexer,
@@ -388,36 +451,39 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    unsigned int nptl_local,
                                    unsigned int block_size,
                                    cusparseHandle_t cusparse_handle,
-                                   cusolverSpHandle_t solver_handle,
+                                   cusparseMatDescr_t cusparse_mat_descr,
+                                   cusparseSolveAnalysisInfo_t cusparse_solve_info,
+                                   bool connectivity_changed,
                                    int *d_csr_rowptr,
                                    int *d_csr_colind,
                                    Scalar *d_csr_val,
-                                   Scalar *d_lagrange,
-                                   mgpu::ContextPtr mgpu_context)
+                                   Scalar *d_lagrange)
     {
     #ifdef SINGLE_PRECISION
     // convert dense matrix to compressed sparse row
-    cusparseMatDescr_t descr;
-    cusparseCreateMatDescr(&descr);
+    if (connectivity_changed)
+        {
+        // count zeros
+        cusparseSnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
+            cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
+        }
 
-    // count zeros
-    int nnz = 0;
-    cusparseSnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
-        descr, d_matrix, n_constraint, d_nnz, &nnz);
-
-    // dense2csr
-    cusparseSdense2csr(cusparse_handle, n_constraint, n_constraint, descr, d_matrix, n_constraint, d_nnz,
+    // update values in CSR format
+    cusparseSdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
 
-    // QR decomposition
-    const Scalar tol(1e-12);
-    int reorder = 0;
-    int singular = 0;
-    cusolverSpScsrlsvqr(solver_handle, n_constraint, nnz,
-        descr, d_csr_val, d_csr_rowptr, d_csr_colind,
-        d_vec, tol, reorder, d_lagrange, &singular);
+    if (connectivity_changed)
+        {
+        // run the expensive analysis routine
+        cusparseScsrsv_analysis(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            n_constraint, nnz, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info);
+        }
 
-    cusparseDestroyMatDescr(descr);
+    // solve the sparse systems of linear equations
+    Scalar one(1.0);
+    cusparseScsrsv_solve(cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n_constraint,
+        &one, cusparse_mat_descr, d_csr_val, d_csr_rowptr, d_csr_colind, cusparse_solve_info, d_vec, d_lagrange);
+
     #else
     #endif
 

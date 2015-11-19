@@ -54,7 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "BoxDim.h"
 
-#include <cusolverSp.h>
 #include <cusparse.h>
 
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
@@ -74,12 +73,14 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const unsigned int *d_gpu_cidx,
                           Scalar deltaT,
                           const BoxDim box,
+                          bool connectivity_changed,
                           unsigned int block_size);
 
 cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    Scalar *d_matrix,
                                    Scalar *d_vec,
                                    int *d_nnz,
+                                   int &nnz,
                                    const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D & gpu_clist_indexer,
@@ -91,10 +92,11 @@ cudaError_t gpu_compute_constraint_forces(unsigned int n_constraint,
                                    unsigned int nptl_local,
                                    unsigned int block_size,
                                    cusparseHandle_t cusparse_handle,
-                                   cusolverSpHandle_t solver_handle,
+                                   cusparseMatDescr_t cusparse_mat_descr,
+                                   cusparseSolveAnalysisInfo_t cusparse_solve_info,
+                                   bool connectivity_changed,
                                    int *d_csr_rowptr,
                                    int *d_csr_colind,
                                    Scalar *d_csr_val,
-                                   Scalar *d_lagrange,
-                                   mgpu::ContextPtr mgpu_context);
+                                   Scalar *d_lagrange);
 #endif

@@ -54,9 +54,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Autotuner.h"
 #include "util/mgpucontext.h"
 
-#include <cusparse.h>
-#include <cusolverSp.h>
+#include <boost/signals2.hpp>
 
+#include <cusparse.h>
 
 /*! \file ForceDistanceConstraint.h
     \brief Declares a class to implement pairwise distance constraint
@@ -100,11 +100,19 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
-        cusparseHandle_t m_cusparse_handle;     //!< CUSPARSE handle
-        cusolverSpHandle_t m_cusolver_handle; //!< cuSOLVER handle
-        mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
+        cusparseHandle_t m_cusparse_handle;                //!< CUSPARSE handle
+        cusparseMatDescr_t m_cusparse_mat_descr;           //!< Persistent matrix descriptor
+        cusparseSolveAnalysisInfo_t m_cusparse_solve_info; //!< CUSPARSE solver info (only depends on connectivity)
 
+        bool m_constraints_dirty;          //!< True if groups have changed
         GPUVector<int> m_nnz;              //!< Vector of number of non-zero elements per row
+        int m_nnz_tot;                     //!< Total number of non-zero elements
+        GPUVector<Scalar> m_csr_val;       //!< Matrix values in compressed sparse row (CSR) format
+        GPUVector<int> m_csr_rowptr;       //!< Row offset for CSR
+        GPUVector<int> m_csr_colind;       //!< Column index for CSR
+
+        //! Connection to the signal notifying when groups are resorted
+        boost::signals2::connection m_constraints_dirty_connection;
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
@@ -112,7 +120,11 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         //! Solve the linear matrix-vector equation
         virtual void computeConstraintForces(unsigned int timestep);
 
-
+        //! Method called when constraint order changes
+        virtual void slotConstraintsDirty()
+            {
+            m_constraints_dirty = true;
+            }
     };
 
 //! Exports the ForceDistanceConstraint to python

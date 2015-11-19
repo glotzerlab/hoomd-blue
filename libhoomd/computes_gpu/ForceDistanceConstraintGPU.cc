@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 
 /*! \file ForceDistanceConstraintGPU.cc
     \brief Contains code for the ForceDistanceConstraintGPU class
@@ -63,30 +64,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : ForceDistanceConstraint(sysdef)
+        : ForceDistanceConstraint(sysdef), m_constraints_dirty(true), m_nnz(m_exec_conf), m_nnz_tot(0),
+        m_csr_val(m_exec_conf), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
 
     cusparseCreate(&m_cusparse_handle);
-    cusolverSpCreate(&m_cusolver_handle);
+    cusparseCreateSolveAnalysisInfo(&m_cusparse_solve_info);
 
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
+    // cusparse matrix descriptor
+    cusparseCreateMatDescr(&m_cusparse_mat_descr);
+    cusparseSetMatType(m_cusparse_mat_descr,CUSPARSE_MATRIX_TYPE_GENERAL);
+    cusparseSetMatIndexBase(m_cusparse_mat_descr,CUSPARSE_INDEX_BASE_ZERO);
+    cusparseSetMatDiagType(m_cusparse_mat_descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
 
-    CHECK_CUDA_ERROR();
+    // connect to the ConstraintData to recieve notifications when constraints change order in memory
+    m_constraints_dirty_connection = m_cdata->connectGroupsDirty(boost::bind(&ForceDistanceConstraintGPU::slotConstraintsDirty, this));
     }
 
 //! Destructor
 ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     {
+    // clean up cusparse
     cusparseDestroy(m_cusparse_handle);
-    cusolverSpDestroy(m_cusolver_handle);
+    cusparseDestroySolveAnalysisInfo(m_cusparse_solve_info);
+    cusparseDestroyMatDescr(m_cusparse_mat_descr);
+
+    // disconnect from signal in ConstaraintData
+    m_constraints_dirty_connection.disconnect();
     }
 
 void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
@@ -135,6 +141,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             d_gpu_cidx.data,
             m_deltaT,
             m_pdata->getBox(),
+            m_constraints_dirty,
             m_tuner_fill->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -154,68 +161,93 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     unsigned int n_constraint = m_cdata->getN();
 
-    // reallocate array of constraint forces
-    m_lagrange.resize(n_constraint);
+    bool done = false;
+    while (!done)
+        {
+        // reallocate array of constraint forces
+        m_lagrange.resize(n_constraint);
 
-    // access matrix and vector
-    ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
+        // resize sparse matrix storage
+        m_nnz.resize(n_constraint);
+        m_csr_rowptr.resize(n_constraint+1);
+        m_csr_colind.resize(n_constraint*n_constraint);
+        m_csr_val.resize(n_constraint*n_constraint);
 
-    // allocate temporary buffers
-    ScopedAllocation<int> d_csr_rowptr(m_exec_conf->getCachedAllocator(), n_constraint+1);
-    ScopedAllocation<int> d_csr_colind(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<Scalar> d_csr_val(m_exec_conf->getCachedAllocator(), n_constraint*n_constraint);
-    ScopedAllocation<int> d_nnz(m_exec_conf->getCachedAllocator(), n_constraint);
+        // access matrix and vector
+        ArrayHandle<Scalar> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_cvec(m_cvec, access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
 
-    // access particle data arrays
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        // access sparse matrix structural data
+        ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::readwrite);
+        ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::readwrite);
+        ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_csr_val(m_csr_val, access_location::device, access_mode::readwrite);
 
-    // access force array
-    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+        // access particle data arrays
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    // access GPU constraint table on device
-    const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
-    const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
+        // access force array
+        ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
-                                             access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
+        // access GPU constraint table on device
+        const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
+        const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
 
-    const BoxDim& box = m_pdata->getBox();
+        ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
+                                                 access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_cidx(m_cdata->getGPUIdxTable(), access_location::device, access_mode::read);
 
-    unsigned int n_ptl = m_pdata->getN();
+        const BoxDim& box = m_pdata->getBox();
 
-    // compute constraint forces by solving linear system of equations
-    m_tuner_force->begin();
-    gpu_compute_constraint_forces(n_constraint,
-        d_cmatrix.data,
-        d_cvec.data,
-        d_nnz.data,
-        d_pos.data,
-        d_gpu_clist.data,
-        gpu_table_indexer,
-        d_gpu_n_constraints.data,
-        d_gpu_cpos.data,
-        d_gpu_cidx.data,
-        d_force.data,
-        box,
-        n_ptl,
-        m_tuner_force->getParam(),
-        m_cusparse_handle,
-        m_cusolver_handle,
-        d_csr_rowptr.data,
-        d_csr_colind.data,
-        d_csr_val.data,
-        d_lagrange.data,
-        m_mgpu_context);
+        unsigned int n_ptl = m_pdata->getN();
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        // compute constraint forces by solving linear system of equations
+        m_tuner_force->begin();
+        gpu_compute_constraint_forces(n_constraint,
+            d_cmatrix.data,
+            d_cvec.data,
+            d_nnz.data,
+            m_nnz_tot,
+            d_pos.data,
+            d_gpu_clist.data,
+            gpu_table_indexer,
+            d_gpu_n_constraints.data,
+            d_gpu_cpos.data,
+            d_gpu_cidx.data,
+            d_force.data,
+            box,
+            n_ptl,
+            m_tuner_force->getParam(),
+            m_cusparse_handle,
+            m_cusparse_mat_descr,
+            m_cusparse_solve_info,
+            m_constraints_dirty,
+            d_csr_rowptr.data,
+            d_csr_colind.data,
+            d_csr_val.data,
+            d_lagrange.data);
 
-    m_tuner_force->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_tuner_force->end();
+
+        // if we have just initialized the solver, re-run
+        if (m_constraints_dirty)
+            {
+            m_constraints_dirty = false;
+
+            // now fill with real values
+            fillMatrixVector(timestep);
+            }
+        else
+            {
+            done = true;
+            }
+        }
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
