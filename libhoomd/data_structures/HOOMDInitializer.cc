@@ -331,7 +331,7 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
     for (unsigned int i = 0; i < m_constraints.size(); i++)
         {
         cdata.groups[i] = m_constraints[i];
-        cdata.type_id[i] = __scalar_as_int(m_constraint_distances[i]);
+        cdata.val[i] = m_constraint_distances[i];
         }
 
     // initialize with empty vector
