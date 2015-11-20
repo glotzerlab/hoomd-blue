@@ -263,7 +263,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
         // identity mapping
         m_mapBfromA.resize(m_nnz_tot);
-        for (unsigned int i = 0; i < m_nnz_tot; ++i)
+        for (int i = 0; i < m_nnz_tot; ++i)
             {
             m_mapBfromA[i] = i;
             }
@@ -286,7 +286,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
             &m_Qreorder.front(), &m_mapBfromA.front(), &m_reorder_work.front());
 
         // B = A(mapBfromA)
-        for (unsigned int i = 0; i < m_nnz_tot; ++i)
+        for (int i = 0; i < m_nnz_tot; ++i)
             {
             m_csr_val_B[i] = h_csr_val.data[ m_mapBfromA[i] ];
             }
@@ -360,8 +360,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         ArrayHandle<int> h_csr_colind_U(m_csr_colind_U, access_location::host, access_mode::overwrite);
 
         // extract
-        cusolverStatus_t stat;
-        stat = cusolverSpDcsrluExtractHost(m_cusolver_sp_handle, &m_Plu.front(), &m_Qlu.front(),
+        cusolverSpDcsrluExtractHost(m_cusolver_sp_handle, &m_Plu.front(), &m_Qlu.front(),
             m_cusparse_mat_descr_L, h_csr_val_L.data, h_csr_rowptr_L.data, h_csr_colind_L.data,
             m_cusparse_mat_descr_U, h_csr_val_U.data, h_csr_rowptr_U.data, h_csr_colind_U.data,
             m_cusolver_csrlu_info, &m_lu_work.front());
