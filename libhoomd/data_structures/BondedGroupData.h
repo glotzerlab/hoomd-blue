@@ -561,16 +561,23 @@ class BondedGroupData : boost::noncopyable
         boost::signals2::connection connectGroupsDirty(
             const boost::function<void ()> &func)
             {
-            return m_groups_dirty_signal.connect(func);
+            return m_group_reorder_signal.connect(func);
             }
 
 
-        //! Set a flag to trigger rebuild of index table
-        void setDirty()
+        //! Notify subscribers that groups have been reordered
+        void notifyGroupReorder()
             {
             // notify subscribers
-            m_groups_dirty_signal();
+            m_group_reorder_signal();
 
+            // set flag to trigger rebuild of GPU table and notify subscribers
+            m_groups_dirty = true;
+            }
+
+        //! Indicate that GPU table needs to be rebuilt
+        void setDirty()
+            {
             m_groups_dirty = true;
             }
 
@@ -625,7 +632,7 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
-        boost::signals2::signal<void ()> m_groups_dirty_signal;    //!< Signal that is triggered when groups are added or deleted locally
+        boost::signals2::signal<void ()> m_group_reorder_signal;    //!< Signal that is triggered when groups are added or deleted locally
 
         //! Initialize internal memory
         void initialize();

@@ -1101,7 +1101,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         group_ranks_array.resize(new_ngroups);
 
         // indicate that group table has changed
-        m_gdata->setDirty();
+        m_gdata->notifyGroupReorder();
 
         if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
         }

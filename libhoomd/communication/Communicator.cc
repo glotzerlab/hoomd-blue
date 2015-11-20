@@ -698,7 +698,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
         group_ranks_array.resize(new_ngroups);
 
         // indicate that group table has changed
-        m_gdata->setDirty();
+        m_gdata->notifyGroupReorder();
 
         if (m_comm.m_prof) m_comm.m_prof->pop();
         }
