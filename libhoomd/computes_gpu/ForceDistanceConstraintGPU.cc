@@ -230,6 +230,9 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         {
         m_exec_conf->msg->notice(6) << "ForceDistanceConstraintGPU: constraint matrix changed. Setting up cuSolver" << std::endl;
 
+        if (m_prof)
+            m_prof->push(m_exec_conf, "LU");
+
         /*
          * re-initialize sparse matrix solver on host
          */
@@ -431,6 +434,10 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
          * analyze sparsity pattern
          */
         cusolverRfAnalyze(m_cusolver_rf_handle);
+
+        if (m_prof)
+            m_prof->pop(m_exec_conf);
+
         } // end if sparsity pattern changed
 
     // reallocate work space for cusolverRf
