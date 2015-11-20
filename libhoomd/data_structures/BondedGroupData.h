@@ -558,7 +558,7 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Connects a function to be called every time the local number of bonded groups changes
-        boost::signals2::connection connectGroupsDirty(
+        boost::signals2::connection connectGroupReorder(
             const boost::function<void ()> &func)
             {
             return m_group_reorder_signal.connect(func);

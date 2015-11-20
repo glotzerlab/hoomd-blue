@@ -141,7 +141,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<int> m_Q;                //!< reordered permutation Q
         GPUVector<double> m_T;             //!< cusolverRf working space
 
-        bool m_constraints_dirty;          //!< True if groups have changed
+        bool m_constraint_reorder;         //!< True if groups have changed
         GPUVector<int> m_nnz;              //!< Vector of number of non-zero elements per row
         int m_nnz_tot;                     //!< Total number of non-zero elements
         GPUVector<double> m_csr_val;       //!< Matrix values in compressed sparse row (CSR) format
@@ -149,7 +149,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<int> m_csr_colind;       //!< Column index for CSR
 
         //! Connection to the signal notifying when groups are resorted
-        boost::signals2::connection m_constraints_dirty_connection;
+        boost::signals2::connection m_constraint_reorder_connection;
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
@@ -161,9 +161,9 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         virtual void computeConstraintForces(unsigned int timestep);
 
         //! Method called when constraint order changes
-        virtual void slotConstraintsDirty()
+        virtual void slotConstraintReorder()
             {
-            m_constraints_dirty = true;
+            m_constraint_reorder = true;
             }
     };
 

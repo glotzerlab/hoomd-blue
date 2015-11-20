@@ -71,7 +71,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
         m_csr_val_L(m_exec_conf), m_csr_rowptr_L(m_exec_conf), m_csr_colind_L(m_exec_conf),
         m_csr_val_U(m_exec_conf), m_csr_rowptr_U(m_exec_conf), m_csr_colind_U(m_exec_conf),
         m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),
-        m_constraints_dirty(true), m_nnz(m_exec_conf), m_nnz_tot(0),
+        m_constraint_reorder(true), m_nnz(m_exec_conf), m_nnz_tot(0),
         m_csr_val(m_exec_conf), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
@@ -99,7 +99,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
-    m_constraints_dirty_connection = m_cdata->connectGroupsDirty(boost::bind(&ForceDistanceConstraintGPU::slotConstraintsDirty, this));
+    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraintGPU::slotConstraintReorder, this));
     }
 
 //! Destructor
@@ -118,7 +118,7 @@ ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     cusparseDestroyMatDescr(m_cusparse_mat_descr_U);
 
     // disconnect from signal in ConstaraintData
-    m_constraints_dirty_connection.disconnect();
+    m_constraint_reorder_connection.disconnect();
     }
 
 void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
@@ -221,10 +221,10 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
             sparsity_pattern_changed);
         }
 
-    sparsity_pattern_changed |= m_constraints_dirty;
+    sparsity_pattern_changed |= m_constraint_reorder;
 
     // reset flag
-    m_constraints_dirty = false;
+    m_constraint_reorder = false;
 
     if (sparsity_pattern_changed)
         {
