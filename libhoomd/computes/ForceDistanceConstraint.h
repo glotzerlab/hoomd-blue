@@ -93,9 +93,9 @@ class ForceDistanceConstraint : public ForceConstraint
     protected:
         boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
-        GPUVector<Scalar> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
-        GPUVector<Scalar> m_cvec;                   //!< The vector on the RHS of the constraint equation
-        GPUVector<Scalar> m_lagrange;               //!< The solution for the lagrange multipliers
+        GPUVector<double> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
+        GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
+        GPUVector<double> m_lagrange;               //!< The solution for the lagrange multipliers
 
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);

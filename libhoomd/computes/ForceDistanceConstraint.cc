@@ -110,11 +110,11 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
     ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::read);
 
     // access matrix elements
-    ArrayHandle<Scalar> h_cmatrix(m_cmatrix, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_cvec(m_cvec, access_location::host, access_mode::overwrite);
+    ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::overwrite);
+    ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::overwrite);
 
     // clear matrix
-    memset(h_cmatrix.data, 0, sizeof(Scalar)*m_cmatrix.size());
+    memset(h_cmatrix.data, 0, sizeof(double)*m_cmatrix.size());
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -171,19 +171,19 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
 
             if (idx_m_a == idx_a)
                 {
-                h_cmatrix.data[m*n_constraint+n] += Scalar(4.0)*dot(qn,rm)/ma;
+                h_cmatrix.data[m*n_constraint+n] += double(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_b == idx_a)
                 {
-                h_cmatrix.data[m*n_constraint+n] -= Scalar(4.0)*dot(qn,rm)/ma;
+                h_cmatrix.data[m*n_constraint+n] -= double(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_a == idx_b)
                 {
-                h_cmatrix.data[m*n_constraint+n] -= Scalar(4.0)*dot(qn,rm)/mb;
+                h_cmatrix.data[m*n_constraint+n] -= double(4.0)*dot(qn,rm)/mb;
                 }
             if (idx_m_b == idx_b)
                 {
-                h_cmatrix.data[m*n_constraint+n] += Scalar(4.0)*dot(qn,rm)/mb;
+                h_cmatrix.data[m*n_constraint+n] += double(4.0)*dot(qn,rm)/mb;
                 }
             }
 
@@ -192,15 +192,15 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
 
         // fill vector component
         h_cvec.data[n] = (dot(qn,qn)-d*d)/m_deltaT/m_deltaT;
-        h_cvec.data[n] += Scalar(2.0)*dot(qn,vec3<Scalar>(h_netforce.data[idx_a])/ma
+        h_cvec.data[n] += double(2.0)*dot(qn,vec3<Scalar>(h_netforce.data[idx_a])/ma
               -vec3<Scalar>(h_netforce.data[idx_b])/mb);
         }
     }
 
 void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     {
-    typedef Matrix<Scalar, Dynamic, Dynamic, ColMajor> matrix_t;
-    typedef Matrix<Scalar, Dynamic, 1> vec_t;
+    typedef Matrix<double, Dynamic, Dynamic, ColMajor> matrix_t;
+    typedef Matrix<double, Dynamic, 1> vec_t;
     typedef Map<matrix_t> matrix_map_t;
     typedef Map<vec_t> vec_map_t;
 
@@ -210,9 +210,9 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     m_lagrange.resize(n_constraint);
 
     // access matrix
-    ArrayHandle<Scalar> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_cvec(m_cvec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_lagrange(m_lagrange, access_location::host, access_mode::overwrite);
+    ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
+    ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::read);
+    ArrayHandle<double> h_lagrange(m_lagrange, access_location::host, access_mode::overwrite);
 
     matrix_map_t map_matrix(h_cmatrix.data, n_constraint,n_constraint);
     vec_map_t map_vec(h_cvec.data, n_constraint, 1);
@@ -260,16 +260,17 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
         if (idx_a < n_ptl)
             {
             vec3<Scalar> f(h_force.data[idx_a]);
-            f -= Scalar(2.0)*h_lagrange.data[n]*rn;
+            f -= Scalar(2.0)*(Scalar)h_lagrange.data[n]*rn;
             h_force.data[idx_a] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
             }
         if (idx_b < n_ptl)
             {
             vec3<Scalar> f(h_force.data[idx_b]);
-            f += Scalar(2.0)*h_lagrange.data[n]*rn;
+            f += Scalar(2.0)*(Scalar)h_lagrange.data[n]*rn;
             h_force.data[idx_b] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
             }
         }
+
     }
 
 #ifdef ENABLE_MPI
