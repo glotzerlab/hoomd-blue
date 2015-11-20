@@ -67,7 +67,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "GPUVector.h"
 #include "Profiler.h"
 #include "Index1D.h"
-#include "HOOMDMath.H"
+#include "HOOMDMath.h"
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
