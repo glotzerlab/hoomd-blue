@@ -154,7 +154,10 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
 
-        //! Solve the linear matrix-vector equation
+        //! Solve the matrix equation
+        virtual void solveConstraints(unsigned int timestep);
+
+        //! Compute the constraint forces using the Lagrange multipliers
         virtual void computeConstraintForces(unsigned int timestep);
 
         //! Method called when constraint order changes

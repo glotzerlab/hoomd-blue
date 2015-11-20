@@ -103,6 +103,9 @@ class ForceDistanceConstraint : public ForceConstraint
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
 
+        //! Solve the constraint matrix equation
+        virtual void solveConstraints(unsigned int timestep);
+
         //! Solve the linear matrix-vector equation
         virtual void computeConstraintForces(unsigned int timestep);
     };

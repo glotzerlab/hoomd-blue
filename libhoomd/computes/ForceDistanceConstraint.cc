@@ -92,6 +92,9 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
     fillMatrixVector(timestep);
 
     // solve the matrix vector equation
+    solveConstraints(timestep);
+
+    // compute forces
     computeConstraintForces(timestep);
 
     if (m_prof)
@@ -197,8 +200,12 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         }
     }
 
-void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
+void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("solve");
+
+    // use Eigen dense matrix algebra (slow for large matrices)
     typedef Matrix<double, Dynamic, Dynamic, ColMajor> matrix_t;
     typedef Matrix<double, Dynamic, 1> vec_t;
     typedef Map<matrix_t> matrix_map_t;
@@ -221,6 +228,14 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     // solve Ax = b
     map_lagrange = map_matrix.colPivHouseholderQr().solve(map_vec);
 
+    if (m_prof)
+        m_prof->pop();
+    }
+
+void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
+    {
+    ArrayHandle<double> h_lagrange(m_lagrange, access_location::host, access_mode::read);
+
     // access particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -234,6 +249,8 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
 
     // reset force arrray
     memset(h_force.data,0,sizeof(Scalar4)*n_ptl);
+
+    unsigned int n_constraint = m_cdata->getN();
 
     // copy output to force array
     for (unsigned int n = 0; n < n_constraint; ++n)

@@ -179,10 +179,10 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
+void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     {
     if (m_prof)
-        m_prof->push(m_exec_conf,"constraint forces");
+        m_prof->push(m_exec_conf,"solve");
 
     unsigned int n_constraint = m_cdata->getN();
 
@@ -228,10 +228,10 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     if (sparsity_pattern_changed)
         {
-        m_exec_conf->msg->notice(6) << "ForceDistanceConstraintGPU: constraint matrix changed. Setting up cuSolver" << std::endl;
+        m_exec_conf->msg->notice(6) << "ForceDistanceConstraintGPU: sparsity pattern changed. Solving on CPU" << std::endl;
 
         if (m_prof)
-            m_prof->push(m_exec_conf, "LU");
+            m_prof->push(m_exec_conf, "CPU LU");
 
         /*
          * re-initialize sparse matrix solver on host
@@ -443,76 +443,87 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
     // reallocate work space for cusolverRf
     m_T.resize(n_constraint);
 
-        {
-        // access sparse matrix structural data
-        ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::read);
-        ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::read);
-        ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::read);
+    // access sparse matrix structural data
+    ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::read);
+    ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::read);
+    ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::read);
 
-        // permutations
-        ArrayHandle<int> d_P(m_P, access_location::device, access_mode::read);
-        ArrayHandle<int> d_Q(m_Q, access_location::device, access_mode::read);
+    // permutations
+    ArrayHandle<int> d_P(m_P, access_location::device, access_mode::read);
+    ArrayHandle<int> d_Q(m_Q, access_location::device, access_mode::read);
 
-        // import matrix to cusolverRf
-        cusolverRfResetValues(n_constraint, m_nnz_tot, d_csr_rowptr.data, d_csr_colind.data, d_csr_val.data,
-            d_P.data, d_Q.data, m_cusolver_rf_handle);
+    // import matrix to cusolverRf
+    cusolverRfResetValues(n_constraint, m_nnz_tot, d_csr_rowptr.data, d_csr_colind.data, d_csr_val.data,
+        d_P.data, d_Q.data, m_cusolver_rf_handle);
 
-        // refactor using updated values
-        cusolverRfRefactor(m_cusolver_rf_handle);
+    // refactor using updated values
+    cusolverRfRefactor(m_cusolver_rf_handle);
 
-        // solve A*x = b
+    // solve A*x = b
 
-        // access work space
-        ArrayHandle<double> d_T(m_T, access_location::device, access_mode::readwrite);
+    // access work space
+    ArrayHandle<double> d_T(m_T, access_location::device, access_mode::readwrite);
 
-        // access solution vector
-        ArrayHandle<double> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
+    // access solution vector
+    ArrayHandle<double> d_lagrange(m_lagrange, access_location::device, access_mode::overwrite);
 
-        // copy RHS into solution vector
-        ArrayHandle<double> d_vec(m_cvec, access_location::device, access_mode::read);
-        cudaMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,cudaMemcpyDeviceToDevice);
+    // copy RHS into solution vector
+    ArrayHandle<double> d_vec(m_cvec, access_location::device, access_mode::read);
+    cudaMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,cudaMemcpyDeviceToDevice);
 
-        int nrhs = 1;
-        cusolverRfSolve(m_cusolver_rf_handle, d_P.data, d_Q.data, nrhs, d_T.data, n_constraint, d_lagrange.data,
-            n_constraint);
+    int nrhs = 1;
+    // solve
+    cusolverRfSolve(m_cusolver_rf_handle, d_P.data, d_Q.data, nrhs, d_T.data, n_constraint,
+        d_lagrange.data, n_constraint);
 
-        // access particle data arrays
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
+    }
 
-        // access force array
-        ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
+    {
+    if (m_prof)
+        m_prof->push(m_exec_conf,"constraint forces");
 
-        // access GPU constraint table on device
-        const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
-        const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
+    // access solution vector
+    ArrayHandle<double> d_lagrange(m_lagrange, access_location::device, access_mode::read);
 
-        ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
-                                                 access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
+    // access particle data arrays
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-        const BoxDim& box = m_pdata->getBox();
+    // access force array
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-        unsigned int n_ptl = m_pdata->getN();
+    // access GPU constraint table on device
+    const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
+    const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
 
-        // compute constraint forces by solving linear system of equations
-        m_tuner_force->begin();
-        gpu_compute_constraint_forces(d_pos.data,
-            d_gpu_clist.data,
-            gpu_table_indexer,
-            d_gpu_n_constraints.data,
-            d_gpu_cpos.data,
-            d_force.data,
-            box,
-            n_ptl,
-            m_tuner_force->getParam(),
-            d_lagrange.data);
+    ArrayHandle<BondData::members_t> d_gpu_clist(gpu_constraint_list, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int > d_gpu_n_constraints(this->m_cdata->getNGroupsArray(),
+                                             access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_gpu_cpos(m_cdata->getGPUPosTable(), access_location::device, access_mode::read);
 
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+    const BoxDim& box = m_pdata->getBox();
 
-            m_tuner_force->end();
-        }
+    unsigned int n_ptl = m_pdata->getN();
+
+    // compute constraint forces by solving linear system of equations
+    m_tuner_force->begin();
+    gpu_compute_constraint_forces(d_pos.data,
+        d_gpu_clist.data,
+        gpu_table_indexer,
+        d_gpu_n_constraints.data,
+        d_gpu_cpos.data,
+        d_force.data,
+        box,
+        n_ptl,
+        m_tuner_force->getParam(),
+        d_lagrange.data);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_tuner_force->end();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
