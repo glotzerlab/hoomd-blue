@@ -440,6 +440,9 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
         } // end if sparsity pattern changed
 
+    if (m_prof)
+        m_prof->push(m_exec_conf, "refactor");
+
     // reallocate work space for cusolverRf
     m_T.resize(n_constraint);
 
@@ -475,6 +478,9 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     // solve
     cusolverRfSolve(m_cusolver_rf_handle, d_P.data, d_Q.data, nrhs, d_T.data, n_constraint,
         d_lagrange.data, n_constraint);
+
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
