@@ -286,7 +286,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
             &m_Qreorder.front(), &m_mapBfromA.front(), &m_reorder_work.front());
 
         // B = A(mapBfromA)
-        for (int i = 0; i < m_nnz_tot; ++i)
+        for (unsigned int i = 0; i < m_nnz_tot; ++i)
             {
             m_csr_val_B[i] = h_csr_val.data[ m_mapBfromA[i] ];
             }
@@ -386,7 +386,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
         // P = Plu*Qreorder
         // Q = Qlu*Qreorder
-        for (int i = 0; i < n_constraint; ++i)
+        for (unsigned int i = 0; i < n_constraint; ++i)
             {
             h_P.data[i] = m_Qreorder[m_Plu[i]];
             h_Q.data[i] = m_Qreorder[m_Qlu[i]];
