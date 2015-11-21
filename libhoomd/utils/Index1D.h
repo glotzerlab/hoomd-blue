@@ -74,7 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! Row major mapping of 2D onto 1D
     \ingroup utils
 */
-class Index2D
+struct Index2D
     {
     public:
         //! Contstructor
@@ -127,7 +127,7 @@ class Index2D
 /*! Row major mapping of 3D onto 1D
     \ingroup utils
 */
-class Index3D
+struct Index3D
     {
     public:
         //! Contstructor
@@ -200,7 +200,7 @@ class Index3D
 /*! Row major mapping of a 2D upper triangular array onto 1D
     \ingroup utils
 */
-class Index2DUpperTriangular
+struct Index2DUpperTriangular
     {
     public:
         //! Contstructor

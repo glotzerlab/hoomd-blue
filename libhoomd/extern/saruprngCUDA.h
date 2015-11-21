@@ -417,20 +417,6 @@ __device__ inline double SaruGPU::d(double low, double high)
     return d<1>(low, high);
     }
 
-template<class Real>
-__device__ inline Real SaruGPU::s()
-    {
-    // default implementation returns something ridiculous, so it is obvious when it is called
-    return -1000000000;
-    }
-
-template<class Real>
-__device__ inline Real SaruGPU::s(Real low, Real high)
-    {
-    // default implementation returns something ridiculous, so it is obvious when it is called
-    return -1000000000;
-    }
-
 template<>
 __device__ inline float SaruGPU::s()
     {

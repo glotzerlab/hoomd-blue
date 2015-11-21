@@ -49,43 +49,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepBDNVT.h"
+#include "TwoStepBD.h"
 
-#ifndef __TWO_STEP_BDNVT_GPU_H__
-#define __TWO_STEP_BDNVT_GPU_H__
+#ifndef __TWO_STEP_BD_GPU_H__
+#define __TWO_STEP_BD_GPU_H__
 
-/*! \file TwoStepBDNVTGPU.h
-    \brief Declares the TwoStepBDNVTGPU class
+/*! \file TwoStepBDGPU.h
+    \brief Declares the TwoStepBDGPU class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-//! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
-/*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
-    IntegrationMethodTwoStep interface, runs on the GPU.
-
-    This class must inherit from TwoStepBDNVT so that it has that interface. However, is based off of the NVE
-    integration base routines. Rather than doing some evil multiple inheritance here, the integrateStepOne() from
-    TwoStepNVEGPU will simply be duplicated here.
-
-    In order to implement integrateStepTwo with the added BD forces, integrateStepTwo needs is reimplemened for
-    BDNVT.
+//! Implements Brownian dynamics on the GPU
+/*! GPU accelerated version of TwoStepBD
 
     \ingroup updaters
 */
-class TwoStepBDNVTGPU : public TwoStepBDNVT
+class TwoStepBDGPU : public TwoStepBD
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<Variant> T,
-                        unsigned int seed,
-                        bool gamma_diam,
-                        const std::string& suffix = std::string(""));
-        virtual ~TwoStepBDNVTGPU() {};
+        TwoStepBDGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                     boost::shared_ptr<ParticleGroup> group,
+                     boost::shared_ptr<Variant> T,
+                     unsigned int seed,
+                     bool use_lambda,
+                     Scalar lambda);
+
+        virtual ~TwoStepBDGPU() {};
 
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
@@ -94,13 +87,10 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
-        unsigned int m_block_size;              //!< block size for partial sum memory
-        unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
-        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
+        unsigned int m_block_size;               //!< block size
     };
 
-//! Exports the TwoStepBDNVTGPU class to python
-void export_TwoStepBDNVTGPU();
+//! Exports the TwoStepBDGPU class to python
+void export_TwoStepBDGPU();
 
-#endif // #ifndef __TWO_STEP_BDNVT_GPU_H__
+#endif // #ifndef __TWO_STEP_BD_GPU_H__

@@ -361,7 +361,7 @@ unsigned int Autotuner::computeOptimalParameter()
             }
         }
 
-    unsigned int opt;
+    unsigned int opt = 0;
 
     if (is_root)
         {

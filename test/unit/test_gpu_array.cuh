@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup unit_tests
 */
 
-#ifndef __GPU_ARRAY_TEST_H__
+#ifndef __GPU_ARRAY_TEST_CUH__
 #define __GPU_ARRAY_TEST_CUH__
 
 extern "C"

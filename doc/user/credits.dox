@@ -69,7 +69,7 @@ Carolyn Phillips, University of Michigan
  - pair.dpdlj
  - pair.dpd
  - pair.dpd_conservative
- - integrate.bdnvt
+ - integrate.langevin
  - bond.fene
  - pair.slj
  - Initial testing and debugging of HOOMD on Mac OS X systems

@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepBDNVTRigidGPU.h"
 #include "TwoStepNVERigidGPU.cuh"
-#include "TwoStepBDNVTGPU.cuh"
+#include "TwoStepLangevinGPU.cuh"
 #include "TwoStepBDNVTRigidGPU.cuh"
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
@@ -259,10 +259,11 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_orientation = d_particle_orientation.data;
 
     // compute the Langevin forces on the GPU
-    bdnvt_step_two_args args;
+    langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = m_gamma.getNumElements();
-    args.gamma_diam = m_gamma_diam;
+    args.use_lambda = m_gamma_diam;
+    args.lambda = Scalar(1.0);
     args.T = m_temperature->getValue(timestep);
     args.timestep = timestep;
     args.seed = m_seed;

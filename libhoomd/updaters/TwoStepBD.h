@@ -47,66 +47,49 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
 
-// Maintainer: morozov
+#include "TwoStepLangevinBase.h"
 
-/**
-powered by:
-Moscow group.
-*/
+#ifndef __TWO_STEP_BD_H__
+#define __TWO_STEP_BD_H__
 
-#include "EAMForceCompute.h"
-#include "NeighborList.h"
-#include "EAMForceGPU.cuh"
-#include "Autotuner.h"
-
-#include <boost/shared_ptr.hpp>
-
-/*! \file EAMForceComputeGPU.h
-    \brief Declares the class EAMForceComputeGPU
+/*! \file TwoStepLangevin.h
+    \brief Declares the TwoStepLangevin class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __EAMForceComputeGPU_H__
-#define __EAMForceComputeGPU_H__
+//! Integrates part of the system forward in two steps with Brownian dynamics
+/*! Implements Brownian dynamics.
 
-//! Computes Lennard-Jones forces on each particle using the GPU
-/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
+    Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and assuming terminal
+    velocity.
+
+    \ingroup updaters
 */
-class EAMForceComputeGPU : public EAMForceCompute
+class TwoStepBD : public TwoStepLangevinBase
     {
     public:
-        //! Constructs the compute
-        EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+        //! Constructs the integration method and associates it with the system
+        TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
+                     boost::shared_ptr<ParticleGroup> group,
+                     boost::shared_ptr<Variant> T,
+                     unsigned int seed,
+                     bool use_lambda,
+                     Scalar lambda);
+        virtual ~TwoStepBD();
 
-        //! Destructor
-        virtual ~EAMForceComputeGPU();
+        //! Performs the second step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            EAMForceCompute::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
-
-    protected:
-        EAMTexInterData eam_data;                   //!< Undocumented parameter
-        EAMtex eam_tex_data;                        //!< Undocumented parameter
-        Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
     };
 
-//! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU();
+//! Exports the TwoStepLangevin class to python
+void export_TwoStepBD();
 
-#endif
+#endif // #ifndef __TWO_STEP_BD_H__

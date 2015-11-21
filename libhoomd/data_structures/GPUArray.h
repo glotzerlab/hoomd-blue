@@ -649,7 +649,7 @@ template<class T> void GPUArray<T>::allocate()
 
 #ifdef ENABLE_CUDA
     // we require mapped pinned memory
-    if (m_mapped && !m_exec_conf->dev_prop.canMapHostMemory)
+    if (m_mapped && m_exec_conf && !m_exec_conf->dev_prop.canMapHostMemory)
         {
         if (m_exec_conf)
             m_exec_conf->msg->error() << "Device does not support mapped pinned memory." << std::endl << std::endl;
