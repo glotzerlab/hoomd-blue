@@ -62,6 +62,9 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               unsigned int nptl_local,
                                               double *d_matrix,
                                               double *d_vec,
+                                              double *d_csr_val,
+                                              const int *d_csr_idxlookup,
+                                              unsigned int *d_sparsity_pattern_changed,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
                                               const Scalar4 *d_netforce,
@@ -176,6 +179,19 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
 
             // write out matrix element in column-major
             d_matrix[m*n_constraint+n] = mat_element;
+
+            // update sparse matrix
+            int k = d_csr_idxlookup[m*n_constraint+n];
+
+            if ( (k == -1 && mat_element != double(0.0))
+                || (k != -1 && mat_element == double(0.0)))
+                {
+                *d_sparsity_pattern_changed = 1;
+                }
+            else
+                {
+                d_csr_val[k] = mat_element;
+                }
             }
 
         if (cpos == 0 || idx_na >= nptl_local || idx_nb >= nptl_local)
@@ -191,6 +207,9 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
                           double *d_matrix,
                           double *d_vec,
+                          double *d_csr_val,
+                          const int *d_csr_idxlookup,
+                          unsigned int *d_sparsity_pattern_changed,
                           const Scalar4 *d_pos,
                           const Scalar4 *d_vel,
                           const Scalar4 *d_netforce,
@@ -227,6 +246,9 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         nptl_local,
         d_matrix,
         d_vec,
+        d_csr_val,
+        d_csr_idxlookup,
+        d_sparsity_pattern_changed,
         d_pos,
         d_vel,
         d_netforce,
@@ -320,20 +342,13 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
                            cusparseMatDescr_t cusparse_mat_descr,
                            int *d_csr_rowptr,
                            int *d_csr_colind,
-                           double *d_csr_val,
-                           unsigned int &sparsity_pattern_changed)
+                           double *d_csr_val)
     {
     // convert dense matrix to compressed sparse row
 
-    int new_nnz = 0;
     // count zeros
     cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
-        cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &new_nnz);
-
-    sparsity_pattern_changed = (nnz != new_nnz);
-
-    // store new value
-    nnz = new_nnz;
+        cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
 
     // update values in CSR format
     cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,

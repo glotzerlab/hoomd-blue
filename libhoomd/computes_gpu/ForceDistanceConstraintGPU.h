@@ -52,7 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceDistanceConstraint.h"
 
 #include "Autotuner.h"
-#include "util/mgpucontext.h"
+#include "GPUFlags.h"
 
 #include <boost/signals2.hpp>
 
@@ -147,6 +147,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<double> m_csr_val;       //!< Matrix values in compressed sparse row (CSR) format
         GPUVector<int> m_csr_rowptr;       //!< Row offset for CSR
         GPUVector<int> m_csr_colind;       //!< Column index for CSR
+        GPUVector<int> m_csr_idxlookup;    //!< Lookup table (n*n) for CSR format
+        GPUFlags<unsigned int> m_condition; //!< ==1 if sparsity pattern has changed
 
         //! Connection to the signal notifying when groups are resorted
         boost::signals2::connection m_constraint_reorder_connection;
