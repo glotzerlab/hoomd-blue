@@ -188,7 +188,8 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 {
                 *d_sparsity_pattern_changed = 1;
                 }
-            else
+
+            if (k != -1)
                 {
                 d_csr_val[k] = mat_element;
                 }
