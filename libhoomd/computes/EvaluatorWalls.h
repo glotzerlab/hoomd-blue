@@ -139,18 +139,32 @@ class EvaluatorWalls
             qi = charge;
             }
 
-        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, vec3<Scalar> drv, bool inside)
+        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv, const bool inside)
             {
-            if (m_params.rshift>Scalar(0.0) || inside)
+            if (inside || m_params.rshift>Scalar(0.0))
                 {
                 Scalar3 dr = -vec_to_scalar3(drv);
-                // calculate r_ij squared (FLOPS: 5)
-                Scalar rsq = dot(dr, dr);
-                Scalar rsq_eff = (inside) ? rsq : Scalar(0.0);
+                Scalar rsq;
+                Scalar rsq_eff;
+                Scalar r = Scalar(0.0);
+                rsq = dot(dr, dr);
                 if (m_params.rshift > 0.0)
                     {
-                    rsq_eff += m_params.rshift*m_params.rshift + 2*m_params.rshift*fast::sqrt(rsq_eff);
-                    dr = (inside) ? dr : -dr;
+                    r = fast::sqrt(rsq);
+                    if (inside)
+                        {
+                        rsq_eff = rsq + m_params.rshift*m_params.rshift + 2*m_params.rshift*r;
+                        }
+                    else
+                        {
+                        rsq_eff = m_params.rshift*m_params.rshift;
+                        dr *= -1;
+                        }
+                    dr *= ((r+m_params.rshift)/r);
+                    }
+                else
+                    {
+                    rsq_eff = rsq;
                     }
                 // compute the force and potential energy
                 Scalar force_divr = Scalar(0.0);
@@ -168,7 +182,7 @@ class EvaluatorWalls
                     {
                     // add the force, potential energy and virial to the particle i
                     F += dr*force_divr; //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                    energy += (inside) ? pair_eng : pair_eng + rsq * force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                    energy += (inside) ? pair_eng : pair_eng + (rsq + r * m_params.rshift) * force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
                     virial[0] += force_divr*dr.x*dr.x;
                     virial[1] += force_divr*dr.x*dr.y;
                     virial[2] += force_divr*dr.x*dr.z;

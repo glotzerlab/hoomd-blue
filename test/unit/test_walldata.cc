@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE( sphere_wall_math )
     MY_BOOST_CHECK_CLOSE(vx.x, -6.2, tol);
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
-    MY_BOOST_CHECK_CLOSE(dx, 6.2, tol);
+    MY_BOOST_CHECK_CLOSE(dx, -6.2, tol);
     BOOST_CHECK(inside==false);
 
     // test center
@@ -156,7 +156,6 @@ BOOST_AUTO_TEST_CASE( sphere_wall_math )
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==true);
 
     SphereWall invSphere = SphereWall(0.5,make_scalar3(1.0,2.0,3.0),false);
 
@@ -167,7 +166,7 @@ BOOST_AUTO_TEST_CASE( sphere_wall_math )
     MY_BOOST_CHECK_CLOSE(vx.x, -0.14729537, tol);
     MY_BOOST_CHECK_CLOSE(vx.y, -1.17836298, tol);
     MY_BOOST_CHECK_CLOSE(vx.z, 0.73647686, tol);
-    MY_BOOST_CHECK_CLOSE(dx, 1, tol);
+    MY_BOOST_CHECK_CLOSE(dx, 1.3973666, tol);
     BOOST_CHECK(inside==true);
 
     // test "outside"
@@ -177,7 +176,7 @@ BOOST_AUTO_TEST_CASE( sphere_wall_math )
     MY_BOOST_CHECK_CLOSE(vx.x, 0.2472136, tol);
     MY_BOOST_CHECK_CLOSE(vx.y, 0.1236068, tol);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
-    MY_BOOST_CHECK_CLOSE(dx, 1, tol);
+    MY_BOOST_CHECK_CLOSE(dx, -0.2763932073, tol);
     BOOST_CHECK(inside==false);
 
     // test on surface
@@ -188,7 +187,6 @@ BOOST_AUTO_TEST_CASE( sphere_wall_math )
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==false);
     }
 
 BOOST_AUTO_TEST_CASE( cylinder_wall_math )
@@ -228,14 +226,13 @@ BOOST_AUTO_TEST_CASE( cylinder_wall_math )
 
 
     // test on surface
-    x = vec3<Scalar>(2.1,1.1,0.7);
+    x = vec3<Scalar>(2.1,1.1,4.2);
     vx = vecPtToWall(Cylinder, x, inside);
     dx = distWall(Cylinder, x);
     MY_BOOST_CHECK_SMALL(vx.x, tol_small);
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==true);
 
 
     CylinderWall invCylinder = CylinderWall(3.5,make_scalar3(2.1,1.1,0.7),make_scalar3(1.5,0,0),false);
@@ -257,18 +254,17 @@ BOOST_AUTO_TEST_CASE( cylinder_wall_math )
     MY_BOOST_CHECK_SMALL(vx.x, tol_small);
     MY_BOOST_CHECK_CLOSE(vx.y, 0.75642678, tol);
     MY_BOOST_CHECK_CLOSE(vx.z, 1.96670962, tol);
-    MY_BOOST_CHECK_CLOSE(dx, 2.10716117, tol);
+    MY_BOOST_CHECK_CLOSE(dx, -2.10716117, tol);
     BOOST_CHECK(inside==false);
 
     // test on surface
-    x = vec3<Scalar>(2.1,1.1,0.7);
+    x = vec3<Scalar>(2.1,1.1,4.2);
     vx = vecPtToWall(invCylinder, x, inside);
     dx = distWall(invCylinder, x);
     MY_BOOST_CHECK_SMALL(vx.x, tol_small);
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==false);
     }
 
 
@@ -305,8 +301,7 @@ BOOST_AUTO_TEST_CASE( plane_wall_math )
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==true);
-
+    
     PlaneWall invPlane = PlaneWall(make_scalar3(4.1,2.1,8.7),make_scalar3(-1.1,-0.3,-5.0),false);
 
     // test on surface
@@ -317,5 +312,4 @@ BOOST_AUTO_TEST_CASE( plane_wall_math )
     MY_BOOST_CHECK_SMALL(vx.y, tol_small);
     MY_BOOST_CHECK_SMALL(vx.z, tol_small);
     MY_BOOST_CHECK_SMALL(dx, tol_small);
-    BOOST_CHECK(inside==false);
     }

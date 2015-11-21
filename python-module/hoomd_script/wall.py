@@ -609,7 +609,7 @@ class wallpotential(external._external_force):
         ntypes = globals.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
             type=globals.system_definition.getParticleData().getNameByType(i);
-            if (self.force_coeff.values[type]['r_cut']<=0):
+            if self.force_coeff.values[type]['r_cut']<=0:
                 self.force_coeff.values[type]['r_cut']=0;
         external._external_force.update_coeffs(self);
 

@@ -399,12 +399,13 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     // fifth test: the bond array
         {
         writer->setOutputBond(true);
+        writer->setOutputType(false);
 
         // write the file
-        writer->analyze(50);
+        writer->analyze(40);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000040.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -434,10 +435,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputAngle(true);
 
         // write the file
-        writer->analyze(60);
+        writer->analyze(50);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -467,10 +468,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputImage(true);
 
         // write the file
-        writer->analyze(70);
+        writer->analyze(60);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -508,10 +509,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputMass(true);
 
         // write the file
-        writer->analyze(80);
+        writer->analyze(70);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -549,10 +550,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputDiameter(true);
 
         // write the file
-        writer->analyze(90);
+        writer->analyze(80);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000090.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -590,10 +591,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputDihedral(true);
 
         // write the file
-        writer->analyze(100);
+        writer->analyze(90);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000090.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -620,10 +621,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputImproper(true);
 
         // write the file
-        writer->analyze(110);
+        writer->analyze(100);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -649,10 +650,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputBody(true);
 
         // write the file
-        writer->analyze(120);
+        writer->analyze(110);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -690,10 +691,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputMomentInertia(true);
 
         // write the file
-        writer->analyze(130);
+        writer->analyze(120);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -731,10 +732,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputAngularMomentum(true);
 
         // write the file
-        writer->analyze(150);
+        writer->analyze(130);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000150.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
