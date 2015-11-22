@@ -601,7 +601,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
 void export_ForceDistanceConstraintGPU()
     {
-    class_< ForceDistanceConstraintGPU, boost::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceConstraint>, boost::noncopyable >
+    class_< ForceDistanceConstraintGPU, boost::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint>, boost::noncopyable >
     ("ForceDistanceConstraintGPU", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
