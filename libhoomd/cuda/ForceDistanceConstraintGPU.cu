@@ -272,6 +272,8 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
                                         const unsigned int *d_gpu_cpos,
                                         double *d_lagrange,
                                         Scalar4 *d_force,
+                                        Scalar *d_virial,
+                                        unsigned int virial_pitch,
                                         const BoxDim box)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -284,6 +286,14 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
 
     // the accumulated force on this ptl
     vec3<Scalar> f(0.0,0.0,0.0);
+
+    // accumulated virial tensor components
+    Scalar virialxx(0.0);
+    Scalar virialxy(0.0);
+    Scalar virialxz(0.0);
+    Scalar virialyy(0.0);
+    Scalar virialyz(0.0);
+    Scalar virialzz(0.0);
 
     // iterate over constraints involving ptl with index idx
     for (unsigned int cidx = 0; cidx < n_constraint_ptl; cidx++)
@@ -329,10 +339,25 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
                 {
                 f += Scalar(2.0)*(Scalar)d_lagrange[n]*rn;
                 }
+
+            // virial
+            virialxx -= (Scalar) d_lagrange[n]*rn.x*rn.x;
+            virialxy -= (Scalar) d_lagrange[n]*rn.x*rn.y;
+            virialxz -= (Scalar) d_lagrange[n]*rn.x*rn.z;
+            virialyy -= (Scalar) d_lagrange[n]*rn.y*rn.y;
+            virialyz -= (Scalar) d_lagrange[n]*rn.y*rn.z;
+            virialzz -= (Scalar) d_lagrange[n]*rn.z*rn.z;
             }
         }
 
     d_force[idx] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
+
+    d_virial[0*virial_pitch+idx] = virialxx;
+    d_virial[1*virial_pitch+idx] = virialxy;
+    d_virial[2*virial_pitch+idx] = virialxz;
+    d_virial[3*virial_pitch+idx] = virialyy;
+    d_virial[4*virial_pitch+idx] = virialyz;
+    d_virial[5*virial_pitch+idx] = virialzz;
     }
 
 cudaError_t gpu_dense2sparse(unsigned int n_constraint,
@@ -364,6 +389,8 @@ cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
                                    const unsigned int *d_gpu_n_constraints,
                                    const unsigned int *d_gpu_cpos,
                                    Scalar4 *d_force,
+                                   Scalar *d_virial,
+                                   unsigned int virial_pitch,
                                    const BoxDim box,
                                    unsigned int nptl_local,
                                    unsigned int block_size,
@@ -393,6 +420,8 @@ cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
         d_gpu_cpos,
         d_lagrange,
         d_force,
+        d_virial,
+        virial_pitch,
         box);
 
     return cudaSuccess;

@@ -555,8 +555,9 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
     // access particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    // access force array
+    // access force and virial arrays
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
     // access GPU constraint table on device
     const GPUArray<BondData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
@@ -579,6 +580,8 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
         d_gpu_n_constraints.data,
         d_gpu_cpos.data,
         d_force.data,
+        d_virial.data,
+        m_virial_pitch,
         box,
         n_ptl,
         m_tuner_force->getParam(),

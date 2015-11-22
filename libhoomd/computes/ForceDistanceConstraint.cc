@@ -240,8 +240,9 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-    // access force array
+    // access force and virial arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -249,6 +250,7 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
 
     // reset force arrray
     memset(h_force.data,0,sizeof(Scalar4)*n_ptl);
+    memset(h_virial.data,0,sizeof(Scalar)*6*m_virial_pitch);
 
     unsigned int n_constraint = m_cdata->getN();
 
@@ -273,18 +275,41 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
         // apply minimum image
         rn = box.minImage(rn);
 
+        // virial
+        Scalar virialxx = -(Scalar) h_lagrange.data[n]*rn.x*rn.x;
+        Scalar virialxy =- (Scalar) h_lagrange.data[n]*rn.x*rn.y;
+        Scalar virialxz = -(Scalar) h_lagrange.data[n]*rn.x*rn.z;
+        Scalar virialyy = -(Scalar) h_lagrange.data[n]*rn.y*rn.y;
+        Scalar virialyz = -(Scalar) h_lagrange.data[n]*rn.y*rn.z;
+        Scalar virialzz = -(Scalar) h_lagrange.data[n]*rn.z*rn.z;
+
         // if idx is local
         if (idx_a < n_ptl)
             {
             vec3<Scalar> f(h_force.data[idx_a]);
             f -= Scalar(2.0)*(Scalar)h_lagrange.data[n]*rn;
             h_force.data[idx_a] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
+
+            h_virial.data[0*m_virial_pitch+idx_a] += virialxx;
+            h_virial.data[1*m_virial_pitch+idx_a] += virialxy;
+            h_virial.data[2*m_virial_pitch+idx_a] += virialxz;
+            h_virial.data[3*m_virial_pitch+idx_a] += virialyy;
+            h_virial.data[4*m_virial_pitch+idx_a] += virialyz;
+            h_virial.data[5*m_virial_pitch+idx_a] += virialzz;
             }
         if (idx_b < n_ptl)
             {
             vec3<Scalar> f(h_force.data[idx_b]);
             f += Scalar(2.0)*(Scalar)h_lagrange.data[n]*rn;
             h_force.data[idx_b] = make_scalar4(f.x,f.y,f.z,Scalar(0.0));
+
+            h_virial.data[0*m_virial_pitch+idx_b] += virialxx;
+            h_virial.data[1*m_virial_pitch+idx_b] += virialxy;
+            h_virial.data[2*m_virial_pitch+idx_b] += virialxz;
+            h_virial.data[3*m_virial_pitch+idx_b] += virialyy;
+            h_virial.data[4*m_virial_pitch+idx_b] += virialyz;
+            h_virial.data[5*m_virial_pitch+idx_b] += virialzz;
+
             }
         }
 
