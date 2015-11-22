@@ -200,7 +200,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         Scalar d = m_cdata->getValueByIndex(n);
 
         // check distance violation
-        if ((dot(rn,rn)-d*d) >= m_rel_tol*m_rel_tol*d*d)
+        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d)
             {
             m_constraint_violated.resetFlags(n+1);
             }
