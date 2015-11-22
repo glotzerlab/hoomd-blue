@@ -65,6 +65,8 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               double *d_csr_val,
                                               const int *d_csr_idxlookup,
                                               unsigned int *d_sparsity_pattern_changed,
+                                              Scalar rel_tol,
+                                              unsigned int *d_constraint_violated,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
                                               const Scalar4 *d_netforce,
@@ -195,6 +197,11 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 }
             }
 
+        if ((dot(rn,rn)-d*d) >= rel_tol*rel_tol*d*d)
+            {
+            *d_constraint_violated = n+1;
+            }
+
         if (cpos == 0 || idx_na >= nptl_local || idx_nb >= nptl_local)
             {
             // fill vector component
@@ -211,6 +218,8 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           double *d_csr_val,
                           const int *d_csr_idxlookup,
                           unsigned int *d_sparsity_pattern_changed,
+                          Scalar rel_tol,
+                          unsigned int *d_constraint_violated,
                           const Scalar4 *d_pos,
                           const Scalar4 *d_vel,
                           const Scalar4 *d_netforce,
@@ -250,6 +259,8 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         d_csr_val,
         d_csr_idxlookup,
         d_sparsity_pattern_changed,
+        rel_tol,
+        d_constraint_violated,
         d_pos,
         d_vel,
         d_netforce,

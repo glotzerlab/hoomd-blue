@@ -65,8 +65,11 @@ using namespace Eigen;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
-        : ForceConstraint(sysdef), m_cdata(m_sysdef->getConstraintData()), m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf)
+        : ForceConstraint(sysdef), m_cdata(m_sysdef->getConstraintData()),
+          m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
+          m_rel_tol(1e-3), m_constraint_violated(m_exec_conf)
     {
+    m_constraint_violated.resetFlags(0);
     }
 
 /*! Does nothing in the base class
@@ -90,6 +93,9 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
 
     // populate the terms in the matrix vector equation
     fillMatrixVector(timestep);
+
+    // check violations
+    checkConstraints(timestep);
 
     // solve the matrix vector equation
     solveConstraints(timestep);
@@ -193,10 +199,42 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         // get constraint distance
         Scalar d = m_cdata->getValueByIndex(n);
 
+        // check distance violation
+        if ((dot(rn,rn)-d*d) >= m_rel_tol*m_rel_tol*d*d)
+            {
+            m_constraint_violated.resetFlags(n+1);
+            }
+
         // fill vector component
         h_cvec.data[n] = (dot(qn,qn)-d*d)/m_deltaT/m_deltaT;
         h_cvec.data[n] += double(2.0)*dot(qn,vec3<Scalar>(h_netforce.data[idx_a])/ma
               -vec3<Scalar>(h_netforce.data[idx_b])/mb);
+        }
+    }
+
+void ForceDistanceConstraint::checkConstraints(unsigned int timestep)
+    {
+    unsigned int n = m_constraint_violated.readFlags();
+    if (n > 0)
+        {
+        ArrayHandle<unsigned int> h_group_tag(m_cdata->getTags(), access_location::host, access_mode::read);
+
+        ConstraintData::members_t m = m_cdata->getMembersByIndex(n-1);
+        unsigned int tag_a = m.tag[0];
+        unsigned int tag_b = m.tag[1];
+        Scalar d = m_cdata->getValueByIndex(n-1);
+
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+        Scalar4 pos_a = h_pos.data[h_rtag.data[tag_a]];
+        Scalar4 pos_b = h_pos.data[h_rtag.data[tag_b]];
+
+        vec3<Scalar> rn = m_pdata->getBox().minImage(vec3<Scalar>(pos_a)-vec3<Scalar>(pos_b));
+        m_exec_conf->msg->warning() << "Constraint " << h_group_tag.data[n-1] << " between particles "
+            << tag_a << " and " << tag_b << " violated!" << std::endl
+            << "(distance " << sqrt(dot(rn,rn)) << " exceeds " << d
+            << " within relative tolerance " << m_rel_tol << ")" << std::endl;
+        m_constraint_violated.resetFlags(0);
         }
     }
 
@@ -339,5 +377,6 @@ void export_ForceDistanceConstraint()
     {
     class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<ForceConstraint>, boost::noncopyable >
     ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+        .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

@@ -318,3 +318,14 @@ class distance(_constraint_force):
             self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
+
+    ## Set parameters for constraint computation
+    #
+    # \param rel_tol The relative tolerance with which constraint violations are detected (**optional**)
+    # \b Examples:
+    # \code
+    # dist = constrain.distance()
+    # dist.set_params(rel_tol=0.0001)
+    def set_params(self,rel_tol=None):
+        if rel_tol is not None:
+            self.cpp_force.setRelativeTolerance(float(rel_tol))

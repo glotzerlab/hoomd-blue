@@ -185,6 +185,8 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             d_csr_val.data,
             d_csr_idxlookup.data,
             m_condition.getDeviceFlags(),
+            m_rel_tol,
+            m_constraint_violated.getDeviceFlags(),
             d_pos.data,
             d_vel.data,
             d_netforce.data,

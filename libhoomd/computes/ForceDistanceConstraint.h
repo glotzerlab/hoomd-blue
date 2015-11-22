@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __ForceDistanceConstraint_H__
 
 #include "GPUVector.h"
+#include "GPUFlags.h"
 
 /*! Implements a pairwise distance constraint using the algorithm of
 
@@ -84,6 +85,12 @@ class ForceDistanceConstraint : public ForceConstraint
             return m_cdata->getNGlobal();
             }
 
+        //! Set the relative tolerance for constraint warnings
+        void setRelativeTolerance(Scalar rel_tol)
+            {
+            m_rel_tol = rel_tol;
+            }
+
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
@@ -97,11 +104,17 @@ class ForceDistanceConstraint : public ForceConstraint
         GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
         GPUVector<double> m_lagrange;               //!< The solution for the lagrange multipliers
 
+        Scalar m_rel_tol;                           //!< Rel. tolerance for constraint violation warning
+        GPUFlags<unsigned int> m_constraint_violated; //!< The id of the violated constraint + 1
+
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
+
+        //! Check violation of constraints
+        virtual void checkConstraints(unsigned int timestep);
 
         //! Solve the constraint matrix equation
         virtual void solveConstraints(unsigned int timestep);
