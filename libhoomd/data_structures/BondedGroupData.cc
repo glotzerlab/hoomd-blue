@@ -1257,13 +1257,19 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
     {
     unsigned int old_size = groups.size();
     groups.resize(n*old_size);
-    type_id.resize(n*old_size);
+    if (has_type_mapping)
+        {
+        type_id.resize(n*old_size);
+        }
+    else
+        {
+        val.resize(n*old_size);
+        }
 
     for (unsigned int i = 0; i < old_size; ++i)
         {
         typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t g;
         g = groups[i];
-        unsigned int type = type_id[i];
 
         // replicate bonded group
         for (unsigned int j = 0; j < n; ++j)
@@ -1275,7 +1281,14 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
                 h.tag[k] = g.tag[k] + old_n_particles*j;
 
             groups[old_size*j+i] = h;
-            type_id[old_size*j+i] = type;
+            if (has_type_mapping)
+                {
+                type_id[old_size*j+i] = type_id[i];
+                }
+            else
+                {
+                val[old_size*j+i] = val[i];
+                }
             }
         }
     }
