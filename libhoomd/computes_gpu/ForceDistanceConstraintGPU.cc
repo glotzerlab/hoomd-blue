@@ -211,6 +211,12 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
 
 void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     {
+    #ifndef CUSOLVER_AVAILABLE
+    // solve on CPU
+    ForceDistanceConstraint::solveConstraints(timestep);
+    return;
+    #endif
+
     if (m_prof)
         m_prof->push(m_exec_conf,"solve");
 

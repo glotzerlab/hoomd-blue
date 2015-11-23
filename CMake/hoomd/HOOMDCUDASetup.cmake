@@ -113,3 +113,17 @@ if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_VERSION VERSION_GREATER 2.8.7)
         endif()
     endif()
 endif()
+
+# set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
+if (ENABLE_CUDA)
+    if(${CUDA_VERSION} VERSION_LESS 7.5)
+    set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
+    else()
+    if (NOT CUSOLVER_AVAILABLE)
+    # message at first time
+    message(STATUS "CUDA version >= 7.5, using available cusolver library")
+    endif()
+    set(CUSOLVER_AVAILABLE TRUE CACHE BOOL "TRUE if cusolver library is available")
+    endif()
+    mark_as_advanced(CUSOLVER_AVAILABLE)
+endif()

@@ -56,6 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 
 #include <Eigen/Dense>
+#include <Eigen/SparseLU>
+
 using namespace Eigen;
 
 /*! \file ForceDistanceConstraint.cc
@@ -264,7 +266,33 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     vec_map_t map_lagrange(h_lagrange.data,n_constraint, 1);
 
     // solve Ax = b
-    map_lagrange = map_matrix.colPivHouseholderQr().solve(map_vec);
+    //map_lagrange = map_matrix.colPivHouseholderQr().solve(map_vec);
+
+    // convert dense to sparse
+    SparseMatrix<double, ColMajor> A = map_matrix.sparseView();
+
+    SparseLU<SparseMatrix<double, ColMajor>, COLAMDOrdering<int> >   solver;
+
+    if (m_prof)
+        m_prof->push("LU");
+
+    // Compute the ordering permutation vector from the structural pattern of A
+    solver.analyzePattern(A);
+
+    if (m_prof)
+        m_prof->pop();
+
+    if (m_prof)
+        m_prof->push("refactor");
+
+    // Compute the numerical factorization
+    solver.factorize(A);
+
+    if (m_prof)
+        m_prof->pop();
+
+    //Use the factors to solve the linear system
+    map_lagrange = solver.solve(map_vec);
 
     if (m_prof)
         m_prof->pop();
