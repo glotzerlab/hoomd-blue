@@ -284,16 +284,16 @@ class CellList : public Compute
             return m_Nmax;
             }
 
-        //! Get number of ghost cells per direction
-        const uint3 getNGhostCells() const
-            {
-            return m_num_ghost_cells;
-            }
-
         //! Get width of ghost cells
         const Scalar3 getGhostWidth() const
             {
             return m_ghost_width;
+            }
+
+        //! Get the actual cell width that was computed (includes ghost layer)
+        const Scalar3 getCellWidth() const
+            {
+            return m_actual_width;
             }
 
         // @}
@@ -348,6 +348,18 @@ class CellList : public Compute
 
         // @}
 
+        /*! \param func Function to call when the cell width changes
+            \return Connection to manage the signal/slot connection
+            Calls are performed by using boost::signals2. The function passed in
+            \a func will be called every time the CellList is notified of a change in the cell width
+            \note If the caller class is destroyed, it needs to disconnect the signal connection
+            via \b con.disconnect where \b con is the return value of this function.
+        */
+        boost::signals2::connection connectCellWidthChange(const boost::function<void ()> &func)
+            {
+            return m_width_change.connect(func);
+            }
+
     protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
@@ -369,8 +381,8 @@ class CellList : public Compute
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
-        uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction
-        Scalar3 m_ghost_width;       //!< Width of ghost cells
+        Scalar3 m_actual_width;      //!< Actual width of a cell in each direction
+        Scalar3 m_ghost_width;       //!< Width of ghost layer sized for (on one side only)
 
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
@@ -411,6 +423,8 @@ class CellList : public Compute
 
         //! Resets the condition status
         virtual void resetConditions();
+
+        boost::signals2::signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
     };
 
 //! Export the CellList class to python

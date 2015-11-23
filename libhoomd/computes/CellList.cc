@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "CellList.h"
+#include "Communicator.h"
 
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
@@ -83,7 +84,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_conditions.swap(conditions);
     resetConditions();
 
-    m_num_ghost_cells = make_uint3(0,0,0);
+    m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
 
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
@@ -119,44 +120,53 @@ uint3 CellList::computeDimensions()
     const BoxDim& box = m_pdata->getBox();
 
     Scalar3 L = box.getNearestPlaneDistance();
-    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-
-    // Add a ghost layer on every side where boundary conditions are non-periodic
-    if (! box.getPeriodic().x)
-        dim.x += 2;
-    if (! box.getPeriodic().y)
-        dim.y += 2;
-
-    if (m_sysdef->getNDimensions() == 2)
+    bool overflow(false);
+    do
         {
-        dim.z = 1;
+        overflow = false;
 
-        // decrease the number of bins if it exceeds the max
+        dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
+        dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
+        dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
+
+        // expand for ghost width if communicating ghosts
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
+
+            // add cells up to the next integer to cover the whole ghost width
+            if (!box.getPeriodic().x)
+                dim.x += static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
+
+            if (!box.getPeriodic().y)
+                dim.y += static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
+
+            if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+                dim.z += static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
+            }
+#endif
+
+        // decrease the number of bins if it exceeds the max and repeat the sizing procedure
         if (dim.x * dim.y * dim.z > m_max_cells)
             {
-            Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(2.0));
-            dim.x = int(Scalar(dim.x)*scale_factor);
-            dim.y = int(Scalar(dim.y)*scale_factor);
-            }
-        }
-    else
-        {
-        dim.z = roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple);
+            overflow = true;
 
-        // add ghost layer if necessary
-        if (! box.getPeriodic().z)
-            dim.z += 2;
-
-        // decrease the number of bins if it exceeds the max
-        if (dim.x * dim.y * dim.z > m_max_cells)
-            {
-            Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(3.0));
-            dim.x = int(Scalar(dim.x)*scale_factor);
-            dim.y = int(Scalar(dim.y)*scale_factor);
-            dim.z = int(Scalar(dim.z)*scale_factor);
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(2.0));
+                dim.x = int(Scalar(dim.x)*scale_factor);
+                dim.y = int(Scalar(dim.y)*scale_factor);
+                }
+            else
+                {
+                Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(3.0));
+                dim.x = int(Scalar(dim.x)*scale_factor);
+                dim.y = int(Scalar(dim.y)*scale_factor);
+                dim.z = int(Scalar(dim.z)*scale_factor);
+                }
             }
-        }
+        } while (overflow);
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
@@ -166,6 +176,7 @@ uint3 CellList::computeDimensions()
         dim.y = 1;
     if (dim.z == 0)
         dim.z = 1;
+
     return dim;
     }
 
@@ -288,26 +299,40 @@ void CellList::initializeWidth()
     if (m_prof)
         m_prof->push("init");
 
+    // get the local box
+    const BoxDim& box = m_pdata->getBox();
+
+    // size the ghost layer width
+    m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
+        if (ghost_width > Scalar(0.0))
+            {
+            if (!box.getPeriodic().x)
+                m_ghost_width.x = ghost_width;
+
+            if (!box.getPeriodic().y)
+                m_ghost_width.y = ghost_width;
+
+            if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+                m_ghost_width.z = ghost_width;
+            }
+        }
+#endif
+
     // initialize dimensions and width
     m_dim = computeDimensions();
 
-    const BoxDim& box = m_pdata->getBox();
+    // stash the current actual cell width
+    const Scalar3 L = box.getNearestPlaneDistance();
+    m_actual_width = make_scalar3((L.x + Scalar(2.0)*m_ghost_width.x) / Scalar(m_dim.x),
+                                  (L.y + Scalar(2.0)*m_ghost_width.y) / Scalar(m_dim.y),
+                                  (L.z + Scalar(2.0)*m_ghost_width.z) / Scalar(m_dim.z));
 
-    // the number of ghost cells along every non-periodic direction is two (one on each side)
-    if (m_sysdef->getNDimensions() == 2)
-        m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
-                                       box.getPeriodic().y ? 0 : 2,
-                                       0);
-    else
-        m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
-                                       box.getPeriodic().y ? 0 : 2,
-                                       box.getPeriodic().z ? 0 : 2);
-
-    // compute ghost layer width
-    Scalar3 L = box.getNearestPlaneDistance();
-    m_ghost_width = make_scalar3(L.x/(Scalar)(m_dim.x-m_num_ghost_cells.x)*(Scalar)(m_num_ghost_cells.x/2),
-                             L.y/(Scalar)(m_dim.y-m_num_ghost_cells.y)*(Scalar)(m_num_ghost_cells.y/2),
-                             L.z/(Scalar)(m_dim.z-m_num_ghost_cells.z)*(Scalar)(m_num_ghost_cells.z/2));
+    // signal that the width has changed
+    m_width_change();
 
     if (m_prof)
         m_prof->pop();
