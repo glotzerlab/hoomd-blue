@@ -1092,7 +1092,8 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     // read the current neighbor index (MEM TRANSFER: 4 bytes)
                     // prefetch the next value and set the current one
                     cur_j = next_j;
-                    next_j = d_nlist[nli(idx, neigh_idx+1)];
+                    if (neigh_idx+1 < n_neigh)
+                        next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
                     Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
