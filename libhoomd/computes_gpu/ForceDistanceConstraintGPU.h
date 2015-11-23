@@ -56,12 +56,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/signals2.hpp>
 
+#ifdef CUSOLVER_AVAILABLE
 #include <cusparse.h>
+
+// CUDA 7.0
 #include <cusolverRf.h>
 #include <cusolverSp.h>
 
 // CUDA 7.5
 #include <cusolverSp_LOWLEVEL_PREVIEW.h>
+#endif
 
 /*! \file ForceDistanceConstraint.h
     \brief Declares a class to implement pairwise distance constraint
@@ -105,6 +109,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
+        #ifdef CUSOLVER_AVAILABLE
         cusparseHandle_t m_cusparse_handle;                //!< cuSPARSE handle
         cusparseMatDescr_t m_cusparse_mat_descr;           //!< Persistent matrix descriptor
         cusparseMatDescr_t m_cusparse_mat_descr_L;         //!< L matrix descriptor
@@ -140,14 +145,19 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<int> m_P;                //!< reordered permutation P
         GPUVector<int> m_Q;                //!< reordered permutation Q
         GPUVector<double> m_T;             //!< cusolverRf working space
+        #endif
 
         bool m_constraint_reorder;         //!< True if groups have changed
+
+        #ifdef CUSOLVER_AVAILABLE
         GPUVector<int> m_nnz;              //!< Vector of number of non-zero elements per row
         int m_nnz_tot;                     //!< Total number of non-zero elements
         GPUVector<double> m_csr_val;       //!< Matrix values in compressed sparse row (CSR) format
         GPUVector<int> m_csr_rowptr;       //!< Row offset for CSR
         GPUVector<int> m_csr_colind;       //!< Column index for CSR
         GPUVector<int> m_csr_idxlookup;    //!< Lookup table (n*n) for CSR format
+        #endif
+
         GPUFlags<unsigned int> m_condition; //!< ==1 if sparsity pattern has changed
 
         //! Connection to the signal notifying when groups are resorted

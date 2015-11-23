@@ -66,17 +66,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : ForceDistanceConstraint(sysdef), m_cusolver_rf_initialized(false),
+       : ForceDistanceConstraint(sysdef),
+#ifdef CUSOLVER_AVAILABLE
+        m_cusolver_rf_initialized(false),
         m_nnz_L_tot(0), m_nnz_U_tot(0),
         m_csr_val_L(m_exec_conf), m_csr_rowptr_L(m_exec_conf), m_csr_colind_L(m_exec_conf),
         m_csr_val_U(m_exec_conf), m_csr_rowptr_U(m_exec_conf), m_csr_colind_U(m_exec_conf),
         m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),m_constraint_reorder(true),
         m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_val(m_exec_conf), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf),
-        m_csr_idxlookup(m_exec_conf), m_condition(m_exec_conf)
+        m_csr_idxlookup(m_exec_conf),
+#endif
+        m_condition(m_exec_conf)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
 
+    #ifdef CUSOLVER_AVAILABLE
     // initialize cuSPARSE
     cusparseCreate(&m_cusparse_handle);
 
@@ -97,6 +102,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     cusparseSetMatType(m_cusparse_mat_descr_U,CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(m_cusparse_mat_descr_U,CUSPARSE_INDEX_BASE_ZERO);
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
+    #endif
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
     m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraintGPU::slotConstraintReorder, this));
@@ -108,6 +114,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
 //! Destructor
 ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     {
+    #ifdef CUSOLVER_AVAILABLE
     // clean up cusparse
     cusparseDestroy(m_cusparse_handle);
     cusparseDestroyMatDescr(m_cusparse_mat_descr);
@@ -119,6 +126,7 @@ ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
 
     cusparseDestroyMatDescr(m_cusparse_mat_descr_L);
     cusparseDestroyMatDescr(m_cusparse_mat_descr_U);
+    #endif
 
     // disconnect from signal in ConstaraintData
     m_constraint_reorder_connection.disconnect();
@@ -132,6 +140,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
     // fill the matrix in row-major order
     unsigned int n_constraint = m_cdata->getN();
 
+    #ifdef CUSOLVER_AVAILABLE
     if (m_constraint_reorder)
         {
         // reset flag
@@ -148,6 +157,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             h_csr_idxlookup.data[i] = -1;
             }
         }
+        #endif
 
         {
         // access matrix elements
@@ -170,10 +180,11 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_netforce(m_pdata->getNetForce(), access_location::device, access_mode::read);
 
-
+        #ifdef CUSOLVER_AVAILABLE
         // access sparse matrix
         ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::overwrite);
         ArrayHandle<int> d_csr_idxlookup(m_csr_idxlookup, access_location::device, access_mode::read);
+        #endif
 
         // launch GPU kernel
         m_tuner_fill->begin();
@@ -182,8 +193,13 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             m_pdata->getN(),
             d_cmatrix.data,
             d_cvec.data,
+#ifdef CUSOLVER_AVAILABLE
             d_csr_val.data,
             d_csr_idxlookup.data,
+#else
+            0,
+            0,
+#endif
             m_condition.getDeviceFlags(),
             m_rel_tol,
             m_constraint_violated.getDeviceFlags(),
@@ -215,7 +231,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     // solve on CPU
     ForceDistanceConstraint::solveConstraints(timestep);
     return;
-    #endif
+    #else
 
     if (m_prof)
         m_prof->push(m_exec_conf,"solve");
@@ -550,6 +566,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
+    #endif
     }
 
 void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)

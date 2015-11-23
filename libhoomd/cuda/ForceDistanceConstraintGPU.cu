@@ -182,6 +182,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
             // write out matrix element in column-major
             d_matrix[m*n_constraint+n] = mat_element;
 
+#ifdef CUSOLVER_AVAILABLE
             // update sparse matrix
             int k = d_csr_idxlookup[m*n_constraint+n];
 
@@ -195,6 +196,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 {
                 d_csr_val[k] = mat_element;
                 }
+#endif
             }
 
         if (fast::sqrt(dot(rn,rn))-d >= rel_tol*d)
@@ -381,6 +383,7 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
                            int *d_csr_colind,
                            double *d_csr_val)
     {
+    #ifdef CUSOLVER_AVAILABLE
     // convert dense matrix to compressed sparse row
 
     // count zeros
@@ -390,7 +393,7 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
     // update values in CSR format
     cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
-
+    #endif
     return cudaSuccess;
     }
 
