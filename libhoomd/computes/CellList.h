@@ -121,7 +121,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <b>Parameters:</b>
      - \c width - minimum width of a cell in any x,y,z direction
      - \c radius - integer radius of cells to generate in \c cell_adj (1,2,3,4,...)
-     - \c max_cells - maximum number of cells to allocate
      - \c multiple - Round down to the nearest multiple number of cells in each direction (only applied to cells
                      inside the domain, not the ghost cells).
 
@@ -161,13 +160,6 @@ class CellList : public Compute
         void setRadius(unsigned int radius)
             {
             m_radius = radius;
-            m_params_changed = true;
-            }
-
-        //! Set the maximum number of cells to allocate
-        void setMaxCells(unsigned int max_cells)
-            {
-            m_max_cells = max_cells;
             m_params_changed = true;
             }
 
@@ -364,7 +356,6 @@ class CellList : public Compute
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
         unsigned int m_radius;       //!< Radius of adjacency bins to list
-        unsigned int m_max_cells;    //!< Maximum number of cells to allocate
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_compute_orientation;  //!< true if the orientation list should be computed
         bool m_compute_idx;          //!< true if the idx list should be computed

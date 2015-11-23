@@ -85,7 +85,7 @@ class NeighborListGPUBinned : public NeighborListGPU
 
         //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-        
+
         //! Change the cutoff radius by pair type
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
@@ -105,32 +105,20 @@ class NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setPeriod(period/10);
             m_tuner->setEnabled(enable);
             }
-        
+
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
-        cudaArray *dca_cell_adj;            //!< CUDA array for tex2D access to d_cell_adj
-        cudaArray *dca_cell_xyzf;           //!< CUDA array for tex2D access to d_cell_xyzf
-        cudaArray *dca_cell_tdb;            //!< CUDA array for tex2D access to d_cell_tdb
-        uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
-        unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 
         boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
-        
+
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-
-        //! Test if the cuda arrays need reallocation
-        bool needReallocateCudaArrays();
-
-        //! Updates the cudaArray allocations
-        void allocateCudaArrays();
-
     };
 
 //! Exports NeighborListGPUBinned to python

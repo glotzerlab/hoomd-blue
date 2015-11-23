@@ -67,7 +67,7 @@ using namespace std;
 /*! \param sysdef system to compute the cell list of
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
+    : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
@@ -110,7 +110,7 @@ static unsigned int roundDown(unsigned int v, unsigned int m)
     return d*m;
     }
 
-/*! \returns Cell dimensions that match with the current width, box dimension, and max_cells setting
+/*! \returns Cell dimensions that match with the current width, and box dimension
 */
 uint3 CellList::computeDimensions()
     {
@@ -120,53 +120,29 @@ uint3 CellList::computeDimensions()
     const BoxDim& box = m_pdata->getBox();
 
     Scalar3 L = box.getNearestPlaneDistance();
-    bool overflow(false);
-    do
-        {
-        overflow = false;
 
-        dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-        dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-        dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
+    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
+    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
 
-        // expand for ghost width if communicating ghosts
+    // expand for ghost width if communicating ghosts
 #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
+    if (m_comm)
+        {
+        const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
 
-            // add cells up to the next integer to cover the whole ghost width
-            if (!box.getPeriodic().x)
-                dim.x += static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
+        // add cells up to the next integer to cover the whole ghost width
+        if (!box.getPeriodic().x)
+            dim.x += static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
 
-            if (!box.getPeriodic().y)
-                dim.y += static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
+        if (!box.getPeriodic().y)
+            dim.y += static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
 
-            if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-                dim.z += static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
-            }
+        if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+            dim.z += static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
+        }
 #endif
 
-        // decrease the number of bins if it exceeds the max and repeat the sizing procedure
-        if (dim.x * dim.y * dim.z > m_max_cells)
-            {
-            overflow = true;
-
-            if (m_sysdef->getNDimensions() == 2)
-                {
-                Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(2.0));
-                dim.x = int(Scalar(dim.x)*scale_factor);
-                dim.y = int(Scalar(dim.y)*scale_factor);
-                }
-            else
-                {
-                Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(3.0));
-                dim.x = int(Scalar(dim.x)*scale_factor);
-                dim.y = int(Scalar(dim.y)*scale_factor);
-                dim.z = int(Scalar(dim.z)*scale_factor);
-                }
-            }
-        } while (overflow);
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
@@ -729,7 +705,6 @@ void export_CellList()
         ("CellList", init< boost::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
-        .def("setMaxCells", &CellList::setMaxCells)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)

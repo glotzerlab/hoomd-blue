@@ -80,13 +80,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
 
     CHECK_CUDA_ERROR();
 
-    // default to 0 last allocated quantities
-    m_last_dim = make_uint3(0,0,0);
-    m_last_cell_Nmax = 0;
-    dca_cell_adj = NULL;
-    dca_cell_xyzf = NULL;
-    dca_cell_tdb = NULL;
-
     // initialize autotuner
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
@@ -124,15 +117,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
     {
-    // free the old arrays
-    if (dca_cell_adj != NULL)
-        cudaFreeArray(dca_cell_adj);
-    if (dca_cell_xyzf != NULL)
-        cudaFreeArray(dca_cell_xyzf);
-    if (dca_cell_tdb != NULL)
-        cudaFreeArray(dca_cell_tdb);
-
-    CHECK_CUDA_ERROR();
     }
 
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
@@ -263,59 +247,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
-    }
-
-bool NeighborListGPUBinned::needReallocateCudaArrays()
-    {
-    // quit now if the dimensions are the same as the last allocation
-    uint3 cur_dim = m_cl->getDim();
-    unsigned int cur_cell_Nmax = m_cl->getNmax();
-
-    if (cur_dim.x == m_last_dim.x &&
-        cur_dim.y == m_last_dim.y &&
-        cur_dim.z == m_last_dim.z &&
-        cur_cell_Nmax == m_last_cell_Nmax &&
-        dca_cell_adj != NULL &&
-        dca_cell_xyzf != NULL &&
-        dca_cell_tdb != NULL)
-        {
-        return false;
-        }
-    else
-        {
-        return true;
-        }
-    }
-
-void NeighborListGPUBinned::allocateCudaArrays()
-    {
-    // quit now if the dimensions are the same as the last allocation
-    uint3 cur_dim = m_cl->getDim();
-    unsigned int cur_cell_Nmax = m_cl->getNmax();
-
-    m_last_dim = cur_dim;
-    m_last_cell_Nmax = cur_cell_Nmax;
-
-    // free the old arrays
-    if (dca_cell_adj != NULL)
-        cudaFreeArray(dca_cell_adj);
-    if (dca_cell_xyzf != NULL)
-        cudaFreeArray(dca_cell_xyzf);
-    if (dca_cell_tdb != NULL)
-        cudaFreeArray(dca_cell_tdb);
-
-    CHECK_CUDA_ERROR();
-
-    // allocate the new ones
-    unsigned int ncell = cur_dim.x * cur_dim.y * cur_dim.z;
-
-    cudaChannelFormatDesc xyzf_desc = cudaCreateChannelDesc< Scalar4 >();
-    cudaMallocArray(&dca_cell_xyzf, &xyzf_desc, cur_cell_Nmax, ncell);
-    cudaMallocArray(&dca_cell_tdb, &xyzf_desc, cur_cell_Nmax, ncell);
-    cudaChannelFormatDesc adj_desc = cudaCreateChannelDesc< unsigned int >();
-    cudaMallocArray(&dca_cell_adj, &adj_desc, 27, ncell);
-
-    CHECK_CUDA_ERROR();
     }
 
 void export_NeighborListGPUBinned()
