@@ -170,8 +170,7 @@ void NeighborList::reallocate()
     m_last_pos.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
     unsigned int ex_list_height = m_ex_list_indexer.getH();
-    // +1 to allow prefetching
-    m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height+1);
+    m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
@@ -1315,8 +1314,7 @@ void NeighborList::growExclusionList()
     unsigned int new_height = m_ex_list_indexer.getH() + 1;
 
     m_ex_list_tag.resize(m_pdata->getRTags().size(), new_height);
-    //+1 to allow prefetching
-    m_ex_list_idx.resize(m_pdata->getMaxN(), new_height+1);
+    m_ex_list_idx.resize(m_pdata->getMaxN(), new_height);
 
     // update the indexers
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), new_height);
