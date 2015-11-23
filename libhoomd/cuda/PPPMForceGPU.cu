@@ -1075,6 +1075,9 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         Scalar virial[6];
         for (unsigned int i = 0; i < 6; i++)
             virial[i] = Scalar(0.0);
+        unsigned int cur_j = 0;
+        // prefetch neighbor index
+        unsigned int next_j = d_nlist[nli(idx, 0)];
 
 #if (__CUDA_ARCH__ < 200)
         for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
@@ -1088,7 +1091,8 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     {
                     // read the current neighbor index (MEM TRANSFER: 4 bytes)
                     // prefetch the next value and set the current one
-                    unsigned int cur_j = d_nlist[nli(idx, neigh_idx)];
+                    cur_j = next_j;
+                    next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
                     Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
