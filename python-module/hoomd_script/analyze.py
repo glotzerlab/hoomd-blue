@@ -426,6 +426,10 @@ class imd(_analyzer):
 # globally chosen \a r_cut value is the largest of all active pair potentials and those with \a log=True, so you will
 # observe performance degradation if you \a disable(log=True) a potential with a large \a r_cut.
 #
+# File output from analyze.log is optional. Specify \a None for the file name and no file will be output.
+# Use this with the query() method to query the values of properties without the overhead of writing them
+# to disk.
+#
 # \b Examples:
 # \code
 # lj1 = pair.lj(r_cut=3.0, name="lj1")
@@ -442,13 +446,17 @@ class imd(_analyzer):
 # analyze.log(filename='mylog.log', quantities=['pair_lj_energy_lj1', 'pair_lj_energy_lj2'],
 #             period=100, header_prefix='#')
 # \endcode
+# log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
+# U = log.query('potential_energy', use_cache=False)
+# \code
+#
 #
 # \sa \ref page_units
 # \MPI_SUPPORTED
 class log(_analyzer):
     ## Initialize the log
     #
-    # \param filename File to write the log to
+    # \param filename File to write the log to, or \a None for no file output
     # \param quantities List of quantities to log
     # \param period Quantities are logged every \a period time steps
     # \param header_prefix (optional) Specify a string to print before the header
@@ -492,6 +500,10 @@ class log(_analyzer):
 
         # initialize base class
         _analyzer.__init__(self);
+
+        if filename is None or filename == "":
+            filename = "";
+            period = 1;
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix, overwrite);
@@ -543,7 +555,7 @@ class log(_analyzer):
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
 
-    ## Retrieve a cached value of a monitored quantity from the last update of the logger.
+    ## Get the current value of a logged quantity
     # \param quantity Name of the quantity to return.
     #
     # Using query() requires that the specified logger was saved in a variable when created.
@@ -554,13 +566,23 @@ class log(_analyzer):
     #                      period=1000, filename="'full.log')
     # \endcode
     #
+    # query() works in two different ways depending on how the logger is configured. If the logger is writing
+    # to a file, query() returns the logged value of a quantity that is the last value written to the file.
+    # If filename is None, then query() returns the value of the quantity at the current point in time.
+    #
     # \b Examples:
     # \code
-    # logdata = logger.query('timestep')
+    # logdata = logger.query('pair_lj_energy')
+    # log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
+    # U = log.query('potential_energy', use_cache=False)
     # \endcode
+    #
     def query(self, quantity):
-        # retrieve data from internal cache.
-        return self.cpp_analyzer.getCachedQuantity(quantity);
+        use_cache=True;
+        if self.filename == "":
+            use_cache = False;
+
+        return self.cpp_analyzer.getQuantity(quantity, globals.system.getCurrentTimeStep(), use_cache);
 
     ## \internal
     # \brief Re-registers all computes and updaters with the logger
