@@ -82,7 +82,6 @@ set(TEST_LIST
     test_hoomd_xml
     test_system
     test_fire_energy_minimizer
-    test_binary_reader_writer
     test_enforce2d_updater
     test_constraint_sphere
     test_ewald_force

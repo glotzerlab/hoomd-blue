@@ -291,7 +291,7 @@ $ git clone https://bitbucket.org/glotzer/hoomd-blue.git
 $ cd hoomd-blue
 $ mkdir build
 $ cd build
-$ CC="cc -dynamic" CXX="CC -dynamic" cmake -D ENABLE_ZLIB=OFF -D CMAKE_INSTALL_PREFIX=/scratch/sciteam/$USER/hoomd ../
+$ CC="cc -dynamic" CXX="CC -dynamic" cmake -D CMAKE_INSTALL_PREFIX=/scratch/sciteam/$USER/hoomd ../
 $ make install -j12
 $ export PATH=$/scratch/sciteam/$USER/hoomd/bin:$PATH
 ~~~
