@@ -156,6 +156,7 @@ class xml(analyze._analyzer):
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
+    # \param constraint (if set) Set to True/False to enable/disable the output of constraints in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml
     # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml
     # \param orientation (if set) Set to True/False to enable/disable the output of particle orientations in the xml file
@@ -192,6 +193,7 @@ class xml(analyze._analyzer):
                    angle=None,
                    dihedral=None,
                    improper=None,
+                   constraint=None,
                    acceleration=None,
                    charge=None,
                    orientation=None,
@@ -202,7 +204,7 @@ class xml(analyze._analyzer):
         self.check_initialization();
 
         if all:
-            position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
+            position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = constraint = True;
             acceleration = charge = body = orientation = angmom = inertia = True;
 
         if vis:
@@ -243,6 +245,9 @@ class xml(analyze._analyzer):
 
         if improper is not None:
             self.cpp_analyzer.setOutputImproper(improper);
+
+        if constraint is not None:
+            self.cpp_analyzer.setOutputConstraint(constraint);
 
         if acceleration is not None:
             self.cpp_analyzer.setOutputAccel(acceleration);
