@@ -197,7 +197,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 }
             }
 
-        if (fast::sqrt(dot(rn,rn))-d >= rel_tol*d)
+        if (fast::sqrt(dot(rn,rn))-d >= rel_tol*d || isnan(dot(rn,rn)))
             {
             *d_constraint_violated = n+1;
             }

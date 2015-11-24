@@ -248,7 +248,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         Scalar d = m_cdata->getValueByIndex(n);
 
         // check distance violation
-        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d)
+        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d || isnan(dot(rn,rn)))
             {
             m_constraint_violated.resetFlags(n+1);
             }
@@ -301,9 +301,6 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
-
-    // solve Ax = b
-    //map_lagrange = map_matrix.colPivHouseholderQr().solve(map_vec);
 
     unsigned int sparsity_pattern_changed = m_condition.readFlags();
 
@@ -373,6 +370,12 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
 
     // Compute the numerical factorization
     m_sparse_solver.factorize(m_sparse);
+
+    if (m_sparse_solver.info())
+        {
+        m_exec_conf->msg->error() << "Could not solve linear system of constraint equations." << std::endl;
+        throw std::runtime_error("Error evaluating constraint forces.\n");
+        }
 
     // access RHS and solution vector
     ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::read);

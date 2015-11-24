@@ -215,9 +215,8 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     if (!sparsity_pattern_changed)
         {
         // copy new sparse values to host sparse matrix
-        ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::host, access_mode::read);
-
-        memcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size());
+        ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::device, access_mode::read);
+        cudaMemcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size(),cudaMemcpyDeviceToHost);
         }
 
     // solve on CPU
