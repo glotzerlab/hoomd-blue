@@ -568,11 +568,11 @@ class BondedGroupData : boost::noncopyable
         //! Notify subscribers that groups have been reordered
         void notifyGroupReorder()
             {
+            // set flag to trigger rebuild of GPU table
+            m_groups_dirty = true;
+
             // notify subscribers
             m_group_reorder_signal();
-
-            // set flag to trigger rebuild of GPU table and notify subscribers
-            m_groups_dirty = true;
             }
 
         //! Indicate that GPU table needs to be rebuilt
