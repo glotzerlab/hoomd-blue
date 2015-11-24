@@ -78,7 +78,8 @@ using namespace std;
 ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group,
                                    const std::string& suffix)
-    : ComputeThermo(sysdef, group, suffix)
+    : ComputeThermo(sysdef, group, suffix), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
+        m_scratch_rot(m_exec_conf)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -87,18 +88,6 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
         }
 
     m_block_size = 512;
-    // this allocates more memory than necessary but is needed unless the scratch memory
-    // is reallocated when the maximum number of particles changes
-    m_num_blocks = m_group->getNumMembersGlobal() / m_block_size + 1;
-
-    GPUArray< Scalar4 > scratch(m_num_blocks, m_exec_conf);
-    m_scratch.swap(scratch);
-
-    GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, m_exec_conf);
-    m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
-
-    GPUArray< Scalar > scratch_rot(m_num_blocks, exec_conf);
-    m_scratch_rot.swap(scratch_rot);
 
     // override base class allocation using mapped memory
     GPUArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf,true);
@@ -128,6 +117,14 @@ void ComputeThermoGPU::computeProperties()
     assert(m_pdata);
     assert(m_ndof != 0);
 
+    // number of blocks in reduction
+    unsigned int num_blocks = m_group->getNumMembers() / m_block_size + 1;
+
+    // resize work space
+    m_scratch.resize(num_blocks);
+    m_scratch_pressure_tensor.resize(num_blocks*6);
+    m_scratch_rot.resize(num_blocks);
+
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getGlobalBox();
@@ -152,7 +149,7 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // build up args list
-    m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
+    num_blocks = m_group->getNumMembers() / m_block_size + 1;
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
@@ -166,7 +163,7 @@ void ComputeThermoGPU::computeProperties()
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
     args.d_scratch_rot = d_scratch_rot.data;
     args.block_size = m_block_size;
-    args.n_blocks = m_num_blocks;
+    args.n_blocks = num_blocks;
     args.external_virial_xx = m_pdata->getExternalVirial(0);
     args.external_virial_xy = m_pdata->getExternalVirial(1);
     args.external_virial_xz = m_pdata->getExternalVirial(2);
