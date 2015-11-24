@@ -73,7 +73,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
         m_csr_val_L(m_exec_conf), m_csr_rowptr_L(m_exec_conf), m_csr_colind_L(m_exec_conf),
         m_csr_val_U(m_exec_conf), m_csr_rowptr_U(m_exec_conf), m_csr_colind_U(m_exec_conf),
         m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),
-        m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf)
+        m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf),
 #endif
     m_sparse_val(m_exec_conf)
     {
@@ -362,7 +362,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         // B = A(mapBfromA)
         for (int i = 0; i < m_nnz_tot; ++i)
             {
-            m_csr_val_B[i] = h_csr_val.data[ m_mapBfromA[i] ];
+            m_csr_val_B[i] = h_sparse_val.data[ m_mapBfromA[i] ];
             }
 
         /*
