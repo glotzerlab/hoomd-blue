@@ -182,7 +182,6 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
             // write out matrix element in column-major
             d_matrix[m*n_constraint+n] = mat_element;
 
-#ifdef CUSOLVER_AVAILABLE
             // update sparse matrix
             int k = d_csr_idxlookup[m*n_constraint+n];
 
@@ -196,7 +195,6 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                 {
                 d_csr_val[k] = mat_element;
                 }
-#endif
             }
 
         if (fast::sqrt(dot(rn,rn))-d >= rel_tol*d)

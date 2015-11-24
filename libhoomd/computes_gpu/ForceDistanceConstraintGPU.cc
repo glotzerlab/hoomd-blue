@@ -72,11 +72,10 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
         m_nnz_L_tot(0), m_nnz_U_tot(0),
         m_csr_val_L(m_exec_conf), m_csr_rowptr_L(m_exec_conf), m_csr_colind_L(m_exec_conf),
         m_csr_val_U(m_exec_conf), m_csr_rowptr_U(m_exec_conf), m_csr_colind_U(m_exec_conf),
-        m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),m_constraint_reorder(true),
-        m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_val(m_exec_conf), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf),
-        m_csr_idxlookup(m_exec_conf),
+        m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),
+        m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf)
 #endif
-        m_condition(m_exec_conf)
+    m_sparse_val(m_exec_conf)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
@@ -103,12 +102,6 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     cusparseSetMatIndexBase(m_cusparse_mat_descr_U,CUSPARSE_INDEX_BASE_ZERO);
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
     #endif
-
-    // connect to the ConstraintData to recieve notifications when constraints change order in memory
-    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraintGPU::slotConstraintReorder, this));
-
-    // reset condition
-    m_condition.resetFlags(0);
     }
 
 //! Destructor
@@ -127,9 +120,6 @@ ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     cusparseDestroyMatDescr(m_cusparse_mat_descr_L);
     cusparseDestroyMatDescr(m_cusparse_mat_descr_U);
     #endif
-
-    // disconnect from signal in ConstaraintData
-    m_constraint_reorder_connection.disconnect();
     }
 
 void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
@@ -140,24 +130,22 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
     // fill the matrix in row-major order
     unsigned int n_constraint = m_cdata->getN();
 
-    #ifdef CUSOLVER_AVAILABLE
     if (m_constraint_reorder)
         {
         // reset flag
         m_constraint_reorder = false;
 
         // resize lookup matrix
-        m_csr_idxlookup.resize(n_constraint*n_constraint);
+        m_sparse_idxlookup.resize(n_constraint*n_constraint);
 
-        ArrayHandle<int> h_csr_idxlookup(m_csr_idxlookup, access_location::host, access_mode::overwrite);
+        ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup, access_location::host, access_mode::overwrite);
 
         // reset lookup matrix values to -1
         for (unsigned int i = 0; i < n_constraint*n_constraint; ++i)
             {
-            h_csr_idxlookup.data[i] = -1;
+            h_sparse_idxlookup.data[i] = -1;
             }
         }
-        #endif
 
         {
         // access matrix elements
@@ -180,11 +168,9 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_netforce(m_pdata->getNetForce(), access_location::device, access_mode::read);
 
-        #ifdef CUSOLVER_AVAILABLE
         // access sparse matrix
-        ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::overwrite);
-        ArrayHandle<int> d_csr_idxlookup(m_csr_idxlookup, access_location::device, access_mode::read);
-        #endif
+        ArrayHandle<double> d_sparse_val(m_sparse_val, access_location::device, access_mode::overwrite);
+        ArrayHandle<int> d_sparse_idxlookup(m_sparse_idxlookup, access_location::device, access_mode::read);
 
         // launch GPU kernel
         m_tuner_fill->begin();
@@ -193,13 +179,8 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             m_pdata->getN(),
             d_cmatrix.data,
             d_cvec.data,
-#ifdef CUSOLVER_AVAILABLE
-            d_csr_val.data,
-            d_csr_idxlookup.data,
-#else
-            0,
-            0,
-#endif
+            d_sparse_val.data,
+            d_sparse_idxlookup.data,
             m_condition.getDeviceFlags(),
             m_rel_tol,
             m_constraint_violated.getDeviceFlags(),
@@ -227,10 +208,23 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
 
 void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     {
+    // ==1 if the sparsity pattern of the matrix changes (in particular if connectivity changes)
+    unsigned int sparsity_pattern_changed = m_condition.readFlags();
+
     #ifndef CUSOLVER_AVAILABLE
+    if (!sparsity_pattern_changed)
+        {
+        // copy new sparse values to host sparse matrix
+        ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::host, access_mode::read);
+
+        memcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size());
+        }
+
     // solve on CPU
     ForceDistanceConstraint::solveConstraints(timestep);
-    return;
+
+    // a sparse matrix should have been constructed, resize values array
+    m_sparse_val.resize(m_sparse.data().size());
     #else
 
     if (m_prof)
@@ -245,10 +239,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     m_nnz.resize(n_constraint);
     m_csr_rowptr.resize(n_constraint+1);
     m_csr_colind.resize(n_constraint*n_constraint);
-    m_csr_val.resize(n_constraint*n_constraint);
-
-    // ==1 if the sparsity pattern of the matrix changes (in particular if connectivity changes)
-    unsigned int sparsity_pattern_changed = m_condition.readFlags();
+    m_sparse_val.resize(n_constraint*n_constraint);
 
     if (sparsity_pattern_changed)
         {
@@ -264,7 +255,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
             ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
             ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::overwrite);
             ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::overwrite);
-            ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::overwrite);
+            ArrayHandle<double> d_sparse_val(m_sparse_val, access_location::device, access_mode::overwrite);
 
             // count zeros and convert matrix
             gpu_dense2sparse(n_constraint,
@@ -275,21 +266,21 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
                 m_cusparse_mat_descr,
                 d_csr_rowptr.data,
                 d_csr_colind.data,
-                d_csr_val.data);
+                d_sparse_val.data);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
 
             {
-            ArrayHandle<int> h_csr_idxlookup(m_csr_idxlookup, access_location::host, access_mode::overwrite);
+            ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup, access_location::host, access_mode::overwrite);
             ArrayHandle<int> h_csr_rowptr(m_csr_rowptr, access_location::host, access_mode::read);
             ArrayHandle<int> h_csr_colind(m_csr_colind, access_location::host, access_mode::read);
 
             // reset lookup matrix values to -1
             for (unsigned int i = 0; i < n_constraint*n_constraint; ++i)
                 {
-                h_csr_idxlookup.data[i] = -1;
+                h_sparse_idxlookup.data[i] = -1;
                 }
 
             // construct lookup table
@@ -303,8 +294,8 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
                     // matrix is column-major
                     unsigned int j = h_csr_colind.data[l];
 
-                    // set pointer to index in csr_val
-                    h_csr_idxlookup.data[j*n_constraint+i] = l;
+                    // set pointer to index in sparse_val
+                    h_sparse_idxlookup.data[j*n_constraint+i] = l;
                     }
 
                 k+=end_idx-start_idx;
@@ -323,7 +314,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         // access sparse matrix on host
         ArrayHandle<int> h_csr_colind(m_csr_colind, access_location::host, access_mode::read);
         ArrayHandle<int> h_csr_rowptr(m_csr_rowptr, access_location::host, access_mode::read);
-        ArrayHandle<double> h_csr_val(m_csr_val, access_location::host, access_mode::read);
+        ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::host, access_mode::read);
 
         // resize permutation matrix
         m_Qreorder.resize(n_constraint);
@@ -505,7 +496,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         /*
          * assemble P*A*Q = L*U
          */
-        cusolverRfSetupHost(n_constraint, m_nnz_tot, h_csr_rowptr.data, h_csr_colind.data, h_csr_val.data,
+        cusolverRfSetupHost(n_constraint, m_nnz_tot, h_csr_rowptr.data, h_csr_colind.data, h_sparse_val.data,
             m_nnz_L_tot, h_csr_rowptr_L.data, h_csr_colind_L.data, h_csr_val_L.data,
             m_nnz_U_tot, h_csr_rowptr_U.data, h_csr_colind_U.data, h_csr_val_U.data,
             h_P.data,
@@ -531,14 +522,14 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     // access sparse matrix structural data
     ArrayHandle<int> d_csr_colind(m_csr_colind, access_location::device, access_mode::read);
     ArrayHandle<int> d_csr_rowptr(m_csr_rowptr, access_location::device, access_mode::read);
-    ArrayHandle<double> d_csr_val(m_csr_val, access_location::device, access_mode::read);
+    ArrayHandle<double> d_sparse_val(m_sparse_val, access_location::device, access_mode::read);
 
     // permutations
     ArrayHandle<int> d_P(m_P, access_location::device, access_mode::read);
     ArrayHandle<int> d_Q(m_Q, access_location::device, access_mode::read);
 
     // import matrix to cusolverRf
-    cusolverRfResetValues(n_constraint, m_nnz_tot, d_csr_rowptr.data, d_csr_colind.data, d_csr_val.data,
+    cusolverRfResetValues(n_constraint, m_nnz_tot, d_csr_rowptr.data, d_csr_colind.data, d_sparse_val.data,
         d_P.data, d_Q.data, m_cusolver_rf_handle);
 
     // refactor using updated values

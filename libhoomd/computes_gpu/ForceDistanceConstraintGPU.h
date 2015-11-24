@@ -145,23 +145,14 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<int> m_P;                //!< reordered permutation P
         GPUVector<int> m_Q;                //!< reordered permutation Q
         GPUVector<double> m_T;             //!< cusolverRf working space
-        #endif
 
-        bool m_constraint_reorder;         //!< True if groups have changed
-
-        #ifdef CUSOLVER_AVAILABLE
         GPUVector<int> m_nnz;              //!< Vector of number of non-zero elements per row
         int m_nnz_tot;                     //!< Total number of non-zero elements
-        GPUVector<double> m_csr_val;       //!< Matrix values in compressed sparse row (CSR) format
         GPUVector<int> m_csr_rowptr;       //!< Row offset for CSR
         GPUVector<int> m_csr_colind;       //!< Column index for CSR
-        GPUVector<int> m_csr_idxlookup;    //!< Lookup table (n*n) for CSR format
         #endif
 
-        GPUFlags<unsigned int> m_condition; //!< ==1 if sparsity pattern has changed
-
-        //! Connection to the signal notifying when groups are resorted
-        boost::signals2::connection m_constraint_reorder_connection;
+        GPUVector<double> m_sparse_val;    //!< Sparse matrix value list
 
         //! Populate the quantities in the constraint-force equatino
         virtual void fillMatrixVector(unsigned int timestep);
@@ -171,12 +162,6 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
 
         //! Compute the constraint forces using the Lagrange multipliers
         virtual void computeConstraintForces(unsigned int timestep);
-
-        //! Method called when constraint order changes
-        virtual void slotConstraintReorder()
-            {
-            m_constraint_reorder = true;
-            }
     };
 
 //! Exports the ForceDistanceConstraint to python

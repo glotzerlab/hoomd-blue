@@ -65,6 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUVector.h"
 #include "GPUFlags.h"
 
+#include <Eigen/Dense>
+#include <Eigen/SparseLU>
+
 /*! Implements a pairwise distance constraint using the algorithm of
 
     [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
@@ -78,6 +81,9 @@ class ForceDistanceConstraint : public ForceConstraint
     public:
         //! Constructs the compute
         ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+
+        //! Destructor
+        virtual ~ForceDistanceConstraint();
 
         //! Return the number of DOF removed by this constraint
         virtual unsigned int getNDOFRemoved()
@@ -107,6 +113,17 @@ class ForceDistanceConstraint : public ForceConstraint
         Scalar m_rel_tol;                           //!< Rel. tolerance for constraint violation warning
         GPUFlags<unsigned int> m_constraint_violated; //!< The id of the violated constraint + 1
 
+        GPUFlags<unsigned int> m_condition; //!< ==1 if sparsity pattern has changed
+        Eigen::SparseMatrix<double, Eigen::ColMajor> m_sparse;    //!< The sparse constraint matrix representation
+        Eigen::SparseLU<Eigen::SparseMatrix<double, Eigen::ColMajor>, Eigen::COLAMDOrdering<int> > m_sparse_solver;
+            //!< The persistent state of the sparse matrix solver
+        GPUVector<int> m_sparse_idxlookup;          //!< Reverse lookup from column-major to sparse matrix element
+
+        //! Connection to the signal notifying when groups are resorted
+        boost::signals2::connection m_constraint_reorder_connection;
+
+        bool m_constraint_reorder;         //!< True if groups have changed
+
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
 
@@ -121,6 +138,12 @@ class ForceDistanceConstraint : public ForceConstraint
 
         //! Solve the linear matrix-vector equation
         virtual void computeConstraintForces(unsigned int timestep);
+
+        //! Method called when constraint order changes
+        virtual void slotConstraintReorder()
+            {
+            m_constraint_reorder = true;
+            }
     };
 
 //! Exports the ForceDistanceConstraint to python

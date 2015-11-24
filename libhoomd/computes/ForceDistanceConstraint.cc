@@ -55,9 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 
-#include <Eigen/Dense>
-#include <Eigen/SparseLU>
-
 using namespace Eigen;
 
 /*! \file ForceDistanceConstraint.cc
@@ -69,9 +66,23 @@ using namespace Eigen;
 ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
         : ForceConstraint(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
-          m_rel_tol(1e-3), m_constraint_violated(m_exec_conf)
+          m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
+          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true)
     {
     m_constraint_violated.resetFlags(0);
+
+    // connect to the ConstraintData to recieve notifications when constraints change order in memory
+    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraint::slotConstraintReorder, this));
+
+    // reset condition
+    m_condition.resetFlags(0);
+    }
+
+//! Destructor
+ForceDistanceConstraint::~ForceDistanceConstraint()
+    {
+    // disconnect from signal in ConstraintData
+    m_constraint_reorder_connection.disconnect();
     }
 
 /*! Does nothing in the base class
@@ -113,6 +124,23 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
     {
     // fill the matrix in column-major order
     unsigned int n_constraint = m_cdata->getN();
+
+    if (m_constraint_reorder)
+        {
+        // reset flag
+        m_constraint_reorder = false;
+
+        // resize lookup matrix
+        m_sparse_idxlookup.resize(n_constraint*n_constraint);
+
+        ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup, access_location::host, access_mode::overwrite);
+
+        // reset lookup matrix values to -1
+        for (unsigned int i = 0; i < n_constraint*n_constraint; ++i)
+            {
+            h_sparse_idxlookup.data[i] = -1;
+            }
+        }
 
     // access particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -180,21 +208,39 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             // apply minimum image
             rm = box.minImage(rm);
 
+            double delta(0.0);
             if (idx_m_a == idx_a)
                 {
-                h_cmatrix.data[m*n_constraint+n] += double(4.0)*dot(qn,rm)/ma;
+                delta += double(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_b == idx_a)
                 {
-                h_cmatrix.data[m*n_constraint+n] -= double(4.0)*dot(qn,rm)/ma;
+                delta -= double(4.0)*dot(qn,rm)/ma;
                 }
             if (idx_m_a == idx_b)
                 {
-                h_cmatrix.data[m*n_constraint+n] -= double(4.0)*dot(qn,rm)/mb;
+                delta -= double(4.0)*dot(qn,rm)/mb;
                 }
             if (idx_m_b == idx_b)
                 {
-                h_cmatrix.data[m*n_constraint+n] += double(4.0)*dot(qn,rm)/mb;
+                delta += double(4.0)*dot(qn,rm)/mb;
+                }
+
+            h_cmatrix.data[m*n_constraint+n] += delta;
+
+            // update sparse matrix
+            int k = m_sparse_idxlookup[m*n_constraint+n];
+
+            if ( (k == -1 && delta != double(0.0))
+                || (k != -1 && delta == double(0.0)))
+                {
+                m_condition.resetFlags(1);
+                }
+
+            if (k != -1)
+                {
+                // update sparse matrix value directly
+                m_sparse.valuePtr()[k] = delta;
                 }
             }
 
@@ -256,43 +302,89 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
 
-    // access matrix
-    ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
-    ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::read);
-    ArrayHandle<double> h_lagrange(m_lagrange, access_location::host, access_mode::overwrite);
-
-    matrix_map_t map_matrix(h_cmatrix.data, n_constraint,n_constraint);
-    vec_map_t map_vec(h_cvec.data, n_constraint, 1);
-    vec_map_t map_lagrange(h_lagrange.data,n_constraint, 1);
-
     // solve Ax = b
     //map_lagrange = map_matrix.colPivHouseholderQr().solve(map_vec);
 
-    // convert dense to sparse
-    SparseMatrix<double, ColMajor> A = map_matrix.sparseView();
+    unsigned int sparsity_pattern_changed = m_condition.readFlags();
 
-    SparseLU<SparseMatrix<double, ColMajor>, COLAMDOrdering<int> >   solver;
+    if (sparsity_pattern_changed)
+        {
+        m_exec_conf->msg->notice(6) << "ForceDistanceConstraint: sparsity pattern changed. Solving on CPU" << std::endl;
+
+        // reset flags
+        m_condition.resetFlags(0);
+
+        if (m_prof)
+            m_prof->push("LU");
+
+        // access matrix
+        ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
+
+        // wrap array
+        matrix_map_t map_matrix(h_cmatrix.data, n_constraint,n_constraint);
+
+        // sparsity pattern changed
+        m_sparse = map_matrix.sparseView();
+
+            {
+            ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup, access_location::host, access_mode::overwrite);
+
+            // reset lookup matrix values to -1
+            for (unsigned int i = 0; i < n_constraint*n_constraint; ++i)
+                {
+                h_sparse_idxlookup.data[i] = -1;
+                }
+
+            // construct lookup table
+            int *inner_non_zeros = m_sparse.innerNonZeroPtr();
+            int *outer = m_sparse.outerIndexPtr();
+            int *inner = m_sparse.innerIndexPtr();
+            for (int i = 0; i < m_sparse.outerSize(); ++i)
+                {
+                int id = outer[i];
+                int end;
+
+                if(m_sparse.isCompressed())
+                    end = outer[i+1];
+                else
+                    end = id + inner_non_zeros[i];
+
+                for (; id < end; ++id)
+                    {
+                    unsigned int col = i;
+                    unsigned int row = inner[id];
+
+                    // set pointer to index in sparse_val
+                    h_sparse_idxlookup.data[col*n_constraint+row] = id;
+                    }
+                }
+            }
+
+        // Compute the ordering permutation vector from the structural pattern of A
+        m_sparse_solver.analyzePattern(m_sparse);
+
+        if (m_prof)
+            m_prof->pop();
+        }
+
 
     if (m_prof)
-        m_prof->push("LU");
-
-    // Compute the ordering permutation vector from the structural pattern of A
-    solver.analyzePattern(A);
-
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->push("refactor");
+        m_prof->push("refactor/solve");
 
     // Compute the numerical factorization
-    solver.factorize(A);
+    m_sparse_solver.factorize(m_sparse);
+
+    // access RHS and solution vector
+    ArrayHandle<double> h_cvec(m_cvec, access_location::host, access_mode::read);
+    ArrayHandle<double> h_lagrange(m_lagrange, access_location::host, access_mode::overwrite);
+    vec_map_t map_vec(h_cvec.data, n_constraint, 1);
+    vec_map_t map_lagrange(h_lagrange.data,n_constraint, 1);
+
+    //Use the factors to solve the linear system
+    map_lagrange = m_sparse_solver.solve(map_vec);
 
     if (m_prof)
         m_prof->pop();
-
-    //Use the factors to solve the linear system
-    map_lagrange = solver.solve(map_vec);
 
     if (m_prof)
         m_prof->pop();
