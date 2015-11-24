@@ -63,9 +63,6 @@ using namespace boost::python;
 
 #include <boost/bind.hpp>
 
-#include <sstream>
-#include <fstream>
-
 #include <iostream>
 #include <stdexcept>
 
@@ -85,9 +82,10 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
-    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
-      m_filter_body(false), m_diameter_shift(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
-      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
+    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_rcut_min(_r_cut),
+      m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false), m_storage_mode(half),
+      m_rcut_changed(true), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
+      m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -189,6 +187,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
 
     m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&NeighborList::slotGlobalParticleNumberChange, this));
 
+    // connect locally to the rcut changing signal
+    m_rcut_change_conn = connectRCutChange(bind(&NeighborList::slotRCutChange, this));
+
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
@@ -220,7 +221,8 @@ void NeighborList::reallocateTypes()
     m_r_listsq.resize(m_typpair_idx.getNumElements());
     m_Nmax.resize(m_pdata->getNTypes());
     m_conditions.resize(m_pdata->getNTypes());
-    
+
+    m_rcut_signal();
     forceUpdate();
     }
 
@@ -241,6 +243,7 @@ NeighborList::~NeighborList()
 #endif
 
     m_num_type_change_conn.disconnect();
+    m_rcut_change_conn.disconnect();
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
@@ -248,17 +251,21 @@ NeighborList::~NeighborList()
 */
 void NeighborList::compute(unsigned int timestep)
     {
+    // check if the rcut array has changed and update it
+    if (m_rcut_changed)
+        {
+        updateRList();
+        }
+
     // skip if we shouldn't compute this step
     if (!shouldCompute(timestep) && !m_force_update)
         return;
 
     if (m_prof) m_prof->push("Neighbor");
-    
+
 	// take care of some updates if things have changed since construction
     if (m_force_update)
         {
-        updateRList();
-        
         // build the head list since some sort of change (like a particle sort) happened
         buildHeadList();
         
@@ -375,23 +382,8 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
 
-    // update the maximum cutoff of all those set so far
-    ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);    
-    Scalar r_cut_max = 0.0f;
-    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
-        {
-        // get the maximum cutoff for this type
-        Scalar r_cut_max_i = 0.0f;
-        for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
-            {
-            if (h_r_cut.data[m_typpair_idx(i,j)] > r_cut_max_i)
-                r_cut_max_i = h_r_cut.data[m_typpair_idx(i,j)];
-            }
-        h_rcut_max.data[i] = r_cut_max_i;
-        if (r_cut_max_i > r_cut_max)
-            r_cut_max = r_cut_max_i;
-        }
-    m_rcut_max_max = r_cut_max;
+    // signal the change in rcut
+    m_rcut_signal();
     forceUpdate();
     }
     
@@ -407,25 +399,56 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
+    m_rcut_signal();
     forceUpdate();
     } 
 
-/*!
- * \note This method is only useful in CPU code when rlist(i,j)^2 is used. GPU code uses plain r_cut(i,j) instead.
- */ 
 void NeighborList::updateRList()
 	{
 	// only need a read on the real cutoff
 	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
-	
+
 	// now we need to read and write on the r_list
 	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
-	
-	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
-		{
-		Scalar r_list = (h_r_cut.data[i] > Scalar(0.0)) ? h_r_cut.data[i] + m_r_buff : Scalar(0.0);
-		h_r_listsq.data[i] = r_list*r_list;
-		}
+
+    // update the maximum cutoff of all those set so far
+    ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);
+    Scalar r_cut_max = 0.0f;
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        // get the maximum cutoff for this type
+        Scalar r_cut_max_i = 0.0f;
+        for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
+            {
+            const Scalar r_cut_ij = h_r_cut.data[m_typpair_idx(i,j)];
+            if (r_cut_ij > r_cut_max_i)
+                r_cut_max_i = r_cut_ij;
+
+            // precompute rlistsq while we're at it
+            Scalar r_list = (r_cut_ij > Scalar(0.0)) ? r_cut_ij + m_r_buff : Scalar(0.0);
+            h_r_listsq.data[m_typpair_idx(i,j)] = r_list*r_list;
+            }
+        h_rcut_max.data[i] = r_cut_max_i;
+        if (r_cut_max_i > r_cut_max)
+            r_cut_max = r_cut_max_i;
+        }
+    m_rcut_max_max = r_cut_max;
+
+    // loop back through and compute the minimum
+    // this extra loop guards against some weird case where all of the cutoffs are turned off
+    // and we accidentally get infinity
+    Scalar r_cut_min = m_rcut_max_max;
+    for (unsigned int cur_pair=0; cur_pair < m_typpair_idx.getNumElements(); ++cur_pair)
+        {
+        const Scalar r_cut_ij = h_r_cut.data[cur_pair];
+        // if cutoff is defined and less than total minimum
+        if (r_cut_ij > Scalar(0.0) && r_cut_ij < r_cut_min)
+            r_cut_min = r_cut_ij;
+        }
+    m_rcut_min = r_cut_min;
+
+    // rcut has been updated to the latest values now
+    m_rcut_changed = false;
 	}
 
 /*! \returns an estimate of the number of neighbors per particle
@@ -446,7 +469,7 @@ Scalar NeighborList::estimateNNeigh()
 
     // calculate the average number of neighbors by multiplying by the volume
     // within the cutoff
-    Scalar r_max = m_rcut_max_max + m_r_buff;
+    Scalar r_max = getMaxRCut() + m_r_buff;
     // diameter shifting requires to communicate a larger rlist
     if (m_diameter_shift)
         r_max += m_d_max - Scalar(1.0);
@@ -1477,6 +1500,10 @@ void export_NeighborList()
                      .def("getDiameterShift", &NeighborList::getDiameterShift)
                      .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
+                     .def("getMaxRCut", &NeighborList::getMaxRCut)
+                     .def("getMinRCut", &NeighborList::getMinRCut)
+                     .def("getMaxRList", &NeighborList::getMaxRList)
+                     .def("getMinRList", &NeighborList::getMinRList)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)

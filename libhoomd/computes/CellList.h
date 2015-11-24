@@ -121,7 +121,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <b>Parameters:</b>
      - \c width - minimum width of a cell in any x,y,z direction
      - \c radius - integer radius of cells to generate in \c cell_adj (1,2,3,4,...)
-     - \c max_cells - maximum number of cells to allocate
      - \c multiple - Round down to the nearest multiple number of cells in each direction (only applied to cells
                      inside the domain, not the ghost cells).
 
@@ -161,13 +160,6 @@ class CellList : public Compute
         void setRadius(unsigned int radius)
             {
             m_radius = radius;
-            m_params_changed = true;
-            }
-
-        //! Set the maximum number of cells to allocate
-        void setMaxCells(unsigned int max_cells)
-            {
-            m_max_cells = max_cells;
             m_params_changed = true;
             }
 
@@ -284,16 +276,16 @@ class CellList : public Compute
             return m_Nmax;
             }
 
-        //! Get number of ghost cells per direction
-        const uint3 getNGhostCells() const
-            {
-            return m_num_ghost_cells;
-            }
-
         //! Get width of ghost cells
         const Scalar3 getGhostWidth() const
             {
             return m_ghost_width;
+            }
+
+        //! Get the actual cell width that was computed (includes ghost layer)
+        const Scalar3 getCellWidth() const
+            {
+            return m_actual_width;
             }
 
         // @}
@@ -348,11 +340,22 @@ class CellList : public Compute
 
         // @}
 
+        /*! \param func Function to call when the cell width changes
+            \return Connection to manage the signal/slot connection
+            Calls are performed by using boost::signals2. The function passed in
+            \a func will be called every time the CellList is notified of a change in the cell width
+            \note If the caller class is destroyed, it needs to disconnect the signal connection
+            via \b con.disconnect where \b con is the return value of this function.
+        */
+        boost::signals2::connection connectCellWidthChange(const boost::function<void ()> &func)
+            {
+            return m_width_change.connect(func);
+            }
+
     protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
         unsigned int m_radius;       //!< Radius of adjacency bins to list
-        unsigned int m_max_cells;    //!< Maximum number of cells to allocate
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_compute_orientation;  //!< true if the orientation list should be computed
         bool m_compute_idx;          //!< true if the idx list should be computed
@@ -369,8 +372,8 @@ class CellList : public Compute
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
-        uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction
-        Scalar3 m_ghost_width;       //!< Width of ghost cells
+        Scalar3 m_actual_width;      //!< Actual width of a cell in each direction
+        Scalar3 m_ghost_width;       //!< Width of ghost layer sized for (on one side only)
 
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
@@ -411,6 +414,8 @@ class CellList : public Compute
 
         //! Resets the condition status
         virtual void resetConditions();
+
+        boost::signals2::signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
     };
 
 //! Export the CellList class to python

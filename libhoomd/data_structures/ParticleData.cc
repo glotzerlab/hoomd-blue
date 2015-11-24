@@ -3103,8 +3103,8 @@ void SnapshotParticleData<Real>::setTypes(boost::python::list types)
     }
 
 // instantiate both float and double snapshots
-template class SnapshotParticleData<float>;
-template class SnapshotParticleData<double>;
+template struct SnapshotParticleData<float>;
+template struct SnapshotParticleData<double>;
 
 void export_SnapshotParticleData()
     {

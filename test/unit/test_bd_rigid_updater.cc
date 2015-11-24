@@ -56,11 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "TwoStepBDNVT.h"
 #include "TwoStepBDNVTRigid.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepBDNVTRigidGPU.h"
-#include "TwoStepBDNVTGPU.h"
 #endif
 
 #include "IntegratorTwoStep.h"

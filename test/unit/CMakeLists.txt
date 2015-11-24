@@ -50,6 +50,7 @@ set(TEST_LIST
     test_vec3
     test_messenger
     test_cell_list
+    test_cell_list_stencil
     test_const_external_field_dipole
     test_index1d
     test_gpu_array
@@ -75,7 +76,6 @@ set(TEST_LIST
     test_cgcmm_force
     test_morse_force
     test_force_shifted_lj
-    test_nve_integrator
     test_nvt_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
@@ -101,11 +101,11 @@ option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
 if (NOT HOOMD_SKIP_LONG_TESTS)
     # put the longest tests last
 set(TEST_LIST ${TEST_LIST}
-    test_bdnvt_integrator
     test_dpd_integrator
     test_bd_rigid_updater
     test_npt_mtk_integrator
-    test_nvt_mtk_integrator)
+    test_nvt_mtk_integrator
+    test_nve_integrator)
 endif()
 
 if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)

@@ -12,6 +12,18 @@ Released TBD
 * Anisotropic particle integrators.
 * Gay-Berne pair potential.
 * Dipole pair potential.
+* Brownian dynamics `integrate.brownian`
+* Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
+* `nlist.stencil` to compute neighbor lists using stencilled cell lists.
+
+*Bug fixes*
+
+* Fixed a bug where NVT integration hung when there were 0 particles in some domains.
+* Check SLURM environment variables for local MPI rank identification
+
+*Deprecated commands*
+
+* `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
 
 ## v1.2.1
 

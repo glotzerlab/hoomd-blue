@@ -142,7 +142,7 @@ EAMForceComputeGPU::~EAMForceComputeGPU()
     }
 
 
-void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
+void EAMForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

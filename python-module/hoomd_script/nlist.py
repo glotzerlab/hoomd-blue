@@ -70,9 +70,13 @@ import hoomd_script
 #
 # The simplest way to build a neighbor list is \f$ O(N^2) \f$: each particle loops over all other particles and only
 # includes those within the neighbor list cutoff. This algorithm is no longer implemented in HOOMD-blue because it is
-# slow and inefficient. Instead, two accelerated algorithms based on %cell lists and bounding volume hierarchy trees
-# are implemented. The %cell list implementation is fastest when the cutoff radius is similar between all %pair forces,
-# while the %tree implementation is faster when there is significant size disparity.
+# slow and inefficient. Instead, three accelerated algorithms based on %cell lists and bounding volume hierarchy trees
+# are implemented. The %cell list implementation is fastest when the cutoff radius is similar between all %pair forces
+# (smaller than 2:1 ratio). The %stencil implementation is a different variant of the cell list, and is usually fastest
+# when there is large disparity in the %pair cutoff radius and a high number fraction of particles with the
+# bigger cutoff (at least 30%%). The %tree implementation is faster when there is large size disparity and
+# the number fraction of big objects is low. Because the performance of these algorithms depends sensitively on your
+# system and hardware, you should carefully test which option is fastest for your simulation.
 #
 # Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$ 
 # will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
@@ -612,7 +616,7 @@ class cell(_nlist):
     # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -638,7 +642,7 @@ class cell(_nlist):
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
 
-        self.cpp_nlist.setEvery(1, True)
+        self.cpp_nlist.setEvery(check_period, dist_check)
 
         globals.system.addCompute(self.cpp_nlist, self.name)
         
@@ -728,6 +732,250 @@ class cell(_nlist):
             self.cpp_cl.setSortCellList(deterministic)
 cell.cur_id = 0
 
+## %Cell list-based neighbor list using stencils
+#
+#
+# nlist.stencil creates a %cell list-based neighbor list object to which %pair potentials can be attached for computing
+# non-bonded pairwise interactions. %Cell listing allows for O(N) construction of the neighbor list. Particles are first
+# spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
+# list.
+#
+# This neighbor-list style differs from nlist.cell based on how the adjacent cells are searched for particles. The cell
+# list \a cell_width is set by default using the shortest active cutoff radius in the system. One "stencil" is computed
+# per particle type based on the largest cutoff radius that type participates in, which defines the bins that the
+# particle must search in. Distances to the bins in the stencil are precomputed so that certain particles can be
+# quickly excluded from the neighbor list, leading to improved performance compared to nlist.cell when there is size
+# disparity in the cutoff radius.
+#
+# The performance of the %stencil depends strongly on the choice of \a cell_width. The best performance is obtained
+# when the cutoff radii are multiples of the \a cell_width, and when the \a cell_width covers the simulation box with
+# a roughly integer number of cells. The \a cell_width can be set manually, or be automatically scanning through a range
+# of possible bin widths using stencil.tune_cell_width().
+#
+# \b Examples:
+# \code
+# nl_s = nlist.stencil(check_period = 1)
+# nl_s.tune()
+# nl_s.tune_cell_width(min_width=1.5, max_width=3.0)
+# \endcode
+#
+# \MPI_SUPPORTED
+class stencil(_nlist):
+    ## Initialize a %stencil neighbor list
+    #
+    # \param r_buff Buffer width
+    # \param check_period How often to attempt to rebuild the neighbor list
+    # \param d_max The maximum diameter a particle will achieve, only used in conjunction with slj diameter shifting
+    # \param dist_check Flag to enable / disable distance checking
+    # \param cell_width The underlying stencil bin width for the cell list
+    # \param name Optional name for this neighbor list instance
+    #
+    # \note \a d_max should only be set when slj diameter shifting is required by a pair potential. Currently, slj
+    # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
+    # significantly degraded performance or incorrect results.
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None):
+        util.print_status_line()
+
+        _nlist.__init__(self)
+
+        if name is None:
+            self.name = "stencil_nlist_%d" % stencil.cur_id
+            stencil.cur_id += 1
+        else:
+            self.name = name
+
+        # the r_cut will be overridden by the pair potentials attached to the neighbor list
+        default_r_cut = 0.0
+        # assume r_buff = 0.4 as a typical default value that the user can (and should) override
+        default_r_buff = 0.4
+
+        # create the C++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_cl = hoomd.CellList(globals.system_definition)
+            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
+            globals.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+        else:
+            self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
+            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
+            globals.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListGPUStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+
+        self.cpp_nlist.setEvery(check_period, dist_check)
+
+        globals.system.addCompute(self.cpp_nlist, self.name)
+        
+        # register this neighbor list with the globals
+        globals.neighbor_lists += [self]
+        
+        # save the user defined parameters
+        util._disable_status_lines = True
+        self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
+        util._disable_status_lines = False
+
+    ## Change neighbor list parameters
+    #
+    # \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
+    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list
+    #        needs updating
+    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+    #        run() commands. (in distance units)
+    # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
+    #        \a check_period steps
+    # \param cell_width The underlying stencil bin width for the cell list
+    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
+    #
+    # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
+    # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
+    # to be updated less often, but more particles are included leading to slower %force computations.
+    # Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
+    # slowing overall performance again. The sweet spot for the best performance needs to be found by
+    # experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
+    # simulations.
+    #
+    # As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+    # no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
+    # the neighbor list may not be updated when it needs to be.
+    #
+    # For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+    # needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+    # of approximately 2 percent.
+    #
+    # \a check_period should be set so that no particle
+    # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+    # \b build is counted and printed in the neighbor list statistics at the end of a run().
+    #
+    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj,
+    # pair.slj will
+    # automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used)
+    # by using nlist.set_params() after the
+    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
+    # than necessary if d_max is greater than 1.0.
+    #
+    # \b Examples:
+    # \code
+    # nl.set_params(r_buff = 0.9)
+    # nl.set_params(check_period = 11)
+    # nl.set_params(r_buff = 0.7, check_period = 4)
+    # nl.set_params(d_max = 3.0)
+    # \endcode
+    #
+    # \note For truly deterministic simulations, also the autotuner should be disabled.
+    # This can significantly decrease performance.
+    #
+    # \b Example:
+    # \code
+    # nlist.set_params(deterministic=True)
+    # option.set_autotuner_params(enable=False)
+    # \endcode
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, cell_width=None, deterministic=None):
+        util.print_status_line();
+
+        if self.cpp_nlist is None:
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            raise RuntimeError('Error setting neighbor list parameters');
+
+        # update the parameters
+        if r_buff is not None:
+            self.cpp_nlist.setRBuff(r_buff);
+            self.r_buff = r_buff;
+
+        if check_period is not None:
+            self.cpp_nlist.setEvery(check_period, dist_check);
+
+        if cell_width is not None:
+            self.cpp_nlist.setCellWidth(cell_width)
+
+        if d_max is not None:
+            self.cpp_nlist.setMaximumDiameter(d_max);
+
+        if deterministic is not None:
+            self.cpp_cl.setSortCellList(deterministic)
+
+    ## Make a series of short runs to determine the fastest performing bin width
+    # \param warmup Number of time steps to run() to warm up the benchmark
+    # \param min_width Minimum %cell bin width to try
+    # \param max_width Maximum %cell bin width to try
+    # \param jumps Number of different bin width to test
+    # \param steps Number of time steps to run() at each point
+    #
+    # tune_cell_width() executes \a warmup time steps. Then it sets the nlist \a cell_width value to \a min_width and
+    # runs for \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a cell_width
+    # value completing at \a max_width in \a jumps jumps. Status information is printed out to the screen, and the
+    # optimal \a cell_width value is left set for further runs() to continue at optimal settings.
+    #
+    # Each benchmark is repeated 3 times and the median value chosen. In total, (warmup + 3*jump*steps) time steps
+    # are run().
+    #
+    # \returns optimal_cell_width Optimal cell width
+    #
+    # \MPI_SUPPORTED
+    def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
+        util.print_status_line()
+
+        # check if initialization has occurred
+        if not init.is_initialized():
+            globals.msg.error("Cannot tune r_buff before initialization\n");
+
+        if self.cpp_nlist is None:
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            raise RuntimeError('Error tuning neighbor list')
+
+        min_cell_width = min_width
+        if min_cell_width is None:
+            min_cell_width = 0.5*self.cpp_nlist.getMinRList()
+        max_cell_width = max_width
+        if max_cell_width is None:
+            max_cell_width = self.cpp_nlist.getMaxRList()
+
+        # make the warmup run
+        hoomd_script.run(warmup);
+
+        # initialize scan variables
+        dr = (max_cell_width - min_cell_width) / (jumps - 1);
+        width_list = [];
+        tps_list = [];
+
+        # loop over all desired r_buff points
+        for i in range(0,jumps):
+            # set the current r_buff
+            cw = min_cell_width + i * dr;
+            self.set_params(cell_width=cw);
+
+            # run the benchmark 3 times
+            tps = [];
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+            hoomd_script.run(steps);
+            tps.append(globals.system.getLastTPS())
+
+            # record the median tps of the 3
+            tps.sort();
+            tps_list.append(tps[1]);
+            width_list.append(cw);
+
+        # find the fastest r_buff
+        fastest = tps_list.index(max(tps_list));
+        fastest_width = width_list[fastest];
+
+        # set the fastest and rerun the warmup steps to identify the max check period
+        self.set_params(cell_width=fastest_width);
+
+        # notify the user of the benchmark results
+        globals.msg.notice(2, "cell width = " + str(width_list) + '\n');
+        globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        globals.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+
+        # return the results to the script
+        return fastest_width
+stencil.cur_id = 0
+
 ## Fast neighbor list for size asymmetric particles
 #
 # nlist.tree creates a neighbor list using bounding volume hierarchy (BVH) tree traversal. %Pair potentials are attached
@@ -764,7 +1012,7 @@ class tree(_nlist):
     #
     # \warning BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
     #
-    def __init__(self, r_buff=None, check_period=None, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         util.print_status_line()
 
         _nlist.__init__(self)
@@ -780,7 +1028,7 @@ class tree(_nlist):
         else:
             self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, default_r_cut, default_r_buff)
 
-        self.cpp_nlist.setEvery(1, True)
+        self.cpp_nlist.setEvery(check_period, dist_check)
 
         if name is None:
             self.name = "tree_nlist_%d" % tree.cur_id

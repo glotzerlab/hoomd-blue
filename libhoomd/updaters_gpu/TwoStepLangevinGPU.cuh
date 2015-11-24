@@ -47,66 +47,46 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
 
-// Maintainer: morozov
-
-/**
-powered by:
-Moscow group.
+/*! \file TwoStepLangevinGPU.cuh
+    \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
-#include "EAMForceCompute.h"
-#include "NeighborList.h"
-#include "EAMForceGPU.cuh"
-#include "Autotuner.h"
+#include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
-#include <boost/shared_ptr.hpp>
+#ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
+#define __TWO_STEP_LANGEVIN_GPU_CUH__
 
-/*! \file EAMForceComputeGPU.h
-    \brief Declares the class EAMForceComputeGPU
-*/
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
-#ifndef __EAMForceComputeGPU_H__
-#define __EAMForceComputeGPU_H__
-
-//! Computes Lennard-Jones forces on each particle using the GPU
-/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
-*/
-class EAMForceComputeGPU : public EAMForceCompute
+//! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
+struct langevin_step_two_args
     {
-    public:
-        //! Constructs the compute
-        EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
-
-        //! Destructor
-        virtual ~EAMForceComputeGPU();
-
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            EAMForceCompute::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
-
-    protected:
-        EAMTexInterData eam_data;                   //!< Undocumented parameter
-        EAMtex eam_tex_data;                        //!< Undocumented parameter
-        Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+    Scalar *d_gamma;          //!< Device array listing per-type gammas
+    unsigned int n_types;     //!< Number of types in \a d_gamma
+    bool use_lambda;          //!< Set to true to scale diameters by lambda to get gamma
+    Scalar lambda;            //!< Scale factor to convert diameter to lambda
+    Scalar T;                 //!< Current temperature
+    unsigned int timestep;    //!< Current timestep
+    unsigned int seed;        //!< User chosen random number seed
+    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
+    unsigned int block_size;  //!<  Block size
+    unsigned int num_blocks;  //!<  Number of blocks
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
-//! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU();
+//! Kernel driver for the second part of the Langevin update called by TwoStepLangevinGPU
+cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar3 *d_accel,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4 *d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D);
 
-#endif
+#endif //__TWO_STEP_LANGEVIN_GPU_CUH__

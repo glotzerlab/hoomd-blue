@@ -69,7 +69,7 @@ Carolyn Phillips, University of Michigan
  - pair.dpdlj
  - pair.dpd
  - pair.dpd_conservative
- - integrate.bdnvt
+ - integrate.langevin
  - bond.fene
  - pair.slj
  - Initial testing and debugging of HOOMD on Mac OS X systems
@@ -166,6 +166,7 @@ Michael P. Howard, Princeton University
  - Automatic citation list generator
  - Neighbor list memory footprint reduction
  - Bounding volume hierarchy (tree) neighbor lists
+ - Stenciled cell list (stencil) neighbor lists
  - Per-type MPI ghost layer communication
  - Dynamic load balancing
 

@@ -49,23 +49,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepBDNVTGPU.cuh"
+#include "TwoStepLangevinGPU.cuh"
 
 #include "saruprngCUDA.h"
 
 #include <assert.h>
 
-/*! \file TwoStepBDNVTGPU.cu
-    \brief Defines GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+/*! \file TwoStepLangevinGPU.cu
+    \brief Defines GPU kernel code for Langevin integration on the GPU. Used by TwoStepLangevinGPU.
 */
 
-//! Shared memory array for gpu_bdnvt_step_two_kernel()
+//! Shared memory array for gpu_langevin_step_two_kernel()
 extern __shared__ Scalar s_gammas[];
 
 //! Shared memory used in reducing sums for bd energy tally
 extern __shared__ Scalar bdtally_sdata[];
 
-//! Takes the second half-step forward in the BDNVT integration on a group of particles with
+//! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
@@ -76,19 +76,17 @@ extern __shared__ Scalar bdtally_sdata[];
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param gamma_diam If true, use particle diameters as gamma. If false, read from d_gamma
+    \param use_lambda If true, gamma = lambda * diameter
+    \param lambda Scale factor to convert diameter to lambda (when use_lambda is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
     \param tally Boolean indicating whether energy tally is performed or not
     \param d_partial_sum_bdenergy Placeholder for the partial sum
 
-    This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
+    This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for design details.
 
     This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
 
@@ -98,28 +96,27 @@ extern __shared__ Scalar bdtally_sdata[];
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
 extern "C" __global__
-void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
-                              Scalar4 *d_vel,
-                              Scalar3 *d_accel,
-                              const Scalar *d_diameter,
-                              const unsigned int *d_tag,
-                              unsigned int *d_group_members,
-                              unsigned int group_size,
-                              Scalar4 *d_net_force,
-                              Scalar *d_gamma,
-                              unsigned int n_types,
-                              bool gamma_diam,
-                              unsigned int timestep,
-                              unsigned int seed,
-                              Scalar T,
-                              Scalar deltaT,
-                              Scalar D,
-                              bool limit,
-                              Scalar limit_val,
-                              bool tally,
-                              Scalar *d_partial_sum_bdenergy)
+void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
+                                 Scalar4 *d_vel,
+                                 Scalar3 *d_accel,
+                                 const Scalar *d_diameter,
+                                 const unsigned int *d_tag,
+                                 unsigned int *d_group_members,
+                                 unsigned int group_size,
+                                 Scalar4 *d_net_force,
+                                 Scalar *d_gamma,
+                                 unsigned int n_types,
+                                 bool use_lambda,
+                                 Scalar lambda,
+                                 unsigned int timestep,
+                                 unsigned int seed,
+                                 Scalar T,
+                                 Scalar deltaT,
+                                 unsigned int D,
+                                 bool tally,
+                                 Scalar *d_partial_sum_bdenergy)
     {
-    if (!gamma_diam)
+    if (!use_lambda)
         {
         // read in the gammas (1 dimensional array)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -148,11 +145,11 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (gamma_diam)
+        if (use_lambda)
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = d_diameter[idx];
+            gamma = lambda*d_diameter[idx];
             }
         else
             {
@@ -168,13 +165,13 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
 
-        Scalar randomx=s.f(-1.0, 1.0);
-        Scalar randomy=s.f(-1.0, 1.0);
-        Scalar randomz=s.f(-1.0, 1.0);
+        Scalar randomx=s.s<Scalar>(-1.0, 1.0);
+        Scalar randomy=s.s<Scalar>(-1.0, 1.0);
+        Scalar randomz=s.s<Scalar>(-1.0, 1.0);
 
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
-        if (D > Scalar(2.0))
+        if (D > 2)
             bd_force.z = randomz*coeff - gamma*vel.z;
 
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
@@ -195,17 +192,6 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
 
         // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 6)
         bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
-
-        if (limit)
-            {
-            Scalar vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-            if ( (vel_len*deltaT) > limit_val)
-                {
-                vel.x = vel.x / vel_len * limit_val / deltaT;
-                vel.y = vel.y / vel_len * limit_val / deltaT;
-                vel.z = vel.z / vel_len * limit_val / deltaT;
-                }
-            }
 
         // write out data (MEM TRANSFER: 32 bytes)
         d_vel[idx] = vel;
@@ -289,41 +275,36 @@ extern "C" __global__
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param bdnvt_args Collected arguments for gpu_bdnvt_step_two_kernel()
+    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel()
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
 
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
-                              Scalar4 *d_vel,
-                              Scalar3 *d_accel,
-                              const Scalar *d_diameter,
-                              const unsigned int *d_tag,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               Scalar4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               Scalar deltaT,
-                               Scalar D,
-                               bool limit,
-                               Scalar limit_val)
+cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar3 *d_accel,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4 *d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D)
     {
 
     // setup the grid to run the kernel
-    dim3 grid(bdnvt_args.num_blocks, 1, 1);
+    dim3 grid(langevin_args.num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
-    dim3 threads(bdnvt_args.block_size, 1, 1);
+    dim3 threads(langevin_args.block_size, 1, 1);
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_bdnvt_step_two_kernel<<< grid,
+    gpu_langevin_step_two_kernel<<< grid,
                                  threads,
-                                 max((unsigned int)(sizeof(Scalar)*bdnvt_args.n_types),
-                                     (unsigned int)(bdnvt_args.block_size*sizeof(Scalar)))
+                                 max((unsigned int)(sizeof(Scalar)*langevin_args.n_types),
+                                     (unsigned int)(langevin_args.block_size*sizeof(Scalar)))
                              >>>(d_pos,
                                  d_vel,
                                  d_accel,
@@ -332,27 +313,26 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                                  d_group_members,
                                  group_size,
                                  d_net_force,
-                                 bdnvt_args.d_gamma,
-                                 bdnvt_args.n_types,
-                                 bdnvt_args.gamma_diam,
-                                 bdnvt_args.timestep,
-                                 bdnvt_args.seed,
-                                 bdnvt_args.T,
+                                 langevin_args.d_gamma,
+                                 langevin_args.n_types,
+                                 langevin_args.use_lambda,
+                                 langevin_args.lambda,
+                                 langevin_args.timestep,
+                                 langevin_args.seed,
+                                 langevin_args.T,
                                  deltaT,
                                  D,
-                                 limit,
-                                 limit_val,
-                                 bdnvt_args.tally,
-                                 bdnvt_args.d_partial_sum_bdenergy);
+                                 langevin_args.tally,
+                                 langevin_args.d_partial_sum_bdenergy);
 
     // run the summation kernel
-    if (bdnvt_args.tally)
+    if (langevin_args.tally)
         gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
                                                 threads1,
-                                                bdnvt_args.block_size*sizeof(Scalar)
-                                             >>>(&bdnvt_args.d_sum_bdenergy[0],
-                                                 bdnvt_args.d_partial_sum_bdenergy,
-                                                 bdnvt_args.num_blocks);
+                                                langevin_args.block_size*sizeof(Scalar)
+                                             >>>(&langevin_args.d_sum_bdenergy[0],
+                                                 langevin_args.d_partial_sum_bdenergy,
+                                                 langevin_args.num_blocks);
 
 
 

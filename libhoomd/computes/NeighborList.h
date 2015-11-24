@@ -219,6 +219,38 @@ class NeighborList : public Compute
             return m_storage_mode;
             }
 
+        //! Get the maximum of all rcut
+        Scalar getMaxRCut()
+            {
+            if (m_rcut_changed) updateRList();
+            return m_rcut_max_max;
+            }
+
+        //! Get the maximum of all the rlist
+        Scalar getMaxRList()
+            {
+            Scalar max_rlist = getMaxRCut() + m_r_buff;
+            if (m_diameter_shift)
+                max_rlist += m_d_max - Scalar(1.0);
+            return max_rlist;
+            }
+
+        //! Get the minimum of all rcut
+        Scalar getMinRCut()
+            {
+            if (m_rcut_changed) updateRList();
+            return m_rcut_min;
+            }
+
+        //! Get the minimum of all rlist
+        Scalar getMinRList()
+            {
+            Scalar min_rlist = getMinRCut() + m_r_buff;
+            if (m_diameter_shift)
+                min_rlist += m_d_max - Scalar(1.0);
+            return min_rlist;
+            }
+
         // @}
         //! \name Statistics
         // @{
@@ -355,6 +387,7 @@ class NeighborList : public Compute
         virtual void setDiameterShift(bool diameter_shift)
             {
             m_diameter_shift = diameter_shift;
+            m_rcut_signal();
             forceUpdate();
             }
             
@@ -372,7 +405,14 @@ class NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
+            m_rcut_signal();
             forceUpdate();
+            }
+
+        //! Get the maximum diameter value
+        Scalar getMaximumDiameter()
+            {
+            return m_d_max;
             }
 
         //! Return the requested ghost layer width
@@ -394,12 +434,6 @@ class NeighborList : public Compute
                 {
                 return Scalar(0.0);
                 }
-            }
-
-        //! Get the maximum diameter value
-        Scalar getMaximumDiameter()
-            {
-            return m_d_max;
             }
 
         // @}
@@ -445,12 +479,25 @@ class NeighborList : public Compute
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
 
+        /*! \param func Function to call when the cutoff radius changes
+            \return Connection to manage the signal/slot connection
+            Calls are performed by using boost::signals2. The function passed in
+            \a func will be called every time the NeighborList is notified of a change in cutoff radius
+            \note If the caller class is destroyed, it needs to disconnect the signal connection
+            via \b con.disconnect where \b con is the return value of this function.
+        */
+        boost::signals2::connection connectRCutChange(const boost::function<void ()> &func)
+            {
+            return m_rcut_signal.connect(func);
+            }
+
    protected:
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
         GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
         GPUArray<Scalar> m_r_listsq;//!< The neighborlist cutoff radius squared stored by pair type
         GPUArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
         Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
+        Scalar m_rcut_min;          //!< The smallest cutoff radius of any pair (that is > 0)
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
@@ -523,6 +570,16 @@ class NeighborList : public Compute
         #endif
 
     private:
+        boost::signals2::signal<void ()> m_rcut_signal;     //!< Signal that is triggered when the cutoff radius changes
+
+        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the rcut array changing
+        bool m_rcut_changed;                                //!< Flag if the rcut array has changed
+        //! Notify the NeighborList that the rcut has changed for delayed updating
+        void slotRCutChange()
+            {
+            m_rcut_changed = true;
+            }
+
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
     
         int64_t m_updates;              //!< Number of times the neighbor list has been updated

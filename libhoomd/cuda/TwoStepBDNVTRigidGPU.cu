@@ -49,7 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#include "TwoStepBDNVTGPU.cuh"
 #include "TwoStepBDNVTRigidGPU.cuh"
 
 #include "saruprngCUDA.h"
@@ -189,7 +188,7 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                Scalar4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
+                               const langevin_step_two_args& bdnvt_args,
                                Scalar deltaT,
                                Scalar D)
     {
@@ -210,7 +209,7 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
                                                    d_net_force,
                                                    bdnvt_args.d_gamma,
                                                    bdnvt_args.n_types,
-                                                   bdnvt_args.gamma_diam,
+                                                   bdnvt_args.use_lambda,
                                                    bdnvt_args.timestep,
                                                    bdnvt_args.seed,
                                                    bdnvt_args.T,

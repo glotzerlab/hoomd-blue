@@ -96,8 +96,6 @@ TwoStepBerendsen::~TwoStepBerendsen()
 void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     if (m_aniso && !m_warned_aniso)
         {
@@ -161,8 +159,6 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
 void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     // access the particle data for writing on the CPU
     assert(m_pdata);

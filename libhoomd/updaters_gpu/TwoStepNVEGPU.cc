@@ -95,9 +95,6 @@ TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
 void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    assert(group_size <= m_pdata->getN());
-    if (group_size == 0)
-        return;
 
     // profile this step
     if (m_prof)
@@ -163,9 +160,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    assert(group_size <= m_pdata->getN());
-    if (group_size == 0)
-        return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

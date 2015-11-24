@@ -49,45 +49,68 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-/*! \file TwoStepBDNVTGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+#include "TwoStepLangevinBase.h"
+
+#ifndef __TWO_STEP_LANGEVIN_H__
+#define __TWO_STEP_LANGEVIN_H__
+
+/*! \file TwoStepLangevin.h
+    \brief Declares the TwoStepLangevin class
 */
 
-#include "ParticleData.cuh"
-#include "HOOMDMath.h"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TWO_STEP_BDNVT_GPU_CUH__
-#define __TWO_STEP_BDNVT_GPU_CUH__
+//! Integrates part of the system forward in two steps with Langevin dynamics
+/*! Implements Langevin dynamics.
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
-struct bdnvt_step_two_args
+    Langevin dynamics modifies standard NVE integration with two additional forces, a random force and a drag force.
+    This implementation is very similar to TwoStepNVE with the additional forces. Note that this is not a really proper
+    Langevin integrator, but it works well in practice.
+
+    \ingroup updaters
+*/
+class TwoStepLangevin : public TwoStepLangevinBase
     {
-    Scalar *d_gamma;         //!< Device array listing per-type gammas
-    unsigned int n_types;   //!< Number of types in \a d_gamma
-    bool gamma_diam;        //!< Set to true to use diameters as gammas
-    Scalar T;                //!< Current temperature
-    unsigned int timestep;  //!< Current timestep
-    unsigned int seed;      //!< User chosen random number seed
-    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
-    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
-    unsigned int block_size;  //!<  Block size
-    unsigned int num_blocks;  //!<  Number of blocks
-    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
+                     boost::shared_ptr<ParticleGroup> group,
+                     boost::shared_ptr<Variant> T,
+                     unsigned int seed,
+                     bool use_lambda,
+                     Scalar lambda,
+                     const std::string& suffix = std::string(""));
+        virtual ~TwoStepLangevin();
+
+        //! Turn on or off Tally
+        /*! \param tally if true, tallies energy exchange from the thermal reservoir */
+        void setTally(bool tally)
+            {
+            m_tally= tally;
+            }
+
+        //! Returns a list of log quantities this integrator calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+
+        //! Returns logged values
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+
+    protected:
+        Scalar m_reservoir_energy;         //!< The energy of the reservoir the system is coupled to.
+        Scalar m_extra_energy_overdeltaT;  //!< An energy packet that isn't added until the next time step
+        bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
+        std::string m_log_name;            //!< Name of the reservoir quantity that we log
     };
 
-//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
-                               Scalar4 *d_vel,
-                               Scalar3 *d_accel,
-                               const Scalar *d_diameter,
-                               const unsigned int *d_tag,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               Scalar4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               Scalar deltaT,
-                               Scalar D,
-                               bool limit,
-                               Scalar limit_val);
+//! Exports the TwoStepLangevin class to python
+void export_TwoStepLangevin();
 
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
+#endif // #ifndef __TWO_STEP_LANGEVIN_H__

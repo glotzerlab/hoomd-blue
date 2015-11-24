@@ -135,7 +135,7 @@ class NeighborListTree : public NeighborList
         // we use stl vectors here because these tree data structures should *never* be
         // accessed on the GPU, they were optimized for the CPU with SIMD support
         std::vector<hpmc::detail::AABBTree>      m_aabb_trees;     //!< Flat array of AABB trees of all types
-        std::vector<hpmc::detail::AABB>          m_aabbs;          //!< Flat array of AABBs of all types
+        GPUVector<hpmc::detail::AABB>            m_aabbs;          //!< Flat array of AABBs of all types
         std::vector<unsigned int>  m_num_per_type;   //!< Total number of particles per type
         std::vector<unsigned int>  m_type_head;      //!< Index of first particle of each type, after sorting
         std::vector<unsigned int>  m_map_pid_tree;   //!< Maps the particle id to its tag in tree for sorting
