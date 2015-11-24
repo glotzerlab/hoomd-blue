@@ -636,17 +636,28 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                         qx = (kper+(Scalar)(m_Nx*ix));
                         kn1 = b1*qx;
                         argx = 0.5*qx*kH.x;
-                        wx = pow(sinc(argx),m_order);
+                        Scalar wxs = sinc(argx);
+                        wx = Scalar(1.0);
+                        for (int iorder = 0; iorder < m_order; ++iorder)
+                            wx *= wxs;
+
                         for (iy = -nby; iy <= nby; iy++) {
                             qy = (lper+(Scalar)(m_Ny*iy));
                             kn2 = b2*qy;
                             argy = 0.5*qy*kH.y;
-                            wy = pow(sinc(argy),m_order);
+                            Scalar wys = sinc(argy);
+                            wy = Scalar(1.0);
+                            for (int iorder = 0; iorder < m_order; ++iorder)
+                                wy *= wys;
+
                             for (iz = -nbz; iz <= nbz; iz++) {
                                 qz = (mper+(Scalar)(m_Nz*iz));
                                 kn3 = b3*qz;
                                 argz = 0.5*qz*kH.z;
-                                wz = pow(sinc(argz),m_order);
+                                Scalar wzs = sinc(argz);
+                                wz = Scalar(1.0);
+                                for (int iorder = 0; iorder < m_order; ++iorder)
+                                    wz *= wzs;
 
                                 kn = kn1 + kn2 + kn3;
 

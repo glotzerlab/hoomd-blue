@@ -950,22 +950,30 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 qx = (j.x+(Scalar)(Nx*ix));
                 kn1 = b1 * qx;
                 argx = Scalar(0.5)*qx*kH.x;
-                wx = fast::pow(gpu_sinc(argx),order);
+                Scalar wxs = gpu_sinc(argx);
+                wx = Scalar(1.0);
+                for (int iorder = 0; iorder < order; ++iorder)
+                    wx *= wxs;
 
-               for (iy = -nby; iy <= nby; iy++) {
+                for (iy = -nby; iy <= nby; iy++) {
                     qy = (j.y+(Scalar)(Ny*iy));
                     kn2 = b2 * qy;
                     argy = Scalar(0.5)*qy*kH.y;
-                    wy = fast::pow(gpu_sinc(argy),order);
+                    Scalar wys = gpu_sinc(argy);
+                    wy = Scalar(1.0);
+                    for (int iorder = 0; iorder < order; ++iorder)
+                        wy *= wys;
 
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = (j.z+(Scalar)(Nz*iz));
                         kn3 = b3 * qz;
-                        wz = Scalar(1.0);
                         kn = kn1+kn2+kn3;
 
                         argz = Scalar(0.5)*qz*kH.z;
-                        wz = fast::pow(gpu_sinc(argz),order);
+                        Scalar wzs = gpu_sinc(argz);
+                        wz = Scalar(1.0);
+                        for (int iorder = 0; iorder < order; ++iorder)
+                            wz *= wzs;
 
                         dot1 = dot(kn,k);
                         dot2 = dot(kn,kn);
