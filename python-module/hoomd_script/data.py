@@ -575,6 +575,9 @@ import hoomd_script
 # * Cubic box with given length: `data.boxdim(L=10)`
 # * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
 #
+# system = init.read_xml('init.xml')
+# system.box = system.box.scale(s=2)
+# ~~~
 class boxdim(meta._metadata):
     ## Initialize a boxdim object
     #
@@ -620,7 +623,13 @@ class boxdim(meta._metadata):
     #
     # Scales the box by the given scale factors. Tilt factors are not modified.
     #
-    def scale(self, sx, sy, sz):
+    # \returns a reference to itself
+    def scale(self, sx, sy, sz, s=None):
+        if s is not None:
+            self.Lx = self.Lx * s;
+            self.Ly = self.Ly * s;
+            self.Lz = self.Lz * s;
+
         self.Lx = self.Lx * sx;
         self.Ly = self.Ly * sy;
         self.Lz = self.Lz * sz;
@@ -632,6 +641,7 @@ class boxdim(meta._metadata):
     #
     # setVolume() scales the box to the given volume (or area).
     #
+    # \returns a reference to itself
     def set_volume(self, volume):
         cur_vol = self.get_volume();
 
