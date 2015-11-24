@@ -624,6 +624,7 @@ class boxdim(meta._metadata):
         self.Lx = self.Lx * sx;
         self.Ly = self.Ly * sy;
         self.Lz = self.Lz * sz;
+        return self
 
     ## Set the box volume
     #
@@ -640,6 +641,7 @@ class boxdim(meta._metadata):
         else:
             s = (volume / cur_vol)**(1.0/2.0)
             self.scale(s, s, 1.0);
+        return self
 
     ## Get the box volume
     #
