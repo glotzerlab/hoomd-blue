@@ -133,7 +133,7 @@ import math;
 # \n In[0]:
 # \code
 # # Creating wall geometry defintions using convenience functions
-# wallstructure=wall.group(name="arbitrary name")
+# wallstructure=wall.group()
 # wallstructure.add_sphere(r=1.0,origin=(0,1,3))
 # wallstructure.add_sphere(1.0,[0,-1,3],inside=False)
 # wallstructure.add_cylinder(r=1.0,origin=(1,1,1),axis=(0,0,3),inside=True)
@@ -146,7 +146,7 @@ import math;
 # \endcode
 # Out[0]:
 # \code
-# Wall_Data_Sturucture:arbitrary name
+# Wall_Data_Sturucture:
 # spheres:2{
 # [0:	Radius=1.0	Origin=(0.0, 1.0, 3.0)	Inside=True]
 # [1:	Radius=1.0	Origin=(0.0, -1.0, 3.0)	Inside=False]}
@@ -169,7 +169,7 @@ import math;
 # \endcode
 # Out[1]:
 # \code
-# Wall_Data_Sturucture:arbitrary name
+# Wall_Data_Sturucture:
 # spheres:1{
 # [0:	Radius=1.0	Origin=(0.0, 1.0, 3.0)	Inside=True]}
 # cylinders:1{
@@ -186,7 +186,7 @@ import math;
 # \endcode
 # Out[2]:
 # \code
-# Wall_Data_Sturucture:arbitrary name
+# Wall_Data_Sturucture:
 # spheres:1{
 # [0:	Radius=2.0	Origin=(0.0, 1.0, 3.0)	Inside=True]}
 # cylinders:1{
@@ -204,11 +204,9 @@ class group():
     # \b Example:
     # \code
     # empty_wall_object=wall.group()
-    # named_wall_object=wall.group(name='Arbitrary Wall Name')
-    # full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60,name="I'm so full")
+    # full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60)
     # \endcode
-    def __init__(self,*walls,name=''):
-        self.name=name;
+    def __init__(self,*walls):
         self.spheres=[];
         self.cylinders=[];
         self.planes=[];
@@ -323,7 +321,7 @@ class group():
     ## \internal
     # \brief Returns output for print
     def __str__(self):
-        output="Wall_Data_Sturucture:%s\nspheres:%s{"%(self.name, len(self.spheres));
+        output="Wall_Data_Sturucture:\nspheres:%s{"%(len(self.spheres));
         for index in range(len(self.spheres)):
             output+="\n[%s:\t%s]"%(repr(index), str(self.spheres[index]));
 
@@ -352,33 +350,33 @@ class group():
 # \n \b Examples
 # \n In[0]:\code
 # # One line initialization
-# one_line_walls=wall.group(wall.sphere(r=3,origin=(0,0,0)),wall.cylinder(r=2.5,axis=(0,0,1),inside=True), wall.plane(normal=(1,0,0)), name='one_line')
+# one_line_walls=wall.group(wall.sphere(r=3,origin=(0,0,0)),wall.cylinder(r=2.5,axis=(0,0,1),inside=True), wall.plane(normal=(1,0,0)))
 # print(one_line_walls)
-# full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60,name="I'm so full of defaults")
+# full_wall_object=wall.group([wall.sphere()]*20,[wall.cylinder()]*20,[wall.plane()]*60)
 # # Sharing wall group elements and access by reference
 # common_sphere=wall.sphere()
-# linked_walls1=wall.group(common_sphere,wall.plane(origin=(3,0,0),normal=(-1,0,0)),name='linked_walls1')
-# linked_walls2=wall.group(common_sphere,wall.plane(origin=(-3,0,0),normal=(1,0,0)),name='linked_walls2')
+# linked_walls1=wall.group(common_sphere,wall.plane(origin=(3,0,0),normal=(-1,0,0)))
+# linked_walls2=wall.group(common_sphere,wall.plane(origin=(-3,0,0),normal=(1,0,0)))
 # common_sphere.r=5.0
 # linked_walls1.spheres[0].origin=(0,0,1)
 # print(linked_walls1)
 # print(linked_walls2)
 # \endcode
 # Out[0]:\code
-# Wall_Data_Sturucture:one_line
+# Wall_Data_Sturucture:
 # spheres:1{
 # [0:	Radius=3	Origin=(0.0, 0.0, 0.0)	Inside=True]}
 # cylinders:1{
 # [0:	Radius=2.5	Origin=(0.0, 0.0, 0.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
 # planes:1{
 # [0:	Origin=(0.0, 0.0, 0.0)	Normal=(1.0, 0.0, 0.0)]}
-# Wall_Data_Sturucture:linked_walls1
+# Wall_Data_Sturucture:
 # spheres:1{
 # [0:	Radius=5.0	Origin=(0.0, 0.0, 1.0)	Inside=True]}
 # cylinders:0{}
 # planes:1{
 # [0:	Origin=(3.0, 0.0, 0.0)	Normal=(-1.0, 0.0, 0.0)]}
-# Wall_Data_Sturucture:linked_walls2
+# Wall_Data_Sturucture:
 # spheres:1{
 # [0:	Radius=5.0	Origin=(0.0, 0.0, 1.0)	Inside=True]}
 # cylinders:0{}
