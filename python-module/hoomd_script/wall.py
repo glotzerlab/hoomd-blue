@@ -551,7 +551,7 @@ class plane:
 # walls=wall.group()
 # # Edit walls
 # my_force=wall.pairpotential(walls)
-# my_force.force_coeff.set('A', all required arguments)0
+# my_force.force_coeff.set('A', all required arguments)
 # my_force.force_coeff.set(['B','C'],r_cut=0.3, all required arguments)
 # my_force.force_coeff.set(['B','C'],r_shift=0.3, all required arguments)
 # \endcode
@@ -626,7 +626,7 @@ class wallpotential(external._external_force):
 # lj=wall.lj(walls, r_cut=3.0)
 # lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)  #plotted below in blue
 # lj.force_coeff.set('B', sigma=1.0,epsilon=1.0, r_cut=2.0**(1.0/2.0))
-# lj.force_coeff.set(['A','B'], epsilon=2.0, sigma=1.0, alpha=1.0, r_cut=3.0);
+# lj.force_coeff.set(['A','B'], epsilon=2.0, sigma=1.0, alpha=1.0, r_cut=3.0)
 # \endcode
 #
 #
@@ -688,7 +688,7 @@ class lj(wallpotential):
 # # add walls to interact with
 # wall_force_gauss=wall.gauss(walls, r_cut=3.0)
 # wall_force_gauss.force_coeff.set('A', epsilon=1.0, sigma=1.0)
-# wall_force_gauss.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0);
+# wall_force_gauss.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0)
 # wall_force_gauss.force_coeff.set(['C', 'D'], epsilon=3.0, sigma=0.5)
 # \endcode
 #
@@ -736,8 +736,8 @@ class gauss(wallpotential):
 # # add walls to interact with
 # wall_force_slj=wall.slj(walls, r_cut=3.0)
 # wall_force_slj.force_coeff.set('A', epsilon=1.0, sigma=1.0)
-# wall_force_slj.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0);
-# wall_force_slj.force_coeff.set('B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
+# wall_force_slj.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0)
+# wall_force_slj.force_coeff.set('B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0))
 # \endcode
 #
 class slj(wallpotential):
@@ -792,7 +792,7 @@ class slj(wallpotential):
 # # add walls to interact with
 # wall_force_yukawa=wall.yukawa(walls, r_cut=3.0)
 # wall_force_yukawa.force_coeff.set('A', epsilon=1.0, kappa=1.0)
-# wall_force_yukawa.force_coeff.set('A', epsilon=2.0, kappa=0.5, r_cut=3.0);
+# wall_force_yukawa.force_coeff.set('A', epsilon=2.0, kappa=0.5, r_cut=3.0)
 # wall_force_yukawa.force_coeff.set(['C', 'D'], epsilon=0.5, kappa=3.0)
 # \endcode
 #
@@ -836,7 +836,7 @@ class yukawa(wallpotential):
 # # add walls to interact with
 # wall_force_morse=wall.morse(walls, r_cut=3.0)
 # wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0)
-# wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0);
+# wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0)
 # wall_force_morse.force_coeff.set(['C', 'D'], D0=1.0, alpha=3.0)
 # \endcode
 #
@@ -932,8 +932,8 @@ class force_shifted_lj(wallpotential):
 # # add walls to interact with
 # wall_force_mie=wall.mie(walls, r_cut=3.0)
 # wall_force_mie.force_coeff.set('A', epsilon=1.0, sigma=1.0, n=12, m=6)
-# wall_force_mie.force_coeff.set('A', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0);
-# wall_force_mie.force_coeff.set('B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0));
+# wall_force_mie.force_coeff.set('A', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0)
+# wall_force_mie.force_coeff.set('B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0))
 # \endcode
 #
 class mie(wallpotential):
