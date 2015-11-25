@@ -15,6 +15,7 @@ Released TBD
 * Brownian dynamics `integrate.brownian`
 * Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
 * `nlist.stencil` to compute neighbor lists using stencilled cell lists.
+* Add single value scale, `min_image`, and `make_fraction` to `data.boxdim`
 
 *Bug fixes*
 
