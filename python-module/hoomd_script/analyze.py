@@ -446,13 +446,14 @@ class imd(_analyzer):
 # analyze.log(filename='mylog.log', quantities=['pair_lj_energy_lj1', 'pair_lj_energy_lj2'],
 #             period=100, header_prefix='#')
 # \endcode
-# log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
-# U = log.query('potential_energy', use_cache=False)
 # \code
-#
+# log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
+# U = log.query('potential_energy')
+# \endcode
 #
 # \sa \ref page_units
 # \MPI_SUPPORTED
+#
 class log(_analyzer):
     ## Initialize the log
     #
@@ -567,14 +568,14 @@ class log(_analyzer):
     # \endcode
     #
     # query() works in two different ways depending on how the logger is configured. If the logger is writing
-    # to a file, query() returns the logged value of a quantity that is the last value written to the file.
-    # If filename is None, then query() returns the value of the quantity at the current point in time.
+    # to a file, query() returns the last value written to the file.
+    # If filename is `None`, then query() returns the value of the quantity computed at the current timestep.
     #
     # \b Examples:
     # \code
     # logdata = logger.query('pair_lj_energy')
     # log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
-    # U = log.query('potential_energy', use_cache=False)
+    # U = log.query('potential_energy')
     # \endcode
     #
     def query(self, quantity):
