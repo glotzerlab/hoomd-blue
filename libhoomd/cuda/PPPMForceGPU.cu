@@ -207,6 +207,12 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
 
+            if (nxi < 0 || nxi >= Nx || nyi < 0 || nyi >= Ny || nzi < 0 || nzi >= Nz)
+                {
+                // ignore
+                return;
+                }
+
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
             dz = shiftone+(Scalar)nzi-pos_frac.z;
@@ -382,6 +388,12 @@ void calculate_forces_kernel(Scalar4 *d_force,
             nxi = __scalar2int_rd(pos_frac.x + shift);
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
+
+            if (nxi < 0 || nxi >= Nx || nyi < 0 || nyi >= Ny || nzi < 0 || nzi >= Nz)
+                {
+                // ignore
+                return;
+                }
 
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
@@ -950,22 +962,30 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 qx = (j.x+(Scalar)(Nx*ix));
                 kn1 = b1 * qx;
                 argx = Scalar(0.5)*qx*kH.x;
-                wx = fast::pow(gpu_sinc(argx),order);
+                Scalar wxs = gpu_sinc(argx);
+                wx = Scalar(1.0);
+                for (int iorder = 0; iorder < order; ++iorder)
+                    wx *= wxs;
 
-               for (iy = -nby; iy <= nby; iy++) {
+                for (iy = -nby; iy <= nby; iy++) {
                     qy = (j.y+(Scalar)(Ny*iy));
                     kn2 = b2 * qy;
                     argy = Scalar(0.5)*qy*kH.y;
-                    wy = fast::pow(gpu_sinc(argy),order);
+                    Scalar wys = gpu_sinc(argy);
+                    wy = Scalar(1.0);
+                    for (int iorder = 0; iorder < order; ++iorder)
+                        wy *= wys;
 
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = (j.z+(Scalar)(Nz*iz));
                         kn3 = b3 * qz;
-                        wz = Scalar(1.0);
                         kn = kn1+kn2+kn3;
 
                         argz = Scalar(0.5)*qz*kH.z;
-                        wz = fast::pow(gpu_sinc(argz),order);
+                        Scalar wzs = gpu_sinc(argz);
+                        wz = Scalar(1.0);
+                        for (int iorder = 0; iorder < order; ++iorder)
+                            wz *= wzs;
 
                         dot1 = dot(kn,k);
                         dot2 = dot(kn,kn);
@@ -1056,7 +1076,8 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     // read the current neighbor index (MEM TRANSFER: 4 bytes)
                     // prefetch the next value and set the current one
                     cur_j = next_j;
-                    next_j = d_nlist[nli(idx, neigh_idx+1)];
+                    if (neigh_idx+1 < n_neigh)
+                        next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
                     Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
