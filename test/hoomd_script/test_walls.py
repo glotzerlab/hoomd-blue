@@ -6,9 +6,10 @@ import unittest
 import os
 import numpy as np
 
+context.initialize()
+
 #test wall.group()
 class wall_group_tests(unittest.TestCase):
-
     # basic test of creation for walls structure
     def test(self):
         walls=wall.group();
@@ -33,22 +34,21 @@ class wall_group_tests(unittest.TestCase):
 
 # test lj wall force in standard mode
 class wall_lj_tests (unittest.TestCase):
-
     def setUp(self):
         self.s=init.create_random(N=100, box=data.boxdim(L=5));
-        updater=update.box_resize(L = 15, Period=None);
+        updater=update.box_resize(L = 15, period=None);
         updater.set_params(scale_particles = False);
-        walls=wall.group();
-        walls.add_sphere(r=5, origin=(0.0, 0.0, 0.0), inside=True);
+        self.walls=wall.group();
+        self.walls.add_sphere(r=5, origin=(0.0, 0.0, 0.0), inside=True);
 
     # test to see that se can create a wall.lj
     def test_create(self):
-        wall.lj(walls);
+        wall.lj(self.walls);
 
     # test coefficient not set checking
     def test_force_coeff_fail(self):
-        lj_wall = wall.lj(walls);
-        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
+        lj_wall = wall.lj(self.walls);
+        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
@@ -56,7 +56,7 @@ class wall_lj_tests (unittest.TestCase):
 
     # test setting coefficients
     def test_force_coeff(self):
-        lj_wall = wall.lj(walls, r_cut=3.0);
+        lj_wall = wall.lj(self.walls, r_cut=3.0);
         lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
@@ -64,8 +64,8 @@ class wall_lj_tests (unittest.TestCase):
         run(100);
 
     def test_overload_structure_fail(self):
-        walls.spheres=[wall.sphere()]*21;
-        lj_wall = wall.lj(walls, r_cut=3.0);
+        self.walls.spheres=[wall.sphere()]*21;
+        lj_wall = wall.lj(self.walls, r_cut=3.0);
         lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
@@ -74,46 +74,51 @@ class wall_lj_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
+        del self.walls
         init.reset();
 
 # test lj wall force in shifted mode
 class wall_shift_tests (unittest.TestCase):
-
     def setUp(self):
         snap= data.make_snapshot(N=4, box=data.boxdim(L=10))
         coords=[[0.0,0.0,0.0],[1.0,1.0,1.0],[4.0,-2.0,1.0],[-3.2,1.0,-0.5]];
         for i in range(4):
             snap.particles.position[i]=coords[i]
         self.s=init.read_snapshot(snap)
-        walls=wall.group();
-        walls.add_plane(origin=(0.0, 0.0, 0.0), normal=(1.0, 0.0, 0.0), inside=True);
+        self.walls=wall.group();
+        self.walls.add_plane(origin=(0.0, 0.0, 0.0), normal=(1.0, 0.0, 0.0), inside=True);
         all = group.all();
         integrate.mode_standard(dt=0.0);
         integrate.nve(all);
-        lj_wall=wall.lj(walls,r_cut=300)
+        lj_wall=wall.lj(self.walls,r_cut=3.5)
         lj_wall.force_coeff.set('A', r_shift=1.1, epsilon=1.0, sigma=1.0)
         run(5)
 
     # test forces
+    # errors allowed to be larger due to sqrt usage
     def test_forces(self):
-        self.assertAlmostEqual(1.5881, self.s.particles.pdata.getPNetForce(0).x);
+        self.assertAlmostEqual(round(1.5880953898240548,4), round(self.s.particles.pdata.getPNetForce(0).x,4));
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(0).y);
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(0).z);
-        self.assertAlmostEqual(-0.130145, self.s.particles.pdata.getPNetForce(1).x);
+        self.assertAlmostEqual(round(-0.1301453977354605,4), round(self.s.particles.pdata.getPNetForce(1).x,4));
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(1).y);
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(1).z);
-        self.assertAlmostEqual(-0.000267406, self.s.particles.pdata.getPNetForce(2).x);
+        self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(2).x);
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(2).y);
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(2).z);
-        self.assertAlmostEqual(1.5881, self.s.particles.pdata.getPNetForce(3).x);
+        self.assertAlmostEqual(round(1.5880953898240548,4), round(self.s.particles.pdata.getPNetForce(3).x,4));
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(3).y);
         self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(3).z);
 
     def test_energy(self):
-        self.assertAlmostEqual(-0.983372, self.s.particles.pdata.getPNetForce(0).w);
-        self.assertAlmostEqual(-0.0460947, self.s.particles.pdata.getPNetForce(1).w);
-        self.assertAlmostEqual(-0.000227308, self.s.particles.pdata.getPNetForce(2).w);
-        self.assertAlmostEqual(4.09853, self.s.particles.pdata.getPNetForce(3).w);
+        self.assertAlmostEqual(-0.9811976689820279, self.s.particles.pdata.getPNetForce(0).w);
+        self.assertAlmostEqual(-0.0439198953569452, self.s.particles.pdata.getPNetForce(1).w);
+        self.assertAlmostEqual(0.0, self.s.particles.pdata.getPNetForce(2).w);
+        self.assertAlmostEqual(round(4.100707578454948,4), round(self.s.particles.pdata.getPNetForce(3).w,4));
+
+    def tearDown(self):
+        del self.s
+        init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

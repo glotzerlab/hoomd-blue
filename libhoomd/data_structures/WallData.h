@@ -158,7 +158,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar
         }
     else
         {
-        inside = true;
+        inside = (wall.inside) ? true : false;
         return vec3<Scalar>(0.0,0.0,0.0);
         }
     };
@@ -181,7 +181,7 @@ DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scal
         }
     else
         {
-        inside = true;
+        inside = (wall.inside) ? true : false;
         return vec3<Scalar>(0.0,0.0,0.0);
         }
     };

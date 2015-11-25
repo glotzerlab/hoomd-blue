@@ -97,11 +97,12 @@ template<class evaluator>
 class EvaluatorWalls
     {
     public:
-        typedef struct{
+        typedef struct
+            {
             typename evaluator::param_type params;
             Scalar rcutsq;
             Scalar rshift;
-        } param_type;
+            } param_type;
 
         typedef wall_type field_type;
 
@@ -132,64 +133,75 @@ class EvaluatorWalls
 
         //! Accept the optional charge value
         /*! \param qi Charge of particle i
-        Walls charge currently assigns a charge of 0 to the walls.
+        Walls charge currently assigns a charge of 0 to the walls. It is however unused by implemented potentials.
         */
         DEVICE void setCharge(Scalar charge)
             {
             qi = charge;
             }
 
-        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv, const bool inside)
+        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv)
             {
-            if (inside || m_params.rshift>Scalar(0.0))
+            Scalar3 dr = -vec_to_scalar3(drv);
+            Scalar rsq = dot(dr, dr);
+
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, m_params.rcutsq, m_params.params);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, Scalar(0.0));
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, Scalar(0.0));
+
+            // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
+
+            if (evaluated)
                 {
-                Scalar3 dr = -vec_to_scalar3(drv);
-                Scalar rsq;
-                Scalar rsq_eff;
-                Scalar r = Scalar(0.0);
-                rsq = dot(dr, dr);
-                if (m_params.rshift > 0.0)
-                    {
-                    r = fast::sqrt(rsq);
-                    if (inside)
-                        {
-                        rsq_eff = rsq + m_params.rshift*m_params.rshift + 2*m_params.rshift*r;
-                        }
-                    else
-                        {
-                        rsq_eff = m_params.rshift*m_params.rshift;
-                        dr *= -1;
-                        }
-                    dr *= ((r+m_params.rshift)/r);
-                    }
-                else
-                    {
-                    rsq_eff = rsq;
-                    }
-                // compute the force and potential energy
-                Scalar force_divr = Scalar(0.0);
-                Scalar pair_eng = Scalar(0.0);
-                evaluator eval(rsq_eff, m_params.rcutsq, m_params.params);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, Scalar(0.0));
-                if (evaluator::needsCharge())
-                    eval.setCharge(qi, Scalar(0.0));
+                // add the force, potential energy and virial to the particle i
+                F += dr*force_divr;
+                Scalar force_div2r = force_divr * Scalar(0.5);
+                energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                virial[0] += force_div2r*dr.x*dr.x;
+                virial[1] += force_div2r*dr.x*dr.y;
+                virial[2] += force_div2r*dr.x*dr.z;
+                virial[3] += force_div2r*dr.y*dr.y;
+                virial[4] += force_div2r*dr.y*dr.z;
+                virial[5] += force_div2r*dr.z*dr.z;
+                }
+            }
 
-                // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
-                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
+        DEVICE inline void shiftEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv)
+            {
+            Scalar3 dr = vec_to_scalar3(drv);
+            Scalar r = sqrt(dot(dr, dr));
 
-                if (evaluated)
-                    {
-                    // add the force, potential energy and virial to the particle i
-                    F += dr*force_divr; //Scalar force_div2r = force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                    energy += (inside) ? pair_eng : pair_eng + (rsq + r * m_params.rshift) * force_divr; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                    virial[0] += force_divr*dr.x*dr.x;
-                    virial[1] += force_divr*dr.x*dr.y;
-                    virial[2] += force_divr*dr.x*dr.z;
-                    virial[3] += force_divr*dr.y*dr.y;
-                    virial[4] += force_divr*dr.y*dr.z;
-                    virial[5] += force_divr*dr.z*dr.z;
-                    }
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(m_params.rshift * m_params.rshift, m_params.rcutsq, m_params.params);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, Scalar(0.0));
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, Scalar(0.0));
+
+            // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
+
+            if (evaluated)
+                {
+                // add the force, potential energy and virial to the particle i
+                energy = pair_eng + force_divr * m_params.rshift * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                force_divr *= m_params.rshift / r;
+                F += dr * force_divr;
+                Scalar force_div2r = force_divr * Scalar(0.5);
+                virial[0] += force_div2r*dr.x*dr.x;
+                virial[1] += force_div2r*dr.x*dr.y;
+                virial[2] += force_div2r*dr.x*dr.z;
+                virial[3] += force_div2r*dr.y*dr.y;
+                virial[4] += force_div2r*dr.y*dr.z;
+                virial[5] += force_div2r*dr.z*dr.z;
                 }
             }
 
@@ -208,21 +220,80 @@ class EvaluatorWalls
             vec3<Scalar> position = vec3<Scalar>(m_pos);
             vec3<Scalar> drv;
             bool inside = false; //keeps compiler from complaining
-
-            for (unsigned int k = 0; k < m_field.numSpheres; k++)
+            if (m_params.rshift>0.0) //shifted mode
                 {
-                drv = vecPtToWall(m_field.Spheres[k], position, inside);
-                callEvaluator(F, energy, virial, drv, inside);
+                for (unsigned int k = 0; k < m_field.numSpheres; k++)
+                    {
+                    drv = vecPtToWall(m_field.Spheres[k], position, inside);
+                    if (inside)
+                        {
+                        SphereWall ShiftWall = m_field.Spheres[k];
+                        ShiftWall.r += (ShiftWall.inside) ? m_params.rshift : -m_params.rshift;
+                        drv = vecPtToWall(ShiftWall, position, inside);
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    else
+                        {
+                        shiftEvaluator(F, energy, virial, drv);
+                        }
+                    }
+                for (unsigned int k = 0; k < m_field.numCylinders; k++)
+                    {
+                    drv = vecPtToWall(m_field.Cylinders[k], position, inside);
+                    if (inside)
+                        {
+                        CylinderWall ShiftWall = m_field.Cylinders[k];
+                        ShiftWall.r += (ShiftWall.inside) ? m_params.rshift : -m_params.rshift;
+                        drv = vecPtToWall(ShiftWall, position, inside);
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    else
+                        {
+                        shiftEvaluator(F, energy, virial, drv);
+                        }
+                    }
+                for (unsigned int k = 0; k < m_field.numPlanes; k++)
+                    {
+                    drv = vecPtToWall(m_field.Planes[k], position, inside);
+                    if (inside)
+                        {
+                        PlaneWall ShiftWall = m_field.Planes[k];
+                        ShiftWall.origin += (ShiftWall.inside) ? -m_params.rshift * ShiftWall.normal : m_params.rshift * ShiftWall.normal;
+                        drv = vecPtToWall(ShiftWall, position, inside);
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    else
+                        {
+                        shiftEvaluator(F, energy, virial, drv);
+                        }
+                    }
                 }
-            for (unsigned int k = 0; k < m_field.numCylinders; k++)
+            else //normal mode
                 {
-                drv = vecPtToWall(m_field.Cylinders[k], position, inside);
-                callEvaluator(F, energy, virial, drv, inside);
-                }
-            for (unsigned int k = 0; k < m_field.numPlanes; k++)
-                {
-                drv = vecPtToWall(m_field.Planes[k], position, inside);
-                callEvaluator(F, energy, virial, drv, inside);
+                for (unsigned int k = 0; k < m_field.numSpheres; k++)
+                    {
+                    drv = vecPtToWall(m_field.Spheres[k], position, inside);
+                    if (inside)
+                        {
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    }
+                for (unsigned int k = 0; k < m_field.numCylinders; k++)
+                    {
+                    drv = vecPtToWall(m_field.Cylinders[k], position, inside);
+                    if (inside)
+                        {
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    }
+                for (unsigned int k = 0; k < m_field.numPlanes; k++)
+                    {
+                    drv = vecPtToWall(m_field.Planes[k], position, inside);
+                    if (inside)
+                        {
+                        callEvaluator(F, energy, virial, drv);
+                        }
+                    }
                 }
             };
 

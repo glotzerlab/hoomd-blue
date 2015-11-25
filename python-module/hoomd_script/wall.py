@@ -535,6 +535,7 @@ class plane:
 # V_{\mathrm{pair}}(r_{\mathrm{cut}}) - r\frac{\partial
 # V_{\mathrm{pair}}}{\partial r}(r_{\mathrm{shift}}) \f]
 # \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r \f}
+# See wall.lj for a specific example.
 # The following coefficients must be set per unique particle types.
 # - All parameters required by the %pair potential base for the wall potential
 # - \f$r_{\mathrm{cut}} \f$ - \c r_cut (in distance units) -<i>Optional: Defaults to global r_cut for the force if given or 0.0 if not</i>
@@ -609,8 +610,8 @@ class wallpotential(external._external_force):
         ntypes = globals.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
             type=globals.system_definition.getParticleData().getNameByType(i);
-            if self.force_coeff.values[type]['r_cut']<=0:
-                self.force_coeff.values[type]['r_cut']=0;
+            if self.force_coeff.values[str(type)]['r_cut']<=0:
+                self.force_coeff.values[str(type)]['r_cut']=0;
         external._external_force.update_coeffs(self);
 
 ## Lennard-Jones %wall %force
@@ -618,16 +619,29 @@ class wallpotential(external._external_force):
 # See pair.lj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 #
-# \b Example\n
-# Note that the base pair.lj requires the parameters <c>sigma</c> and <c>epsilon</c> and has a
-# default <c>alpha</c>.
+# <b>Example: Normal Mode</b>
 # \code
 # walls=wall.group()
+# #add walls
 # lj=wall.lj(walls, r_cut=3.0)
-# lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)
-# lj.force_coeff.set(['B','C'],r_cut=1.5,sigma=0.5,epsilon=1.0)
+# lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)  #plotted below in blue
+# lj.force_coeff.set('B', sigma=1.0,epsilon=1.0, r_cut=2.0**(1.0/2.0))
+# lj.force_coeff.set(['A','B'], epsilon=2.0, sigma=1.0, alpha=1.0, r_cut=3.0);
 # \endcode
-# \note \par
+#
+#
+# <b>Example: Shifted Mode</b>
+# \code
+# walls=wall.group()
+# #add walls
+# lj_shifted=wall.lj(walls, r_cut=3.0)
+# lj_shifted.force_coeff.set('A', sigma=1.0,epsilon=1.0, r_shift=1.1) #plotted in red below
+# \endcode
+#
+#
+#
+# <b>V(r) Plotted</b>
+# \image html wall_lj_shifted.png
 class lj(wallpotential):
     ## Creates a lj wall force using the inputs
     # See wall.wallpotential and pair.lj for more details.
@@ -667,6 +681,17 @@ class lj(wallpotential):
 # Wall force evaluated using the Gaussian potential.
 # See pair.gauss for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_gauss=wall.gauss(walls, r_cut=3.0)
+# wall_force_gauss.force_coeff.set('A', epsilon=1.0, sigma=1.0)
+# wall_force_gauss.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0);
+# wall_force_gauss.force_coeff.set(['C', 'D'], epsilon=3.0, sigma=0.5)
+# \endcode
+#
 class gauss(wallpotential):
     ## Creates a gauss wall force using the inputs
     # See wall.wallpotential and pair.gauss for more details.
@@ -704,6 +729,17 @@ class gauss(wallpotential):
 # \f$. \n
 # See pair.slj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_slj=wall.slj(walls, r_cut=3.0)
+# wall_force_slj.force_coeff.set('A', epsilon=1.0, sigma=1.0)
+# wall_force_slj.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0);
+# wall_force_slj.force_coeff.set('B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
+# \endcode
+#
 class slj(wallpotential):
     ## Creates a slj wall force using the inputs
     # See wall.wallpotential and pair.slj for more details.
@@ -749,6 +785,17 @@ class slj(wallpotential):
 # Wall force evaluated using the Yukawa potential.
 # See pair.yukawa for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_yukawa=wall.yukawa(walls, r_cut=3.0)
+# wall_force_yukawa.force_coeff.set('A', epsilon=1.0, kappa=1.0)
+# wall_force_yukawa.force_coeff.set('A', epsilon=2.0, kappa=0.5, r_cut=3.0);
+# wall_force_yukawa.force_coeff.set(['C', 'D'], epsilon=0.5, kappa=3.0)
+# \endcode
+#
 class yukawa(wallpotential):
     ## Creates a yukawa wall force using the inputs
     # See wall.wallpotential and pair.yukawa for more details.
@@ -782,6 +829,17 @@ class yukawa(wallpotential):
 # Wall force evaluated using the Morse potential.
 # See pair.morse for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_morse=wall.morse(walls, r_cut=3.0)
+# wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0)
+# wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0);
+# wall_force_morse.force_coeff.set(['C', 'D'], D0=1.0, alpha=3.0)
+# \endcode
+#
 class morse(wallpotential):
     ## Creates a morse wall force using the inputs
     # See wall.wallpotential and pair.morse for more details.
@@ -817,6 +875,17 @@ class morse(wallpotential):
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
 # See pair.force_shifted_lj for force details and base parameters and wall.wallpotential for generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_fslj=wall.force_shifted_lj(walls, r_cut=3.0)
+# wall_force_fslj.force_coeff.set('A', epsilon=1.0, sigma=1.0)
+# wall_force_fslj.force_coeff.set('B', epsilon=1.5, sigma=3.0, r_cut = 8.0)
+# wall_force_fslj.force_coeff.set(['C','D'], epsilon=1.0, sigma=1.0, alpha = 1.5)
+# \endcode
+#
 class force_shifted_lj(wallpotential):
     ## Creates a force_shifted_lj wall force using the inputs
     # See wall.wallpotential and pair.force_shifted_lj for more details.
@@ -856,6 +925,17 @@ class force_shifted_lj(wallpotential):
 # Wall force evaluated using the Mie potential.
 # See pair.mie for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
+#
+# \b Example:
+# \code
+# walls=wall.group()
+# # add walls to interact with
+# wall_force_mie=wall.mie(walls, r_cut=3.0)
+# wall_force_mie.force_coeff.set('A', epsilon=1.0, sigma=1.0, n=12, m=6)
+# wall_force_mie.force_coeff.set('A', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0);
+# wall_force_mie.force_coeff.set('B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0));
+# \endcode
+#
 class mie(wallpotential):
     ## Creates a mie wall force using the inputs
     # See wall.wallpotential and pair.mie for more details.
