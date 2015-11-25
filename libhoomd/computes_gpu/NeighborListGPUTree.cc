@@ -453,7 +453,7 @@ void NeighborListGPUTree::calcMortonCodes()
     // need a ghost layer width to get the fractional position of particles in the local box
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar ghost_layer_width = m_rcut_max_max + m_r_buff;
+    Scalar ghost_layer_width = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         ghost_layer_width += m_d_max - Scalar(1.0);
         
@@ -722,7 +722,7 @@ void NeighborListGPUTree::updateImageVectors()
     
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-    Scalar rmax = m_rcut_max_max + m_r_buff;
+    Scalar rmax = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         

@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
+#include "CellListStencil.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
@@ -86,6 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
+#include "NeighborListStencil.h"
 #include "NeighborListTree.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
@@ -153,6 +155,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
@@ -421,6 +424,15 @@ void initialize_mpi()
         }
     }
 
+//! Get the processor name associated to this rank
+string get_mpi_proc_name()
+    {
+    char proc_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(proc_name, &name_len);
+    return string(proc_name);
+    }
+
 //! Finalize MPI environment
 void finalize_mpi()
     {
@@ -451,6 +463,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // register clean-up function
     Py_AtExit(finalize_mpi);
+    def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
     // setup needed for numpy
@@ -516,6 +529,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // computes
     export_Compute();
     export_CellList();
+    export_CellListStencil();
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
@@ -554,6 +568,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();
+    export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
     export_PPPMForceCompute();
@@ -572,6 +587,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CellListGPU();
     export_NeighborListGPU();
     export_NeighborListGPUBinned();
+    export_NeighborListGPUStencil();
     export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");

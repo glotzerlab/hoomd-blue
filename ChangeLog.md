@@ -14,6 +14,7 @@ Released TBD
 * Dipole pair potential.
 * Brownian dynamics `integrate.brownian`
 * Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
+* `nlist.stencil` to compute neighbor lists using stencilled cell lists.
 
 *Bug fixes*
 
