@@ -95,7 +95,7 @@ class PotentialExternal: public ForceCompute
 
         GPUArray<param_type>    m_params;        //!< Array of per-type parameters
         std::string             m_log_name;               //!< Cached log name
-        field_type              m_field;
+        GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -132,6 +132,9 @@ PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefiniti
 
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
+
+    GPUArray<field_type> field(1, m_exec_conf);
+    m_field.swap(field);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialExternal<evaluator>::slotNumTypesChange, this));
@@ -193,6 +196,8 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::read);
+    const field_type& field = *(h_field.data);
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
@@ -217,7 +222,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        evaluator eval(X, box, params, m_field);
+        evaluator eval(X, box, params, field);
         if (evaluator::needsDiameter())
             {
             Scalar di = h_diameter.data[idx];
@@ -265,7 +270,8 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
 template<class evaluator>
 void PotentialExternal<evaluator>::setField(field_type field)
     {
-    m_field = field; //might not be right, but don't think a handle is needed for this structure
+    ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::overwrite);
+    *(h_field.data) = field;
     }
 
 //! Export this external potential to python

@@ -87,8 +87,7 @@ struct wall_type{
     unsigned int     numSpheres;
     unsigned int     numCylinders;
     unsigned int     numPlanes;
-
-};
+} __attribute__((aligned(8)));   // align on a 8 byte boundary so the GPU kernel can load it in 4 bytes at a time
 
 //! Applys a wall force from all walls in the field parameter
 /*! \ingroup computes
@@ -310,7 +309,7 @@ class EvaluatorWalls
 
     protected:
         Scalar3     m_pos;                //!< particle position
-        field_type  m_field;              //!< contains all information about the walls.
+        const field_type&  m_field;       //!< contains all information about the walls.
         param_type  m_params;
         Scalar      di;
         Scalar      qi;

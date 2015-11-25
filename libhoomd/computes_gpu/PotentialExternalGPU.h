@@ -126,6 +126,7 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+    ArrayHandle<typename evaluator::field_type> d_field(this->m_field, access_location::device, access_mode::read);
 
     this->m_tuner->begin();
     gpu_cpef< evaluator >(external_potential_args_t(d_force.data,
@@ -136,7 +137,9 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
                          d_diameter.data,
                          d_charge.data,
                          box,
-                         this->m_tuner->getParam()), d_params.data, this->m_field);
+                         this->m_tuner->getParam()),
+                         d_params.data,
+                         d_field.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
