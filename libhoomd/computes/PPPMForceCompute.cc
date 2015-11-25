@@ -701,11 +701,26 @@ void PPPMForceCompute::assign_charges_to_grid()
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
+        // ignore if NaN
+        if (isnan(posi.x) || isnan(posi.y) || isnan(posi.z))
+            {
+            continue;
+            }
+
         //normalize position to gridsize:
         Scalar3 pos_frac = box.makeFraction(posi);
         pos_frac.x *= (Scalar)m_Nx;
         pos_frac.y *= (Scalar)m_Ny;
         pos_frac.z *= (Scalar)m_Nz;
+
+        if (pos_frac.x < Scalar(0.0) || pos_frac.x >= (Scalar)m_Nx
+            || pos_frac.y < Scalar(0.0) || pos_frac.y >= (Scalar)m_Ny
+            || pos_frac.z < Scalar(0.0) || pos_frac.z >= (Scalar)m_Nz)
+            {
+            // ignore
+            continue;
+            }
+
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
         int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
@@ -832,11 +847,26 @@ void PPPMForceCompute::calculate_forces()
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
+        // ignore if NaN
+        if (isnan(posi.x) || isnan(posi.y) || isnan(posi.z))
+            {
+            continue;
+            }
+
         //normalize position to gridsize:
         Scalar3 pos_frac = box.makeFraction(posi);
         pos_frac.x *= (Scalar)m_Nx;
         pos_frac.y *= (Scalar)m_Ny;
         pos_frac.z *= (Scalar)m_Nz;
+
+        if (pos_frac.x < Scalar(0.0) || pos_frac.x >= (Scalar)m_Nx
+            || pos_frac.y < Scalar(0.0) || pos_frac.y >= (Scalar)m_Ny
+            || pos_frac.z < Scalar(0.0) || pos_frac.z >= (Scalar)m_Nz)
+            {
+            // ignore
+            continue;
+            }
+
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
         int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
