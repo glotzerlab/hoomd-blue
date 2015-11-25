@@ -88,6 +88,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     The removeAll method can be used to clear all registered computes and updaters. hoomd_script will
     removeAll() and re-register all active computes and updaters before every run()
 
+    As an option, Logger can be initialized with no file. Such a logger will skip doing anything during
+    analyze() but is still available for getQuantity() operations.
+
     \ingroup analyzers
 */
 class Logger : public Analyzer
@@ -117,8 +120,8 @@ class Logger : public Analyzer
         //! Sets the delimiter to use between fields
         void setDelimiter(const std::string& delimiter);
 
-        //! Query the last logged value for a given quantity
-        Scalar getCachedQuantity(const std::string& quantity="timestep");
+        //! Query the current value for a given quantity
+        Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
 
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
@@ -155,12 +158,14 @@ class Logger : public Analyzer
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity
         ClockSource m_clk;
-        //! The number of the last timestep when the logger was run.
-        int cached_timestep;
+        //! The number of the last timestep when quantities were computed.
+        unsigned int m_cached_timestep;
         //! The values of the logged quantities at the last logger update.
-        std::vector< Scalar > cached_quantities;
+        std::vector< Scalar > m_cached_quantities;
         //! Flag to indicate whether we have initialized the file IO
         bool m_is_initialized;
+        //! true if we are writing to the output file
+        bool m_file_output;
 
         //! Helper function to get a value for a given quantity
         Scalar getValue(const std::string &quantity, int timestep);

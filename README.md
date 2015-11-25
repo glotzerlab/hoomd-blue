@@ -4,7 +4,33 @@ HOOMD-blue is a general purpose particle simulation toolkit. It performs molecul
 with a variety of pair, bond, angle, and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
 many nodes. For more information, see the [HOOMD-blue website](https://codeblue.umich.edu/hoomd-blue).
 
-# Prerequisites
+# Installing HOOMD-blue
+
+Official binaries of HOOMD-blue are available via [conda](http://conda.pydata.org/docs/) through
+the [glotzer channel](https://anaconda.org/glotzer).
+To install HOOMD-blue, first download and install
+[miniconda](http://conda.pydata.org/miniconda.html) following [conda's instructions](http://conda.pydata.org/docs/install/quick.html).
+Then add the `glotzer` channel and install HOOMD-blue:
+
+```bash
+$ conda config --add channels glotzer
+$ conda install hoomd
+```
+
+# Compiling HOOMD-blue
+
+Use cmake to configure an out of source build and make to build hoomd.
+
+```bash
+mkdir build
+cd build
+cmake ../
+make -j20
+```
+
+For more detailed instructions, [see the documentationn](https://codeblue.umich.edu/hoomd-blue/doc/page_compile_guide.html).
+
+## Prerequisites
 
  * Required:
      * Python >= 2.6
@@ -14,19 +40,6 @@ many nodes. For more information, see the [HOOMD-blue website](https://codeblue.
  * Optional:
      * NVIDIA CUDA Toolkit >= 5.0
      * MPI (tested with OpenMPI, MVAPICH, impi)
-
-# Compiling HOOMD-blue
-
-Use cmake to configure an out of source build and make to build hoomd.
-
-```
-mkdir build
-cd build
-cmake ../
-make -j20
-```
-
-For more detailed instructions, [see the documentationn](https://codeblue.umich.edu/hoomd-blue/doc/page_compile_guide.html).
 
 # Job scripts
 
