@@ -47,52 +47,56 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: mphoward
 
 #include "NeighborListGPU.h"
 #include "CellList.h"
+#include "CellListStencil.h"
 #include "Autotuner.h"
 
-/*! \file NeighborListGPUBinned.h
-    \brief Declares the NeighborListGPUBinned class
+/*! \file NeighborListGPUStencil.h
+    \brief Declares the NeighborListGPUStencil class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __NEIGHBORLISTGPUBINNED_H__
-#define __NEIGHBORLISTGPUBINNED_H__
+#ifndef __NEIGHBORLISTGPUSTENCIL_H__
+#define __NEIGHBORLISTGPUSTENCIL_H__
 
-//! Neighbor list build on the GPU
-/*! Implements the O(N) neighbor list build on the GPU using a cell list.
+//! Neighbor list build on the GPU with multiple bin stencils
+/*! Implements the O(N) neighbor list build on the GPU using a cell list with multiple bin stencils.
 
-    GPU kernel methods are defined in NeighborListGPUBinned.cuh and defined in NeighborListGPUBinned.cu.
+    GPU kernel methods are defined in NeighborListGPUStencil.cuh and defined in NeighborListGPUStencil.cu.
 
     \ingroup computes
 */
-class NeighborListGPUBinned : public NeighborListGPU
+class NeighborListGPUStencil : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                              Scalar r_cut,
-                              Scalar r_buff,
-                              boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+        NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                               Scalar r_cut,
+                               Scalar r_buff,
+                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                               boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
         //! Destructor
-        virtual ~NeighborListGPUBinned();
+        virtual ~NeighborListGPUStencil();
 
         //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
+        
         //! Change the cutoff radius by pair type
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
-        //! Set the autotuner period
-        void setTuningParam(unsigned int param)
+        //! Change the underlying cell width
+        void setCellWidth(Scalar cell_width)
             {
-            m_param = param;
+            m_override_cell_width = true;
+            m_needs_restencil = true;
+            m_cl->setNominalWidth(cell_width);
             }
 
         //! Set autotuner parameters
@@ -105,23 +109,49 @@ class NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setPeriod(period/10);
             m_tuner->setEnabled(enable);
             }
-
+        
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
-        unsigned int m_block_size;          //!< Block size to execute on the GPU
-        unsigned int m_param;               //!< Kernel tuning parameter
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
 
+    private:
         boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        bool m_override_cell_width;                 //!< Flag to override the cell width
+
+        //! Update the stencil radius
+        void updateRStencil();
+        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
+        bool m_needs_restencil;                             //!< Flag for updating the stencil
+        void slotRCutChange()
+            {
+            m_needs_restencil = true;
+            }
+
+        //! Sort the particles by type
+        void sortTypes();
+        GPUArray<unsigned int> m_pid_map;                   //!< Particle indexes sorted by type
+        boost::signals2::connection m_max_numchange_conn;   //!< Connection to the maximum number of particles changing
+        boost::signals2::connection m_sort_conn;            //!< Connection to the ParticleData sort signal
+        bool m_needs_resort;                                //!< Flag to resort the particles
+        void slotParticleSort()
+            {
+            m_needs_resort = true;
+            }
+        void slotMaxNumChanged()
+            {
+            m_pid_map.resize(m_pdata->getMaxN());
+            m_needs_resort = true;
+            }
     };
 
-//! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUBinned();
+//! Exports NeighborListGPUStencil to python
+void export_NeighborListGPUStencil();
 
-#endif
+#endif // __NEIGHBORLISTGPUSTENCIL_H__

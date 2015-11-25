@@ -6,6 +6,7 @@ hoomd_script::init::create_empty hoomd_script::pair::lj hoomd_script::integrate:
 from __future__ import division
 from hoomd_script import *
 import random
+from math import sqrt
 
 # parameters of the simple cubic crystal
 a = 1.2
@@ -30,9 +31,10 @@ T = 1.0
 px = py = pz = 0.0;
 for p in system.particles:
     mass = p.mass;
-    vx = random.gauss(0, T / mass)
-    vy = random.gauss(0, T / mass)
-    vz = random.gauss(0, T / mass)
+    sigma = sqrt(T / mass)
+    vx = random.gauss(0, sigma)
+    vy = random.gauss(0, sigma)
+    vz = random.gauss(0, sigma)
 
     p.velocity = (vx, vy, vz)
 
