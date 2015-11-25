@@ -74,21 +74,32 @@ using namespace std;
 /*! \param sysdef Specified for Analyzer, but not used directly by Logger
     \param fname File name to write the log to
     \param header_prefix String to write before the header
-    \param overwrite Will overwite an exiting file if true (default is to append)
+    \param overwrite Will overwrite an exiting file if true (default is to append)
 
-    Constructing a logger will open the file \a fname, overwriting it if it exists.
+    Constructing a logger will open the file \a fname, overwriting it when overwrite is True, and appending if
+    overwrite is false.
+
+    If \a fname is an empty string, no file is output.
 */
 Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
-    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_header_prefix(header_prefix), m_appending(!overwrite), m_is_initialized(false)
+    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_header_prefix(header_prefix), m_appending(!overwrite),
+                        m_is_initialized(false), m_file_output(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing Logger: " << fname << " " << header_prefix << " " << overwrite << endl;
+
+    if (m_filename == string(""))
+        m_file_output=false;
     }
 
 void Logger::openOutputFiles()
     {
+    // do nothing if we are not writing a file
+    if (!m_file_output)
+        return;
+
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_comm)
@@ -182,8 +193,8 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     m_logged_quantities = quantities;
 
     // prepare or adjust storage for caching the logger properties.
-    cached_timestep = -1;
-    cached_quantities.resize(quantities.size());
+    m_cached_timestep = -1;
+    m_cached_quantities.resize(quantities.size());
 
 #ifdef ENABLE_MPI
     // only output to file on root processor
@@ -199,7 +210,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     m_is_initialized = true;
 
     // only write the header if this is a new file
-    if (!m_appending)
+    if (!m_appending && m_file_output)
         {
         // write out the header prefix
         m_file << m_header_prefix;
@@ -215,7 +226,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
         }
 
     // only write the header if this is a new file
-    if (!m_appending)
+    if (!m_appending && m_file_output)
         {
         // only print the delimiter after the timestep if there are more quantities logged
         m_file << m_delimiter;
@@ -244,11 +255,17 @@ void Logger::setDelimiter(const std::string& delimiter)
 */
 void Logger::analyze(unsigned int timestep)
     {
+    // do nothing if we do not output to a file
+    if (!m_file_output)
+        return;
+
     if (m_prof) m_prof->push("Log");
 
     // update info in cache for later use and for immediate output.
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
-        cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+        m_cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+
+    m_cached_timestep = timestep;
 
 #ifdef ENABLE_MPI
     // only output to file on root processor
@@ -262,7 +279,6 @@ void Logger::analyze(unsigned int timestep)
 
     // The timestep is always output
     m_file << setprecision(10) << timestep;
-    cached_timestep = timestep;
 
     // quit now if there is nothing to log
     if (m_logged_quantities.size() == 0)
@@ -275,9 +291,9 @@ void Logger::analyze(unsigned int timestep)
 
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
-        m_file << setprecision(10) << cached_quantities[i] << m_delimiter;
+        m_file << setprecision(10) << m_cached_quantities[i] << m_delimiter;
     // write the last one with no delimiter after it
-    m_file << setprecision(10) << cached_quantities[m_logged_quantities.size()-1] << endl;
+    m_file << setprecision(10) << m_cached_quantities[m_logged_quantities.size()-1] << endl;
     m_file.flush();
 
     if (!m_file.good())
@@ -291,18 +307,26 @@ void Logger::analyze(unsigned int timestep)
 
 /*! \param quantity Quantity to get
 */
-Scalar Logger::getCachedQuantity(const std::string &quantity)
+Scalar Logger::getQuantity(const std::string &quantity, unsigned int timestep, bool use_cache)
     {
+    // update info in cache for later use
+    if (!use_cache && timestep != m_cached_timestep)
+        {
+        for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
+            m_cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+        m_cached_timestep = timestep;
+        }
+
     // first see if it is the timestep number
     if (quantity == "timestep")
         {
-        return Scalar(cached_timestep);
+        return Scalar(m_cached_timestep);
         }
 
     // check to see if the quantity exists in the compute list
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
         if (m_logged_quantities[i] == quantity)
-            return cached_quantities[i];
+            return m_cached_quantities[i];
 
     m_exec_conf->msg->warning() << "analyze.log: Log quantity " << quantity << " is not registered, returning a value of 0" << endl;
     return Scalar(0.0);
@@ -349,6 +373,6 @@ void export_Logger()
     .def("removeAll", &Logger::removeAll)
     .def("setLoggedQuantities", &Logger::setLoggedQuantities)
     .def("setDelimiter", &Logger::setDelimiter)
-    .def("getCachedQuantity", &Logger::getCachedQuantity)
+    .def("getQuantity", &Logger::getQuantity)
     ;
     }
