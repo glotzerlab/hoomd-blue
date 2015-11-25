@@ -190,6 +190,10 @@ Matthew Spellings, Univeristy of Michigan
  - anisotropic particle integrators
  - Gay-Berne, dipole pair potentials
 
+James Proctor, University of Michigan
+ - Refactor external potential framework
+ - Wall potentials
+
 <hr>
 <h1>Source code</h1>
 <hr>
