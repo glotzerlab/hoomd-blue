@@ -148,7 +148,6 @@ class EvaluatorWalls
             if (evaluator::needsCharge())
                 eval.setCharge(qi, Scalar(0.0));
 
-            // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
 
             if (evaluated)
@@ -180,7 +179,6 @@ class EvaluatorWalls
             if (evaluator::needsCharge())
                 eval.setCharge(qi, Scalar(0.0));
 
-            // bool energy_shift = true; //Forces V(r) at r_cut to be continuous
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, true);
 
             if (evaluated)
