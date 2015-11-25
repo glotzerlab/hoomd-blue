@@ -2179,6 +2179,8 @@ unsigned int ParticleData::getNthTag(unsigned int n)
 void export_BoxDim()
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
+    Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
+    Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const = &BoxDim::makeFraction;
 
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
@@ -2199,6 +2201,8 @@ void export_BoxDim()
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
     .def("getLatticeVector", &BoxDim::getLatticeVector)
     .def("wrap", wrap_overload)
+    .def("minImage", minImage_overload)
+    .def("makeFraction", makeFraction_overload)
     .def("getVolume", &BoxDim::getVolume)
     ;
     }

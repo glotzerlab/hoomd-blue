@@ -624,11 +624,11 @@ class boxdim(meta._metadata):
     # Scales the box by the given scale factors. Tilt factors are not modified.
     #
     # \returns a reference to itself
-    def scale(self, sx, sy, sz, s=None):
+    def scale(self, sx=1.0, sy=1.0, sz=1.0, s=None):
         if s is not None:
-            self.Lx = self.Lx * s;
-            self.Ly = self.Ly * s;
-            self.Lz = self.Lz * s;
+            sx = s;
+            sy = s;
+            sz = s;
 
         self.Lx = self.Lx * sx;
         self.Ly = self.Ly * sy;
@@ -683,6 +683,32 @@ class boxdim(meta._metadata):
         i = hoomd.make_int3(0,0,0)
         c = hoomd.make_char3(0,0,0)
         self._getBoxDim().wrap(u,i,c)
+        return (u.x, u.y, u.z)
+
+    ## Apply the minimum image convention to a vector using periodic boundary conditions
+    #
+    # \param v The vector to apply minimum image to
+    #
+    # \returns the minimum image
+    #
+    def min_image(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        u = self._getBoxDim().minImage(u)
+        return (u.x, u.y, u.z)
+
+    ## Scale a vector to fractional coordinates
+    #
+    # \param v The vector to convert to fractional coordinates
+    #
+    # make_fraction() takes a vector in a box and computes a vector where all components are
+    # between 0 and 1.
+    #
+    # \returns the scaled vector
+    def make_fraction(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        w = hoomd.make_scalar3(0,0,0)
+
+        u = self._getBoxDim().makeFraction(u,w)
         return (u.x, u.y, u.z)
 
     ## \internal
