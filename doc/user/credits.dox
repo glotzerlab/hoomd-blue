@@ -169,6 +169,7 @@ Michael P. Howard, Princeton University
  - Stenciled cell list (stencil) neighbor lists
  - Per-type MPI ghost layer communication
  - Dynamic load balancing
+ - Wall potentials extrapolated mode
 
 James Antonaglia, University of Michigan
  - pair.mie
