@@ -81,7 +81,7 @@ class wall_lj_tests (unittest.TestCase):
 class wall_shift_tests (unittest.TestCase):
     def setUp(self):
         snap= data.make_snapshot(N=4, box=data.boxdim(L=10))
-        coords=[[0.0,0.0,0.0],[1.0,1.0,1.0],[4.0,-2.0,1.0],[-3.2,1.0,-0.5]];
+        coords=[[1.1,0.0,0.0],[2.1,1.0,1.0],[4.0,-2.0,1.0],[-2.1,1.0,-0.5]];
         for i in range(4):
             snap.particles.position[i]=coords[i]
         self.s=init.read_snapshot(snap)
@@ -91,7 +91,7 @@ class wall_shift_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.0);
         integrate.nve(all);
         lj_wall=wall.lj(self.walls,r_cut=3.5)
-        lj_wall.force_coeff.set('A', r_shift=1.1, epsilon=1.0, sigma=1.0)
+        lj_wall.force_coeff.set('A', r_extrap=1.1, epsilon=1.0, sigma=1.0)
         run(5)
 
     # test forces

@@ -95,7 +95,7 @@ class EvaluatorWalls
             {
             typename evaluator::param_type params;
             Scalar rcutsq;
-            Scalar rshift;
+            Scalar rextrap;
             } param_type;
 
         typedef wall_type field_type;
@@ -165,15 +165,14 @@ class EvaluatorWalls
                 }
             }
 
-        DEVICE inline void shiftEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv)
+        DEVICE inline void extrapEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv, const Scalar rextrapsq, const Scalar r)
             {
-            Scalar3 dr = vec_to_scalar3(drv);
-            Scalar r = sqrt(dot(dr, dr));
-
+            Scalar3 dr = -vec_to_scalar3(drv);
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
-            evaluator eval(m_params.rshift * m_params.rshift, m_params.rcutsq, m_params.params);
+
+            evaluator eval(rextrapsq, m_params.rcutsq, m_params.params);
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, Scalar(0.0));
             if (evaluator::needsCharge())
@@ -184,8 +183,8 @@ class EvaluatorWalls
             if (evaluated)
                 {
                 // add the force, potential energy and virial to the particle i
-                energy = pair_eng + force_divr * m_params.rshift * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                force_divr *= m_params.rshift / r;
+                energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                force_divr *= m_params.rextrap / r;
                 F += dr * force_divr;
                 Scalar force_div2r = force_divr * Scalar(0.5);
                 virial[0] += force_div2r*dr.x*dr.x;
@@ -212,51 +211,85 @@ class EvaluatorWalls
             vec3<Scalar> position = vec3<Scalar>(m_pos);
             vec3<Scalar> drv;
             bool inside = false; //keeps compiler from complaining
-            if (m_params.rshift>0.0) //shifted mode
+            if (m_params.rextrap>0.0) //extrapolated mode
                 {
+                Scalar rextrapsq=m_params.rextrap * m_params.rextrap;
+                Scalar rsq;
                 for (unsigned int k = 0; k < m_field.numSpheres; k++)
                     {
                     drv = vecPtToWall(m_field.Spheres[k], position, inside);
-                    if (inside)
+                    rsq = dot(drv, drv);
+                    if (inside && rsq>=rextrapsq)
                         {
-                        SphereWall ShiftWall = m_field.Spheres[k];
-                        ShiftWall.r += (ShiftWall.inside) ? m_params.rshift : -m_params.rshift;
-                        drv = vecPtToWall(ShiftWall, position, inside);
                         callEvaluator(F, energy, virial, drv);
                         }
                     else
                         {
-                        shiftEvaluator(F, energy, virial, drv);
+                        Scalar r = fast::sqrt(rsq);
+                        if (rsq == 0.0)
+                            {
+                            inside = true; //just in case
+                            drv = (position - m_field.Spheres[k].origin) / m_field.Spheres[k].r;
+                            }
+                        else
+                            {
+                            drv *= 1/r;
+                            }
+                        r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
+                        drv *= (inside) ? r : -r;
+                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numCylinders; k++)
                     {
                     drv = vecPtToWall(m_field.Cylinders[k], position, inside);
-                    if (inside)
+                    rsq = dot(drv, drv);
+                    if (inside && rsq>=rextrapsq)
                         {
-                        CylinderWall ShiftWall = m_field.Cylinders[k];
-                        ShiftWall.r += (ShiftWall.inside) ? m_params.rshift : -m_params.rshift;
-                        drv = vecPtToWall(ShiftWall, position, inside);
                         callEvaluator(F, energy, virial, drv);
                         }
                     else
                         {
-                        shiftEvaluator(F, energy, virial, drv);
+                        Scalar r = fast::sqrt(rsq);
+                        if (rsq == 0.0)
+                            {
+                            inside = true; //just in case
+                            drv = rotate(m_field.Cylinders[k].quatAxisToZRot,position - m_field.Cylinders[k].origin);
+                            drv.z = 0.0;
+                            drv = rotate(conj(m_field.Cylinders[k].quatAxisToZRot),drv) / m_field.Cylinders[k].r;
+                            }
+                        else
+                            {
+                            drv *= 1/r;
+                            }
+                        r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
+                        drv *= (inside) ? r : -r;
+                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numPlanes; k++)
                     {
                     drv = vecPtToWall(m_field.Planes[k], position, inside);
-                    if (inside)
+                    rsq = dot(drv, drv);
+                    if (inside && rsq>=rextrapsq)
                         {
-                        PlaneWall ShiftWall = m_field.Planes[k];
-                        ShiftWall.origin += (ShiftWall.inside) ? -m_params.rshift * ShiftWall.normal : m_params.rshift * ShiftWall.normal;
-                        drv = vecPtToWall(ShiftWall, position, inside);
                         callEvaluator(F, energy, virial, drv);
                         }
                     else
                         {
-                        shiftEvaluator(F, energy, virial, drv);
+                        Scalar r = fast::sqrt(rsq);
+                        if (rsq == 0.0)
+                            {
+                            inside = true; //just in case
+                            drv = m_field.Planes[k].normal;
+                            }
+                        else
+                            {
+                            drv *= 1/r;
+                            }
+                        r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
+                        drv *= (inside) ? r : -r;
+                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
                         }
                     }
                 }
@@ -309,12 +342,12 @@ class EvaluatorWalls
     };
 
 template < class evaluator >
-typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluator::param_type p, Scalar rcutsq, Scalar rshift)
+typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluator::param_type p, Scalar rcutsq, Scalar rextrap)
     {
     typename EvaluatorWalls<evaluator>::param_type params;
     params.params = p;
     params.rcutsq = rcutsq;
-    params.rshift = rshift;
+    params.rextrap = rextrap;
     return params;
     }
 #endif //__EVALUATOR__WALLS_H__
@@ -326,7 +359,7 @@ void export_wall_params_helpers()
     {
     class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
         .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
-        .def_readwrite("rshift", &EvaluatorWalls<evaluator>::param_type::rshift)
+        .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
         .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
         ;
     def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
