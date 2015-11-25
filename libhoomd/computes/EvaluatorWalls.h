@@ -71,14 +71,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // sets the max numbers for each wall geometry type
-// if modified, the same number should be modified in the python module
-#define MAX_N_SWALLS 20
-#define MAX_N_CWALLS 20
-#define MAX_N_PWALLS 60
-// doesn't work without being in a boost module
-// boost::python::scope().attr("_max_n_sphere_walls") = MAX_N_SWALLS;
-// boost::python::scope().attr("_max_n_cylinder_walls") = MAX_N_CWALLS;
-// boost::python::scope().attr("_max_n_plane_walls") = MAX_N_PWALLS;
+const unsigned int MAX_N_SWALLS=20;
+const unsigned int MAX_N_CWALLS=20;
+const unsigned int MAX_N_PWALLS=60;
 
 struct wall_type{
     SphereWall       Spheres[MAX_N_SWALLS];
