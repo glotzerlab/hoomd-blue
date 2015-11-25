@@ -61,7 +61,7 @@
 # wall.mie mie\endlink.
 #
 # Wall potentials can add forces to any particles within a certain distance, \f$
-# r_{\mathrm{cut}} \f$, of each wall and in the \link wall.wallpotential shifted
+# r_{\mathrm{cut}} \f$, of each wall and in the \link wall.wallpotential extrapolated
 # mode\endlink all particles deemed outside of the wall boundary as well.
 #
 # Wall geometries are used to specify half-spaces. There are two half spaces for
@@ -503,41 +503,52 @@ class plane:
 # V_{\mathrm{pair}}(r) \f$ is the specific %pair potential chosen by the
 # respective command. Wall forces are implemented with the concept of half-spaces
 # in mind. There are two modes which are allowed currently in wall potentials:
-# standard and shifted.\n\n
+# standard and extrapolated.\n\n
+#
 # <b>Standard Mode:</b>\n
-# In the standard mode, when \f$ r_{\mathrm{shift}} \le 0 \f$, the potential
+# In the standard mode, when \f$ r_{\mathrm{extrap}} \le 0 \f$, the potential
 # energy is only applied to the half-space specified in the wall group. \f$ V(r)
 # \f$ is evaluated in the same manner as when mode is shift for the analogous pair
 # potentials within the boundaries of the half-space.
-# \f{eqnarray*} V(r)  = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) \f}
+# \f{eqnarray*}{ V(r)  = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) \f}
 # For inside=True (closed) half-spaces:
-# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\ = & 0 &
+# \f{eqnarray*}{ \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\ = & 0 &
 # r \ge r_{\mathrm{cut}} \\ = & 0 & r < 0 \f}
 # For inside=False (open) half-spaces:
-# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\ = & 0 & r
+# \f{eqnarray*}{ \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\ = & 0 & r
 # \ge r_{\mathrm{cut}} \\ = & 0 & r \le 0 \f} \n\n
-# <b>Shifted Mode:</b>\n
-# In the non-standard or shifted mode which is activated when \f$
-# r_{\mathrm{shift}} > 0 \f$, the potential is shifted and linearly extrapolated
-# into the other half space; meaning <b>both</b> half-spaces are evaluated and the
-# \f$ r_{\mathrm{cut}} \f$ only applies in the half-space which is in the shifted
-# mode. This mode is not intended to be used with physical meaning but to allow
-# easy initialization of a confined system as well as allowing the user to place
-# reasoable bounds on the force experienced by particles evaluated as outside of
-# the half-space which this shifted mode is activated in.\n\n
-# For the half-space included in the geometry which has r_shift activated:
-# \f[V(r) = V_{\mathrm{pair}}(r+r_{\mathrm{shift}}) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) \f]
-# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \f}
-# For the other half-space:
-# \f[V(r) = V_{\mathrm{pair}}(r_{\mathrm{shift}}) -
-# V_{\mathrm{pair}}(r_{\mathrm{cut}}) - r\frac{\partial
-# V_{\mathrm{pair}}}{\partial r}(r_{\mathrm{shift}}) \f]
-# \f{eqnarray*} \vec{F}  = & -\nabla V(r) & 0 \le r \f}
-# See wall.lj for a specific example.
-# The following coefficients must be set per unique particle types.
+#
+# <b>Extrapolated Mode:</b>\n
+# The wall potential can be linearly extrapolated beyond a minimum separation from the wall
+# \f$r_{\mathrm{extrap}}\f$ in the active half-space. This can be useful for bringing particles outside the
+# half-space into the active half-space. It also useful for pushing particles off the wall by
+# effectively limiting the maximum force experienced by the particle. The potential is extrapolated into <b>both</b>
+# half-spaces and the \f$ r_{\mathrm{cut}} \f$ only applies in the active half-space. The user should then be careful
+# using this mode with multiple nested walls. It is intended to be used primarily for equilibration.
+#
+# The extrapolated potential has the following form:
+# \f{eqnarray*}{
+# V(r) =& V_{\mathrm{pair}}(r) &, r > r_{\rm extrap} \\
+#      =& V_{\mathrm{pair}}(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}_{\rm pair}(r_{\rm extrap}) \cdot \vec{n}&, r \le r_{\rm extrap}
+# \f}
+# where \f$\vec{n}\f$ is the normal into the active half-space.
+# This gives an effective force on the particle due to the wall:
+# \f{eqnarray*}{
+# \vec{F} =& \vec{F}_{\rm pair}(r) &, r > r_{\rm extrap} \\
+#         =& \vec{F}_{\rm pair}(r_{\rm extrap}) &, r \le r_{\rm extrap}
+# \f}
+# where \f$\vec{F}_{\rm pair}\f$ is given by the gradient of the pair force
+# \f{eqnarray*}{
+# \vec{F}_{\rm pair} =& -\nabla V_{\rm pair}(r) &, r < r_{\rm cut} \\
+#                    =& 0 &, r \ge r_{\mathrm{cut}}
+# \f}
+# In other words, if \f$r_{\rm extrap}\f$ is chosen so that the pair force would point into the active half-space,
+# the extrapolated potential will push all particles into the active half-space. See wall.lj for a specific example.
+#
+# To use extrapolated mode, the following coefficients must be set per unique particle types.
 # - All parameters required by the %pair potential base for the wall potential
 # - \f$r_{\mathrm{cut}} \f$ - \c r_cut (in distance units) -<i>Optional: Defaults to global r_cut for the force if given or 0.0 if not</i>
-# - \f$ r_{\mathrm{shift}} \f$ -\c r_shift (in distance units) -<i>Optional: Defaults to 0.0</i>
+# - \f$ r_{\mathrm{extrap}} \f$ -\c r_extrap (in distance units) -<i>Optional: Defaults to 0.0</i>
 #
 #
 # <b>Generic Example:</b>\n
@@ -551,7 +562,7 @@ class plane:
 # my_force=wall.pairpotential(walls)
 # my_force.force_coeff.set('A', all required arguments)
 # my_force.force_coeff.set(['B','C'],r_cut=0.3, all required arguments)
-# my_force.force_coeff.set(['B','C'],r_shift=0.3, all required arguments)
+# my_force.force_coeff.set(['B','C'],r_extrap=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
 #
@@ -581,8 +592,8 @@ class wallpotential(external._external_force):
     def __init__(self, walls, r_cut, name=""):
         external._external_force.__init__(self, name);
         self.field_coeff = walls;
-        self.required_coeffs = ["r_cut", "r_shift"];
-        self.force_coeff.set_default_coeff('r_shift', 0.0);
+        self.required_coeffs = ["r_cut", "r_extrap"];
+        self.force_coeff.set_default_coeff('r_extrap', 0.0);
 
         # convert r_cut False to a floating point type
         if (r_cut==False):
@@ -617,29 +628,29 @@ class wallpotential(external._external_force):
 # See pair.lj for force details and base parameters and wall.wallpotential for
 # generalized %wall %force implementation
 #
-# <b>Example: Normal Mode</b>
+# <b>Example: Standard Mode</b>
 # \code
 # walls=wall.group()
 # #add walls
 # lj=wall.lj(walls, r_cut=3.0)
-# lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)  #plotted below in blue
+# lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)  #plotted below in red
 # lj.force_coeff.set('B', sigma=1.0,epsilon=1.0, r_cut=2.0**(1.0/2.0))
 # lj.force_coeff.set(['A','B'], epsilon=2.0, sigma=1.0, alpha=1.0, r_cut=3.0)
 # \endcode
 #
 #
-# <b>Example: Shifted Mode</b>
+# <b>Example: Extrapolated Mode</b>
 # \code
 # walls=wall.group()
 # #add walls
-# lj_shifted=wall.lj(walls, r_cut=3.0)
-# lj_shifted.force_coeff.set('A', sigma=1.0,epsilon=1.0, r_shift=1.1) #plotted in red below
+# lj_extrap=wall.lj(walls, r_cut=3.0)
+# lj_extrap.force_coeff.set('A', sigma=1.0,epsilon=1.0, r_extrap=1.1) #plotted in blue below
 # \endcode
 #
 #
 #
 # <b>V(r) Plotted</b>
-# \image html wall_lj_shifted.png
+# \image html wall_extrap.png
 class lj(wallpotential):
     ## Creates a lj wall force using the inputs
     # See wall.wallpotential and pair.lj for more details.
@@ -673,7 +684,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -717,7 +728,7 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
@@ -777,7 +788,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -821,7 +832,7 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -868,7 +879,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -917,7 +928,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -969,4 +980,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_shift']);
+        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
