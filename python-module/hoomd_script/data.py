@@ -675,15 +675,17 @@ class boxdim(meta._metadata):
     ## Wrap a vector using the periodic boundary conditions
     #
     # \param v The vector to wrap
+    # \param img A vector of integer image flags that will be updated (optional)
     #
-    # \returns the wrapped vector
+    # \returns the wrapped vector and the image flags
     #
-    def wrap(self,v):
+    def wrap(self,v, img=(0,0,0)):
         u = hoomd.make_scalar3(v[0],v[1],v[2])
-        i = hoomd.make_int3(0,0,0)
+        i = hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
         c = hoomd.make_char3(0,0,0)
         self._getBoxDim().wrap(u,i,c)
-        return (u.x, u.y, u.z)
+        img = (i.x,i.y,i.z)
+        return (u.x, u.y, u.z),img
 
     ## Apply the minimum image convention to a vector using periodic boundary conditions
     #
