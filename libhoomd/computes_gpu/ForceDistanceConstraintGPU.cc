@@ -145,6 +145,14 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
             {
             h_sparse_idxlookup.data[i] = -1;
             }
+        // access matrix elements
+        ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::overwrite);
+        ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::overwrite);
+
+
+        // reset matrix elements
+        cudaMemset(d_cmatrix.data, 0, sizeof(double)*n_constraint*n_constraint);
+        cudaMemset(d_cvec.data, 0, sizeof(double)*n_constraint);
         }
 
         {

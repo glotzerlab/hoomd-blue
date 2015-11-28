@@ -244,12 +244,6 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = nptl_local/run_block_size + 1;
 
-    // reset RHS matrix (b)
-    cudaMemset(d_vec, 0, sizeof(double)*n_constraint);
-
-    // reset A matrix
-    cudaMemset(d_matrix, 0, sizeof(double)*n_constraint*n_constraint);
-
     // run GPU kernel
     gpu_fill_matrix_vector_kernel<<<n_blocks, run_block_size>>>(
         n_constraint,
