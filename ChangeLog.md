@@ -16,6 +16,7 @@ Released TBD
 * Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
 * `nlist.stencil` to compute neighbor lists using stencilled cell lists.
 * Add single value scale, `min_image`, and `make_fraction` to `data.boxdim`
+* `analyze.log` can optionally not write a file and now supports querying current quantity values.
 
 *Bug fixes*
 
@@ -31,6 +32,10 @@ Released TBD
 *Deprecated commands*
 
 * `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
+
+*Changes that may break existing scripts*
+
+* `boxdim.wrap` now returns the position and image in a tuple, where it used to return just the position.
 
 ## v1.2.1
 
