@@ -155,12 +155,7 @@ class EvaluatorWalls
                 // add the force, potential energy and virial to the particle i
                 F += dr*force_divr;
                 energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                virial[0] += force_divr*dr.x*dr.x;
-                virial[1] += force_divr*dr.x*dr.y;
-                virial[2] += force_divr*dr.x*dr.z;
-                virial[3] += force_divr*dr.y*dr.y;
-                virial[4] += force_divr*dr.y*dr.z;
-                virial[5] += force_divr*dr.z*dr.z;
+                // no virial contribution
                 }
             }
 
@@ -185,12 +180,7 @@ class EvaluatorWalls
                 energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
                 F += dr * force_divr;
-                virial[0] += force_divr*dr.x*dr.x;
-                virial[1] += force_divr*dr.x*dr.y;
-                virial[2] += force_divr*dr.x*dr.z;
-                virial[3] += force_divr*dr.y*dr.y;
-                virial[4] += force_divr*dr.y*dr.z;
-                virial[5] += force_divr*dr.z*dr.z;
+                // no virial contribution
                 }
             }
 
