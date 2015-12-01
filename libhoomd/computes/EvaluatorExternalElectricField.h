@@ -116,6 +116,11 @@ class EvaluatorExternalElectricField
         */
         DEVICE void setCharge(Scalar qi) { m_qi = qi; }
 
+        //! Declares additional virial cotribututions are needed for the external field
+        /*! No contribution
+        */
+        DEVICE static bool requestFieldVirialTerm() { return true; }
+
         //! Evaluate the force, energy and virial
         /*! \param F force vector
             \param energy value of the energy

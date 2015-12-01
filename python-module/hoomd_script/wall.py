@@ -72,6 +72,9 @@
 # wall.wallpotential for more infomation on how the concept of half-spaces is used
 # in implementing wall forces.
 #
+# \note \par
+# The current wall force implementation does not support NPT integrators.
+#
 # Wall groups are used to pass wall geometries to wall forces. See \link
 # wall.group wall.group\endlink for more details. By themselves, wall groups do
 # nothing. Only when you specify a wall force (i.e. wall.lj),  are forces actually
@@ -565,6 +568,9 @@ class plane:
 # my_force.force_coeff.set(['B','C'],r_extrap=0.3, all required arguments)
 # \endcode
 # A specific example can be found in wall.lj
+#
+# \note \par
+# The current wall force implementation does not support NPT integrators.
 #
 # \note \par
 # An effective use of wall forces <b>requires</b> considering the geometry of the

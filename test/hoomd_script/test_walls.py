@@ -72,6 +72,14 @@ class wall_lj_tests (unittest.TestCase):
         integrate.nve(all);
         self.assertRaises(RuntimeError, run, 10);
 
+    def test_NPT_fail(self):
+        lj_wall = wall.lj(self.walls, r_cut=3.0);
+        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0);
+        self.assertRaises(RuntimeError, run, 10);
+
     def tearDown(self):
         del self.s
         del self.walls

@@ -133,6 +133,11 @@ class EvaluatorExternalPeriodic
         */
         DEVICE void setCharge(Scalar qi) { }
 
+        //! Declares additional virial cotribututions are needed for the external field
+        /*! No contributions
+        */
+        DEVICE static bool requestFieldVirialTerm() { return true; }
+
         //! Evaluate the force, energy and virial
         /*! \param F force vector
             \param energy value of the energy

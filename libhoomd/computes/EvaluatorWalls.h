@@ -125,6 +125,13 @@ class EvaluatorWalls
             return evaluator::needsCharge();
             }
 
+        //! Declares additional virial cotribututions are needed for the external field
+        DEVICE static bool requestFieldVirialTerm()
+            {
+            // bool field_virial_req=true; //will not always need to error, but currently no checks or NPT compatible setups are defined
+            return false; //cannot provide virial terms requested
+            }
+
         //! Accept the optional charge value
         /*! \param qi Charge of particle i
         Walls charge currently assigns a charge of 0 to the walls. It is however unused by implemented potentials.
@@ -155,7 +162,12 @@ class EvaluatorWalls
                 // add the force, potential energy and virial to the particle i
                 F += dr*force_divr;
                 energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                // no virial contribution
+                virial[0] += force_divr*dr.x*dr.x;
+                virial[1] += force_divr*dr.x*dr.y;
+                virial[2] += force_divr*dr.x*dr.z;
+                virial[3] += force_divr*dr.y*dr.y;
+                virial[4] += force_divr*dr.y*dr.z;
+                virial[5] += force_divr*dr.z*dr.z;
                 }
             }
 
@@ -180,7 +192,12 @@ class EvaluatorWalls
                 energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
                 F += dr * force_divr;
-                // no virial contribution
+                virial[0] += force_divr*dr.x*dr.x;
+                virial[1] += force_divr*dr.x*dr.y;
+                virial[2] += force_divr*dr.x*dr.z;
+                virial[3] += force_divr*dr.y*dr.y;
+                virial[4] += force_divr*dr.y*dr.z;
+                virial[5] += force_divr*dr.z*dr.z;
                 }
             }
 
@@ -327,6 +344,7 @@ class EvaluatorWalls
         param_type  m_params;
         Scalar      di;
         Scalar      qi;
+        bool        field_virial_req;
     };
 
 template < class evaluator >
