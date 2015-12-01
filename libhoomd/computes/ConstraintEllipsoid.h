@@ -49,76 +49,61 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifndef __EVALUATOR_CONSTRAINT_SPHERE_H__
-#define __EVALUATOR_CONSTRAINT_SPHERE_H__
+#include "ForceConstraint.h"
+#include "ParticleGroup.h"
 
-#include "HOOMDMath.h"
+#include <boost/shared_ptr.hpp>
 
-/*! \file EvaluatorConstraintSphere.h
-    \brief Defines the constraint evaluator class for spheres
+/*! \file ConstraintEllipsoid.h
+    \brief Declares a class for computing ellipsoid constraint forces
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
-#else
-#define DEVICE
+#error This header cannot be compiled by nvcc
 #endif
 
-//! Class for evaluating sphere constraints
-/*! <b>General Overview</b>
-    EvaluatorConstraintSphere is a low level computation helper class to aid in evaluating particle constraints on a
-    sphere. Given a sphere at a given position and radius, it will find the nearest point on the sphere to a given
-    point.
+#ifndef __CONSTRAINT_Ellipsoid_H__
+#define __CONSTRAINT_Ellipsoid_H__
+
+//! Applys a constraint force to keep a group of particles on a Ellipsoid
+/*! \ingroup computes
 */
-class EvaluatorConstraintSphere
+class ConstraintEllipsoid : public ForceConstraint
     {
     public:
-        //! Constructs the constraint evaluator
-        /*! \param _P Position of the sphere
-            \param _r   Radius of the sphere
-        */
-        DEVICE EvaluatorConstraintSphere(Scalar3 _P, Scalar _r)
-            : P(_P), r(_r)
-            {
-            }
+        //! Constructs the compute
+        ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<ParticleGroup> group,
+                         Scalar3 P,
+                         Scalar rx,
+                         Scalar ry,
+                         Scalar rz);
 
-        //! Evaluate the closest point on the sphere
-        /*! \param U unconstrained point
+        //! Destructor
+        virtual ~ConstraintEllipsoid();
 
-            \return Nearest point on the sphere
-        */
-        DEVICE Scalar3 evalClosest(const Scalar3& U)
-            {
-            // compute the vector pointing from P to V
-            Scalar3 V;
-            V.x = U.x - P.x;
-            V.y = U.y - P.y;
-            V.z = U.z - P.z;
+        //! Set the force to a new value
+        void setEllipsoid(Scalar3 P, Scalar rx, Scalar ry, Scalar rz);
 
-            // compute 1/magnitude of V
-            Scalar magVinv = fast::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
-
-            // compute Vhat, the unit vector pointing in the direction of V
-            Scalar3 Vhat;
-            Vhat.x = magVinv * V.x;
-            Vhat.y = magVinv * V.y;
-            Vhat.z = magVinv * V.z;
-
-            // compute resulting constrained point
-            Scalar3 C;
-            C.x = P.x + Vhat.x * r;
-            C.y = P.y + Vhat.y * r;
-            C.z = P.z + Vhat.z * r;
-
-            return C;
-            }
+        //! Return the number of DOF removed by this constraint
+        virtual unsigned int getNDOFRemoved();
 
     protected:
-        Scalar3 P;      //!< Position of the sphere
-        Scalar r;       //!< radius of the sphere
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        Scalar3 m_P;         //!< Position of the Ellipsoid
+        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
+        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
+        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
+
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+
+    private:
+        //! Validate that the ellipsoid is in the box and all particles are very near the constraint
+        void validate();
     };
 
+//! Exports the ConstraintEllipsoid class to python
+void export_ConstraintEllipsoid();
 
-#endif // __PAIR_EVALUATOR_LJ_H__
+#endif
