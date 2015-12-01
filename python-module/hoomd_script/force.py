@@ -332,6 +332,78 @@ class constant(_force):
     def update_coeffs(self):
         pass
 
+## Active %force
+#
+# The command force.active specifies that an %active %force should be added
+# to all particles in a group.
+#
+# NO MPI
+class active(_force):
+    ## Specify the %active %force
+    #
+    # \param activity an array [x,y,z] for the active force vector for each individual particle in group
+    # \param group Group for which the force will be set
+    # \b Examples:
+    # \code
+    # act = force.active(group=fluid, activity=particle_activity_array)
+    # \endcode
+    def __init__(self, group=None, fx=None, fy=None, fz=None, f_lst=None):#  activity):
+        util.print_status_line();
+        
+        # initialize the base class
+        _force.__init__(self);
+        
+        # input check
+        if (f_lst is not None):
+            if (group,fx,fy,fz) != (None,None,None,None):
+                raise RuntimeError("Active force input format force.active(f_lst) or force.active(group, fx, fy, fz) ")
+            else:
+                for element in f_lst:
+                    if type(element) != tuple or len(element) != 3:
+                        raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+                        
+                # create the c++ mirror class
+                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, f_lst);
+        else:
+            if group is None:
+                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
+            else:
+                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, group.cpp_group, fx, fy, fz);
+        
+        
+        # store metadata
+#        self.metadata_fields = ['fx','fy','fz']
+#        self.fx = fx
+#        self.fy = fy
+#        self.fz = fz
+#        if group is not None:
+#            self.metadata_fields.append('group')
+#            self.group = group
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+    
+    ## Change the value of the force
+    #
+    # \param activity new array [x,y,z] for the active force vector for each individual particle in group
+    # \param group Group for which the force will be set
+    #
+    # Using set_force() requires that you saved the created %active %force in a variable. i.e.
+    # \code
+    # act = active(group=fluid, activity=particle_activity_array)
+    # \endcode
+    #
+    # \b Example:
+    # \code
+    # act.set_force(group=fluid, activity=particle_activity_array)
+    # \endcode
+    def set_force(self,    fx, fy, fz):#  activity):
+        self.check_initialization();
+        self.cpp_force.setGroupForce(group.cpp_group,    fx, fy, fz);#  activity);
+    
+    # there are no coeffs to update in the active force compute
+    def update_coeffs(self):
+        pass
+
 class const_external_field_dipole(_force):
     ## Specicify the %constant %field and %dipole moment
     #

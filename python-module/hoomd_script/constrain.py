@@ -54,7 +54,7 @@
 #
 # Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
 # or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
-# sphere with constrain.sphere.
+# ellipsoid with constrain.ellipsoid.
 #
 # As with other force commands in hoomd_script, multiple constrain commands can be issued to specify multiple
 # constraints, which are additively applied. Note, however, that not all constraints specified in this manner will
@@ -234,21 +234,21 @@ class _constraint_force(meta._metadata):
 _constraint_force.cur_id = 0;
 
 
-## Constrain particles to the surface of a sphere
+## Constrain particles to the surface of a ellipsoid
 #
-# The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
-# them to a sphere.
+# The command constrain.ellipsoid specifies that forces will be applied to all particles in the given group to constrain
+# them to a ellipsoid.
 # \MPI_NOT_SUPPORTED
-class sphere(_constraint_force):
-    ## Specify the %sphere constraint %force
+class ellipsoid(_constraint_force):
+    ## Specify the %ellipsoid constraint %force
     #
     # \param group Group on which to apply the constraint
-    # \param P (x,y,z) tuple indicating the position of the center of the sphere (in distance units)
-    # \param r Radius of the sphere (in distance units)
+    # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units)
+    # \param r Radius of the ellipsoid (in distance units)
     #
     # \b Examples:
     # \code
-    # constrain.sphere(group=groupA, P=(0,10,2), r=10)
+    # constrain.ellipsoid(group=groupA, P=(0,10,2), r=10)
     # \endcode
     def __init__(self, group, P, r):
         util.print_status_line();
@@ -256,7 +256,7 @@ class sphere(_constraint_force):
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("constrain.sphere is not supported in multi-processor simulations.\n\n")
+                globals.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing constraint force.")
 
         # initialize the base class
@@ -265,7 +265,7 @@ class sphere(_constraint_force):
         # create the c++ mirror class
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
+            self.cpp_force = hoomd.ConstraintEllipsoid(globals.system_definition, group.cpp_group, P, r);
         else:
             self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
 

@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ActiveForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
@@ -127,6 +128,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ConstraintEllipsoid.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -529,6 +531,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
+    export_ActiveForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
@@ -567,6 +570,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
+    export_ConstraintEllipsoid();
+    export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_wall_field_helpers();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
