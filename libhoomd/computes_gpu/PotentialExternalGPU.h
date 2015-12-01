@@ -128,6 +128,9 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::field_type> d_field(this->m_field, access_location::device, access_mode::read);
 
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
+
     this->m_tuner->begin();
     gpu_cpef< evaluator >(external_potential_args_t(d_force.data,
                          d_virial.data,
@@ -147,6 +150,16 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop();
+
+    if (flags[pdata_flag::external_field_virial])
+        {
+        bool virial_terms_defined=evaluator::requestFieldVirialTerm();
+        if (!virial_terms_defined)
+            {
+            this->m_exec_conf->msg->error() << "The required virial terms are not defined for the current setup." << std::endl;
+            throw std::runtime_error("NPT is not supported for requested features");
+            }
+        }
 
     }
 

@@ -128,8 +128,7 @@ class EvaluatorWalls
         //! Declares additional virial cotribututions are needed for the external field
         DEVICE static bool requestFieldVirialTerm()
             {
-            // bool field_virial_req=true; //will not always need to error, but currently no checks or NPT compatible setups are defined
-            return false; //cannot provide virial terms requested
+            return false; //volume change dependence is not currently defined
             }
 
         //! Accept the optional charge value

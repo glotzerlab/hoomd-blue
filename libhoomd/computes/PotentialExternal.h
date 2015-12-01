@@ -202,6 +202,16 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
     PDataFlags flags = this->m_pdata->getFlags();
 
+    if (flags[pdata_flag::external_field_virial])
+        {
+        bool virial_terms_defined=evaluator::requestFieldVirialTerm();
+        if (!virial_terms_defined)
+            {
+            this->m_exec_conf->msg->error() << "The required virial terms are not defined for the current setup." << std::endl;
+            throw std::runtime_error("NPT is not supported for requested features");
+            }
+        }
+
     unsigned int nparticles = m_pdata->getN();
 
     // Zero data for force calculation.
@@ -224,15 +234,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
 
         param_type params = h_params.data[type];
         evaluator eval(X, box, params, field);
-        if (flags[pdata_flag::external_field_virial])
-            {
-            bool virial_terms_defined=eval.requestFieldVirialTerm();
-            if (!virial_terms_defined)
-                {
-                this->m_exec_conf->msg->error() << "The required virial terms are not defined for the current setup." << std::endl;
-                throw std::runtime_error("NPT is not supported for requested features");
-                }
-            }
+
         if (evaluator::needsDiameter())
             {
             Scalar di = h_diameter.data[idx];

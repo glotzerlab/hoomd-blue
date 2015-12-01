@@ -126,7 +126,7 @@ struct pdata_flag
         potential_energy,          //!< Bit id in PDataFlags for the potential energy
         pressure_tensor,           //!< Bit id in PDataFlags for the full virial
         rotational_kinetic_energy,  //!< Bit id in PDataFlags for the rotational kinetic energy
-        external_field_virial=0         //!< Bit id in PDataFlags for the external virial contribution
+        external_field_virial       //!< Bit id in PDataFlags for the external virial contribution of volume change
         };
     };
 
