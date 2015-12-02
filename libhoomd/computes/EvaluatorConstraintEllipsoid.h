@@ -164,7 +164,7 @@ class EvaluatorConstraintEllipsoid
                         }
                     if (i == imax)
                         {
-                        printf("constrain.ellipsoid: Not enough iteration steps to find closest point on ellipsoid.\n");
+                        throw runtime_error("constrain.ellipsoid: Not enough iteration steps to find closest point on ellipsoid.\n");
                         }
 
                     // compute resulting constrained point

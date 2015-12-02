@@ -51,7 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
-
 #include <boost/shared_ptr.hpp>
 
 /*! \file ActiveForceCompute.h
@@ -69,37 +68,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup computes
 */
 class ActiveForceCompute : public ForceCompute
-    {
+{
     
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::python::list f_lst);
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, boost::python::list f_lst);
 
         //! Destructor
         ~ActiveForceCompute();
 
-        //! Set force for particles
-        void setGroupForce(boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        //! Set forces for particles
         void setAllForce();
 
-    protected:
-        //! Function that is called on every particle sort
-        void rearrangeForces();
+        //! Orientational diffusion for spherical particles
+        void orientationalDiffusion();
 
+    protected:
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
         
-        std::vector<vec3<Scalar> > act_force_vec;
+        bool orientationLink;
+        std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
+        std::vector<Scalar> act_force_mag; //! Magnitude of active force vector
 
     private:
-        Scalar m_fx; //!< Constant force in x-direction
-        Scalar m_fy; //!< Constant force in y-direction
-        Scalar m_fz; //!< Constant force in z-direction
 
-        //! Group of particles to apply force to
-        boost::shared_ptr<ParticleGroup> m_group;
-    };
+};
 
 //! Exports the ActiveForceComputeClass to python
 void export_ActiveForceCompute();

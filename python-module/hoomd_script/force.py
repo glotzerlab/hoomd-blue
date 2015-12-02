@@ -347,7 +347,7 @@ class active(_force):
     # \code
     # act = force.active(group=fluid, activity=particle_activity_array)
     # \endcode
-    def __init__(self, group=None, fx=None, fy=None, fz=None, f_lst=None):#  activity):
+    def __init__(self, orientation_link=True, f_lst=None):
         util.print_status_line();
         
         # initialize the base class
@@ -355,27 +355,14 @@ class active(_force):
         
         # input check
         if (f_lst is not None):
-            if (group,fx,fy,fz) != (None,None,None,None):
-                raise RuntimeError("Active force input format force.active(f_lst) or force.active(group, fx, fy, fz) ")
-            else:
-                for element in f_lst:
-                    if type(element) != tuple or len(element) != 3:
-                        raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
-                        
-                # create the c++ mirror class
-                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, f_lst);
-        else:
-            if group is None:
-                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
-            else:
-                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, group.cpp_group, fx, fy, fz);
-        
+            for element in f_lst:
+                if type(element) != tuple or len(element) != 3:
+                    raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+                    
+            # create the c++ mirror class
+            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, orientation_link, f_lst);
         
         # store metadata
-#        self.metadata_fields = ['fx','fy','fz']
-#        self.fx = fx
-#        self.fy = fy
-#        self.fz = fz
 #        if group is not None:
 #            self.metadata_fields.append('group')
 #            self.group = group
@@ -396,9 +383,6 @@ class active(_force):
     # \code
     # act.set_force(group=fluid, activity=particle_activity_array)
     # \endcode
-    def set_force(self,    fx, fy, fz):#  activity):
-        self.check_initialization();
-        self.cpp_force.setGroupForce(group.cpp_group,    fx, fy, fz);#  activity);
     
     # there are no coeffs to update in the active force compute
     def update_coeffs(self):

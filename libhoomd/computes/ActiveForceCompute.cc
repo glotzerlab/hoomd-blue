@@ -62,83 +62,50 @@ using namespace std;
     \brief Contains code for the ActiveForceCompute class
 */
 
-/*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
-    \param fx x-component of the force
-    \param fy y-component of the force
-    \param fz z-component of the force
-    \note This class doesn't actually do anything with the particle data. It just returns an active force
-*/
-//ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
-//        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
-//    {
-//    m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
-//
-//    setForce(fx,fy,fz);
-//    }
-
-/*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
-    \param group A group of particles
-    \param fx x-component of the force
-    \param fy y-component of the force
-    \param fz z-component of the force
-    \note This class doesn't actually do anything with the particle data. It just returns an active force
-*/
-    
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::python::list f_lst)
+/*! \param blah this does blah
+*/   
+ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, boost::python::list f_lst)
         : ForceCompute(sysdef)
-    {
+{
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
-    
-    // It will
     
     vector<Scalar3> m_f_lst;
     tuple tmp_force;
-    for (unsigned int i = 0; i < len(f_lst); i++){
+    for (unsigned int i = 0; i < len(f_lst); i++)
+    {
         tmp_force = extract<tuple>(f_lst[i]);
-        if (len(tmp_force) !=3)
-            throw runtime_error("Non-3D force given for ActiveForceCompute");
+        if (len(tmp_force) !=3) { throw runtime_error("Non-3D force given for ActiveForceCompute"); }
         m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
     }
     
-    if (m_f_lst.size() != m_pdata->getN())
-        throw runtime_error("Force given for ActiveForceCompute doesn't match particle number.");
+    if (m_f_lst.size() != m_pdata->getN()) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     
     act_force_vec.resize(m_pdata->getN());
-    for (unsigned int i = 0; i < m_pdata->getN(); i++) //set to array from python ???
-        {
-            act_force_vec[i].x = m_f_lst[i].x;
-            act_force_vec[i].y = m_f_lst[i].y;
-            act_force_vec[i].z = m_f_lst[i].z;
-        }
-        
-    setAllForce();
-    }
-    
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
-        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
+    act_force_mag.resize(m_pdata->getN());
+    for (unsigned int i = 0; i < m_pdata->getN(); i++) //set active force vector to array from python
     {
-    m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
-    
-    setGroupForce(group,fx,fy,fz);
+        act_force_mag[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
+        act_force_vec[i].x = m_f_lst[i].x/act_force_mag[i];
+        act_force_vec[i].y = m_f_lst[i].y/act_force_mag[i];
+        act_force_vec[i].z = m_f_lst[i].z/act_force_mag[i];
     }
+    
+    orientationLink = orientation_link;
+    // setAllForce();
+}
 
 ActiveForceCompute::~ActiveForceCompute()
-    {
+{
         m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
-    }
+}
 
-/*! \param group Group to set the force for
-    \param fx x-component of the force
-    \param fy y-component of the force
-    \param fz z-component of the force
+/*! \param blah this does blah
 */
-    
 void ActiveForceCompute::setAllForce()
-    {
+{
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                       access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
 
     // sanity check
@@ -147,106 +114,92 @@ void ActiveForceCompute::setAllForce()
     assert(h_orientation.data != NULL);
     assert(h_force.data != NULL);
     
-    // Reset all force array (later will update those in force group)
-    for (unsigned int i = 0;i < m_pdata->getN(); i++)
-        {
-        h_force.data[i].x = 0;
-        h_force.data[i].y = 0;
-        h_force.data[i].z = 0;
-        h_force.data[i].w = 0;
-        }
+    // // Reset all force array (later will update those in force group)
+    // for (unsigned int i = 0;i < m_pdata->getN(); i++)
+    //     {
+    //     h_force.data[i].x = 0;
+    //     h_force.data[i].y = 0;
+    //     h_force.data[i].z = 0;
+    //     }
     
     // fi: final force for each particle, f: force vector relative to particle orientation for each particle
     vec3<Scalar> fi;
-    Scalar4 f;
+    Scalar3 f;
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
+    {
         // recover original tag for particle indexing
         unsigned int idx = h_rtag.data[i];
         
         // rotate force according to particle orientation (act_force_vec is indexed by original i)
-        f = make_scalar4(act_force_vec[i].x, act_force_vec[i].y, act_force_vec[i].z, 0);
-        quat<Scalar> quati(h_orientation.data[idx]);
-        fi = rotate(quati, vec3<Scalar>(f));
+        if (orientationLink == true) //ONLY IF RIGID PARTICLES TOO
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+            //ONLY IF RIGID PARTICLES
+
+
+
+
+
+
+
+
+        {
+            f = make_scalar3(act_force_mag[i]*act_force_vec[i].x, act_force_mag[i]*act_force_vec[i].y, act_force_mag[i]*act_force_vec[i].z);
+            quat<Scalar> quati(h_orientation.data[idx]);
+            fi = rotate(quati, vec3<Scalar>(f));
+
+            printf("hi\n");
+        }
         
         h_force.data[idx].x = fi.x;
         h_force.data[idx].y = fi.y;
         h_force.data[idx].z = fi.z;
-        h_force.data[idx].w = 0;
-        }
     }
-    
-void ActiveForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
+}
+
+/*! \param blah this does blah
+*/
+void ActiveForceCompute::orientationalDiffusion()
+{
+    if (m_sysdef->getNDimensions() == 2) // two dimensions ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                       access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
 
-    // sanity check
-    assert(h_pos.data != NULL);
-    assert(h_orientation.data != NULL);
-    assert(h_force.data != NULL);
-    
-    // store parameters
-    m_fx = fx;
-    m_fy = fy;
-    m_fz = fz;
-    m_group = group;
-    
-    // Reset all force array (later will update those in force group)
-    for (unsigned int i = 0;i < m_pdata->getN(); i++)
-        {
-        h_force.data[i].x = 0;
-        h_force.data[i].y = 0;
-        h_force.data[i].z = 0;
-        h_force.data[i].w = 0;
-        }
-    
-    // fi: force for each particle, f: force vector relative to particle orientation
-    vec3<Scalar> fi;
-    Scalar4 f = make_scalar4(fx, fy, fz, 0);
-
-    for (unsigned int i = 0; i < group->getNumMembers(); i++)
-        {
-        unsigned int idx = group->getMemberIndex(i);
-
-        quat<Scalar> quati(h_orientation.data[idx]);
-        fi = rotate(quati, vec3<Scalar>(f));
-        
-        h_force.data[idx].x = fi.x;
-        h_force.data[idx].y = fi.y;
-        h_force.data[idx].z = fi.z;
-        h_force.data[idx].w = 0;
-        }
-    
-    }
-
-void ActiveForceCompute::rearrangeForces()
+    } else // three dimesions
     {
-    // set force only on group of particles
-    // setGroupForce(m_group, m_fx, m_fy, m_fz);
-    if (m_group)
-        setGroupForce(m_group, m_fx, m_fy, m_fz);
-    else
-        setAllForce();
-    }
 
-/*! This function calls rearrangeForces() whenever the particles have been sorted
+    }
+}
+
+/*! This function calls setAllForce()
     \param timestep Current timestep
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
+{
+    // Orientational Diffusion
+    if (shouldCompute(timestep))
     {
-    rearrangeForces();
+        //Add check to see if there is an orientational diffusion constant? check for 2D vs 3D?
+        orientationalDiffusion();
     }
+
+    // set force for particles
+    setAllForce();
+}
 
 
 void export_ActiveForceCompute()
-    {
+{
     class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::python::list >())
-    .def(init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar>())
-    .def("setGroupForce", &ActiveForceCompute::setGroupForce)
+    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, bool, boost::python::list >())
     ;
-    }
+}
