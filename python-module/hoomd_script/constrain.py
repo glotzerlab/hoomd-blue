@@ -244,13 +244,17 @@ class ellipsoid(_constraint_force):
     #
     # \param group Group on which to apply the constraint
     # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units)
-    # \param r Radius of the ellipsoid (in distance units)
+    # \param r Radius of a sphere (in distance units)
+    # \param rx Radius of an ellipsoid in the X direction (in distance units)
+    # \param ry Radius of an ellipsoid in the Y direction (in distance units)
+    # \param rz Radius of an ellipsoid in the Z direction (in distance units)
     #
     # \b Examples:
     # \code
     # constrain.ellipsoid(group=groupA, P=(0,10,2), r=10)
+    # constrain.ellipsoid(rx=10, ry=12, rz=4)
     # \endcode
-    def __init__(self, group, P, r):
+    def __init__(self, r=None, rx=None, ry=None, rz=None, P=hoomd.make_scalar3(0, 0, 0), group=None):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -259,20 +263,38 @@ class ellipsoid(_constraint_force):
                 globals.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing constraint force.")
 
+        # Error out if no radii are set
+        if (r is None and rx is None and ry is None and rz is None) :
+            globals.msg.error("no radii were defined in constrain.ellipsoid.\n\n")
+            raise RuntimeError("Error initializing constraint force.")
+        
         # initialize the base class
         _constraint_force.__init__(self);
 
-        # create the c++ mirror class
+        # Set parameters
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
+        if (r is not None): rx = ry = rz = r
+
+        # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ConstraintEllipsoid(globals.system_definition, group.cpp_group, P, r);
+            if (group is not None):
+                self.cpp_force = hoomd.ConstraintEllipsoid(globals.system_definition, group.cpp_group, P, rx, ry, rz);
+            else:
+                self.cpp_force = hoomd.ConstraintEllipsoid(globals.system_definition, globals.group_all.cpp_group, P, rx, ry, rz);
         else:
-            self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
+            if (group is not None):
+                self.cpp_force = hoomd.ConstraintEllipsoidGPU(globals.system_definition, group.cpp_group, P, rx, ry, rz);
+            else:
+                self.cpp_force = hoomd.ConstraintEllipsoidGPU(globals.system_definition, globals.group_all.cpp_group, P, rx, ry, rz);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # store metadata
         self.group = group
         self.P = P
-        self.r = r
-        self.metadata_fields = ['group','P', 'r']
+        self.rx = rx
+        self.ry = ry
+        self.rz = rz
+        self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
+
+
