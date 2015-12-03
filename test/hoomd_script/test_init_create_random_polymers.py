@@ -44,7 +44,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           box=self.box,
                           polymers=5,
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers="polymers",
