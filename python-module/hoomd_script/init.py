@@ -576,12 +576,12 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
-    if type(polymers) != type([]) or len(polymers) == 0:
-        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
+    if len(polymers) == 0:
+        globals.msg.error("Polymers list cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
-    if type(separation) != type(dict()) or len(separation) == 0:
-        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
+    if len(separation) == 0:
+        globals.msg.error("Separation dict cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
     if not isinstance(box, hoomd_script.data.boxdim):
