@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDBinaryDumpWriter.h"
 #include "BondedGroupData.h"
-#include "WallData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -351,27 +350,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&improper.tag[1], sizeof(unsigned int));
         f.write((char*)&improper.tag[2], sizeof(unsigned int));
         f.write((char*)&improper.tag[3], sizeof(unsigned int));
-        }
-    }
-
-    // Output the walls to the binary file
-    {
-    boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
-
-    unsigned int nw = wall_data->getNumWalls();
-    f.write((char*)&nw, sizeof(unsigned int));
-
-    // loop over all walls and write them out
-    for (unsigned int i = 0; i < nw; i++)
-        {
-        Wall wall = wall_data->getWall(i);
-
-        f.write((char*)&(wall.origin_x), sizeof(Scalar));
-        f.write((char*)&(wall.origin_y), sizeof(Scalar));
-        f.write((char*)&(wall.origin_z), sizeof(Scalar));
-        f.write((char*)&(wall.normal_x), sizeof(Scalar));
-        f.write((char*)&(wall.normal_y), sizeof(Scalar));
-        f.write((char*)&(wall.normal_z), sizeof(Scalar));
         }
     }
 

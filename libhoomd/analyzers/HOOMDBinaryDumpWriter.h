@@ -81,8 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     numberical order.
 
     To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
-    and setOutputType(). Similarly, walls and bonds can be included with setOutputWall() and
-    setOutputBond().
+    and setOutputType(). Similarly, bonds can be included with setOutputBond().
 
     Future versions will include the ability to dump forces on each particle to the file also.
 

@@ -104,6 +104,7 @@ Table of contents:
  - Helpers
    - \ref sec_index_group
    - \ref sec_index_variant
+   - \ref sec_index_wall_helpers
 
  - Miscellaneous
   - \ref sec_index_tuning
@@ -243,12 +244,19 @@ Table of contents:
 
 \section sec_index_wall Wall potentials
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.gauss wall.gauss\endlink - <i>Gaussian %wall %force </i>
+ - \link hoomd_script.wall.slj wall.slj\endlink - <i>Shifted Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.yukawa wall.yukawa\endlink - <i>Yukawa %wall %force </i>
+ - \link hoomd_script.wall.morse wall.morse\endlink - <i>Morse %wall %force </i>
+ - \link hoomd_script.wall.force_shifted_lj wall.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %wall %force </i>
+ - \link hoomd_script.wall.mie wall.mie\endlink - <i>Mie potential %wall %force </i>
 
 \section sec_index_constraint Constraint forces
  - \link hoomd_script.constrain.sphere constrain.sphere\endlink - <i>Constrain particles to the surface of a sphere </i>
 
  \section sec_index_external External forces
  - \link hoomd_script.external.periodic external.periodic\endlink - <i>One-dimension periodic potential</i>
+ - \link hoomd_script.external.e_field external.e_field\endlink - <i>Apply a force derived from an electric field to all particles</i>
 
  \section sec_index_other Other forces
  - \link hoomd_script.force.constant force.constant\endlink - <i>Constant %force </i>
@@ -273,6 +281,12 @@ Table of contents:
 
 \section sec_index_variant Variants
  - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>Linearly interpolated variant</i>
+
+\section sec_index_wall_helpers Wall geometry helpers
+ - \link hoomd_script.wall.group() wall.group\endlink - <i>Creates wall structure for input to wall potentials</i>
+ - \link hoomd_script.wall.sphere() wall.sphere\endlink - <i>Creates a sphere definition</i>
+ - \link hoomd_script.wall.cylinder() wall.cylinder\endlink - <i>Creates a cylinder definition</i>
+ - \link hoomd_script.wall.plane() wall.plane\endlink - <i>Creates a plane definition</i>
 
 <h2>Miscellaneous commands</h2>
 \section sec_index_tuning Tune

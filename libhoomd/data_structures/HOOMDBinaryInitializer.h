@@ -59,7 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "BondedGroupData.h"
-#include "WallData.h"
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "xmlParser.h"
@@ -139,7 +138,6 @@ class HOOMDBinaryInitializer
         std::vector< Scalar > m_diameter_array;     //!< diameters of all particles loaded
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded
         std::vector< Scalar > m_charge_array;       //!< charge of the particles loaded
-        std::vector< Wall > m_walls;                //!< walls loaded from the file
         std::vector< BondData::members_t > m_bonds;   //!< Bonds read in from the file
         std::vector< unsigned int > m_bond_types;   //!< Bonds types read in from the file
         std::vector< AngleData::members_t > m_angles; //!< Angle read in from the file

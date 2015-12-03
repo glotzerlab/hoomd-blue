@@ -28,7 +28,6 @@ class init_take_restore_snapshot (unittest.TestCase):
         snapshot = self.s.take_snapshot(particles=True)
         self.s.restore_snapshot(snapshot)
         snapshot = self.s.take_snapshot(bonds=True)
-        snapshot = self.s.take_snapshot(walls=True)
         snapshot = self.s.take_snapshot(rigid_bodies=True)
         snapshot = self.s.take_snapshot(integrators=True)
 

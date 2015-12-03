@@ -63,7 +63,6 @@ set(TEST_LIST
     test_harmonic_improper_force
     test_cgcmm_angle_force
     test_fenebond_force
-    test_lj_wall_force
     test_external_periodic
     test_neighborlist
     test_lj_force
@@ -94,6 +93,7 @@ set(TEST_LIST
     test_dipole_force
     test_gayberne_force
     test_opls_dihedral_force
+    test_walldata
     )
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)

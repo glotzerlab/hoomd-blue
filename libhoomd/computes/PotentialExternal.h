@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
 
-//! Applys a constraint force to keep a group of particles on a sphere
+//! Applys an external force to particles based on position
 /*! \ingroup computes
 */
 template<class evaluator>
@@ -79,9 +79,11 @@ class PotentialExternal: public ForceCompute
 
         //! type of external potential parameters
         typedef typename evaluator::param_type param_type;
+        typedef typename evaluator::field_type field_type;
 
         //! Sets parameters of the evaluator
         void setParams(unsigned int type, param_type params);
+        void setField(field_type field);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -91,8 +93,9 @@ class PotentialExternal: public ForceCompute
 
     protected:
 
-        GPUArray<param_type> m_params;        //!< Array of per-type parameters
-        std::string m_log_name;               //!< Cached log name
+        GPUArray<param_type>    m_params;        //!< Array of per-type parameters
+        std::string             m_log_name;               //!< Cached log name
+        GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -129,6 +132,9 @@ PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefiniti
 
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
+
+    GPUArray<field_type> field(1, m_exec_conf);
+    m_field.swap(field);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialExternal<evaluator>::slotNumTypesChange, this));
@@ -186,10 +192,25 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::read);
+    const field_type& field = *(h_field.data);
 
     const BoxDim& box = m_pdata->getGlobalBox();
+    PDataFlags flags = this->m_pdata->getFlags();
+
+    if (flags[pdata_flag::external_field_virial])
+        {
+        bool virial_terms_defined=evaluator::requestFieldVirialTerm();
+        if (!virial_terms_defined)
+            {
+            this->m_exec_conf->msg->error() << "The required virial terms are not defined for the current setup." << std::endl;
+            throw std::runtime_error("NPT is not supported for requested features");
+            }
+        }
 
     unsigned int nparticles = m_pdata->getN();
 
@@ -212,7 +233,18 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        evaluator eval(X, box, params);
+        evaluator eval(X, box, params, field);
+
+        if (evaluator::needsDiameter())
+            {
+            Scalar di = h_diameter.data[idx];
+            eval.setDiameter(di);
+            }
+        if (evaluator::needsCharge())
+            {
+            Scalar qi = h_charge.data[idx];
+            eval.setCharge(qi);
+            }
         eval.evalForceEnergyAndVirial(F, energy, virial);
 
         // apply the constraint force
@@ -247,6 +279,13 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
     h_params.data[type] = params;
     }
 
+template<class evaluator>
+void PotentialExternal<evaluator>::setField(field_type field)
+    {
+    ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::overwrite);
+    *(h_field.data) = field;
+    }
+
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
@@ -257,6 +296,7 @@ void export_PotentialExternal(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
+                  .def("setField", &T::setField)
                   ;
     }
 
