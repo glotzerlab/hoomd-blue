@@ -140,7 +140,7 @@ class EvaluatorWalls
             qi = charge;
             }
 
-        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv)
+        DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, const vec3<Scalar> drv)
             {
             Scalar3 dr = -vec_to_scalar3(drv);
             Scalar rsq = dot(dr, dr);
@@ -158,19 +158,13 @@ class EvaluatorWalls
 
             if (evaluated)
                 {
-                // add the force, potential energy and virial to the particle i
+                // add the force and potential energy to the particle i
                 F += dr*force_divr;
                 energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
-                virial[0] += force_divr*dr.x*dr.x;
-                virial[1] += force_divr*dr.x*dr.y;
-                virial[2] += force_divr*dr.x*dr.z;
-                virial[3] += force_divr*dr.y*dr.y;
-                virial[4] += force_divr*dr.y*dr.z;
-                virial[5] += force_divr*dr.z*dr.z;
                 }
             }
 
-        DEVICE inline void extrapEvaluator(Scalar3& F, Scalar& energy, Scalar* virial, const vec3<Scalar> drv, const Scalar rextrapsq, const Scalar r)
+        DEVICE inline void extrapEvaluator(Scalar3& F, Scalar& energy, const vec3<Scalar> drv, const Scalar rextrapsq, const Scalar r)
             {
             Scalar3 dr = -vec_to_scalar3(drv);
             // compute the force and potential energy
@@ -187,16 +181,10 @@ class EvaluatorWalls
 
             if (evaluated)
                 {
-                // add the force, potential energy and virial to the particle i
+                // add the force and potential energy to the particle i
                 energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
                 F += dr * force_divr;
-                virial[0] += force_divr*dr.x*dr.x;
-                virial[1] += force_divr*dr.x*dr.y;
-                virial[2] += force_divr*dr.x*dr.z;
-                virial[3] += force_divr*dr.y*dr.y;
-                virial[4] += force_divr*dr.y*dr.z;
-                virial[5] += force_divr*dr.z*dr.z;
                 }
             }
 
@@ -225,7 +213,7 @@ class EvaluatorWalls
                     rsq = dot(drv, drv);
                     if (inside && rsq>=rextrapsq)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     else
                         {
@@ -241,7 +229,7 @@ class EvaluatorWalls
                             }
                         r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
                         drv *= (inside) ? r : -r;
-                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
+                        extrapEvaluator(F, energy, drv, rextrapsq, r);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numCylinders; k++)
@@ -250,7 +238,7 @@ class EvaluatorWalls
                     rsq = dot(drv, drv);
                     if (inside && rsq>=rextrapsq)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     else
                         {
@@ -268,7 +256,7 @@ class EvaluatorWalls
                             }
                         r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
                         drv *= (inside) ? r : -r;
-                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
+                        extrapEvaluator(F, energy, drv, rextrapsq, r);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numPlanes; k++)
@@ -277,7 +265,7 @@ class EvaluatorWalls
                     rsq = dot(drv, drv);
                     if (inside && rsq>=rextrapsq)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     else
                         {
@@ -293,7 +281,7 @@ class EvaluatorWalls
                             }
                         r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
                         drv *= (inside) ? r : -r;
-                        extrapEvaluator(F, energy, virial, drv, rextrapsq, r);
+                        extrapEvaluator(F, energy, drv, rextrapsq, r);
                         }
                     }
                 }
@@ -304,7 +292,7 @@ class EvaluatorWalls
                     drv = vecPtToWall(m_field.Spheres[k], position, inside);
                     if (inside)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numCylinders; k++)
@@ -312,7 +300,7 @@ class EvaluatorWalls
                     drv = vecPtToWall(m_field.Cylinders[k], position, inside);
                     if (inside)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     }
                 for (unsigned int k = 0; k < m_field.numPlanes; k++)
@@ -320,11 +308,19 @@ class EvaluatorWalls
                     drv = vecPtToWall(m_field.Planes[k], position, inside);
                     if (inside)
                         {
-                        callEvaluator(F, energy, virial, drv);
+                        callEvaluator(F, energy, drv);
                         }
                     }
                 }
-            };
+
+            // evaluate virial
+            virial[0] = F.x*m_pos.x;
+            virial[1] = F.x*m_pos.y;
+            virial[2] = F.x*m_pos.z;
+            virial[3] = F.y*m_pos.y;
+            virial[4] = F.y*m_pos.z;
+            virial[5] = F.z*m_pos.z;
+            }
 
         #ifndef NVCC
         //! Get the name of this potential
@@ -343,7 +339,6 @@ class EvaluatorWalls
         param_type  m_params;
         Scalar      di;
         Scalar      qi;
-        bool        field_virial_req;
     };
 
 template < class evaluator >
