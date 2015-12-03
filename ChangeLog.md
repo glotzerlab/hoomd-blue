@@ -17,6 +17,13 @@ Released TBD
 * `nlist.stencil` to compute neighbor lists using stencilled cell lists.
 * Add single value scale, `min_image`, and `make_fraction` to `data.boxdim`
 * `analyze.log` can optionally not write a file and now supports querying current quantity values.
+* Rewritten wall potentials.
+    * Walls are now sums of planar, cylindrical, and spherical half-spaces.
+    * Walls are defined and can be modified in job scripts.
+    * Walls execute on the GPU.
+    * Walls support per type interaction parameters.
+    * Implemented for: lj, gauss, slj, yukawa, morse, force_shifted_lj, and mie potentials.
+* External electric field potential: `external.e_field`
 
 *Bug fixes*
 
@@ -28,6 +35,7 @@ Released TBD
 * Fixed an openmpi fork() warning on some systems
 * Fixed segfaults in PPPM
 * Fixed a bug where compute.thermo failed after reinitializing a system
+* Support list and dict-lik objects in init.create_random_polymers.
 
 *Deprecated commands*
 
@@ -37,6 +45,8 @@ Released TBD
 *Changes that may break existing scripts*
 
 * `boxdim.wrap` now returns the position and image in a tuple, where it used to return just the position.
+* `wall.lj` has a new API
+* `dump.bin` and `init.bin` have been removed.
 
 ## v1.2.1
 
