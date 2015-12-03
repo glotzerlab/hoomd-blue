@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ParticleData.h"
-#include "WallData.h"
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "BondedGroupData.h"
@@ -153,11 +152,6 @@ class SystemDefinition
             {
             return m_bond_data;
             }
-        //! Get the wall data
-        boost::shared_ptr<WallData> getWallData() const
-            {
-            return m_wall_data;
-            }
         //! Get the rigid body data
         boost::shared_ptr<RigidData> getRigidData() const
             {
@@ -199,7 +193,6 @@ class SystemDefinition
                                                            bool dihedrals,
                                                            bool impropers,
                                                            bool rigid,
-                                                           bool walls,
                                                            bool integrators);
 
         //! Re-initialize the system from a snapshot
@@ -210,7 +203,6 @@ class SystemDefinition
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
         boost::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
-        boost::shared_ptr<WallData> m_wall_data;            //!< Wall data for the system
         boost::shared_ptr<RigidData> m_rigid_data;          //!< Rigid bodies data for the system
         boost::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system

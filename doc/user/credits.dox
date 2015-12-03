@@ -166,8 +166,10 @@ Michael P. Howard, Princeton University
  - Automatic citation list generator
  - Neighbor list memory footprint reduction
  - Bounding volume hierarchy (tree) neighbor lists
+ - Stenciled cell list (stencil) neighbor lists
  - Per-type MPI ghost layer communication
  - Dynamic load balancing
+ - Wall potentials extrapolated mode
 
 James Antonaglia, University of Michigan
  - pair.mie
@@ -188,6 +190,10 @@ Joseph Berleant, University of Michigan
 Matthew Spellings, Univeristy of Michigan
  - anisotropic particle integrators
  - Gay-Berne, dipole pair potentials
+
+James Proctor, University of Michigan
+ - Refactor external potential framework
+ - Wall potentials
 
 <hr>
 <h1>Source code</h1>

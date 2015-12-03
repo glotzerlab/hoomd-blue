@@ -69,8 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Applys a constraint force to keep a group of particles on a sphere
 /*! \ingroup computes
 */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
+template<class evaluator>
 class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
@@ -100,9 +99,8 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
 /*! Constructor
     \param sysdef system definition
  */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
-PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+template<class evaluator>
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
@@ -112,32 +110,56 @@ PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_pt
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type *d_params)>
-void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int timestep)
+template<class evaluator>
+void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, "PotentialExternalGPU");
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
+
     const BoxDim& box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+    ArrayHandle<typename evaluator::field_type> d_field(this->m_field, access_location::device, access_mode::read);
+
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
 
     this->m_tuner->begin();
-    gpu_cpef(external_potential_args_t(d_force.data,
+    gpu_cpef< evaluator >(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
                          d_pos.data,
+                         d_diameter.data,
+                         d_charge.data,
                          box,
-                         this->m_tuner->getParam()), d_params.data);
+                         this->m_tuner->getParam()),
+                         d_params.data,
+                         d_field.data);
+
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
     this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop();
+
+    if (flags[pdata_flag::external_field_virial])
+        {
+        bool virial_terms_defined=evaluator::requestFieldVirialTerm();
+        if (!virial_terms_defined)
+            {
+            this->m_exec_conf->msg->error() << "The required virial terms are not defined for the current setup." << std::endl;
+            throw std::runtime_error("NPT is not supported for requested features");
+            }
+        }
 
     }
 
@@ -151,6 +173,7 @@ void export_PotentialExternalGPU(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
+                  .def("setField", &T::setField)
                   ;
     }
 

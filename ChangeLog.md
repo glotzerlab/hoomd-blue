@@ -14,16 +14,29 @@ Released TBD
 * Dipole pair potential.
 * Brownian dynamics `integrate.brownian`
 * Langevin dynamics `integrate.langevin` (formerly `bdnvt`)
+* `nlist.stencil` to compute neighbor lists using stencilled cell lists.
+* Add single value scale, `min_image`, and `make_fraction` to `data.boxdim`
+* `analyze.log` can optionally not write a file and now supports querying current quantity values.
 
 *Bug fixes*
 
 * Fixed a bug where NVT integration hung when there were 0 particles in some domains.
 * Check SLURM environment variables for local MPI rank identification
+* Fixed a typo in the box math documentation
+* Fixed a bug where exceptions weren't properly passed up to the user script
+* Fixed a bug in the velocity initialization example
+* Fixed an openmpi fork() warning on some systems
+* Fixed segfaults in PPPM
+* Fixed a bug where compute.thermo failed after reinitializing a system
 
 *Deprecated commands*
 
 * `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
 * `dump.bin` and `init.bin` are now removed. Use XML files for restartable jobs.
+
+*Changes that may break existing scripts*
+
+* `boxdim.wrap` now returns the position and image in a tuple, where it used to return just the position.
 
 ## v1.2.1
 

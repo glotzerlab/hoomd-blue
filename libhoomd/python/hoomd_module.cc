@@ -64,6 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
+#include "CellListStencil.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
@@ -78,7 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
 #include "BondTablePotential.h"
-#include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
@@ -86,6 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
+#include "NeighborListStencil.h"
 #include "NeighborListTree.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
@@ -152,6 +153,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
@@ -516,7 +518,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // initializers
     export_RandomInitializer();
-    export_RandomInitializerWithWalls();
     export_SimpleCubicInitializer();
     export_HOOMDInitializer();
     export_RandomGenerator();
@@ -524,6 +525,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // computes
     export_Compute();
     export_CellList();
+    export_CellListStencil();
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
@@ -559,18 +561,29 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
     export_EAMForceCompute();
-    export_LJWallForceCompute();
     export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();
+    export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
     export_PPPMForceCompute();
+    export_wall_field_helpers();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
+    export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
+    export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
+    export_PotentialExternalWall<EvaluatorPairYukawa>("WallsPotentialYukawa");
+    export_PotentialExternalWall<EvaluatorPairSLJ>("WallsPotentialSLJ");
+    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>("WallsPotentialForceShiftedLJ");
+    export_PotentialExternalWall<EvaluatorPairMie>("WallsPotentialMie");
+    export_PotentialExternalWall<EvaluatorPairGauss>("WallsPotentialGauss");
+    export_PotentialExternalWall<EvaluatorPairMorse>("WallsPotentialMorse");
+
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
     export_NeighborListGPUBinned();
+    export_NeighborListGPUStencil();
     export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
@@ -607,6 +620,15 @@ BOOST_PYTHON_MODULE(hoomd)
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
+    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
+    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
+    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>("WallsPotentialYukawaGPU");
+    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>("WallsPotentialSLJGPU");
+    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>("WallsPotentialForceShiftedLJGPU");
+    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>("WallsPotentialMieGPU");
+    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>("WallsPotentialGaussGPU");
+    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>("WallsPotentialMorseGPU");
+
 #endif
 
     // analyzers

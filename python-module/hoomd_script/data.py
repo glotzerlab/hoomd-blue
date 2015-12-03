@@ -575,6 +575,9 @@ import hoomd_script
 # * Cubic box with given length: `data.boxdim(L=10)`
 # * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
 #
+# system = init.read_xml('init.xml')
+# system.box = system.box.scale(s=2)
+# ~~~
 class boxdim(meta._metadata):
     ## Initialize a boxdim object
     #
@@ -620,10 +623,17 @@ class boxdim(meta._metadata):
     #
     # Scales the box by the given scale factors. Tilt factors are not modified.
     #
-    def scale(self, sx, sy, sz):
+    # \returns a reference to itself
+    def scale(self, sx=1.0, sy=1.0, sz=1.0, s=None):
+        if s is not None:
+            sx = s;
+            sy = s;
+            sz = s;
+
         self.Lx = self.Lx * sx;
         self.Ly = self.Ly * sy;
         self.Lz = self.Lz * sz;
+        return self
 
     ## Set the box volume
     #
@@ -631,6 +641,7 @@ class boxdim(meta._metadata):
     #
     # setVolume() scales the box to the given volume (or area).
     #
+    # \returns a reference to itself
     def set_volume(self, volume):
         cur_vol = self.get_volume();
 
@@ -640,6 +651,7 @@ class boxdim(meta._metadata):
         else:
             s = (volume / cur_vol)**(1.0/2.0)
             self.scale(s, s, 1.0);
+        return self
 
     ## Get the box volume
     #
@@ -663,14 +675,42 @@ class boxdim(meta._metadata):
     ## Wrap a vector using the periodic boundary conditions
     #
     # \param v The vector to wrap
+    # \param img A vector of integer image flags that will be updated (optional)
     #
-    # \returns the wrapped vector
+    # \returns the wrapped vector and the image flags
     #
-    def wrap(self,v):
+    def wrap(self,v, img=(0,0,0)):
         u = hoomd.make_scalar3(v[0],v[1],v[2])
-        i = hoomd.make_int3(0,0,0)
+        i = hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
         c = hoomd.make_char3(0,0,0)
         self._getBoxDim().wrap(u,i,c)
+        img = (i.x,i.y,i.z)
+        return (u.x, u.y, u.z),img
+
+    ## Apply the minimum image convention to a vector using periodic boundary conditions
+    #
+    # \param v The vector to apply minimum image to
+    #
+    # \returns the minimum image
+    #
+    def min_image(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        u = self._getBoxDim().minImage(u)
+        return (u.x, u.y, u.z)
+
+    ## Scale a vector to fractional coordinates
+    #
+    # \param v The vector to convert to fractional coordinates
+    #
+    # make_fraction() takes a vector in a box and computes a vector where all components are
+    # between 0 and 1.
+    #
+    # \returns the scaled vector
+    def make_fraction(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        w = hoomd.make_scalar3(0,0,0)
+
+        u = self._getBoxDim().makeFraction(u,w)
         return (u.x, u.y, u.z)
 
     ## \internal
@@ -732,7 +772,6 @@ class system_data(meta._metadata):
     # \param particles If true, particle data is included in the snapshot
     # \param bonds If true, bond, angle, dihedral, and improper data is included in the snapshot
     # \param rigid_bodies If true, rigid body data is included in the snapshot
-    # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
@@ -750,7 +789,6 @@ class system_data(meta._metadata):
                       particles=True,
                       bonds=False,
                       rigid_bodies=False,
-                      walls=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
@@ -760,18 +798,17 @@ class system_data(meta._metadata):
                 particles=True
                 bonds=True
                 rigid_bodies=True
-                walls=True
                 integrators=True
 
-        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
+        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
         else:
             raise ValueError("dtype must be float or double");
 

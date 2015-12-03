@@ -115,33 +115,9 @@ class RandomInitializer
         std::string m_type_name;    //!< Name of the particle type created
     };
 
-
-//! Creates a random particle system with walls defined on all 6 faces of the cube
-/*! A \a wall_buffer argument is specified in the the call to the constructor which shifts the edge of the
-    simulation box out that distance from the walls.
-*/
-class RandomInitializerWithWalls : public RandomInitializer
-    {
-    public:
-        //! Set the parameters
-        RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name);
-        //! Empty Destructor
-        virtual ~RandomInitializerWithWalls() ;
-
-        //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
-
-    protected:
-        Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box
-        BoxDim m_real_box;      //!< Stores the actual dimensions of the box where the walls are defined
-
-    };
-
 //! Exports the SimpleCubicInitializer class to python
 void export_SimpleCubicInitializer();
 //! Exports the RandomInitializer class to python
 void export_RandomInitializer();
-//! Exports the RandomInitializerWithWalls class to python
-void export_RandomInitializerWithWalls();
 
 #endif

@@ -151,7 +151,6 @@ class xml(analyze._analyzer):
     # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
     # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
     # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
-    # \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
@@ -173,7 +172,6 @@ class xml(analyze._analyzer):
     # xml.set_params(type=False)
     # xml.set_params(position=False, type=False, velocity=True)
     # xml.set_params(type=True, position=True)
-    # xml.set_params(position=True, wall=True)
     # xml.set_params(bond=True)
     # xml.set_params(all=True)
     # \endcode
@@ -187,7 +185,6 @@ class xml(analyze._analyzer):
                    diameter=None,
                    type=None,
                    body=None,
-                   wall=None,
                    bond=None,
                    angle=None,
                    dihedral=None,
@@ -202,7 +199,7 @@ class xml(analyze._analyzer):
         self.check_initialization();
 
         if all:
-            position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
+            position = image = velocity = mass = diameter = type = bond = angle = dihedral = improper = True;
             acceleration = charge = body = orientation = angmom = inertia = True;
 
         if vis:
@@ -228,9 +225,6 @@ class xml(analyze._analyzer):
 
         if body is not None:
             self.cpp_analyzer.setOutputBody(body);
-
-        if wall is not None:
-            self.cpp_analyzer.setOutputWall(wall);
 
         if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
@@ -602,8 +596,8 @@ class pos(analyze._analyzer):
     #        is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it.
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This 
-    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo 
+    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This
+    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
     #        may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
     #
     # \b Examples:

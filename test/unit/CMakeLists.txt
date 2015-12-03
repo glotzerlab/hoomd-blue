@@ -50,6 +50,7 @@ set(TEST_LIST
     test_vec3
     test_messenger
     test_cell_list
+    test_cell_list_stencil
     test_const_external_field_dipole
     test_index1d
     test_gpu_array
@@ -62,7 +63,6 @@ set(TEST_LIST
     test_harmonic_improper_force
     test_cgcmm_angle_force
     test_fenebond_force
-    test_lj_wall_force
     test_external_periodic
     test_neighborlist
     test_lj_force
@@ -92,6 +92,7 @@ set(TEST_LIST
     test_dipole_force
     test_gayberne_force
     test_opls_dihedral_force
+    test_walldata
     )
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)

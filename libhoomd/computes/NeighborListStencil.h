@@ -47,68 +47,80 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: mphoward
 
-/*! \file LJWallForceCompute.h
-    \brief Declares the LJWallForceCompute class
+#include "NeighborList.h"
+#include "CellList.h"
+#include "CellListStencil.h"
+
+/*! \file NeighborListStencil.h
+    \brief Declares the NeighborListStencil class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "ForceCompute.h"
+#ifndef __NEIGHBORLISTSTENCIL_H__
+#define __NEIGHBORLISTSTENCIL_H__
 
-#include <boost/shared_ptr.hpp>
+//! Efficient neighbor list build on the CPU with multiple bin stencils
+/*! Implements the O(N) neighbor list build on the CPU using a cell list with multiple bin stencils.
 
-#ifndef __LJWallForceCompute__
-#define __LJWallForceCompute__
-
-//! Computes an LJ-type force between each particle and each wall in the simulation
-/*!
+    \sa CellListStencil
     \ingroup computes
 */
-class LJWallForceCompute :  public ForceCompute
+class NeighborListStencil : public NeighborList
     {
     public:
-        //! Constructor
-        LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut);
-        //! Destructor
-        virtual ~LJWallForceCompute();
-        //! Sets force parameters
-        virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
+        //! Constructs the compute
+        NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+                            Scalar r_cut,
+                            Scalar r_buff,
+                            boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
+                            boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
 
-        //! Sets a new cuttoff
-        /*! \param r_cut New cuttoff to set */
-        void setRCut(Scalar r_cut)
+        //! Destructor
+        virtual ~NeighborListStencil();
+
+        //! Change the cutoff radius for all pairs
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Set the cutoff radius by pair type
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+
+        //! Change the underlying cell width
+        void setCellWidth(Scalar cell_width)
             {
-            m_r_cut = r_cut;
+            m_override_cell_width = true;
+            m_needs_restencil = true;
+            m_cl->setNominalWidth(cell_width);
             }
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        //! Set the maximum diameter to use in computing neighbor lists
+        virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        //! Computes forces
-        virtual void computeForces(unsigned int timestep);
-
-        Scalar m_r_cut;         //!< Cuttoff distance beyond which the force is set to 0
-
-        Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
 
     private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
+        boost::shared_ptr<CellList> m_cl;           //!< The cell list
+        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        bool m_override_cell_width;                 //!< Flag to override the cell width
+
+        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
+        bool m_needs_restencil;                             //!< Flag for updating the stencil
+        void slotRCutChange()
+            {
+            m_needs_restencil = true;
+            }
+
+        //! Update the stencil radius
+        void updateRStencil();
     };
 
-//! Exports the LJWallForceCompute class to python
-void export_LJWallForceCompute();
+//! Exports NeighborListStencil to python
+void export_NeighborListStencil();
 
-#endif
+#endif // __NEIGHBORLISTSTENCIL_H__
