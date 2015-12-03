@@ -21,7 +21,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
     # checks for an error if initialized twice
     def test_create_random_inittwice(self):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymers,
@@ -29,17 +29,17 @@ class init_create_random_polymer_tests (unittest.TestCase):
 
     # checks that invalid arguments are detected
     def test_bad_polymers(self):
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=[],
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymer1,
                           separation=self.separation);
-        self.assertRaises(TypeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=5,
@@ -54,22 +54,22 @@ class init_create_random_polymer_tests (unittest.TestCase):
         bad_polymer2 = dict(type=['B']*4, bond="linear", count=10)
         bad_polymer3 = dict(bond_len=1.2, type=['B']*4, count=10)
         bad_polymer4 = dict(bond_len=1.2, type=['B']*4, bond="linear")
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=[bad_polymer1],
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=[bad_polymer2],
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=[bad_polymer3],
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=[bad_polymer4],
@@ -79,17 +79,17 @@ class init_create_random_polymer_tests (unittest.TestCase):
         bad_separation1 = dict(A=0.35)
         bad_separation2 = dict(B=0.35)
         bad_separation3 = dict(C=0.35)
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymers,
                           separation=bad_separation1);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymers,
                           separation=bad_separation2);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(Exception,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymers,
