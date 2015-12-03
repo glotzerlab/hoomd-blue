@@ -1,6 +1,3 @@
-# -*- coding: iso-8859-1 -*-
-# Maintainer: joaander
-
 from hoomd_script import *
 import unittest
 import os
@@ -42,7 +39,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           box=self.box,
                           polymers=self.polymer1,
                           separation=self.separation);
-        self.assertRaises(RuntimeError,
+        self.assertRaises(TypeError,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=5,
