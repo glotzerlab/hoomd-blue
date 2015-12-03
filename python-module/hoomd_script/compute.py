@@ -194,8 +194,9 @@ _compute.cur_id = 0;
 #  - <b>temperature</b><i>_groupname</i> - \f$ T \f$ - instantaneous thermal energy of the group (in energy units). Calculated as
 #    \f$ T = 2 \cdot \frac{K}{N_{\mathrm{dof}}} \f$
 #  - <b>pressure</b><i>_groupname</i> - \f$ P \f$ - instantaneous pressure of the group (in pressure units). Calculated as
-#    \f$ W = \frac{1}{2} \sum_{i}\sum_{j \ne i} \vec{F}_{ij} \cdot \vec{r_{ij}} + \sum_{k} \vec{F}_{k} \cdot
-#    \vec{r_{k}} \f$ where \f$\vec{F}.\f$ is the force from external fields. In 2D simulations,
+#    \f[ W = \frac{1}{2} \sum_{i}\sum_{j \ne i} \vec{F}_{ij} \cdot \vec{r_{ij}} + \sum_{k} \vec{F}_{k} \cdot
+#    \vec{r_{k}} \f] where \f$ \vec{F}_{ij} \f$ are pairwise forces between particles and \f$ \vec{F}_k \f$ are forces due to explicit constraints, implicit rigid
+#    body constraints, external walls, and fields. In 2D simulations,
 #    \f$ P = (K + \frac{1}{2}\cdot W)/A \f$ where \f$ A \f$ is the area of the simulation box.
 #    of the simulation box.
 #  - <b>pressure_xx</b><i>_groupname</i>, <b>pressure_xy</b><i>_groupname</i>, <b>pressure_xz</b><i>_groupname</i>,

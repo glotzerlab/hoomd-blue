@@ -573,6 +573,11 @@ class plane:
 # The current wall force implementation does not support NPT integrators.
 #
 # \note \par
+# The virial due to walls is computed, but the pressure and reported by analyze.log is not well defined.
+# The volume (area) of the box enters into the pressure computation, which is not correct in a
+# confined system. It may not even be possible to define an appopriate volume with soft walls.
+#
+# \note \par
 # An effective use of wall forces <b>requires</b> considering the geometry of the
 # system. Each wall is only evaluated in one simulation box and thus is not
 # periodic. Forces will be evaluated and added to all particles from all walls in
