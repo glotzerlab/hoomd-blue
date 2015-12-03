@@ -1,10 +1,6 @@
 # Maintainer: joaander
 
 #################################
-## Optional use of zlib to compress binary output files
-option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
-
-#################################
 ## Optional static build
 ## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
 OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" OFF)

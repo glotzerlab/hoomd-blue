@@ -112,7 +112,6 @@ the newly selected options.
     is found. Defaults *off* if the CUDA toolkit is not found.
 - **ENABLE_DOXYGEN** - enables the generation of detailed user and developer documentation (Defaults *off*)
 - **ENABLE_VALGRIND** - Runs every unit test through valgrind.
-- **ENABLE_ZLIB** - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
 - **SINGLE_PRECISION** - Controls precision
     - When set to \b ON, all calculations are performed in single precision.
     - When set to \b OFF, all calculations are performed in double precision.

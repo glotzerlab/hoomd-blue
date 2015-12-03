@@ -32,6 +32,7 @@ Released TBD
 *Deprecated commands*
 
 * `integrate.bdnvt` is deprecated. Use `integrate.langevin` instead.
+* `dump.bin` and `init.bin` are now removed. Use XML files for restartable jobs.
 
 *Changes that may break existing scripts*
 

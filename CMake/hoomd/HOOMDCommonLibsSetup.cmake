@@ -6,13 +6,6 @@ find_package(Threads)
 
 include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
 
-# find ZLIB
-if (ENABLE_ZLIB)
-find_package(ZLIB REQUIRED)
-
-include_directories(${ZLIB_INCLUDE_DIR})
-endif (ENABLE_ZLIB)
-
 ################################
 ## Define common libraries used by every target in HOOMD
 set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
