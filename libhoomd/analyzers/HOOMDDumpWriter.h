@@ -121,8 +121,6 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputImproper(bool enable);
         //! Enables/disables the writing of constraints
         void setOutputConstraint(bool enable);
-        //! Enables/disables the writing of walls
-        void setOutputWall(bool enable);
         //! Enables/disables the writing of acceleration
         void setOutputAccel(bool enable);
         //! Enables/disables the writing of body

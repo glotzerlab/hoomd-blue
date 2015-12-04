@@ -336,11 +336,6 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
     // initialize with empty vector
     cdata.type_mapping = std::vector<std::string>();
 
-    /*
-     * Initialize walls
-     */
-    snapshot->wall_data = m_walls;
-
     return snapshot;
     }
 

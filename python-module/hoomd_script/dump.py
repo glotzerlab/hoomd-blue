@@ -201,7 +201,7 @@ class xml(analyze._analyzer):
         self.check_initialization();
 
         if all:
-            position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = constraint = True;
+            position = image = velocity = mass = diameter = type = bond = angle = dihedral = improper = constraint = True;
             acceleration = charge = body = orientation = angmom = inertia = True;
 
         if vis:
