@@ -72,13 +72,13 @@ class ActiveForceCompute : public ForceCompute
     
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, boost::python::list f_lst);
+        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, Scalar orientation_diff, boost::python::list f_lst);
 
         //! Destructor
         ~ActiveForceCompute();
 
         //! Set forces for particles
-        void setAllForce();
+        void setForces();
 
         //! Orientational diffusion for spherical particles
         void orientationalDiffusion();
@@ -88,6 +88,7 @@ class ActiveForceCompute : public ForceCompute
         virtual void computeForces(unsigned int timestep);
         
         bool orientationLink;
+        Scalar orientDiff;
         std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
         std::vector<Scalar> act_force_mag; //! Magnitude of active force vector
 

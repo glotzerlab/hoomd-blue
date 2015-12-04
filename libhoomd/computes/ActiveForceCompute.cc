@@ -64,7 +64,7 @@ using namespace std;
 
 /*! \param blah this does blah
 */   
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, boost::python::list f_lst)
+ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, Scalar orientation_diff, boost::python::list f_lst)
         : ForceCompute(sysdef)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
@@ -91,7 +91,7 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     }
     
     orientationLink = orientation_link;
-    // setAllForce();
+    orientDiff = orientation_diff;
 }
 
 ActiveForceCompute::~ActiveForceCompute()
@@ -101,7 +101,7 @@ ActiveForceCompute::~ActiveForceCompute()
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::setAllForce()
+void ActiveForceCompute::setForces()
 {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -113,58 +113,39 @@ void ActiveForceCompute::setAllForce()
     assert(h_rtag != NULL);
     assert(h_orientation.data != NULL);
     assert(h_force.data != NULL);
-    
-    // // Reset all force array (later will update those in force group)
-    // for (unsigned int i = 0;i < m_pdata->getN(); i++)
-    //     {
-    //     h_force.data[i].x = 0;
-    //     h_force.data[i].y = 0;
-    //     h_force.data[i].z = 0;
-    //     }
-    
-    // fi: final force for each particle, f: force vector relative to particle orientation for each particle
-    vec3<Scalar> fi;
+
     Scalar3 f;
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
+    if (orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
-        // recover original tag for particle indexing
-        unsigned int idx = h_rtag.data[i];
-        
-        // rotate force according to particle orientation (act_force_vec is indexed by original i)
-        if (orientationLink == true) //ONLY IF RIGID PARTICLES TOO
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-            //ONLY IF RIGID PARTICLES
-
-
-
-
-
-
-
-
+        vec3<Scalar> fi;
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
+            unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
             f = make_scalar3(act_force_mag[i]*act_force_vec[i].x, act_force_mag[i]*act_force_vec[i].y, act_force_mag[i]*act_force_vec[i].z);
             quat<Scalar> quati(h_orientation.data[idx]);
             fi = rotate(quati, vec3<Scalar>(f));
-
-            printf("hi\n");
+            h_force.data[idx].x = fi.x;
+            h_force.data[idx].y = fi.y;
+            h_force.data[idx].z = fi.z;
         }
-        
-        h_force.data[idx].x = fi.x;
-        h_force.data[idx].y = fi.y;
-        h_force.data[idx].z = fi.z;
+    } else
+    {
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+            unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
+            f = make_scalar3(act_force_mag[i]*act_force_vec[i].x, act_force_mag[i]*act_force_vec[i].y, act_force_mag[i]*act_force_vec[i].z);
+            h_force.data[idx].x = f.x;
+            h_force.data[idx].y = f.y;
+            h_force.data[idx].z = f.z;
+        }
     }
+
+
+
+
+
+
 }
 
 /*! \param blah this does blah
@@ -180,26 +161,25 @@ void ActiveForceCompute::orientationalDiffusion()
     }
 }
 
-/*! This function calls setAllForce()
+/*! This function calls setForces()
     \param timestep Current timestep
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    // Orientational Diffusion
-    if (shouldCompute(timestep))
+    // Orientational Diffusion, check to make sure hasn't already been computed this timestep
+    if (shouldCompute(timestep) && orientDiff != 0)
     {
-        //Add check to see if there is an orientational diffusion constant? check for 2D vs 3D?
         orientationalDiffusion();
     }
 
     // set force for particles
-    setAllForce();
+    setForces();
 }
 
 
 void export_ActiveForceCompute()
 {
     class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, bool, boost::python::list >())
+    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, bool, Scalar, boost::python::list >())
     ;
 }
