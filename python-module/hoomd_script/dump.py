@@ -151,7 +151,6 @@ class xml(analyze._analyzer):
     # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
     # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
     # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
-    # \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
@@ -174,7 +173,6 @@ class xml(analyze._analyzer):
     # xml.set_params(type=False)
     # xml.set_params(position=False, type=False, velocity=True)
     # xml.set_params(type=True, position=True)
-    # xml.set_params(position=True, wall=True)
     # xml.set_params(bond=True)
     # xml.set_params(all=True)
     # \endcode
@@ -188,7 +186,6 @@ class xml(analyze._analyzer):
                    diameter=None,
                    type=None,
                    body=None,
-                   wall=None,
                    bond=None,
                    angle=None,
                    dihedral=None,
@@ -230,9 +227,6 @@ class xml(analyze._analyzer):
 
         if body is not None:
             self.cpp_analyzer.setOutputBody(body);
-
-        if wall is not None:
-            self.cpp_analyzer.setOutputWall(wall);
 
         if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
@@ -308,135 +302,6 @@ class xml(analyze._analyzer):
             raise ValueError("Cannot write_restart() when restart=False");
 
         self.cpp_analyzer.analyze(globals.system.getCurrentTimeStep());
-
-## Writes simulation snapshots in a binary format
-#
-# Every \a period time steps, a new file will be created. The state of the
-# particles at that time step is written to the file in a binary format.
-#
-# \warning init.read_bin is deprecated. It currently maintains all of its old functionality, but there are a number
-#          of new features in HOOMD-blue that it does not support.
-#              * Triclinic boxes
-#              * MPI
-#
-# \sa init.read_bin
-# \MPI_NOT_SUPPORTED
-class bin(analyze._analyzer):
-    ## Initialize the hoomd_bin writer
-    #
-    # \param filename (optional) Base of the file name
-    # \param period (optional) Number of time steps between file dumps
-    # \param file1 (optional) First alternating file name to write
-    # \param file2 (optional) Second alternating file name to write
-    # \param compress Set to False to disable gzip compression
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # dump.bin(file1="restart.1.bin.gz", file2="restart.2.bin.gz", period=1e5)
-    # dump.bin(filename="particles", period=1000)
-    # bin = dump.bin(filename="particles", period=1e5, compress=False)
-    # bin = dump.bin()
-    # \endcode
-    #
-    # If period is set, a new file will be created every \a period steps. The time step at which
-    # the file is created is added to the file name in a fixed width format to allow files to easily
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
-    # \c particles.0000000000.bin (.gz if \a compress = True)
-    #
-    # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
-    # will auto-detect whether or not the %data needs to be decompressed by the ".gz" file extension.
-    #
-    # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
-    # between those two files. This use-case is useful when only the most recent state of the system is needed
-    # to continue a job. The alternation between two files is so that if the job ends or crashes while writing one of
-    # of the files, the other is still available for use. Make sure to include a .gz file extension if compression
-    # is enabled.
-    #
-    # Binary files include the \b entire state of the system, including the time step, particle positions,
-    # velocities, et cetera, and the internal state variables of any relevant integration methods. All %data is saved
-    # exactly as it appears in memory so that loading the %data with init.read_bin is as close as possible as one
-    # can get to exactly restarting the simulation as if it has never stopped. Restarts that continue 100%
-    # \b exactly, bit for bit, as they would have if they had never stopped are possible under certain circumstances.
-    #
-    # For the integration state information to be read and properly associated with the correct integrator, there must
-    # be the same number of integrator modes and methods <b>and in the same order</b> in the continuation script as are
-    # in the initial job script. One way to ensure this is to copy the initial script and comment out all of the run()
-    # commands up until the point that the restart file was written. Another method is to utilize run_upto() in your
-    # job script.
-    #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately.
-    #
-    # \note The binary file format may change from one hoomd release to the next. Efforts will be made so that
-    # newer versions of hoomd can read previous version's binary format, but support is not guaranteed. The intended
-    # use case for dump.bin() is for saving data to restart and/or continue jobs that fail or reach a %wall clock time
-    # limit. If you need to store data in a system and version independent manner, use dump.xml().
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True, phase=-1):
-        util.print_status_line();
-        globals.msg.warning("dump.bin is deprecated and will be removed in the next release");
-
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("dump.bin is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error writing restart data.")
-
-        # initialize base class
-        analyze._analyzer.__init__(self);
-
-        # create the c++ mirror class
-        self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
-        self.cpp_analyzer.enableCompression(compress)
-
-        # handle the alternation setting
-        # first, check that they are both set
-        if (file1 is not None and file2 is None) or (file2 is not None and file1 is None):
-            globals.msg.error("file1 and file2 must either both be set or both left as None.\n");
-            raise RuntimeError('Error initializing dump.bin');
-        if file1 is not None:
-            self.cpp_analyzer.setAlternatingWrites(file1, file2)
-            if period is None:
-                globals.msg.warning("Alternating file output set for dump.bin, but period is not set.\n");
-                globals.msg.warning("No output will be written.\n");
-
-        globals.msg.warning("dump.bin does not support triclinic boxes.\n");
-        globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-            self.enabled = True;
-            self.prev_period = 1;
-        elif filename != "dump":
-            util._disable_status_lines = True;
-            self.write(filename);
-            util._disable_status_lines = False;
-        else:
-            self.enabled = False;
-
-    ## Write a file at the current time step
-    #
-    # \param filename File name to write to
-    #
-    # The periodic file writes can be temporarily overridden and a file with any file name
-    # written at the current time step.
-    #
-    # Executing write() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # xml = dump.xml()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # xml.write(filename="start.xml")
-    # \endcode
-    def write(self, filename):
-        util.print_status_line();
-        self.check_initialization();
-
-        self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
 ## Writes a simulation snapshot in the MOL2 format
 #
@@ -736,8 +601,8 @@ class pos(analyze._analyzer):
     #        is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it.
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This 
-    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo 
+    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This
+    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
     #        may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
     #
     # \b Examples:

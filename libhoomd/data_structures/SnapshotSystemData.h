@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
-#include "WallData.h"
 #include "RigidData.h"
 
 /*! \ingroup data_structs
@@ -95,7 +94,6 @@ struct SnapshotSystemData {
     ImproperData::Snapshot improper_data;    //!< The improper data
     ConstraintData::Snapshot constraint_data;//!< The constraint data
     SnapshotRigidData rigid_data;          //!< The rigid body data
-    std::vector<Wall> wall_data;           //!< The wall data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
@@ -105,7 +103,6 @@ struct SnapshotSystemData {
     bool has_improper_data;                //!< True if snapshot contains improper data
     bool has_constraint_data;              //!< True if snapshot contains constraint data
     bool has_rigid_data;                   //!< True if snapshot contains rigid data
-    bool has_wall_data;                    //!< True if snapshot contains wall data
     bool has_integrator_data;              //!< True if snapshot contains integrator data
 
     //! Constructor
@@ -121,7 +118,6 @@ struct SnapshotSystemData {
         has_improper_data = true;
         has_constraint_data = true;
         has_rigid_data = true;
-        has_wall_data = true;
         has_integrator_data = true;
         }
 

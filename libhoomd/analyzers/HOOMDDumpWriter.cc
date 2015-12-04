@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDDumpWriter.h"
 #include "BondedGroupData.h"
-#include "WallData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -150,12 +149,6 @@ void HOOMDDumpWriter::setOutputBond(bool enable)
 void HOOMDDumpWriter::setOutputAngle(bool enable)
     {
     m_output_angle = enable;
-    }
-/*! \param enable Set to true to output walls to the XML file on the next call to analyze()
-*/
-void HOOMDDumpWriter::setOutputWall(bool enable)
-    {
-    m_output_wall = enable;
     }
 /*! \param enable Set to true to output dihedrals to the XML file on the next call to analyze()
 */
@@ -512,7 +505,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
         f << "</constraint>" << "\n";
         }
-
 
     // if the wall flag is true, output the walls to the xml file
     if (m_output_wall)

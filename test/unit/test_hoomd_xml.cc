@@ -210,11 +210,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     h_angmom.data[3] = make_scalar4(51,41,31,21);
     }
 
-    // add a couple walls for fun
-    sysdef->getWallData()->addWall(Wall(1,0,0, 0,1,0));
-    sysdef->getWallData()->addWall(Wall(0,1,0, 0,0,1));
-    sysdef->getWallData()->addWall(Wall(0,0,1, 1,0,0));
-
     // add a few bonds too
     sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
     sysdef->getBondData()->addBondedGroup(Bond(1, 1, 0));
@@ -401,53 +396,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // fifth test: the wall array
+    // fifth test: the bond array
         {
+        writer->setOutputBond(true);
         writer->setOutputType(false);
-        writer->setOutputWall(true);
 
         // write the file
         writer->analyze(40);
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000040.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<wall>");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<coord ox=\"1\" oy=\"0\" oz=\"0\" nx=\"0\" ny=\"1\" nz=\"0\" />");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<coord ox=\"0\" oy=\"1\" oz=\"0\" nx=\"0\" ny=\"0\" nz=\"1\" />");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<coord ox=\"0\" oy=\"0\" oz=\"1\" nx=\"1\" ny=\"0\" nz=\"0\" />");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</wall>");
-        f.close();
-        }
-
-    // sixth test: the bond array
-        {
-        writer->setOutputWall(false);
-        writer->setOutputBond(true);
-
-        // write the file
-        writer->analyze(50);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -471,16 +429,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // seventh test: the angle array
+    // sixth test: the angle array
         {
         writer->setOutputBond(false);
         writer->setOutputAngle(true);
 
         // write the file
-        writer->analyze(60);
+        writer->analyze(50);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -504,16 +462,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // eighth test: test image
+    // seventh test: test image
         {
         writer->setOutputAngle(false);
         writer->setOutputImage(true);
 
         // write the file
-        writer->analyze(70);
+        writer->analyze(60);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -545,16 +503,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // nineth test: test mass
+    // eighth test: test mass
         {
         writer->setOutputImage(false);
         writer->setOutputMass(true);
 
         // write the file
-        writer->analyze(80);
+        writer->analyze(70);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -586,16 +544,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // tenth test: test diameter
+    // nineth test: test diameter
         {
         writer->setOutputMass(false);
         writer->setOutputDiameter(true);
 
         // write the file
-        writer->analyze(90);
+        writer->analyze(80);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000090.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -627,16 +585,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // eleventh test: the dihedral array
+    // tenth test: the dihedral array
         {
         writer->setOutputDiameter(false);
         writer->setOutputDihedral(true);
 
         // write the file
-        writer->analyze(100);
+        writer->analyze(90);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000090.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -657,16 +615,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         }
 
 
-    // twelfth test: the improper array
+    // eleventh test: the improper array
         {
         writer->setOutputDihedral(false);
         writer->setOutputImproper(true);
 
         // write the file
-        writer->analyze(110);
+        writer->analyze(100);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -686,16 +644,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-    // thirteenth test: the body array
+    // twelfth test: the body array
         {
         writer->setOutputImproper(false);
         writer->setOutputBody(true);
 
         // write the file
-        writer->analyze(120);
+        writer->analyze(110);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -727,16 +685,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-        // fourteenth test: the moment_inertia array
+    // thirteenth test: the moment_inertia array
         {
         writer->setOutputBody(false);
         writer->setOutputMomentInertia(true);
 
         // write the file
-        writer->analyze(130);
+        writer->analyze(120);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -768,16 +726,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
-        // fifteenth test: the angmom array
+        // fourteenth test: the angmom array
         {
         writer->setOutputMomentInertia(false);
         writer->setOutputAngularMomentum(true);
 
         // write the file
-        writer->analyze(150);
+        writer->analyze(130);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000150.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -1136,10 +1094,6 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 5 50 500 5000\n\
 6 60 600 6000\n\
 </angmom>\n\
-<wall>\n\
-<coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
-<coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
-</wall>\n\
 <bond>\n\
 bond_a 0 1\n\
 bond_b 1 2\n\
@@ -1242,26 +1196,6 @@ im_b 5 4 3 2\n\
         MY_BOOST_CHECK_CLOSE(M.w, (i+1)*1000, tol);
         }
     }
-
-    // check the walls
-    BOOST_REQUIRE_EQUAL(sysdef->getWallData()->getNumWalls(), (unsigned int)2);
-    Wall wall1 = sysdef->getWallData()->getWall(0);
-    MY_BOOST_CHECK_CLOSE(wall1.origin_x, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(wall1.origin_y, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(wall1.origin_z, 3.0, tol);
-    // normals are made unit length when loaded, so these values differ from the ones in the file
-    MY_BOOST_CHECK_CLOSE(wall1.normal_x, 0.455842306, tol);
-    MY_BOOST_CHECK_CLOSE(wall1.normal_y, 0.569802882, tol);
-    MY_BOOST_CHECK_CLOSE(wall1.normal_z, 0.683763459, tol);
-
-    Wall wall2 = sysdef->getWallData()->getWall(1);
-    MY_BOOST_CHECK_CLOSE(wall2.origin_x, 7.0, tol);
-    MY_BOOST_CHECK_CLOSE(wall2.origin_y, 8.0, tol);
-    MY_BOOST_CHECK_CLOSE(wall2.origin_z, 9.0, tol);
-    // normals are made unit length when loaded, so these values differ from the ones in the file
-    MY_BOOST_CHECK_CLOSE(wall2.normal_x, 0.523423923, tol);
-    MY_BOOST_CHECK_CLOSE(wall2.normal_y, 0.575766315, tol);
-    MY_BOOST_CHECK_CLOSE(wall2.normal_z, -0.628108707, tol);
 
     // check the bonds
     boost::shared_ptr<BondData> bond_data = sysdef->getBondData();

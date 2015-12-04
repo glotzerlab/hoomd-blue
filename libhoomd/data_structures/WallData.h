@@ -47,109 +47,185 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jproc
 
 /*! \file WallData.h
-    \brief Contains declarations for WallData.
+    \brief Contains declarations for all types (currently Sphere, Cylinder, and
+    Plane) of WallData and associated utilities.
  */
+#ifndef WALL_DATA_H
+#define WALL_DATA_H
+
+#include "HOOMDMath.h"
+#include "VectorMath.h"
+#include <cstdlib>
+#include <vector>
+#include <string.h>
 
 #ifdef NVCC
-#error This header cannot be compiled by nvcc
+#define DEVICE __device__
+#else
+#define DEVICE
 #endif
 
-#include <math.h>
-#include "ParticleData.h"
-
-#include <boost/utility.hpp>
-
-#ifndef __WALLDATA_H__
-#define __WALLDATA_H__
-
-//! Simple structure representing a single wall
-/*! Walls are represented by an origin and a unit length normal.
-    \ingroup data_structs
+//! SphereWall Constructor
+/*! \param r Radius of the sphere
+    \param origin The x,y,z coordinates of the center of the sphere
+    \param inside Determines which half space is evaluated.
 */
-struct Wall
+struct SphereWall
     {
-    //! Constructor
-    /*! \param ox Origin x-component
-        \param oy Origin y-component
-        \param oz Origin z-component
-        \param nx Origin x-component
-        \param ny Normal y-component
-        \param nz Normal z-component
-    */
-    Wall(Scalar ox=0.0, Scalar oy=0.0, Scalar oz=0.0, Scalar nx=1.0, Scalar ny=0.0, Scalar nz=0.0)
-            : origin_x(ox), origin_y(oy), origin_z(oz)
+    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), origin(vec3<Scalar>(orig)), inside(ins) {}
+    Scalar          r;
+    vec3<Scalar>    origin;
+    bool            inside;
+    };
+
+//! CylinderWall Constructor
+/*! \param r Radius of the sphere
+    \param origin The x,y,z coordinates of a point on the cylinder axis
+    \param axis A x,y,z vector along the cylinder axis used to define the axis
+    \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space such that the axis of the cylinder is parallel to the z' axis
+    \param inside Determines which half space is evaluated.
+*/
+struct CylinderWall
+    {
+    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), inside(ins)
         {
-        // normalize nx,ny,nz
-        Scalar len = sqrt(nx*nx + ny*ny + nz*nz);
-        normal_x = nx / len;
-        normal_y = ny / len;
-        normal_z = nz / len;
+        vec3<Scalar> zVec=axis;
+        vec3<Scalar> zNorm(0.0,0.0,1.0);
+
+        // method source: http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+        // easily simplified due to zNorm being a normalized vector
+        Scalar normVec=sqrt(dot(zVec,zVec));
+        Scalar realPart=normVec + dot(zNorm,zVec);
+        vec3<Scalar> w;
+
+        if (realPart < Scalar(1.0e-6) * normVec)
+            {
+                realPart=Scalar(0.0);
+                w=vec3<Scalar>(0.0, -1.0, 0.0);
+            }
+        else
+            {
+                w=cross(zNorm,zVec);
+                realPart=Scalar(realPart);
+            }
+            quatAxisToZRot=quat<Scalar>(realPart,w);
+            Scalar norm=fast::rsqrt(norm2(quatAxisToZRot));
+            quatAxisToZRot=norm*quatAxisToZRot;
         }
-
-    Scalar origin_x;    //!< x-component of the origin
-    Scalar origin_y;    //!< y-component of the origin
-    Scalar origin_z;    //!< z-component of the origin
-
-    Scalar normal_x;    //!< x-component of the normal
-    Scalar normal_y;    //!< y-component of the normal
-    Scalar normal_z;    //!< z-component of the normal
+    Scalar          r;
+    vec3<Scalar>    origin;
+    vec3<Scalar>    axis;
+    quat<Scalar>    quatAxisToZRot;
+    bool            inside;
     };
 
-//! Stores information about all the walls defined in the simulation
-/*! WallData is responsible for storing all of the walls in the simulation.
-    Walls are specified by the Wall struct and any number can be added.
-
-    On the CPU, walls can be accessed with getWall()
-
-    An optimized data structure for the GPU will be written later.
-    It will most likely take the form of a 2D texture.
-    \ingroup data_structs
+//! PlaneWall Constructor
+/*! \param origin The x,y,z coordinates of a point on the cylinder axis
+    \param normal The x,y,z normal vector of the plane (normalized upon input)
+    \param inside Determines which half space is evaluated.
 */
-class WallData : boost::noncopyable
+struct PlaneWall
     {
-    public:
-        //! Creates an empty structure with no walls
-        WallData() : m_walls() {}
-
-        //! Creates a WallData from a list of walls
-        WallData(const std::vector<Wall>& walls)
-            {
-            m_walls = walls;
-            }
-
-        //! Get the number of walls in the data
-        /*! \return Number of walls
-        */
-        unsigned int getNumWalls() const
-            {
-            return (unsigned int)m_walls.size();
-            }
-
-        //! Access a specific wall
-        /*! \param idx Index of the wall to retrieve
-            \return Wall stored at index \a idx
-        */
-        const Wall& getWall(unsigned int idx) const
-            {
-            assert(idx < m_walls.size());
-            return m_walls[idx];
-            }
-
-        //! Adds a wall to the data structure
-        void addWall(const Wall& wall);
-
-        //! Removes all walls
-        void removeAllWalls()
-            {
-            m_walls.clear();
-            }
-
-    private:
-        //! Storage for the walls
-        std::vector<Wall> m_walls;
+    PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0), bool ins = true) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(ins)
+        {
+        vec3<Scalar> nVec;
+        nVec = normal;
+        Scalar invNormLength;
+        invNormLength=fast::rsqrt(nVec.x*nVec.x + nVec.y*nVec.y + nVec.z*nVec.z);
+        normal=nVec*invNormLength;
+        }
+    vec3<Scalar>    normal;
+    vec3<Scalar>    origin;
+    bool            inside;
     };
 
+//! Point to wall vector for a sphere wall geometry
+DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
+    {
+    vec3<Scalar> t = position;
+    t-=wall.origin;
+    vec3<Scalar> shiftedPos(t);
+    Scalar rxyz = sqrt(dot(shiftedPos,shiftedPos));
+    if (rxyz > 0.0)
+        {
+        inside = (((rxyz <= wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) ? true : false;
+        t *= wall.r/rxyz;
+        vec3<Scalar> dx = t - shiftedPos;
+        return dx;
+        }
+    else
+        {
+        inside = (wall.inside) ? true : false;
+        return vec3<Scalar>(0.0,0.0,0.0);
+        }
+    };
+
+//! Point to wall vector for a cylinder wall geometry
+DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
+    {
+    vec3<Scalar> t = position;
+    t-=wall.origin;
+    vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot,t);
+    shiftedPos.z = 0.0;
+    Scalar rxy = sqrt(dot(shiftedPos,shiftedPos));
+    if (rxy > 0.0)
+        {
+        inside = (((rxy <= wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside))) ? true : false;
+        t = (wall.r / rxy) * shiftedPos;
+        vec3<Scalar> dx = t - shiftedPos;
+        dx = rotate(conj(wall.quatAxisToZRot),dx);
+        return dx;
+        }
+    else
+        {
+        inside = (wall.inside) ? true : false;
+        return vec3<Scalar>(0.0,0.0,0.0);
+        }
+    };
+
+//! Point to wall vector for a plane wall geometry
+DEVICE inline vec3<Scalar> vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
+    {
+    vec3<Scalar> t = position;
+    Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+    inside = (((d >= 0.0) && wall.inside) || ((d < 0.0) && !(wall.inside))) ? true : false;
+    vec3<Scalar> dx = -d * wall.normal;
+    return dx;
+    };
+
+//! Distance of point to inside sphere wall geometry, not really distance, +- based on if it's inside or not
+DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    t-=wall.origin;
+    vec3<Scalar> shiftedPos(t);
+    Scalar rxyz2 = shiftedPos.x*shiftedPos.x + shiftedPos.y*shiftedPos.y + shiftedPos.z*shiftedPos.z;
+    Scalar d = wall.r - sqrt(rxyz2);
+    d = (wall.inside) ? d : -d;
+    return d;
+    };
+
+//! Distance of point to inside cylinder wall geometry, not really distance, +- based on if it's inside or not
+DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    t-=wall.origin;
+    vec3<Scalar> shiftedPos=rotate(wall.quatAxisToZRot,t);
+    Scalar rxy2= shiftedPos.x*shiftedPos.x + shiftedPos.y*shiftedPos.y;
+    Scalar d = wall.r - sqrt(rxy2);
+    d = (wall.inside) ? d : -d;
+    return d;
+    };
+
+//! Distance of point to inside plane wall geometry, not really distance, +- based on if it's inside or not
+DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
+    {
+    vec3<Scalar> t = position;
+    Scalar d = dot(wall.normal,t) - dot(wall.normal,wall.origin);
+    d = (wall.inside) ? d : -d;
+    return d;
+    };
 #endif

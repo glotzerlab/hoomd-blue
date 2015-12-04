@@ -1,10 +1,6 @@
 # Maintainer: joaander
 # This sets the preprocessor definitinos after all build options have been set appropriately
 
-if (ENABLE_ZLIB)
-    add_definitions(-DENABLE_ZLIB)
-endif(ENABLE_ZLIB)
-
 if (ENABLE_STATIC)
     add_definitions(-DENABLE_STATIC)
 endif(ENABLE_STATIC)

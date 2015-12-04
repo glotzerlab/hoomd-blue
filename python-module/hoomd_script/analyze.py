@@ -403,9 +403,14 @@ class imd(_analyzer):
 #   - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
 #   - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
 # - External potentials
-#   - **external_periodic_energy** (external.periodic) - Total DPD conservative potential energy (in energy units)
+#   - **external_periodic_energy** (external.periodic) - Total periodic potential energy (in energy units)
+#   - **external_e_field_energy** (external.e_field) - Total e_field potential energy (in energy units)
 # - Wall potentials
-#   - **wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
+#   - **external_wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
+#   - **external_wall_gauss_energy** (wall.gauss) - Total Gauss wall energy (in energy units)
+#   - **external_wall_slj_energy** (wall.slj) - Total Shifted Lennard-Jones wall energy (in energy units)
+#   - **external_wall_yukawa_energy** (wall.yukawa) - Total Yukawa wall energy (in energy units)
+#   - **external_wall_mie_energy** (wall.mie) - Total Mie wall energy (in energy units)
 # - Integrators
 #   - **langevin_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the Langevin integrator (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)

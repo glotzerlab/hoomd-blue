@@ -102,7 +102,6 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
     m_parser_map["constraint"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
-    m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
     m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
     m_parser_map["angmom"] = bind(&HOOMDInitializer::parseAngularMomentumNode, this, _1);
@@ -568,8 +567,6 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
-    if (m_walls.size() > 0)
-        m_exec_conf->msg->notice(2) << m_walls.size() << " walls" << endl;
     if (m_orientation.size() > 0)
         m_exec_conf->msg->notice(2) << m_orientation.size() << " orientations" << endl;
     if (m_moment_inertia.size() > 0)
@@ -1032,76 +1029,6 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
         parser >> charge;
         if (parser.good())
             m_charge_array.push_back(charge);
-        }
-    }
-
-/*! \param node XMLNode passed from the top level parser in readFile
-    This function extracts all of the data in a \b wall node and fills out m_walls. The number
-    of walls is dtermined dynamically.
-*/
-void HOOMDInitializer::parseWallNode(const XMLNode& node)
-    {
-    // check that this is actually a wall node
-    string name = node.getName();
-    transform(name.begin(), name.end(), name.begin(), ::tolower);
-    assert(name == string("wall"));
-
-    for (int cur_node=0; cur_node < node.nChildNode(); cur_node++)
-        {
-        // check to make sure this is a node type we understand
-        XMLNode child_node = node.getChildNode(cur_node);
-        if (string(child_node.getName()) != string("coord"))
-            {
-            m_exec_conf->msg->notice(2) << "Ignoring <" << child_node.getName() << "> node in <wall> node";
-            }
-        else
-            {
-            // extract x,y,z, nx, ny, nz
-            Scalar ox,oy,oz,nx,ny,nz;
-            if (!child_node.isAttributeSet("ox"))
-                {
-                m_exec_conf->msg->error() << endl << "ox not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            ox = (Scalar)atof(child_node.getAttribute("ox"));
-
-            if (!child_node.isAttributeSet("oy"))
-                {
-                m_exec_conf->msg->error() << endl << "oy not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            oy = (Scalar)atof(child_node.getAttribute("oy"));
-
-            if (!child_node.isAttributeSet("oz"))
-                {
-                m_exec_conf->msg->error() << endl << "oz not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            oz = (Scalar)atof(child_node.getAttribute("oz"));
-
-            if (!child_node.isAttributeSet("nx"))
-                {
-                m_exec_conf->msg->error() << endl << "nx not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            nx = (Scalar)atof(child_node.getAttribute("nx"));
-
-            if (!child_node.isAttributeSet("ny"))
-                {
-                m_exec_conf->msg->error() << endl << "ny not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            ny = (Scalar)atof(child_node.getAttribute("ny"));
-
-            if (!child_node.isAttributeSet("nz"))
-                {
-                m_exec_conf->msg->error() << endl << "nz not set in <coord> node" << endl << endl;
-                throw runtime_error("Error extracting data from hoomd_xml file");
-                }
-            nz = (Scalar)atof(child_node.getAttribute("nz"));
-
-            m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
-            }
         }
     }
 

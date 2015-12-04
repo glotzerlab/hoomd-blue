@@ -312,66 +312,6 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     _perform_common_init_tasks();
     return hoomd_script.data.system_data(globals.system_definition);
 
-## Reads initial system state from a binary file
-#
-# \param filename File to read
-# \param time_step Override time_step value in the bin file
-#
-# \b Examples:
-# \code
-# init.read_bin(filename="data.bin.gz")
-# init.read_bin(filename="directory/data.bin")
-# system = init.read_bin(filename="data.bin.gz")
-# \endcode
-#
-# All particles, bonds, etc...  are read from the binary file given, setting the initial condition of the simulation.
-# Binary restart files also include state information needed to continue integrating time forward as if the previous job
-# had never stopped. For more information see dump.bin.
-#
-# After this command completes, the system is initialized allowing other commands in hoomd_script to be run.
-#
-# The presence or lack of a .gz extension determines whether init.read_bin will attempt to decompress the %data
-# before reading it.
-#
-# The result of init.read_bin can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd_script.data for more information.
-#
-# \warning init.read_bin is deprecated. It currently maintains all of its old functionality, but there are a number
-#          of new features in HOOMD-blue that it does not support.
-#              * Triclinic boxes
-#
-# \sa dump.bin
-def read_bin(filename, time_step = None):
-    util.print_status_line();
-    globals.msg.warning("init.read_bin is deprecated and will be removed in the next release");
-
-    # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf_deprecated();
-
-    # check if initialization has already occurred
-    if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
-        raise RuntimeError('Error initializing');
-
-    # read in the data
-    initializer = hoomd.HOOMDBinaryInitializer(my_exec_conf,filename);
-    snapshot = initializer.getSnapshot()
-
-    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
-
-    # initialize the system
-    if time_step is None:
-        globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
-    else:
-        globals.system = hoomd.System(globals.system_definition, time_step);
-
-    _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
-
 ## Generates N randomly positioned particles of the same type
 #
 # \param N Number of particles to create
@@ -576,12 +516,12 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
-    if type(polymers) != type([]) or len(polymers) == 0:
-        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
+    if len(polymers) == 0:
+        globals.msg.error("Polymers list cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
-    if type(separation) != type(dict()) or len(separation) == 0:
-        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
+    if len(separation) == 0:
+        globals.msg.error("Separation dict cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
     if not isinstance(box, hoomd_script.data.boxdim):

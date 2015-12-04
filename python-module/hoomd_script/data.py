@@ -773,7 +773,6 @@ class system_data(meta._metadata):
     # \param particles If true, particle data is included in the snapshot
     # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
     # \param rigid_bodies If true, rigid body data is included in the snapshot
-    # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
@@ -791,7 +790,6 @@ class system_data(meta._metadata):
                       particles=True,
                       bonds=False,
                       rigid_bodies=False,
-                      walls=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
@@ -801,10 +799,9 @@ class system_data(meta._metadata):
                 particles=True
                 bonds=True
                 rigid_bodies=True
-                walls=True
                 integrators=True
 
-        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
+        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
 
