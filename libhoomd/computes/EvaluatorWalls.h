@@ -56,9 +56,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EVALUATOR_WALLS_H__
 #define __EVALUATOR_WALLS_H__
 
+#ifndef NVCC
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
+#endif
+
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 #include "WallData.h"
