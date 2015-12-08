@@ -35,7 +35,8 @@ Released TBD
 * Fixed an openmpi fork() warning on some systems
 * Fixed segfaults in PPPM
 * Fixed a bug where compute.thermo failed after reinitializing a system
-* Support list and dict-lik objects in init.create_random_polymers.
+* Support list and dict-like objects in init.create_random_polymers.
+* Fall back to global rank to assign GPUs if local rank is not available
 
 *Deprecated commands*
 
