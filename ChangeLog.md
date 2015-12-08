@@ -8,7 +8,7 @@ Released 2015/12/8
 
 *New features*
 
-* Automatically laad balanced domain decomposition simulations.
+* Automatically load balanced domain decomposition simulations.
 * Anisotropic particle integrators.
 * Gay-Berne pair potential.
 * Dipole pair potential.
