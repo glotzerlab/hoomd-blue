@@ -74,3 +74,19 @@ Documentation for the current stable release is available online: [http://codebl
 # Change log
 
 See [ChangeLog.md](ChangeLog.md).
+
+# Contributing to HOOMD-blue.
+
+Contributions are welcomed via pull requests on Bitbucket.
+
+0. First contact the HOOMD-blue developers prior to beginning your work to ensure that your plans mesh well with the
+planned development direction and standards set for the project. Then implement your code.
+1. Submit a pull request on bitbucket. Multiple developers and/or users will review requested changes and make comments.
+    * Bug fixes should be based on `maint`
+    * New features should be based on `master`
+2. The lead developer will merge your work into next to trigger continuous integration tests. These will compile and build your code in all supported configurations. Jenkins will e-mail you if your commits cause tests to fail. The Jenkins server is: https://petry.engin.umich.edu/.
+3. The lead developer will merge into the mainline after the review is complete and approved.
+
+* All contributors must agree to the [contributor-info/ContributorAgreement.md](contributor agreement) before their pull request can be merged.
+* All contributions must follow the [contributor-info/SourceConventions.md](source code style conventions).
+* The [contributor-info/BranchReviewChecklist.md](branch review checklist) is a guide for reviewers to follow when reviewing a pull request.
