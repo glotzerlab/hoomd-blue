@@ -87,6 +87,6 @@ planned development direction and standards set for the project. Then implement 
 2. The lead developer will merge your work into next to trigger continuous integration tests. These will compile and build your code in all supported configurations. Jenkins will e-mail you if your commits cause tests to fail. The Jenkins server is: https://petry.engin.umich.edu/.
 3. The lead developer will merge into the mainline after the review is complete and approved.
 
-* All contributors must agree to the [contributor-info/ContributorAgreement.md](contributor agreement) before their pull request can be merged.
-* All contributions must follow the [contributor-info/SourceConventions.md](source code style conventions).
-* The [contributor-info/BranchReviewChecklist.md](branch review checklist) is a guide for reviewers to follow when reviewing a pull request.
+* All contributors must agree to the Contributor Agreement ([contributor-info/ContributorAgreement.md](ccontributor-info/ContributorAgreement.md)) before their pull request can be merged.
+* All contributions must follow the source code style conventions ([contributor-info/SourceConventions.md](contributor-info/SourceConventions.md)).
+* The branch review checklist ([contributor-info/BranchReviewChecklist.md](contributor-info/BranchReviewChecklist.md))is a guide for reviewers to follow when reviewing a pull request.
