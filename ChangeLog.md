@@ -2,9 +2,9 @@
 
 [TOC]
 
-## Upcoming release - v1.3.0
+## v1.3.0
 
-Released TBD
+Released 2015/12/8
 
 *New features*
 
