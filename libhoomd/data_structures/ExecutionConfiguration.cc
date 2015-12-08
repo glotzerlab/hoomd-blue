@@ -649,6 +649,7 @@ int ExecutionConfiguration::getNumCapableGPUs()
 
 int ExecutionConfiguration::guessLocalRank()
     {
+    #ifdef ENABLE_MPI
     std::vector<std::string> env_vars;
     char *env;
 
@@ -696,6 +697,9 @@ int ExecutionConfiguration::guessLocalRank()
     int global_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
     return global_rank;
+    #else
+    return 0;
+    #endif
     }
 
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
