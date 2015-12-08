@@ -132,6 +132,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             {
             // if we are not running in compute exclusive mode, use
             // local MPI rank as preferred GPU id
+            msg->notice(2) << "This system is not compute exclusive, using local rank to select GPUs" << std::endl;
             gpu_id = (guessLocalRank() % dev_count);
             }
 
@@ -649,22 +650,52 @@ int ExecutionConfiguration::getNumCapableGPUs()
 int ExecutionConfiguration::guessLocalRank()
     {
     std::vector<std::string> env_vars;
+    char *env;
 
     // setup common environment variables containing local rank information
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
-    env_vars.push_back("SLURM_LOCALID");
 
     std::vector<std::string>::iterator it;
 
     for (it = env_vars.begin(); it != env_vars.end(); it++)
         {
-        char *env;
         if ((env = getenv(it->c_str())) != NULL)
+            {
+            msg->notice(3) << "Found local rank in " << *it << std::endl;
             return atoi(env);
+            }
         }
 
-    return -1;
+    // try SLURM_LOCALID
+    if (((env = getenv("SLURM_LOCALID"))) != NULL)
+        {
+        int num_total_ranks = 0;
+        int errors = 0;
+        int slurm_localid = atoi(env);
+
+        if (slurm_localid == 0)
+            errors = 1;
+
+        // some SLURMs set LOCALID to 0 on all ranks, check for this
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Comm_size(m_mpi_comm, &num_total_ranks);
+        if (errors == num_total_ranks)
+            {
+            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks" << std::endl;
+            }
+        else
+            {
+            return slurm_localid;
+            }
+        }
+
+    // fall back on global rank id
+    msg->notice(2) << "Unable to identify node local rank information" << std::endl;
+    msg->notice(2) << "Uinsg global rank to select GPUs" << std::endl;
+    int global_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
+    return global_rank;
     }
 
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
@@ -724,7 +755,6 @@ void export_ExecutionConfiguration()
                          .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
                          .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
                          .def("barrier", &ExecutionConfiguration::barrier)
-                         .staticmethod("guessLocalRank")
                          .staticmethod("getNRanksGlobal")
                          .staticmethod("getRankGlobal")
 #endif
