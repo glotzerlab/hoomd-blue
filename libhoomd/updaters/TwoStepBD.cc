@@ -205,9 +205,11 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             // h_orien.data[j].z += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].z + tau_r) ;
             vec3<Scalar> axis (0, 0, 1);
             Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
-            quat<Scalar> omega = fromAxisAngle( axis, theta);
+            quat<Scalar> omega = fromAxisAngle(axis, theta);
             quat<Scalar> q (h_orien.data[j]);
             q += Scalar(0.5) * m_deltaT  * q * omega;
+            // renormalize (improves stability)
+            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
             h_orien.data[j].x = q.x;
             h_orien.data[j].y = q.y;
             h_orien.data[j].z = q.z;
