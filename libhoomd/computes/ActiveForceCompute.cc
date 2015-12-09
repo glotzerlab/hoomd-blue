@@ -154,17 +154,45 @@ void ActiveForceCompute::setForces()
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 {
-    Saru saru(m_seed, timestep);
-
     if (m_sysdef->getNDimensions() == 2) // 2D ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
     {
+        //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
+        //DEFINE NORM USING SURFACE IF IT EXISTS
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+            Saru saru(i, timestep, m_seed);
+            vec3<Scalar> norm; // the normal vector to which the particles are confined to, allows for simulations on curved surfaces.
+            norm.x = 0;
+            norm.y = 0;
+            norm.z = 1;
+
+            vec3<Scalar> current_vec = act_force_vec[i];
+            vec3<Scalar> aux_vec = cross(act_force_vec[i], norm); // aux vect for defining direction that active force vetor rotates towards.
+            Scalar delta_theta; // rotational diffusion angle
+            delta_theta = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+            act_force_vec[i].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
+            act_force_vec[i].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
+            act_force_vec[i].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+
+
+            // verson of 2D assuming flat xy plane
+            // Scalar delta_theta; // rotational diffusion angle
+            // delta_theta = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+            // Scalar theta; // angle on plane defining orientation of active force vector
+            // theta = atan2(act_force_vec[i].y, act_force_vec[i].x);
+            // theta += delta_theta;
+            // act_force_vec[i].x = cos(theta);
+            // act_force_vec[i].y = sin(theta);
+
+        }
 
     } else // 3D: Following Stenhammar, Soft Matter, 2014
     {
-        //USE VECTOR MATH TO SIMPLIFY THINGS?
+        //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-            Scalar u = saru.d(0, 1.0); //generates an even distribution of random unit vectors in 3D
+            Saru saru(i, timestep, m_seed);
+            Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 6.283185307179586476925286766559 * u;
             Scalar phi = acos(2.0 * v - 1.0) ;
@@ -172,18 +200,18 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            Scalar diffusion_mag = rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar diffusion_mag = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
             vec3<Scalar> delta_vec;
-            delta_vec.x = act_force_vec[i].y * rand_vec.z - act_force_vec[i].z * rand_vec.y;
+            delta_vec.x = act_force_vec[i].y * rand_vec.zZ - act_force_vec[i].z * rand_vec.y;
             delta_vec.y = act_force_vec[i].z * rand_vec.x - act_force_vec[i].x * rand_vec.z;
             delta_vec.z = act_force_vec[i].x * rand_vec.y - act_force_vec[i].y * rand_vec.x;
-            act_force_vec[i].x += delta_vec.x * diffusion_mag * m_deltaT;
-            act_force_vec[i].y += delta_vec.y * diffusion_mag * m_deltaT;
-            act_force_vec[i].z += delta_vec.z * diffusion_mag * m_deltaT;
+            act_force_vec[i].x += delta_vec.x * diffusion_mag;
+            act_force_vec[i].y += delta_vec.y * diffusion_mag;
+            act_force_vec[i].z += delta_vec.z * diffusion_mag;
             Scalar new_mag = sqrt(act_force_vec[i].x*act_force_vec[i].x + act_force_vec[i].y*act_force_vec[i].y + act_force_vec[i].z*act_force_vec[i].z);
-            act_force_vec[i].x *= act_force_mag[i] / new_mag;
-            act_force_vec[i].y *= act_force_mag[i] / new_mag;
-            act_force_vec[i].z *= act_force_mag[i] / new_mag;
+            act_force_vec[i].x /= new_mag;
+            act_force_vec[i].y /= new_mag;
+            act_force_vec[i].z /= new_mag;
         }
     }
 }
