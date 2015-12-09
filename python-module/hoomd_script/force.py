@@ -56,6 +56,7 @@ from hoomd_script import util;
 from hoomd_script import data;
 from hoomd_script import init;
 from hoomd_script import meta;
+import hoomd_script
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -347,7 +348,7 @@ class active(_force):
     # \code
     # act = force.active(group=fluid, activity=particle_activity_array)
     # \endcode
-    def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0):
+    def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0, constraint=None):
         util.print_status_line();
         
         # initialize the base class
