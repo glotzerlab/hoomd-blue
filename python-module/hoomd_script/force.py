@@ -347,7 +347,7 @@ class active(_force):
     # \code
     # act = force.active(group=fluid, activity=particle_activity_array)
     # \endcode
-    def __init__(self, orientation_link=True, orientation_diff=0, f_lst=None):
+    def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0):
         util.print_status_line();
         
         # initialize the base class
@@ -360,7 +360,7 @@ class active(_force):
                     raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
                     
             # create the c++ mirror class
-            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, orientation_link, orientation_diff, f_lst);
+            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff);
         
         # store metadata
 #        if group is not None:

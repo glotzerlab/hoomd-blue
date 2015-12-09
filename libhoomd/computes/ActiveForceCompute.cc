@@ -64,7 +64,7 @@ using namespace std;
 
 /*! \param blah this does blah
 */   
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, Scalar orientation_diff, boost::python::list f_lst)
+ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff)
         : ForceCompute(sysdef)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
@@ -91,7 +91,9 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     }
     
     orientationLink = orientation_link;
-    orientDiff = orientation_diff;
+    rotationDiff = rotation_diff;
+    // Hash the User's Seed to make it less likely to be a low positive integer
+    seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
 }
 
 ActiveForceCompute::~ActiveForceCompute()
@@ -150,14 +152,39 @@ void ActiveForceCompute::setForces()
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::orientationalDiffusion()
+void ActiveForceCompute::orientationalDiffusion(unsigned int timestep)
 {
-    if (m_sysdef->getNDimensions() == 2) // two dimensions ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
+    Saru saru(m_seed, timestep);
+
+    if (m_sysdef->getNDimensions() == 2) // 2D ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
     {
 
-    } else // three dimesions
+    } else // 3D: Following Stenhammar, Soft Matter, 2014
     {
-
+        //USE VECTOR MATH TO SIMPLIFY THINGS?
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+            Scalar u = saru.d(0, 1.0); //generates an even distribution of random unit vectors in 3D
+            Scalar v = saru.d(0, 1.0);
+            Scalar theta = 6.283185307179586476925286766559 * u;
+            Scalar phi = acos(2.0 * v - 1.0) ;
+            vec3<Scalar> rand_vec;
+            rand_vec.x = sin(phi) * cos(theta);
+            rand_vec.y = sin(phi) * sin(theta);
+            rand_vec.z = cos(phi);
+            Scalar diffusion_mag = rotationDiff * gaussian_rng(saru, 1.0);
+            vec3<Scalar> delta_vec;
+            delta_vec.x = act_force_vec[i].y * rand_vec.z - act_force_vec[i].z * rand_vec.y;
+            delta_vec.y = act_force_vec[i].z * rand_vec.x - act_force_vec[i].x * rand_vec.z;
+            delta_vec.z = act_force_vec[i].x * rand_vec.y - act_force_vec[i].y * rand_vec.x;
+            act_force_vec[i].x += delta_vec.x * diffusion_mag * m_deltaT;
+            act_force_vec[i].y += delta_vec.y * diffusion_mag * m_deltaT;
+            act_force_vec[i].z += delta_vec.z * diffusion_mag * m_deltaT;
+            Scalar new_mag = sqrt(act_force_vec[i].x*act_force_vec[i].x + act_force_vec[i].y*act_force_vec[i].y + act_force_vec[i].z*act_force_vec[i].z);
+            act_force_vec[i].x *= act_force_mag[i] / new_mag;
+            act_force_vec[i].y *= act_force_mag[i] / new_mag;
+            act_force_vec[i].z *= act_force_mag[i] / new_mag;
+        }
     }
 }
 
@@ -167,9 +194,9 @@ void ActiveForceCompute::orientationalDiffusion()
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
     // Orientational Diffusion, check to make sure hasn't already been computed this timestep
-    if (shouldCompute(timestep) && orientDiff != 0)
+    if (shouldCompute(timestep) && rotationDiff != 0)
     {
-        orientationalDiffusion();
+        orientationalDiffusion(timestep);
     }
 
     // set force for particles
@@ -180,6 +207,6 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 void export_ActiveForceCompute()
 {
     class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, bool, Scalar, boost::python::list >())
+    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, int, boost::python::list, bool, Scalar >())
     ;
 }

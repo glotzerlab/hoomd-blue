@@ -52,6 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
 #include <boost/shared_ptr.hpp>
+#include "saruprng.h"
+#include "HOOMDMath.h"
+#include "VectorMath.h"
 
 /*! \file ActiveForceCompute.h
     \brief Declares a class for computing active forces
@@ -72,7 +75,7 @@ class ActiveForceCompute : public ForceCompute
     
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, bool orientation_link, Scalar orientation_diff, boost::python::list f_lst);
+        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff);
 
         //! Destructor
         ~ActiveForceCompute();
@@ -81,14 +84,15 @@ class ActiveForceCompute : public ForceCompute
         void setForces();
 
         //! Orientational diffusion for spherical particles
-        void orientationalDiffusion();
+        void orientationalDiffusion(unsigned int timestep);
 
     protected:
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
         
         bool orientationLink;
-        Scalar orientDiff;
+        Scalar rotationDiff;
+        int m_seed;
         std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
         std::vector<Scalar> act_force_mag; //! Magnitude of active force vector
 
