@@ -2,6 +2,14 @@
 
 [TOC]
 
+## Upcoming release
+
+Released TBD
+
+*Bug fixes*
+
+* Fix invalid MPI communicator error with Intel MPI
+
 ## v1.3.0
 
 Released 2015/12/8
