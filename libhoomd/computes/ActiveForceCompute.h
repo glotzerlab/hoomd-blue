@@ -84,7 +84,7 @@ class ActiveForceCompute : public ForceCompute
         void setForces();
 
         //! Orientational diffusion for spherical particles
-        void orientationalDiffusion(unsigned int timestep);
+        void rotationalDiffusion(unsigned int timestep);
 
     protected:
         //! Actually compute the forces

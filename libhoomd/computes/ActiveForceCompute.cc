@@ -152,7 +152,7 @@ void ActiveForceCompute::setForces()
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::orientationalDiffusion(unsigned int timestep)
+void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 {
     Saru saru(m_seed, timestep);
 
@@ -196,7 +196,7 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
     // Orientational Diffusion, check to make sure hasn't already been computed this timestep
     if (shouldCompute(timestep) && rotationDiff != 0)
     {
-        orientationalDiffusion(timestep);
+        rotationalDiffusion(timestep);
     }
 
     // set force for particles
