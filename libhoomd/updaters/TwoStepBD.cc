@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBD.h"
+#include "VectorMath.h"
 #include "saruprng.h"
 
 #ifdef ENABLE_MPI
@@ -204,7 +205,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             vec3<Scalar> axis (0.0, 0.0, 1.0);
             Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
             quat<Scalar> omega = fromAxisAngle(axis, theta);
-            quat<Scalar> q (h_orien.data[j]);
+            quat<Scalar> q (h_orientation.data[j]);
             q += Scalar(0.5) * m_deltaT  * q * omega;
             // renormalize (improves stability)
             q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
