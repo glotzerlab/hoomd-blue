@@ -182,9 +182,10 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         
         ///////////////
         Scalar coeff_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
-        Scalar tau_rz = gaussian_rng(saru, sigma);
-        Scalar gamma_r;
-        
+        Scalar tau_r = gaussian_rng(saru, sigma);
+        Scalar gamma_r = 1.0;
+	// for testing. This is to be passed in from boost python
+	
         // gamma_r needs initialization
         
         // if (m_use_lambda)
