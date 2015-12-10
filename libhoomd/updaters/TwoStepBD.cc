@@ -183,7 +183,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         ///////////////
         Scalar coeff_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
         Scalar tau_rz = gaussian_rng(saru, sigma);
-        quat 
         Scalar gamma_r;
         
         // gamma_r needs initialization
@@ -195,9 +194,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         //     unsigned int type = __scalar_as_int(h_pos.data[j].w);
         //     gamma = h_gamma.data[type];
         //     }
-        
-        
-        
+
         if (D < 3)
             {
             // h_orien.data[j].x += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].x + tau_r) ;
