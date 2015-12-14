@@ -51,7 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "ConstraintEllipsoid.h"
-#include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintEllipsoid.h"
 
 #include <boost/python.hpp>
@@ -77,46 +76,23 @@ ConstraintEllipsoid::ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sys
                                    Scalar rx,
                                    Scalar ry,
                                    Scalar rz)
-        : ForceConstraint(sysdef), m_group(group), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
-    {
+        : Updater(sysdef), m_group(group), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+{
     m_exec_conf->msg->notice(5) << "Constructing ConstraintEllipsoid" << endl;
 
     validate();
-    }
+}
 
 ConstraintEllipsoid::~ConstraintEllipsoid()
-    {
+{
     m_exec_conf->msg->notice(5) << "Destroying ConstraintEllipsoid" << endl;
-    }
-
-/*!
-    \param P position of the Ellipsoid
-    \param rx radius of the Ellipsoid in the X direction
-    \param ry radius of the Ellipsoid in the Y direction
-    \param rz radius of the Ellipsoid in the Z direction
-    NOTE: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
-*/
-void ConstraintEllipsoid::setEllipsoid(Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
-    {
-    m_P = P;
-    m_rx = rx;
-    m_ry = ry;
-    m_rz = rz;
-    validate();
-    }
-
-/*! ConstraintEllipsoid removes 1 degree of freedom per particle in the group
-*/
-unsigned int ConstraintEllipsoid::getNDOFRemoved()
-    {
-    return m_group->getNumMembers();
-    }
+}
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintEllipsoid::computeForces(unsigned int timestep)
-    {
+void ConstraintEllipsoid::update(unsigned int timestep)
+{
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
@@ -126,62 +102,33 @@ void ConstraintEllipsoid::computeForces(unsigned int timestep)
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
-
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-
-
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
-
-    // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
-
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
-    assert(h_force.data);
-    // assert(h_virial.data);
-
     
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     // for each of the particles in the group
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
+    {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
         Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-        Scalar3 V = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        Scalar3 F = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
-        Scalar m = h_vel.data[j].w;
 
         // evaluate the constraint position
-        EvaluatorConstraint constraint(X, V, F, m, m_deltaT);
-        Scalar3 C = Ellipsoid.evalClosest(constraint.evalU());
-
-        // evaluate the constraint force
-        Scalar3 FC;
-        Scalar virial[6];
-        constraint.evalConstraintForce(FC, virial, C);
+        Scalar3 C = Ellipsoid.evalClosest(X);
 
         // apply the constraint force
-        h_force.data[j].x = FC.x;
-        h_force.data[j].y = FC.y;
-        h_force.data[j].z = FC.z;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+j] = virial[k];
-        }
+        h_pos.data[j].x = C.x;
+        h_pos.data[j].y = C.y;
+        h_pos.data[j].z = C.z;
+    }
 
     if (m_prof)
         m_prof->pop();
-    }
+}
 
 /*! Print warning messages if the Ellipsoid is outside the box.
     Generate an error if any particle in the group is not near the Ellipsoid.
 */
 void ConstraintEllipsoid::validate()
-    {
+{
     BoxDim box = m_pdata->getBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
@@ -189,16 +136,16 @@ void ConstraintEllipsoid::validate()
     if (m_P.x + m_rx > hi.x || m_P.x - m_rx < lo.x
         || m_P.y + m_ry > hi.y || m_P.y - m_ry < lo.y
         || m_P.z + m_rz > hi.z || m_P.z - m_rz < lo.z)
-        {
+    {
         m_exec_conf->msg->warning() << "constrain.ellipsoid: ellipsoid constraint is outside of the box. Constrained particle positions may be incorrect"
              << endl;
-        }
+    }
 
     if (m_rx == 0 || m_ry == 0 || m_rz == 0)
-        {
+    {
         m_exec_conf->msg->warning() << "constrain.ellipsoid: one of the ellipsoid dimensions is 0. Constraint may be incorrect."
              << endl;
-        }
+    }
 
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
@@ -212,7 +159,7 @@ void ConstraintEllipsoid::validate()
     // for each of the particles in the group
     bool errors = false;
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
+    {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
         // Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -233,30 +180,28 @@ void ConstraintEllipsoid::validate()
         //     }
 
         if (h_body.data[j] != NO_BODY)
-            {
+        {
             m_exec_conf->msg->error() << "constrain.ellipsoid: Particle " << h_tag.data[j] << " belongs to a rigid body"
                                       << " - cannot constrain" << endl;
             errors = true;
-            }
-        }
-
-    if (errors)
-        {
-        throw std::runtime_error("Invalid constraint specified");
         }
     }
 
+    if (errors)
+    {
+        throw std::runtime_error("Invalid constraint specified");
+    }
+}
+
 
 void export_ConstraintEllipsoid()
-    {
-    class_< ConstraintEllipsoid, boost::shared_ptr<ConstraintEllipsoid>, bases<ForceConstraint>, boost::noncopyable >
+{
+    class_< ConstraintEllipsoid, boost::shared_ptr<ConstraintEllipsoid>, bases<Updater>, boost::noncopyable >
     ("ConstraintEllipsoid", init< boost::shared_ptr<SystemDefinition>,
                                                  boost::shared_ptr<ParticleGroup>,
                                                  Scalar3,
                                                  Scalar,
                                                  Scalar,
                                                  Scalar >())
-    .def("setEllipsoid", &ConstraintEllipsoid::setEllipsoid)
-    .def("getNDOFRemoved", &ConstraintEllipsoid::getNDOFRemoved)
     ;
-    }
+}

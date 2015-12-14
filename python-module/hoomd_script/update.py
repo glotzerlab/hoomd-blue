@@ -593,6 +593,69 @@ class box_resize(_updater):
         if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
+## Constrain particles to the surface of a ellipsoid
+#
+# The command constrain.ellipsoid specifies that all particles in the given group are constrained
+# to an ellipsoid.
+# \MPI_NOT_SUPPORTED
+class constraint_ellipsoid(_updater):
+    ## Specify the %ellipsoid updater
+    #
+    # \param group Group on which to apply the constraint
+    # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units)
+    # \param r Radius of a sphere (in distance units)
+    # \param rx Radius of an ellipsoid in the X direction (in distance units)
+    # \param ry Radius of an ellipsoid in the Y direction (in distance units)
+    # \param rz Radius of an ellipsoid in the Z direction (in distance units)
+    #
+    # \b Examples:
+    # \code
+    # update.constraint_ellipsoid(group=groupA, P=(0,10,2), r=10)
+    # update.constraint_ellipsoid(rx=10, ry=12, rz=4)
+    # \endcode
+    def __init__(self, r=None, rx=None, ry=None, rz=None, P=hoomd.make_scalar3(0, 0, 0), group=None):
+        util.print_status_line();
+        period = 1;
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error initializing constraint force.")
+
+        # Error out if no radii are set
+        if (r is None and rx is None and ry is None and rz is None) :
+            globals.msg.error("no radii were defined in constrain.ellipsoid.\n\n")
+            raise RuntimeError("Error initializing constraint force.")
+        
+        # initialize the base class
+        _updater.__init__(self);
+
+        # Set parameters
+        P = hoomd.make_scalar3(P[0], P[1], P[2]);
+        if (r is not None): rx = ry = rz = r
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            if (group is not None):
+                self.cpp_updater = hoomd.ConstraintEllipsoid(globals.system_definition, group.cpp_group, P, rx, ry, rz);
+            else:
+                self.cpp_updater = hoomd.ConstraintEllipsoid(globals.system_definition, globals.group_all.cpp_group, P, rx, ry, rz);
+        else:
+            if (group is not None):
+                self.cpp_updater = hoomd.ConstraintEllipsoidGPU(globals.system_definition, group.cpp_group, P, rx, ry, rz);
+            else:
+                self.cpp_updater = hoomd.ConstraintEllipsoidGPU(globals.system_definition, globals.group_all.cpp_group, P, rx, ry, rz);
+        self.setupUpdater(period);
+
+        # store metadata
+        self.group = group
+        self.P = P
+        self.rx = rx
+        self.ry = ry
+        self.rz = rz
+        self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
+
 ## Adjusts the boundaries of a domain %decomposition on a regular 3D grid.
 #
 # Every \a period steps, the boundaries of the processor domains are adjusted to distribute the particle load close

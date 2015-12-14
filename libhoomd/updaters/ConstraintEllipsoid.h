@@ -49,9 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "ForceConstraint.h"
 #include "ParticleGroup.h"
-
+#include "Updater.h"
 #include <boost/shared_ptr.hpp>
 
 /*! \file ConstraintEllipsoid.h
@@ -68,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Applys a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes
 */
-class ConstraintEllipsoid : public ForceConstraint
+class ConstraintEllipsoid : public Updater
     {
     public:
         //! Constructs the compute
@@ -82,11 +81,8 @@ class ConstraintEllipsoid : public ForceConstraint
         //! Destructor
         virtual ~ConstraintEllipsoid();
 
-        //! Set the force to a new value
-        void setEllipsoid(Scalar3 P, Scalar rx, Scalar ry, Scalar rz);
-
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved();
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
 
     protected:
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
@@ -94,9 +90,6 @@ class ConstraintEllipsoid : public ForceConstraint
         Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
 
     private:
         //! Validate that the ellipsoid is in the box and all particles are very near the constraint

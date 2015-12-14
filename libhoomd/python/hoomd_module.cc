@@ -569,8 +569,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
-    export_ConstraintEllipsoid();
-    export_ConstraintSphere();
     export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_wall_field_helpers();
@@ -673,6 +671,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNPTRigid();
     export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
+    export_ConstraintEllipsoid();
     export_FIREEnergyMinimizer();
     export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
