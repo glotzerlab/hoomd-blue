@@ -50,64 +50,54 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 
-#include "ConstraintEllipsoid.h"
+#include "ConstraintSphere.h"
 #include "EvaluatorConstraint.h"
-#include "EvaluatorConstraintEllipsoid.h"
+#include "EvaluatorConstraintSphere.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
 
 using namespace std;
 
-/*! \file ConstraintEllipsoid.cc
-    \brief Contains code for the ConstraintEllipsoid class
+/*! \file ConstraintSphere.cc
+    \brief Contains code for the ConstraintSphere class
 */
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param group Group of particles on which to apply this constraint
-    \param P position of the Ellipsoid
-    \param rx radius of the Ellipsoid in the X direction
-    \param ry radius of the Ellipsoid in the Y direction
-    \param rz radius of the Ellipsoid in the Z direction
-    NOTE: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
+    \param P position of the sphere
+    \param r radius of the sphere
 */
-ConstraintEllipsoid::ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sysdef,
+ConstraintSphere::ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group,
                                    Scalar3 P,
-                                   Scalar rx,
-                                   Scalar ry,
-                                   Scalar rz)
-        : ForceConstraint(sysdef), m_group(group), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+                                   Scalar r)
+        : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
     {
-    m_exec_conf->msg->notice(5) << "Constructing ConstraintEllipsoid" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing ConstraintSphere" << endl;
 
     validate();
     }
 
-ConstraintEllipsoid::~ConstraintEllipsoid()
+ConstraintSphere::~ConstraintSphere()
     {
-    m_exec_conf->msg->notice(5) << "Destroying ConstraintEllipsoid" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying ConstraintSphere" << endl;
     }
 
 /*!
-    \param P position of the Ellipsoid
-    \param rx radius of the Ellipsoid in the X direction
-    \param ry radius of the Ellipsoid in the Y direction
-    \param rz radius of the Ellipsoid in the Z direction
-    NOTE: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
+    \param P position of the sphere
+    \param r radius of the sphere
 */
-void ConstraintEllipsoid::setEllipsoid(Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
+void ConstraintSphere::setSphere(Scalar3 P, Scalar r)
     {
     m_P = P;
-    m_rx = rx;
-    m_ry = ry;
-    m_rz = rz;
+    m_r = r;
     validate();
     }
 
-/*! ConstraintEllipsoid removes 1 degree of freedom per particle in the group
+/*! ConstraintSphere removes 1 degree of freedom per particle in the group
 */
-unsigned int ConstraintEllipsoid::getNDOFRemoved()
+unsigned int ConstraintSphere::getNDOFRemoved()
     {
     return m_group->getNumMembers();
     }
@@ -115,13 +105,13 @@ unsigned int ConstraintEllipsoid::getNDOFRemoved()
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintEllipsoid::computeForces(unsigned int timestep)
+void ConstraintSphere::computeForces(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
 
-    if (m_prof) m_prof->push("ConstraintEllipsoid");
+    if (m_prof) m_prof->push("ConstraintSphere");
 
     assert(m_pdata);
     // access the particle data arrays
@@ -140,12 +130,10 @@ void ConstraintEllipsoid::computeForces(unsigned int timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    // there are enough other checks on the input data: but it doesn't hurt to be safe
+   // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
-    // assert(h_virial.data);
+    assert(h_virial.data);
 
-    
-    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     // for each of the particles in the group
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
@@ -158,7 +146,8 @@ void ConstraintEllipsoid::computeForces(unsigned int timestep)
 
         // evaluate the constraint position
         EvaluatorConstraint constraint(X, V, F, m, m_deltaT);
-        Scalar3 C = Ellipsoid.evalClosest(constraint.evalU());
+        EvaluatorConstraintSphere sphere(m_P, m_r);
+        Scalar3 C = sphere.evalClosest(constraint.evalU());
 
         // evaluate the constraint force
         Scalar3 FC;
@@ -170,33 +159,27 @@ void ConstraintEllipsoid::computeForces(unsigned int timestep)
         h_force.data[j].y = FC.y;
         h_force.data[j].z = FC.z;
         for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+j] = virial[k];
+            h_virial.data[k*virial_pitch+j]  = virial[k];
         }
 
     if (m_prof)
         m_prof->pop();
     }
 
-/*! Print warning messages if the Ellipsoid is outside the box.
-    Generate an error if any particle in the group is not near the Ellipsoid.
+/*! Print warning messages if the sphere is outside the box.
+    Generate an error if any particle in the group is not near the sphere.
 */
-void ConstraintEllipsoid::validate()
+void ConstraintSphere::validate()
     {
     BoxDim box = m_pdata->getBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
-    if (m_P.x + m_rx > hi.x || m_P.x - m_rx < lo.x
-        || m_P.y + m_ry > hi.y || m_P.y - m_ry < lo.y
-        || m_P.z + m_rz > hi.z || m_P.z - m_rz < lo.z)
+    if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
+        m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
+        m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
         {
-        m_exec_conf->msg->warning() << "constrain.ellipsoid: ellipsoid constraint is outside of the box. Constrained particle positions may be incorrect"
-             << endl;
-        }
-
-    if (m_rx == 0 || m_ry == 0 || m_rz == 0)
-        {
-        m_exec_conf->msg->warning() << "constrain.ellipsoid: one of the ellipsoid dimensions is 0. Constraint may be incorrect."
+        m_exec_conf->msg->warning() << "constrain.sphere: Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
              << endl;
         }
 
@@ -208,33 +191,33 @@ void ConstraintEllipsoid::validate()
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
-    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     // for each of the particles in the group
     bool errors = false;
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
-        // Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
-        // // evaluate the constraint position: ONLY WORKS FOR SPHERE. WHY IS THIS NEEDED?
-        // Scalar3 C = Ellipsoid.evalClosest(X);
-        // Scalar3 V;
-        // V.x = C.x - X.x;
-        // V.y = C.y - X.y;
-        // V.z = C.z - X.z;
-        // Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
+        // evaluate the constraint position
+        EvaluatorConstraintSphere sphere(m_P, m_r);
+        Scalar3 C = sphere.evalClosest(X);
+        Scalar3 V;
+        V.x = C.x - X.x;
+        V.y = C.y - X.y;
+        V.z = C.z - X.z;
+        Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
 
-        // if (dist > Scalar(1.0))
-        //     {
-        //     m_exec_conf->msg->error() << "constrain.ellipsoid: Particle " << h_tag.data[j] << " is more than 1 unit of"
-        //                               << " distance away from the closest point on the ellipsoid constraint" << endl;
-        //     errors = true;
-        //     }
+        if (dist > Scalar(1.0))
+            {
+            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
+                                      << " distance away from the closest point on the sphere constraint" << endl;
+            errors = true;
+            }
 
         if (h_body.data[j] != NO_BODY)
             {
-            m_exec_conf->msg->error() << "constrain.ellipsoid: Particle " << h_tag.data[j] << " belongs to a rigid body"
+            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
                                       << " - cannot constrain" << endl;
             errors = true;
             }
@@ -247,16 +230,14 @@ void ConstraintEllipsoid::validate()
     }
 
 
-void export_ConstraintEllipsoid()
+void export_ConstraintSphere()
     {
-    class_< ConstraintEllipsoid, boost::shared_ptr<ConstraintEllipsoid>, bases<ForceConstraint>, boost::noncopyable >
-    ("ConstraintEllipsoid", init< boost::shared_ptr<SystemDefinition>,
+    class_< ConstraintSphere, boost::shared_ptr<ConstraintSphere>, bases<ForceConstraint>, boost::noncopyable >
+    ("ConstraintSphere", init< boost::shared_ptr<SystemDefinition>,
                                                  boost::shared_ptr<ParticleGroup>,
                                                  Scalar3,
-                                                 Scalar,
-                                                 Scalar,
                                                  Scalar >())
-    .def("setEllipsoid", &ConstraintEllipsoid::setEllipsoid)
-    .def("getNDOFRemoved", &ConstraintEllipsoid::getNDOFRemoved)
+    .def("setSphere", &ConstraintSphere::setSphere)
+    .def("getNDOFRemoved", &ConstraintSphere::getNDOFRemoved)
     ;
     }

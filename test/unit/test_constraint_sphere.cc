@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegratorTwoStep.h"
 #include "TwoStepLangevin.h"
-#include "ConstraintEllipsoid.h"
+#include "ConstraintSphere.h"
 #ifdef ENABLE_CUDA
 #include "ConstraintSphereGPU.h"
 #endif
@@ -68,7 +68,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file constraint_sphere_test.cc
-    \brief Implements unit tests for ConstraintEllipsoid and descendants
+    \brief Implements unit tests for ConstraintSphere and descendants
     \ingroup unit_tests
 */
 
@@ -77,7 +77,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd class factory
-typedef boost::function<boost::shared_ptr<ConstraintEllipsoid> (boost::shared_ptr<SystemDefinition> sysdef,
+typedef boost::function<boost::shared_ptr<ConstraintSphere> (boost::shared_ptr<SystemDefinition> sysdef,
                                                       boost::shared_ptr<ParticleGroup> group,
                                                       Scalar3 P,
                                                       Scalar r)> cs_creator_t;
@@ -117,7 +117,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    boost::shared_ptr<ConstraintEllipsoid> cs = cs_creator(sysdef, group_all, P, r);
+    boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->addForceConstraint(cs);
     bdnvt_up->prepRun(0);
 
@@ -141,42 +141,40 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
         }
     }
 
-
-//REWRITE ME WITH NEW CONSTRAINT.ELLIPSOID CODE!!!
     
-// //! ConstraintEllipsoid factory for the unit tests
-// boost::shared_ptr<ConstraintEllipsoid> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
-//                                                    boost::shared_ptr<ParticleGroup> group,
-//                                                    Scalar3 P,
-//                                                    Scalar r)
-//     {
-//     return boost::shared_ptr<ConstraintEllipsoid>(new ConstraintEllipsoid(sysdef, group, P, r));
-//     }
+//! ConstraintSphere factory for the unit tests
+boost::shared_ptr<ConstraintSphere> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group,
+                                                   Scalar3 P,
+                                                   Scalar r)
+    {
+    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
+    }
 
-// #ifdef ENABLE_CUDA
-// //! ConstraintSphereGPU factory for the unit tests
-// boost::shared_ptr<ConstraintSphere> gpu_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
-//                                                    boost::shared_ptr<ParticleGroup> group,
-//                                                    Scalar3 P,
-//                                                    Scalar r)
-//     {
-//     return boost::shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
-//     }
-// #endif
+#ifdef ENABLE_CUDA
+//! ConstraintSphereGPU factory for the unit tests
+boost::shared_ptr<ConstraintSphere> gpu_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group,
+                                                   Scalar3 P,
+                                                   Scalar r)
+    {
+    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
+    }
+#endif
 
-// //! Basic test for the base class
-// BOOST_AUTO_TEST_CASE( BDUpdater_tests )
-//     {
-//     cs_creator_t cs_creator = bind(base_class_cs_creator, _1, _2, _3, _4);
-//     constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-//     }
+//! Basic test for the base class
+BOOST_AUTO_TEST_CASE( BDUpdater_tests )
+    {
+    cs_creator_t cs_creator = bind(base_class_cs_creator, _1, _2, _3, _4);
+    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
 
-// #ifdef ENABLE_CUDA
-// //! Basic test for the GPU class
-// BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
-//     {
-//     cs_creator_t cs_creator = bind(gpu_cs_creator, _1, _2, _3, _4);
-//     constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-//     }
-// #endif
+#ifdef ENABLE_CUDA
+//! Basic test for the GPU class
+BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
+    {
+    cs_creator_t cs_creator = bind(gpu_cs_creator, _1, _2, _3, _4);
+    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+#endif
 

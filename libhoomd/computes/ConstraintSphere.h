@@ -49,61 +49,57 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "ForceCompute.h"
+#include "ForceConstraint.h"
 #include "ParticleGroup.h"
+
 #include <boost/shared_ptr.hpp>
-#include "saruprng.h"
-#include "HOOMDMath.h"
-#include "VectorMath.h"
 
-#include "EvaluatorConstraintEllipsoid.h"
-
-
-/*! \file ActiveForceCompute.h
-    \brief Declares a class for computing active forces
+/*! \file ConstraintSphere.h
+    \brief Declares a class for computing sphere constraint forces
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __ACTIVEFORCECOMPUTE_H__
-#define __ACTIVEFORCECOMPUTE_H__
+#ifndef __CONSTRAINT_SPHERE_H__
+#define __CONSTRAINT_SPHERE_H__
 
-//! Adds an active force to a number of particles
+//! Applys a constraint force to keep a group of particles on a sphere
 /*! \ingroup computes
 */
-class ActiveForceCompute : public ForceCompute
-{
-    
+class ConstraintSphere : public ForceConstraint
+    {
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff);
+        ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<ParticleGroup> group,
+                         Scalar3 P,
+                         Scalar r);
 
         //! Destructor
-        ~ActiveForceCompute();
+        virtual ~ConstraintSphere();
 
-        //! Set forces for particles
-        void setForces();
+        //! Set the force to a new value
+        void setSphere(Scalar3 P, Scalar r);
 
-        //! Orientational diffusion for spherical particles
-        void rotationalDiffusion(unsigned int timestep);
+        //! Return the number of DOF removed by this constraint
+        virtual unsigned int getNDOFRemoved();
 
     protected:
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        Scalar3 m_P;         //!< Position of the sphere
+        Scalar m_r;          //!< Radius of the sphere
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
-        
-        bool orientationLink;
-        Scalar rotationDiff;
-        int m_seed;
-        std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
-        std::vector<Scalar> act_force_mag; //! Magnitude of active force vector
 
     private:
+        //! Validate that the sphere is in the box and all particles are very near the constraint
+        void validate();
+    };
 
-};
+//! Exports the ConstraintSphere class to python
+void export_ConstraintSphere();
 
-//! Exports the ActiveForceComputeClass to python
-void export_ActiveForceCompute();
-// debug flag
 #endif

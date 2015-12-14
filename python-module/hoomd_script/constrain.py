@@ -297,4 +297,47 @@ class ellipsoid(_constraint_force):
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
+## Constrain particles to the surface of a sphere
+#
+# The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
+# them to a sphere.
+# \MPI_NOT_SUPPORTED
+class sphere(_constraint_force):
+    ## Specify the %sphere constraint %force
+    #
+    # \param group Group on which to apply the constraint
+    # \param P (x,y,z) tuple indicating the position of the center of the sphere (in distance units)
+    # \param r Radius of the sphere (in distance units)
+    #
+    # \b Examples:
+    # \code
+    # constrain.sphere(group=groupA, P=(0,10,2), r=10)
+    # \endcode
+    def __init__(self, group, P, r):
+        util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("constrain.sphere is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error initializing constraint force.")
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        # create the c++ mirror class
+        P = hoomd.make_scalar3(P[0], P[1], P[2]);
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
+        else:
+            self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # store metadata
+        self.group = group
+        self.P = P
+        self.r = r
+        self.metadata_fields = ['group','P', 'r']
+
 

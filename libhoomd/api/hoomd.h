@@ -122,6 +122,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintEllipsoid.h"
+#include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
 #include "PotentialTersoff.h"

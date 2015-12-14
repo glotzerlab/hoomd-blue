@@ -128,7 +128,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
-#include "ConstraintEllipsoid.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -571,6 +570,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListTree();
     export_ConstraintSphere();
     export_ConstraintEllipsoid();
+    export_ConstraintSphere();
     export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_wall_field_helpers();

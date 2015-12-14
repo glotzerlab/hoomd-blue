@@ -142,12 +142,6 @@ void ActiveForceCompute::setForces()
             h_force.data[idx].z = f.z;
         }
     }
-
-
-
-
-
-
 }
 
 /*! \param blah this does blah
@@ -201,14 +195,39 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
             }
         } else
         {
-            //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
+            //USE VECTOR MATH TO SIMPLIFY THINGS?
+
+            
+
+
+
+
+            //DOES BD WORK WITH CONSTRAINT?
+            //THEN GIVE THIS THE ABILITY TO READ IN THE ELLIPSOID CONSTRAINTS INSTEAD OF PUTTING THEM IN BY HAND
+
+
+
+
+
+            // EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
+            
+            Scalar3 P= make_scalar3(0, 0, 0);
+            EvaluatorConstraintEllipsoid Ellipsoid(P, 8, 6, 4);
+
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
                 Saru saru(i, timestep, m_seed);
-                vec3<Scalar> norm; // the normal vector to which the particles are confined to, allows for simulations on curved surfaces.
-                norm.x = 0;
-                norm.y = 0;
-                norm.z = 1;
+
+                Scalar3 current_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+                Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
+                vec3<Scalar> norm;
+                norm = vec3<Scalar>(norm_scalar3);
+                // printf("%f %f %f\n",norm.x, norm.y, norm.z);
+                // norm.x = 0;
+                // norm.y = 0;
+                // norm.z = 1;
 
                 vec3<Scalar> current_vec = act_force_vec[i];
                 vec3<Scalar> aux_vec = cross(act_force_vec[i], norm); // aux vect for defining direction that active force vetor rotates towards.

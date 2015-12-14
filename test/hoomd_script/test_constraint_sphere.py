@@ -6,7 +6,7 @@ import unittest
 import os
 
 # test the constrain.sphere command
-class constraint_ellipsoid_tests (unittest.TestCase):
+class constraint_sphere_tests (unittest.TestCase):
     def setUp(self):
         print
         sysdef = init.create_empty(N=2, box=data.boxdim(L=40), particle_types=['A']);
@@ -17,14 +17,14 @@ class constraint_ellipsoid_tests (unittest.TestCase):
 
     def test_basic(self):
         all = group.all()
-        constrain.ellipsoid(group=all, P=(0,0,0), r=5)
+        constrain.sphere(group=all, P=(0,0,0), r=5)
         integrate.mode_standard(dt=0.005);
         integrate.langevin(group=all, T=1.2, seed=0);
         run(10);
 
     def test_error(self):
         all = group.all()
-        self.assertRaises(RuntimeError, constrain.ellipsoid, group=all, P=(0,0,0), r=10)
+        self.assertRaises(RuntimeError, constrain.sphere, group=all, P=(0,0,0), r=10)
 
     def tearDown(self):
         init.reset();
