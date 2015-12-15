@@ -360,8 +360,23 @@ class active(_force):
                 if type(element) != tuple or len(element) != 3:
                     raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
                     
-            # create the c++ mirror class
-            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff);
+        # assign constraints
+        if (constraint is not None):
+            if (constraint.__class__.__name__ is "constraint_ellipsoid"):
+                P = constraint.P
+                rx = constraint.rx
+                ry = constraint.ry
+                rz = constraint.rz
+            else: 
+                raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
+        else:
+            P = hoomd.make_scalar3(0, 0, 0)
+            rx = 0
+            ry = 0
+            rz = 0
+
+        # create the c++ mirror class
+        self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
         
         # store metadata
 #        if group is not None:
@@ -369,21 +384,6 @@ class active(_force):
 #            self.group = group
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-    
-    ## Change the value of the force
-    #
-    # \param activity new array [x,y,z] for the active force vector for each individual particle in group
-    # \param group Group for which the force will be set
-    #
-    # Using set_force() requires that you saved the created %active %force in a variable. i.e.
-    # \code
-    # act = active(group=fluid, activity=particle_activity_array)
-    # \endcode
-    #
-    # \b Example:
-    # \code
-    # act.set_force(group=fluid, activity=particle_activity_array)
-    # \endcode
     
     # there are no coeffs to update in the active force compute
     def update_coeffs(self):

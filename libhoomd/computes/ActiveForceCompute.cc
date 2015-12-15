@@ -64,8 +64,9 @@ using namespace std;
 
 /*! \param blah this does blah
 */   
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff)
-        : ForceCompute(sysdef)
+ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
+        bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
+        : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
     
@@ -89,9 +90,7 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         act_force_vec[i].y = m_f_lst[i].y/act_force_mag[i];
         act_force_vec[i].z = m_f_lst[i].z/act_force_mag[i];
     }
-    
-    orientationLink = orientation_link;
-    rotationDiff = rotation_diff;
+
     // Hash the User's Seed to make it less likely to be a low positive integer
     seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
 }
@@ -118,7 +117,7 @@ void ActiveForceCompute::setForces()
 
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
-    if (orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
+    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
         vec3<Scalar> fi;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -131,7 +130,7 @@ void ActiveForceCompute::setForces()
             h_force.data[idx].y = fi.y;
             h_force.data[idx].z = fi.z;
         }
-    } else
+    } else // no orientation link
     {
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -156,7 +155,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
         {
             Saru saru(i, timestep, m_seed);
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+            delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
             Scalar theta; // angle on plane defining orientation of active force vector
             theta = atan2(act_force_vec[i].y, act_force_vec[i].x);
             theta += delta_theta;
@@ -166,21 +165,21 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 
     } else // 3D: Following Stenhammar, Soft Matter, 2014
     {
-        if (false == false) 
+        if (m_rx == 0) // if no constraint
         {
-            //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
+            //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES OF DIFFUSION CONSTANT, ALL CHECK OUT?
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
                 Saru saru(i, timestep, m_seed);
                 Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
                 Scalar v = saru.d(0, 1.0);
-                Scalar theta = 6.283185307179586476925286766559 * u;
+                Scalar theta = 2.0 * M_PI * u;
                 Scalar phi = acos(2.0 * v - 1.0) ;
                 vec3<Scalar> rand_vec;
                 rand_vec.x = sin(phi) * cos(theta);
                 rand_vec.y = sin(phi) * sin(theta);
                 rand_vec.z = cos(phi);
-                Scalar diffusion_mag = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+                Scalar diffusion_mag = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
                 vec3<Scalar> delta_vec;
                 delta_vec.x = act_force_vec[i].y * rand_vec.z - act_force_vec[i].z * rand_vec.y;
                 delta_vec.y = act_force_vec[i].z * rand_vec.x - act_force_vec[i].x * rand_vec.z;
@@ -193,53 +192,67 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 act_force_vec[i].y /= new_mag;
                 act_force_vec[i].z /= new_mag;
             }
-        } else
+        } else // if constraint
         {
-            //USE VECTOR MATH TO SIMPLIFY THINGS?
+            EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
-            
+            ArrayHandle < Scalar4 > h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
 
-
-
-
-            //DOES BD WORK WITH CONSTRAINT?
-            //THEN GIVE THIS THE ABILITY TO READ IN THE ELLIPSOID CONSTRAINTS INSTEAD OF PUTTING THEM IN BY HAND
-
-
-
-
-
-            // EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-            
-            Scalar3 P= make_scalar3(0, 0, 0);
-            EvaluatorConstraintEllipsoid Ellipsoid(P, 8, 6, 4);
-
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            for (unsigned int i = 0; i < m_pdata -> getN(); i++)
             {
                 Saru saru(i, timestep, m_seed);
-
                 Scalar3 current_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
                 Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
+
                 vec3<Scalar> norm;
-                norm = vec3<Scalar>(norm_scalar3);
-                // printf("%f %f %f\n",norm.x, norm.y, norm.z);
-                // norm.x = 0;
-                // norm.y = 0;
-                // norm.z = 1;
+                norm = vec3<Scalar> (norm_scalar3);
 
                 vec3<Scalar> current_vec = act_force_vec[i];
                 vec3<Scalar> aux_vec = cross(act_force_vec[i], norm); // aux vect for defining direction that active force vetor rotates towards.
+
                 Scalar delta_theta; // rotational diffusion angle
-                delta_theta = m_deltaT * rotationDiff * gaussian_rng(saru, 1.0);
-                act_force_vec[i].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
-                act_force_vec[i].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
-                act_force_vec[i].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+                delta_theta = m_deltaT*m_rotationDiff*gaussian_rng(saru, 1.0);
+
+                act_force_vec[i].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
+                act_force_vec[i].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
+                act_force_vec[i].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
             }
         }
-        
     }
+}
+
+/*! \param blah this does blah
+*/
+void ActiveForceCompute::setConstraint()
+{
+    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
+
+    ArrayHandle < Scalar4 > h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    for (unsigned int i = 0; i < m_pdata -> getN(); i++)
+    {
+        unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
+        Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+                    
+        Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
+        vec3<Scalar> norm;
+        norm = vec3<Scalar>(norm_scalar3);
+        Scalar dot_prod = act_force_vec[i].x * norm.x + act_force_vec[i].y * norm.y + act_force_vec[i].z * norm.z;
+
+        act_force_vec[i].x -= norm.x * dot_prod;
+        act_force_vec[i].y -= norm.y * dot_prod;
+        act_force_vec[i].z -= norm.z * dot_prod;
+
+        Scalar new_norm = sqrt(act_force_vec[i].x*act_force_vec[i].x
+                            + act_force_vec[i].y*act_force_vec[i].y
+                            + act_force_vec[i].z*act_force_vec[i].z);
+
+        act_force_vec[i].x /= new_norm;
+        act_force_vec[i].y /= new_norm;
+        act_force_vec[i].z /= new_norm;
+    }
+    
 }
 
 /*! This function calls setForces()
@@ -247,20 +260,29 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    // Orientational Diffusion, check to make sure hasn't already been computed this timestep
-    if (shouldCompute(timestep) && rotationDiff != 0)
+    if (shouldCompute(timestep))
     {
-        rotationalDiffusion(timestep);
+        if (m_rx != 0)
+        {
+            setConstraint(); // apply surface constraints to active particles
+        }
+        if (m_rotationDiff != 0)
+        {
+            rotationalDiffusion(timestep); // apply rotational diffusion to active particles
+        }
     }
 
-    // set force for particles
-    setForces();
+    setForces(); // set forces for particles
 }
 
 
 void export_ActiveForceCompute()
 {
     class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, int, boost::python::list, bool, Scalar >())
+    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, int, boost::python::list, bool, Scalar,
+                                    Scalar3,
+                                    Scalar,
+                                    Scalar,
+                                    Scalar >())
     ;
 }

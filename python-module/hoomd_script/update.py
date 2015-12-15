@@ -624,7 +624,7 @@ class constraint_ellipsoid(_updater):
                 raise RuntimeError("Error initializing constraint force.")
 
         # Error out if no radii are set
-        if (r is None and rx is None and ry is None and rz is None) :
+        if (r is None and rx is None and ry is None and rz is None):
             globals.msg.error("no radii were defined in constrain.ellipsoid.\n\n")
             raise RuntimeError("Error initializing constraint force.")
         

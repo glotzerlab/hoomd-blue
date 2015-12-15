@@ -86,7 +86,7 @@ class ConstraintEllipsoid : public Updater
 
     protected:
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
-        Scalar3 m_P;         //!< Position of the Ellipsoid
+        Scalar3 m_P;          //!< Position of the Ellipsoid
         Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid

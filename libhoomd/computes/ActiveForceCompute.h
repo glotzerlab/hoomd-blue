@@ -78,7 +78,11 @@ class ActiveForceCompute : public ForceCompute
     
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff);
+        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff,
+                             Scalar3 P,
+                             Scalar rx,
+                             Scalar ry,
+                             Scalar rz);
 
         //! Destructor
         ~ActiveForceCompute();
@@ -89,12 +93,18 @@ class ActiveForceCompute : public ForceCompute
         //! Orientational diffusion for spherical particles
         void rotationalDiffusion(unsigned int timestep);
 
+        void setConstraint();
+
     protected:
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
         
-        bool orientationLink;
-        Scalar rotationDiff;
+        bool m_orientationLink;
+        Scalar m_rotationDiff;
+        Scalar3 m_P;          //!< Position of the Ellipsoid
+        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
+        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
+        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         int m_seed;
         std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
         std::vector<Scalar> act_force_mag; //! Magnitude of active force vector

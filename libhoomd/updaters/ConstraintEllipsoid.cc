@@ -101,7 +101,7 @@ void ConstraintEllipsoid::update(unsigned int timestep)
 
     assert(m_pdata);
     // access the particle data arrays
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     // for each of the particles in the group
@@ -114,7 +114,9 @@ void ConstraintEllipsoid::update(unsigned int timestep)
         // evaluate the constraint position
         Scalar3 C = Ellipsoid.evalClosest(X);
 
-        // apply the constraint force
+        // printf("%f %f %f : %f %f %f\n", h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z, C.x, C.y, C.z);
+        
+        // apply the constraint
         h_pos.data[j].x = C.x;
         h_pos.data[j].y = C.y;
         h_pos.data[j].z = C.z;
