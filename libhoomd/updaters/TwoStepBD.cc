@@ -181,8 +181,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         
         
         ///////////////
-        Scalar gamma_r = 1.0;
-        Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
         // if (m_use_lambda)
         //     gamma = m_lambda*h_diameter.data[j];
         // else
