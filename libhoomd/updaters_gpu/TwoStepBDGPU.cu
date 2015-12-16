@@ -187,11 +187,6 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         d_pos[idx] = postype;
         d_vel[idx] = vel;
         d_image[idx] = image;
-        
-        //////
-        ////// code to be added for rotational noise
-        //////
-        
         }
     }
 
