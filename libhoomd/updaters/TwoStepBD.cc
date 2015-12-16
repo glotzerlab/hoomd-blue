@@ -118,7 +118,10 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ///////////////
     if (m_aniso)
         {
-
+        ArrayHandle<Scalar4> h_orien(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_angmom(m_pdata->getAltAngularMomentumArray(), access_location::host, access_mode::readwrite);
         }
     ///////////////
 
@@ -189,12 +192,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
         if (D < 3 && m_aniso)
             {
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar3> h_angmom(m_pdata->getAltAngularMomentumArray(), access_location::host, access_mode::readwrite);
-                
-                
             Scalar gamma_r = 1.0;
             Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
             Scalar tau_r = gaussian_rng(saru, sigma_r); 
@@ -208,7 +205,10 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             q += Scalar(0.5) * m_deltaT  * q * omega;
             // renormalize (improves stability)
             q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
-            h_orientation.data[j] = quat_to_scalar4(q);
+            h_orien.data[j].x = q.x;
+            h_orien.data[j].y = q.y;
+            h_orien.data[j].z = q.z;
+            h_orien.data[j].w = q.w;
             }
 
         ///////////////
