@@ -113,17 +113,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    
-    
-    ///////////////
-    if (m_aniso)
-        {
-        ArrayHandle<Scalar4> h_orien(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_angmom(m_pdata->getAltAngularMomentumArray(), access_location::host, access_mode::read);
-        }
-    ///////////////
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -140,7 +129,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the random force
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz = saru.s<Scalar>(-1,1);
+        Scalar rz =  saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -178,36 +167,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             h_vel.data[j].z = gaussian_rng(saru, sigma);
         else
             h_vel.data[j].z = 0;
-        
-        
-        ///////////////
-        // if (m_use_lambda)
-        //     gamma = m_lambda*h_diameter.data[j];
-        // else
-        //     {
-        //     unsigned int type = __scalar_as_int(h_pos.data[j].w);
-        //     gamma = h_gamma.data[type];
-        //     }
-
-        if (D < 3)
-            {
-            // h_orien.data[j].x += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].x + tau_r) ;
-            // h_orien.data[j].y += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].y + tau_r) ;
-            // h_orien.data[j].z += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].z + tau_r) ;
-            vec3<Scalar> axis (0, 0, 1);
-            Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
-            quat<Scalar> omega = fromAxisAngle(axis, theta);
-            quat<Scalar> q (h_orien.data[j]);
-            q += Scalar(0.5) * m_deltaT  * q * omega;
-            // renormalize (improves stability)
-            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
-            h_orien.data[j].x = q.x;
-            h_orien.data[j].y = q.y;
-            h_orien.data[j].z = q.z;
-            h_orien.data[j].w = q.w;
-            }
-
-        ///////////////
         }
 
     // done profiling
