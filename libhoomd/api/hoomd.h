@@ -158,6 +158,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FIREEnergyMinimizerGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ConstraintEllipsoidGPU.h"
+#include "ActiveForceComputeGPU.h"
 #include "PotentialPairGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "PPPMForceComputeGPU.h"
