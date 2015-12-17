@@ -113,8 +113,6 @@ void ConstraintEllipsoid::update(unsigned int timestep)
 
         // evaluate the constraint position
         Scalar3 C = Ellipsoid.evalClosest(X);
-
-        // printf("%f %f %f : %f %f %f\n", h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z, C.x, C.y, C.z);
         
         // apply the constraint
         h_pos.data[j].x = C.x;

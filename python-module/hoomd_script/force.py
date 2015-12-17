@@ -376,10 +376,14 @@ class active(_force):
             rz = 0
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
-        else:
-            self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+        self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+        
+        
+        #PUT ME IN FOR GPU CODE RATHER THAN ABOVE
+        # if not globals.exec_conf.isCUDAEnabled():
+        #     self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+        # else:
+        #     self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
         
         # store metadata
 #        if group is not None:

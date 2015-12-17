@@ -49,47 +49,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "ConstraintEllipsoid.h"
+#include "HOOMDMath.h"
+#include "ParticleData.cuh"
 
-/*! \file ConstraintEllipsoidGPU.h
-    \brief Declares a class for computing ellipsoid constraint forces
+/*! \file ConstraintEllipsoidGPU.cuh
+    \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintEllipsoidGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#ifndef __CONSTRAINT_ELLIPSOID_GPU_CUH__
+#define __CONSTRAINT_ELLIPSOID_GPU_CUH__
 
-#ifndef __CONSTRAINT_Ellipsoid_GPU_H__
-#define __CONSTRAINT_Ellipsoid__GPU_H__
-
-//! Applys a constraint force to keep a group of particles on a Ellipsoid
-/*! \ingroup computes
-*/
-class ConstraintEllipsoidGPU : public ConstraintEllipsoid
-    {
-    public:
-        //! Constructs the compute
-        ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
-                         Scalar3 P,
-                         Scalar rx,
-                         Scalar ry,
-                         Scalar rz);
-
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-
-    protected:
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
-        Scalar3 m_P;          //!< Position of the Ellipsoid
-        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
-        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
-        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-        
-        unsigned int m_block_size;  //!< block size to execute on the GPU
-    };
-
-//! Exports the ConstraintEllipsoidGPU class to python
-void export_ConstraintEllipsoidGPU();
+//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
+cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
+                                                 unsigned int group_size,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
+                                                 const Scalar3& P,
+                                                 Scalar rx,
+                                                 Scalar ry,
+                                                 Scalar rz,
+                                                 Scalar deltaT,
+                                                 unsigned int block_size);
 
 #endif
