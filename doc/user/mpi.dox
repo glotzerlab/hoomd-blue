@@ -126,8 +126,12 @@ ranks will produce an error that all GPUs are in use.
 
 2. If *not* all GPUs are in compute exclusive mode, HOOMD-blue will use information from `mpirun` to determine the
 <em>local rank</em> on a node (0,1,2,... unique id for each process on a node). Each rank will use the GPU id matching
-the local rank. In this mode, do not run more ranks per node than there are GPUs on that node or you will get an
-error. This mode only works on clusters where scheduling is performed by node (not by core) and there are a uniform
+the local rank modulus the number of GPUs on the node. In this mode, do not run more ranks per node than there are
+GPUs or you will oversubscribe the GPUs. HOOMD can identify local rank information with OpenMPI and MVAPICH.
+
+For other MPI stacks, such as Intel MPI, this information is unavailable and HOOMD falls back on selecting
+`gpu_id = global_rank % num_gpus_on_node` and issues a notice message.
+This mode only works on clusters where scheduling is performed by node (not by core) and there are a uniform
 number of GPUs on each node.
 
 In either case, a status message is printed on startup that lists which ranks are using which GPU ids. You can use this

@@ -2,13 +2,13 @@
 
 [TOC]
 
-## Upcoming release - v1.3.0
+## v1.3.0
 
-Released TBD
+Released 2015/12/8
 
 *New features*
 
-* Automatically laad balanced domain decomposition simulations.
+* Automatically load balanced domain decomposition simulations.
 * Anisotropic particle integrators.
 * Gay-Berne pair potential.
 * Dipole pair potential.
@@ -35,7 +35,8 @@ Released TBD
 * Fixed an openmpi fork() warning on some systems
 * Fixed segfaults in PPPM
 * Fixed a bug where compute.thermo failed after reinitializing a system
-* Support list and dict-lik objects in init.create_random_polymers.
+* Support list and dict-like objects in init.create_random_polymers.
+* Fall back to global rank to assign GPUs if local rank is not available
 
 *Deprecated commands*
 

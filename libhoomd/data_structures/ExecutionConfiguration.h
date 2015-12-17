@@ -131,9 +131,9 @@ struct ExecutionConfiguration : boost::noncopyable
 
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
-     *           or -1 if no information is available
+     *           or falls back to the global rank if no information is available
      */
-    static int guessLocalRank();
+    int guessLocalRank();
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
