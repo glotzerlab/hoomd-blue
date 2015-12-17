@@ -106,8 +106,8 @@ class ActiveForceCompute : public ForceCompute
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         int m_seed;
-        std::vector<vec3<Scalar> > act_force_vec; //! Active force vectors for each particle
-        std::vector<Scalar> act_force_mag; //! Magnitude of active force vector
+        GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
+        GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
 
     private:
 
