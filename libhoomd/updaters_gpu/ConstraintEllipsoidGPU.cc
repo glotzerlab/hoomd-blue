@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 using namespace boost::python;
-using namespace boost;
 
 using namespace std;
 

@@ -80,12 +80,6 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
         virtual void update(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
-        Scalar3 m_P;          //!< Position of the Ellipsoid
-        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
-        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
-        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-        
         unsigned int m_block_size;  //!< block size to execute on the GPU
     };
 

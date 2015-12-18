@@ -620,7 +620,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
-    export_ConstraintEllipsoidGPU();
     //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
@@ -692,6 +691,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
     export_FIREEnergyMinimizerRigidGPU();
+    export_ConstraintEllipsoidGPU();
 #endif
 
 #ifdef ENABLE_MPI
