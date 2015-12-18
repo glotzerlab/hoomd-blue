@@ -59,8 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __CONSTRAINT_Ellipsoid_GPU_H__
-#define __CONSTRAINT_Ellipsoid__GPU_H__
+#ifndef __CONSTRAINT_ELLIPSOID_GPU_H__
+#define __CONSTRAINT_ELLIPSOID_GPU_H__
 
 //! Applys a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes

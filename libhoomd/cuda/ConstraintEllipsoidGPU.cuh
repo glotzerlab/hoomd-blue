@@ -63,12 +63,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar3& P,
+                                                 Scalar4 *d_pos,
+                                                 const Scalar3 P,
                                                  Scalar rx,
                                                  Scalar ry,
                                                  Scalar rz,
-                                                 Scalar deltaT,
                                                  unsigned int block_size);
 
 #endif

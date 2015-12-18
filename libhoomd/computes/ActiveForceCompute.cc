@@ -120,7 +120,7 @@ void ActiveForceCompute::setForces()
     assert(h_orientation.data != NULL);
     assert(h_force.data != NULL);
 
-    // GPU array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     
@@ -157,7 +157,7 @@ void ActiveForceCompute::setForces()
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 {
-    // GPU array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
     
@@ -244,7 +244,7 @@ void ActiveForceCompute::setConstraint()
 {
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     
-    // GPU array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
 

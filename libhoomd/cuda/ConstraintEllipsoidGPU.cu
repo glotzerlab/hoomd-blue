@@ -74,12 +74,11 @@ extern "C" __global__
 void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
-                                                 const Scalar4 *d_pos,
+                                                 Scalar4 *d_pos,
                                                  Scalar3 P,
                                                  Scalar rx,
                                                  Scalar ry,
-                                                 Scalar rz,
-                                                 Scalar deltaT)
+                                                 Scalar rz)
     {
     // start by identifying which particle we are to handle
     // determine which particle this thread works on
@@ -92,33 +91,17 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
 
     // read in position, velocity, net force, and mass
     Scalar4 pos = d_pos[idx];
-    Scalar4 vel = d_vel[idx];
-    Scalar4 net_force = d_net_force[idx];
-    Scalar m = vel.w;
 
     // convert to Scalar3's for passing to the evaluators
     Scalar3 X = make_scalar3(pos.x, pos.y, pos.z);
-    Scalar3 V = make_scalar3(vel.x, vel.y, vel.z);
-    Scalar3 F = make_scalar3(net_force.x, net_force.y, net_force.z);
 
     // evaluate the constraint position
-    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-    Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+    EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 C = Ellipsoid.evalClosest(X);
-    
-    EvaluatorConstraint constraint(X, V, F, m, deltaT);
-    EvaluatorConstraintSphere sphere(P, r);
-    Scalar3 C = sphere.evalClosest(constraint.evalU());
-
-    // evaluate the constraint force
-    Scalar3 FC;
-    Scalar virial[6];
-    constraint.evalConstraintForce(FC, virial, C);
 
     // apply the constraint
-    h_pos.data[j].x = C.x;
-    h_pos.data[j].y = C.y;
-    h_pos.data[j].z = C.z;
+    d_pos[idx] = make_scalar4(C.x, C.y, C.z, Scalar(0.0));
+}
 
 
 /*! \param d_group_members List of members in the group
@@ -138,12 +121,11 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
 cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar3& P,
+                                                 Scalar4 *d_pos,
+                                                 const Scalar3 P,
                                                  Scalar rx,
                                                  Scalar ry,
                                                  Scalar rz,
-                                                 Scalar deltaT,
                                                  unsigned int block_size)
     {
     assert(d_group_members);
@@ -153,8 +135,6 @@ cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_gr
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
     gpu_compute_constraint_ellipsoid_constraint_kernel<<< grid, threads>>>(d_group_members,
                                                                     group_size,
                                                                     N,
@@ -162,8 +142,7 @@ cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_gr
                                                                     P,
                                                                     rx,
                                                                     ry,
-                                                                    rz,
-                                                                    deltaT);
+                                                                    rz);
 
     return cudaSuccess;
     }

@@ -54,6 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintEllipsoidGPU.cuh"
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
+
 using namespace boost::python;
 using namespace boost;
 
@@ -80,10 +82,9 @@ ConstraintEllipsoidGPU::ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinitio
         : ConstraintEllipsoid(sysdef, group, P, rx, ry, rz), m_block_size(256)
 {
     if (!m_exec_conf->isCUDAEnabled())
-        {
+    {
         m_exec_conf->msg->error() << "Creating a ConstraintEllipsoidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ConstraintEllipsoidGPU");
-        }
     }
 }
 
@@ -104,7 +105,7 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
     const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
     // run the kernel in parallel on all GPUs
     gpu_compute_constraint_ellipsoid_constraint(d_group_members.data,
@@ -115,7 +116,6 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
                                          m_rx,
                                          m_ry,
                                          m_rz,
-                                         m_deltaT,
                                          m_block_size);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -127,8 +127,8 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
 
 void export_ConstraintEllipsoidGPU()
 {
-    class_< export_ConstraintEllipsoidGPU, boost::shared_ptr<export_ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
-    ("export_ConstraintEllipsoidGPU", init< boost::shared_ptr<SystemDefinition>,
+    class_< ConstraintEllipsoidGPU, boost::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
+    ("ConstraintEllipsoidGPU", init< boost::shared_ptr<SystemDefinition>,
                                                  boost::shared_ptr<ParticleGroup>,
                                                  Scalar3,
                                                  Scalar,

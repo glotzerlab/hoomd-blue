@@ -161,10 +161,10 @@ class EvaluatorConstraintEllipsoid
                         g = ratio0*ratio0 + ratio1*ratio1 + ratio2*ratio2 - 1;
                         if (g > 0) { s0 = sbar; } else if (g < 0) { s1 = sbar; } else { break; }
                     }
-                    if (i == imax)
-                    {
-                        throw runtime_error("constrain.ellipsoid: Not enough iteration steps to find closest point on ellipsoid.\n");
-                    }
+                    // if (i == imax)
+                    // {
+                    //     throw runtime_error("constrain.ellipsoid: Not enough iteration steps to find closest point on ellipsoid.\n");
+                    // }
 
                     // compute resulting constrained point
                     Scalar3 C;
