@@ -74,7 +74,7 @@ def print_status_line():
     if len(stack) < 3:
         globals.msg.notice(2, "hoomd_script executing unknown command\n");
 
-    if sys.version_info < (3,5):
+    if sys.version_info[:3] != (3, 5, 0):
         frame = -3
     else:
         frame = -4
