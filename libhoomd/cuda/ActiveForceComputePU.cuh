@@ -52,26 +52,53 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 
-/*! \file ConstraintSphereGPU.cuh
-    \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintSphereGPU.
+/*! \file ActiveForceComputeGPU.cuh
+    \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
 */
 
-#ifndef __CONSTRAINT_SPHERE_GPU_CUH__
-#define __CONSTRAINT_SPHERE_GPU_CUH__
+#ifndef __ACTIVE_FORCE_COMPUTE_GPU_CUH__
+#define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 
-//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const unsigned int virial_pitch,
-                                                 const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_vel,
-                                                 const Scalar4 *d_net_force,
-                                                 const Scalar3& P,
-                                                 Scalar r,
-                                                 Scalar deltaT,
-                                                 unsigned int block_size);
+cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group_members,
+                                                   unsigned int group_size,
+                                                   const unsigned int N,
+                                                   const Scalar4 *d_pos,
+                                                   Scalar4 *d_actVec,
+                                                   const Scalar4 *d_actMag,
+                                                   const Scalar3& P,
+                                                   Scalar rx,
+                                                   Scalar ry,
+                                                   Scalar rz,
+                                                   unsigned int block_size);
+
+
+cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int *d_group_members,
+                                                       unsigned int group_size
+                                                       const unsigned int N,
+                                                       const Scalar4 *d_pos,
+                                                       Scalar4 *d_actVec,
+                                                       const Scalar4 *d_actMag,
+                                                       const Scalar3& P,
+                                                       Scalar rx,
+                                                       Scalar ry,
+                                                       Scalar rz,
+                                                       unsigned int block_size);
+
+
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int *d_group_members,
+                                           unsigned int group_size,
+                                           const unsigned int N,
+                                           Scalar4* d_force,
+                                           const Scalar4 *d_orientation,
+                                           const Scalar4 *d_actVec,
+                                           const Scalar4 *d_actMag,
+                                           const Scalar3& P,
+                                           Scalar rx,
+                                           Scalar ry,
+                                           Scalar rz,
+                                           unsigned int block_size);
+
+
+
 
 #endif
