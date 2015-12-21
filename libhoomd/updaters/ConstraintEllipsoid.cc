@@ -126,6 +126,7 @@ void ConstraintEllipsoid::update(unsigned int timestep)
 
 /*! Print warning messages if the Ellipsoid is outside the box.
     Generate an error if any particle in the group is not near the Ellipsoid.
+    NEEDED??????
 */
 void ConstraintEllipsoid::validate()
 {

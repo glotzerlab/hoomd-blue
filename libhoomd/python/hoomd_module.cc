@@ -128,6 +128,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ConstraintEllipsoid.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -178,6 +179,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ActiveForceComputeGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
@@ -622,6 +624,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphereGPU();
     //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
+    export_ActiveForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");

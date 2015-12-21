@@ -621,12 +621,12 @@ class constraint_ellipsoid(_updater):
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing constraint force.")
+                raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
         if (r is None and rx is None and ry is None and rz is None):
-            globals.msg.error("no radii were defined in constrain.ellipsoid.\n\n")
-            raise RuntimeError("Error initializing constraint force.")
+            globals.msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
+            raise RuntimeError("Error initializing updater.")
         
         # initialize the base class
         _updater.__init__(self);
