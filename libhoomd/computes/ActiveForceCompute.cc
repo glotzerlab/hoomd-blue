@@ -107,24 +107,27 @@ ActiveForceCompute::~ActiveForceCompute()
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::setForces(unsigned int i, unsigned int idx)
+void ActiveForceCompute::setForces(unsigned int i)
 {
 	//  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // sanity check
-    assert(h_orientation.data != NULL);
     assert(h_force.data != NULL);
     assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL);   
+    assert(h_actMag.data != NULL); 
+    assert(h_orientation.data != NULL); 
+    assert(h_rtag.data != NULL);   
 
     Scalar3 f;
+    unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
-	    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         vec3<Scalar> fi;
         f = make_scalar3(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);
         quat<Scalar> quati(h_orientation.data[idx]);
@@ -143,11 +146,17 @@ void ActiveForceCompute::setForces(unsigned int i, unsigned int idx)
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int i, unsigned int idx)
+void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int i)
 {   
 	//  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    assert(h_actVec.data != NULL);
+    assert(h_actMag.data != NULL);
+    assert(h_pos.data != NULL);
+    assert(h_rtag.data != NULL);
 
     if (m_sysdef->getNDimensions() == 2) // 2D ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
     {
@@ -191,9 +200,9 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
         } else // if constraint
         {
         	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-        	ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
 
             Saru saru(i, timestep, m_seed);
+            unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
             Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
 
@@ -218,7 +227,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 
 /*! \param blah this does blah
 */
-void ActiveForceCompute::setConstraint(unsigned int i, unsigned int idx)
+void ActiveForceCompute::setConstraint(unsigned int i)
 {
 	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     
@@ -226,7 +235,13 @@ void ActiveForceCompute::setConstraint(unsigned int i, unsigned int idx)
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
     ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    assert(h_actVec.data != NULL);
+    assert(h_actMag.data != NULL);
+    assert(h_pos.data != NULL);
+    assert(h_rtag.data != NULL);
 
+    unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
     Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
                 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -252,23 +267,19 @@ void ActiveForceCompute::setConstraint(unsigned int i, unsigned int idx)
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    assert(h_rtag.data != NULL);
-
     if (shouldCompute(timestep))
     {
 		for (unsigned int i = 0; i < m_pdata->getN(); i++)
 	    {
-	    	unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
 	        if (m_rx != 0)
 	        {
-	            setConstraint(i, idx); // apply surface constraints to active particles active force vectors
+	            setConstraint(i); // apply surface constraints to active particles active force vectors
 	        }
 	        if (m_rotationDiff != 0)
 	        {
-	            rotationalDiffusion(timestep, i, idx); // apply rotational diffusion to active particles
+	            rotationalDiffusion(timestep, i); // apply rotational diffusion to active particles
 	        }
-		    setForces(i, idx); // set forces for particles
+		    setForces(i); // set forces for particles
 		}
 	}
 }

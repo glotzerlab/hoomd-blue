@@ -92,13 +92,13 @@ class ActiveForceCompute : public ForceCompute
         virtual void computeForces(unsigned int timestep);
         
         //! Set forces for particles
-        void setForces(unsigned int i, unsigned int idx);
+        void setForces(unsigned int i);
 
         //! Orientational diffusion for spherical particles
-        void rotationalDiffusion(unsigned int timestep, unsigned int i, unsigned int idx);
+        void rotationalDiffusion(unsigned int timestep, unsigned int i);
 
         //! Set constraints if particles confined to a surface
-        void setConstraint(unsigned int i, unsigned int idx);
+        void setConstraint(unsigned int i);
         
         bool m_orientationLink;
         Scalar m_rotationDiff;
