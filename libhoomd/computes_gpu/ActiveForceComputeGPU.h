@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*! \file ActiveForceComputeGPU.h
-    \brief Declares a class for computing active forces
+    \brief Declares a class for computing active forces on the GPU
 */
 
 #ifdef NVCC
@@ -63,10 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ACTIVEFORCECOMPUTE_GPU_H__
 #define __ACTIVEFORCECOMPUTE_GPU_H__
 
-//! Adds an active force to a number of particles
+//! Adds an active force to a number of particles on the GPU
 /*! \ingroup computes
 */
-class ActiveForceComputeGPU : public ForceCompute
+class ActiveForceComputeGPU : public ActiveForceCompute
 {
     
     public:
@@ -77,30 +77,20 @@ class ActiveForceComputeGPU : public ForceCompute
                              Scalar ry,
                              Scalar rz);
 
-        //! Set forces for particles
-        void setForces();
-
-        //! Orientational diffusion for spherical particles
-        void rotationalDiffusion(unsigned int timestep);
-
-        void setConstraint();
-
     protected:
+        unsigned int m_block_size;  //!< block size to execute on the GPU
+        
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
         
-        bool m_orientationLink;
-        Scalar m_rotationDiff;
-        Scalar3 m_P;          //!< Position of the Ellipsoid
-        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
-        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
-        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-        int m_seed;
-        GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
-        GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
+        //! Set forces for particles
+        virtual void setForces();
 
-    private:
+        //! Orientational diffusion for spherical particles
+        virtual void rotationalDiffusion(unsigned int timestep);
 
+        //! Set constraints if particles confined to a surface
+        virtual void setConstraint();
 };
 
 //! Exports the ActiveForceComputeGPU Class to python

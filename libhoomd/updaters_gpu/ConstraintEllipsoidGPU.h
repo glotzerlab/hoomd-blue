@@ -76,11 +76,11 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
                          Scalar ry,
                          Scalar rz);
 
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
     };
 
 //! Exports the ConstraintEllipsoidGPU class to python

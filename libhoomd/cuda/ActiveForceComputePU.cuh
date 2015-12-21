@@ -49,69 +49,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "ForceCompute.h"
-#include "ParticleGroup.h"
-#include <boost/shared_ptr.hpp>
-#include "saruprng.h"
 #include "HOOMDMath.h"
-#include "VectorMath.h"
+#include "ParticleData.cuh"
 
-#include "EvaluatorConstraintEllipsoid.h"
-
-
-/*! \file ActiveForceCompute.h
-    \brief Declares a class for computing active forces
+/*! \file ConstraintSphereGPU.cuh
+    \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintSphereGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#ifndef __CONSTRAINT_SPHERE_GPU_CUH__
+#define __CONSTRAINT_SPHERE_GPU_CUH__
 
-#ifndef __ACTIVEFORCECOMPUTE_H__
-#define __ACTIVEFORCECOMPUTE_H__
+//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
+cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
+                                                 const unsigned int virial_pitch,
+                                                 const unsigned int *d_group_members,
+                                                 unsigned int group_size,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
+                                                 const Scalar4 *d_vel,
+                                                 const Scalar4 *d_net_force,
+                                                 const Scalar3& P,
+                                                 Scalar r,
+                                                 Scalar deltaT,
+                                                 unsigned int block_size);
 
-//! Adds an active force to a number of particles
-/*! \ingroup computes
-*/
-class ActiveForceCompute : public ForceCompute
-{
-    
-    public:
-        //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff,
-                             Scalar3 P,
-                             Scalar rx,
-                             Scalar ry,
-                             Scalar rz);
-
-        //! Destructor
-        ~ActiveForceCompute();
-
-    protected:
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-        
-        //! Set forces for particles
-        void setForces(unsigned int i, unsigned int idx);
-
-        //! Orientational diffusion for spherical particles
-        void rotationalDiffusion(unsigned int timestep, unsigned int i, unsigned int idx);
-
-        //! Set constraints if particles confined to a surface
-        void setConstraint(unsigned int i, unsigned int idx);
-        
-        bool m_orientationLink;
-        Scalar m_rotationDiff;
-        Scalar3 m_P;          //!< Position of the Ellipsoid
-        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
-        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
-        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-        int m_seed;
-        GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
-        GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
-};
-
-//! Exports the ActiveForceComputeClass to python
-void export_ActiveForceCompute();
-// debug flag
 #endif

@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "ActiveForceComputeGPU.h"
+#include "ActiveForceComputeGPU.cuh"
 
 #include <boost/python.hpp>
 #include <vector>
@@ -66,44 +67,23 @@ using namespace std;
 */   
 ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
         bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
-        : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+        : ActiveForceCompute(sysdef, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
 {
-    m_exec_conf->msg->notice(5) << "Constructing ActiveForceComputeGPU" << endl;
-    
-    vector<Scalar3> m_f_lst;
-    tuple tmp_force;
-    for (unsigned int i = 0; i < len(f_lst); i++)
-    {
-        tmp_force = extract<tuple>(f_lst[i]);
-        if (len(tmp_force) !=3) { throw runtime_error("Non-3D force given for ActiveForceComputeGPU"); }
-        m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
+    if (!m_exec_conf->isCUDAEnabled())
+        {
+        m_exec_conf->msg->error() << "Creating a ActiveForceComputeGPU with no GPU in the execution configuration" << endl;
+        throw std::runtime_error("Error initializing ActiveForceComputeGPU");
+        }
     }
-    
-    if (m_f_lst.size() != m_pdata->getN()) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
-    
-    m_activeVec.resize(m_pdata->getN());
-    m_activeMag.resize(m_pdata->getN());
-    
-    ArrayHandle<Scalar3> h_activeVec(m_activeVec, access_location::host);
-    ArrayHandle<Scalar> h_activeMag(m_activeMag, access_location::host);
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++) //set active force vector to array from python
-    {
-        h_activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
-        h_activeVec.data[i] = make_scalar3(0, 0, 0);
-        h_activeVec.data[i].x = m_f_lst[i].x/h_activeMag.data[i];
-        h_activeVec.data[i].y = m_f_lst[i].y/h_activeMag.data[i];
-        h_activeVec.data[i].z = m_f_lst[i].z/h_activeMag.data[i];
-    }
-    
-    // Hash the User's Seed to make it less likely to be a low positive integer
-    seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
 }
 
 /*! \param blah this does blah
 */
 void ActiveForceComputeGPU::setForces()
 {
+    //  array handles
+    ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
@@ -114,11 +94,8 @@ void ActiveForceComputeGPU::setForces()
     assert(h_rtag != NULL);
     assert(h_orientation.data != NULL);
     assert(h_force.data != NULL);
-
-    //  array handles
-    ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
-    
+    assert(h_actVec.data != NULL);
+    assert(h_actMag.data != NULL);   
 
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
@@ -243,8 +220,8 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
 
-    ArrayHandle < Scalar4 > h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     for (unsigned int i = 0; i < m_pdata -> getN(); i++)
     {
