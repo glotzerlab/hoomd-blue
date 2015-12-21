@@ -22,7 +22,7 @@ endif()
 # try python-X.Y lib naming (gentoo style) first
 set(BOOST_PYTHON_COMPONENT "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
-set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams serialization)
+set(REQUIRED_BOOST_COMPONENTS filesystem ${BOOST_PYTHON_COMPONENT} signals unit_test_framework serialization)
 
 message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
