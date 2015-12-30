@@ -74,7 +74,6 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         m_exec_conf->msg->error() << "Creating a ActiveForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
         }
-    }
 }
 
 /*! \param blah this does blah
@@ -86,16 +85,24 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    
+    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
+    
     // sanity check
     assert(d_force.data != NULL);
     assert(d_actVec.data != NULL);
     assert(d_actMag.data != NULL);
     assert(d_orientation.data != NULL);
+    assert(d_rtag.data != NULL);
+    
+    bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
     
     gpu_compute_active_force_set_forces(d_group_members.data,
                                      m_group->getNumMembers(),
                                      m_pdata->getN(),
+                                     d_rtag.data,
                                      d_force.data,
                                      d_orientation.data,
                                      d_actVec.data,
@@ -104,9 +111,8 @@ void ActiveForceComputeGPU::setForces()
                                      m_rx,
                                      m_ry,
                                      m_rz,
+                                     orientationLink,
                                      m_block_size);
-    
-    
 }
 
 /*! \param blah this does blah
@@ -117,13 +123,22 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    
+    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
+    
     assert(h_actVec.data != NULL);
     assert(h_actMag.data != NULL);
     assert(h_pos.data != NULL);
+    assert(d_rtag.data != NULL);
+    
+    bool is2D = (m_sysdef->getNDimensions() == 2);
 
     gpu_compute_active_force_rotational_diffusion(d_group_members.data,
                                                  m_group->getNumMembers(),
                                                  m_pdata->getN(),
+                                                 d_rtag.data,
                                                  d_pos.data,
                                                  d_actVec.data,
                                                  d_actMag.data,
@@ -131,6 +146,11 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                  m_rx,
                                                  m_ry,
                                                  m_rz,
+                                                 is2D,
+                                                 m_rotationDiff,
+                                                 m_deltaT,
+                                                 timestep,
+                                                 m_seed,
                                                  m_block_size);
 }
 
@@ -143,14 +163,21 @@ void ActiveForceComputeGPU::setConstraint()
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::readwrite);
-    ArrayHandle <Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+
+    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
+
     assert(d_actVec.data != NULL);
     assert(d_actMag.data != NULL);
     assert(d_pos.data != NULL);
+    assert(d_rtag.data != NULL);
 
     gpu_compute_active_force_set_constraints(d_group_members.data,
                                              m_group->getNumMembers(),
                                              m_pdata->getN(),
+                                             d_rtag.data,
                                              d_pos.data,
                                              d_actVec.data,
                                              d_actMag.data,

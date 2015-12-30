@@ -75,7 +75,8 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     for (unsigned int i = 0; i < len(f_lst); i++)
     {
         tmp_force = extract<tuple>(f_lst[i]);
-        if (len(tmp_force) !=3) { throw runtime_error("Non-3D force given for ActiveForceCompute"); }
+        if (len(tmp_force) !=3) 
+            throw runtime_error("Non-3D force given for ActiveForceCompute");
         m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
     }
     
@@ -229,7 +230,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 */
 void ActiveForceCompute::setConstraint(unsigned int i)
 {
-	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
+    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     
     //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
