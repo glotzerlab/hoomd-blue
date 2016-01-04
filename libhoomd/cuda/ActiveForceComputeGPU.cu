@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ActiveForceComputeGPU.cuh"
 #include "saruprngCUDA.h"
+#include "EvaluatorConstraintEllipsoid.h"
 
 #include <assert.h>
 
@@ -62,12 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! 
 */
 extern "C" __global__
-void gpu_compute_active_force_set_constraints_kernel(const unsigned int *d_group_members,
-                                                   unsigned int group_size,
-                                                   const unsigned int N,
+void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
-                                                   Scalar4 *d_actVec,
+                                                   Scalar3 *d_actVec,
                                                    const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
@@ -105,12 +104,10 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int *d_group
     d_actVec[i].z /= new_norm;
 }
 
-__global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int *d_group_members,
-                                                   unsigned int group_size,
-                                                   const unsigned int N,
+__global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int N,
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
-                                                   Scalar4 *d_actVec,
+                                                   Scalar3 *d_actVec,
                                                    const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
@@ -198,13 +195,11 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     }
 }
 
-__global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int *d_group_members,
-                                                   unsigned int group_size,
-                                                   const unsigned int N,
+__global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int N,
                                                    const unsigned int *d_rtag, 
                                                    Scalar4 *d_force,
                                                    const Scalar4 *d_orientation,
-                                                   const Scalar4 *d_actVec,
+                                                   const Scalar3 *d_actVec,
                                                    const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
@@ -213,14 +208,14 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int *d
                                                    bool orientationLink)
 {
     //FILL ME IN, FINISH ACTIVE FORCE GPU CODE
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 //////////////////////////////////
-    if (group_idx >= group_size)
+    if (i >= N)
         return;
 
     // why use groups?
-    unsigned int i = d_group_members[group_idx];
+    // unsigned int i = d_group_members[id];
     unsigned int idx = d_rtag[i];
 //////////////////////////////////
     
@@ -248,13 +243,11 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int *d
 
 
 
-cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group_members,
-                                                   unsigned int group_size,
-                                                   const unsigned int N,
+cudaError_t gpu_compute_active_force_set_constraints(const unsigned int N,
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
-                                                   Scalar4 *d_actVec,
+                                                   Scalar3 *d_actVec,
                                                    const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
@@ -262,17 +255,13 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group
                                                    Scalar rz,
                                                    unsigned int block_size)
 {
-    assert(d_group_members);
-
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    gpu_compute_active_force_set_constraints_kernel<<< grid, threads>>>(d_group_members,
-                                                                    group_size,
-                                                                    N,
+    gpu_compute_active_force_set_constraints_kernel<<< grid, threads>>>(N,
                                                                     d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
@@ -285,13 +274,11 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group
     return cudaSuccess;
 }
 
-cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int *d_group_members,
-                                                       unsigned int group_size,
-                                                       const unsigned int N,
+cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int N,
                                                        const unsigned int *d_rtag,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
-                                                       Scalar4 *d_actVec,
+                                                       Scalar3 *d_actVec,
                                                        const Scalar *d_actMag,
                                                        const Scalar3& P,
                                                        Scalar rx,
@@ -304,17 +291,13 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int *d_
                                                        const int seed,
                                                        unsigned int block_size)
 {
-    assert(d_group_members);
-
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    gpu_compute_active_force_rotational_diffusion_kernel<<< grid, threads>>>(d_group_members,
-                                                                    group_size,
-                                                                    N,
+    gpu_compute_active_force_rotational_diffusion_kernel<<< grid, threads>>>(N,
                                                                     d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
@@ -332,13 +315,11 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int *d_
     return cudaSuccess;
 }
 
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int *d_group_members,
-                                           unsigned int group_size,
-                                           const unsigned int N,
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int N,
                                            const unsigned int *d_rtag,
                                            Scalar4 *d_force,
                                            const Scalar4 *d_orientation,
-                                           const Scalar4 *d_actVec,
+                                           const Scalar3 *d_actVec,
                                            const Scalar *d_actMag,
                                            const Scalar3& P,
                                            Scalar rx,
@@ -347,17 +328,13 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int *d_group_memb
                                            bool orientationLink,
                                            unsigned int block_size)
 {
-    assert(d_group_members);
-
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>(d_group_members,
-                                                                    group_size,
-                                                                    N,
+    gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( N,
                                                                     d_rtag,
                                                                     d_force,
                                                                     d_orientation,

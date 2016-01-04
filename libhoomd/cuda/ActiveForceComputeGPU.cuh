@@ -49,24 +49,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "HOOMDMath.h"
+#include "ParticleData.cuh"
+
 /*! \file ActiveForceComputeGPU.cuh
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
 */
 
-#include "HOOMDMath.h"
-#include "ParticleData.cuh"
-#include "EvaluatorConstraintEllipsoid.h"
-
 #ifndef __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
-    
 
-cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group_members,
-                                                   unsigned int group_size,
-                                                   const unsigned int N,
+
+cudaError_t gpu_compute_active_force_set_constraints(const unsigned int N,
+                                                   const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
-                                                   Scalar4 *d_actVec,
+                                                   Scalar3 *d_actVec,
                                                    const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
@@ -75,26 +73,29 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int *d_group
                                                    unsigned int block_size);
 
 
-cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int *d_group_members,
-                                                       unsigned int group_size,
-                                                       const unsigned int N,
+cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int N,
+                                                       const unsigned int *d_rtag,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
-                                                       Scalar4 *d_actVec,
+                                                       Scalar3 *d_actVec,
                                                        const Scalar *d_actMag,
                                                        const Scalar3& P,
                                                        Scalar rx,
                                                        Scalar ry,
                                                        Scalar rz,
+                                                       bool is2D,
+                                                       const Scalar rotationDiff,
+                                                       const Scalar deltaT,
+                                                       const unsigned int timestep,
+                                                       const int seed,
                                                        unsigned int block_size);
 
 
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int *d_group_members,
-                                           unsigned int group_size,
-                                           const unsigned int N,
-                                           Scalar4* d_force,
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int N,
+                                           const unsigned int *d_rtag,
+                                           Scalar4 *d_force,
                                            const Scalar4 *d_orientation,
-                                           const Scalar4 *d_actVec,
+                                           const Scalar3 *d_actVec,
                                            const Scalar *d_actMag,
                                            const Scalar3& P,
                                            Scalar rx,
@@ -102,8 +103,6 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int *d_group_memb
                                            Scalar rz,
                                            bool orientationLink,
                                            unsigned int block_size);
-
-
 
 
 #endif
