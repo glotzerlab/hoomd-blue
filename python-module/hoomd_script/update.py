@@ -595,25 +595,27 @@ class box_resize(_updater):
 
 ## Constrain particles to the surface of a ellipsoid
 #
-# The command constrain.ellipsoid specifies that all particles in the given group are constrained
-# to an ellipsoid.
+# The command constrain.ellipsoid specifies that all particles are constrained
+# to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
+# Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
+# Note: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
+# Also note: this method does not properly conserve virial coefficients.
 # \MPI_NOT_SUPPORTED
 class constraint_ellipsoid(_updater):
     ## Specify the %ellipsoid updater
     #
-    # \param group Group on which to apply the constraint
-    # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units)
-    # \param r Radius of a sphere (in distance units)
-    # \param rx Radius of an ellipsoid in the X direction (in distance units)
-    # \param ry Radius of an ellipsoid in the Y direction (in distance units)
-    # \param rz Radius of an ellipsoid in the Z direction (in distance units)
+    # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units).
+    # \param rx radius of an ellipsoid in the X direction (in distance units).
+    # \param ry radius of an ellipsoid in the Y direction (in distance units).
+    # \param rz radius of an ellipsoid in the Z direction (in distance units).
+    # \param r radius of a sphere (in distance units), such that r=rx=ry=rz.
     #
     # \b Examples:
     # \code
-    # update.constraint_ellipsoid(group=groupA, P=(0,10,2), r=10)
-    # update.constraint_ellipsoid(rx=10, ry=12, rz=4)
+    # update.constraint_ellipsoid(P=(-1,5,0), r=9)
+    # update.constraint_ellipsoid(rx=-4, ry=3, rz=7)
     # \endcode
-    def __init__(self, r=None, rx=None, ry=None, rz=None, P=hoomd.make_scalar3(0, 0, 0), group=None):
+    def __init__(self, r=None, rx=None, ry=None, rz=None, P=hoomd.make_scalar3(0,0,0), group=None):
         util.print_status_line();
         period = 1;
 

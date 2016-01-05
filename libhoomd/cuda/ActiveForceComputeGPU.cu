@@ -59,8 +59,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
 */
 
-//! Kernel for calculating blah
-/*! 
+//! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
+/*! \param N number of particles
+    \param d_rtag particle tag
+    \param d_pos particle positions on device
+    \param d_actVec particle active force unit vector
+    \param d_actMag particle active force vector magnitude
+    \param P position of the ellipsoid constraint
+    \param rx radius of the ellipsoid in x direction
+    \param ry radius of the ellipsoid in y direction
+    \param rz radius of the ellipsoid in z direction
 */
 extern "C" __global__
 void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
@@ -104,6 +112,22 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
     d_actVec[i].z /= new_norm;
 }
 
+//! Kernel for applying rotational diffusion to active force vectors on the GPU
+/*! \param N number of particles
+    \param d_rtag particle tag
+    \param d_pos particle positions on device
+    \param d_actVec particle active force unit vector
+    \param d_actMag particle active force vector magnitude
+    \param P position of the ellipsoid constraint
+    \param rx radius of the ellipsoid in x direction
+    \param ry radius of the ellipsoid in y direction
+    \param rz radius of the ellipsoid in z direction
+    \param is2D check if simulation is 2D or 3D
+    \param rotationDiff particle rotational diffusion constant
+    \param deltaT step size from the Integrator
+    \param timestep current timestep
+    \param seed seed for random number generator
+*/
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int N,
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
@@ -195,6 +219,19 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     }
 }
 
+//! Kernel for setting active force vectors on the GPU
+/*! \param N number of particles
+    \param d_rtag particle tag
+    \param d_force particle force on device
+    \param d_orientation particle orientation on device
+    \param d_actVec particle active force unit vector
+    \param d_actMag particle active force vector magnitude
+    \param P position of the ellipsoid constraint
+    \param rx radius of the ellipsoid in x direction
+    \param ry radius of the ellipsoid in y direction
+    \param rz radius of the ellipsoid in z direction
+    \param orientationLink check if particle orientation is linked to active force vector
+*/
 __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int N,
                                                    const unsigned int *d_rtag, 
                                                    Scalar4 *d_force,

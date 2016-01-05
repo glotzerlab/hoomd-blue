@@ -100,6 +100,7 @@ void ConstraintEllipsoid::update(unsigned int timestep)
     if (m_prof) m_prof->push("ConstraintEllipsoid");
 
     assert(m_pdata);
+    
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     
@@ -126,7 +127,6 @@ void ConstraintEllipsoid::update(unsigned int timestep)
 
 /*! Print warning messages if the Ellipsoid is outside the box.
     Generate an error if any particle in the group is not near the Ellipsoid.
-    NEEDED??????
 */
 void ConstraintEllipsoid::validate()
 {
@@ -163,22 +163,21 @@ void ConstraintEllipsoid::validate()
     {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
-        // Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
-        // // evaluate the constraint position: ONLY WORKS FOR SPHERE. WHY IS THIS NEEDED?
-        // Scalar3 C = Ellipsoid.evalClosest(X);
-        // Scalar3 V;
-        // V.x = C.x - X.x;
-        // V.y = C.y - X.y;
-        // V.z = C.z - X.z;
-        // Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
+        Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 C = Ellipsoid.evalClosest(X);
+        Scalar3 V;
+        V.x = C.x - X.x;
+        V.y = C.y - X.y;
+        V.z = C.z - X.z;
+        Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
 
-        // if (dist > Scalar(1.0))
-        //     {
-        //     m_exec_conf->msg->error() << "constrain.ellipsoid: Particle " << h_tag.data[j] << " is more than 1 unit of"
-        //                               << " distance away from the closest point on the ellipsoid constraint" << endl;
-        //     errors = true;
-        //     }
+        if (dist > Scalar(1.0))
+            {
+            m_exec_conf->msg->error() << "constrain.ellipsoid: Particle " << h_tag.data[j] << " is more than 1 unit of"
+                                      << " distance away from the closest point on the ellipsoid constraint" << endl;
+            errors = true;
+            }
 
         if (h_body.data[j] != NO_BODY)
         {

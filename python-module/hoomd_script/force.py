@@ -336,17 +336,24 @@ class constant(_force):
 ## Active %force
 #
 # The command force.active specifies that an %active %force should be added
-# to all particles in a group.
+# to all particles.
 #
 # NO MPI
 class active(_force):
     ## Specify the %active %force
     #
-    # \param activity an array [x,y,z] for the active force vector for each individual particle in group
-    # \param group Group for which the force will be set
+    # \param seed required user-specified seed number for random number generator.
+    # \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
+    # \param orientation_link if True then particle orientation is coupled to the active force vector. Only
+    # relevant for non-point-like anisotropic particles.
+    # \param rotation_diff rotational diffusion constant for all particles.
+    # \param constraint specifies a constraint surface, to which particles are confined,
+    # such as update.constraint_ellipsoid.
     # \b Examples:
     # \code
-    # act = force.active(group=fluid, activity=particle_activity_array)
+    # force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
+    # ellipsoid = update.constraint_ellipsoid(P=(0,0,0), rx=3, ry=4, rz=5)
+    # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     # \endcode
     def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0, constraint=None):
         util.print_status_line();
@@ -382,9 +389,11 @@ class active(_force):
             self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
         
         # store metadata
-#        if group is not None:
-#            self.metadata_fields.append('group')
-#            self.group = group
+        self.metdata_fields = ['seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.seed = seed
+        self.orientation_link = orientation_link
+        self.rotation_diff = rotation_diff
+        self.constraint = constraint
 
         globals.system.addCompute(self.cpp_force, self.force_name);
     
