@@ -110,7 +110,8 @@ struct comm_flag
         charge,      //! Bit id in CommFlags for particle charge
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
-        orientation  //! Bit id in CommFlags for particle orientation
+        orientation, //! Bit id in CommFlags for particle orientation
+        net_force    //! Communicate net force
         };
     };
 
@@ -444,6 +445,11 @@ class Communicator
             m_comm_pending = false;
             }
 
+       /*! Communicate the net particle force
+        * \parm timestep The time step
+        */
+       virtual void updateNetForce(unsigned int timestep);
+
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
          *
@@ -530,7 +536,7 @@ class Communicator
                  * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
                  * the rank information with the destination ranks (or the local ranks if incomplete=true)
                  */
-                void migrateGroups(bool incomplete);
+                void migrateGroups(bool incomplete, bool local_multiple);
 
                 //! Mark ghost particles
                 /* All particles that need to be sent as ghosts because they are members
@@ -540,6 +546,15 @@ class Communicator
                  * \param mask Mask for allowed sending directions
                  */
                 void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+
+                //! Copy 'ghost groups' between domains
+                /*! Both members of a ghost group are inside the ghost layer
+                 *
+                 * \param plans The ghost particle send directions determined by Communicator
+                 * \param mask Mask for allowed sending directions
+                 * \param dir Current exchange direction
+                 */
+                void exchangeGhostGroups(const GPUArray<unsigned int>& plans, unsigned int mask);
 
             private:
                 Communicator& m_comm;                            //!< The outer class
@@ -603,6 +618,7 @@ class Communicator
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
         GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
+        GPUVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
@@ -674,6 +690,15 @@ class Communicator
             m_impropers_changed = true;
             }
 
+        /* Constraints communication */
+        bool m_constraints_changed;                          //!< True if constraint information needs to be refreshed
+        boost::signals2::connection m_constraint_connection; //!< Connection to ConstraintData addition/removal of constraints signal
+        void setConstraintsChanged()
+            {
+            m_constraints_changed = true;
+            }
+
+
         //! Remove tags of ghost particles
         virtual void removeGhostParticleTags();
 
@@ -707,6 +732,9 @@ class Communicator
 
         GroupCommunicator<ImproperData> m_improper_comm;  //!< Communication helper for impropers
         friend class GroupCommunicator<ImproperData>;
+
+        GroupCommunicator<ConstraintData> m_constraint_comm; //!< Communicator helper for constraints
+        friend class GroupCommunicator<ConstraintData>;
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
 

@@ -828,7 +828,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
-            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
             BoxDim global_box = m_global_box;
 

@@ -71,6 +71,7 @@ from hoomd_script import util;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import meta;
+from hoomd_script import nlist;
 
 ## \internal
 # \brief Base class for constraint forces
@@ -290,7 +291,7 @@ class sphere(_constraint_force):
 #
 # \sa hoomd_script.data.system_data
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class distance(_constraint_force):
     ## Specify the pairwise %distance constraint %force
     #
@@ -301,23 +302,25 @@ class distance(_constraint_force):
     def __init__(self):
         util.print_status_line();
 
-        # FIXME:need to enable in MPI
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("constrain.distance is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing constraint force.")
-
         # initialize the base class
         _constraint_force.__init__(self);
 
+        self.nlist = nlist._subscribe_global_nlist(lambda: self.get_rcut())
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
+            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition, self.nlist.cpp_nlist);
         else:
-            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition);
+            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition, self.nlist.cpp_nlist);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
+
+    def get_rcut(self):
+        # do not update dictionary
+        r_cut_dict = nlist.rcut();
+
+        return r_cut_dict;
+
 
     ## Set parameters for constraint computation
     #

@@ -342,9 +342,9 @@ void DomainDecomposition::initializeCumulativeFractions(const std::vector<Scalar
                                                         const std::vector<Scalar>& fzs)
     {
     // final sanity check (constructor should handle this correctly)
-    assert(fxs.size() == m_nx);
-    assert(fys.size() == m_ny);
-    assert(fzs.size() == m_nz);
+    assert(fxs.size()+1 == m_nx);
+    assert(fys.size()+1 == m_ny);
+    assert(fzs.size()+1 == m_nz);
 
     // adjust the fraction arrays
     m_cum_frac_x.resize(m_nx+1);

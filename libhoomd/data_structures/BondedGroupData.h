@@ -68,6 +68,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "Profiler.h"
 #include "Index1D.h"
 #include "HOOMDMath.h"
+#include "ParticleData.h"
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
@@ -84,9 +85,6 @@ using namespace boost::python;
 #include <string>
 #include <sstream>
 #include <set>
-
-//! Forward declarations
-class ParticleData;
 
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
@@ -288,8 +286,33 @@ class BondedGroupData : boost::noncopyable
         //! Get local number of bonded groups
         unsigned int getN() const
             {
-            return m_groups.size();
+            return m_n_groups;
             }
+
+        //! Remove all ghost groups
+        void removeAllGhostGroups()
+            {
+            unsigned int new_size = m_groups.size() - m_n_ghost;
+            reallocate(new_size);
+            m_n_ghost = 0;
+            }
+
+        //! Add ghost groups
+        /*! \param nghost The number of ghost groups to add
+         */
+        void addGhostGroups(unsigned int ngroup)
+            {
+            unsigned int new_size = m_groups.size()+ngroup;
+            reallocate(new_size);
+            m_n_ghost += ngroup;
+            }
+
+        //! Get local number of bonded groups
+        unsigned int getNGhosts() const
+            {
+            return m_n_ghost;
+            }
+
 
         //! Get global number of bonded groups
         unsigned int getNGlobal() const
@@ -343,6 +366,31 @@ class BondedGroupData : boost::noncopyable
         /*
          * Access to data structures
          */
+
+        //! Add local groups
+        /*! \note It is assumed that there are no ghost groups present
+            at the time this method is called
+         */
+        void addGroups(unsigned int ngroup)
+            {
+            assert(m_n_ghost == 0);
+            unsigned int new_size = m_n_groups + ngroup;
+            reallocate(new_size);
+            m_n_groups += ngroup;
+            }
+
+        //! Remove local groups
+        /*! \note It is assumed that there are no ghost groups present
+            at the time this method is called
+         */
+        void removeGroups(unsigned int nremove)
+            {
+            assert(m_n_ghost == 0);
+            assert(m_n_groups >= nremove);
+            unsigned int new_size = m_n_groups - nremove;
+            reallocate(new_size);
+            m_n_groups -= nremove;
+            }
 
         //! Return group table (const)
         const GPUVector<members_t>& getMembersArray() const
@@ -525,7 +573,7 @@ class BondedGroupData : boost::noncopyable
         //! Return list of number of groups per particle
         const GPUArray<unsigned int>& getNGroupsArray() const
             {
-            return m_n_groups;
+            return m_gpu_n_groups;
             }
 
         /*
@@ -601,8 +649,11 @@ class BondedGroupData : boost::noncopyable
         GPUVector<members_t> m_gpu_table;            //!< Storage for groups by particle index for access on the GPU
         GPUVector<unsigned int> m_gpu_pos_table;     //!< Position of particle idx in group table
         Index2D m_gpu_table_indexer;                 //!< Indexer for GPU table
-        GPUVector<unsigned int> m_n_groups;          //!< Number of entries in lookup table per particle
+        GPUVector<unsigned int> m_gpu_n_groups;      //!< Number of entries in lookup table per particle
         std::vector<std::string> m_type_mapping;     //!< Mapping of types of bonded groups
+
+        unsigned int m_n_groups;                     //!< Number of local groups
+        unsigned int m_n_ghost;                      //!< Number of ghost groups with no local ptl
 
         #ifdef ENABLE_MPI
         GPUVector<ranks_t> m_group_ranks;       //!< 2D list of group member ranks
@@ -642,6 +693,22 @@ class BondedGroupData : boost::noncopyable
 
         //! Helper function to rebuild lookup by index table
         void rebuildGPUTable();
+
+        //! Resize internal tables
+        /*! \param new_size New size of local group tables, new_size = n_local + n_ghost
+         */
+        void reallocate(unsigned int new_size)
+            {
+            m_groups.resize(new_size);
+            m_group_typeval.resize(new_size);
+            m_group_tag.resize(new_size);
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition())
+                {
+                m_group_ranks.resize(new_size);
+                }
+            #endif
+            }
 
         #ifdef ENABLE_CUDA
         //! Helper function to rebuild lookup by index table on the GPU

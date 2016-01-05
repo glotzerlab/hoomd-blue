@@ -127,6 +127,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "MolecularForceCompute.h"
 #include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
@@ -570,6 +571,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
+    export_MolecularForceCompute();
     export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_wall_field_helpers();

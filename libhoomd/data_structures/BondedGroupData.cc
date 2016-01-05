@@ -86,7 +86,7 @@ template<unsigned int group_size, typename Group, const char *name, bool has_typ
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name<< "s, n=" << group_size << ") "
         << endl;
@@ -135,7 +135,7 @@ template<unsigned int group_size, typename Group, const char *name, bool has_typ
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     const Snapshot& snapshot)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
@@ -208,7 +208,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
     m_gpu_pos_table.swap(gpu_pos_table);
 
     GPUVector<unsigned int> n_groups(m_exec_conf);
-    m_n_groups.swap(n_groups);
+    m_gpu_n_groups.swap(n_groups);
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -337,6 +337,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBondedGroup(Group g)
     {
+    // we are changing the local number of groups, so remove ghosts
+    removeAllGhostGroups();
+
     typeval_t typeval = g.get_typeval();
     members_t member_tags = g.get_members();
 
@@ -440,6 +443,8 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
             m_group_ranks.push_back(r);
             }
         #endif
+
+        m_n_groups++;
         }
 
     // add to set of active tags
@@ -493,7 +498,7 @@ const Group BondedGroupData<group_size, Group, name, has_type_mapping>::getGroup
         {
         int my_rank = m_exec_conf->getRank();
         // set local to rank if the bond is local, -1 if not
-        int rank = group_idx < m_groups.size() ? my_rank : -1;
+        int rank = group_idx < m_n_groups ? my_rank : -1;
 
         // the highest rank owning the group sends it to the others
         MPI_Allreduce(MPI_IN_PLACE,
@@ -566,7 +571,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getType
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 Scalar BondedGroupData<group_size, Group, name, has_type_mapping>::getValueByIndex(unsigned int group_idx) const
     {
-    assert (group_idx < getN());
+    assert (group_idx < getN()+getNGhosts());
     assert(!has_type_mapping);
     return ((typeval_t) m_group_typeval[group_idx]).val;
     }
@@ -578,7 +583,7 @@ Scalar BondedGroupData<group_size, Group, name, has_type_mapping>::getValueByInd
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 const typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(unsigned int group_idx) const
     {
-    assert (group_idx < getN());
+    assert (group_idx < getN()+getNGhosts());
     return m_groups[group_idx];
     }
 
@@ -587,6 +592,9 @@ const typename BondedGroupData<group_size, Group, name, has_type_mapping>::membe
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGroup(unsigned int tag)
     {
+    // we are changing the local particle number, remove ghost groups
+    removeAllGhostGroups();
+
     // sanity check
     if (tag >= m_group_rtag.size())
         {
@@ -632,7 +640,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
 
     if (is_local)
         {
-        unsigned int size = m_groups.size();
+        unsigned int size = m_n_groups;
         // If the bonded group is in the middle of the list, move the last element to
         // to the position of the removed element
         if (id < (size-1))
@@ -656,6 +664,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
         if (m_pdata->getDomainDecomposition())
             m_group_ranks.pop_back();
         #endif
+        m_n_groups--;
         }
 
     // remove from set of active tags
@@ -755,11 +764,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
         ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-        m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
+        m_gpu_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
         unsigned int num_groups_max = 0;
             {
-            ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_n_groups(m_gpu_n_groups, access_location::host, access_mode::overwrite);
 
             unsigned int N = m_pdata->getN()+m_pdata->getNGhosts();
             // count the number of bonded groups per particle
@@ -803,7 +812,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
 
             {
-            ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_n_groups(m_gpu_n_groups, access_location::host, access_mode::overwrite);
             ArrayHandle<members_t> h_gpu_table(m_gpu_table, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_gpu_pos_table(m_gpu_pos_table, access_location::host, access_mode::overwrite);
 
@@ -867,7 +876,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
     if (m_prof) m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
 
     // resize groups counter
-    m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
+    m_gpu_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     // resize GPU table to current number of particles
     m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH());
@@ -883,7 +892,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ArrayHandle<members_t> d_groups(m_groups, access_location::device, access_mode::read);
             ArrayHandle<typeval_t> d_group_typeval(m_group_typeval, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_groups(m_gpu_n_groups, access_location::device, access_mode::overwrite);
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_gpu_pos_table(m_gpu_pos_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
@@ -1103,7 +1112,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
         std::vector<unsigned int> send_groups;
 
         // create a list of groups connected to the particle
-        for (unsigned int group_idx = 0; group_idx < m_groups.size(); ++group_idx)
+        for (unsigned int group_idx = 0; group_idx < m_n_groups; ++group_idx)
             {
             members_t members = m_groups[group_idx];
             bool send = false;

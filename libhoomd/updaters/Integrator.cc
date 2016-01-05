@@ -430,6 +430,14 @@ void Integrator::computeNetForce(unsigned int timestep)
     if (m_constraint_forces.size() == 0)
         return;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // communicate the net force
+        m_comm->updateNetForce(timestep);
+        }
+    #endif
+
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
@@ -452,7 +460,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
@@ -671,6 +679,14 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     if (m_constraint_forces.size() == 0)
         return;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // communicate the net force
+        m_comm->updateNetForce(timestep);
+        }
+    #endif
+
     // compute all the constraint forces next
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
@@ -881,11 +897,6 @@ void Integrator::computeCallback(unsigned int timestep)
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
-
-    // pre-compute all active constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->preCompute(timestep);
     }
 #endif
 

@@ -63,8 +63,9 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
-        : ForceConstraint(sysdef), m_cdata(m_sysdef->getConstraintData()),
+ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef,
+    boost::shared_ptr<NeighborList> nlist)
+        : MolecularForceCompute(sysdef, nlist), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
           m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true)
@@ -100,7 +101,7 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
         }
 
     // reallocate through amortized resizin
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
     m_cmatrix.resize(n_constraint*n_constraint);
     m_cvec.resize(n_constraint);
 
@@ -123,7 +124,7 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
 void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
     {
     // fill the matrix in column-major order
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
 
     if (m_constraint_reorder)
         {
@@ -160,7 +161,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
     for (unsigned int n = 0; n < n_constraint; ++n)
         {
         // lookup the tag of each of the particles participating in the constraint
-        const BondData::members_t constraint = m_cdata->getMembersByIndex(n);
+        const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(n);
         assert(constraint.tag[0] < m_pdata->getMaximumTag());
         assert(constraint.tag[1] < m_pdata->getMaximumTag());
 
@@ -190,7 +191,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         for (unsigned int m = 0; m < n_constraint; ++m)
             {
             // lookup the tag of each of the particles participating in the constraint
-            const BondData::members_t constraint_m = m_cdata->getMembersByIndex(m);
+            const ConstraintData::members_t constraint_m = m_cdata->getMembersByIndex(m);
             assert(constraint_m.tag[0] < m_pdata->getMaximumTag());
             assert(constraint_m.tag[1] < m_pdata->getMaximumTag());
 
@@ -297,7 +298,7 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     typedef Map<matrix_t> matrix_map_t;
     typedef Map<vec_t> vec_map_t;
 
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
@@ -413,13 +414,13 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
     memset(h_force.data,0,sizeof(Scalar4)*n_ptl);
     memset(h_virial.data,0,sizeof(Scalar)*6*m_virial_pitch);
 
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
 
     // copy output to force array
     for (unsigned int n = 0; n < n_constraint; ++n)
         {
         // lookup the tag of each of the particles participating in the constraint
-        const BondData::members_t constraint = m_cdata->getMembersByIndex(n);
+        const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(n);
         assert(constraint.tag[0] <= m_pdata->getMaximumTag());
         assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
@@ -486,20 +487,177 @@ CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
     // we need the velocity and the net force in addition to the position
     flags[comm_flag::velocity] = 1;
 
-    // FIXME
-    //flags[comm_flag::net_force] = 1;
-
-    flags |= ForceConstraint::getRequestedCommFlags(timestep);
+    flags |= MolecularForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
     }
 #endif
 
+void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+    std::vector<int>& label, const unsigned int *h_gpu_n_constraints,
+    const ConstraintData::members_t *h_gpu_constraint_list, const unsigned int *h_rtag)
+    {
+    assert(iconstraint < m_cdata->getN());
+    assert(h_gpu_n_constraints);
+    assert(h_gpu_constraint_list);
+    assert(h_rtag);
+
+    // don't mark constraints already visited
+    assert(visited.size() > iconstraint);
+    if (visited[iconstraint])
+        return;
+
+    // mark this constraint as visited
+    visited[iconstraint] = 1;
+
+    const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(iconstraint);
+    assert(constraint.tag[0] <= m_pdata->getMaximumTag());
+    assert(constraint.tag[1] <= m_pdata->getMaximumTag());
+
+    // transform a and b into indicies into the particle data arrays
+    // (MEM TRANSFER: 4 integers)
+    unsigned int idx_a = h_rtag[constraint.tag[0]];
+    unsigned int idx_b = h_rtag[constraint.tag[1]];
+    assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
+    assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
+
+    // use constraint by ptl idx lookup
+    const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
+
+    // label the ptls with a molecule id
+    label[idx_a] = molecule;
+    label[idx_b] = molecule;
+
+    // constraints that idx_a is connected to
+    unsigned int nconstraints_a = h_gpu_n_constraints[idx_a];
+    for (unsigned int i = 0; i < nconstraints_a; ++i)
+        {
+        unsigned int jconstraint = h_gpu_constraint_list[gpu_table_indexer(idx_a, i)].idx[1];
+
+        if (jconstraint != iconstraint)
+            {
+            // recursively mark connected constraint with current label
+            dfs(jconstraint, molecule, visited, label, h_gpu_n_constraints, h_gpu_constraint_list, h_rtag);
+            }
+        }
+
+    // constraints that idx_b is connected to
+    unsigned int nconstraints_b = h_gpu_n_constraints[idx_b];
+    for (unsigned int i = 0; i < nconstraints_b; ++i)
+        {
+        unsigned int jconstraint = h_gpu_constraint_list[gpu_table_indexer(idx_b, i)].idx[1];
+
+        if (jconstraint != iconstraint)
+            {
+            // recursively mark connected constraint with current label
+            dfs(jconstraint, molecule, visited, label, h_gpu_n_constraints, h_gpu_constraint_list, h_rtag);
+            }
+        }
+    }
+
+void ForceDistanceConstraint::initMolecules()
+    {
+    // walk through the local constraints and connect molecules
+
+    unsigned int nconstraint = m_cdata->getN()+m_cdata->getNGhosts();
+    std::vector<int> visited(nconstraint,0);
+
+    // label per ptl (-1 == no label)
+    unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
+    std::vector<int> label(nptl, -1);
+
+    int molecule = -1;
+        {
+        const GPUArray<ConstraintData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
+        ArrayHandle<unsigned int> h_gpu_n_constraints(this->m_cdata->getNGroupsArray(), access_location::host, access_mode::read);
+        ArrayHandle<ConstraintData::members_t> h_gpu_constraint_list(gpu_constraint_list, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+        // label ptls by connected component index
+        for (unsigned int iconstraint = 0; iconstraint < nconstraint; ++iconstraint)
+            {
+            if (! visited[iconstraint])
+                {
+                // depth first search
+                dfs(iconstraint, ++molecule, visited, label, h_gpu_n_constraints.data,
+                    h_gpu_constraint_list.data,  h_rtag.data);
+                }
+            }
+        }
+
+    // construct molecule table
+    unsigned int nmol = molecule+1;
+
+    m_molecule_length.resize(nmol);
+
+    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::overwrite);
+
+    // reset lengths
+    for (unsigned int imol = 0; imol < nmol; ++imol)
+        {
+        h_molecule_length.data[imol] = 0;
+        }
+
+    // count molecule lengths
+    for (unsigned int i = 0; i < nptl; ++i)
+        {
+        assert(i < label.size());
+        int molecule_i = label[i];
+        if (molecule_i != -1)
+            {
+            h_molecule_length.data[molecule_i]++;
+            }
+        }
+
+    // find maximum length
+    unsigned nmax = 0;
+    for (unsigned int imol = 0; imol < nmol; ++imol)
+        {
+        if (h_molecule_length.data[imol] > nmax)
+            {
+            nmax = h_molecule_length.data[imol];
+            }
+        }
+
+    // set up indexer
+    m_molecule_indexer = Index2D(nmol, nmax);
+
+    // resize molecule list
+    m_molecule_list.resize(m_molecule_indexer.getNumElements());
+
+    // reset lengths again
+    for (unsigned int imol = 0; imol < nmol; ++imol)
+        {
+        h_molecule_length.data[imol] = 0;
+        }
+
+    // fill molecule list
+    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<int> h_molecule_ridx(m_molecule_ridx, access_location::host, access_mode::overwrite);
+
+    for (unsigned int iptl = 0; iptl < nptl; ++iptl)
+        {
+        assert(iptl < label.size());
+        int i_mol = label[iptl];
+
+        // store label
+        h_molecule_ridx.data[iptl] = i_mol;
+
+        if (i_mol != -1)
+            {
+            unsigned int tag = h_tag.data[iptl];
+            unsigned int n = h_molecule_length.data[i_mol]++;
+            assert(tag <= m_pdata->getMaximumTag());
+            h_molecule_list.data[m_molecule_indexer(i_mol,n)] = tag;
+            }
+        }
+    }
 
 void export_ForceDistanceConstraint()
     {
-    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<ForceConstraint>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
+    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

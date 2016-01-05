@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include "ForceConstraint.h"
+#include "MolecularForceCompute.h"
 
 /*! \file ForceDistanceConstraint.h
     \brief Declares a class to implement pairwise distance constraint
@@ -76,11 +76,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
 */
-class ForceDistanceConstraint : public ForceConstraint
+class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef,
+            boost::shared_ptr<NeighborList> nlist);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -101,7 +102,6 @@ class ForceDistanceConstraint : public ForceConstraint
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
-
 
     protected:
         boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
@@ -144,6 +144,15 @@ class ForceDistanceConstraint : public ForceConstraint
             {
             m_constraint_reorder = true;
             }
+
+        //! Fill the molecule list
+        virtual void initMolecules();
+
+    private:
+        //! Helper function to perform a depth-first search
+        void dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+            std::vector<int>& label, const unsigned int *h_gpu_n_constraints,
+            const ConstraintData::members_t *h_gpu_constraint_list, const unsigned int *h_rtag);
     };
 
 //! Exports the ForceDistanceConstraint to python
