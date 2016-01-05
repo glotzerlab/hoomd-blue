@@ -63,7 +63,13 @@ using namespace std;
     \brief Contains code for the ActiveForceComputeGPU class
 */
 
-/*! \param blah this does blah
+/*! \param seed required user-specified seed number for random number generator.
+    \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
+    \param orientation_link if True then particle orientation is coupled to the active force vector. Only
+    relevant for non-point-like anisotropic particles.
+    \param rotation_diff rotational diffusion constant for all particles.
+    \param constraint specifies a constraint surface, to which particles are confined,
+    such as update.constraint_ellipsoid.
 */   
 ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
         bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
@@ -76,7 +82,8 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         }
 }
 
-/*! \param blah this does blah
+/*! This function sets appropriate active forces on all active particles.
+    \param i particle with id number i
 */
 void ActiveForceComputeGPU::setForces()
 {
@@ -111,7 +118,9 @@ void ActiveForceComputeGPU::setForces()
                                      m_block_size);
 }
 
-/*! \param blah this does blah
+/*! This function applies rotational diffusion to all active particles
+    \param i particle with id number i
+    \param timestep Current timestep
 */
 void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
 {
@@ -149,7 +158,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                     m_block_size);
 }
 
-/*! \param blah this does blah
+/*! This function sets an ellipsoid surface constraint for all active particles
+    \param i particle with id number i
 */
 void ActiveForceComputeGPU::setConstraint()
 {
@@ -182,7 +192,7 @@ void ActiveForceComputeGPU::setConstraint()
                                              m_block_size);
 }
 
-/*! This function calls setForces()
+/*! This function applies constraints, rotational diffusion, and sets forces for all active particles
     \param timestep Current timestep
 */
 void ActiveForceComputeGPU::computeForces(unsigned int timestep)

@@ -62,8 +62,14 @@ using namespace std;
     \brief Contains code for the ActiveForceCompute class
 */
 
-/*! \param blah this does blah
-*/   
+/*! \param seed required user-specified seed number for random number generator.
+    \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
+    \param orientation_link if True then particle orientation is coupled to the active force vector. Only
+    relevant for non-point-like anisotropic particles.
+    \param rotation_diff rotational diffusion constant for all particles.
+    \param constraint specifies a constraint surface, to which particles are confined,
+    such as update.constraint_ellipsoid.
+*/
 ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
         bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
         : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
@@ -106,7 +112,8 @@ ActiveForceCompute::~ActiveForceCompute()
         m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
 }
 
-/*! \param blah this does blah
+/*! This function sets appropriate active forces on all active particles.
+    \param i particle with id number i
 */
 void ActiveForceCompute::setForces(unsigned int i)
 {
@@ -145,7 +152,9 @@ void ActiveForceCompute::setForces(unsigned int i)
     }
 }
 
-/*! \param blah this does blah
+/*! This function applies rotational diffusion to all active particles
+    \param i particle with id number i
+    \param timestep Current timestep
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int i)
 {   
@@ -226,7 +235,8 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     }
 }
 
-/*! \param blah this does blah
+/*! This function sets an ellipsoid surface constraint for all active particles
+    \param i particle with id number i
 */
 void ActiveForceCompute::setConstraint(unsigned int i)
 {
@@ -263,7 +273,7 @@ void ActiveForceCompute::setConstraint(unsigned int i)
     h_actVec.data[i].z /= new_norm;
 }
 
-/*! This function calls setForces()
+/*! This function applies constraints, rotational diffusion, and sets forces for all active particles
     \param timestep Current timestep
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)

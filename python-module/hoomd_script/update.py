@@ -597,7 +597,9 @@ class box_resize(_updater):
 #
 # The command constrain.ellipsoid specifies that all particles are constrained
 # to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
-# Note that this method does not properly conserve virial coefficients.
+# Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
+# Note: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
+# Also note: this method does not properly conserve virial coefficients.
 # \MPI_NOT_SUPPORTED
 class constraint_ellipsoid(_updater):
     ## Specify the %ellipsoid updater
