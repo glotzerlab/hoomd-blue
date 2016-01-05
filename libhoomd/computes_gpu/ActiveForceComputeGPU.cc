@@ -74,6 +74,43 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         m_exec_conf->msg->error() << "Creating a ActiveForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
         }
+        
+    // override base class allocation using mapped memory
+    {
+        unsigned int N = m_pdata->getN();
+        GPUArray< Scalar3 > tmp_activeVec(N, m_exec_conf,true);
+        GPUArray< Scalar > tmp_activeMag(N, m_exec_conf,true);
+        
+        vector<Scalar3> m_f_lst;
+        tuple tmp_force;
+        for (unsigned int i = 0; i < len(f_lst); i++)
+        {
+            tmp_force = extract<tuple>(f_lst[i]);
+            if (len(tmp_force) !=3) 
+                throw runtime_error("Non-3D force given for ActiveForceCompute");
+            m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
+        }
+        
+        if (m_f_lst.size() != m_pdata->getN()) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
+        
+        tmp_activeVec.resize(m_pdata->getN());
+        tmp_activeMag.resize(m_pdata->getN());
+        
+        ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
+        ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
+
+        for (unsigned int i = 0; i < m_pdata->getN(); i++) //set active force vector to array from python
+        {
+            activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
+            activeVec.data[i] = make_scalar3(0, 0, 0);
+            activeVec.data[i].x = m_f_lst[i].x / activeMag.data[i];
+            activeVec.data[i].y = m_f_lst[i].y / activeMag.data[i];
+            activeVec.data[i].z = m_f_lst[i].z / activeMag.data[i];
+        }
+        
+        m_activeVec.swap(tmp_activeVec);
+        m_activeMag.swap(tmp_activeMag);
+    }
 }
 
 /*! \param blah this does blah
@@ -116,15 +153,15 @@ void ActiveForceComputeGPU::setForces()
 void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
 {
     //  array handles
-    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
 
-    assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL);
-    assert(h_pos.data != NULL);
+    assert(d_actVec.data != NULL);
+    assert(d_actMag.data != NULL);
+    assert(d_pos.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_force.data != NULL);
     
