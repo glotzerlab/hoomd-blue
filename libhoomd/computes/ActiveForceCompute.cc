@@ -168,7 +168,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     assert(h_pos.data != NULL);
     assert(h_rtag.data != NULL);
 
-    if (m_sysdef->getNDimensions() == 2) // 2D ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
+    if (m_sysdef->getNDimensions() == 2) // 2D
     {
         //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
         Saru saru(i, timestep, m_seed);
@@ -223,7 +223,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             current_vec.x = h_actVec.data[i].x;
             current_vec.y = h_actVec.data[i].y;
             current_vec.z = h_actVec.data[i].z;
-            vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vect for defining direction that active force vetor rotates towards.
+            vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
             delta_theta = m_deltaT*m_rotationDiff*gaussian_rng(saru, 1.0);

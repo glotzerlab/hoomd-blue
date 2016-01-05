@@ -335,8 +335,12 @@ class constant(_force):
 
 ## Active %force
 #
-# The command force.active specifies that an %active %force should be added
-# to all particles.
+# The command force.active specifies that an %active %force should be added to all particles.
+# Obeys \f$\delta {\bf r}_i = \delta t {\bf p}_i\f$, where \f${\bf p}_i = (\cos \theta_i, \sin \theta_i)\f$
+# is the active force vector for particle \f$i\f$. In 2D \f$\delta \theta = \delta t \xi \Gamma_\theta \f$, and in 3D
+# \f$\delta {\bf p}_i = \delta t \xi ({\bf p}_i \times {\bf \Gamma}_p)\f$, where \f$\xi\f$ is the rotational diffusion
+# constant, and the gamma functions are unit-variance random variables of appropriate dimensionality,
+# whose components are uncorrelated in time, space, and between particles.
 #
 # NO MPI
 class active(_force):
@@ -346,12 +350,13 @@ class active(_force):
     # \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     # \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     # relevant for non-point-like anisotropic particles.
-    # \param rotation_diff rotational diffusion constant for all particles.
+    # \param rotation_diff rotational diffusion constant, \f$\xi\f$, for all particles.
     # \param constraint specifies a constraint surface, to which particles are confined,
     # such as update.constraint_ellipsoid.
     # \b Examples:
     # \code
     # force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
+    #
     # ellipsoid = update.constraint_ellipsoid(P=(0,0,0), rx=3, ry=4, rz=5)
     # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     # \endcode

@@ -90,7 +90,7 @@ void ActiveForceComputeGPU::setForces()
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     
@@ -125,15 +125,15 @@ void ActiveForceComputeGPU::setForces()
 void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
 {
     //  array handles
-    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-    assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL);
-    assert(h_pos.data != NULL);
+    assert(d_actVec.data != NULL);
+    assert(d_actMag.data != NULL);
+    assert(d_pos.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_force.data != NULL);
     
@@ -170,7 +170,7 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
     assert(d_actVec.data != NULL);
     assert(d_actMag.data != NULL);

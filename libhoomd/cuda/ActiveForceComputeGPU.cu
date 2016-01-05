@@ -152,7 +152,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 /////////////////////////////////////
     
     
-    if (is2D) // 2D ADD OR STATEMENT TO CHECK IF CONSTRAINT IS BEING USED
+    if (is2D) // 2D
     {
         //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
         SaruGPU saru(i, timestep, seed);
@@ -207,7 +207,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             current_vec.x = d_actVec[i].x;
             current_vec.y = d_actVec[i].y;
             current_vec.z = d_actVec[i].z;
-            vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vect for defining direction that active force vector rotates towards.
+            vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
             delta_theta = deltaT * rotationDiff * gaussian_rng(saru, 1.0);
@@ -259,7 +259,6 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int N,
     Scalar3 f;
     // unsigned int idx = h_rtag[i]; // recover original tag for particle indexing
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
-    
     if (orientationLink)
     {
         vec3<Scalar> fi;
