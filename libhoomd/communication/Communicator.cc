@@ -873,6 +873,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
                 unsigned int ngroups = m_gdata->getN() + m_gdata->getNGhosts();
 
+                unsigned int max_local = m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts();
+
                 for (unsigned int group_idx = 0; group_idx < ngroups; group_idx++)
                     {
                     typename group_data::members_t members = h_groups.data[group_idx];
@@ -885,6 +887,13 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
                         assert(pidx != NOT_LOCAL);
                         assert(pidx <= m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts());
+
+                        if (pidx >= max_local)
+                            {
+                            this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
+                            throw std::runtime_error("Error during communication");
+                            }
+
 
                         plan |= h_plan.data[pidx];
 
