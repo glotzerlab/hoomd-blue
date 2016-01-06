@@ -871,7 +871,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                 ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_plan(plans, access_location::host, access_mode::read);
 
-                unsigned int ngroups = m_gdata->getN();
+                unsigned int ngroups = m_gdata->getN() + m_gdata->getNGhosts();
 
                 for (unsigned int group_idx = 0; group_idx < ngroups; group_idx++)
                     {
@@ -883,22 +883,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                         unsigned int tag = members.tag[i];
                         unsigned int pidx = h_rtag.data[tag];
 
-                        // we send this group as a ghost if we own the first member
-                        if (i == 0 && pidx >= m_comm.m_pdata->getN())
-                            {
-                            plan = 0;
-                            break;
-                            }
-
                         assert(pidx != NOT_LOCAL);
                         assert(pidx <= m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts());
-
-                        // send if all members are in the ghost layer
-                        if (!h_plan.data[pidx])
-                            {
-                            plan = 0;
-                            break;
-                            }
 
                         plan |= h_plan.data[pidx];
 
@@ -1073,10 +1059,11 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
         if (m_comm.m_prof)
             m_comm.m_prof->pop();
-        } // end if groups exist
 
-    // notify subscribers that group order has changed
-    m_gdata->notifyGroupReorder();
+        // notify subscribers that group order has changed
+        m_gdata->notifyGroupReorder();
+
+        } // end if groups exist
     }
 
 

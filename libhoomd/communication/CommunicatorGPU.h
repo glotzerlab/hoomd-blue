@@ -104,6 +104,10 @@ class CommunicatorGPU : public Communicator
         //! Build a ghost particle list, exchange ghost particle data with neighboring processors
         virtual void exchangeGhosts();
 
+        /*! Communicate the net particle force
+         * \parm timestep The time step
+         */
+        virtual void updateNetForce(unsigned int timestep);
         //@}
 
         //! Set maximum number of communication stages
@@ -152,11 +156,11 @@ class CommunicatorGPU : public Communicator
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
                  *         member rank information. Otherwise, mark only groups flagged for communication
                  *         in particle data
-                 *
+                 *  \param local_multiple If true, a group may be split across several ranks
                  * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
                  * the rank information with the destination ranks (or the local ranks if incomplete=true)
                  */
-                void migrateGroups(bool incomplete);
+                void migrateGroups(bool incomplete, bool local_multiple);
 
                 //! Mark ghost particles
                 /* All particles that need to be sent as ghosts because they are members
@@ -165,7 +169,15 @@ class CommunicatorGPU : public Communicator
                  * \param plans Array of particle plans to write to
                  * \param mask Mask for allowed sending directions
                  */
+
                 void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+
+                //! Copy 'ghost groups' between domains
+                /*! Both members of a ghost group are inside the ghost layer
+                 *
+                 * \param plans The ghost particle send directions determined by Communicator
+                 */
+                void exchangeGhostGroups(const GPUArray<unsigned int>& plans);
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
@@ -184,6 +196,14 @@ class CommunicatorGPU : public Communicator
                 GPUVector<group_element_t> m_groups_sendbuf;            //!< Send buffer for groups
                 GPUVector<group_element_t> m_groups_recvbuf;            //!< Recv buffer for groups
                 GPUVector<group_element_t> m_groups_in;                 //!< Input buffer of unique groups
+
+                GPUVector<unsigned int> m_ghost_group_begin;            //!< Begin index for every stage and neighbor in send buf_alt
+                GPUVector<unsigned int> m_ghost_group_end;              //!< Begin index for every and neighbor in send buf_alt
+
+                GPUVector<uint2> m_ghost_group_idx_adj;                 //!< Indices and adjacency relationships of ghosts to send
+                GPUVector<unsigned int> m_ghost_group_neigh;            //!< Neighbor ranks for every ghost group
+                GPUVector<unsigned int> m_ghost_group_plan;             //!< Plans for every particle
+                GPUVector<unsigned int> m_neigh_counts;                 //!< List of number of neighbors to send ghost to (temp array)
             };
 
         //! Remove tags of ghost particles
@@ -215,6 +235,9 @@ class CommunicatorGPU : public Communicator
 
         GroupCommunicatorGPU<ImproperData> m_improper_comm;  //!< Communication helper for impropers
         friend class GroupCommunicatorGPU<ImproperData>;
+
+        GroupCommunicatorGPU<ConstraintData> m_constraint_comm;  //!< Communication helper for constraints
+        friend class GroupCommunicatorGPU<ConstraintData>;
 
         /* Ghost communication */
         bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
@@ -257,6 +280,9 @@ class CommunicatorGPU : public Communicator
 
         GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
         GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)
+
+        GPUVector<Scalar4> m_netforce_ghost_sendbuf;    //!< Send buffer for netforce
+        GPUVector<Scalar4> m_netforce_ghost_recvbuf;    //!< Recv buffer for netforce
 
         GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf_alt
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf_alt

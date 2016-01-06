@@ -281,7 +281,8 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_t *d_out_groups,
-    unsigned int *d_out_rank_masks);
+    unsigned int *d_out_rank_masks,
+    bool local_multiple);
 
 template<typename group_t, typename ranks_t>
 void gpu_remove_groups(unsigned int n_groups,
@@ -309,6 +310,8 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context);
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
@@ -325,5 +328,43 @@ void gpu_mark_bonded_ghosts(
     const unsigned int *d_cart_ranks_inv,
     unsigned int my_rank,
     unsigned int mask);
+
+template<unsigned int group_size, typename members_t>
+void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
+                                   const members_t *d_groups,
+                                   unsigned int N,
+                                   const unsigned int *d_rtag,
+                                   const unsigned int *d_plans,
+                                   unsigned int mask);
+
+template<class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_pack(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_group_tag,
+    const members_t *d_groups,
+    const typeval_union *d_group_typeval,
+    const ranks_t *d_group_ranks,
+    group_element_t *d_groups_sendbuf);
+
+template<class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_copy_buf(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    typeval_union *d_group_typeval,
+    ranks_t *d_group_ranks);
+
+void gpu_exchange_ghosts_pack_netforce(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar4 *d_netforce,
+    Scalar4 *d_netforce_sendbuf);
+
+void gpu_exchange_ghosts_copy_netforce_buf(
+    unsigned int n_recv,
+    const Scalar4 *d_netforce_recvbuf,
+    Scalar4 *d_netforce);
 
 #endif // ENABLE_MPI

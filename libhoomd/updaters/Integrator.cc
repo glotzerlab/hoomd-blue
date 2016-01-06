@@ -708,9 +708,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
 
         // now, add up the accelerations
         // sum all the forces into the net force

@@ -129,7 +129,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         m_prof->push(m_exec_conf, "fill matrix");
 
     // fill the matrix in row-major order
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
 
     if (m_constraint_reorder)
         {
@@ -185,7 +185,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         m_tuner_fill->begin();
         gpu_fill_matrix_vector(
             n_constraint,
-            m_pdata->getN(),
+            m_pdata->getN()+m_pdata->getNGhosts(),
             d_cmatrix.data,
             d_cvec.data,
             d_sparse_val.data,
@@ -238,7 +238,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf,"solve");
 
-    unsigned int n_constraint = m_cdata->getN();
+    unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);

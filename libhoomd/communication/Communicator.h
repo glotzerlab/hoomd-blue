@@ -445,10 +445,10 @@ class Communicator
             m_comm_pending = false;
             }
 
-       /*! Communicate the net particle force
-        * \parm timestep The time step
-        */
-       virtual void updateNetForce(unsigned int timestep);
+        /*! Communicate the net particle force
+         * \parm timestep The time step
+         */
+        virtual void updateNetForce(unsigned int timestep);
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -532,7 +532,7 @@ class Communicator
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
                  *         member rank information. Otherwise, mark only groups flagged for communication
                  *         in particle data
-                 *
+                 *  \param local_multiple If true, a group may be split across several ranks
                  * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
                  * the rank information with the destination ranks (or the local ranks if incomplete=true)
                  */
@@ -552,7 +552,6 @@ class Communicator
                  *
                  * \param plans The ghost particle send directions determined by Communicator
                  * \param mask Mask for allowed sending directions
-                 * \param dir Current exchange direction
                  */
                 void exchangeGhostGroups(const GPUArray<unsigned int>& plans, unsigned int mask);
 
