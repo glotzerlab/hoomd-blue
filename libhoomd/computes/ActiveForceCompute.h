@@ -78,7 +78,10 @@ class ActiveForceCompute : public ForceCompute
     
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst, bool orientation_link, Scalar rotation_diff,
+        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+                             boost::shared_ptr<ParticleGroup> group,
+                             int seed, boost::python::list f_lst,
+                             bool orientation_link, Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
                              Scalar ry,
@@ -100,6 +103,7 @@ class ActiveForceCompute : public ForceCompute
         //! Set constraints if particles confined to a surface
         void setConstraint(unsigned int i);
         
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
         Scalar m_rotationDiff;
         Scalar3 m_P;          //!< Position of the Ellipsoid

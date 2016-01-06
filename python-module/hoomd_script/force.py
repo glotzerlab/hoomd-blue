@@ -353,14 +353,16 @@ class active(_force):
     # \param rotation_diff rotational diffusion constant, \f$\xi\f$, for all particles.
     # \param constraint specifies a constraint surface, to which particles are confined,
     # such as update.constraint_ellipsoid.
+    # \param group Group for which the force will be set
+    #
     # \b Examples:
     # \code
     # force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
     #
-    # ellipsoid = update.constraint_ellipsoid(P=(0,0,0), rx=3, ry=4, rz=5)
+    # ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
     # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     # \endcode
-    def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0, constraint=None):
+    def __init__(self, seed, f_lst, orientation_link=True, rotation_diff=0, constraint=None, group=None,):
         util.print_status_line();
         
         # initialize the base class
@@ -389,12 +391,24 @@ class active(_force):
 
         # create the c++ mirror class        
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+            if (group is not None):
+                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, group.cpp_group, seed, f_lst,
+                                                            orientation_link, rotation_diff, P, rx, ry, rz);
+            else:
+                self.cpp_force = hoomd.ActiveForceCompute(globals.system_definition, globals.group_all.cpp_group, seed,
+                                                            f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+                
         else:
-            self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
-        
+            if (group is not None):
+                self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, group.cpp_group, seed, f_lst,
+                                                                orientation_link, rotation_diff, P, rx, ry, rz);
+            else:
+                self.cpp_force = hoomd.ActiveForceComputeGPU(globals.system_definition, globals.group_all.cpp_group, seed,
+                                                                f_lst, orientation_link, rotation_diff, P, rx, ry, rz);
+                                                                        
         # store metadata
-        self.metdata_fields = ['seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
         self.rotation_diff = rotation_diff

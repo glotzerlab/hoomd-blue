@@ -70,12 +70,24 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
-        bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
-        : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(m_deltaT*rotation_diff),
+ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+                                        boost::shared_ptr<ParticleGroup> group,
+                                        int seed,
+                                        boost::python::list f_lst,
+                                        bool orientation_link,
+                                        Scalar rotation_diff,
+                                        Scalar3 P,
+                                        Scalar rx,
+                                        Scalar ry,
+                                        Scalar rz)
+        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_rotationDiff(m_deltaT*rotation_diff),
             m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
+    
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
     
     vector<Scalar3> m_f_lst;
     tuple tmp_force;
@@ -87,21 +99,22 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
     }
     
-    if (m_f_lst.size() != m_pdata->getN()) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
+    if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     
-    m_activeVec.resize(m_pdata->getN());
-    m_activeMag.resize(m_pdata->getN());
+    m_activeVec.resize(group_size);
+    m_activeMag.resize(group_size);
     
     ArrayHandle<Scalar3> h_activeVec(m_activeVec, access_location::host);
     ArrayHandle<Scalar> h_activeMag(m_activeMag, access_location::host);
 
-    for (unsigned int i = 0; i < m_pdata->getN(); i++) //set active force vector to array from python
+    // for each of the particles in the group
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
     {
         h_activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
         h_activeVec.data[i] = make_scalar3(0, 0, 0);
-        h_activeVec.data[i].x = m_f_lst[i].x/h_activeMag.data[i];
-        h_activeVec.data[i].y = m_f_lst[i].y/h_activeMag.data[i];
-        h_activeVec.data[i].z = m_f_lst[i].z/h_activeMag.data[i];
+        h_activeVec.data[i].x = m_f_lst[i].x / h_activeMag.data[i];
+        h_activeVec.data[i].y = m_f_lst[i].y / h_activeMag.data[i];
+        h_activeVec.data[i].z = m_f_lst[i].z / h_activeMag.data[i];
     }
     
     // Hash the User's Seed to make it less likely to be a low positive integer
@@ -128,12 +141,12 @@ void ActiveForceCompute::setForces(unsigned int i)
     // sanity check
     assert(h_force.data != NULL);
     assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL); 
-    assert(h_orientation.data != NULL); 
-    assert(h_rtag.data != NULL);   
+    assert(h_actMag.data != NULL);
+    assert(h_orientation.data != NULL);
+    assert(h_rtag.data != NULL);
 
     Scalar3 f;
-    unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
+    unsigned int idx = h_rtag.data[i]; // recover index from tag
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
@@ -164,10 +177,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL);
     assert(h_pos.data != NULL);
-    assert(h_rtag.data != NULL);
 
     if (m_sysdef->getNDimensions() == 2) // 2D
     {
@@ -201,7 +211,9 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             h_actVec.data[i].x += delta_vec.x * diffusion_mag;
             h_actVec.data[i].y += delta_vec.y * diffusion_mag;
             h_actVec.data[i].z += delta_vec.z * diffusion_mag;
-            Scalar new_mag = sqrt(h_actVec.data[i].x*h_actVec.data[i].x + h_actVec.data[i].y*h_actVec.data[i].y + h_actVec.data[i].z*h_actVec.data[i].z);
+            Scalar new_mag = sqrt(h_actVec.data[i].x*h_actVec.data[i].x
+                            + h_actVec.data[i].y*h_actVec.data[i].y
+                            + h_actVec.data[i].z*h_actVec.data[i].z);
             h_actVec.data[i].x /= new_mag;
             h_actVec.data[i].y /= new_mag;
             h_actVec.data[i].z /= new_mag;
@@ -211,7 +223,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
         	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
             Saru saru(i, timestep, m_seed);
-            unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
+            unsigned int idx = h_rtag.data[i]; // recover index from tag
             Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
 
@@ -246,12 +258,9 @@ void ActiveForceCompute::setConstraint(unsigned int i)
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
     ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    assert(h_actVec.data != NULL);
-    assert(h_actMag.data != NULL);
     assert(h_pos.data != NULL);
-    assert(h_rtag.data != NULL);
 
-    unsigned int idx = h_rtag.data[i]; // recover original tag for particle indexing
+    unsigned int idx = h_rtag.data[i]; // recover index from tag
     Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
                 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -277,10 +286,11 @@ void ActiveForceCompute::setConstraint(unsigned int i)
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    if (shouldCompute(timestep))
+    
+    if (shouldCompute(timestep))    
     {
-		for (unsigned int i = 0; i < m_pdata->getN(); i++)
-	    {
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
 	        if (m_rx != 0)
 	        {
 	            setConstraint(i); // apply surface constraints to active particles active force vectors
@@ -298,7 +308,12 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 void export_ActiveForceCompute()
 {
     class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>, int, boost::python::list, bool, Scalar,
+    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>,
+                                    boost::shared_ptr<ParticleGroup>,
+                                    int,
+                                    boost::python::list,
+                                    bool,
+                                    Scalar,
                                     Scalar3,
                                     Scalar,
                                     Scalar,

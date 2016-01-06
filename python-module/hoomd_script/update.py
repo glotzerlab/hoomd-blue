@@ -609,6 +609,7 @@ class constraint_ellipsoid(_updater):
     # \param ry radius of an ellipsoid in the Y direction (in distance units).
     # \param rz radius of an ellipsoid in the Z direction (in distance units).
     # \param r radius of a sphere (in distance units), such that r=rx=ry=rz.
+    # \param group Group for which the update will be set
     #
     # \b Examples:
     # \code

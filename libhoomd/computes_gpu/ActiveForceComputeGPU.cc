@@ -71,9 +71,17 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */   
-ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
-        bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
-        : ActiveForceCompute(sysdef, seed, f_lst, orientation_link, m_deltaT*rotation_diff, P, rx, ry, rz), m_block_size(256)
+ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                        boost::shared_ptr<ParticleGroup> group,
+                                        int seed,
+                                        boost::python::list f_lst,
+                                        bool orientation_link,
+                                        Scalar rotation_diff,
+                                        Scalar3 P,
+                                        Scalar rx,
+                                        Scalar ry,
+                                        Scalar rz)
+        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, m_deltaT*rotation_diff, P, rx, ry, rz), m_block_size(256)
 {
     if (!m_exec_conf->isCUDAEnabled())
     {
@@ -262,7 +270,12 @@ void ActiveForceComputeGPU::computeForces(unsigned int timestep)
 void export_ActiveForceComputeGPU()
 {
     class_< ActiveForceComputeGPU, boost::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
-    ("ActiveForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, int, boost::python::list, bool, Scalar,
+    ("ActiveForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
+                                    boost::shared_ptr<ParticleGroup>,
+                                    int,
+                                    boost::python::list,
+                                    bool,
+                                    Scalar,
                                     Scalar3,
                                     Scalar,
                                     Scalar,
