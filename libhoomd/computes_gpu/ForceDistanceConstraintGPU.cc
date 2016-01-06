@@ -235,10 +235,13 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     m_sparse_val.resize(m_sparse.data().size());
     #else
 
+    unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
+
+    // skip if zero constraints
+    if (n_constraint == 0) return;
+
     if (m_prof)
         m_prof->push(m_exec_conf,"solve");
-
-    unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);

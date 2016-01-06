@@ -289,9 +289,6 @@ void ForceDistanceConstraint::checkConstraints(unsigned int timestep)
 
 void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     {
-    if (m_prof)
-        m_prof->push("solve");
-
     // use Eigen dense matrix algebra (slow for large matrices)
     typedef Matrix<double, Dynamic, Dynamic, ColMajor> matrix_t;
     typedef Matrix<double, Dynamic, 1> vec_t;
@@ -299,6 +296,12 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     typedef Map<vec_t> vec_map_t;
 
     unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
+
+    // skip if zero constraints
+    if (n_constraint == 0) return;
+
+    if (m_prof)
+        m_prof->push("solve");
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
