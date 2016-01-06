@@ -103,6 +103,8 @@ Scalar MolecularForceCompute::getMaxDiameter()
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
 
+    const BoxDim& box = m_pdata->getBox();
+
     for (unsigned int i = 0; i < m_molecule_indexer.getW(); ++i)
         {
         Scalar d_i(0.0);
@@ -121,6 +123,10 @@ Scalar MolecularForceCompute::getMaxDiameter()
 
                 vec3<Scalar> r_k(h_postype.data[idx_k]);
                 vec3<Scalar> r_jk = r_k - r_j;
+
+                // apply minimum image
+                r_jk = box.minImage(r_jk);
+
                 Scalar d_jk = sqrt(dot(r_jk,r_jk));
                 if (d_jk > d_i)
                     {
