@@ -85,7 +85,6 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int N,
                                                        Scalar rz,
                                                        bool is2D,
                                                        const Scalar rotationDiff,
-                                                       const Scalar deltaT,
                                                        const unsigned int timestep,
                                                        const int seed,
                                                        unsigned int block_size);

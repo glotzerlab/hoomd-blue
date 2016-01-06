@@ -81,13 +81,9 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
                                                    Scalar ry,
                                                    Scalar rz)
 {
-    //FILL ME IN, FINISH ACTIVE FORCE GPU CODE
-    
-/////////////////////////////////////
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= N)
         return;
-/////////////////////////////////////
 
     
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
@@ -124,8 +120,6 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
     \param rz radius of the ellipsoid in z direction
     \param is2D check if simulation is 2D or 3D
     \param rotationDiff particle rotational diffusion constant
-    \param deltaT step size from the Integrator
-    \param timestep current timestep
     \param seed seed for random number generator
 */
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int N,
@@ -139,25 +133,18 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    Scalar rz,
                                                    bool is2D,
                                                    const Scalar rotationDiff,
-                                                   const Scalar deltaT,
                                                    const unsigned int timestep,
                                                    const int seed)
 {
-    //FILL ME IN, FINISH ACTIVE FORCE GPU CODE
-    
-/////////////////////////////////////
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= N)
         return;
-/////////////////////////////////////
-    
-    
+
     if (is2D) // 2D
     {
-        //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
         SaruGPU saru(i, timestep, seed);
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+        delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(d_actVec[i].y, d_actVec[i].x);
         theta += delta_theta;
@@ -168,7 +155,6 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     {
         if (rx == 0) // if no constraint
         {
-            //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES OF DIFFUSION CONSTANT, ALL CHECK OUT?
             SaruGPU saru(i, timestep, seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
@@ -178,7 +164,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            Scalar diffusion_mag = deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar diffusion_mag = rotationDiff * gaussian_rng(saru, 1.0);
             vec3<Scalar> delta_vec;
             delta_vec.x = d_actVec[i].y * rand_vec.z - d_actVec[i].z * rand_vec.y;
             delta_vec.y = d_actVec[i].z * rand_vec.x - d_actVec[i].x * rand_vec.z;
@@ -194,12 +180,12 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         } else // if constraint
         {
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-
             SaruGPU saru(i, timestep, seed);
+            
             unsigned int idx = d_rtag[i]; // recover original tag for particle indexing
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
+            
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
-
             vec3<Scalar> norm;
             norm = vec3<Scalar> (norm_scalar3);
 
@@ -210,7 +196,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = deltaT * rotationDiff * gaussian_rng(saru, 1.0);
+            delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
 
             d_actVec[i].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
             d_actVec[i].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
@@ -244,17 +230,12 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int N,
                                                    Scalar rz,
                                                    bool orientationLink)
 {
-    //FILL ME IN, FINISH ACTIVE FORCE GPU CODE
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-//////////////////////////////////
     if (i >= N)
         return;
 
-    // why use groups?
-    // unsigned int i = d_group_members[id];
     unsigned int idx = d_rtag[i];
-//////////////////////////////////
     
     Scalar3 f;
     // unsigned int idx = h_rtag[i]; // recover original tag for particle indexing
@@ -322,7 +303,6 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int N,
                                                        Scalar rz,
                                                        bool is2D,
                                                        const Scalar rotationDiff,
-                                                       const Scalar deltaT,
                                                        const unsigned int timestep,
                                                        const int seed,
                                                        unsigned int block_size)
@@ -344,7 +324,6 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int N,
                                                                     rz,
                                                                     is2D,
                                                                     rotationDiff,
-                                                                    deltaT,
                                                                     timestep,
                                                                     seed);
 

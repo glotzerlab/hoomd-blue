@@ -72,7 +72,8 @@ using namespace std;
 */
 ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef, int seed, boost::python::list f_lst,
         bool orientation_link, Scalar rotation_diff, Scalar3 P, Scalar rx, Scalar ry, Scalar rz)
-        : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+        : ForceCompute(sysdef), m_orientationLink(orientation_link), m_rotationDiff(m_deltaT*rotation_diff),
+            m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
     
@@ -170,10 +171,9 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 
     if (m_sysdef->getNDimensions() == 2) // 2D
     {
-        //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES, ALL CHECK OUT?
         Saru saru(i, timestep, m_seed);
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+        delta_theta = m_rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(h_actVec.data[i].y, h_actVec.data[i].x);
         theta += delta_theta;
@@ -184,7 +184,6 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     {
         if (m_rx == 0) // if no constraint
         {
-            //USE VECTOR MATH TO SIMPLIFY THINGS? CHECK UNITS AND MAGNITUDES OF DIFFUSION CONSTANT, ALL CHECK OUT?
             Saru saru(i, timestep, m_seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
@@ -194,7 +193,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            Scalar diffusion_mag = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar diffusion_mag = m_rotationDiff * gaussian_rng(saru, 1.0);
             vec3<Scalar> delta_vec;
             delta_vec.x = h_actVec.data[i].y * rand_vec.z - h_actVec.data[i].z * rand_vec.y;
             delta_vec.y = h_actVec.data[i].z * rand_vec.x - h_actVec.data[i].x * rand_vec.z;
@@ -207,7 +206,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             h_actVec.data[i].y /= new_mag;
             h_actVec.data[i].z /= new_mag;
 
-        } else // if constraint
+        } else // if constraint exists
         {
         	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
@@ -226,7 +225,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = m_deltaT*m_rotationDiff*gaussian_rng(saru, 1.0);
+            delta_theta = m_rotationDiff * gaussian_rng(saru, 1.0);
 
             h_actVec.data[i].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             h_actVec.data[i].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
