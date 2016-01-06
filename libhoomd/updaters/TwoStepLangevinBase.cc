@@ -107,16 +107,23 @@ void TwoStepLangevinBase::slotNumTypesChange()
     {
     // skip the reallocation if the number of types does not change
     // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
     if (m_pdata->getNTypes() == m_gamma.size())
         return;
 
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
+    m_gamma_r.resize(m_pdata->getNTypes());
+    
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
+    
     for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
+        {
         h_gamma.data[i] = Scalar(1.0);
+        h_gamma_r.data[i] = Scalar(1.0);
+        }
     }
 
 /*! \param typ Particle type to set gamma for
@@ -138,6 +145,28 @@ void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
 
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
+    }
+    
+    
+/*! \param typ Particle type to set gamma_r (2D rotational noise) for
+    \param gamma The gamma_r value to set
+*/    
+void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
+    {
+    // check for user errors
+    if (gamma_r < 0)
+        {
+        m_exec_conf->msg->error() << "gamma_r should be positive or 0! " << typ << endl;
+        throw runtime_error("Error setting params in TwoStepLangevinBase");
+        }
+    if (typ >= m_pdata->getNTypes())
+        {
+        m_exec_conf->msg->error() << "Trying to set gamma for a non existent type! " << typ << endl;
+        throw runtime_error("Error setting params in TwoStepLangevinBase");
+        }
+
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
+    h_gamma_r.data[typ] = gamma_r;
     }
 
 void export_TwoStepLangevinBase()

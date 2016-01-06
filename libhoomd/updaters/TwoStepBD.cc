@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBD.h"
+#include "VectorMath.h"
 #include "saruprng.h"
 
 #ifdef ENABLE_MPI
@@ -77,7 +78,7 @@ TwoStepBD::TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda)
-    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda)
+  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -113,7 +114,14 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-
+    
+    if (D < 3 && m_aniso)
+        {
+        ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        }
+    
     const BoxDim& box = m_pdata->getBox();
 
     // initialize the RNG
@@ -129,7 +137,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the random force
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz =  saru.s<Scalar>(-1,1);
+        Scalar rz = saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -167,6 +175,33 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             h_vel.data[j].z = gaussian_rng(saru, sigma);
         else
             h_vel.data[j].z = 0;
+        
+        
+        ///////////////
+        // for testing rotational noise in rotational Brownian dynamics (2D only!)
+
+        if (D < 3 && m_aniso)
+        {
+            unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
+            Scalar gamma_r = h_gamma_r.data[type_r];
+            
+            if (gamma_r)
+                {
+                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+                Scalar tau_r = gaussian_rng(saru, sigma_r); 
+                // h_orien.data[j].x += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].x + tau_r) ;
+                // h_orien.data[j].y += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].y + tau_r) ;
+                // h_orien.data[j].z += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].z + tau_r) ;
+                vec3<Scalar> axis (0.0, 0.0, 1.0);
+                Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
+                quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+                quat<Scalar> q (h_orientation.data[j]);
+                q += Scalar(0.5) * m_deltaT  * q * omega;
+                // re-normalize (improves stability)
+                q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+                h_orientation.data[j] = quat_to_scalar4(q);
+                }
+            }
         }
 
     // done profiling
@@ -189,7 +224,6 @@ void export_TwoStepBD()
                             boost::shared_ptr<Variant>,
                             unsigned int,
                             bool,
-                            Scalar
-                            >())
+                            Scalar>())
         ;
     }
