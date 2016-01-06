@@ -104,12 +104,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
         }
 
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
-    m_last_tuned_timestep = 0;
-
-    #ifdef ENABLE_MPI
-    // synchronize over MPI
-    m_tuner->setSync(m_pdata->getDomainDecomposition());
-    #endif
 
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
@@ -203,12 +197,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         throw std::runtime_error("Error updating neighborlist bins");
         }
 
-    // we should not call the tuner with MPI sync enabled
-    // if the kernel is launched more than once in the same timestep,
-    // since those kernel launches may occur only on some, not all MPI ranks
-    bool tune = !m_param && m_last_tuned_timestep != timestep;
-
-    if (tune) this->m_tuner->begin();
+    this->m_tuner->begin();
     unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
@@ -241,9 +230,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              m_cl->getGhostWidth(),
                              m_exec_conf->getComputeCapability()/10);
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-    if (tune) this->m_tuner->end();
-
-    m_last_tuned_timestep = timestep;
+    this->m_tuner->end();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
