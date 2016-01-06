@@ -1273,7 +1273,7 @@ template<unsigned int group_size, typename Group, const char *name, bool has_typ
 void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::replicate(unsigned int n,
     unsigned int old_n_particles)
     {
-    unsigned int old_size = groups.size();
+    unsigned int old_size = size;
     groups.resize(n*old_size);
     if (has_type_mapping)
         {
@@ -1309,6 +1309,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
                 }
             }
         }
+
+    size = n*old_size;
     }
 
 /*! \returns a numpy array that wraps the type_id data element.

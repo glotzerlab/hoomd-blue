@@ -158,6 +158,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
+    unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
     for (unsigned int n = 0; n < n_constraint; ++n)
         {
         // lookup the tag of each of the particles participating in the constraint
@@ -169,8 +170,17 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
+
         assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
         assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
+
+        if (idx_a >= max_local || idx_b >= max_local)
+            {
+            this->m_exec_conf->msg->error() << "constrain.distance(): constraint " <<
+                constraint.tag[0] << " " << constraint.tag[1] << " incomplete." << std::endl << std::endl;
+            throw std::runtime_error("Error in constraint calculation");
+            }
+
 
         vec3<Scalar> ra(h_pos.data[idx_a]);
         vec3<Scalar> rb(h_pos.data[idx_b]);
@@ -201,6 +211,13 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             unsigned int idx_m_b = h_rtag.data[constraint_m.tag[1]];
             assert(idx_m_a <= m_pdata->getN()+m_pdata->getNGhosts());
             assert(idx_m_b <= m_pdata->getN()+m_pdata->getNGhosts());
+
+            if (idx_m_a >= max_local || idx_m_b >= max_local)
+                {
+                this->m_exec_conf->msg->error() << "constrain.distance(): constraint " <<
+                    constraint_m.tag[0] << " " << constraint_m.tag[1] << " incomplete." << std::endl << std::endl;
+                throw std::runtime_error("Error in constraint calculation");
+                }
 
             vec3<Scalar> rm_a(h_pos.data[idx_m_a]);
             vec3<Scalar> rm_b(h_pos.data[idx_m_b]);
