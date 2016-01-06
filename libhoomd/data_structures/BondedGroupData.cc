@@ -269,7 +269,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
         {
         // broadcast to all processors (temporarily)
         std::vector<members_t> all_groups;
-        std::vector<typeval_t> all_typeval;
+        std::vector<typeval_t> all_typeval(snapshot.size);
 
         if (m_exec_conf->getRank() == 0)
             {
