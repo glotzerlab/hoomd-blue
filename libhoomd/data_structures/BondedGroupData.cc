@@ -177,7 +177,14 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::~BondedGroupData()
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
     {
+    // reset global number of groups
     m_nglobal = 0;
+
+    // reset local number of groups
+    m_n_groups = 0;
+
+    // reset local number of ghost groups
+    m_n_ghost = 0;
 
     // clear set of active tags
     m_tag_set.clear();
@@ -269,13 +276,14 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
         {
         // broadcast to all processors (temporarily)
         std::vector<members_t> all_groups;
-        std::vector<typeval_t> all_typeval(snapshot.size);
+        std::vector<typeval_t> all_typeval;
 
         if (m_exec_conf->getRank() == 0)
             {
             all_groups = snapshot.groups;
             if (has_type_mapping)
                 {
+                all_typeval.resize(snapshot.type_id.size());
                 // fill in types
                 for (unsigned int i = 0; i < snapshot.type_id.size(); ++i)
                     {
@@ -286,8 +294,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
                 }
             else
                 {
+                all_typeval.resize(snapshot.val.size());
                 // fill in constraint values
-                for (unsigned int i = 0; i < snapshot.type_id.size(); ++i)
+                for (unsigned int i = 0; i < snapshot.val.size(); ++i)
                     {
                     typeval_t t;
                     t.val = snapshot.val[i];
