@@ -84,7 +84,6 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int N,
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= N)
         return;
-
     
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     unsigned int idx = d_rtag[i]; // recover original tag for particle indexing

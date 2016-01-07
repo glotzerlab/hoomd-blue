@@ -88,11 +88,14 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         m_exec_conf->msg->error() << "Creating a ActiveForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
     }
-        
+    
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     // override base class allocation using mapped memory
-    unsigned int N = m_pdata->getN();
-    GPUArray< Scalar3 > tmp_activeVec(N, m_exec_conf,true);
-    GPUArray< Scalar > tmp_activeMag(N, m_exec_conf,true);
+    GPUArray<Scalar3> tmp_activeVec(group_size, m_exec_conf,true);
+    GPUArray<Scalar> tmp_activeMag(group_size, m_exec_conf,true);
     
     vector<Scalar3> m_f_lst;
     tuple tmp_force;
@@ -104,40 +107,45 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         m_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
     }
     
-    if (m_f_lst.size() != m_pdata->getN()) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
+    if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     
-    tmp_activeVec.resize(m_pdata->getN());
-    tmp_activeMag.resize(m_pdata->getN());
+    tmp_activeVec.resize(group_size);
+    tmp_activeMag.resize(group_size);
     
     ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
     ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
-    
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    assert(h_rtag.data != NULL);
-    
-    unsigned int j = 0;
+
     // for each of the particles in the group
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < group_size; i++)
     {
-        unsigned int idx = h_rtag.data[i];
-        if (m_group->isMember(idx) == true)
-        {
-            h_activeMag.data[i] = sqrt(m_f_lst[j].x*m_f_lst[j].x + m_f_lst[j].y*m_f_lst[j].y + m_f_lst[j].z*m_f_lst[j].z);
-            h_activeVec.data[i] = make_scalar3(0, 0, 0);
-            h_activeVec.data[i].x = m_f_lst[j].x / h_activeMag.data[i];
-            h_activeVec.data[i].y = m_f_lst[j].y / h_activeMag.data[i];
-            h_activeVec.data[i].z = m_f_lst[j].z / h_activeMag.data[i];
-            j++;
-        } else
-        {
-            h_activeMag.data[i] = 0;
-            h_activeVec.data[i] = make_scalar3(0, 0, 0);
-        }
+        activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
+        activeVec.data[i] = make_scalar3(0, 0, 0);
+        activeVec.data[i].x = m_f_lst[i].x / activeMag.data[i];
+        activeVec.data[i].y = m_f_lst[i].y / activeMag.data[i];
+        activeVec.data[i].z = m_f_lst[i].z / activeMag.data[i];
     }
     
     m_activeVec.swap(tmp_activeVec);
     m_activeMag.swap(tmp_activeMag);
 }
+
+
+
+
+
+//NEED TO HAVE GPU KERNEL HAVE ITS ID BE THE GROUP ID, THEN CONVERT THIS INTO THE GLOBAL TAG, AND THEN USE RTAG TO
+//CONVERT IT TO THE INDEX NUMBER
+
+//As is done in constrainspheregpu.cc code
+
+
+
+
+
+
+
+
+
 
 /*! This function sets appropriate active forces on all active particles.
     \param i particle with id number i
@@ -159,9 +167,9 @@ void ActiveForceComputeGPU::setForces()
     assert(d_rtag.data != NULL);
     
     bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
-    unsigned int N = m_pdata->getN();
+    unsigned int group_size = m_group->getNumMembers();
     
-    gpu_compute_active_force_set_forces(N,
+    gpu_compute_active_force_set_forces(group_size,
                                      d_rtag.data,
                                      d_force.data,
                                      d_orientation.data,
@@ -195,23 +203,23 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     assert(d_force.data != NULL);
     
     bool is2D = (m_sysdef->getNDimensions() == 2);
-    unsigned int N = m_pdata->getN();
+    unsigned int group_size = m_group->getNumMembers();
 
-    gpu_compute_active_force_rotational_diffusion(N,
-                                                    d_rtag.data,
-                                                    d_pos.data,
-                                                    d_force.data,
-                                                    d_actVec.data,
-                                                    d_actMag.data,
-                                                    m_P,
-                                                    m_rx,
-                                                    m_ry,
-                                                    m_rz,
-                                                    is2D,
-                                                    m_deltaT * m_rotationDiff,
-                                                    timestep,
-                                                    m_seed,
-                                                    m_block_size);
+    gpu_compute_active_force_rotational_diffusion(group_size,
+                                                d_rtag.data,
+                                                d_pos.data,
+                                                d_force.data,
+                                                d_actVec.data,
+                                                d_actMag.data,
+                                                m_P,
+                                                m_rx,
+                                                m_ry,
+                                                m_rz,
+                                                is2D,
+                                                m_deltaT * m_rotationDiff,
+                                                timestep,
+                                                m_seed,
+                                                m_block_size);
 }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
@@ -233,9 +241,9 @@ void ActiveForceComputeGPU::setConstraint()
     assert(d_pos.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_force.data != NULL);
-    const unsigned int N = m_pdata->getN();
+    unsigned int group_size = m_group->getNumMembers();
 
-    gpu_compute_active_force_set_constraints(N,
+    gpu_compute_active_force_set_constraints(group_size,
                                              d_rtag.data,
                                              d_pos.data,
                                              d_force.data,
@@ -261,6 +269,18 @@ void ActiveForceComputeGPU::computeForces(unsigned int timestep)
 
     if (shouldCompute(timestep))
     {
+        if (m_particles_sorted==true)
+        {
+            ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
+            assert(h_force.data != NULL);
+            for (unsigned int i = 0;i < m_pdata->getN();i++)
+            {
+                h_force.data[i].x = 0;
+                h_force.data[i].y = 0;
+                h_force.data[i].z = 0;
+            }
+        }
+        
         // run the kernel in parallel on all GPUs
         if (m_rx != 0)
         {
