@@ -495,6 +495,14 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(
         unsigned int tag = members.tag[i];
         unsigned int pidx = d_rtag[tag];
 
+        if (d_plans[pidx] == 0)
+            {
+            // ghost groups must fully reside in the ghost layer (otherwise only
+            // part of the group would get copied as ghost particles)
+            plan = 0;
+            break;
+            }
+
         plan |= d_plans[pidx];
         }
 

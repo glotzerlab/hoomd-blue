@@ -64,8 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     boost::shared_ptr<NeighborList> nlist)
     : ForceConstraint(sysdef), m_nlist(nlist), m_molecule_list(m_exec_conf),
-      m_molecule_length(m_exec_conf), m_molecule_ridx(m_exec_conf),
-      m_d_max(0.0), m_last_d_max(0.0)
+      m_molecule_length(m_exec_conf), m_d_max(0.0), m_last_d_max(0.0), m_first_step(true)
     {
     }
 
@@ -79,16 +78,41 @@ bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
     {
     Scalar r_buff = m_nlist->getRBuff();
 
-    m_d_max = getMaxDiameter();
+    if (timestep == m_first_step)
+        {
+        // initialize ghost layer-width to half the domain size so as to complete all molecules
+        const BoxDim& box = m_pdata->getBox();
+        Scalar3 npd = box.getNearestPlaneDistance();
+        uchar3 periodic = box.getPeriodic();
+
+        Scalar L_min(FLT_MAX);
+        if (!periodic.x)
+            {
+            L_min = std::min(npd.x,L_min);
+            }
+        if (!periodic.y)
+            {
+            L_min = std::min(npd.y,L_min);
+            }
+        if (!periodic.z)
+            {
+            L_min = std::min(npd.z,L_min);
+            }
+
+        // slightly smaller than half the minimum box length
+        m_d_max = 0.99*L_min/2.0-r_buff;
+        }
+    else
+        {
+        // compute maximum extent
+        m_d_max = getMaxDiameter();
+        }
 
     int result = 0;
     if (m_d_max - m_last_d_max > r_buff/Scalar(2.0))
         {
         result = 1;
         }
-
-    // reduce over all ranks
-    MPI_Allreduce(MPI_IN_PLACE, &result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
 
     return result;
     }
@@ -102,6 +126,7 @@ Scalar MolecularForceCompute::getMaxDiameter()
     ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -110,15 +135,17 @@ Scalar MolecularForceCompute::getMaxDiameter()
         Scalar d_i(0.0);
         for (unsigned int j = 0; j < h_molecule_length.data[i]; ++j)
             {
-            unsigned int idx_j = h_molecule_list.data[m_molecule_indexer(i,j)];
-
+            unsigned int tag_j = h_molecule_list.data[m_molecule_indexer(i,j)];
+            assert(tag_j <= m_pdata->getMaximumTag());
+            unsigned int idx_j = h_rtag.data[tag_j];
             assert(idx_j < m_pdata->getN() + m_pdata->getNGhosts());
 
             vec3<Scalar> r_j(h_postype.data[idx_j]);
-            for (unsigned int k = 0; k < h_molecule_length.data[i]; ++k)
+            for (unsigned int k = j+1; k < h_molecule_length.data[i]; ++k)
                 {
-                unsigned int idx_k = h_molecule_list.data[m_molecule_indexer(i,k)];
-
+                unsigned int tag_k = h_molecule_list.data[m_molecule_indexer(i,k)];
+                assert(tag_k <= m_pdata->getMaximumTag());
+                unsigned int idx_k = h_rtag.data[tag_k];
                 assert(idx_k < m_pdata->getN() + m_pdata->getNGhosts());
 
                 vec3<Scalar> r_k(h_postype.data[idx_k]);
@@ -139,6 +166,14 @@ Scalar MolecularForceCompute::getMaxDiameter()
             d_max = d_i;
             }
         }
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce over all ranks
+        MPI_Allreduce(MPI_IN_PLACE, &d_max, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_exec_conf->getMPICommunicator());
+        }
+    #endif
 
     return d_max;
     }

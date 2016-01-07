@@ -1107,9 +1107,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         // remove duplicate groups
         m_gdata->removeGroups(old_ngroups + n_recv_unique - new_ngroups);
 
-        // indicate that group table has changed
-        m_gdata->notifyGroupReorder();
-
         if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
         }
     }

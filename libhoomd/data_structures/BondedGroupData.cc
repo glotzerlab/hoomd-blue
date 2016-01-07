@@ -776,16 +776,19 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         m_gpu_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
         unsigned int num_groups_max = 0;
+
+        unsigned int ngroups_tot = m_n_groups+m_n_ghost;
             {
             ArrayHandle<unsigned int> h_n_groups(m_gpu_n_groups, access_location::host, access_mode::overwrite);
 
             unsigned int N = m_pdata->getN()+m_pdata->getNGhosts();
+
             // count the number of bonded groups per particle
             // start by initializing the n_groups values to 0
             memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
 
             // loop through the particles and count the number of groups based on each particle index
-            for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
+            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
                 members_t g = m_groups[cur_group];
                 for (unsigned int i = 0; i < group_size; ++i)
@@ -830,7 +833,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             memset(h_n_groups.data, 0, sizeof(unsigned int) * (m_pdata->getN()+m_pdata->getNGhosts()));
 
             // loop through all group and add them to each column in the list
-            for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
+            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
                 members_t g = m_groups[cur_group];
 
@@ -917,7 +920,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
-                m_groups.size(),
+                getN() + getNGhosts(),
                 nptl,
                 d_groups.data,
                 d_group_typeval.data,

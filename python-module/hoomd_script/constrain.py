@@ -321,7 +321,6 @@ class distance(_constraint_force):
 
         return r_cut_dict;
 
-
     ## Set parameters for constraint computation
     #
     # \param rel_tol The relative tolerance with which constraint violations are detected (**optional**)
@@ -332,3 +331,4 @@ class distance(_constraint_force):
     def set_params(self,rel_tol=None):
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
+

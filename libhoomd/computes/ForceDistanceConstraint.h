@@ -124,6 +124,8 @@ class ForceDistanceConstraint : public MolecularForceCompute
 
         bool m_constraint_reorder;         //!< True if groups have changed
 
+        bool m_first_step;                 //!< If true, re-initialize
+
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
 
@@ -143,6 +145,12 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void slotConstraintReorder()
             {
             m_constraint_reorder = true;
+
+            if (! m_first_step)
+                {
+                // reinitialize molecule table
+                initMolecules();
+                }
             }
 
         //! Fill the molecule list

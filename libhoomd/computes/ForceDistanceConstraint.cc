@@ -68,7 +68,7 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
         : MolecularForceCompute(sysdef, nlist), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
-          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true)
+          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true), m_first_step(true)
     {
     m_constraint_violated.resetFlags(0);
 
@@ -93,6 +93,8 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dist constraint");
+
+    m_first_step = false;
 
     if (m_cdata->getNGlobal() == 0)
         {
@@ -517,7 +519,7 @@ void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
     std::vector<int>& label, const unsigned int *h_gpu_n_constraints,
     const ConstraintData::members_t *h_gpu_constraint_list, const unsigned int *h_rtag)
     {
-    assert(iconstraint < m_cdata->getN());
+    assert(iconstraint < m_cdata->getN() + m_cdata->getNGhosts());
     assert(h_gpu_n_constraints);
     assert(h_gpu_constraint_list);
     assert(h_rtag);
@@ -654,15 +656,11 @@ void ForceDistanceConstraint::initMolecules()
     // fill molecule list
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<int> h_molecule_ridx(m_molecule_ridx, access_location::host, access_mode::overwrite);
 
     for (unsigned int iptl = 0; iptl < nptl; ++iptl)
         {
         assert(iptl < label.size());
         int i_mol = label[iptl];
-
-        // store label
-        h_molecule_ridx.data[iptl] = i_mol;
 
         if (i_mol != -1)
             {

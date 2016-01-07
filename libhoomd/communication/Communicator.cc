@@ -731,9 +731,6 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
         // resize arrays to final size
         m_gdata->removeGroups(nremove);
 
-        // indicate that group table has changed
-        m_gdata->notifyGroupReorder();
-
         if (m_comm.m_prof) m_comm.m_prof->pop();
         }
     }
@@ -894,6 +891,13 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                             throw std::runtime_error("Error during communication");
                             }
 
+                        if (h_plan.data[pidx] == 0)
+                            {
+                            // ghost groups must fully reside in the ghost layer (otherwise only
+                            // part of the group would get copied as ghost particles)
+                            plan = 0;
+                            break;
+                            }
 
                         plan |= h_plan.data[pidx];
 
@@ -1343,7 +1347,7 @@ void Communicator::communicate(unsigned int timestep)
     m_comm_callbacks(timestep);
 
     // distance check (synchronizes the GPU execution stream)
-    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+    bool migrate = m_migrate_requests(timestep) || m_force_migrate || m_is_first_step;
 
     if (!precompute && !migrate)
         {

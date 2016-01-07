@@ -144,11 +144,15 @@ class MolecularForceCompute : public ForceConstraint
         Scalar m_d_max;                             //!< Current maximum molecule diameter
         Scalar m_last_d_max;                        //!< Maximum molecule diameter in last time step
 
+
         //! Fill the molecule list
         virtual void initMolecules() {};
 
         //! Get the maximum molecule diameter
         virtual Scalar getMaxDiameter();
+
+    private:
+        bool m_first_step;                          //!< If true, re-initialize
     };
 
 //! Exports the MolecularForceCompute to python

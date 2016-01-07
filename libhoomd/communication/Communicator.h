@@ -706,6 +706,7 @@ class Communicator
             {
             Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
+
             if ((m_r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
                 (m_r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (m_r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
