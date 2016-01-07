@@ -81,7 +81,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, m_deltaT*rotation_diff, P, rx, ry, rz), m_block_size(256)
+        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
 {
     if (!m_exec_conf->isCUDAEnabled())
     {
@@ -111,14 +111,28 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     
     ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
     ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++) //set active force vector to array from python
+    
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    assert(h_rtag.data != NULL);
+    
+    unsigned int j = 0;
+    // for each of the particles in the group
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
     {
-        activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
-        activeVec.data[i] = make_scalar3(0, 0, 0);
-        activeVec.data[i].x = m_f_lst[i].x / activeMag.data[i];
-        activeVec.data[i].y = m_f_lst[i].y / activeMag.data[i];
-        activeVec.data[i].z = m_f_lst[i].z / activeMag.data[i];
+        unsigned int idx = h_rtag.data[i];
+        if (m_group->isMember(idx) == true)
+        {
+            h_activeMag.data[i] = sqrt(m_f_lst[j].x*m_f_lst[j].x + m_f_lst[j].y*m_f_lst[j].y + m_f_lst[j].z*m_f_lst[j].z);
+            h_activeVec.data[i] = make_scalar3(0, 0, 0);
+            h_activeVec.data[i].x = m_f_lst[j].x / h_activeMag.data[i];
+            h_activeVec.data[i].y = m_f_lst[j].y / h_activeMag.data[i];
+            h_activeVec.data[i].z = m_f_lst[j].z / h_activeMag.data[i];
+            j++;
+        } else
+        {
+            h_activeMag.data[i] = 0;
+            h_activeVec.data[i] = make_scalar3(0, 0, 0);
+        }
     }
     
     m_activeVec.swap(tmp_activeVec);
@@ -194,7 +208,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                     m_ry,
                                                     m_rz,
                                                     is2D,
-                                                    m_rotationDiff,
+                                                    m_deltaT * m_rotationDiff,
                                                     timestep,
                                                     m_seed,
                                                     m_block_size);

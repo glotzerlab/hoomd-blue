@@ -80,7 +80,7 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_rotationDiff(m_deltaT*rotation_diff),
+        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff),
             m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
 {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
@@ -101,20 +101,33 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     
-    m_activeVec.resize(group_size);
-    m_activeMag.resize(group_size);
+    m_activeVec.resize(m_pdata->getN());
+    m_activeMag.resize(m_pdata->getN());
     
     ArrayHandle<Scalar3> h_activeVec(m_activeVec, access_location::host);
     ArrayHandle<Scalar> h_activeMag(m_activeMag, access_location::host);
 
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    assert(h_rtag.data != NULL);
+    
+    unsigned int j = 0;
     // for each of the particles in the group
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
     {
-        h_activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
-        h_activeVec.data[i] = make_scalar3(0, 0, 0);
-        h_activeVec.data[i].x = m_f_lst[i].x / h_activeMag.data[i];
-        h_activeVec.data[i].y = m_f_lst[i].y / h_activeMag.data[i];
-        h_activeVec.data[i].z = m_f_lst[i].z / h_activeMag.data[i];
+        unsigned int idx = h_rtag.data[i];
+        if (m_group->isMember(idx) == true)
+        {
+            h_activeMag.data[i] = sqrt(m_f_lst[j].x*m_f_lst[j].x + m_f_lst[j].y*m_f_lst[j].y + m_f_lst[j].z*m_f_lst[j].z);
+            h_activeVec.data[i] = make_scalar3(0, 0, 0);
+            h_activeVec.data[i].x = m_f_lst[j].x / h_activeMag.data[i];
+            h_activeVec.data[i].y = m_f_lst[j].y / h_activeMag.data[i];
+            h_activeVec.data[i].z = m_f_lst[j].z / h_activeMag.data[i];
+            j++;
+        } else
+        {
+            h_activeMag.data[i] = 0;
+            h_activeVec.data[i] = make_scalar3(0, 0, 0);
+        }
     }
     
     // Hash the User's Seed to make it less likely to be a low positive integer
@@ -127,10 +140,10 @@ ActiveForceCompute::~ActiveForceCompute()
 }
 
 /*! This function sets appropriate active forces on all active particles.
-    \param i particle with id number i
+    \param i particle with tag number i
 */
 void ActiveForceCompute::setForces(unsigned int i)
-{
+{    
 	//  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
@@ -143,10 +156,10 @@ void ActiveForceCompute::setForces(unsigned int i)
     assert(h_actVec.data != NULL);
     assert(h_actMag.data != NULL);
     assert(h_orientation.data != NULL);
-    assert(h_rtag.data != NULL);
 
     Scalar3 f;
-    unsigned int idx = h_rtag.data[i]; // recover index from tag
+    unsigned int idx = h_rtag.data[i];
+    
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
@@ -167,7 +180,7 @@ void ActiveForceCompute::setForces(unsigned int i)
 }
 
 /*! This function applies rotational diffusion to all active particles
-    \param i particle with id number i
+    \param i particle with tag number i
     \param timestep Current timestep
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int i)
@@ -183,7 +196,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     {
         Saru saru(i, timestep, m_seed);
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = m_rotationDiff * gaussian_rng(saru, 1.0);
+        delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(h_actVec.data[i].y, h_actVec.data[i].x);
         theta += delta_theta;
@@ -203,7 +216,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            Scalar diffusion_mag = m_rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar diffusion_mag = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
             vec3<Scalar> delta_vec;
             delta_vec.x = h_actVec.data[i].y * rand_vec.z - h_actVec.data[i].z * rand_vec.y;
             delta_vec.y = h_actVec.data[i].z * rand_vec.x - h_actVec.data[i].x * rand_vec.z;
@@ -237,7 +250,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = m_rotationDiff * gaussian_rng(saru, 1.0);
+            delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
 
             h_actVec.data[i].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             h_actVec.data[i].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
@@ -247,7 +260,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
-    \param i particle with id number i
+    \param i particle with tag number i
 */
 void ActiveForceCompute::setConstraint(unsigned int i)
 {
@@ -286,19 +299,23 @@ void ActiveForceCompute::setConstraint(unsigned int i)
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    assert(h_rtag.data != NULL);
     if (shouldCompute(timestep))    
-    {
+    {        
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-	        if (m_rx != 0)
-	        {
-	            setConstraint(i); // apply surface constraints to active particles active force vectors
-	        }
-	        if (m_rotationDiff != 0)
-	        {
-	            rotationalDiffusion(timestep, i); // apply rotational diffusion to active particles
-	        }
+            if (m_group->isMember(h_rtag.data[i]) == true)
+            {
+    	        if (m_rx != 0)
+    	        {
+    	            setConstraint(i); // apply surface constraints to active particles active force vectors
+    	        }
+    	        if (m_rotationDiff != 0)
+    	        {
+    	            rotationalDiffusion(timestep, i); // apply rotational diffusion to active particles
+    	        }
+            }
 		    setForces(i); // set forces for particles
 		}
 	}
