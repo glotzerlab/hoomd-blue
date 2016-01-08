@@ -1258,6 +1258,39 @@ class brownian(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+                
+                
+    ## Set gamma_r for a particle type
+    # \param a Particle type name
+    # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
+    #
+    # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
+    # by name. The default is 0.0 if not specified for a type (by default it will not add rotational noise).
+    #
+    # It is not an error to specify gammas for particle types that do not exist in the simulation.
+    # This can be useful in defining a single simulation script for many different types of particles
+    # even when some simulations only include a subset.
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma_r('A', gamma=2.0)
+    # \endcode
+    #
+    def set_gamma_r(self, a, gamma_r):
+        util.print_status_line();
+        self.check_initialization();
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # change the parameters
+        for i in range(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma_r(i,gamma_r);                
+                
+
 
 
 ## NVE Integration for rigid bodies
