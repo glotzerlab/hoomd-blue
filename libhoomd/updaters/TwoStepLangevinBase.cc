@@ -92,8 +92,8 @@ TwoStepLangevinBase::TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sys
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
-    
-    // allocate memory for the per-type gamma storage and initialize them to 0.0 (no rotational noise by default)
+        
+    // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
     GPUVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
