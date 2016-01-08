@@ -85,7 +85,7 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_si
         return;
     
     unsigned int idx = d_group_members[group_idx];
-    // unsigned int idx = d_rtag[i];
+    // unsigned int idx = d_rtag[group_idx];
     
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
@@ -179,7 +179,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         } else // if constraint
         {
             unsigned int idx = d_group_members[group_idx];
-            // unsigned int idx = d_rtag[i];
+            // unsigned int idx = d_rtag[group_idx];
             
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
             SaruGPU saru(group_idx, timestep, seed);
@@ -236,7 +236,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
         return;
 
     unsigned int idx = d_group_members[group_idx];
-    // unsigned int idx = d_rtag[i];
+    // unsigned int idx = d_rtag[group_idx];
     
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
