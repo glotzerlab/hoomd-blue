@@ -207,7 +207,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         if (D < 3 && aniso)
             {
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-            Scalar gamma_r = s_gammas[type_r];
+            Scalar gamma_r = s_gammas[type_r + n_types];
             
             if (gamma_r)
                 {
