@@ -188,5 +188,6 @@ void export_TwoStepLangevinBase()
                                 >())
         .def("setT", &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
+        .def("setGamma_r", &TwoStepLangevinBase::setGamma_r)
         ;
     }
