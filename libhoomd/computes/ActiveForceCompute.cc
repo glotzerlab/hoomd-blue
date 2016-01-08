@@ -144,8 +144,7 @@ void ActiveForceCompute::setForces(unsigned int i)
     assert(h_orientation.data != NULL);
 
     Scalar3 f;
-    unsigned int tag = m_group->getMemberTag(i);
-    unsigned int idx = h_rtag.data[tag];
+    unsigned int idx = m_group->getMemberIndex(i);
     
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
@@ -219,11 +218,11 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 
         } else // if constraint exists
         {
-        	EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-
+            unsigned int idx = m_group->getMemberIndex(i);
+            
+            EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
             Saru saru(i, timestep, m_seed);
-            unsigned int tag = m_group->getMemberTag(i);
-            unsigned int idx = h_rtag.data[tag];
+            
             Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
 
@@ -251,6 +250,8 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 */
 void ActiveForceCompute::setConstraint(unsigned int i)
 {
+    unsigned int idx = m_group->getMemberIndex(i);
+    
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     
     //  array handles
@@ -259,8 +260,6 @@ void ActiveForceCompute::setConstraint(unsigned int i)
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
 
-    unsigned int tag = m_group->getMemberTag(i);
-    unsigned int idx = h_rtag.data[tag];
     Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
                 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.

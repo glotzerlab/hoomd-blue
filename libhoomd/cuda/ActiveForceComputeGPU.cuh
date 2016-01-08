@@ -59,6 +59,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
+                                           unsigned int *d_group_members,
+                                           const unsigned int *d_rtag,
+                                           Scalar4 *d_force,
+                                           const Scalar4 *d_orientation,
+                                           const Scalar3 *d_actVec,
+                                           const Scalar *d_actMag,
+                                           const Scalar3& P,
+                                           Scalar rx,
+                                           Scalar ry,
+                                           Scalar rz,
+                                           bool orientationLink,
+                                           unsigned int block_size);
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_group_members,
@@ -71,7 +84,6 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    Scalar ry,
                                                    Scalar rz,
                                                    unsigned int block_size);
-
 
 cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
                                                        unsigned int *d_group_members,
@@ -89,20 +101,6 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        const int seed,
                                                        unsigned int block_size);
 
-
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_group_members,
-                                           const unsigned int *d_rtag,
-                                           Scalar4 *d_force,
-                                           const Scalar4 *d_orientation,
-                                           const Scalar3 *d_actVec,
-                                           const Scalar *d_actMag,
-                                           const Scalar3& P,
-                                           Scalar rx,
-                                           Scalar ry,
-                                           Scalar rz,
-                                           bool orientationLink,
-                                           unsigned int block_size);
 
 
 #endif

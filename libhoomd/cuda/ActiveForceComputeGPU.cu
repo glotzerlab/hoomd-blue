@@ -70,7 +70,63 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param rz radius of the ellipsoid in z direction
 */
 extern "C" __global__
-void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_size,
+
+//! Kernel for setting active force vectors on the GPU
+/*! \param group_size number of particles
+    \param d_rtag particle tag
+    \param d_force particle force on device
+    \param d_orientation particle orientation on device
+    \param d_actVec particle active force unit vector
+    \param d_actMag particle active force vector magnitude
+    \param P position of the ellipsoid constraint
+    \param rx radius of the ellipsoid in x direction
+    \param ry radius of the ellipsoid in y direction
+    \param rz radius of the ellipsoid in z direction
+    \param orientationLink check if particle orientation is linked to active force vector
+*/
+__global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
+                                                   unsigned int *d_group_members,
+                                                   const unsigned int *d_rtag, 
+                                                   Scalar4 *d_force,
+                                                   const Scalar4 *d_orientation,
+                                                   const Scalar3 *d_actVec,
+                                                   const Scalar *d_actMag,
+                                                   const Scalar3& P,
+                                                   Scalar rx,
+                                                   Scalar ry,
+                                                   Scalar rz,
+                                                   bool orientationLink)
+{
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (group_idx >= group_size)
+        return;
+
+    unsigned int idx = d_group_members[group_idx];
+    // unsigned int idx = d_rtag[group_idx];
+    
+    Scalar3 f;
+    // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
+    if (orientationLink)
+    {
+        vec3<Scalar> fi;
+        f = make_scalar3(d_actMag[group_idx] * d_actVec[group_idx].x,
+                        d_actMag[group_idx] * d_actVec[group_idx].y, d_actMag[group_idx] * d_actVec[group_idx].z);
+        quat<Scalar> quati(d_orientation[idx]);
+        fi = rotate(quati, vec3<Scalar>(f));
+        d_force[idx].x = fi.x;
+        d_force[idx].y = fi.y;
+        d_force[idx].z = fi.z;
+    } else // no orientation link
+    {
+        f = make_scalar3(d_actMag[group_idx] * d_actVec[group_idx].x,
+                        d_actMag[group_idx] * d_actVec[group_idx].y, d_actMag[group_idx] * d_actVec[group_idx].z);
+        d_force[idx].x = f.x;
+        d_force[idx].y = f.y;
+        d_force[idx].z = f.z;
+    }
+}
+
+__global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_size,
                                                    unsigned int *d_group_members,
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
@@ -205,62 +261,41 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     }
 }
 
-//! Kernel for setting active force vectors on the GPU
-/*! \param group_size number of particles
-    \param d_rtag particle tag
-    \param d_force particle force on device
-    \param d_orientation particle orientation on device
-    \param d_actVec particle active force unit vector
-    \param d_actMag particle active force vector magnitude
-    \param P position of the ellipsoid constraint
-    \param rx radius of the ellipsoid in x direction
-    \param ry radius of the ellipsoid in y direction
-    \param rz radius of the ellipsoid in z direction
-    \param orientationLink check if particle orientation is linked to active force vector
-*/
-__global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
-                                                   unsigned int *d_group_members,
-                                                   const unsigned int *d_rtag, 
-                                                   Scalar4 *d_force,
-                                                   const Scalar4 *d_orientation,
-                                                   const Scalar3 *d_actVec,
-                                                   const Scalar *d_actMag,
-                                                   const Scalar3& P,
-                                                   Scalar rx,
-                                                   Scalar ry,
-                                                   Scalar rz,
-                                                   bool orientationLink)
+
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
+                                           unsigned int *d_group_members,
+                                           const unsigned int *d_rtag,
+                                           Scalar4 *d_force,
+                                           const Scalar4 *d_orientation,
+                                           const Scalar3 *d_actVec,
+                                           const Scalar *d_actMag,
+                                           const Scalar3& P,
+                                           Scalar rx,
+                                           Scalar ry,
+                                           Scalar rz,
+                                           bool orientationLink,
+                                           unsigned int block_size)
 {
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (group_idx >= group_size)
-        return;
+    // setup the grid to run the kernel
+    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 threads(block_size, 1, 1);
 
-    unsigned int idx = d_group_members[group_idx];
-    // unsigned int idx = d_rtag[group_idx];
-    
-    Scalar3 f;
-    // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
-    if (orientationLink)
-    {
-        vec3<Scalar> fi;
-        f = make_scalar3(d_actMag[group_idx] * d_actVec[group_idx].x,
-                        d_actMag[group_idx] * d_actVec[group_idx].y, d_actMag[group_idx] * d_actVec[group_idx].z);
-        quat<Scalar> quati(d_orientation[idx]);
-        fi = rotate(quati, vec3<Scalar>(f));
-        d_force[idx].x = fi.x;
-        d_force[idx].y = fi.y;
-        d_force[idx].z = fi.z;
-    } else // no orientation link
-    {
-        f = make_scalar3(d_actMag[group_idx] * d_actVec[group_idx].x,
-                        d_actMag[group_idx] * d_actVec[group_idx].y, d_actMag[group_idx] * d_actVec[group_idx].z);
-        d_force[idx].x = f.x;
-        d_force[idx].y = f.y;
-        d_force[idx].z = f.z;
-    }
+    // run the kernel
+    cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
+    gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( group_size,
+                                                                    d_group_members,
+                                                                    d_rtag,
+                                                                    d_force,
+                                                                    d_orientation,
+                                                                    d_actVec,
+                                                                    d_actMag,
+                                                                    P,
+                                                                    rx,
+                                                                    ry,
+                                                                    rz,
+                                                                    orientationLink);
+    return cudaSuccess;
 }
-
-
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_group_members,
@@ -289,7 +324,6 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                                     rx,
                                                                     ry,
                                                                     rz);
-
     return cudaSuccess;
 }
 
@@ -328,52 +362,8 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                                     rotationDiff,
                                                                     timestep,
                                                                     seed);
-
     return cudaSuccess;
 }
-
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_group_members,
-                                           const unsigned int *d_rtag,
-                                           Scalar4 *d_force,
-                                           const Scalar4 *d_orientation,
-                                           const Scalar3 *d_actVec,
-                                           const Scalar *d_actMag,
-                                           const Scalar3& P,
-                                           Scalar rx,
-                                           Scalar ry,
-                                           Scalar rz,
-                                           bool orientationLink,
-                                           unsigned int block_size)
-{
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
-    gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( group_size,
-                                                                    d_group_members,
-                                                                    d_rtag,
-                                                                    d_force,
-                                                                    d_orientation,
-                                                                    d_actVec,
-                                                                    d_actMag,
-                                                                    P,
-                                                                    rx,
-                                                                    ry,
-                                                                    rz,
-                                                                    orientationLink);
-
-    return cudaSuccess;
-}
-
-
-
-
-
-
-
 
 
 
