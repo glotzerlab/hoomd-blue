@@ -129,24 +129,6 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     m_activeMag.swap(tmp_activeMag);
 }
 
-
-
-
-
-//NEED TO HAVE GPU KERNEL HAVE ITS ID BE THE GROUP ID, THEN CONVERT THIS INTO THE GLOBAL TAG, AND THEN USE RTAG TO
-//CONVERT IT TO THE INDEX NUMBER
-
-//As is done in constrainspheregpu.cc code
-
-
-
-
-
-
-
-
-
-
 /*! This function sets appropriate active forces on all active particles.
     \param i particle with id number i
 */
@@ -158,6 +140,7 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // sanity check
     assert(d_force.data != NULL);
@@ -165,11 +148,13 @@ void ActiveForceComputeGPU::setForces()
     assert(d_actMag.data != NULL);
     assert(d_orientation.data != NULL);
     assert(d_rtag.data != NULL);
+    assert(d_index_array.data != NULL);
     
     bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
     unsigned int group_size = m_group->getNumMembers();
     
     gpu_compute_active_force_set_forces(group_size,
+                                     d_index_array.data,
                                      d_rtag.data,
                                      d_force.data,
                                      d_orientation.data,
@@ -195,17 +180,15 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    assert(d_actVec.data != NULL);
-    assert(d_actMag.data != NULL);
     assert(d_pos.data != NULL);
-    assert(d_rtag.data != NULL);
-    assert(d_force.data != NULL);
     
     bool is2D = (m_sysdef->getNDimensions() == 2);
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_rotational_diffusion(group_size,
+                                                d_index_array.data,
                                                 d_rtag.data,
                                                 d_pos.data,
                                                 d_force.data,
@@ -235,15 +218,14 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    assert(d_actVec.data != NULL);
-    assert(d_actMag.data != NULL);
     assert(d_pos.data != NULL);
-    assert(d_rtag.data != NULL);
-    assert(d_force.data != NULL);
+    
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_set_constraints(group_size,
+                                             d_index_array.data,
                                              d_rtag.data,
                                              d_pos.data,
                                              d_force.data,
