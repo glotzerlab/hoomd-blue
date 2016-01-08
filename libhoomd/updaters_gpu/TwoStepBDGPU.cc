@@ -116,6 +116,11 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
+    // for rotational noise
+    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    
     unsigned int num_blocks = group_size / m_block_size + 1;
 
     langevin_step_two_args args;
@@ -131,6 +136,8 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     args.block_size = m_block_size;
     args.num_blocks = num_blocks;
     args.tally = false;
+    
+    bool aniso = m_aniso;
 
     // perform the update on the GPU
     gpu_brownian_step_one(d_pos.data,
@@ -142,7 +149,11 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
                           d_index_array.data,
                           group_size,
                           d_net_force.data,
+                          d_gamma_r.data,
+                          d_orientation.data,
+                          d_torque.data,
                           args,
+                          aniso,
                           m_deltaT,
                           D);
 

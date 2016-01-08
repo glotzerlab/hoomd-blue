@@ -115,12 +115,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     
-    if (D < 3 && m_aniso)
-        {
-        ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
-        }
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
     
     const BoxDim& box = m_pdata->getBox();
 

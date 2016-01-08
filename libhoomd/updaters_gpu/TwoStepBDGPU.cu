@@ -50,8 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBDGPU.cuh"
-
 #include "saruprngCUDA.h"
+#include "VectorMath.h"
 
 #include <assert.h>
 
@@ -99,6 +99,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
+                                  const Scalar *d_gamma_r,
+                                  Scalar4 *d_orientation,
+                                  const Scalar4 *d_torque,
                                   const Scalar *d_gamma,
                                   const unsigned int n_types,
                                   const bool use_lambda,
@@ -106,12 +109,13 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const unsigned int timestep,
                                   const unsigned int seed,
                                   const Scalar T,
+                                  const bool aniso,
                                   const Scalar deltaT,
                                   unsigned int D)
     {
     if (!use_lambda)
         {
-        // read in the gammas (1 dimensional array)
+        // read in the gammas (1 dimensional array), stored in s_gammas[0: n_type-1]
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
             {
             if (cur_offset + threadIdx.x < n_types)
@@ -119,6 +123,15 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
             }
         __syncthreads();
         }
+        
+    // read in the gamma_r, stored in s_gammas[n_type : end]
+    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < n_types)
+            s_gammas[cur_offset + threadIdx.x + n_types] = d_gamma_r[cur_offset + threadIdx.x];
+        }
+    __syncthreads(); 
+    
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -187,6 +200,29 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         d_pos[idx] = postype;
         d_vel[idx] = vel;
         d_image[idx] = image;
+        
+        
+        ///////////////////
+        // beginning of rotational noise
+        if (D < 3 && aniso)
+            {
+            unsigned int type_r = __scalar_as_int(d_pos[idx].w);
+            Scalar gamma_r = s_gammas[type_r];
+            
+            if (gamma_r)
+                {
+                Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
+                Scalar tau_r = gaussian_rng(saru, sigma_r); 
+                vec3<Scalar> axis (0.0, 0.0, 1.0);
+                Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
+                quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+                quat<Scalar> q (d_orientation[idx]);
+                q += Scalar(0.5) * deltaT  * q * omega;
+                // re-normalize (improves stability)
+                q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+                d_orientation[idx] = quat_to_scalar4(q);
+                }
+            }
         }
     }
 
@@ -214,7 +250,11 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
+                                  const Scalar *d_gamma_r,
+                                  Scalar4 *d_orientation,
+                                  const Scalar4 *d_torque,
                                   const langevin_step_two_args& langevin_args,
+                                  const bool aniso,
                                   const Scalar deltaT,
                                   const unsigned int D)
     {
@@ -228,7 +268,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
     // run the kernel
     gpu_brownian_step_one_kernel<<< grid,
                                  threads,
-                                 (unsigned int)(sizeof(Scalar)*langevin_args.n_types)
+                                 (unsigned int)(sizeof(Scalar)*langevin_args.n_types) * 2
                              >>>(d_pos,
                                  d_vel,
                                  d_image,
@@ -238,6 +278,9 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                  d_group_members,
                                  group_size,
                                  d_net_force,
+                                 d_gamma_r,
+                                 d_orientation,
+                                 d_torque,
                                  langevin_args.d_gamma,
                                  langevin_args.n_types,
                                  langevin_args.use_lambda,
@@ -245,6 +288,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                  langevin_args.timestep,
                                  langevin_args.seed,
                                  langevin_args.T,
+                                 aniso,
                                  deltaT,
                                  D);
 

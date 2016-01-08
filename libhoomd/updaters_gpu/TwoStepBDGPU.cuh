@@ -70,7 +70,11 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
+                                  const Scalar *d_gamma_r,
+                                  Scalar4 *d_orientation,
+                                  const Scalar4 *d_torque,
                                   const langevin_step_two_args& langevin_args,
+                                  const bool aniso,
                                   const Scalar deltaT,
                                   const unsigned int D);
 
