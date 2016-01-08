@@ -176,7 +176,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
 {
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -214,7 +213,6 @@ void ActiveForceComputeGPU::setConstraint()
     
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);

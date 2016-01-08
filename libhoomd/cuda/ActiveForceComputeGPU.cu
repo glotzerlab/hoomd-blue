@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_rtag particle tag
     \param d_pos particle positions on device
     \param d_actVec particle active force unit vector
-    \param d_actMag particle active force vector magnitude
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -76,7 +75,6 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_si
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
-                                                   const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -86,9 +84,10 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_si
     if (group_idx >= group_size)
         return;
     
-    EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-    // unsigned int idx = d_rtag[group_idx]; // recover original tag for particle indexing
     unsigned int idx = d_group_members[group_idx];
+    // unsigned int idx = d_rtag[i];
+    
+    EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
                 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -114,7 +113,6 @@ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_si
     \param d_rtag particle tag
     \param d_pos particle positions on device
     \param d_actVec particle active force unit vector
-    \param d_actMag particle active force vector magnitude
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -128,7 +126,6 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
-                                                   const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -181,11 +178,11 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
         } else // if constraint
         {
+            unsigned int idx = d_group_members[group_idx];
+            // unsigned int idx = d_rtag[i];
+            
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
             SaruGPU saru(group_idx, timestep, seed);
-            
-            // unsigned int idx = d_rtag[group_idx]; // recover original tag for particle indexing
-            unsigned int idx = d_group_members[group_idx];
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
             
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -235,15 +232,13 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                    bool orientationLink)
 {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
     if (group_idx >= group_size)
         return;
 
-    // unsigned int idx = d_rtag[group_idx]; // recover original tag for particle indexing
     unsigned int idx = d_group_members[group_idx];
+    // unsigned int idx = d_rtag[i];
     
     Scalar3 f;
-    // unsigned int idx = h_rtag[group_idx]; // recover original tag for particle indexing
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (orientationLink)
     {
@@ -273,7 +268,6 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
                                                    Scalar3 *d_actVec,
-                                                   const Scalar *d_actMag,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -287,11 +281,10 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
     gpu_compute_active_force_set_constraints_kernel<<< grid, threads>>>(group_size,
-                                                                    group_size,
+                                                                    d_group_members,
                                                                     d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
-                                                                    d_actMag,
                                                                     P,
                                                                     rx,
                                                                     ry,
@@ -306,7 +299,6 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
                                                        Scalar3 *d_actVec,
-                                                       const Scalar *d_actMag,
                                                        const Scalar3& P,
                                                        Scalar rx,
                                                        Scalar ry,
@@ -324,11 +316,10 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
     gpu_compute_active_force_rotational_diffusion_kernel<<< grid, threads>>>(group_size,
-                                                                    group_size,
+                                                                    d_group_members,
                                                                     d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
-                                                                    d_actMag,
                                                                     P,
                                                                     rx,
                                                                     ry,
@@ -362,7 +353,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     // run the kernel
     cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
     gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( group_size,
-                                                                    group_size,
+                                                                    d_group_members,
                                                                     d_rtag,
                                                                     d_force,
                                                                     d_orientation,

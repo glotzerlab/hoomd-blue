@@ -174,7 +174,6 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 {   
 	//  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
@@ -256,7 +255,6 @@ void ActiveForceCompute::setConstraint(unsigned int i)
     
     //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::readwrite);
     ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
