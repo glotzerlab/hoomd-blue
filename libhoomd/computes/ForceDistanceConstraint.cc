@@ -68,12 +68,15 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
         : MolecularForceCompute(sysdef, nlist), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
-          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true), m_first_step(true)
+          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true), m_constraints_added_removed(true)
     {
     m_constraint_violated.resetFlags(0);
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
     m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraint::slotConstraintReorder, this));
+
+    // connect to ConstraintData to receive notifications when global constraint topology changes
+    m_group_num_change_connection = m_cdata->connectGroupNumChange(boost::bind(&ForceDistanceConstraint::slotConstraintsAddedRemoved, this));
 
     // reset condition
     m_condition.resetFlags(0);
@@ -84,6 +87,8 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
     {
     // disconnect from signal in ConstraintData
     m_constraint_reorder_connection.disconnect();
+
+    m_group_num_change_connection.disconnect();
     }
 
 /*! Does nothing in the base class
@@ -93,8 +98,6 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dist constraint");
-
-    m_first_step = false;
 
     if (m_cdata->getNGlobal() == 0)
         {
@@ -516,13 +519,9 @@ CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
 #endif
 
 void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
-    std::vector<int>& label, const unsigned int *h_gpu_n_constraints,
-    const ConstraintData::members_t *h_gpu_constraint_list, const unsigned int *h_rtag)
+    unsigned int *label, std::vector<ConstraintData::members_t>& groups)
     {
     assert(iconstraint < m_cdata->getN() + m_cdata->getNGhosts());
-    assert(h_gpu_n_constraints);
-    assert(h_gpu_constraint_list);
-    assert(h_rtag);
 
     // don't mark constraints already visited
     assert(visited.size() > iconstraint);
@@ -532,144 +531,85 @@ void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
     // mark this constraint as visited
     visited[iconstraint] = 1;
 
-    const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(iconstraint);
+    const ConstraintData::members_t constraint = groups[iconstraint];
     assert(constraint.tag[0] <= m_pdata->getMaximumTag());
     assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
-    // transform a and b into indicies into the particle data arrays
-    // (MEM TRANSFER: 4 integers)
-    unsigned int idx_a = h_rtag[constraint.tag[0]];
-    unsigned int idx_b = h_rtag[constraint.tag[1]];
-    assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
-    assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
+    label[constraint.tag[0]] = molecule;
+    label[constraint.tag[1]] = molecule;
 
-    // use constraint by ptl idx lookup
-    const Index2D& gpu_table_indexer = this->m_cdata->getGPUTableIndexer();
+    // NOTE: this loop could be optimized with a reverse-lookup table ptl idx -> constraint
 
-    // label the ptls with a molecule id
-    label[idx_a] = molecule;
-    label[idx_b] = molecule;
-
-    // constraints that idx_a is connected to
-    unsigned int nconstraints_a = h_gpu_n_constraints[idx_a];
-    for (unsigned int i = 0; i < nconstraints_a; ++i)
+    for (unsigned int jconstraint = 0; jconstraint < groups.size(); ++jconstraint)
         {
-        unsigned int jconstraint = h_gpu_constraint_list[gpu_table_indexer(idx_a, i)].idx[1];
+        ConstraintData::members_t tags_j = groups[jconstraint];
 
-        if (jconstraint != iconstraint)
+        if (iconstraint == jconstraint) continue;
+
+        if (tags_j.tag[0] == constraint.tag[0] || tags_j.tag[1] == constraint.tag[0] ||
+            tags_j.tag[0] == constraint.tag[1] || tags_j.tag[1] == constraint.tag[1])
             {
             // recursively mark connected constraint with current label
-            dfs(jconstraint, molecule, visited, label, h_gpu_n_constraints, h_gpu_constraint_list, h_rtag);
-            }
-        }
-
-    // constraints that idx_b is connected to
-    unsigned int nconstraints_b = h_gpu_n_constraints[idx_b];
-    for (unsigned int i = 0; i < nconstraints_b; ++i)
-        {
-        unsigned int jconstraint = h_gpu_constraint_list[gpu_table_indexer(idx_b, i)].idx[1];
-
-        if (jconstraint != iconstraint)
-            {
-            // recursively mark connected constraint with current label
-            dfs(jconstraint, molecule, visited, label, h_gpu_n_constraints, h_gpu_constraint_list, h_rtag);
+            dfs(jconstraint, molecule, visited, label, groups);
             }
         }
     }
 
 void ForceDistanceConstraint::initMolecules()
     {
-    // walk through the local constraints and connect molecules
+    // only rebuild global tag list if necessary
+    if (m_constraints_added_removed)
+        {
+        assignMoleculeTags();
+        m_constraints_added_removed = false;
+        }
 
-    unsigned int nconstraint = m_cdata->getN()+m_cdata->getNGhosts();
-    std::vector<int> visited(nconstraint,0);
+    // call base-class method
+    MolecularForceCompute::initMolecules();
+    }
+
+void ForceDistanceConstraint::assignMoleculeTags()
+    {
+    ConstraintData::Snapshot snap;
+
+    // take a global constraints snapshot
+    m_cdata->takeSnapshot(snap);
+
+    // broadcast constraint information
+    std::vector<ConstraintData::members_t> groups = snap.groups;
+    bcast(groups, 0, m_exec_conf->getMPICommunicator());
+
+    // walk through the global constraints and connect molecules
+
+    unsigned int nconstraint_global = snap.size;
+    std::vector<int> visited(nconstraint_global,0);
 
     // label per ptl (-1 == no label)
-    unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
-    std::vector<int> label(nptl, -1);
+    m_molecule_tag.resize(m_pdata->getNGlobal());
+
+    ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
+
+    // reset labels
+    unsigned int nptl = m_pdata->getNGlobal();
+    for (unsigned int i = 0; i < nptl; ++i)
+        {
+        h_molecule_tag.data[i] = NO_MOLECULE;
+        }
 
     int molecule = -1;
         {
-        const GPUArray<ConstraintData::members_t>& gpu_constraint_list = this->m_cdata->getGPUTable();
-        ArrayHandle<unsigned int> h_gpu_n_constraints(this->m_cdata->getNGroupsArray(), access_location::host, access_mode::read);
-        ArrayHandle<ConstraintData::members_t> h_gpu_constraint_list(gpu_constraint_list, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
         // label ptls by connected component index
-        for (unsigned int iconstraint = 0; iconstraint < nconstraint; ++iconstraint)
+        for (unsigned int iconstraint = 0; iconstraint < nconstraint_global; ++iconstraint)
             {
             if (! visited[iconstraint])
                 {
                 // depth first search
-                dfs(iconstraint, ++molecule, visited, label, h_gpu_n_constraints.data,
-                    h_gpu_constraint_list.data,  h_rtag.data);
+                dfs(iconstraint, ++molecule, visited, h_molecule_tag.data, groups);
                 }
             }
         }
 
-    // construct molecule table
-    unsigned int nmol = molecule+1;
-
-    m_molecule_length.resize(nmol);
-
-    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::overwrite);
-
-    // reset lengths
-    for (unsigned int imol = 0; imol < nmol; ++imol)
-        {
-        h_molecule_length.data[imol] = 0;
-        }
-
-    // count molecule lengths
-    for (unsigned int i = 0; i < nptl; ++i)
-        {
-        assert(i < label.size());
-        int molecule_i = label[i];
-        if (molecule_i != -1)
-            {
-            h_molecule_length.data[molecule_i]++;
-            }
-        }
-
-    // find maximum length
-    unsigned nmax = 0;
-    for (unsigned int imol = 0; imol < nmol; ++imol)
-        {
-        if (h_molecule_length.data[imol] > nmax)
-            {
-            nmax = h_molecule_length.data[imol];
-            }
-        }
-
-    // set up indexer
-    m_molecule_indexer = Index2D(nmol, nmax);
-
-    // resize molecule list
-    m_molecule_list.resize(m_molecule_indexer.getNumElements());
-
-    // reset lengths again
-    for (unsigned int imol = 0; imol < nmol; ++imol)
-        {
-        h_molecule_length.data[imol] = 0;
-        }
-
-    // fill molecule list
-    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    for (unsigned int iptl = 0; iptl < nptl; ++iptl)
-        {
-        assert(iptl < label.size());
-        int i_mol = label[iptl];
-
-        if (i_mol != -1)
-            {
-            unsigned int tag = h_tag.data[iptl];
-            unsigned int n = h_molecule_length.data[i_mol]++;
-            assert(tag <= m_pdata->getMaximumTag());
-            h_molecule_list.data[m_molecule_indexer(i_mol,n)] = tag;
-            }
-        }
+    m_n_molecules_global = molecule+1;
     }
 
 void export_ForceDistanceConstraint()

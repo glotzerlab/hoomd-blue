@@ -317,17 +317,16 @@ class Communicator
             }
 
 
-        //! Subscribe to list of call-backs for additional communication
+        //! Subscribe to list of call-backs for ghost communication
         /*!
-         * Good candidates for functions to be called after finishing the ghost update step
-         * are functions that involve all-to-all synchronization or similar expensive
-         * communication that can be overlapped with computation.
+         * A subscribing function is passed a reference to the ghost plans array
+         * which it can then update
          *
          * \param subscriber The callback
          * \returns a connection to this class
          */
         boost::signals2::connection addCommunicationCallback(
-            const boost::function<void (unsigned int timestep)>& subscriber)
+            const boost::function<void (const GPUArray<unsigned int> &)>& subscriber)
             {
             return m_comm_callbacks.connect(subscriber);
             }
@@ -646,7 +645,7 @@ class Communicator
         boost::signals2::signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
-        boost::signals2::signal<void (unsigned int timestep)>
+        boost::signals2::signal<void (const GPUArray<unsigned int>& )>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         boost::scoped_ptr<Autotuner> m_tuner_precompute; //!< Autotuner for precomputation of quantites

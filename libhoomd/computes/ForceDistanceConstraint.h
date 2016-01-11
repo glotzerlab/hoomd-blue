@@ -103,6 +103,9 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
+        //! Assign global molecule tags
+        virtual void assignMoleculeTags();
+
     protected:
         boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
@@ -122,9 +125,11 @@ class ForceDistanceConstraint : public MolecularForceCompute
         //! Connection to the signal notifying when groups are resorted
         boost::signals2::connection m_constraint_reorder_connection;
 
-        bool m_constraint_reorder;         //!< True if groups have changed
+        //!< Connection to the signal for global topology changes
+        boost::signals2::connection m_group_num_change_connection;
 
-        bool m_first_step;                 //!< If true, re-initialize
+        bool m_constraint_reorder;         //!< True if groups have changed
+        bool m_constraints_added_removed;  //!< True if global constraint topology has changed
 
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -145,13 +150,14 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void slotConstraintReorder()
             {
             m_constraint_reorder = true;
-
-            if (! m_first_step)
-                {
-                // reinitialize molecule table
-                initMolecules();
-                }
             }
+
+        //! Method called when constraint order changes
+        virtual void slotConstraintsAddedRemoved()
+            {
+            m_constraints_added_removed = true;
+            }
+
 
         //! Fill the molecule list
         virtual void initMolecules();
@@ -159,8 +165,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     private:
         //! Helper function to perform a depth-first search
         void dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
-            std::vector<int>& label, const unsigned int *h_gpu_n_constraints,
-            const ConstraintData::members_t *h_gpu_constraint_list, const unsigned int *h_rtag);
+            unsigned int *label, std::vector<ConstraintData::members_t>& groups);
     };
 
 //! Exports the ForceDistanceConstraint to python

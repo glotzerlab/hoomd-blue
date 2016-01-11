@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MolecularForceCompute.h"
 
 #include <string.h>
+#include <map>
 
 #include <boost/python.hpp>
 
@@ -64,7 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     boost::shared_ptr<NeighborList> nlist)
     : ForceConstraint(sysdef), m_nlist(nlist), m_molecule_list(m_exec_conf),
-      m_molecule_length(m_exec_conf), m_d_max(0.0), m_last_d_max(0.0), m_first_step(true)
+      m_molecule_length(m_exec_conf), m_molecule_tag(m_exec_conf),
+      m_molecule_idx(m_exec_conf), m_last_d_max(0.0), m_n_molecules_global(0),
+      m_is_first_step(true)
     {
     }
 
@@ -73,53 +76,35 @@ MolecularForceCompute::~MolecularForceCompute()
     {
     }
 
-#ifdef ENABLE_MPI
 bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
     {
     Scalar r_buff = m_nlist->getRBuff();
 
-    if (timestep == m_first_step)
+    if (m_is_first_step)
         {
-        // initialize ghost layer-width to half the domain size so as to complete all molecules
-        const BoxDim& box = m_pdata->getBox();
-        Scalar3 npd = box.getNearestPlaneDistance();
-        uchar3 periodic = box.getPeriodic();
-
-        Scalar L_min(FLT_MAX);
-        if (!periodic.x)
-            {
-            L_min = std::min(npd.x,L_min);
-            }
-        if (!periodic.y)
-            {
-            L_min = std::min(npd.y,L_min);
-            }
-        if (!periodic.z)
-            {
-            L_min = std::min(npd.z,L_min);
-            }
-
-        // slightly smaller than half the minimum box length
-        m_d_max = 0.99*L_min/2.0-r_buff;
-        }
-    else
-        {
-        // compute maximum extent
-        m_d_max = getMaxDiameter();
+        // only on the first time, initialize molecules BEFORE communication
+        initMolecules();
+        m_is_first_step = false;
         }
 
-    int result = 0;
-    if (m_d_max - m_last_d_max > r_buff/Scalar(2.0))
+    // get maximum diameter among local molecules
+    Scalar d_max = getMaxDiameter();
+
+    bool result = false;
+    if (d_max - m_last_d_max > r_buff/Scalar(2.0))
         {
-        result = 1;
+        result = true;
         }
 
-    return result;
-    }
-#endif
+    // store current value
+   m_last_d_max = d_max;
+
+   return result;
+   }
 
 Scalar MolecularForceCompute::getMaxDiameter()
     {
+
     // iterate over molecules
     Scalar d_max(0.0);
 
@@ -130,23 +115,26 @@ Scalar MolecularForceCompute::getMaxDiameter()
 
     const BoxDim& box = m_pdata->getBox();
 
+    unsigned int n_local = m_pdata->getN();
+
     for (unsigned int i = 0; i < m_molecule_indexer.getW(); ++i)
         {
         Scalar d_i(0.0);
         for (unsigned int j = 0; j < h_molecule_length.data[i]; ++j)
             {
-            unsigned int tag_j = h_molecule_list.data[m_molecule_indexer(i,j)];
-            assert(tag_j <= m_pdata->getMaximumTag());
-            unsigned int idx_j = h_rtag.data[tag_j];
+            unsigned int idx_j = h_molecule_list.data[m_molecule_indexer(i,j)];
             assert(idx_j < m_pdata->getN() + m_pdata->getNGhosts());
+
+            // only take into account local molecule (fragments)
+            if (idx_j >= n_local) continue;
 
             vec3<Scalar> r_j(h_postype.data[idx_j]);
             for (unsigned int k = j+1; k < h_molecule_length.data[i]; ++k)
                 {
-                unsigned int tag_k = h_molecule_list.data[m_molecule_indexer(i,k)];
-                assert(tag_k <= m_pdata->getMaximumTag());
-                unsigned int idx_k = h_rtag.data[tag_k];
+                unsigned int idx_k = h_molecule_list.data[m_molecule_indexer(i,k)];
                 assert(idx_k < m_pdata->getN() + m_pdata->getNGhosts());
+
+                if (idx_k >= n_local) continue;
 
                 vec3<Scalar> r_k(h_postype.data[idx_k]);
                 vec3<Scalar> r_jk = r_k - r_j;
@@ -176,6 +164,176 @@ Scalar MolecularForceCompute::getMaxDiameter()
     #endif
 
     return d_max;
+    }
+
+
+void MolecularForceCompute::initMolecules()
+    {
+    // construct local molecule table
+    unsigned int nptl_local = m_pdata->getN();
+
+    ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    std::map<unsigned int,unsigned int> local_molecule_tags;
+
+    unsigned int n_local_molecules = 0;
+
+    std::vector<unsigned int> local_molecule_idx(nptl_local, NO_MOLECULE);
+
+    // resize molecule lookup
+    m_molecule_idx.resize(m_n_molecules_global);
+
+    // identify local molecules and assign local indices to global molecule tags
+    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < nptl_local; ++i)
+        {
+        unsigned int tag = h_tag.data[i];
+        assert(tag <= m_pdata->getMaximumTag());
+
+        unsigned int mol_tag = h_molecule_tag.data[tag];
+        if (mol_tag == NO_MOLECULE) continue;
+
+        std::map<unsigned int,unsigned int>::iterator it = local_molecule_tags.find(mol_tag);
+        if (it == local_molecule_tags.end())
+            {
+            // insert element
+            it = local_molecule_tags.insert(std::make_pair(mol_tag,n_local_molecules++)).first;
+            unsigned int mol_idx = it->second;
+            h_molecule_idx.data[mol_tag] = mol_idx;
+            }
+
+        local_molecule_idx[i] = it->second;
+        }
+
+    m_molecule_length.resize(n_local_molecules);
+
+    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::overwrite);
+
+    // reset lengths
+    for (unsigned int imol = 0; imol < n_local_molecules; ++imol)
+        {
+        h_molecule_length.data[imol] = 0;
+        }
+
+    // count molecule lengths
+    for (unsigned int i = 0; i < nptl_local; ++i)
+        {
+        assert(i < label.size());
+        unsigned int molecule_i = local_molecule_idx[i];
+        if (molecule_i != NO_MOLECULE)
+            {
+            h_molecule_length.data[molecule_i]++;
+            }
+        }
+
+    // find maximum length
+    unsigned nmax = 0;
+    for (unsigned int imol = 0; imol < n_local_molecules; ++imol)
+        {
+        if (h_molecule_length.data[imol] > nmax)
+            {
+            nmax = h_molecule_length.data[imol];
+            }
+        }
+
+    // set up indexer
+    m_molecule_indexer = Index2D(n_local_molecules, nmax);
+
+    // resize molecule list
+    m_molecule_list.resize(m_molecule_indexer.getNumElements());
+
+    // reset lengths again
+    for (unsigned int imol = 0; imol < n_local_molecules; ++imol)
+        {
+        h_molecule_length.data[imol] = 0;
+        }
+
+    // fill molecule list
+    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
+
+    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
+        {
+        assert(iptl < label.size());
+        unsigned int i_mol = local_molecule_idx[iptl];
+
+        if (i_mol != NO_MOLECULE)
+            {
+            unsigned int n = h_molecule_length.data[i_mol]++;
+            h_molecule_list.data[m_molecule_indexer(i_mol,n)] = iptl;
+            }
+        }
+    }
+
+void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plans)
+    {
+    // init local molecules
+    initMolecules();
+
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_plans(plans, access_location::host, access_mode::readwrite);
+
+    unsigned int nptl_local = m_pdata->getN();
+
+    std::set<unsigned int> ghost_molecules;
+
+    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::read);
+
+    std::vector<unsigned int> ghost_molecule_plans(m_molecule_list.size(),0);
+    std::vector<bool> not_completely_in_ghost_layer(m_molecule_list.size(), false);
+
+    // identify ghost molecules and combine plans
+    for (unsigned int i = 0; i < nptl_local; ++i)
+        {
+        // only consider particles sent as ghosts
+        unsigned int plan = h_plans.data[i];
+
+        unsigned int tag = h_tag.data[i];
+        assert(tag <= m_pdata->getMaximumTag());
+
+        unsigned int molecule_tag = h_molecule_tag.data[tag];
+        assert(molecule_tag < m_n_molecules_global);
+
+        if (molecule_tag != NO_MOLECULE)
+            {
+            unsigned int mol_idx = h_molecule_idx.data[molecule_tag];
+
+            if (plan != 0)
+                {
+                ghost_molecules.insert(mol_idx);
+                }
+            else
+                {
+                // molecules have to reside completely in the ghost layer
+                not_completely_in_ghost_layer[mol_idx] = true;
+                }
+
+            // combine plan
+            ghost_molecule_plans[mol_idx] |= plan;
+            }
+        }
+
+
+    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::read);
+
+    // for every ghost molecule, combine plans
+    for (std::set<unsigned int>::iterator it = ghost_molecules.begin(); it != ghost_molecules.end(); ++it)
+        {
+        unsigned int mol_idx = *it;
+
+        for (unsigned int j = 0; j < h_molecule_length.data[mol_idx]; ++j)
+            {
+            unsigned int member_idx = h_molecule_list.data[m_molecule_indexer(mol_idx, j)];
+
+            assert(member_idx <= m_pdata->getN());
+
+            // update plan
+            h_plans.data[member_idx] |= ghost_molecule_plans[mol_idx];
+            }
+        }
     }
 
 void export_MolecularForceCompute()

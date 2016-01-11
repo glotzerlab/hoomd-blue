@@ -290,6 +290,9 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Remove all ghost groups
+        /*! This method does not actually operate on the group data, it just ensures
+            that the internal counters are reset.
+         */
         void removeAllGhostGroups()
             {
             unsigned int new_size = m_groups.size() - m_n_ghost;
@@ -299,6 +302,8 @@ class BondedGroupData : boost::noncopyable
 
         //! Add ghost groups
         /*! \param nghost The number of ghost groups to add
+         *
+         * This method does not modify any actual group data.
          */
         void addGhostGroups(unsigned int ngroup)
             {

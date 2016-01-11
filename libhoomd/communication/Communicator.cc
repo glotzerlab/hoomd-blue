@@ -846,6 +846,54 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
         {
         if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
 
+        // send plan for groups
+        std::vector<unsigned int> group_plan(m_gdata->getN(), 0);
+
+            {
+            ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_plan(plans, access_location::host, access_mode::read);
+
+            unsigned int ngroups_local = m_gdata->getN();
+
+            unsigned int n_local = m_comm.m_pdata->getN();
+            unsigned int max_local = n_local + m_comm.m_pdata->getNGhosts();
+
+            for (unsigned int group_idx = 0; group_idx < ngroups_local; group_idx++)
+                {
+                typename group_data::members_t members = h_groups.data[group_idx];
+
+                assert(group_data::size);
+                unsigned int plan = 0;
+                for (unsigned int i = 0; i < group_data::size; ++i)
+                    {
+                    unsigned int tag = members.tag[i];
+                    unsigned int pidx = h_rtag.data[tag];
+
+                    if (i==0 && pidx >= n_local)
+                        {
+                        // only the rank that owns the first ptl of a group sends it as a ghost
+                        plan = 0;
+                        break;
+                        }
+
+                    assert(pidx != NOT_LOCAL);
+                    assert(pidx <= m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts());
+
+                    if (pidx >= max_local)
+                        {
+                        this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
+                        throw std::runtime_error("Error during communication");
+                        }
+
+                    plan |= h_plan.data[pidx];
+                    }
+
+                group_plan[group_idx] = plan;
+                } // end loop over groups
+            }
+
+
         for (unsigned int dir = 0; dir < 6; dir++)
             {
             if (! m_comm.isCommunicating(dir) ) continue;
@@ -858,61 +906,6 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                 recv_neighbor = m_comm.m_decomposition->getNeighborRank(dir+1);
             else
                 recv_neighbor = m_comm.m_decomposition->getNeighborRank(dir-1);
-
-
-            // send plan for groups
-            std::vector<unsigned int> group_plan(m_gdata->getN()+m_gdata->getNGhosts(), 0);
-
-                {
-                ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_plan(plans, access_location::host, access_mode::read);
-
-                unsigned int ngroups = m_gdata->getN() + m_gdata->getNGhosts();
-
-                unsigned int max_local = m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts();
-
-                for (unsigned int group_idx = 0; group_idx < ngroups; group_idx++)
-                    {
-                    typename group_data::members_t members = h_groups.data[group_idx];
-
-                    unsigned int plan = 0;
-                    for (unsigned int i = 0; i < group_data::size; ++i)
-                        {
-                        unsigned int tag = members.tag[i];
-                        unsigned int pidx = h_rtag.data[tag];
-
-                        assert(pidx != NOT_LOCAL);
-                        assert(pidx <= m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts());
-
-                        if (pidx >= max_local)
-                            {
-                            this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
-                            throw std::runtime_error("Error during communication");
-                            }
-
-                        if (h_plan.data[pidx] == 0)
-                            {
-                            // ghost groups must fully reside in the ghost layer (otherwise only
-                            // part of the group would get copied as ghost particles)
-                            plan = 0;
-                            break;
-                            }
-
-                        plan |= h_plan.data[pidx];
-
-                        // handle special case
-                        if (send_neighbor == recv_neighbor && (dir % 2) && (plan & (1 << (dir-1))))
-                            {
-                            plan = 0;
-                            break;
-                            }
-
-                        }
-
-                    group_plan[group_idx] = plan;
-                    } // end loop over groups
-                }
 
             /*
              * Fill send buffers, exchange groups according to plans
@@ -990,11 +983,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
             // append ghosts at the end of particle data array
             unsigned int start_idx = m_gdata->getN() + m_gdata->getNGhosts();
 
-            // accommodate new ghost particles
-            m_gdata->addGhostGroups(num_recv_ghosts);
-
             // resize plan array
-            group_plan.resize(m_gdata->getN() + m_gdata->getNGhosts());
+            group_plan.resize(m_gdata->getN() + m_gdata->getNGhosts()+ num_recv_ghosts);
 
             // resize recv buf
             m_groups_recvbuf.resize(num_recv_ghosts);
@@ -1039,35 +1029,61 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
             if (m_comm.m_prof)
                 m_comm.m_prof->pop();
 
+            unsigned int old_n_ghost = m_gdata->getNGhosts();
+
+            // accommodate new ghost particles
+            m_gdata->addGhostGroups(num_recv_ghosts);
+
+            unsigned int added_groups = 0;
                 {
+                // access group data
                 ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::readwrite);
                 ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::readwrite);
                 ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::readwrite);
                 ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::readwrite);
+                ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
+
+                // access particle data
+                ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
+
+                unsigned int max_local = m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts();
 
                 // unpack group buffer
                 for (unsigned int i = 0; i < num_recv_ghosts; i++)
                     {
                     typename group_data::packed_t el = m_groups_recvbuf[i];
-                    h_groups.data[start_idx + i] = el.tags;
-                    h_group_typeval.data[start_idx + i] = el.typeval;
-                    h_group_tag.data[start_idx + i] = el.group_tag;
-                    h_group_ranks.data[start_idx + i] = el.ranks;
+                    if (h_group_rtag.data[el.group_tag] != GROUP_NOT_LOCAL)
+                        continue;
+
+                    bool has_nonlocal_members = false;
+                    for (unsigned int j = 0; j < group_data::size; ++j)
+                        {
+                        unsigned int tag = el.tags.tag[j];
+                        assert(tag <= m_comm.m_pdata->getMaximumTag());
+                        if (h_rtag.data[tag] >= max_local)
+                            {
+                            has_nonlocal_members = true;
+                            break;
+                            }
+                        }
+
+                    // omit nonlocal groups
+                    if (has_nonlocal_members)
+                        continue;
+
+                    h_groups.data[start_idx + added_groups] = el.tags;
+                    h_group_typeval.data[start_idx + added_groups] = el.typeval;
+                    h_group_tag.data[start_idx + added_groups] = el.group_tag;
+                    h_group_ranks.data[start_idx + added_groups] = el.ranks;
+                    h_group_rtag.data[el.group_tag] = start_idx+added_groups;
+
+                    added_groups++;
                     }
                 }
 
-                {
-                // set reverse-lookup tag -> idx
-                ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
-
-                for (unsigned int idx = start_idx; idx < start_idx + num_recv_ghosts; idx++)
-                    {
-                    assert(h_group_tag.data[idx] <= m_gdata->getMaximumTag());
-                    assert(h_group_rtag.data[h_group_tag.data[idx]] == GROUP_NOT_LOCAL);
-                    h_group_rtag.data[h_group_tag.data[idx]] = idx;
-                    }
-                }
+            // update ghost group number
+            m_gdata->removeAllGhostGroups();
+            m_gdata->addGhostGroups(old_n_ghost+added_groups);
             } // end loop over direction
 
         if (m_comm.m_prof)
@@ -1343,9 +1359,6 @@ void Communicator::communicate(unsigned int timestep)
         m_compute_callbacks(timestep);
         }
 
-    // other functions involving syncing
-    m_comm_callbacks(timestep);
-
     // distance check (synchronizes the GPU execution stream)
     bool migrate = m_migrate_requests(timestep) || m_force_migrate || m_is_first_step;
 
@@ -1446,7 +1459,7 @@ void Communicator::migrateParticles()
         m_impropers_changed = false;
 
         // Constraints
-        m_constraint_comm.migrateGroups(m_constraints_changed, false);
+        m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
         // fill send buffer
@@ -1622,7 +1635,10 @@ void Communicator::exchangeGhosts()
     m_improper_comm.markGhostParticles(m_plan,mask);
 
     // constraints
-    // m_constraint_comm.markGhostParticles(m_plan, mask);
+    m_constraint_comm.markGhostParticles(m_plan, mask);
+
+    // mark additional ghost particles requested by ForceComputes
+    m_comm_callbacks(m_plan);
 
     /*
      * Fill send buffers, exchange particles according to plans
