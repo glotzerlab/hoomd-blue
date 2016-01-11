@@ -90,12 +90,13 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     }
     
     unsigned int group_size = m_group->getNumMembers();
+    unsigned int N = m_pdata->getN();
     if (group_size == 0)
         return;
     
     // override base class allocation using mapped memory
-    GPUArray<Scalar3> tmp_activeVec(group_size, m_exec_conf,true);
-    GPUArray<Scalar> tmp_activeMag(group_size, m_exec_conf,true);
+    GPUArray<Scalar3> tmp_activeVec(N, m_exec_conf,true);
+    GPUArray<Scalar> tmp_activeMag(N, m_exec_conf,true);
     
     vector<Scalar3> m_f_lst;
     tuple tmp_force;
@@ -109,20 +110,24 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     
-    tmp_activeVec.resize(group_size);
-    tmp_activeMag.resize(group_size);
+    tmp_activeVec.resize(N);
+    tmp_activeMag.resize(N);
+    m_groupTags.resize(group_size);
     
     ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
     ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
+    ArrayHandle<unsigned int> h_groupTags(m_groupTags, access_location::host);
 
     // for each of the particles in the group
     for (unsigned int i = 0; i < group_size; i++)
     {
-        activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
-        activeVec.data[i] = make_scalar3(0, 0, 0);
-        activeVec.data[i].x = m_f_lst[i].x / activeMag.data[i];
-        activeVec.data[i].y = m_f_lst[i].y / activeMag.data[i];
-        activeVec.data[i].z = m_f_lst[i].z / activeMag.data[i];
+        unsigned int tag = m_group->getMemberTag(i);
+        h_groupTags.data[i] = tag;
+        activeMag.data[tag] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
+        activeVec.data[tag] = make_scalar3(0, 0, 0);
+        activeVec.data[tag].x = m_f_lst[i].x / activeMag.data[tag];
+        activeVec.data[tag].y = m_f_lst[i].y / activeMag.data[tag];
+        activeVec.data[tag].z = m_f_lst[i].z / activeMag.data[tag];
     }
     
     m_activeVec.swap(tmp_activeVec);
@@ -139,21 +144,24 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
     
     // sanity check
     assert(d_force.data != NULL);
     assert(d_actVec.data != NULL);
     assert(d_actMag.data != NULL);
     assert(d_orientation.data != NULL);
-    assert(d_index_array.data != NULL);
+    assert(d_rtag.data != NULL);
+    assert(d_groupTags.data != NULL);
     
     bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
     
     gpu_compute_active_force_set_forces(group_size,
-                                     d_index_array.data,
+                                     d_rtag.data,
+                                     d_groupTags.data,
                                      d_force.data,
                                      d_orientation.data,
                                      d_actVec.data,
@@ -177,7 +185,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
     
@@ -185,7 +194,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_rotational_diffusion(group_size,
-                                                d_index_array.data,
+                                                d_rtag.data,
+                                                d_groupTags.data,
                                                 d_pos.data,
                                                 d_force.data,
                                                 d_actVec.data,
@@ -211,14 +221,16 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
     
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_set_constraints(group_size,
-                                             d_index_array.data,
+                                             d_rtag.data,
+                                             d_groupTags.data,
                                              d_pos.data,
                                              d_force.data,
                                              d_actVec.data,

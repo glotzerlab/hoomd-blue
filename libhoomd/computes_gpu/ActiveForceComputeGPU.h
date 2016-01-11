@@ -94,6 +94,8 @@ class ActiveForceComputeGPU : public ActiveForceCompute
 
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();
+        
+        GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
 };
 
 //! Exports the ActiveForceComputeGPU Class to python
