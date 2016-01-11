@@ -97,6 +97,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     // override base class allocation using mapped memory
     GPUArray<Scalar3> tmp_activeVec(N, m_exec_conf,true);
     GPUArray<Scalar> tmp_activeMag(N, m_exec_conf,true);
+    GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf,true);
     
     vector<Scalar3> m_f_lst;
     tuple tmp_force;
@@ -112,26 +113,27 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     
     tmp_activeVec.resize(N);
     tmp_activeMag.resize(N);
-    m_groupTags.resize(group_size);
+    tmp_groupTags.resize(group_size);
     
     ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
     ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
-    ArrayHandle<unsigned int> h_groupTags(m_groupTags, access_location::host);
+    ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
 
     // for each of the particles in the group
     for (unsigned int i = 0; i < group_size; i++)
     {
         unsigned int tag = m_group->getMemberTag(i);
-        h_groupTags.data[i] = tag;
+        groupTags.data[i] = tag;
         activeMag.data[tag] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
         activeVec.data[tag] = make_scalar3(0, 0, 0);
         activeVec.data[tag].x = m_f_lst[i].x / activeMag.data[tag];
         activeVec.data[tag].y = m_f_lst[i].y / activeMag.data[tag];
         activeVec.data[tag].z = m_f_lst[i].z / activeMag.data[tag];
     }
-    
+        
     m_activeVec.swap(tmp_activeVec);
     m_activeMag.swap(tmp_activeMag);
+    m_groupTags.swap(tmp_groupTags);
 }
 
 /*! This function sets appropriate active forces on all active particles.
@@ -145,7 +147,7 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
     
     // sanity check
     assert(d_force.data != NULL);
@@ -186,7 +188,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
     
@@ -222,7 +224,7 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_groupTags(m_groupTags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
     

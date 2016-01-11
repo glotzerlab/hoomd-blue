@@ -76,7 +76,7 @@ extern "C" __global__
     \param orientationLink check if particle orientation is linked to active force vector
 */
 __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
-                                                    unsigned int *d_rtag
+                                                    unsigned int *d_rtag,
                                                     unsigned int *d_groupTags,
                                                     Scalar4 *d_force,
                                                     Scalar4 *d_orientation,
@@ -130,7 +130,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     \param rz radius of the ellipsoid in z direction
 */
 __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_size,
-                                                   unsigned int *d_rtag
+                                                   unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
@@ -182,7 +182,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     \param seed seed for random number generator
 */
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int group_size,
-                                                   unsigned int *d_rtag
+                                                   unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
@@ -268,7 +268,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
 
 cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_rtag
+                                           unsigned int *d_rtag,
                                            unsigned int *d_groupTags,
                                            Scalar4 *d_force,
                                            Scalar4 *d_orientation,
@@ -305,7 +305,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
 }
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                   unsigned int *d_rtag
+                                                   unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
@@ -334,7 +334,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
 }
 
 cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                       unsigned int *d_rtag
+                                                       unsigned int *d_rtag,
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,

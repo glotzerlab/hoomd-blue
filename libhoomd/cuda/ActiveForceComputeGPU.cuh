@@ -75,7 +75,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int block_size);
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                   unsigned int *d_rtag
+                                                   unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
@@ -87,7 +87,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    unsigned int block_size);
 
 cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                       unsigned int *d_rtag
+                                                       unsigned int *d_rtag,
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
