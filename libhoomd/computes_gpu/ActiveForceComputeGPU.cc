@@ -139,7 +139,6 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // sanity check
@@ -147,15 +146,14 @@ void ActiveForceComputeGPU::setForces()
     assert(d_actVec.data != NULL);
     assert(d_actMag.data != NULL);
     assert(d_orientation.data != NULL);
-    assert(d_rtag.data != NULL);
     assert(d_index_array.data != NULL);
     
     bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
     unsigned int group_size = m_group->getNumMembers();
+    unsigned int N = m_pdata->getN();
     
     gpu_compute_active_force_set_forces(group_size,
                                      d_index_array.data,
-                                     d_rtag.data,
                                      d_force.data,
                                      d_orientation.data,
                                      d_actVec.data,
@@ -165,6 +163,7 @@ void ActiveForceComputeGPU::setForces()
                                      m_ry,
                                      m_rz,
                                      orientationLink,
+                                     N,
                                      m_block_size);
 }
 
@@ -177,7 +176,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -188,7 +186,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
 
     gpu_compute_active_force_rotational_diffusion(group_size,
                                                 d_index_array.data,
-                                                d_rtag.data,
                                                 d_pos.data,
                                                 d_force.data,
                                                 d_actVec.data,
@@ -213,7 +210,6 @@ void ActiveForceComputeGPU::setConstraint()
     //  array handles
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -223,7 +219,6 @@ void ActiveForceComputeGPU::setConstraint()
 
     gpu_compute_active_force_set_constraints(group_size,
                                              d_index_array.data,
-                                             d_rtag.data,
                                              d_pos.data,
                                              d_force.data,
                                              d_actVec.data,
@@ -241,24 +236,9 @@ void ActiveForceComputeGPU::computeForces(unsigned int timestep)
 {
     if (m_prof) m_prof->push(m_exec_conf, "ActiveForceCompute");
     assert(m_pdata);
-    
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    assert(d_rtag.data != NULL);
 
     if (shouldCompute(timestep))
     {
-        if (m_particles_sorted==true)
-        {
-            ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-            assert(h_force.data != NULL);
-            for (unsigned int i = 0;i < m_pdata->getN();i++)
-            {
-                h_force.data[i].x = 0;
-                h_force.data[i].y = 0;
-                h_force.data[i].z = 0;
-            }
-        }
-        
         // run the kernel in parallel on all GPUs
         if (m_rx != 0)
         {

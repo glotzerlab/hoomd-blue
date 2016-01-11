@@ -59,21 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
 */
 
-//! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
-/*! \param group_size number of particles
-    \param d_rtag particle tag
-    \param d_pos particle positions on device
-    \param d_actVec particle active force unit vector
-    \param P position of the ellipsoid constraint
-    \param rx radius of the ellipsoid in x direction
-    \param ry radius of the ellipsoid in y direction
-    \param rz radius of the ellipsoid in z direction
-*/
 extern "C" __global__
 
 //! Kernel for setting active force vectors on the GPU
 /*! \param group_size number of particles
-    \param d_rtag particle tag
     \param d_force particle force on device
     \param d_orientation particle orientation on device
     \param d_actVec particle active force unit vector
@@ -86,7 +75,6 @@ extern "C" __global__
 */
 __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
                                                    unsigned int *d_group_members,
-                                                   const unsigned int *d_rtag, 
                                                    Scalar4 *d_force,
                                                    const Scalar4 *d_orientation,
                                                    const Scalar3 *d_actVec,
@@ -95,14 +83,16 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                    Scalar rx,
                                                    Scalar ry,
                                                    Scalar rz,
-                                                   bool orientationLink)
+                                                   bool orientationLink,
+                                                   const unsigned int N)
 {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
         return;
 
     unsigned int idx = d_group_members[group_idx];
-    // unsigned int idx = d_rtag[group_idx];
+    
+    // printf("%d %d\n", group_idx, idx);
     
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
@@ -126,9 +116,17 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     }
 }
 
+//! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
+/*! \param group_size number of particles
+    \param d_pos particle positions on device
+    \param d_actVec particle active force unit vector
+    \param P position of the ellipsoid constraint
+    \param rx radius of the ellipsoid in x direction
+    \param ry radius of the ellipsoid in y direction
+    \param rz radius of the ellipsoid in z direction
+*/
 __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_size,
                                                    unsigned int *d_group_members,
-                                                   const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
                                                    const Scalar3& P,
@@ -141,7 +139,6 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
         return;
     
     unsigned int idx = d_group_members[group_idx];
-    // unsigned int idx = d_rtag[group_idx];
     
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
@@ -166,7 +163,6 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU
 /*! \param group_size number of particles
-    \param d_rtag particle tag
     \param d_pos particle positions on device
     \param d_actVec particle active force unit vector
     \param P position of the ellipsoid constraint
@@ -179,7 +175,6 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 */
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int group_size,
                                                    unsigned int *d_group_members,
-                                                   const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_actVec,
                                                    const Scalar3& P,
@@ -194,10 +189,12 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
         return;
+    
+    unsigned int idx = d_group_members[group_idx];
 
     if (is2D) // 2D
     {
-        SaruGPU saru(group_idx, timestep, seed);
+        SaruGPU saru(idx, timestep, seed);
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
@@ -210,7 +207,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     {
         if (rx == 0) // if no constraint
         {
-            SaruGPU saru(group_idx, timestep, seed);
+            SaruGPU saru(idx, timestep, seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
@@ -234,11 +231,8 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
         } else // if constraint
         {
-            unsigned int idx = d_group_members[group_idx];
-            // unsigned int idx = d_rtag[group_idx];
-            
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-            SaruGPU saru(group_idx, timestep, seed);
+            SaruGPU saru(idx, timestep, seed);
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
             
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -264,7 +258,6 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
 cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int *d_group_members,
-                                           const unsigned int *d_rtag,
                                            Scalar4 *d_force,
                                            const Scalar4 *d_orientation,
                                            const Scalar3 *d_actVec,
@@ -274,6 +267,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar ry,
                                            Scalar rz,
                                            bool orientationLink,
+                                           const unsigned int N,
                                            unsigned int block_size)
 {
     // setup the grid to run the kernel
@@ -281,10 +275,9 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
+    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
     gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( group_size,
                                                                     d_group_members,
-                                                                    d_rtag,
                                                                     d_force,
                                                                     d_orientation,
                                                                     d_actVec,
@@ -293,13 +286,13 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     rx,
                                                                     ry,
                                                                     rz,
-                                                                    orientationLink);
+                                                                    orientationLink,
+                                                                    N);
     return cudaSuccess;
 }
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_group_members,
-                                                   const unsigned int *d_rtag,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
                                                    Scalar3 *d_actVec,
@@ -314,10 +307,8 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
     gpu_compute_active_force_set_constraints_kernel<<< grid, threads>>>(group_size,
                                                                     d_group_members,
-                                                                    d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
                                                                     P,
@@ -329,7 +320,6 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
 
 cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
                                                        unsigned int *d_group_members,
-                                                       const unsigned int *d_rtag,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
                                                        Scalar3 *d_actVec,
@@ -348,10 +338,8 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*group_size);
     gpu_compute_active_force_rotational_diffusion_kernel<<< grid, threads>>>(group_size,
                                                                     d_group_members,
-                                                                    d_rtag,
                                                                     d_pos,
                                                                     d_actVec,
                                                                     P,

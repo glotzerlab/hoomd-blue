@@ -143,9 +143,10 @@ void ActiveForceCompute::setForces(unsigned int i)
     assert(h_actMag.data != NULL);
     assert(h_orientation.data != NULL);
 
-    Scalar3 f;
-    unsigned int idx = m_group->getMemberIndex(i);
+    unsigned int tag = m_group->getMemberTag(i);
+    unsigned int idx = h_rtag.data[tag];
     
+    Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
     if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
     {
@@ -176,10 +177,13 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
+    
+    unsigned int tag = m_group->getMemberTag(i);
+    unsigned int idx = h_rtag.data[tag];
 
     if (m_sysdef->getNDimensions() == 2) // 2D
     {
-        Saru saru(i, timestep, m_seed);
+        Saru saru(idx, timestep, m_seed);
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
@@ -192,7 +196,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     {
         if (m_rx == 0) // if no constraint
         {
-            Saru saru(i, timestep, m_seed);
+            Saru saru(idx, timestep, m_seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
@@ -217,11 +221,9 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             h_actVec.data[i].z /= new_mag;
 
         } else // if constraint exists
-        {
-            unsigned int idx = m_group->getMemberIndex(i);
-            
+        {   
             EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-            Saru saru(i, timestep, m_seed);
+            Saru saru(idx, timestep, m_seed);
             
             Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -250,8 +252,6 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
 */
 void ActiveForceCompute::setConstraint(unsigned int i)
 {
-    unsigned int idx = m_group->getMemberIndex(i);
-    
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
     
     //  array handles
@@ -259,6 +259,9 @@ void ActiveForceCompute::setConstraint(unsigned int i)
     ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
+    
+    unsigned int tag = m_group->getMemberTag(i);
+    unsigned int idx = h_rtag.data[tag];
 
     Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
                 
