@@ -480,7 +480,7 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(
     unsigned int *d_group_plan,
     const unsigned int *d_rtag,
     const unsigned int *d_plans,
-    unsigned int mask
+    unsigned int n_local
     )
     {
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -495,21 +495,15 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(
         unsigned int tag = members.tag[i];
         unsigned int pidx = d_rtag[tag];
 
-        unsigned int ptl_plan = d_plans[pidx];
-
-        if (ptl_plan == 0)
+        if (i==0 && pidx >= n_local)
             {
-            // ghost groups must fully reside in the ghost layer (otherwise only
-            // part of the group would get copied as ghost particles)
+            // only the rank that owns the first ptl of a group sends it as a ghost
             plan = 0;
             break;
             }
 
         plan |= d_plans[pidx];
         }
-
-    // filter out non-communiating directions
-    plan &= mask;
 
     d_group_plan[idx] = plan;
     };
@@ -520,7 +514,7 @@ void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
                                    unsigned int N,
                                    const unsigned int *d_rtag,
                                    const unsigned int *d_plans,
-                                   unsigned int mask)
+                                   unsigned int n_local)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
@@ -531,7 +525,7 @@ void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
         d_ghost_group_plan,
         d_rtag,
         d_plans,
-        mask);
+        n_local);
     }
 
 
@@ -1019,32 +1013,113 @@ __global__ void gpu_unpack_groups_kernel(
     unsigned int *d_group_tag,
     members_t *d_groups,
     typeval_union *d_group_typeval,
-    ranks_t *d_group_ranks)
+    ranks_t *d_group_ranks,
+    const unsigned int *d_keep,
+    unsigned int *d_scan)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= nrecv) return;
+
+    if (d_keep[buf_idx])
+        {
+        group_element_t el = d_groups_recvbuf[buf_idx];
+
+        unsigned int out_idx = d_scan[buf_idx];
+
+        d_group_tag[out_idx] = el.group_tag;
+        d_groups[out_idx] = el.tags;
+        d_group_typeval[out_idx] = el.typeval;
+        d_group_ranks[out_idx] = el.ranks;
+        }
+    }
+
+template<unsigned int size, class members_t, class group_element_t>
+__global__ void gpu_mark_received_ghost_groups_kernel(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    unsigned int *d_keep,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local)
     {
     unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (buf_idx >= nrecv) return;
 
     group_element_t el = d_groups_recvbuf[buf_idx];
 
-    d_group_tag[buf_idx] = el.group_tag;
-    d_groups[buf_idx] = el.tags;
-    d_group_typeval[buf_idx] = el.typeval;
-    d_group_ranks[buf_idx] = el.ranks;
+    unsigned int keep = 0;
+
+    unsigned int group_tag = el.group_tag;
+    if (d_group_rtag[group_tag] == GROUP_NOT_LOCAL)
+        {
+        bool has_nonlocal_members = false;
+        for (unsigned int j = 0; j < size; ++j)
+            {
+            unsigned int tag = el.tags.tag[j];
+            if (d_rtag[tag] >= max_n_local)
+                {
+                has_nonlocal_members = true;
+                break;
+                }
+            }
+
+        if (!has_nonlocal_members)
+            {
+            keep = 1;
+            }
+        }
+
+    d_keep[buf_idx] = keep;
     }
 
-template<class members_t, class ranks_t, class group_element_t>
+
+template<unsigned int size, class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_copy_buf(
     unsigned int nrecv,
     const group_element_t *d_groups_recvbuf,
     unsigned int *d_group_tag,
     members_t *d_groups,
     typeval_union *d_group_typeval,
-    ranks_t *d_group_ranks)
+    ranks_t *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context)
     {
     unsigned int block_size = 256;
     unsigned int n_blocks = nrecv/block_size + 1;
 
-    gpu_unpack_groups_kernel<<<n_blocks, block_size>>>(nrecv, d_groups_recvbuf, d_group_tag, d_groups, d_group_typeval, d_group_ranks);
+    gpu_mark_received_ghost_groups_kernel<size><<<block_size, n_blocks>>>(
+        nrecv,
+        d_groups_recvbuf,
+        d_group_tag,
+        d_groups,
+        d_keep,
+        d_group_rtag,
+        d_rtag,
+        max_n_local);
+
+    if (nrecv)
+        {
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_keep,
+            nrecv, (unsigned int) 0, mgpu::plus<unsigned int>(),
+            (unsigned int *)NULL, &n_keep, d_scan, *mgpu_context);
+        }
+
+    gpu_unpack_groups_kernel<<<n_blocks, block_size>>>(
+        nrecv,
+        d_groups_recvbuf,
+        d_group_tag,
+        d_groups,
+        d_group_typeval,
+        d_group_ranks,
+        d_keep,
+        d_scan);
     }
 
 
@@ -2115,7 +2190,7 @@ template void gpu_make_ghost_group_exchange_plan<2>(unsigned int *d_ghost_group_
        unsigned int N,
        const unsigned int *d_rtag,
        const unsigned int *d_plans,
-       unsigned int mask);
+       unsigned int n_local);
 
 template void gpu_exchange_ghost_groups_pack(
     unsigned int n_out,
@@ -2126,12 +2201,19 @@ template void gpu_exchange_ghost_groups_pack(
     const group_storage<2> *d_group_ranks,
     packed_storage<2> *d_groups_sendbuf);
 
-template void gpu_exchange_ghost_groups_copy_buf(
+template void gpu_exchange_ghost_groups_copy_buf<2>(
     unsigned int nrecv,
     const packed_storage<2> *d_groups_recvbuf,
     unsigned int *d_group_tag,
     group_storage<2> *d_groups,
     typeval_union *d_group_typeval,
-    group_storage<2> *d_group_ranks);
+    group_storage<2> *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context);
 
 #endif // ENABLE_MPI

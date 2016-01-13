@@ -66,7 +66,7 @@ MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition>
     boost::shared_ptr<NeighborList> nlist)
     : ForceConstraint(sysdef), m_nlist(nlist), m_molecule_list(m_exec_conf),
       m_molecule_length(m_exec_conf), m_molecule_tag(m_exec_conf),
-      m_molecule_idx(m_exec_conf), m_last_d_max(0.0), m_n_molecules_global(0),
+      m_molecule_idx(m_exec_conf), m_d_max(0.0), m_last_d_max(0.0), m_n_molecules_global(0),
       m_is_first_step(true)
     {
     }
@@ -88,16 +88,16 @@ bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
         }
 
     // get maximum diameter among local molecules
-    Scalar d_max = getMaxDiameter();
+    m_d_max = getMaxDiameter();
 
     bool result = false;
-    if (d_max - m_last_d_max > r_buff/Scalar(2.0))
+    if (m_d_max - m_last_d_max > r_buff/Scalar(2.0))
         {
+        // store current value
+        m_last_d_max = m_d_max;
+
         result = true;
         }
-
-    // store current value
-   m_last_d_max = d_max;
 
    return result;
    }

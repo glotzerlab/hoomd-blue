@@ -1149,30 +1149,30 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
         std::vector<unsigned int> idx_offs;
         idx_offs.resize(m_gpu_comm.m_num_stages);
 
+        // make room for plans
+        m_ghost_group_plan.resize(m_gdata->getN());
+
+            {
+            // compute plans for all local groups
+            ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_group_plan(m_ghost_group_plan, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_plans(plans, access_location::device, access_mode::read);
+
+            gpu_make_ghost_group_exchange_plan<group_data::size>(d_ghost_group_plan.data,
+                                         d_groups.data,
+                                         m_gdata->getN(),
+                                         d_rtag.data,
+                                         d_plans.data,
+                                         m_gpu_comm.m_pdata->getN());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+
         // main communication loop
         for (unsigned int stage = 0; stage < m_gpu_comm.m_num_stages; stage++)
             {
-            // make room for plans
-            m_ghost_group_plan.resize(m_gdata->getN()+m_gdata->getNGhosts());
-
-                {
-                // compute plans for all particles, including already received ghosts
-                ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_ghost_group_plan(m_ghost_group_plan, access_location::device, access_mode::overwrite);
-                ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_plans(plans, access_location::device, access_mode::read);
-
-                gpu_make_ghost_group_exchange_plan<group_data::size>(d_ghost_group_plan.data,
-                                             d_groups.data,
-                                             m_gdata->getN() + m_gdata->getNGhosts(),
-                                             d_rtag.data,
-                                             d_plans.data,
-                                             m_gpu_comm.m_comm_mask[stage]);
-
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
-                }
-
             // resize temporary number of neighbors array
             m_neigh_counts.resize(m_gdata->getN()+m_gdata->getNGhosts());
 
@@ -1342,9 +1342,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
             // first ghost group index
             unsigned int first_idx = m_gdata->getN()+m_gdata->getNGhosts();
 
-            // update number of ghost particles
-            m_gdata->addGhostGroups(n_recv_ghost_groups_tot[stage]);
-
                 {
                 unsigned int offs = 0;
                 // recv buffer
@@ -1401,6 +1398,13 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                 if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
                 } // end ArrayHandle scope
 
+            unsigned int old_n_ghost = m_gdata->getNGhosts();
+
+            // update number of ghost particles
+            m_gdata->addGhostGroups(n_recv_ghost_groups_tot[stage]);
+
+
+            unsigned int n_keep = 0;
                 {
                 // access receive buffers
                 ArrayHandle<group_element_t> d_groups_recvbuf(m_groups_recvbuf, access_location::device, access_mode::read);
@@ -1409,18 +1413,35 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                 ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::readwrite);
                 ArrayHandle<typeval_t> d_group_typeval(m_gdata->getTypeValArray(), access_location::device, access_mode::readwrite);
                 ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
+                ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
 
-                // copy recv buf into group data
-                gpu_exchange_ghost_groups_copy_buf(
+                const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+                ScopedAllocation<unsigned int> d_keep(alloc, n_recv_ghost_groups_tot[stage]);
+                ScopedAllocation<unsigned int> d_scan(alloc, n_recv_ghost_groups_tot[stage]);
+
+                // copy recv buf into group data, omitting duplicates and groups with nonlocal ptls
+                gpu_exchange_ghost_groups_copy_buf<group_data::size>(
                     n_recv_ghost_groups_tot[stage],
                     d_groups_recvbuf.data,
                     d_group_tag.data + first_idx,
                     d_groups.data + first_idx,
                     d_group_typeval.data + first_idx,
-                    d_group_ranks.data + first_idx);
+                    d_group_ranks.data + first_idx,
+                    d_keep.data,
+                    d_scan.data,
+                    d_group_rtag.data,
+                    d_rtag.data,
+                    m_gpu_comm.m_pdata->getN() + m_gpu_comm.m_pdata->getNGhosts(),
+                    n_keep,
+                    m_gpu_comm.m_mgpu_context);
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 }
+
+            // update ghost group number
+            m_gdata->removeAllGhostGroups();
+            m_gdata->addGhostGroups(old_n_ghost+n_keep);
 
                 {
                 ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
@@ -1536,7 +1557,7 @@ void CommunicatorGPU::migrateParticles()
         m_impropers_changed = false;
 
         // Constraints
-        m_constraint_comm.migrateGroups(m_constraints_changed, false);
+        m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
         // fill send buffer
@@ -1855,6 +1876,12 @@ void CommunicatorGPU::exchangeGhosts()
 
         // impropers
         m_improper_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+
+        // constraints
+        m_constraint_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
+
+        // mark additional ghost particles requested by ForceComputes
+        m_comm_callbacks(m_ghost_plan);
 
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());

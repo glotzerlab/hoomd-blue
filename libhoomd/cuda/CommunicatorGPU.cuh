@@ -335,7 +335,7 @@ void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
                                    unsigned int N,
                                    const unsigned int *d_rtag,
                                    const unsigned int *d_plans,
-                                   unsigned int mask);
+                                   unsigned int n_local);
 
 template<class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_pack(
@@ -347,14 +347,21 @@ void gpu_exchange_ghost_groups_pack(
     const ranks_t *d_group_ranks,
     group_element_t *d_groups_sendbuf);
 
-template<class members_t, class ranks_t, class group_element_t>
+template<unsigned int size, class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_copy_buf(
     unsigned int nrecv,
     const group_element_t *d_groups_recvbuf,
     unsigned int *d_group_tag,
     members_t *d_groups,
     typeval_union *d_group_typeval,
-    ranks_t *d_group_ranks);
+    ranks_t *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context);
 
 void gpu_exchange_ghosts_pack_netforce(
     unsigned int n_out,

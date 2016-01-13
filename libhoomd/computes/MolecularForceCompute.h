@@ -148,6 +148,7 @@ class MolecularForceCompute : public ForceConstraint
         GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         GPUVector<unsigned int> m_molecule_idx;     //!< Local molecule idx per global molecule tag
 
+        Scalar m_d_max;                             //!< Current maximum local molecule diameter
         Scalar m_last_d_max;                        //!< Last maximum local molecule diameter
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
