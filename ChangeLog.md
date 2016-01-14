@@ -4,11 +4,14 @@
 
 ## Upcoming release
 
-Released TBD
+## v1.3.1
+
+Released 2016/1/14
 
 *Bug fixes*
 
 * Fix invalid MPI communicator error with Intel MPI
+* Fix python 3.5.1 seg fault
 
 ## v1.3.0
 
