@@ -1118,6 +1118,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
     {
     unsigned int my_rank = m_exec_conf->getRank();
 
+    // first remove any ghost groups
+    removeAllGhostGroups();
+
     // move groups connected to a particle
     if (my_rank == old_rank)
         {
@@ -1176,10 +1179,12 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
                 m_group_ranks.erase(group_idx);
                 m_group_tag.erase(group_idx);
 
+                m_n_groups--;
+
                 // reindex rtags
                 ArrayHandle<unsigned int> h_group_rtag(m_group_rtag, access_location::host, access_mode::readwrite);
                 ArrayHandle<unsigned int> h_group_tag(m_group_tag, access_location::host, access_mode::read);
-                for (unsigned int i = 0; i < m_groups.size(); ++i)
+                for (unsigned int i = 0; i < m_n_groups; ++i)
                     h_group_rtag.data[h_group_tag.data[i]] = i;
                 }
             }
@@ -1222,6 +1227,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
                 for (unsigned int j = 0; j < group_size; j++)
                     // initialize to zero
                     r.idx[j] = 0;
+
+                m_n_groups++;
 
                 m_group_ranks.push_back(r);
                 m_group_rtag[tag] = n;
