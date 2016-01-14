@@ -217,28 +217,36 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     {
         if (rx == 0) // if no constraint
         {
-            SaruGPU saru(idx, timestep, seed);
+            SaruGPU saru(idx, timestep, m_seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
             Scalar phi = acos(2.0 * v - 1.0);
+            
             vec3<Scalar> rand_vec;
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            Scalar diffusion_mag = rotationDiff * gaussian_rng(saru, 1.0);
-            vec3<Scalar> delta_vec;
-            delta_vec.x = d_actVec[tag].y * rand_vec.z - d_actVec[tag].z * rand_vec.y;
-            delta_vec.y = d_actVec[tag].z * rand_vec.x - d_actVec[tag].x * rand_vec.z;
-            delta_vec.z = d_actVec[tag].x * rand_vec.y - d_actVec[tag].y * rand_vec.x;
-            d_actVec[tag].x += delta_vec.x * diffusion_mag;
-            d_actVec[tag].y += delta_vec.y * diffusion_mag;
-            d_actVec[tag].z += delta_vec.z * diffusion_mag;
-            Scalar new_mag = sqrt(d_actVec[tag].x * d_actVec[tag].x + d_actVec[tag].y * d_actVec[tag].y
-                                + d_actVec[tag].z * d_actVec[tag].z);
-            d_actVec[tag].x /= new_mag;
-            d_actVec[tag].y /= new_mag;
-            d_actVec[tag].z /= new_mag;
+            
+            vec3<Scalar> aux_vec;
+            aux_vec.x = d_actVec.data[tag].y * rand_vec.z - d_actVec.data[tag].z * rand_vec.y;
+            aux_vec.y = d_actVec.data[tag].z * rand_vec.x - d_actVec.data[tag].x * rand_vec.z;
+            aux_vec.z = d_actVec.data[tag].x * rand_vec.y - d_actVec.data[tag].y * rand_vec.x;
+            Scalar aux_vec_mag = sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
+            aux_vec.x /= aux_vec_mag;
+            aux_vec.y /= aux_vec_mag;
+            aux_vec.z /= aux_vec_mag;
+            
+            vec3<Scalar> current_vec;
+            current_vec.x = h_actVec.data[i].x;
+            current_vec.y = h_actVec.data[i].y;
+            current_vec.z = h_actVec.data[i].z;
+            
+            Scalar delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+            d_actVec.data[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
+            d_actVec.data[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
+            d_actVec.data[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
+            
 
         } else // if constraint
         {
