@@ -916,9 +916,9 @@ class system_data(meta._metadata):
             if not isinstance(value, boxdim):
                 raise TypeError('box must be a data.boxdim object');
             self.sysdef.getParticleData().setGlobalBox(value._getBoxDim());
-
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+        else:
+            # otherwise, consider this an internal attribute to be set in the normal way
+            self.__dict__[name] = value;
 
     ## \internal
     # \brief Get particle metadata
