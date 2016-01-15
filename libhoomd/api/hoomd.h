@@ -67,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
-#include "HOOMDBinaryInitializer.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
