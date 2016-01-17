@@ -171,7 +171,7 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 */
 void ConstraintSphere::validate()
     {
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
