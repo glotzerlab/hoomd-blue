@@ -224,6 +224,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     // and an improper
     sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
+    // and two constraints
+    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(1.5),0,1));
+    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(2.5),1,2));
+
     // create the writer
     boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
 
@@ -767,6 +771,40 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
+    // constraint array
+        {
+        writer->setOutputConstraint(false);
+        writer->setOutputConstraint(true);
+
+        // write the file
+        writer->analyze(140);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000140.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<constraint num=\"2\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0 1 1.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1 2 2.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</constraint>");
+        f.close();
+        }
+
+
     remove_all(ph);
     }
 
@@ -1113,6 +1151,10 @@ di_b 1 2 3 4\n\
 im_a 3 2 1 0\n\
 im_b 5 4 3 2\n\
 </improper>\n\
+<constraint>\n\
+0 1 1.5\n\
+1 2 2.5\n\
+</constraint>\n\
 </configuration>\n\
 </hoomd_xml>" << endl;
     f.close();
@@ -1325,6 +1367,25 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
     BOOST_CHECK_EQUAL(d.d, (unsigned int)2);
     BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
+
+    // check the constraints
+    boost::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
+
+    // 2 dihedrals should have been read in
+    BOOST_REQUIRE_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);
+
+    // verify each dihedral
+    Constraint c = constraint_data->getGroupByTag(0);
+    BOOST_CHECK_EQUAL(c.a, (unsigned int)0);
+    BOOST_CHECK_EQUAL(c.b, (unsigned int)1);
+    BOOST_CHECK_EQUAL(c.d, Scalar(1.5));
+
+    // verify each dihedral
+    c = constraint_data->getGroupByTag(1);
+    BOOST_CHECK_EQUAL(c.a, (unsigned int)1);
+    BOOST_CHECK_EQUAL(c.b, (unsigned int)2);
+    BOOST_CHECK_EQUAL(c.d, Scalar(2.5));
+
 
     // clean up after ourselves
     remove_all(ph);
