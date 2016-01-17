@@ -20,7 +20,7 @@ class constrain_distance_tests (unittest.TestCase):
         self.system.particles[0].position = (0,0,0)
         self.system.particles[1].position = (1.5,0,0)
         self.system.particles[2].position = (0,-1.5,0)
-        self.system.particles[3].position = (0,0,1.5)
+        self.system.particles[3].position = (-9,0,0)
 
         self.system.particles[0].mass = 0.7;
         self.system.particles[1].mass = 0.95;
@@ -96,6 +96,20 @@ class constrain_distance_tests (unittest.TestCase):
 
         self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), 3)
         self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), 0)
+
+    # test exceeding the maximum contraint length in MPI
+    def test_mpi(self):
+        # add a long constraint
+        self.system.constraints.add(1,3,10.5)
+        distance = constrain.distance();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(group.all());
+        if comm.get_num_ranks() > 1:
+            # unfortunately, we cannot catch an MPI_Abort
+            #self.assertRaises(RuntimeError, run, 1)
+            pass
+        else:
+            run(1)
 
     def tearDown(self):
         del self.system
