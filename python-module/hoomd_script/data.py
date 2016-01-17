@@ -230,6 +230,9 @@ import hoomd_script
 # * `snapshot.dihedrals.group` is Nx4
 # * `snapshot.impropers.group` is Nx4
 #
+# <h3>Constraints</h3>
+#
+# Pairwise distance constraints are added 
 # \section data_proxy Proxy access
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
@@ -1757,7 +1760,7 @@ class constraint_data(meta._metadata):
     ## \internal
     # \brief Return an interator
     def __iter__(self):
-        return constraint_data.constraind_data_iterator(self);
+        return constraint_data.constraint_data_iterator(self);
 
     ## \internal
     # \brief Return metadata for this bond_data instance
@@ -1789,18 +1792,17 @@ class constraint_data_proxy:
     #
     # \param cdata ConstraintData to which this proxy belongs
     # \param tag Tag of this constraint in \a cdata
-    def __init__(self, bdata, tag):
-        self.bdata = bdata;
+    def __init__(self, cdata, tag):
+        self.cdata = cdata;
         self.tag = tag;
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "typeid       : " + str(self.typeid) + "\n";
         result += "a            : " + str(self.a) + "\n"
         result += "b            : " + str(self.b) + "\n"
-        result += "type         : " + str(self.type) + "\n";
+        result += "d            : " + str(self.d) + "\n";
         return result;
 
     ## \internal
@@ -1808,7 +1810,7 @@ class constraint_data_proxy:
     def __getattr__(self, name):
         if name == "a":
             constraint = self.cdata.getGroupByTag(self.tag);
-            return constaint.a;
+            return constraint.a;
         if name == "b":
             constraint = self.cdata.getGroupByTag(self.tag);
             return constraint.b;

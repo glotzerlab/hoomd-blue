@@ -283,6 +283,9 @@ class sphere(_constraint_force):
 # and
 # [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
 #
+# \note In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
+# Therefore, if molecules defined by constraints extend over more than half the local domain size, an error is raised.
+#
 # \sa hoomd_script.data.system_data
 #
 # \MPI_SUPPORTED
