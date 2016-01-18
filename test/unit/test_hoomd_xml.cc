@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -885,7 +885,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -1049,7 +1049,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     // create a test input file
     ofstream f((tmp_path+"/test_input.xml").c_str());
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml version=\"1.6\">\n\
+<hoomd_xml version=\"1.7\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" xy=\".12\" xz=\".23\" yz=\".34\"/>\n\
 <position >\n\

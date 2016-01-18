@@ -393,6 +393,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.4");
     valid_versions.push_back("1.5");
     valid_versions.push_back("1.6");
+    valid_versions.push_back("1.7");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -405,7 +406,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     if (!valid)
         m_exec_conf->msg->warning() << endl
-             << "hoomd_xml file with version not in the range 1.0-1.6  specified,"
+             << "hoomd_xml file with version not in the range 1.0-1.7  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
 
     // the file was parsed successfully by the XML reader. Extract the information now
