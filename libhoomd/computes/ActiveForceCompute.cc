@@ -100,6 +100,11 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     }
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
+    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0 && m_rotationDiff != 0)
+    {
+        throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined.
+        Instead implement rotational diffusion through the integrator.");
+    }
     
     m_activeVec.resize(group_size);
     m_activeMag.resize(group_size);
@@ -116,6 +121,8 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         h_activeVec.data[i].y = m_f_lst[i].y / h_activeMag.data[i];
         h_activeVec.data[i].z = m_f_lst[i].z / h_activeMag.data[i];
     }
+    
+    last_computed = 10;
     
     // Hash the User's Seed to make it less likely to be a low positive integer
     seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
@@ -293,8 +300,9 @@ void ActiveForceCompute::setConstraint(unsigned int i)
 */
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
-    if (shouldCompute(timestep))    
-    {     
+    if (last_computed != timestep)    
+    {  
+        last_computed = timestep;
         if (m_particles_sorted==true)
         {
             ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);

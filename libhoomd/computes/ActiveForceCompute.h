@@ -113,6 +113,7 @@ class ActiveForceCompute : public ForceCompute
         int m_seed;
         GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
         GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
+        unsigned int last_computed;
 };
 
 //! Exports the ActiveForceComputeClass to python
