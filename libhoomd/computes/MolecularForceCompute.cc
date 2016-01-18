@@ -76,6 +76,7 @@ MolecularForceCompute::~MolecularForceCompute()
     {
     }
 
+#ifdef ENABLE_MPI
 bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
     {
     Scalar r_buff = m_nlist->getRBuff();
@@ -101,6 +102,7 @@ bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
 
    return result;
    }
+#endif
 
 Scalar MolecularForceCompute::getMaxDiameter()
     {
@@ -265,6 +267,7 @@ void MolecularForceCompute::initMolecules()
         }
     }
 
+#ifdef ENABLE_MPI
 void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plans)
     {
     // init local molecules
@@ -335,6 +338,7 @@ void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plan
             }
         }
     }
+#endif
 
 void export_MolecularForceCompute()
     {
