@@ -47,7 +47,13 @@ class constrain_distance_tests (unittest.TestCase):
         lj.pair_coeff.set('A','A',epsilon=1.0,sigma=1.0)
         lj.set_params(mode="shift")
 
+        log = analyze.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=None);
+
         run(100)
+
+        K0 = log.query('kinetic_energy');
+        U0 = log.query('potential_energy');
+        E0 = K0 + U0
 
         # check that distances are maintained
         box = self.system.box
@@ -62,6 +68,14 @@ class constrain_distance_tests (unittest.TestCase):
         self.assertAlmostEqual(pos01[0]*pos01[0]+pos01[1]*pos01[1]+pos01[2]*pos01[2],1.5*1.5,4)
         self.assertAlmostEqual(pos02[0]*pos02[0]+pos02[1]*pos02[1]+pos02[2]*pos02[2],1.5*1.5,4)
         self.assertAlmostEqual(pos12[0]*pos12[0]+pos12[1]*pos12[1]+pos12[2]*pos12[2],2.0*1.5*1.5,4)
+
+        # test energy conservation
+        run(1000)
+        K1 = log.query('kinetic_energy');
+        U1 = log.query('potential_energy');
+        E1 = K1 + U1
+
+        self.assertAlmostEqual(E0,E1,3)
 
     # test coefficient not set checking
     def test_set_params(self):
