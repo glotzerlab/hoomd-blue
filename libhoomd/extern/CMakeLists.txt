@@ -16,3 +16,6 @@ INSTALL(DIRECTORY cub DESTINATION ${INC_INSTALL_DIR})
 
 # install Eigen
 INSTALL(DIRECTORY Eigen DESTINATION ${INC_INSTALL_DIR})
+
+# add dfftlib
+add_subdirectory(dfftlib)

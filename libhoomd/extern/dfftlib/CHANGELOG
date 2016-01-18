@@ -1,0 +1,10 @@
+0.2
+---
+- on device, use Vector-Radix FFT for faster computation
+- support for arbitrary cartesian index to rank maps
+- fallback FFT is now single precision on host
+
+0.1
+---
+
+- initial release
