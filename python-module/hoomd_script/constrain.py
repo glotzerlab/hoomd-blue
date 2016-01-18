@@ -239,7 +239,7 @@ _constraint_force.cur_id = 0;
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
 # them to a sphere.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
     #
@@ -285,6 +285,8 @@ class sphere(_constraint_force):
 #
 # \note In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
 # Therefore, if molecules defined by constraints extend over more than half the local domain size, an error is raised.
+#
+# \warning constrain.distance() does not currently interoperate with integrate.brownian() or integrate.langevin()
 #
 # \sa hoomd_script.data.system_data
 #
