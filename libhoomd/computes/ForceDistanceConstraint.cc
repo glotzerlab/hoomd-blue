@@ -577,7 +577,13 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
     // broadcast constraint information
     std::vector<ConstraintData::members_t> groups = snap.groups;
-    bcast(groups, 0, m_exec_conf->getMPICommunicator());
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        bcast(groups, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
 
     // walk through the global constraints and connect molecules
 

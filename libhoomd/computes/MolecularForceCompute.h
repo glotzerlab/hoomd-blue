@@ -97,7 +97,6 @@ class MolecularForceCompute : public ForceConstraint
 
             return flags;
             }
-        #endif
 
         //! Request communication of additional ghost particles
         /*! \param plans Plans of already marked ghost particles
@@ -136,6 +135,7 @@ class MolecularForceCompute : public ForceConstraint
             {
             return m_last_d_max + m_nlist->getRBuff();
             }
+        #endif
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< Pointer to neighbor list
