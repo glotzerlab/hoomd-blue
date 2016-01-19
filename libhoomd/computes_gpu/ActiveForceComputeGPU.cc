@@ -110,6 +110,10 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     }
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
+    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0 && m_rotationDiff != 0)
+    {
+        throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined. Instead implement rotational diffusion through the integrator.");
+    }
     
     tmp_activeVec.resize(N);
     tmp_activeMag.resize(N);
@@ -134,6 +138,11 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     m_activeVec.swap(tmp_activeVec);
     m_activeMag.swap(tmp_activeMag);
     m_groupTags.swap(tmp_groupTags);
+    
+    last_computed = 10;
+    
+    // Hash the User's Seed to make it less likely to be a low positive integer
+    seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
 }
 
 /*! This function sets appropriate active forces on all active particles.
@@ -251,8 +260,9 @@ void ActiveForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf, "ActiveForceCompute");
     assert(m_pdata);
 
-    if (shouldCompute(timestep))
-    {
+    if (last_computed != timestep)    
+    {  
+        last_computed = timestep;
         // run the kernel in parallel on all GPUs
         if (m_rx != 0)
         {

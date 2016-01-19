@@ -595,11 +595,13 @@ class box_resize(_updater):
 
 ## Constrain particles to the surface of a ellipsoid
 #
-# The command constrain.ellipsoid specifies that all particles are constrained
+# The command update.constraint_ellipsoid specifies that all particles are constrained
 # to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
 # Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
 # Note: For the algorithm to work, we must have \f$rx >= rz,~ry >= rz,~rz > 0\f$.
 # Also note: this method does not properly conserve virial coefficients.
+# Also note: random thermal forces from the integrator are applied in 3D not 2D, therefore they aren't fully accurate.
+# Suggested use is therefore only for T=0.
 # \MPI_NOT_SUPPORTED
 class constraint_ellipsoid(_updater):
     ## Specify the %ellipsoid updater
@@ -614,7 +616,7 @@ class constraint_ellipsoid(_updater):
     # \b Examples:
     # \code
     # update.constraint_ellipsoid(P=(-1,5,0), r=9)
-    # update.constraint_ellipsoid(rx=-4, ry=3, rz=7)
+    # update.constraint_ellipsoid(rx=7, ry=5, rz=3)
     # \endcode
     def __init__(self, r=None, rx=None, ry=None, rz=None, P=hoomd.make_scalar3(0,0,0), group=None):
         util.print_status_line();
