@@ -392,18 +392,37 @@ void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
                                          const unsigned int *d_n_cell,
                                          cufftComplex *d_mesh,
                                          int order,
-                                         const BoxDim& box)
+                                         const BoxDim& box,
+                                         unsigned int block_size,
+                                         const cudaDeviceProp& dev_prop
+                                         )
     {
-    unsigned int block_size = 128;
-    unsigned int n_blocks = bin_idx.getW()/block_size;
-    if (bin_idx.getW()%block_size) n_blocks +=1;
+    static unsigned int max_block_size = UINT_MAX;
+    static cudaFuncAttributes attr;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    unsigned int shared_size = block_size*scratch_idx.getH()*sizeof(Scalar);
+    unsigned int run_block_size = min(max_block_size, block_size);
+
+    unsigned int shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
+    while (shared_size + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+        {
+        block_size -= dev_prop.warpSize;
+
+        shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
+        }
+
+    unsigned int n_blocks = bin_idx.getW()/run_block_size;
+    if (bin_idx.getW()%run_block_size) n_blocks +=1;
 
     Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
 
     cudaMemset(d_mesh_scratch, 0, sizeof(Scalar)*scratch_idx.getNumElements());
-    gpu_assign_binned_particles_to_scratch_kernel<<<n_blocks,block_size,shared_size>>>(
+
+    gpu_assign_binned_particles_to_scratch_kernel<<<n_blocks,run_block_size,shared_size>>>(
           mesh_dim,
           n_ghost_bins,
           d_particle_bins,

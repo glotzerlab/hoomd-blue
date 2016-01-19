@@ -34,7 +34,8 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
     // initial value of number of particles per bin
     m_cell_size = 2;
 
-    m_tuner_bin.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign_bin", this->m_exec_conf));
+    m_tuner_bin.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_bin", this->m_exec_conf));
+    m_tuner_assign.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign", this->m_exec_conf));
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
     m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
@@ -229,6 +230,8 @@ void PPPMForceComputeGPU::assignParticles()
         ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::read);
         ArrayHandle<Scalar> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
 
+        unsigned int block_size = m_tuner_assign->getParam();
+        m_tuner_assign->begin();
         gpu_assign_binned_particles_to_mesh(m_mesh_points,
                                             m_n_ghost_cells,
                                             m_grid_dim,
@@ -239,7 +242,10 @@ void PPPMForceComputeGPU::assignParticles()
                                             d_n_cell.data,
                                             d_mesh.data,
                                             m_order,
-                                            m_pdata->getBox());
+                                            m_pdata->getBox(),
+                                            block_size,
+                                            m_exec_conf->dev_prop);
+        m_tuner_assign->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

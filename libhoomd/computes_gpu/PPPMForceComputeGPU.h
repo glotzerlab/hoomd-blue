@@ -37,11 +37,13 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             m_tuner_bin->setPeriod(period);
+            m_tuner_assign->setPeriod(period);
             m_tuner_update->setPeriod(period);
             m_tuner_force->setPeriod(period);
             m_tuner_influence->setPeriod(period);
 
             m_tuner_bin->setEnabled(enable);
+            m_tuner_assign->setEnabled(enable);
             m_tuner_update->setEnabled(enable);
             m_tuner_force->setEnabled(enable);
             m_tuner_influence->setEnabled(enable);
@@ -70,7 +72,8 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void computeVirial();
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for filling the constraint matrix
+        boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
+        boost::scoped_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
         boost::scoped_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         boost::scoped_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
