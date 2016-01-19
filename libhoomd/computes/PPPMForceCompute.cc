@@ -784,8 +784,8 @@ void PPPMForceCompute::assignParticles()
 
             if (! m_n_ghost_cells.x)
                 {
-                if (neighi == (int)m_grid_dim.x)
-                    neighi = 0;
+                if (neighi >= (int)m_grid_dim.x)
+                    neighi -= m_grid_dim.x;
                 else if (neighi < 0)
                     neighi += m_grid_dim.x;
                 }
@@ -803,8 +803,8 @@ void PPPMForceCompute::assignParticles()
 
                 if (! m_n_ghost_cells.y)
                     {
-                    if (neighj == (int)m_grid_dim.y)
-                        neighj = 0;
+                    if (neighj >= (int)m_grid_dim.y)
+                        neighj -= m_grid_dim.y;
                     else if (neighj < 0)
                         neighj += m_grid_dim.y;
                     }
@@ -820,8 +820,8 @@ void PPPMForceCompute::assignParticles()
                     int neighk = (int)iz + k;
                     if (! m_n_ghost_cells.z)
                         {
-                        if (neighk == (int)m_grid_dim.z)
-                            neighk = 0;
+                        if (neighk >= (int)m_grid_dim.z)
+                            neighk -= m_grid_dim.z;
                         else if (neighk < 0)
                             neighk += m_grid_dim.z;
                         }
@@ -1066,8 +1066,8 @@ void PPPMForceCompute::interpolateForces()
 
             if (! m_n_ghost_cells.x)
                 {
-                if (neighi == (int)m_grid_dim.x)
-                    neighi = 0;
+                if (neighi >= (int)m_grid_dim.x)
+                    neighi -= m_grid_dim.x;
                 else if (neighi < 0)
                     neighi += m_grid_dim.x;
                 }
@@ -1085,8 +1085,8 @@ void PPPMForceCompute::interpolateForces()
 
                 if (! m_n_ghost_cells.y)
                     {
-                    if (neighj == (int)m_grid_dim.y)
-                        neighj = 0;
+                    if (neighj >= (int)m_grid_dim.y)
+                        neighj -= m_grid_dim.y;
                     else if (neighj < 0)
                         neighj += m_grid_dim.y;
                     }
@@ -1103,8 +1103,8 @@ void PPPMForceCompute::interpolateForces()
                     int neighk = (int)iz + k;
                     if (! m_n_ghost_cells.z)
                         {
-                        if (neighk == (int)m_grid_dim.z)
-                            neighk = 0;
+                        if (neighk >= (int)m_grid_dim.z)
+                            neighk -= m_grid_dim.z;
                         else if (neighk < 0)
                             neighk += m_grid_dim.z;
                         }
