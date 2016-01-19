@@ -220,6 +220,10 @@ class ComputeThermo : public Compute
         */
         Scalar getRotationalKineticEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
             if (flags[pdata_flag::rotational_kinetic_energy])
@@ -238,6 +242,10 @@ class ComputeThermo : public Compute
         */
         Scalar getKineticEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             // return only translational component if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);

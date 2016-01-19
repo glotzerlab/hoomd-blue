@@ -910,17 +910,6 @@ class system_data(meta._metadata):
     # \brief SystemDefinition to which this instance is connected
 
     ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "box":
-            if not isinstance(value, boxdim):
-                raise TypeError('box must be a data.boxdim object');
-            self.sysdef.getParticleData().setGlobalBox(value._getBoxDim());
-
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
-
-    ## \internal
     # \brief Get particle metadata
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
@@ -937,16 +926,21 @@ class system_data(meta._metadata):
         data['timestep'] = globals.system.getCurrentTimeStep()
         return data
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "box":
-            b = self.sysdef.getParticleData().getGlobalBox();
-            L = b.getL();
-            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=self.sysdef.getNDimensions());
+    ## Get the system box
+    @property
+    def box(self):
+        b = self.sysdef.getParticleData().getGlobalBox();
+        L = b.getL();
+        return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=self.sysdef.getNDimensions());
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    ## Set the system box
+    # \param value The new boundaries (a data.boxdim object)
+    @box.setter
+    def box(self, value):
+        if not isinstance(value, boxdim):
+            raise TypeError('box must be a data.boxdim object');
+        self.sysdef.getParticleData().setGlobalBox(value._getBoxDim());
+
 
 ## \internal
 # \brief Access the list of types
