@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDGPU.cuh"
 #include "saruprngCUDA.h"
 #include "VectorMath.h"
+#include "HOOMDMath.h"
 
 #include <assert.h>
 
@@ -215,9 +216,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
                 Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
-                quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+                quat<Scalar> omega (make_scalar4(0,0,0, theta));                
                 quat<Scalar> q (d_orientation[idx]);
-                q += Scalar(0.5) * deltaT  * q * omega;
+                q += Scalar(0.5) * deltaT * omega * q ;
                 // re-normalize (improves stability)
                 q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);

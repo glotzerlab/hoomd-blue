@@ -1273,7 +1273,7 @@ class brownian(_integration_method):
     #
     # \b Examples:
     # \code
-    # bd.set_gamma_r('A', gamma=2.0)
+    # bd.set_gamma_r('A', gamma_r=2.0)
     # \endcode
     #
     def set_gamma_r(self, a, gamma_r):

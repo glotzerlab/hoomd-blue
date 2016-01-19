@@ -168,7 +168,7 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
         }
     if (typ >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "Trying to set gamma for a non existent type! " << typ << endl;
+        m_exec_conf->msg->error() << "Trying to set gamma_r for a non existent type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepLangevinBase");
         }
 

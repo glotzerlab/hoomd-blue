@@ -52,6 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBD.h"
 #include "VectorMath.h"
 #include "saruprng.h"
+#include "QuaternionMath.h"
+#include "HOOMDMath.h"
+
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -184,16 +187,17 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             
             if (gamma_r)
                 {
+                // original Gaussian random torque
                 Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
-                // h_orien.data[j].x += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].x + tau_r) ;
-                // h_orien.data[j].y += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].y + tau_r) ;
-                // h_orien.data[j].z += Scalar(1.0 / 2.0) * m_deltaT / gamma_r * (h_torque.data[j].z + tau_r) ;
+
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
                 Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
-                quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+                // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+                quat<Scalar> omega (make_scalar4(0,0,0, theta));
                 quat<Scalar> q (h_orientation.data[j]);
-                q += Scalar(0.5) * m_deltaT  * q * omega;
+                q += Scalar(0.5) * m_deltaT * omega * q ;               
+                
                 // re-normalize (improves stability)
                 q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
