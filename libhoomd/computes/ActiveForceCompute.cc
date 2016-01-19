@@ -100,7 +100,7 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     }
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
-    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0 && m_rotationDiff != 0)
+    if (m_orientationLink == true && m_rotationDiff != 0)
     {
         throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined. Instead implement rotational diffusion through the integrator.");
     }
@@ -154,7 +154,7 @@ void ActiveForceCompute::setForces(unsigned int i)
     
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
-    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0)
+    if (m_orientationLink == true)
     {
         vec3<Scalar> fi;
         f = make_scalar3(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);

@@ -110,7 +110,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
     }
     
     if (m_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
-    if (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0 && m_rotationDiff != 0)
+    if (m_orientationLink == true && m_rotationDiff != 0)
     {
         throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined. Instead implement rotational diffusion through the integrator.");
     }
@@ -166,7 +166,7 @@ void ActiveForceComputeGPU::setForces()
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
     
-    bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
+    bool orientationLink = (m_orientationLink == true);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
     
