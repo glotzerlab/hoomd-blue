@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the PPPMForceComputeGPU class
 */
 
+#if 0
 #ifdef SINGLE_PRECISION
 #define CUFFT_TRANSFORM_TYPE CUFFT_C2C
 #else
@@ -341,12 +342,16 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+#endif
 void export_PPPMForceComputeGPU()
     {
+    #if 0
     class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
         ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
          boost::shared_ptr<NeighborList>,
          boost::shared_ptr<ParticleGroup> >())
         .def("setBlockSize", &PPPMForceComputeGPU::setBlockSize)
         ;
+    #endif
     }
+

@@ -47,55 +47,52 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#ifndef _COMPUTE_THERMO_GPU_CUH_
-#define _COMPUTE_THERMO_GPU_CUH_
+#ifndef __COMMUNICATOR_GRID_H__
+#define __COMMUNICATOR_GRID_H__
 
-#include <cuda_runtime.h>
+#include "GPUArray.h"
+#include "SystemDefinition.h"
+#include <boost/shared_ptr.hpp>
 
-#include "ParticleData.cuh"
-#include "ComputeThermoTypes.h"
-#include "HOOMDMath.h"
+#ifdef ENABLE_MPI
 
-/*! \file ComputeThermoGPU.cuh
-    \brief Kernel driver function declarations for ComputeThermoGPU
-    */
-
-//! Holder for arguments to gpu_compute_thermo
-struct compute_thermo_args
+/*! Class to communicate the boundary layer of a regular grid
+ */
+template<typename T>
+class CommunicatorGrid
     {
-    Scalar4 *d_net_force;    //!< Net force / pe array to sum
-    Scalar *d_net_virial;    //!< Net virial array to sum
-    Scalar4 *d_orientation;  //!< Particle data orientations
-    Scalar4 *d_angmom;    //!< Particle data conjugate quaternions
-    Scalar3 *d_inertia;      //!< Particle data moments of inertia
-    unsigned int virial_pitch; //!< Pitch of 2D net_virial array
-    unsigned int ndof;      //!< Number of degrees of freedom for T calculation
-    unsigned int D;         //!< Dimensionality of the system
-    Scalar4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
-    Scalar *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
-    Scalar *d_scratch_rot;      //!< Scratch space for rotational kinetic energy partial sums
-    unsigned int block_size;    //!< Block size to execute on the GPU
-    unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
-    Scalar external_virial_xx;  //!< xx component of the external virial
-    Scalar external_virial_xy;  //!< xy component of the external virial
-    Scalar external_virial_xz;  //!< xz component of the external virial
-    Scalar external_virial_yy;  //!< yy component of the external virial
-    Scalar external_virial_yz;  //!< yz component of the external virial
-    Scalar external_virial_zz;  //!< zz component of the external virial
-    Scalar external_energy;     //!< External potential energy
+    public:
+        //! Constructor
+        CommunicatorGrid(boost::shared_ptr<SystemDefinition> sysdef, uint3 dim,
+            uint3 embed, uint3 offset, bool add_outer_layer_to_inner);
+
+        //! Communicate grid
+        virtual void communicate(const GPUArray<T>& grid);
+
+    protected:
+        boost::shared_ptr<SystemDefinition> m_sysdef;        //!< System definition
+        boost::shared_ptr<ParticleData> m_pdata;             //!< Particle data
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+        boost::shared_ptr<Profiler> m_prof;                  //!< Profiler
+
+        uint3 m_dim;                                         //!< Dimensions of grid
+        uint3 m_embed;                                       //!< Embedding dimensions
+        uint3 m_offset;                                      //!< Offset of inner grid in array
+        bool m_add_outer;                                    //!< True if outer ghost layer is added to inner cells
+
+        std::set<unsigned int> m_neighbors;                  //!< List of unique neighbor ranks
+        GPUArray<T> m_send_buf;                              //!< Send buffer
+        GPUArray<T> m_recv_buf;
+        GPUArray<unsigned int> m_send_idx;                   //!< Indices of grid cells in send buf
+        GPUArray<unsigned int> m_recv_idx;                   //!< Indices of grid cells in recv buf
+        std::map<unsigned int,unsigned int> m_begin;         //!< Begin offset of every rank in send/recv buf
+        std::map<unsigned int,unsigned int> m_end;           //!< End offset of every rank in send/recv buf
+
+        //! Initialize grid communication
+        virtual void initGridComm();
     };
 
-//! Computes the thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo(Scalar *d_properties,
-                               Scalar4 *d_vel,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               const BoxDim& box,
-                               const compute_thermo_args& args,
-                               bool compute_pressure_tensor,
-                               bool compute_rotational_energy
-                               );
-
-#endif
+#endif // ENABLE_MPI
+#endif // __COMMUNICATOR_GRID_H__

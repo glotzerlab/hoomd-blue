@@ -359,6 +359,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
 
     Scalar external_virial[6];
+    Scalar external_energy;
         {
         // access the net force and virial arrays
         const GPUArray<Scalar4>& net_force  = m_pdata->getNetForce();
@@ -375,6 +376,8 @@ void Integrator::computeNetForce(unsigned int timestep)
 
         for (unsigned int i = 0; i < 6; ++i)
            external_virial[i] = Scalar(0.0);
+
+        external_energy = Scalar(0.0);
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -416,11 +419,15 @@ void Integrator::computeNetForce(unsigned int timestep)
 
             for (unsigned int k = 0; k < 6; k++)
                 external_virial[k] += (*force_compute)->getExternalVirial(k);
+
+            external_energy += (*force_compute)->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -486,11 +493,15 @@ void Integrator::computeNetForce(unsigned int timestep)
                 }
             for (unsigned int k = 0; k < 6; k++)
                 external_virial[k] += (*force_constraint)->getExternalVirial(k);
+
+            external_energy += (*force_constraint)->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -525,6 +536,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     Scalar external_virial[6];
+    Scalar external_energy;
+
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
@@ -544,6 +557,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         // zero external virial
         for (unsigned int i = 0; i < 6; ++i)
             external_virial[i] = Scalar(0.0);
+
+        external_energy = Scalar(0.0);
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that
@@ -663,13 +678,18 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             }
         }
 
-    // add up external virials
+    // add up external virials and energies
     for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
+        {
         for (unsigned int k = 0; k < 6; k++)
             external_virial[k] += m_forces[cur_force]->getExternalVirial(k);
+        external_energy += m_forces[cur_force]->getExternalEnergy();
+        }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -820,12 +840,16 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
+        {
         for (unsigned int k = 0; k < 6; k++)
             external_virial[k] += m_constraint_forces[cur_force]->getExternalVirial(k);
+        external_energy += m_constraint_forces[cur_force]->getExternalEnergy();
+        }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {

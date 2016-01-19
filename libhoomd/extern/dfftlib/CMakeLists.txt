@@ -40,8 +40,8 @@ configure_file (
   "${PROJECT_BINARY_DIR}/dfft_lib_config.h"
    )
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
-include_directories("${PROJECT_BINARY_DIR}")
+#include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
+#include_directories("${PROJECT_BINARY_DIR}")
 
 # library source
 add_subdirectory(src)

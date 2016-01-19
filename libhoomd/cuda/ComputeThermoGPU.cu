@@ -313,6 +313,7 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
     \param external_virial External contribution to virial (1/3 trace)
+    \param external_energy External contribution to potential energy
 
 
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
@@ -328,7 +329,8 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               unsigned int D,
                                               unsigned int group_size,
                                               unsigned int num_partial_sums,
-                                              Scalar external_virial
+                                              Scalar external_virial,
+                                              Scalar external_energy
                                               )
     {
     Scalar4 final_sum = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0),Scalar(0.0));
@@ -376,7 +378,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         {
         // compute final quantities
         Scalar ke_trans_total = final_sum.x * Scalar(0.5);
-        Scalar pe_total = final_sum.y;
+        Scalar pe_total = final_sum.y + external_energy;
         Scalar W = final_sum.z + external_virial;
         Scalar ke_rot_total = final_sum.w;
 
@@ -593,7 +595,8 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                    args.D,
                                                                    group_size,
                                                                    args.n_blocks,
-                                                                   external_virial);
+                                                                   external_virial,
+                                                                   args.external_energy);
 
     if (compute_pressure_tensor)
         {

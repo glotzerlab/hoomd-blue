@@ -1,206 +1,179 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
-
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
-// Maintainer: sbarr
+#ifndef __PPPM_FORCE_COMPUTE_H__
+#define __PPPM_FORCE_COMPUTE_H__
 
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "ParticleGroup.h"
+#include "CommunicatorGrid.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-
-#include <vector>
-
-#ifdef ENABLE_CUDA
-#include <cufft.h>
-#endif
-
-/*! \file PPPMForceCompute.h
-    \brief Declares a class for computing harmonic bonds
-*/
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
-// CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
-#ifndef SINGLE_PRECISION
-#define CUFFTCOMPLEX cufftDoubleComplex
-#else
-#define CUFFTCOMPLEX cufftComplex
-#endif
-
-#ifndef __PPPMFORCECOMPUTE_H__
-#define __PPPMFORCECOMPUTE_H__
-
-// slave KISS data type to HOOMD Scalar
-#ifndef kiss_fft_scalar
-#define kiss_fft_scalar Scalar
-#endif
-#include "HOOMDMath.h"
+#include "dfft_host.h"
 #include "kiss_fftnd.h"
 
+#include <boost/signals2.hpp>
+#include <boost/bind.hpp>
 
-// MAX gives the larger of two values
-#define MAX_PPPM(a,b) ((a) > (b) ? (a) : (b))
-// MIN gives the lesser of two values
-#define MIN_PPPM(a,b) ((a) < (b) ? (a) : (b))
-// MaxOrder is the largest allowed value of the interpolation order
-#define MaxOrder 7
-// ConstSize is used to make sure the rho_coeff will fit into memory on the GPU
-#define CONSTANT_SIZE 2048
-// EPS_HOC is used to calculate the Green's function
-#define EPS_HOC 1.0e-7
-
-
-//! Computes the long ranged part of the electrostatic forces on each particle
-/*! PPPM forces are computed on every particle in the simulation.
-
-*/
+/*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
+ */
 class PPPMForceCompute : public ForceCompute
     {
     public:
-        //! Constructs the compute
+        //! Constructor
         PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
-                         boost::shared_ptr<ParticleGroup> group);
-
-        //! Destructor
-        ~PPPMForceCompute();
+            boost::shared_ptr<NeighborList> nlist,
+            boost::shared_ptr<ParticleGroup> group);
+        virtual ~PPPMForceCompute();
 
         //! Set the parameters
-        virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
+        virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
+            unsigned int order, Scalar kappa, Scalar rcut);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+        void computeForces(unsigned int timestep);
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        /*! Returns the names of provided log quantities.
+         */
+        std::vector<std::string> getProvidedLogQuantities()
+            {
+            std::vector<std::string> list = ForceCompute::getProvidedLogQuantities();
+            for (std::vector<std::string>::iterator it = m_log_names.begin(); it != m_log_names.end(); ++it)
+                {
+                list.push_back(*it);
+                }
+            return list;
+            }
 
-        //! Notification of a box size change
-        void slotBoxChanged()
+        /*! Returns the value of a specific log quantity.
+         * \param quantity The name of the quantity to return the value of
+         * \param timestep The current value of the time step
+         */
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
+    protected:
+        /*! Compute the biased forces for this collective variable.
+            The force that is written to the force arrays must be
+            multiplied by the bias factor.
+
+            \param timestep The current value of the time step
+         */
+        void computeBiasForces(unsigned int timestep);
+
+        boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
+        boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
+
+        uint3 m_mesh_points;                //!< Number of sub-divisions along one coordinate
+        uint3 m_global_dim;                 //!< Global grid dimensions
+        uint3 m_n_ghost_cells;              //!< Number of ghost cells along every axis
+        uint3 m_grid_dim;                   //!< Grid dimensions (including ghost cells)
+        Scalar3 m_ghost_width;              //!< Dimensions of the ghost layer
+        unsigned int m_ghost_offset;       //!< Offset in mesh due to ghost cells
+        unsigned int m_n_cells;             //!< Total number of inner cells
+        unsigned int m_radius;              //!< Stencil radius (in units of mesh size)
+        unsigned int m_n_inner_cells;       //!< Number of inner mesh points (without ghost cells)
+        GPUArray<Scalar> m_inf_f;           //!< Fourier representation of the influence function (real part)
+        GPUArray<Scalar3> m_k;              //!< Mesh of k values
+        Scalar m_qstarsq;                   //!< Short wave length cut-off squared for density harmonics
+        bool m_need_initialize;             //!< True if we have not yet computed the influence function
+        bool m_params_set;                  //!< True if parameters are set
+        bool m_box_changed;                 //!< True if box has changed since last compute
+
+        GPUArray<Scalar> m_virial_mesh;     //!< k-space mesh of virial tensor values
+
+        Scalar m_kappa;                     //!< Screening parameter
+        Scalar m_rcut;                      //!< Cutoff for short-ranged interaction
+        unsigned int m_order;               //!< Order of interpolation scheme
+
+        Scalar m_q;                         //!< Total system charge
+        Scalar m_q2;                        //!< Sum of charge squared
+
+        GPUArray<Scalar> m_rho_coeff;       //!< Coefficients for computing the grid based charge density
+        GPUArray<Scalar> m_gf_b;            //!< Green function coefficients
+
+        //! Helper function to be called when box changes
+        void setBoxChange()
             {
             m_box_changed = true;
             }
 
+        //! Helper function to setup the mesh indices
+        void setupMesh();
+
+        //! Helper function to setup FFT and allocate the mesh arrays
+        virtual void initializeFFT();
+
+        //! Compute the optimal influence function
+        virtual void computeInfluenceFunction();
+
+        //! The TSC (triangular-shaped cloud) charge assignment function
+        Scalar assignTSC(Scalar x);
+
+        //! Derivative of the TSC (triangular-shaped cloud) charge assignment function
+        Scalar assignTSCderiv(Scalar x);
+
+        //! Helper function to assign particle coordinates to mesh
+        virtual void assignParticles();
+
+        //! Helper function to update the mesh arrays
+        virtual void updateMeshes();
+
+        //! Helper function to interpolate the forces
+        virtual void interpolateForces();
+
+        //! Helper function to calculate value of potential energy
+        virtual Scalar computePE();
+
+        //! Helper function to compute the virial
+        virtual void computeVirial();
+
+        //! Setup coefficients
+        virtual void setupCoeffs();
+
+    private:
+        kiss_fftnd_cfg m_kiss_fft;         //!< The FFT configuration
+        kiss_fftnd_cfg m_kiss_ifft;        //!< Inverse FFT configuration
+
+        #ifdef ENABLE_MPI
+        dfft_plan m_dfft_plan_forward;     //!< Distributed FFT for forward transform
+        dfft_plan m_dfft_plan_inverse;     //!< Distributed FFT for inverse transform
+        std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_forward; //!< Communicator for charge mesh
+        std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_reverse; //!< Communicator for inv fourier mesh
+        #endif
+
+        bool m_kiss_fft_initialized;               //!< True if a local KISS FFT has been set up
+
+        GPUArray<kiss_fft_cpx> m_mesh;             //!< The particle density mesh
+        GPUArray<kiss_fft_cpx> m_fourier_mesh;     //!< The fourier transformed mesh
+        GPUArray<kiss_fft_cpx> m_fourier_mesh_G_x;   //!< Fourier transformed mesh times the influence function, x-component
+        GPUArray<kiss_fft_cpx> m_fourier_mesh_G_y;   //!< Fourier transformed mesh times the influence function, y-component
+        GPUArray<kiss_fft_cpx> m_fourier_mesh_G_z;   //!< Fourier transformed mesh times the influence function, z-component
+        GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_x;   //!< Fourier transformed mesh times the influence function, x-component
+        GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_y;   //!< Fourier transformed mesh times the influence function, y-component
+        GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_z;   //!< Fourier transformed mesh times the influence function, z-component
+
+        boost::signals2::connection m_boxchange_connection; //!< Connection to ParticleData box change signal
+
+        std::vector<std::string> m_log_names;           //!< Name of the log quantity
+
+        bool m_dfft_initialized;                   //! True if host dfft has been initialized
+
+        //! Compute virial on mesh
+        void computeVirialMesh();
+
+        //! Compute number of ghost cellso
+        uint3 computeGhostCellNum();
+
         //! root mean square error in force calculation
         Scalar rms(Scalar h, Scalar prd, Scalar natoms);
+
         //! computes coefficients for assigning charges to grid points
         void compute_rho_coeff();
-        //! computes coefficients for the Green's function
+
+        //! computes auxillary table for optimized influence function
         void compute_gf_denom();
+
         //! computes coefficients for the Green's function
         Scalar gf_denom(Scalar x, Scalar y, Scalar z);
-        //! resets kvec, Green's function and virial coefficients if the box size changes
-        void reset_kvec_green_hat_cpu();
-        //! assigns charges to grid points
-        void assign_charges_to_grid();
-        //! multiply Green's function by charge density to get electric field
-        void combined_green_e();
-        //! Do the final force calculation
-        void calculate_forces();
-        //! fix the force due to excluded particles
-        void fix_exclusions_cpu();
-        //! fix the energy and virial thermodynamic quantities
-        virtual void fix_thermo_quantities();
 
-    protected:
-        GPUArray<Scalar>m_vg;                    //!< Virial coefficient
-        Scalar m_thermo_data[7];                 //!< PPPM contribution to energy and virial
-        bool m_params_set;                       //!< Set to true when the parameters are set
-        int m_Nx;                                //!< Number of grid points in x direction
-        int m_Ny;                                //!< Number of grid points in y direction
-        int m_Nz;                                //!< Number of grid points in z direction
-        int m_order;                             //!< Interpolation order
-        Scalar m_kappa;                          //!< screening parameter for erfc(kappa*r)
-        Scalar m_rcut;                           //!< Real space cutoff
-        Scalar m_q;                              //!< Total system charge
-        Scalar m_q2;                             //!< Sum(q_i*q_i), where q_i is the charge of each particle
-        Scalar m_energy_virial_factor;           //!< Multiplication factor for energy and virial
-        bool m_box_changed;                      //!< Set to ttrue when the box size has changed
-        GPUArray<Scalar3> m_kvec;                //!< k-vectors for each grid point
-        GPUArray<CUFFTCOMPLEX> m_rho_real_space; //!< x component of the grid based electric field
-        GPUArray<CUFFTCOMPLEX> m_Ex;             //!< x component of the grid based electric field
-        GPUArray<CUFFTCOMPLEX> m_Ey;             //!< y component of the grid based electric field
-        GPUArray<CUFFTCOMPLEX> m_Ez;             //!< z component of the grid based electric field
-        GPUArray<Scalar3>m_field;                //!< grid based Electric field, combined
-        GPUArray<Scalar> m_rho_coeff;            //!< Coefficients for computing the grid based charge density
-        GPUArray<Scalar> m_gf_b;                 //!< Used to compute the grid based Green's function
-        GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
-        GPUArray<Scalar> o_data;                 //!< Used to quickly sum grid points for pressure and energy calcuation (output)
-        GPUArray<Scalar> m_energy_sum;           //!< Used to quickly sum grid points for pressure and energy calcuation (input)
-        GPUArray<Scalar> m_v_xx_sum;             //!< Used to quickoy sum grid points for virial_xx
-        GPUArray<Scalar> m_v_xy_sum;             //!< Used to quickoy sum grid points for virial_xy
-        GPUArray<Scalar> m_v_xz_sum;             //!< Used to quickoy sum grid points for virial_xz
-        GPUArray<Scalar> m_v_yy_sum;             //!< Used to quickoy sum grid points for virial_yy
-        GPUArray<Scalar> m_v_yz_sum;             //!< Used to quickoy sum grid points for virial_yz
-        GPUArray<Scalar> m_v_zz_sum;             //!< Used to quickoy sum grid points for virial_zz
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-        boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
-        kiss_fft_cpx *fft_in;                    //!< For FFTs on CPU rho_real_space
-        kiss_fft_cpx *fft_ex;                    //!< For FFTs on CPU E-field x component
-        kiss_fft_cpx *fft_ey;                    //!< For FFTs on CPU E-field y component
-        kiss_fft_cpx *fft_ez;                    //!< For FFTs on CPU E-field z component
-        kiss_fftnd_cfg fft_forward;              //!< Forward FFT on CPU
-        kiss_fftnd_cfg fft_inverse;              //!< Inverse FFT on CPU
-        int first_run;                           //!< flag for allocating arrays
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
     };
 
-
-//! Exports the PPPMForceCompute class to python
 void export_PPPMForceCompute();
-
-
 
 #endif

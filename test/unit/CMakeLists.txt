@@ -85,7 +85,6 @@ set(TEST_LIST
     test_enforce2d_updater
     test_constraint_sphere
     test_ewald_force
-    test_pppm_force
     test_table_dihedral_force
     test_table_angle_force
     test_gridshift_correct

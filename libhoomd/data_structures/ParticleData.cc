@@ -155,6 +155,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
 
+    m_external_energy = Scalar(0.0);
+
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
@@ -217,6 +219,8 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
+
+    m_external_energy = Scalar(0.0);
 
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
