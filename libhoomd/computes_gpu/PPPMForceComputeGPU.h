@@ -9,6 +9,8 @@
 
 #include "CommunicatorGridGPU.h"
 
+#include "Autotuner.h"
+
 #ifdef ENABLE_MPI
 #ifndef USE_HOST_DFFT
 #include "dfft_cuda.h"
@@ -27,6 +29,19 @@ class PPPMForceComputeGPU : public PPPMForceCompute
             boost::shared_ptr<NeighborList> nlist,
             boost::shared_ptr<ParticleGroup> group);
         virtual ~PPPMForceComputeGPU();
+
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            m_tuner_bin->setPeriod(period);
+            m_tuner_force->setPeriod(period);
+
+            m_tuner_bin->setEnabled(enable);
+            m_tuner_force->setEnabled(enable);
+            }
 
     protected:
         //! Helper function to setup FFT and allocate the mesh arrays
@@ -51,6 +66,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void computeVirial();
 
     private:
+        boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for filling the constraint matrix
+        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+
         cufftHandle m_cufft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
 

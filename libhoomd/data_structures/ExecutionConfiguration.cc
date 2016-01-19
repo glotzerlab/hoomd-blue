@@ -693,7 +693,7 @@ int ExecutionConfiguration::guessLocalRank()
 
     // fall back on global rank id
     msg->notice(2) << "Unable to identify node local rank information" << std::endl;
-    msg->notice(2) << "Uinsg global rank to select GPUs" << std::endl;
+    msg->notice(2) << "Using global rank to select GPUs" << std::endl;
     int global_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
     return global_rank;

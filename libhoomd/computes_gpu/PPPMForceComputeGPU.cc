@@ -33,6 +33,9 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
 
     // initial value of number of particles per bin
     m_cell_size = 2;
+
+    m_tuner_bin.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign_bin", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
@@ -183,6 +186,8 @@ void PPPMForceComputeGPU::assignParticles()
             {
             ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::overwrite);
 
+            unsigned int block_size = m_tuner_bin->getParam();
+            m_tuner_bin->begin();
             gpu_bin_particles(m_pdata->getN(),
                               d_postype.data,
                               d_particle_bins.data,
@@ -193,10 +198,12 @@ void PPPMForceComputeGPU::assignParticles()
                               m_n_ghost_cells,
                               d_charge.data,
                               m_pdata->getBox(),
-                              m_order);
+                              m_order,
+                              block_size);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
+            m_tuner_bin->end();
             }
 
         unsigned int flags = m_cell_overflowed.readFlags();
@@ -399,6 +406,8 @@ void PPPMForceComputeGPU::interpolateForces()
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
+    unsigned int block_size = m_tuner_force->getParam();
+    m_tuner_force->begin();
     gpu_compute_forces(m_pdata->getN(),
                        d_postype.data,
                        d_force.data,
@@ -409,10 +418,12 @@ void PPPMForceComputeGPU::interpolateForces()
                        m_n_ghost_cells,
                        d_charge.data,
                        m_pdata->getBox(),
-                       m_order);
+                       m_order,
+                       block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner_force->end();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

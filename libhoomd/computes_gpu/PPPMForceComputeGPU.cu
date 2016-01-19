@@ -172,10 +172,19 @@ void gpu_bin_particles(const unsigned int N,
                        const uint3 n_ghost_bins,
                        const Scalar *d_charge,
                        const BoxDim& box,
-                       int order)
+                       int order,
+                       unsigned int block_size)
     {
-    unsigned int block_size = 512;
-    gpu_bin_particles_kernel<<<N/block_size+1, block_size>>>(N,
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_bin_particles_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(max_block_size, block_size);
+    gpu_bin_particles_kernel<<<N/run_block_size+1, run_block_size>>>(N,
              d_postype,
              d_particle_bins,
              d_n_cell,
@@ -659,9 +668,18 @@ void gpu_compute_forces(const unsigned int N,
                         const uint3 n_ghost_cells,
                         const Scalar *d_charge,
                         const BoxDim& box,
-                        int order)
+                        int order,
+                        unsigned int block_size)
     {
-    const unsigned int block_size = 512;
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(max_block_size, block_size);
 
     // force mesh includes ghost cells
     unsigned int num_cells = grid_dim.x*grid_dim.y*grid_dim.z;
@@ -676,7 +694,7 @@ void gpu_compute_forces(const unsigned int N,
     cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
     cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
 
-    gpu_compute_forces_kernel<<<N/block_size+1,block_size>>>(N,
+    gpu_compute_forces_kernel<<<N/run_block_size+1,run_block_size>>>(N,
              d_postype,
              d_force,
              grid_dim,
