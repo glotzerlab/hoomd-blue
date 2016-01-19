@@ -53,6 +53,5 @@ class charge_pppm_tests (unittest.TestCase):
         del self.s
         init.reset();
 
-
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

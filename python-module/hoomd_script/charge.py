@@ -120,12 +120,6 @@ class pppm(force._force):
     def __init__(self, group, nlist=None):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing PPPM.")
-
         # initialize the base class
         force._force.__init__(self);
         # create the c++ mirror class

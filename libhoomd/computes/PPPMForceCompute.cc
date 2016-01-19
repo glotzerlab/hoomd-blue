@@ -145,12 +145,13 @@ PPPMForceCompute::~PPPMForceCompute()
 //! Compute auxillary table for influence function
 void PPPMForceCompute::compute_gf_denom()
     {
-    unsigned int k,l,m;
+    int k,l,m;
     ArrayHandle<Scalar> h_gf_b(m_gf_b, access_location::host, access_mode::overwrite);
-    for (l = 1; l < m_order; l++) h_gf_b.data[l] = 0.0;
+    for (l = 1; l < (int)m_order; l++) h_gf_b.data[l] = 0.0;
+
     h_gf_b.data[0] = 1.0;
 
-    for (m = 1; m < m_order; m++) {
+    for (m = 1; m < (int)m_order; m++) {
         for (l = m; l > 0; l--) {
             h_gf_b.data[l] = 4.0 * (h_gf_b.data[l]*(l-m)*(l-m-0.5)-h_gf_b.data[l-1]*(l-m-1)*(l-m-1));
             }
@@ -158,9 +159,9 @@ void PPPMForceCompute::compute_gf_denom()
     }
 
     int ifact = 1;
-    for (k = 1; k < 2*m_order; k++) ifact *= k;
+    for (k = 1; k < 2*(int)m_order; k++) ifact *= k;
     Scalar gaminv = 1.0/ifact;
-    for (l = 0; l < m_order; l++) h_gf_b.data[l] *= gaminv;
+    for (l = 0; l < (int)m_order; l++) h_gf_b.data[l] *= gaminv;
     }
 
 //! Compute the denominator of the optimized influence function
@@ -168,6 +169,7 @@ Scalar PPPMForceCompute::gf_denom(Scalar x, Scalar y, Scalar z)
     {
     int l ;
     Scalar sx,sy,sz;
+
     ArrayHandle<Scalar> h_gf_b(m_gf_b, access_location::host, access_mode::read);
     sz = sy = sx = 0.0;
     for (l = m_order-1; l >= 0; l--) {
@@ -181,10 +183,10 @@ Scalar PPPMForceCompute::gf_denom(Scalar x, Scalar y, Scalar z)
 
 void PPPMForceCompute::compute_rho_coeff()
     {
-    unsigned int j, k, l, m;
+    int j, k, l, m;
     Scalar s;
     Scalar a[136];
-    ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::overwrite);
 
     //    usage: a[x][y] = a[y + x*(2*m_order+1)]
 
@@ -225,7 +227,8 @@ void PPPMForceCompute::compute_rho_coeff()
 
 Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
     {
-    unsigned int m;
+    // I don't know where this formula comes from
+    int m;
     Scalar sum = 0.0;
     Scalar acons[8][7];
 
@@ -327,8 +330,8 @@ void PPPMForceCompute::setupCoeffs()
 
     // initialize coefficients for Green's function
     compute_gf_denom();
-
     }
+
 void PPPMForceCompute::setupMesh()
     {
     // update number of ghost cells
@@ -523,6 +526,8 @@ void PPPMForceCompute::computeInfluenceFunction()
     memset(h_inf_f.data, 0, sizeof(Scalar)*m_inf_f.getNumElements());
     memset(h_k.data, 0, sizeof(Scalar3)*m_k.getNumElements());
 
+    const Scalar EPS_HOC(1.0e-7);
+
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // compute reciprocal lattice vectors
@@ -551,6 +556,20 @@ void PPPMForceCompute::computeInfluenceFunction()
     Scalar3 kH = Scalar(2.0*M_PI)*make_scalar3(Scalar(1.0)/(Scalar)m_global_dim.x,
                                                Scalar(1.0)/(Scalar)m_global_dim.y,
                                                Scalar(1.0)/(Scalar)m_global_dim.z);
+
+    // I don't know where these formulae come from
+    Scalar3 L = global_box.getL();
+    Scalar temp = floor(((m_kappa*L.x/(M_PI*m_global_dim.x)) *
+                         pow(-log(EPS_HOC),0.25)));
+    int nbx = (int)temp;
+
+    temp = floor(((m_kappa*L.y/(M_PI*m_global_dim.y)) *
+                  pow(-log(EPS_HOC),0.25)));
+    int nby = (int)temp;
+
+    temp =  floor(((m_kappa*L.z/(M_PI*m_global_dim.z)) *
+                   pow(-log(EPS_HOC),0.25)));
+    int nbz = (int)temp;
 
     for (unsigned int cell_idx = 0; cell_idx < m_n_inner_cells; ++cell_idx)
         {
@@ -594,48 +613,48 @@ void PPPMForceCompute::computeInfluenceFunction()
         Scalar sny = fast::sin(0.5*kH.y*(Scalar)n.y);
         Scalar snz = fast::sin(0.5*kH.z*(Scalar)n.z);
 
-        if (n.x != 0 && n.y != 0 && n.z != 0)
+        if (n.x != 0 || n.y != 0 || n.z != 0)
             {
             Scalar sum1(0.0);
-            Scalar numerator = Scalar(4.0*M_PI);
+            Scalar numerator = Scalar(4.0*M_PI)/dot(k,k);
 
             Scalar denominator = gf_denom(snx*snx, sny*sny, snz*snz);
 
-            for (int ix = -(int)m_global_dim.x/2; ix < (int)m_global_dim.x; ix++)
+            for (int ix = -nbx; ix <= nbx; ix++)
                 {
-                Scalar qx = (n.x + (Scalar)ix*m_global_dim.x);
-                Scalar3 knx = (Scalar)qx*b1;
+                Scalar qx = ((Scalar)n.x + (Scalar)ix*m_global_dim.x);
+                Scalar3 knx = qx*b1;
 
-                Scalar argx = Scalar(0.5)*kH.x;
+                Scalar argx = Scalar(0.5)*qx*kH.x;
                 Scalar wxs = sinc(argx);
                 Scalar wx(1.0);
-                for (unsigned int iorder = 0; iorder < m_order; ++iorder)
+                for (int iorder = 0; iorder < m_order; ++iorder)
                     {
                     wx *= wxs;
                     }
 
-                for (int iy = -(int)m_global_dim.y/2; iy < (int)m_global_dim.y; iy++)
+                for (int iy = -nby; iy <= nby; iy++)
                     {
-                    Scalar qy = (n.y + (Scalar)iy*m_global_dim.y);
-                    Scalar3 kny = (Scalar)qy*b2;
+                    Scalar qy = ((Scalar)n.y + (Scalar)iy*m_global_dim.y);
+                    Scalar3 kny = qy*b2;
 
-                    Scalar argy = Scalar(0.5)*kH.y;
+                    Scalar argy = Scalar(0.5)*qy*kH.y;
                     Scalar wys = sinc(argy);
                     Scalar wy(1.0);
-                    for (unsigned int iorder = 0; iorder < m_order; ++iorder)
+                    for (int iorder = 0; iorder < m_order; ++iorder)
                         {
                         wy *= wys;
                         }
 
-                    for (int iz = -(int)m_global_dim.z/2; iz < (int)m_global_dim.z; iz++)
+                    for (int iz = -nbz; iz <= nbz; iz++)
                         {
-                        Scalar qz = (n.z + (Scalar)iz*m_global_dim.z);
-                        Scalar3 knz = (Scalar)qz*b3;
+                        Scalar qz = ((Scalar)n.z + (Scalar)iz*m_global_dim.z);
+                        Scalar3 knz = qz*b3;
 
-                        Scalar argz = Scalar(0.5)*kH.z;
+                        Scalar argz = Scalar(0.5)*qz*kH.z;
                         Scalar wzs = sinc(argz);
                         Scalar wz(1.0);
-                        for (unsigned int iorder = 0; iorder < m_order; ++iorder)
+                        for (int iorder = 0; iorder < m_order; ++iorder)
                             {
                             wz *= wzs;
                             }
@@ -682,12 +701,20 @@ void PPPMForceCompute::assignParticles()
 
     unsigned int nparticles = m_pdata->getN();
 
+    Scalar V_cell = box.getVolume()/(Scalar)(m_mesh_points.x*m_mesh_points.y*m_mesh_points.z);
+
     // loop over local particles
     for (unsigned int idx = 0; idx < nparticles; ++idx)
         {
         Scalar4 postype = h_postype.data[idx];
 
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+        // ignore if NaN
+        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+            {
+            continue;
+            }
 
         Scalar qi = h_charge.data[idx];
 
@@ -696,6 +723,10 @@ void PPPMForceCompute::assignParticles()
         Scalar3 reduced_pos = make_scalar3(f.x * (Scalar) m_mesh_points.x,
                                            f.y * (Scalar) m_mesh_points.y,
                                            f.z * (Scalar) m_mesh_points.z);
+
+        reduced_pos.x += (Scalar) m_n_ghost_cells.x;
+        reduced_pos.y += (Scalar) m_n_ghost_cells.y;
+        reduced_pos.z += (Scalar) m_n_ghost_cells.z;
 
         Scalar shift, shiftone;
 
@@ -711,21 +742,21 @@ void PPPMForceCompute::assignParticles()
             }
 
         // find cell of the mesh the particle is in
-        unsigned int ix = (reduced_pos.x + (Scalar)m_n_ghost_cells.x) + shift;
-        unsigned int iy = (reduced_pos.y + (Scalar)m_n_ghost_cells.y) + shift;
-        unsigned int iz = (reduced_pos.z + (Scalar)m_n_ghost_cells.z) + shift;
+        int ix = (reduced_pos.x + shift);
+        int iy = (reduced_pos.y + shift);
+        int iz = (reduced_pos.z + shift);
 
         // handle particles on the boundary
-        if (ix == m_grid_dim.x && !m_n_ghost_cells.x)
+        if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
-        if (iy == m_grid_dim.y && !m_n_ghost_cells.y)
+        if (iy == (int) m_grid_dim.y && !m_n_ghost_cells.y)
             iy = 0;
-        if (iz == m_grid_dim.z && !m_n_ghost_cells.z)
+        if (iz == (int) m_grid_dim.z && !m_n_ghost_cells.z)
             iz = 0;
 
-        if (ix < 0 || ix >= m_grid_dim.x ||
-            iy < 0 || iy >= m_grid_dim.y ||
-            iz < 0 || iz >= m_grid_dim.z)
+        if (ix < 0 || ix >= (int)m_grid_dim.x ||
+            iy < 0 || iy >= (int)m_grid_dim.y ||
+            iz < 0 || iz >= (int)m_grid_dim.z)
             {
             // ignore, error will be thrown elsewhere (in CellList)
             continue;
@@ -738,12 +769,15 @@ void PPPMForceCompute::assignParticles()
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
 
-        for (int i = -m_radius; i <= (int)m_radius ; ++i)
+        int nlower = -(m_order-1)/2;
+        int nupper = m_order/2;
+
+        for (int i = nlower; i <= nupper ; ++i)
             {
             Wx = Scalar(0.0);
             for (int iorder = m_order-1; iorder >= 0; iorder--)
                 {
-                Wx = h_rho_coeff.data[i + m_radius + iorder*mult_fact] + Wx * dx;
+                Wx = h_rho_coeff.data[i - nlower + iorder*mult_fact] + Wx * dx;
                 }
 
             int neighi = (int)ix + i;
@@ -757,12 +791,12 @@ void PPPMForceCompute::assignParticles()
                 }
 
 
-            for (int j = -m_radius; j <= (int)m_radius; ++j)
+            for (int j = nlower; j <= nupper; ++j)
                 {
                 Wy = Scalar(0.0);
                 for (int iorder = m_order-1; iorder >= 0; iorder--)
                     {
-                    Wy = h_rho_coeff.data[j + m_radius + iorder*mult_fact] + Wy * dy;
+                    Wy = h_rho_coeff.data[j - nlower + iorder*mult_fact] + Wy * dy;
                     }
 
                 int neighj = (int)iy + j;
@@ -775,13 +809,12 @@ void PPPMForceCompute::assignParticles()
                         neighj += m_grid_dim.y;
                     }
 
-
-                for (int k = -m_radius; k <= (int)m_radius; ++k)
+                for (int k = nlower; k <= nupper; ++k)
                     {
                     Wz = Scalar(0.0);
                     for (int iorder = m_order-1; iorder >= 0; iorder--)
                         {
-                        Wz = h_rho_coeff.data[k + m_radius + iorder*mult_fact] + Wz * dz;
+                        Wz = h_rho_coeff.data[k - nlower + iorder*mult_fact] + Wz * dz;
                         }
 
                     int neighk = (int)iz + k;
@@ -798,7 +831,7 @@ void PPPMForceCompute::assignParticles()
                     // store in row major order
                     unsigned int neigh_idx = neighi + m_grid_dim.x * (neighj + m_grid_dim.y*neighk);
 
-                    h_mesh.data[neigh_idx].r += qi*W;
+                    h_mesh.data[neigh_idx].r += qi*W/V_cell;
                     }
                 }
             }
@@ -810,7 +843,6 @@ void PPPMForceCompute::assignParticles()
 void PPPMForceCompute::updateMeshes()
     {
 
-    ArrayHandle<Scalar> h_inf_f(m_inf_f, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::read);
 
     if (m_kiss_fft_initialized)
@@ -845,43 +877,34 @@ void PPPMForceCompute::updateMeshes()
         }
     #endif
 
-    ArrayHandle<kiss_fft_cpx> h_fourier_mesh(m_fourier_mesh, access_location::host, access_mode::readwrite);
 
         {
         ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::read);
         ArrayHandle<kiss_fft_cpx> h_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::host, access_mode::overwrite);
         ArrayHandle<kiss_fft_cpx> h_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::host, access_mode::overwrite);
         ArrayHandle<kiss_fft_cpx> h_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_inf_f(m_inf_f, access_location::host, access_mode::read);
+        ArrayHandle<kiss_fft_cpx> h_fourier_mesh(m_fourier_mesh, access_location::host, access_mode::read);
 
-        unsigned int NNN = m_mesh_points.x*m_mesh_points.y*m_mesh_points.z;
+        unsigned int NNN = m_global_dim.x*m_global_dim.y*m_global_dim.z;
 
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            Index3D di = m_pdata->getDomainDecomposition()->getDomainIndexer();
-            NNN *= di.getW()*di.getH()*di.getD();
-            }
-        #endif
-
-        // multiply with influence function and k vector
+        // multiply with influence function and I*k
         for (unsigned int k = 0; k < m_n_inner_cells; ++k)
             {
             kiss_fft_cpx f = h_fourier_mesh.data[k];
 
-            Scalar scaled_inf_f = h_inf_f.data[k] / (Scalar)NNN;
+            Scalar scaled_inf_f = h_inf_f.data[k] / ((Scalar)NNN);
 
             Scalar3 kvec = h_k.data[k];
 
-            h_fourier_mesh_G_x.data[k].r = f.r * kvec.x * scaled_inf_f;
-            h_fourier_mesh_G_x.data[k].i = f.i * kvec.x * scaled_inf_f;
+            h_fourier_mesh_G_x.data[k].r = f.i * kvec.x * scaled_inf_f;
+            h_fourier_mesh_G_x.data[k].i = -f.r * kvec.x * scaled_inf_f;
 
-            h_fourier_mesh_G_y.data[k].r = f.r * kvec.y * scaled_inf_f;
-            h_fourier_mesh_G_y.data[k].i = f.i * kvec.y * scaled_inf_f;
+            h_fourier_mesh_G_y.data[k].r = f.i * kvec.y * scaled_inf_f;
+            h_fourier_mesh_G_y.data[k].i = -f.r * kvec.y * scaled_inf_f;
 
-            h_fourier_mesh_G_z.data[k].r = f.r * kvec.z * scaled_inf_f;
-            h_fourier_mesh_G_z.data[k].i = f.i * kvec.z * scaled_inf_f;
-
-            h_fourier_mesh.data[k] = f;
+            h_fourier_mesh_G_z.data[k].r = f.i * kvec.z * scaled_inf_f;
+            h_fourier_mesh_G_z.data[k].i = -f.r * kvec.z * scaled_inf_f;
             }
         }
 
@@ -967,6 +990,12 @@ void PPPMForceCompute::interpolateForces()
 
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
+        // ignore if NaN
+        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+            {
+            continue;
+            }
+
         Scalar qi = h_charge.data[idx];
 
         // compute coordinates in units of the mesh size
@@ -974,6 +1003,9 @@ void PPPMForceCompute::interpolateForces()
         Scalar3 reduced_pos = make_scalar3(f.x * (Scalar) m_mesh_points.x,
                                            f.y * (Scalar) m_mesh_points.y,
                                            f.z * (Scalar) m_mesh_points.z);
+        reduced_pos.x += (Scalar) m_n_ghost_cells.x;
+        reduced_pos.y += (Scalar) m_n_ghost_cells.y;
+        reduced_pos.z += (Scalar) m_n_ghost_cells.z;
 
         Scalar shift, shiftone;
 
@@ -990,21 +1022,21 @@ void PPPMForceCompute::interpolateForces()
 
 
         // find cell of the force mesh the particle is in
-        unsigned int ix = (reduced_pos.x + (Scalar)m_n_ghost_cells.x) + shift;
-        unsigned int iy = (reduced_pos.y + (Scalar)m_n_ghost_cells.y) + shift;
-        unsigned int iz = (reduced_pos.z + (Scalar)m_n_ghost_cells.z) + shift;
+        int ix = (reduced_pos.x + shift);
+        int iy = (reduced_pos.y + shift);
+        int iz = (reduced_pos.z + shift);
 
         // handle particles on the boundary
-        if (ix == m_grid_dim.x && !m_n_ghost_cells.x)
+        if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
-        if (iy == m_grid_dim.y && !m_n_ghost_cells.y)
+        if (iy == (int) m_grid_dim.y && !m_n_ghost_cells.y)
             iy = 0;
-        if (iz == m_grid_dim.z && !m_n_ghost_cells.z)
+        if (iz == (int) m_grid_dim.z && !m_n_ghost_cells.z)
             iz = 0;
 
-        if (ix < 0 || ix >= m_grid_dim.x ||
-            iy < 0 || iy >= m_grid_dim.y ||
-            iz < 0 || iz >= m_grid_dim.z)
+        if (ix < 0 || ix >= (int)m_grid_dim.x ||
+            iy < 0 || iy >= (int)m_grid_dim.y ||
+            iz < 0 || iz >= (int)m_grid_dim.z)
             {
             // ignore, error will be thrown elsewhere (in CellList)
             continue;
@@ -1019,12 +1051,15 @@ void PPPMForceCompute::interpolateForces()
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
 
-        for (int i = -m_radius; i <= (int)m_radius ; ++i)
+        int nlower = -(m_order-1)/2;
+        int nupper = m_order/2;
+
+        for (int i = nlower; i <= nupper ; ++i)
             {
             Wx = Scalar(0.0);
             for (int iorder = m_order-1; iorder >= 0; iorder--)
                 {
-                Wx = h_rho_coeff.data[i + m_radius + iorder*mult_fact] + Wx * dx;
+                Wx = h_rho_coeff.data[i - nlower + iorder*mult_fact] + Wx * dx;
                 }
 
             int neighi = (int)ix + i;
@@ -1038,12 +1073,12 @@ void PPPMForceCompute::interpolateForces()
                 }
 
 
-            for (int j = -m_radius; j <= (int)m_radius; ++j)
+            for (int j = nlower; j <= nupper; ++j)
                 {
                 Wy = Scalar(0.0);
                 for (int iorder = m_order-1; iorder >= 0; iorder--)
                     {
-                    Wy = h_rho_coeff.data[j + m_radius + iorder*mult_fact] + Wy * dy;
+                    Wy = h_rho_coeff.data[j - nlower + iorder*mult_fact] + Wy * dy;
                     }
 
                 int neighj = (int)iy + j;
@@ -1057,12 +1092,12 @@ void PPPMForceCompute::interpolateForces()
                     }
 
 
-                for (int k = -m_radius; k <= (int)m_radius; ++k)
+                for (int k = nlower; k <= nupper; ++k)
                     {
                     Wz = Scalar(0.0);
                     for (int iorder = m_order-1; iorder >= 0; iorder--)
                         {
-                        Wz = h_rho_coeff.data[k + m_radius + iorder*mult_fact] + Wz * dz;
+                        Wz = h_rho_coeff.data[k - nlower + iorder*mult_fact] + Wz * dz;
                         }
 
                     int neighk = (int)iz + k;
@@ -1074,8 +1109,7 @@ void PPPMForceCompute::interpolateForces()
                             neighk += m_grid_dim.z;
                         }
 
-                    unsigned int neigh_idx;
-                    neigh_idx = neighi + m_grid_dim.x * (neighj + m_grid_dim.y*neighk);
+                    unsigned int neigh_idx = neighi + m_grid_dim.x * (neighj + m_grid_dim.y*neighk);
 
                     kiss_fft_cpx E_x = h_inv_fourier_mesh_x.data[neigh_idx];
                     kiss_fft_cpx E_y = h_inv_fourier_mesh_y.data[neigh_idx];
@@ -1126,8 +1160,6 @@ Scalar PPPMForceCompute::computePE()
                 + h_fourier_mesh.data[k].i * h_fourier_mesh.data[k].i)*h_inf_f.data[k];
             }
         }
-
-    sum *= Scalar(1.0/2.0);
 
     if (m_prof) m_prof->pop();
 
@@ -1281,7 +1313,7 @@ void PPPMForceCompute::computeVirial()
     for (unsigned int k = 0; k < 6; ++k)
         {
         // store this rank's contribution in m_external_virial
-        m_external_virial[k] = virial[k]*V*scale*scale;
+        m_external_virial[k] = Scalar(0.5)*virial[k]*V*scale*scale;
         }
 
     if (m_prof) m_prof->pop();

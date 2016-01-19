@@ -79,7 +79,7 @@ class PPPMForceCompute : public ForceCompute
 
         Scalar m_kappa;                     //!< Screening parameter
         Scalar m_rcut;                      //!< Cutoff for short-ranged interaction
-        unsigned int m_order;               //!< Order of interpolation scheme
+        int m_order;                        //!< Order of interpolation scheme
 
         Scalar m_q;                         //!< Total system charge
         Scalar m_q2;                        //!< Sum of charge squared
