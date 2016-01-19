@@ -1042,7 +1042,7 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
     Scalar snx2 = snx*snx;
 
     Scalar sx(0.0), sy(0.0), sz(0.0);
-    for (int iorder = order-1; iorder >= 0; order--) {
+    for (int iorder = order-1; iorder >= 0; iorder--) {
         sx = gf_b[iorder] + sx*snx2;
         sy = gf_b[iorder] + sy*sny2;
         sz = gf_b[iorder] + sz*snz2;
