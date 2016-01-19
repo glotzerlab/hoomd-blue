@@ -116,6 +116,7 @@ endforeach(test)
 
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
+    test_charge_pppm
     test_dump_mol2
     test_dump_pdb
     test_integrate_bdnvt_rigid
@@ -142,6 +143,9 @@ if (ENABLE_MPI)
 
     # run constraint test on 8 procs
     add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_constrain_distance.py 8)
+
+    # run pppm test on 8 procs
+    add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_charge_pppm.py 8)
 endif(ENABLE_MPI)
 
 if (ENABLE_CUDA)

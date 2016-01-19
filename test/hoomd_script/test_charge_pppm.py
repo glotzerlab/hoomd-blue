@@ -75,6 +75,8 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
         log = analyze.log(quantities = ['pppm_energy','pressure_xx','pressure_xy','pressure_xz', 'pressure_yy','pressure_yz', 'pressure_zz'], period = 1, filename=None);
         integrate.mode_standard(dt=0.0);
         integrate.nve(all);
+        # trick to allow larger decompositions
+        nlist.set_params(r_buff=0.1)
         run(1);
 
         self.assertAlmostEqual(c.forces[0].force[0], 0.00904953, 5)
