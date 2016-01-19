@@ -54,7 +54,7 @@
 #
 # Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
 # or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
-# sphere with constrain.sphere.
+# ellipsoid with constrain.ellipsoid.
 #
 # As with other force commands in hoomd_script, multiple constrain commands can be issued to specify multiple
 # constraints, which are additively applied. Note, however, that not all constraints specified in this manner will
@@ -233,11 +233,11 @@ class _constraint_force(meta._metadata):
 # set default counter
 _constraint_force.cur_id = 0;
 
-
 ## Constrain particles to the surface of a sphere
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
-# them to a sphere.
+# them to a sphere. Currently does not work with Brownian dynamics (integrate.brownian) due to the logged
+# particle velocity being uncorrelated to their true velocities.
 # \MPI_NOT_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
@@ -276,3 +276,5 @@ class sphere(_constraint_force):
         self.P = P
         self.r = r
         self.metadata_fields = ['group','P', 'r']
+
+

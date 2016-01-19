@@ -141,6 +141,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
         }
     }
 
+    
 //! ConstraintSphere factory for the unit tests
 boost::shared_ptr<ConstraintSphere> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group,
