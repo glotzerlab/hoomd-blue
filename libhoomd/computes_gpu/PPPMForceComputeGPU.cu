@@ -247,28 +247,31 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
         Scalar x0 = xyzc.w/V_cell;
 
         // loop over neighboring bins
-        for (int l = -nlower; l <= nupper; ++l)
+        for (int l = nlower; l <= nupper; ++l)
             {
             // precalculate assignment factor
             result = Scalar(0.0);
-            for (k = order-1; k >= 0; k--) {
-                result = GPU_rho_coeff[l-nlower + k*mult_fact] + result * xyzc.x;
+            for (int iorder = order-1; iorder >= 0; iorder--)
+                {
+                result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * xyzc.x;
                 }
             Scalar y0 = x0 * result;
 
-            for (int m = -nlower; m <= nupper; ++m)
+            for (int m = nlower; m <= nupper; ++m)
                 {
                 result = Scalar(0.0);
-                for (k = order-1; k >= 0; k--) {
-                    result = GPU_rho_coeff[m-nlower + k*mult_fact] + result * xyzc.y;
+                for (int iorder = order-1; iorder >= 0; iorder--)
+                    {
+                    result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * xyzc.y;
                     }
                 Scalar z0 = y0 * result;
 
-                for (int n = -nlower; n <= nupper; ++n)
+                for (int n = nlower; n <= nupper; ++n)
                     {
                     result = Scalar(0.0);
-                    for (k = order-1; k >= 0; k--) {
-                        result = GPU_rho_coeff[n-nlower + k*mult_fact] + result * xyzc.z;
+                    for (int iorder = order-1; iorder >= 0; iorder--)
+                        {
+                        result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * xyzc.z;
                         }
 
                     // compute fraction of particle density assigned to cell
@@ -286,7 +289,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
     bool ignore_x = false;
     bool ignore_y = false;
     bool ignore_z = false;
-    for (int l = -1; l <= 1 ; ++l)
+    for (int l = nlower; l <= nupper ; ++l)
         {
         int neighi = i + l;
         if (neighi >= (int)bin_dim.x)
@@ -304,7 +307,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                 ignore_x = true;
             }
 
-        for (int m = -1; m <= 1; ++m)
+        for (int m = nlower; m <= nupper; ++m)
             {
             int neighj = j + m;
             if (neighj >= (int) bin_dim.y)
@@ -322,7 +325,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                     ignore_y = true;
                 }
 
-            for (int n = -1; n <= 1; ++n)
+            for (int n = nlower; n <= nupper; ++n)
                 {
                 int neighk = k + n;
 
@@ -345,11 +348,8 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                     {
                     uint3 scratch_cell_coord = make_uint3(neighi, neighj, neighk);
 
-                    // write out to global memory
-                    unsigned int cell_idx;
-
-                    // use row-major layout
-                    cell_idx = scratch_cell_coord.x + bin_dim.x * (scratch_cell_coord.y + bin_dim.y * scratch_cell_coord.z);
+                    // write out to global memory using row-major
+                    unsigned int cell_idx = scratch_cell_coord.x + bin_dim.x * (scratch_cell_coord.y + bin_dim.y * scratch_cell_coord.z);
 
                     d_mesh_scratch[scratch_idx(cell_idx,neigh_bin_idx)] =
                         scratch_neighbors[scratch_idx.getH()*threadIdx.x+neigh_bin_idx];
@@ -376,7 +376,9 @@ __global__ void gpu_reduce_scratch_kernel(const uint3 grid_dim,
     // simply add up contents of scratch cell
     Scalar grid_val(0.0);
     for (unsigned int sidx = 0; sidx < scratch_idx.getH(); ++sidx)
+        {
         grid_val += d_mesh_scratch[scratch_idx(cell_idx,sidx)];
+        }
 
     d_mesh[cell_idx].x = grid_val;
     d_mesh[cell_idx].y = Scalar(0.0);
@@ -408,9 +410,10 @@ void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
     unsigned int run_block_size = min(max_block_size, block_size);
 
     unsigned int shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
+
     while (shared_size + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
         {
-        block_size -= dev_prop.warpSize;
+        run_block_size -= dev_prop.warpSize;
 
         shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
         }
@@ -434,7 +437,7 @@ void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
           order);
 
     block_size = 512;
-    n_blocks = grid_dim.x*grid_dim.y*grid_dim.z/block_size;
+    n_blocks = (grid_dim.x*grid_dim.y*grid_dim.z)/block_size;
     if ((grid_dim.x*grid_dim.y*grid_dim.z)%block_size) n_blocks +=1;
     gpu_reduce_scratch_kernel<<<n_blocks, block_size>>>(grid_dim,
                                                         d_mesh_scratch,
@@ -614,7 +617,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
     int mult_fact = 2*order + 1;
 
     // assign particle to cell and next neighbors
-    for (int l = -nlower; l <= nupper; ++l)
+    for (int l = nlower; l <= nupper; ++l)
         {
         result = Scalar(0.0);
         for (int k = order-1; k >= 0; k--)
@@ -623,7 +626,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
             }
         Scalar x0 = result;
 
-        for (int m = -1; m <= 1; ++m)
+        for (int m = nlower; m <= nupper; ++m)
             {
             result = Scalar(0.0);
             for (int k = order-1; k >= 0; k--)
@@ -632,7 +635,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                 }
             Scalar y0 = x0*result;
 
-            for (int n = -1; n <= 1; ++n)
+            for (int n = nlower; n <= nupper; ++n)
                 {
                 result = Scalar(0.0);
                 for (int k = order-1; k >= 0; k--)
@@ -1060,14 +1063,14 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
                                                Scalar(1.0)/(Scalar)global_dim.y,
                                                Scalar(1.0)/(Scalar)global_dim.z);
 
-    Scalar snz = fast::sin(Scalar(0.5)*l*kH.z);
-    Scalar snz2 = snz*snz;
+    Scalar snx = fast::sin(Scalar(0.5)*l*kH.x);
+    Scalar snx2 = snx*snx;
 
     Scalar sny = fast::sin(Scalar(0.5)*m*kH.y);
     Scalar sny2 = sny*sny;
 
-    Scalar snx = fast::sin(Scalar(0.5)*n*kH.x);
-    Scalar snx2 = snx*snx;
+    Scalar snz = fast::sin(Scalar(0.5)*n*kH.z);
+    Scalar snz2 = snz*snz;
 
     Scalar sx(0.0), sy(0.0), sz(0.0);
     for (int iorder = order-1; iorder >= 0; iorder--) {

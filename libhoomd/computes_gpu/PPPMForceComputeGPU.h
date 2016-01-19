@@ -53,6 +53,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         //! Helper function to setup FFT and allocate the mesh arrays
         virtual void initializeFFT();
 
+        //! Setup coefficient tables
+        virtual void setupCoeffs();
+
         //! Helper function to assign particle coordinates to mesh
         virtual void assignParticles();
 

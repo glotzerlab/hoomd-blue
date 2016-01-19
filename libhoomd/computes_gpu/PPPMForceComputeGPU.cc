@@ -18,7 +18,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
       m_block_size(256),
       m_gpu_q_max(m_exec_conf)
     {
-    unsigned int n_blocks = m_mesh_points.x*m_mesh_points.y*m_mesh_points.z/m_block_size+1;
+    unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
     m_sum_partial.swap(sum_partial);
 
@@ -161,9 +161,14 @@ void PPPMForceComputeGPU::initializeFFT()
     // allocate scratch space for density reduction
     GPUArray<Scalar> mesh_scratch(m_scratch_idx.getNumElements(), m_exec_conf);
     m_mesh_scratch.swap(mesh_scratch);
+    }
+
+void PPPMForceComputeGPU::setupCoeffs()
+    {
+    // call base-class method
+    PPPMForceCompute::setupCoeffs();
 
     // initialize interpolation coefficients on GPU
-
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     gpu_initialize_coeff(h_rho_coeff.data, m_order);
     }
@@ -524,7 +529,7 @@ Scalar PPPMForceComputeGPU::computePE()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    Scalar sum = m_sum.readFlags()*Scalar(1.0/2.0);
+    Scalar sum = m_sum.readFlags();
 
     Scalar V = m_pdata->getGlobalBox().getVolume();
     Scalar scale = Scalar(1.0)/((Scalar)(m_global_dim.x*m_global_dim.y*m_global_dim.z));

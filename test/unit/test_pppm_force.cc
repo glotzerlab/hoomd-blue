@@ -122,6 +122,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     int Nx = 10;
     int Ny = 15;
     int Nz = 24;
+
     int order = 5;
     Scalar kappa = 1.0;
     Scalar rcut = 1.0;
@@ -211,7 +212,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
     unsigned int pitch = fc_2->getVirialArray().getPitch();
 
     Scalar rough_tol = 0.02;
-    Scalar rough_tol_2 = 1.0;
+    Scalar rough_tol_2 = 10.0;
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.00904953, rough_tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.0101797, rough_tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.0124804, rough_tol);
