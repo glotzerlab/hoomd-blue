@@ -116,7 +116,6 @@ endforeach(test)
 
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
-    test_charge_pppm
     test_dump_mol2
     test_dump_pdb
     test_integrate_bdnvt_rigid

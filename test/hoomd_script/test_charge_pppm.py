@@ -58,10 +58,12 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
         print
         # initialize a two particle system in a triclinic box
         snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
-        snap.particles.position[0] = (0,0,0)
-        snap.particles.position[1] = (3,3,3)
-        snap.particles.charge[0] = 1
-        snap.particles.charge[1] = -1
+
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.position[1] = (3,3,3)
+            snap.particles.charge[0] = 1
+            snap.particles.charge[1] = -1
 
         self.s = init.read_snapshot(snap);
 

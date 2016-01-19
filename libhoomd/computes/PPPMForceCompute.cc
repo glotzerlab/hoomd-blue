@@ -306,6 +306,7 @@ void PPPMForceCompute::setupCoeffs()
 
     // compute RMS force error
     // NOTE: this is for an orthorhombic box, need to generalize to triclinic
+    // but I don't know where this formula comes from
     const BoxDim& global_box = m_pdata->getGlobalBox();
     Scalar3 L = global_box.getL();
     Scalar hx =  L.x/(Scalar)m_global_dim.x;
@@ -315,7 +316,7 @@ void PPPMForceCompute::setupCoeffs()
     Scalar lpry = PPPMForceCompute::rms(hy, L.y, (int)m_pdata->getNGlobal());
     Scalar lprz = PPPMForceCompute::rms(hz, L.z, (int)m_pdata->getNGlobal());
     Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
-    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getN()*m_rcut*L.x*L.y*L.z);
+    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getNGlobal()*m_rcut*L.x*L.y*L.z);
 
     double RMS_error = std::max(lpr,spr);
     if(RMS_error > 0.1) {

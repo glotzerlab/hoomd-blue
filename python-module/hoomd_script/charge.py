@@ -193,11 +193,12 @@ class pppm(force._force):
 
         self.params_set = True;
         q2 = 0
-        N = globals.system_definition.getParticleData().getN()
+        N = globals.system_definition.getParticleData().getNGlobal()
         for i in range(0,N):
-            q = globals.system_definition.getParticleData().getCharge(i)
+            tag = globals.system_definition.getParticleData().getNthTag(i)
+            q = globals.system_definition.getParticleData().getCharge(tag)
             q2 += q*q
-        box = globals.system_definition.getParticleData().getBox()
+        box = globals.system_definition.getParticleData().getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z
