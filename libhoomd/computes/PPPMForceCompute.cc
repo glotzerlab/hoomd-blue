@@ -527,8 +527,6 @@ void PPPMForceCompute::computeInfluenceFunction()
     memset(h_inf_f.data, 0, sizeof(Scalar)*m_inf_f.getNumElements());
     memset(h_k.data, 0, sizeof(Scalar3)*m_k.getNumElements());
 
-    const Scalar EPS_HOC(1.0e-7);
-
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // compute reciprocal lattice vectors

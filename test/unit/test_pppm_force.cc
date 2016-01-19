@@ -252,7 +252,7 @@ boost::shared_ptr<PPPMForceCompute> base_class_pppm_creator(boost::shared_ptr<Sy
     return boost::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
     }
 
-#ifdef ENABLE_CUDAA
+#ifdef ENABLE_CUDA
 //! PPPMForceComputeGPU creator for unit tests
 boost::shared_ptr<PPPMForceCompute> gpu_pppm_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                               boost::shared_ptr<NeighborList> nlist,
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
     }
 
 
-#ifdef ENABLE_CUDAA
+#ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
 BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_basic )
     {

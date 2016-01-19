@@ -1,357 +1,590 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
-
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
-// Maintainer: sbarr
-
-/*! \file PPPMForceComputeGPU.cc
-    \brief Defines the PPPMForceComputeGPU class
-*/
-
-#if 0
-#ifdef SINGLE_PRECISION
-#define CUFFT_TRANSFORM_TYPE CUFFT_C2C
-#else
-#define CUFFT_TRANSFORM_TYPE CUFFT_Z2Z
-#endif
-
-
 #include "PPPMForceComputeGPU.h"
-#include "PotentialPair.h"
 
-#include <boost/python.hpp>
+#ifdef ENABLE_CUDA
+#include "PPPMForceComputeGPU.cuh"
+
 using namespace boost::python;
 
-#include <boost/bind.hpp>
-using namespace boost;
-
-using namespace std;
-
-/*! \param sysdef System to compute bond forces on
+/*! \param sysdef The system definition
     \param nlist Neighbor list
-    \param group Particle group
-
-*/
+    \param group Particle group to apply forces to
+ */
 PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<NeighborList> nlist,
-                                         boost::shared_ptr<ParticleGroup> group)
-    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256),m_first_run(true)
+    boost::shared_ptr<NeighborList> nlist,
+    boost::shared_ptr<ParticleGroup> group)
+    : PPPMForceCompute(sysdef,nlist,group),
+      m_local_fft(true),
+      m_sum(m_exec_conf),
+      m_block_size(256),
+      m_gpu_q_max(m_exec_conf)
     {
+    unsigned int n_blocks = m_mesh_points.x*m_mesh_points.y*m_mesh_points.z/m_block_size+1;
+    GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
+    m_sum_partial.swap(sum_partial);
 
-    // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        m_exec_conf->msg->error() << "Creating a PPMForceComputeGPU with no GPU in the execution configuration" << endl;
-        throw std::runtime_error("Error initializing PPMForceComputeGPU");
-        }
-    CHECK_CUDA_ERROR();
+    GPUArray<Scalar> sum_virial_partial(6*n_blocks,m_exec_conf);
+    m_sum_virial_partial.swap(sum_virial_partial);
+
+    GPUArray<Scalar> sum_virial(6,m_exec_conf);
+    m_sum_virial.swap(sum_virial);
+
+    GPUArray<Scalar4> max_partial(n_blocks, m_exec_conf);
+    m_max_partial.swap(max_partial);
+
+    // initial value of number of particles per bin
+    m_cell_size = 2;
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
-    cufftDestroy(plan);
-    }
-
-/*!
-  \param Nx Number of grid points in x direction
-  \param Ny Number of grid points in y direction
-  \param Nz Number of grid points in z direction
-  \param order Number of grid points in each direction to assign charges to
-  \param kappa Screening parameter in erfc
-  \param rcut Short-ranged cutoff, used for computing the relative force error
-
-  Sets parameters for the long-ranged part of the electrostatics calculation and updates the
-  parameters on the GPU.
-*/
-void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
-    {
-    PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
-    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_TRANSFORM_TYPE);
-
-    GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, m_exec_conf);
-    m_energy_sum.swap(n_energy_sum);
-
-    GPUArray<Scalar> n_v_xx_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_xx_sum.swap(n_v_xx_sum);
-
-    GPUArray<Scalar> n_v_xy_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_xy_sum.swap(n_v_xy_sum);
-
-    GPUArray<Scalar> n_v_xz_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_xz_sum.swap(n_v_xz_sum);
-
-    GPUArray<Scalar> n_v_yy_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_yy_sum.swap(n_v_yy_sum);
-
-    GPUArray<Scalar> n_v_yz_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_yz_sum.swap(n_v_yz_sum);
-
-    GPUArray<Scalar> n_v_zz_sum(Nx*Ny*Nz, m_exec_conf);
-    m_v_zz_sum.swap(n_v_zz_sum);
-
-    GPUArray<Scalar> n_o_data(Nx*Ny*Nz, m_exec_conf);
-    o_data.swap(n_o_data);
-
-
-    }
-
-
-
-/*! Internal method for computing the forces on the GPU.
-  \post The force data on the GPU is written with the calculated forces
-
-  \param timestep Current time step of the simulation
-
-  Calls gpu_compute_harmonic_bond_forces to do the dirty work.
-*/
-void PPPMForceComputeGPU::computeForces(unsigned int timestep)
-    {
-    if (!m_params_set)
+    if (m_local_fft)
+        cufftDestroy(m_cufft_plan);
+    else
+    #ifdef ENABLE_MPI
         {
-        m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
-        throw std::runtime_error("Error computing forces in PPPMForceComputeGPU");
+        dfft_destroy_plan(m_dfft_plan_forward);
+        dfft_destroy_plan(m_dfft_plan_inverse);
         }
-
-    unsigned int group_size = m_group->getNumMembers();
-    // just drop out if the group is an empty group
-    if (group_size == 0)
-        return;
-
-    // start the profile
-    if (m_prof) m_prof->push(m_exec_conf, "PPPM");
-
-    assert(m_pdata);
-
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
-
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle<CUFFTCOMPLEX> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<CUFFTCOMPLEX> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
-    ArrayHandle<CUFFTCOMPLEX> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
-    ArrayHandle<CUFFTCOMPLEX> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_kvec(m_kvec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_field(m_field, access_location::device, access_mode::readwrite);
-
-        { //begin ArrayHandle scope
-        ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
-        ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
-
-        // reset virial
-        cudaMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
-
-        //Zero pppm forces on ALL particles, including neutral ones that aren't taken
-        //care of in calculate_forces_kernel
-        cudaMemset(d_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
-
-        // access the group
-        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-
-        if(m_box_changed || m_first_run)
-            {
-            Scalar3 L = box.getL();
-            Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
-            int nbx = (int)temp;
-            temp = floor(((m_kappa*L.y/(M_PI*m_Ny)) * pow(-log(EPS_HOC),0.25)));
-            int nby = (int)temp;
-            temp =  floor(((m_kappa*L.z/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
-            int nbz = (int)temp;
-
-            ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);;
-            ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::readwrite);
-            reset_kvec_green_hat(box,
-                                 m_Nx,
-                                 m_Ny,
-                                 m_Nz,
-                                 nbx,
-                                 nby,
-                                 nbz,
-                                 m_order,
-                                 m_kappa,
-                                 d_kvec.data,
-                                 d_green_hat.data,
-                                 d_vg.data,
-                                 d_gf_b.data,
-                                 m_block_size);
-
-
-            Scalar scale = Scalar(1.0)/((Scalar)(m_Nx * m_Ny * m_Nz));
-            m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
-            m_box_changed = false;
-            m_first_run = false;
-            }
-
-        // run the kernel in parallel on all GPUs
-
-        gpu_compute_pppm_forces(d_force.data,
-                                m_pdata->getN(),
-                                d_pos.data,
-                                d_charge.data,
-                                box,
-                                m_Nx,
-                                m_Ny,
-                                m_Nz,
-                                m_order,
-                                h_rho_coeff.data,
-                                d_rho_real_space.data,
-                                plan,
-                                d_Ex.data,
-                                d_Ey.data,
-                                d_Ez.data,
-                                d_kvec.data,
-                                d_green_hat.data,
-                                d_field.data,
-                                d_index_array.data,
-                                group_size,
-                                m_block_size,
-                                m_exec_conf->getComputeCapability());
-
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        // If there are exclusions, correct for the long-range part of the potential
-        if( m_nlist->getExclusionsSet())
-            {
-            ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
-            Index2D nex = m_nlist->getExListIndexer();
-
-            fix_exclusions(d_force.data,
-                           d_virial.data,
-                           m_virial.getPitch(),
-                           m_pdata->getN(),
-                           d_pos.data,
-                           d_charge.data,
-                           box,
-                           d_n_ex.data,
-                           d_exlist.data,
-                           nex,
-                           m_kappa,
-                           d_index_array.data,
-                           group_size,
-                           m_block_size,
-                           m_exec_conf->getComputeCapability());
-            if(m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-        } // end ArrayHandle scope
-
-    PDataFlags flags = m_pdata->getFlags();
-
-    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
-        {
-        ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_energy_sum(m_energy_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_xx_sum(m_v_xx_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_xy_sum(m_v_xy_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_xz_sum(m_v_xz_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_yy_sum(m_v_yy_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_yz_sum(m_v_yz_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_v_zz_sum(m_v_zz_sum, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_o_data(o_data, access_location::device, access_mode::readwrite);
-        Scalar pppm_virial_energy[7];
-        gpu_compute_pppm_thermo(m_Nx,
-                                m_Ny,
-                                m_Nz,
-                                d_rho_real_space.data,
-                                d_vg.data,
-                                d_green_hat.data,
-                                d_o_data.data,
-                                d_energy_sum.data,
-                                d_v_xx_sum.data,
-                                d_v_xy_sum.data,
-                                d_v_xz_sum.data,
-                                d_v_yy_sum.data,
-                                d_v_yz_sum.data,
-                                d_v_zz_sum.data,
-                                pppm_virial_energy,
-                                m_block_size);
-
-        Scalar3 L = box.getL();
-
-        pppm_virial_energy[0] *= m_energy_virial_factor;
-        pppm_virial_energy[0] -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
-        pppm_virial_energy[0] -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
-
-        for(int i = 1; i < 7; i++) {
-            pppm_virial_energy[i] *= m_energy_virial_factor;
-            }
-
-        // apply the correction to particle 0
-            {
-            ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
-            unsigned int virial_pitch = m_virial.getPitch();
-
-            h_force.data[0].w += pppm_virial_energy[0];
-            h_virial.data[0*virial_pitch+0] += pppm_virial_energy[1]; // xx
-            h_virial.data[1*virial_pitch+0] += pppm_virial_energy[2]; // xy
-            h_virial.data[2*virial_pitch+0] += pppm_virial_energy[3]; // xz
-            h_virial.data[3*virial_pitch+0] += pppm_virial_energy[4]; // yy
-            h_virial.data[4*virial_pitch+0] += pppm_virial_energy[5]; // yz
-            h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
-            }
-        }
-    if (m_prof) m_prof->pop(m_exec_conf);
-    }
-
-#endif
-void export_PPPMForceComputeGPU()
-    {
-    #if 0
-    class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
-        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<NeighborList>,
-         boost::shared_ptr<ParticleGroup> >())
-        .def("setBlockSize", &PPPMForceComputeGPU::setBlockSize)
-        ;
     #endif
     }
 
+void PPPMForceComputeGPU::initializeFFT()
+    {
+    #ifdef ENABLE_MPI
+    m_local_fft = !m_pdata->getDomainDecomposition();
+
+    if (! m_local_fft)
+        {
+        // ghost cell communicator for charge interpolation
+        m_gpu_grid_comm_forward = std::auto_ptr<CommunicatorGridGPUComplex>(
+            new CommunicatorGridGPUComplex(m_sysdef,
+               make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
+               make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),
+               m_n_ghost_cells,
+               true));
+        // ghost cell communicator for force mesh
+        m_gpu_grid_comm_reverse = std::auto_ptr<CommunicatorGridGPUComplex >(
+            new CommunicatorGridGPUComplex(m_sysdef,
+               make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
+               make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),
+               m_n_ghost_cells,
+               false));
+
+        // set up distributed FFT
+        int gdim[3];
+        int pdim[3];
+        Index3D decomp_idx = m_pdata->getDomainDecomposition()->getDomainIndexer();
+        pdim[0] = decomp_idx.getD();
+        pdim[1] = decomp_idx.getH();
+        pdim[2] = decomp_idx.getW();
+        gdim[0] = m_mesh_points.z*pdim[0];
+        gdim[1] = m_mesh_points.y*pdim[1];
+        gdim[2] = m_mesh_points.x*pdim[2];
+        int embed[3];
+        embed[0] = m_mesh_points.z+2*m_n_ghost_cells.z;
+        embed[1] = m_mesh_points.y+2*m_n_ghost_cells.y;
+        embed[2] = m_mesh_points.x+2*m_n_ghost_cells.x;
+        m_ghost_offset = (m_n_ghost_cells.z*embed[1]+m_n_ghost_cells.y)*embed[2]+m_n_ghost_cells.x;
+        uint3 pcoord = m_pdata->getDomainDecomposition()->getGridPos();
+        int pidx[3];
+        pidx[0] = pcoord.z;
+        pidx[1] = pcoord.y;
+        pidx[2] = pcoord.x;
+        int row_m = 0; /* both local grid and proc grid are row major, no transposition necessary */
+        ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(),
+            access_location::host, access_mode::read);
+        #ifndef USE_HOST_DFFT
+        dfft_cuda_create_plan(&m_dfft_plan_forward, 3, gdim, embed, NULL, pdim, pidx,
+            row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
+        dfft_cuda_create_plan(&m_dfft_plan_inverse, 3, gdim, NULL, embed, pdim, pidx,
+            row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *)h_cart_ranks.data);
+        #else
+        dfft_create_plan(&m_dfft_plan_forward, 3, gdim, embed, NULL, pdim, pidx,
+            row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
+        dfft_create_plan(&m_dfft_plan_inverse, 3, gdim, NULL, embed, pdim, pidx,
+            row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
+        #endif
+        }
+    #endif // ENABLE_MPI
+
+    if (m_local_fft)
+        {
+        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
+        }
+
+    unsigned int n_particle_bins = m_grid_dim.x*m_grid_dim.y*m_grid_dim.z;
+    m_bin_idx = Index2D(n_particle_bins,m_cell_size);
+    m_scratch_idx = Index2D(n_particle_bins,(2*m_radius+1)*(2*m_radius+1)*(2*m_radius+1));
+
+    // allocate mesh and transformed mesh
+    GPUArray<cufftComplex> mesh(m_n_cells,m_exec_conf);
+    m_mesh.swap(mesh);
+
+    GPUArray<cufftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
+    m_fourier_mesh.swap(fourier_mesh);
+
+    GPUArray<cufftComplex> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
+    m_fourier_mesh_G_x.swap(fourier_mesh_G_x);
+
+    GPUArray<cufftComplex> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
+    m_fourier_mesh_G_y.swap(fourier_mesh_G_y);
+
+    GPUArray<cufftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
+    m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
+
+    GPUArray<cufftComplex> inv_fourier_mesh_x(m_n_cells, m_exec_conf);
+    m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
+
+    GPUArray<cufftComplex> inv_fourier_mesh_y(m_n_cells, m_exec_conf);
+    m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
+
+    GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells, m_exec_conf);
+    m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
+
+    GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(), m_exec_conf);
+    m_particle_bins.swap(particle_bins);
+
+    GPUArray<unsigned int> n_cell(m_bin_idx.getW(), m_exec_conf);
+    m_n_cell.swap(n_cell);
+
+    GPUFlags<unsigned int> cell_overflowed(m_exec_conf);
+    m_cell_overflowed.swap(cell_overflowed);
+
+    m_cell_overflowed.resetFlags(0);
+
+    // allocate scratch space for density reduction
+    GPUArray<Scalar> mesh_scratch(m_scratch_idx.getNumElements(), m_exec_conf);
+    m_mesh_scratch.swap(mesh_scratch);
+
+    // initialize interpolation coefficients on GPU
+
+    ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
+    gpu_initialize_coeff(h_rho_coeff.data, m_order);
+    }
+
+//! Assignment of particles to mesh using three-point scheme (triangular shaped cloud)
+/*! This is a second order accurate scheme with continuous value and continuous derivative
+ */
+void PPPMForceComputeGPU::assignParticles()
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "assign");
+
+    ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+
+    ArrayHandle<unsigned int> d_n_cell(m_n_cell, access_location::device, access_mode::overwrite);
+
+    bool cont = true;
+    while (cont)
+        {
+        cudaMemset(d_n_cell.data,0,sizeof(unsigned int)*m_n_cell.getNumElements());
+
+            {
+            ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::overwrite);
+
+            gpu_bin_particles(m_pdata->getN(),
+                              d_postype.data,
+                              d_particle_bins.data,
+                              d_n_cell.data,
+                              m_cell_overflowed.getDeviceFlags(),
+                              m_bin_idx,
+                              m_mesh_points,
+                              m_n_ghost_cells,
+                              d_charge.data,
+                              m_pdata->getBox(),
+                              m_order);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+
+        unsigned int flags = m_cell_overflowed.readFlags();
+
+        if (flags)
+            {
+            // reallocate particle bins array
+            m_cell_size = flags;
+
+            m_bin_idx = Index2D(m_bin_idx.getW(),m_cell_size);
+            GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(),m_exec_conf);
+            m_particle_bins.swap(particle_bins);
+            m_cell_overflowed.resetFlags(0);
+            }
+        else
+            {
+            cont = false;
+            }
+
+        // assign particles to mesh
+        ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
+
+        gpu_assign_binned_particles_to_mesh(m_mesh_points,
+                                            m_n_ghost_cells,
+                                            m_grid_dim,
+                                            d_particle_bins.data,
+                                            d_mesh_scratch.data,
+                                            m_bin_idx,
+                                            m_scratch_idx,
+                                            d_n_cell.data,
+                                            d_mesh.data,
+                                            m_order,
+                                            m_pdata->getBox());
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+void PPPMForceComputeGPU::updateMeshes()
+    {
+    if (m_local_fft)
+        {
+        if (m_prof) m_prof->push(m_exec_conf,"FFT");
+        // locally transform the particle mesh
+        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
+
+        cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD);
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+    #ifdef ENABLE_MPI
+    else
+        {
+        // update inner cells of particle mesh
+        if (m_prof) m_prof->push(m_exec_conf,"ghost cell update");
+        m_exec_conf->msg->notice(8) << "charge.pppm: Ghost cell update" << std::endl;
+        m_gpu_grid_comm_forward->communicate(m_mesh);
+        if (m_prof) m_prof->pop(m_exec_conf);
+
+        // perform a distributed FFT
+        m_exec_conf->msg->notice(8) << "charge.pppm: Distributed FFT mesh" << std::endl;
+        if (m_prof) m_prof->push(m_exec_conf,"FFT");
+        #ifndef USE_HOST_DFFT
+        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            dfft_cuda_check_errors(&m_dfft_plan_forward, 1);
+        else
+            dfft_cuda_check_errors(&m_dfft_plan_forward, 0);
+
+        dfft_cuda_execute(d_mesh.data+m_ghost_offset, d_fourier_mesh.data, 0, &m_dfft_plan_forward);
+        #else
+        ArrayHandle<cufftComplex> h_mesh(m_mesh, access_location::host, access_mode::read);
+        ArrayHandle<cufftComplex> h_fourier_mesh(m_fourier_mesh, access_location::host, access_mode::overwrite);
+
+        dfft_execute((cpx_t *)(h_mesh.data+m_ghost_offset), (cpx_t *)h_fourier_mesh.data, 0,m_dfft_plan_forward);
+        #endif
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+    #endif
+
+    if (m_prof) m_prof->push(m_exec_conf,"update");
+
+        {
+        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::readwrite);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::overwrite);
+
+        ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
+
+        gpu_update_meshes(m_n_inner_cells,
+                          d_fourier_mesh.data,
+                          d_fourier_mesh_G_x.data,
+                          d_fourier_mesh_G_y.data,
+                          d_fourier_mesh_G_z.data,
+                          d_inf_f.data,
+                          d_k.data,
+                          m_global_dim.x*m_global_dim.y*m_global_dim.z);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+
+    if (m_local_fft)
+        {
+        if (m_prof) m_prof->push(m_exec_conf, "FFT");
+
+        // do local inverse transform of all three components of the force mesh
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
+
+        cufftExecC2C(m_cufft_plan,
+                     d_fourier_mesh_G_x.data,
+                     d_inv_fourier_mesh_x.data,
+                     CUFFT_INVERSE);
+        cufftExecC2C(m_cufft_plan,
+                     d_fourier_mesh_G_y.data,
+                     d_inv_fourier_mesh_y.data,
+                     CUFFT_INVERSE);
+        cufftExecC2C(m_cufft_plan,
+                     d_fourier_mesh_G_z.data,
+                     d_inv_fourier_mesh_z.data,
+                     CUFFT_INVERSE);
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+    #ifdef ENABLE_MPI
+    else
+        {
+        if (m_prof) m_prof->push(m_exec_conf, "FFT");
+
+        // Distributed inverse transform of force mesh
+        m_exec_conf->msg->notice(8) << "charge.pppm: Distributed iFFT" << std::endl;
+        #ifndef USE_HOST_DFFT
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            dfft_cuda_check_errors(&m_dfft_plan_inverse, 1);
+        else
+            dfft_cuda_check_errors(&m_dfft_plan_inverse, 0);
+
+        dfft_cuda_execute(d_fourier_mesh_G_x.data, d_inv_fourier_mesh_x.data+m_ghost_offset, 1, &m_dfft_plan_inverse);
+        dfft_cuda_execute(d_fourier_mesh_G_y.data, d_inv_fourier_mesh_y.data+m_ghost_offset, 1, &m_dfft_plan_inverse);
+        dfft_cuda_execute(d_fourier_mesh_G_z.data, d_inv_fourier_mesh_z.data+m_ghost_offset, 1, &m_dfft_plan_inverse);
+        #else
+        ArrayHandle<cufftComplex> h_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::host, access_mode::read);
+        ArrayHandle<cufftComplex> h_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::host, access_mode::read);
+        ArrayHandle<cufftComplex> h_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::host, access_mode::read);
+        ArrayHandle<cufftComplex> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::host, access_mode::overwrite);
+        ArrayHandle<cufftComplex> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::host, access_mode::overwrite);
+        ArrayHandle<cufftComplex> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::host, access_mode::overwrite);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_x.data, (cpx_t *)h_inv_fourier_mesh.data_x+m_ghost_offset, 1, m_dfft_plan_inverse);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_y.data, (cpx_t *)h_inv_fourier_mesh.data_y+m_ghost_offset, 1, m_dfft_plan_inverse);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_z.data, (cpx_t *)h_inv_fourier_mesh.data_z+m_ghost_offset, 1, m_dfft_plan_inverse);
+        #endif
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+    #endif
+
+    #ifdef ENABLE_MPI
+    if (! m_local_fft)
+        {
+        // update outer cells of inverse Fourier meshes using ghost cells from neighboring processors
+        if (m_prof) m_prof->push("ghost cell update");
+        m_exec_conf->msg->notice(8) << "charge.pppm: Ghost cell update" << std::endl;
+        m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_x);
+        m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_y);
+        m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_z);
+        if (m_prof) m_prof->pop();
+        }
+    #endif
+    }
+
+void PPPMForceComputeGPU::interpolateForces()
+    {
+    if (m_prof) m_prof->push(m_exec_conf,"forces");
+
+    ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+
+    gpu_compute_forces(m_pdata->getN(),
+                       d_postype.data,
+                       d_force.data,
+                       d_inv_fourier_mesh_x.data,
+                       d_inv_fourier_mesh_y.data,
+                       d_inv_fourier_mesh_z.data,
+                       m_grid_dim,
+                       m_n_ghost_cells,
+                       d_charge.data,
+                       m_pdata->getBox(),
+                       m_order);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+void PPPMForceComputeGPU::computeVirial()
+    {
+    if (m_prof) m_prof->push(m_exec_conf,"virial");
+
+    ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_virial_mesh(m_virial_mesh, access_location::device, access_mode::overwrite);
+
+    bool exclude_dc = true;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
+        exclude_dc = !my_pos.x && !my_pos.y && !my_pos.z;
+        }
+    #endif
+
+    gpu_compute_mesh_virial(m_n_inner_cells,
+                            d_fourier_mesh.data,
+                            d_inf_f.data,
+                            d_virial_mesh.data,
+                            d_k.data,
+                            exclude_dc,
+                            m_kappa);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+        {
+        ArrayHandle<Scalar> d_sum_virial(m_sum_virial, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_sum_virial_partial(m_sum_virial_partial, access_location::device, access_mode::overwrite);
+
+        gpu_compute_virial(m_n_inner_cells,
+                           d_sum_virial_partial.data,
+                           d_sum_virial.data,
+                           d_virial_mesh.data,
+                           m_block_size);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    ArrayHandle<Scalar> h_sum_virial(m_sum_virial, access_location::host, access_mode::read);
+
+    Scalar V = m_pdata->getGlobalBox().getVolume();
+    Scalar scale = Scalar(1.0)/((Scalar)(m_global_dim.x*m_global_dim.y*m_global_dim.z));
+
+    for (unsigned int i = 0; i<6; ++i)
+        m_external_virial[i] = Scalar(0.5)*V*scale*scale*h_sum_virial.data[i];
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+Scalar PPPMForceComputeGPU::computePE()
+    {
+    if (m_prof) m_prof->push(m_exec_conf,"sum");
+
+    ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
+
+    ArrayHandle<Scalar> d_sum_partial(m_sum_partial, access_location::device, access_mode::overwrite);
+
+    bool exclude_dc = true;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
+        exclude_dc = !my_pos.x && !my_pos.y && !my_pos.z;
+        }
+    #endif
+
+    gpu_compute_pe(m_n_inner_cells,
+                   d_sum_partial.data,
+                   m_sum.getDeviceFlags(),
+                   d_fourier_mesh.data,
+                   d_inf_f.data,
+                   m_block_size,
+                   m_mesh_points,
+                   exclude_dc);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    Scalar sum = m_sum.readFlags()*Scalar(1.0/2.0);
+
+    Scalar V = m_pdata->getGlobalBox().getVolume();
+    Scalar scale = Scalar(1.0)/((Scalar)(m_global_dim.x*m_global_dim.y*m_global_dim.z));
+    sum *= Scalar(0.5)*V*scale*scale;
+
+    if (m_exec_conf->getRank()==0)
+        {
+        // add correction on rank 0
+        sum -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
+        sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
+        }
+
+    // store this rank's contribution as external potential energy
+    m_external_energy = sum;
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // reduce sum
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &sum,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+
+    return sum;
+    }
+
+//! Compute the optimal influence function
+void PPPMForceComputeGPU::computeInfluenceFunction()
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "influence function");
+
+    ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::overwrite);
+
+    uint3 global_dim = m_mesh_points;
+    uint3 pidx = make_uint3(0,0,0);
+    uint3 pdim = make_uint3(0,0,0);
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        const Index3D &didx = m_pdata->getDomainDecomposition()->getDomainIndexer();
+        global_dim.x *= didx.getW();
+        global_dim.y *= didx.getH();
+        global_dim.z *= didx.getD();
+        pidx = m_pdata->getDomainDecomposition()->getGridPos();
+        pdim = make_uint3(didx.getW(), didx.getH(), didx.getD());
+        }
+    #endif
+
+    ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::read);
+
+    gpu_compute_influence_function(m_mesh_points,
+                                   global_dim,
+                                   d_inf_f.data,
+                                   d_k.data,
+                                   m_pdata->getGlobalBox(),
+                                   m_local_fft,
+                                   pidx,
+                                   pdim,
+                                   EPS_HOC,
+                                   m_kappa,
+                                   d_gf_b.data,
+                                   m_order);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+void export_PPPMForceComputeGPU()
+    {
+    class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
+        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
+                                      boost::shared_ptr<NeighborList>,
+                                      boost::shared_ptr<ParticleGroup> >());
+    }
+
+#endif // ENABLE_CUDA

@@ -12,6 +12,8 @@
 #include <boost/signals2.hpp>
 #include <boost/bind.hpp>
 
+const Scalar EPS_HOC(1.0e-7);
+
 /*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
  */
 class PPPMForceCompute : public ForceCompute
