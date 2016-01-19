@@ -529,12 +529,21 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                          cufftComplex *d_fourier_mesh_G_z,
                          const Scalar *d_inf_f,
                          const Scalar3 *d_k,
-                         unsigned int NNN)
+                         unsigned int NNN,
+                         unsigned int block_size)
 
     {
-    const unsigned int block_size = 512;
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    gpu_update_meshes_kernel<<<n_wave_vectors/block_size+1, block_size>>>(n_wave_vectors,
+    unsigned int run_block_size = min(max_block_size, block_size);
+
+    gpu_update_meshes_kernel<<<n_wave_vectors/run_block_size+1, run_block_size>>>(n_wave_vectors,
                                                                           d_fourier_mesh,
                                                                           d_fourier_mesh_G_x,
                                                                           d_fourier_mesh_G_y,
@@ -1128,7 +1137,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     const Scalar EPS_HOC,
                                     Scalar kappa,
                                     const Scalar *d_gf_b,
-                                    int order)
+                                    int order,
+                                    unsigned int block_size)
     {
     // compute reciprocal lattice vectors
     Scalar3 a1 = global_box.getLatticeVector(0);
@@ -1142,10 +1152,6 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
     unsigned int num_wave_vectors = mesh_dim.x*mesh_dim.y*mesh_dim.z;
 
-    unsigned int block_size = 512;
-    unsigned int n_blocks = num_wave_vectors/block_size;
-    if (num_wave_vectors % block_size) n_blocks += 1;
-
     Scalar3 L = global_box.getL();
     Scalar temp = floor(((kappa*L.x/(M_PI*global_dim.x)) *  pow(-log(EPS_HOC),0.25)));
     int nbx = (int)temp;
@@ -1155,7 +1161,21 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
     int nbz = (int)temp;
 
     if (local_fft)
-        gpu_compute_influence_function_kernel<true><<<n_blocks, block_size>>>(mesh_dim,
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        unsigned int n_blocks = num_wave_vectors/run_block_size;
+        if (num_wave_vectors % run_block_size) n_blocks += 1;
+
+        gpu_compute_influence_function_kernel<true><<<n_blocks, run_block_size>>>(mesh_dim,
                                                                               num_wave_vectors,
                                                                               global_dim,
                                                                               d_inf_f,
@@ -1171,8 +1191,23 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                                                               d_gf_b,
                                                                               order,
                                                                               kappa);
+        }
     #ifdef ENABLE_MPI
     else
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        unsigned int n_blocks = num_wave_vectors/run_block_size;
+        if (num_wave_vectors % run_block_size) n_blocks += 1;
+
         gpu_compute_influence_function_kernel<false><<<n_blocks,block_size>>>(mesh_dim,
                                                                              num_wave_vectors,
                                                                              global_dim,
@@ -1189,6 +1224,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                                                              d_gf_b,
                                                                              order,
                                                                              kappa);
+        }
     #endif
     }
 

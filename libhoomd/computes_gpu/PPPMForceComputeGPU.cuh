@@ -44,7 +44,8 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                          cufftComplex *d_fourier_mesh_G_z,
                          const Scalar *d_inf_f,
                          const Scalar3 *d_k,
-                         unsigned int NNN);
+                         unsigned int NNN,
+                         unsigned int block_size);
 
 void gpu_compute_forces(const unsigned int N,
                         const Scalar4 *d_postype,
@@ -85,7 +86,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     const Scalar EPS_HOC,
                                     Scalar kappa,
                                     const Scalar *gf_b,
-                                    int order);
+                                    int order,
+                                    unsigned int block_size);
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,

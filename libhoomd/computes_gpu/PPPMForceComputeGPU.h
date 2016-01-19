@@ -37,10 +37,14 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             m_tuner_bin->setPeriod(period);
+            m_tuner_update->setPeriod(period);
             m_tuner_force->setPeriod(period);
+            m_tuner_influence->setPeriod(period);
 
             m_tuner_bin->setEnabled(enable);
+            m_tuner_update->setEnabled(enable);
             m_tuner_force->setEnabled(enable);
+            m_tuner_influence->setEnabled(enable);
             }
 
     protected:
@@ -67,7 +71,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
     private:
         boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for filling the constraint matrix
+        boost::scoped_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+        boost::scoped_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
         cufftHandle m_cufft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)

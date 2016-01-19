@@ -35,7 +35,9 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
     m_cell_size = 2;
 
     m_tuner_bin.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign_bin", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
+    m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
@@ -301,6 +303,8 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
 
+        unsigned int block_size = m_tuner_update->getParam();
+        m_tuner_update->begin();
         gpu_update_meshes(m_n_inner_cells,
                           d_fourier_mesh.data,
                           d_fourier_mesh_G_x.data,
@@ -308,10 +312,12 @@ void PPPMForceComputeGPU::updateMeshes()
                           d_fourier_mesh_G_z.data,
                           d_inf_f.data,
                           d_k.data,
-                          m_global_dim.x*m_global_dim.y*m_global_dim.z);
+                          m_global_dim.x*m_global_dim.y*m_global_dim.z,
+                          block_size);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_tuner_update->end();
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -571,6 +577,8 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
 
     ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::read);
 
+    unsigned int block_size = m_tuner_influence->getParam();
+    m_tuner_influence->begin();
     gpu_compute_influence_function(m_mesh_points,
                                    global_dim,
                                    d_inf_f.data,
@@ -582,10 +590,13 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
                                    EPS_HOC,
                                    m_kappa,
                                    d_gf_b.data,
-                                   m_order);
+                                   m_order,
+                                   block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_influence->end();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
