@@ -1,4 +1,5 @@
 #include "PPPMForceComputeGPU.cuh"
+#include "TextureTools.h"
 
 // __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
 #ifdef SINGLE_PRECISION
@@ -1263,6 +1264,150 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                                                              kappa);
         }
     #endif
+    }
+
+//! Texture for reading particle positions
+scalar4_tex_t pdata_pos_tex;
+
+//! Texture for reading charge parameters
+scalar_tex_t pdata_charge_tex;
+
+
+//! The developer has chosen not to document this function
+__global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
+                                          Scalar *d_virial,
+                                          const unsigned int virial_pitch,
+                                          const unsigned int N,
+                                          const Scalar4 *d_pos,
+                                          const Scalar *d_charge,
+                                          const BoxDim box,
+                                          const unsigned int *d_n_neigh,
+                                          const unsigned int *d_nlist,
+                                          const Index2D nli,
+                                          Scalar kappa,
+                                          unsigned int *d_group_members,
+                                          unsigned int group_size)
+    {
+    // start by identifying which particle we are to handle
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+        const Scalar sqrtpi = sqrtf(M_PI);
+        unsigned int n_neigh = d_n_neigh[idx];
+        Scalar4 postypei =  texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+
+        Scalar qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
+        // initialize the force to 0
+        Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        Scalar virial[6];
+        for (unsigned int i = 0; i < 6; i++)
+            virial[i] = Scalar(0.0);
+        unsigned int cur_j = 0;
+        // prefetch neighbor index
+        unsigned int next_j = d_nlist[nli(idx, 0)];
+
+            for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+                {
+                    {
+                    // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                    // prefetch the next value and set the current one
+                    cur_j = next_j;
+                    if (neigh_idx+1 < n_neigh)
+                        next_j = d_nlist[nli(idx, neigh_idx+1)];
+
+                    // get the neighbor's position (MEM TRANSFER: 16 bytes)
+                    Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+                    Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+                    Scalar qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
+
+                    // calculate dr (with periodic boundary conditions) (FLOPS: 3)
+                    Scalar3 dx = posi - posj;
+
+                    // apply periodic boundary conditions: (FLOPS 12)
+                    dx = box.minImage(dx);
+
+                    // calculate r squard (FLOPS: 5)
+                    Scalar rsq = dot(dx,dx);
+                    Scalar r = sqrtf(rsq);
+                    Scalar qiqj = qi * qj;
+                    Scalar erffac = ::erf(kappa * r) / r;
+                    Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
+                    Scalar pair_eng = qiqj * erffac;
+
+                    Scalar force_div2r = Scalar(0.5) * force_divr;
+                    virial[0] += dx.x * dx.x * force_div2r;
+                    virial[1] += dx.x * dx.y * force_div2r;
+                    virial[2] += dx.x * dx.z * force_div2r;
+                    virial[3] += dx.y * dx.y * force_div2r;
+                    virial[4] += dx.y * dx.z * force_div2r;
+                    virial[5] += dx.z * dx.z * force_div2r;
+
+                    force.x += dx.x * force_divr;
+                    force.y += dx.y * force_divr;
+                    force.z += dx.z * force_divr;
+
+                    force.w += pair_eng;
+                    }
+                }
+        force.w *= Scalar(0.5);
+        d_force[idx].x -= force.x;
+        d_force[idx].y -= force.y;
+        d_force[idx].z -= force.z;
+        d_force[idx].w -= force.w;
+        for (unsigned int i = 0; i < 6; i++)
+            d_virial[i*virial_pitch+idx] = - virial[i];
+        }
+    }
+
+//! The developer has chosen not to document this function
+cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
+                           Scalar *d_virial,
+                           const unsigned int virial_pitch,
+                           const unsigned int N,
+                           const Scalar4 *d_pos,
+                           const Scalar *d_charge,
+                           const BoxDim& box,
+                           const unsigned int *d_n_ex,
+                           const unsigned int *d_exlist,
+                           const Index2D nex,
+                           Scalar kappa,
+                           unsigned int *d_group_members,
+                           unsigned int group_size,
+                           int block_size,
+                           const unsigned int compute_capability)
+    {
+    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // bind the textures on pre sm35 arches
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+        if (error != cudaSuccess)
+            return error;
+
+        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
+        if (error != cudaSuccess)
+            return error;
+        }
+
+     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
+                                                      d_virial,
+                                                      virial_pitch,
+                                                      N,
+                                                      d_pos,
+                                                      d_charge,
+                                                      box,
+                                                      d_n_ex,
+                                                      d_exlist,
+                                                      nex,
+                                                      kappa,
+                                                      d_group_members,
+                                                      group_size);
+    return cudaSuccess;
     }
 
 void gpu_initialize_coeff(

@@ -125,6 +125,9 @@ class PPPMForceCompute : public ForceCompute
         //! Helper function to compute the virial
         virtual void computeVirial();
 
+        //! Helper function to correct forces on excluded particles
+        virtual void fixExclusions();
+
         //! Setup coefficients
         virtual void setupCoeffs();
 

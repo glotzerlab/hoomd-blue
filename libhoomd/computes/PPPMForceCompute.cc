@@ -1260,6 +1260,12 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
             m_external_virial[i] = Scalar(0.0);
         }
 
+    // If there are exclusions, correct for the long-range part of the potential
+    if(m_nlist->getExclusionsSet())
+        {
+        fixExclusions();
+        }
+
     if (m_prof) m_prof->pop();
     }
 
@@ -1323,6 +1329,89 @@ void PPPMForceCompute::computeVirial()
         }
 
     if (m_prof) m_prof->pop();
+    }
+
+void PPPMForceCompute::fixExclusions()
+    {
+    unsigned int group_size = m_group->getNumMembers();
+    // just drop out if the group is an empty group
+    if (group_size == 0)
+        return;
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
+
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+
+    ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
+    const BoxDim& box = m_pdata->getBox();
+    ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::host, access_mode::read);
+    Index2D nex = m_nlist->getExListIndexer();
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    for(unsigned int i = 0; i < group_size; i++)
+        {
+        Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        Scalar virial[6];
+        for (unsigned int k = 0; k < 6; k++)
+            virial[k] = Scalar(0.0);
+        unsigned int idx = d_group_members.data[i];
+        Scalar3 posi;
+        posi.x = h_pos.data[idx].x;
+        posi.y = h_pos.data[idx].y;
+        posi.z = h_pos.data[idx].z;
+        Scalar qi = h_charge.data[idx];
+
+        unsigned int n_neigh = d_n_ex.data[idx];
+        const Scalar sqrtpi = sqrt(M_PI);
+        unsigned int cur_j = 0;
+
+        for (unsigned int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+            {
+            cur_j = d_exlist.data[nex(idx, neigh_idx)];
+
+            // get the neighbor's position
+            Scalar3 posj;
+            posj.x = h_pos.data[cur_j].x;
+            posj.y = h_pos.data[cur_j].y;
+            posj.z = h_pos.data[cur_j].z;
+            Scalar qj = h_charge.data[cur_j];
+            Scalar3 dx = posi - posj;
+
+            // apply periodic boundary conditions:
+            dx = box.minImage(dx);
+
+            Scalar rsq = dot(dx, dx);
+            Scalar r = sqrtf(rsq);
+            Scalar qiqj = qi * qj;
+            Scalar erffac = erf(m_kappa * r) / r;
+            Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
+            Scalar pair_eng = qiqj * erffac; 
+            virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
+            virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
+            virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;
+            virial[3]+= Scalar(0.5) * dx.y * dx.y * force_divr;
+            virial[4]+= Scalar(0.5) * dx.z * dx.y * force_divr;
+            virial[5]+= Scalar(0.5) * dx.z * dx.z * force_divr;
+            force.x += dx.x * force_divr;
+            force.y += dx.y * force_divr;
+            force.z += dx.z * force_divr;
+            force.w += pair_eng;
+            }
+        force.w *= Scalar(0.5);
+        h_force.data[idx].x -= force.x;
+        h_force.data[idx].y -= force.y;
+        h_force.data[idx].z -= force.z;
+        h_force.data[idx].w = -force.w;
+        for (unsigned int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx] = -virial[k];
+        }
+
     }
 
 Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)

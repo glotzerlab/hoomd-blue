@@ -95,6 +95,22 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     int order,
                                     unsigned int block_size);
 
+cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
+                           Scalar *d_virial,
+                           const unsigned int virial_pitch,
+                           const unsigned int N,
+                           const Scalar4 *d_pos,
+                           const Scalar *d_charge,
+                           const BoxDim& box,
+                           const unsigned int *d_n_ex,
+                           const unsigned int *d_exlist,
+                           const Index2D nex,
+                           Scalar kappa,
+                           unsigned int *d_group_members,
+                           unsigned int group_size,
+                           int block_size,
+                           const unsigned int compute_capability);
+
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
     int order);

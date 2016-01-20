@@ -74,6 +74,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         //! Helper function to compute the virial
         virtual void computeVirial();
 
+        //! Helper function to correct forces on excluded particles
+        virtual void fixExclusions();
+
     private:
         boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
         boost::scoped_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh

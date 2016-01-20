@@ -622,6 +622,40 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+void PPPMForceComputeGPU::fixExclusions()
+    {
+    ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getNumMembers();
+
+    ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+
+    Index2D nex = m_nlist->getExListIndexer();
+
+    gpu_fix_exclusions(d_force.data,
+                   d_virial.data,
+                   m_virial.getPitch(),
+                   m_pdata->getN(),
+                   d_postype.data,
+                   d_charge.data,
+                   m_pdata->getBox(),
+                   d_n_ex.data,
+                   d_exlist.data,
+                   nex,
+                   m_kappa,
+                   d_index_array.data,
+                   group_size,
+                   m_block_size,
+                   m_exec_conf->getComputeCapability());
+
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    }
+
 void export_PPPMForceComputeGPU()
     {
     class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
