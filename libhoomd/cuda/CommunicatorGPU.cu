@@ -502,7 +502,10 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(
             break;
             }
 
-        plan |= d_plans[pidx];
+        if (pidx < n_local)
+            {
+            plan |= d_plans[pidx];
+            }
         }
 
     d_group_plan[idx] = plan;
