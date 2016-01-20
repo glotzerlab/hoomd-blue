@@ -130,7 +130,10 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
         k++;
         }
 
-    h_cell_recv_end.data[n] = k;
+    if (last != UINT_MAX)
+        {
+        h_cell_recv_end.data[n] = k;
+        }
     }
 
 template<typename T>
