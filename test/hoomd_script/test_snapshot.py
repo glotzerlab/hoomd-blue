@@ -18,6 +18,11 @@ class init_take_restore_snapshot (unittest.TestCase):
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
 
+        # add some constraints
+        self.s.constraints.add(0, 1, 0.1)
+        self.s.constraints.add(0, 2, 0.2)
+        self.s.constraints.add(3, 4, 3.4)
+
     # test taking a snapshot and re-initializing
     def test(self):
         snapshot = self.s.take_snapshot(all=True)
@@ -63,6 +68,33 @@ class init_take_restore_snapshot (unittest.TestCase):
         self.assertEqual(self.s.bonds[l_new-1].b,10)
         self.assertEqual(self.s.bonds[l_new-1].type,'polymer')
 
+    # test that adding and removing bonds works with take/restore snapshot
+    def test_add_remove_constraint(self):
+        l = len(self.s.constraints)
+        self.assertEqual(l,3)
+        del(self.s.constraints[l-1])
+        constraints = []
+        for c in self.s.constraints:
+            constraints.append((c.a,c.b,c.d))
+        self.assertEqual(len(self.s.constraints),l-1)
+        snapshot = self.s.take_snapshot(bonds=True)
+        self.s.restore_snapshot(snapshot)
+        self.assertEqual(len(self.s.constraints),l-1)
+        for (c,old_c) in zip(self.s.constraints,constraints):
+            new_c = (c.a, c.b, c.d)
+            self.assertEqual(new_c,old_c)
+        self.s.constraints.add(0, 10,1.5)
+        l_new = len(self.s.constraints)
+        self.assertEqual(l_new,l)
+        snapshot = self.s.take_snapshot(bonds=True)
+        self.s.restore_snapshot(snapshot)
+        l_new = len(self.s.constraints)
+        self.assertEqual(l_new,l)
+        self.assertEqual(self.s.constraints[l_new-1].a,0)
+        self.assertEqual(self.s.constraints[l_new-1].b,10)
+        self.assertEqual(self.s.constraints[l_new-1].d,1.5)
+
+
     # test removing and adding particles before taking the snapshot
     def test_add_remove_particle(self):
         l = len(self.s.particles)
@@ -107,6 +139,11 @@ class init_verify_npy_dtype (unittest.TestCase):
         self.s = init.create_random_polymers(box=box, polymers=[polymer], separation=separation);
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
+
+        # add some constraints
+        self.s.constraints.add(0, 1, 0.1)
+        self.s.constraints.add(0, 2, 0.2)
+        self.s.constraints.add(3, 4, 3.4)
 
     def test_take_snapshot_double(self):
         snapshot = self.s.take_snapshot(all=True, dtype='double');
@@ -165,6 +202,21 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(list(snapshot.bonds.group[4]), [6,7]);
             self.assertEqual(list(snapshot.bonds.group[5]), [7,8]);
 
+            # check the constraints
+            self.assertEqual(snapshot.constraints.N, 3)
+            self.assertEqual(snapshot.constraints.value.shape, (3,))
+            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshots.constraints.value.dtype == numpy.float64)
+            self.assertEqual(snapshot.constraints.group.shape, (3,2))
+            self.assertEqual(snapshot.constraints.group.dtype, numpy.uint32)
+
+            self.assertEqual(list(snapshot.constraints.group[0]), [0,1])
+            self.assertEqual(list(snapshot.constraints.group[1]), [0,2])
+            self.assertEqual(list(snapshot.constraints.group[2]), [3,4])
+
+            self.assertAlmostEqual(float(snapshot.constraints.value[0]), 0.1, 5)
+            self.assertAlmostEqual(float(snapshot.constraints.value[1]), 0.2, 5)
+            self.assertAlmostEqual(float(snapshot.constraints.value[2]), 3.4, 5)
+
     def test_take_snapshot_float(self):
         snapshot = self.s.take_snapshot(all=True, dtype='float');
 
@@ -221,6 +273,21 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(list(snapshot.bonds.group[3]), [4,5]);
             self.assertEqual(list(snapshot.bonds.group[4]), [6,7]);
             self.assertEqual(list(snapshot.bonds.group[5]), [7,8]);
+
+            # check the constraints
+            self.assertEqual(snapshot.constraints.N, 3)
+            self.assertEqual(snapshot.constraints.value.shape, (3,))
+            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshots.constraints.value.dtype == numpy.float64)
+            self.assertEqual(snapshot.constraints.group.shape, (3,2))
+            self.assertEqual(snapshot.constraints.group.dtype, numpy.uint32)
+
+            self.assertEqual(list(snapshot.constraints.group[0]), [0,1])
+            self.assertEqual(list(snapshot.constraints.group[1]), [0,2])
+            self.assertEqual(list(snapshot.constraints.group[2]), [3,4])
+
+            self.assertAlmostEqual(float(snapshot.constraints.value[0]), 0.1, 5)
+            self.assertAlmostEqual(float(snapshot.constraints.value[1]), 0.2, 5)
+            self.assertAlmostEqual(float(snapshot.constraints.value[2]), 3.4, 5)
 
     def tearDown(self):
         del self.s
@@ -281,6 +348,11 @@ class init_take_snapshot_float (unittest.TestCase):
             self.snapshot.impropers.typeid[:] = [0];
             self.snapshot.impropers.group[0] = [3, 2, 1, 0];
 
+            # constraints
+            self.snapshot.constraints.resize(1)
+            self.snapshot.constraints.group[0] = [0, 1]
+            self.snapshot.constraints.value[0] = 2.5
+
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
@@ -361,6 +433,12 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(self.s.impropers[0].b, 2);
         self.assertEqual(self.s.impropers[0].c, 1);
         self.assertEqual(self.s.impropers[0].d, 0);
+
+        # constraints
+        self.assertEqual(len(self.s.constraints), 1)
+        self.assertAlmostEqual(self.s.constraints[0].d, 2.5, 5)
+        self.assertEqual(self.s.constraints[0].a, 0)
+        self.assertEqual(self.s.constraints[0].b, 1)
 
     def tearDown(self):
         del self.s
@@ -421,6 +499,11 @@ class init_take_snapshot_double (unittest.TestCase):
             self.snapshot.impropers.typeid[:] = [0];
             self.snapshot.impropers.group[0] = [3, 2, 1, 0];
 
+            # constraints
+            self.snapshot.constraints.resize(1)
+            self.snapshot.constraints.group[0] = [0, 1]
+            self.snapshot.constraints.value[0] = 2.5
+
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
@@ -502,6 +585,13 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(self.s.impropers[0].c, 1);
         self.assertEqual(self.s.impropers[0].d, 0);
 
+        # constraints
+        self.assertEqual(len(self.s.constraints), 1)
+        self.assertAlmostEqual(self.s.constraints[0].d, 2.5, 5)
+        self.assertEqual(self.s.constraints[0].a, 0)
+        self.assertEqual(self.s.constraints[0].b, 1)
+
+
     def tearDown(self):
         del self.s
         init.reset();
@@ -528,6 +618,7 @@ class init_take_snapshot (unittest.TestCase):
             self.assertEqual(snapshot.dihedrals.types, ['dihedralA', 'dihedralB']);
             self.assertEqual(snapshot.impropers.N, 0);
             self.assertEqual(snapshot.impropers.types, ['improperA', 'improperB', 'improperC']);
+            self.assertEqual(snapshot.constraints.N, 0)
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

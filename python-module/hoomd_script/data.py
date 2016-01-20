@@ -232,7 +232,38 @@ import hoomd_script
 #
 # <h3>Constraints</h3>
 #
-# Pairwise distance constraints are added 
+# Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
+# The only difference is that instead of a type, # constraints take a distance as parameter.
+#
+# - `N` is the number of constraints in the bond data snapshot
+# \code
+# >>> print(snapshot.constraints.N)
+# 99
+# \endcode
+# - Change the number of constraints in the snapshot with resize. Existing constraints are
+#   preserved after the resize. Any newly created constraints will be initialized to 0. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.constraints.*`
+# \code
+# >>> snapshot.constraints.resize(1000);
+# \endcode
+# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the constraint `i`. The second axis `j` goes over
+#   the individual particles in the constraint. The value of each element is the tag of the particle participating in the
+#   constraint.
+# \code
+# >>> print(snapshot.constraints.group)
+# [[4 5]
+# [6 7]
+# [6 8]
+# [7 8]]
+# >>> snapshot.constraint.group[0] = [10,11]
+# \endcode
+# - Snapshots store constraint distances as floats
+# \code
+# >>> print(snapshot.bonds.value)
+# [ 1.5 2.3 1.0 0.1 ]
+# \endcode
+#
 # \section data_proxy Proxy access
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
@@ -479,6 +510,21 @@ import hoomd_script
 # appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
 # <hr>
 #
+# <hr>
+# <h3>Constraints</h3>
+# Constraints may be added and removed from within the job script.
+#
+# To add a constraint of length 1.5 between particles 0 and 1:
+# \code
+# >>> t = system.constraints.add(0, 1, 1.5)
+# \endcode
+#
+# To remove it again:
+# \code
+# >>> system.contraints.remove(t)
+# \endcode
+#
+# <hr>
 # <h3>Forces</h3>
 # Forces can be accessed in a similar way.
 # \code
