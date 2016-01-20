@@ -68,6 +68,7 @@ CommunicatorGridGPU<T>::CommunicatorGridGPU(boost::shared_ptr<SystemDefinition> 
     : CommunicatorGrid<T>(sysdef, dim, embed, offset, add_outer_layer_to_inner),
       m_n_unique_recv_cells(0)
     {
+    this->m_exec_conf->msg->notice(5) << "Constructing CommunicatorGridGPU" << std::endl;
     initGridCommGPU();
     }
 
@@ -112,15 +113,24 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
     ArrayHandle<unsigned int> h_cell_recv_end(m_cell_recv_end, access_location::host, access_mode::overwrite);
 
     n = 0;
-    for (set_t::iterator it = unique_cells.begin(); it != unique_cells.end(); ++it)
+    unsigned int last = UINT_MAX;
+    unsigned int k = 0;
+    for (map_t::iterator it = map.begin(); it != map.end(); ++it)
         {
-        map_t::iterator lower = map.lower_bound(*it);
-        map_t::iterator upper = map.upper_bound(*it);
-        h_cell_recv_begin.data[n] = std::distance(map.begin(), lower);
-        h_cell_recv_end.data[n] = std::distance(map.begin(), upper);
-        assert(h_cell_recv_end.data[n] - h_cell_recv_begin.data[n] >= 1);
-        n++;
+        if (last == UINT_MAX)
+            {
+            h_cell_recv_begin.data[n] = k;
+            }
+        if (last != UINT_MAX && it->first != last)
+            {
+            h_cell_recv_end.data[n++] = k;
+            h_cell_recv_begin.data[n] = k;
+            }
+        last = it->first;
+        k++;
         }
+
+    h_cell_recv_end.data[n] = k;
     }
 
 template<typename T>

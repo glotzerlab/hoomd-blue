@@ -62,14 +62,14 @@ void PPPMForceComputeGPU::initializeFFT()
     if (! m_local_fft)
         {
         // ghost cell communicator for charge interpolation
-        m_gpu_grid_comm_forward = std::auto_ptr<CommunicatorGridGPUComplex>(
+        m_gpu_grid_comm_forward = boost::shared_ptr<CommunicatorGridGPUComplex>(
             new CommunicatorGridGPUComplex(m_sysdef,
                make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
                make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),
                m_n_ghost_cells,
                true));
         // ghost cell communicator for force mesh
-        m_gpu_grid_comm_reverse = std::auto_ptr<CommunicatorGridGPUComplex >(
+        m_gpu_grid_comm_reverse = boost::shared_ptr<CommunicatorGridGPUComplex >(
             new CommunicatorGridGPUComplex(m_sysdef,
                make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
                make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),

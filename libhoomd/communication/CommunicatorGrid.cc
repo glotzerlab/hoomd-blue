@@ -75,6 +75,8 @@ CommunicatorGrid<T>::CommunicatorGrid(boost::shared_ptr<SystemDefinition> sysdef
       m_offset(offset),
       m_add_outer(add_outer_layer_to_inner)
     {
+    m_exec_conf->msg->notice(5) << "Constructing CommunicatorGrid" << std::endl;
+
     initGridComm();
     }
 
