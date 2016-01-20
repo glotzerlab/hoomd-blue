@@ -97,8 +97,8 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     unsigned int idx = d_rtag[tag];
     
     Scalar3 f;
-    // rotate force according to particle orientation only if orientation is linked to active force vector and there are rigid bodies
-    if (orientationLink)
+    // rotate force according to particle orientation only if orientation is linked to active force vector
+    if (orientationLink == true)
     {
         vec3<Scalar> fi;
         f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
