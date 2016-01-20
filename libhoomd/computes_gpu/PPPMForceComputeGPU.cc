@@ -407,7 +407,7 @@ void PPPMForceComputeGPU::updateMeshes()
     if (! m_local_fft)
         {
         // update outer cells of inverse Fourier meshes using ghost cells from neighboring processors
-        if (m_prof) m_prof->push("ghost cell update");
+        if (m_prof) m_prof->push(m_exec_conf, "ghost cell update");
         m_exec_conf->msg->notice(8) << "charge.pppm: Ghost cell update" << std::endl;
         m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_x);
         m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_y);
@@ -453,6 +453,7 @@ void PPPMForceComputeGPU::interpolateForces()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_force->end();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void PPPMForceComputeGPU::computeVirial()
