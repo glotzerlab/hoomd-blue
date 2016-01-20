@@ -94,9 +94,6 @@ bool MolecularForceCompute::askMigrateRequest(unsigned int timestep)
     bool result = false;
     if (m_d_max - m_last_d_max > r_buff/Scalar(2.0))
         {
-        // store current value
-        m_last_d_max = m_d_max;
-
         result = true;
         }
 
@@ -270,6 +267,9 @@ void MolecularForceCompute::initMolecules()
 #ifdef ENABLE_MPI
 void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plans)
     {
+    // store current value of maximum diameter at every ghost exchange
+    m_last_d_max = m_d_max;
+
     // init local molecules
     initMolecules();
 
