@@ -387,7 +387,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar r_buff = m_comm->getGhostLayerMaxWidth();
+        Scalar r_buff = m_nlist->getRBuff();
 
         const BoxDim& box = m_pdata->getBox();
         Scalar3 cell_width = box.getNearestPlaneDistance() /

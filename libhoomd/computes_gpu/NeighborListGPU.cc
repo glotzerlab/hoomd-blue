@@ -267,12 +267,12 @@ void NeighborListGPU::buildHeadList()
     // don't do anything if there are no particles owned by this rank
     if (!m_pdata->getN())
         return;
-        
+
     if (m_prof) m_prof->push(exec_conf, "head-list");
 
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
     m_req_size_nlist.resetFlags(0);
 
@@ -290,7 +290,7 @@ void NeighborListGPU::buildHeadList()
 
     unsigned int req_size_nlist = m_req_size_nlist.readFlags();
     resizeNlist(req_size_nlist);
-    
+
     if (m_prof) m_prof->pop(exec_conf);
     }
 

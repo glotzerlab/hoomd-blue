@@ -18,19 +18,6 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
       m_block_size(256),
       m_gpu_q_max(m_exec_conf)
     {
-    unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
-    GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
-    m_sum_partial.swap(sum_partial);
-
-    GPUArray<Scalar> sum_virial_partial(6*n_blocks,m_exec_conf);
-    m_sum_virial_partial.swap(sum_virial_partial);
-
-    GPUArray<Scalar> sum_virial(6,m_exec_conf);
-    m_sum_virial.swap(sum_virial);
-
-    GPUArray<Scalar4> max_partial(n_blocks, m_exec_conf);
-    m_max_partial.swap(max_partial);
-
     // initial value of number of particles per bin
     m_cell_size = 2;
 
@@ -161,6 +148,19 @@ void PPPMForceComputeGPU::initializeFFT()
     // allocate scratch space for density reduction
     GPUArray<Scalar> mesh_scratch(m_scratch_idx.getNumElements(), m_exec_conf);
     m_mesh_scratch.swap(mesh_scratch);
+
+    unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
+    GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
+    m_sum_partial.swap(sum_partial);
+
+    GPUArray<Scalar> sum_virial_partial(6*n_blocks,m_exec_conf);
+    m_sum_virial_partial.swap(sum_virial_partial);
+
+    GPUArray<Scalar> sum_virial(6,m_exec_conf);
+    m_sum_virial.swap(sum_virial);
+
+    GPUArray<Scalar4> max_partial(n_blocks, m_exec_conf);
+    m_max_partial.swap(max_partial);
     }
 
 void PPPMForceComputeGPU::setupCoeffs()
@@ -389,9 +389,9 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::host, access_mode::overwrite);
         ArrayHandle<cufftComplex> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::host, access_mode::overwrite);
         ArrayHandle<cufftComplex> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::host, access_mode::overwrite);
-        dfft_execute((cpx_t *)h_fourier_mesh_G_x.data, (cpx_t *)h_inv_fourier_mesh.data_x+m_ghost_offset, 1, m_dfft_plan_inverse);
-        dfft_execute((cpx_t *)h_fourier_mesh_G_y.data, (cpx_t *)h_inv_fourier_mesh.data_y+m_ghost_offset, 1, m_dfft_plan_inverse);
-        dfft_execute((cpx_t *)h_fourier_mesh_G_z.data, (cpx_t *)h_inv_fourier_mesh.data_z+m_ghost_offset, 1, m_dfft_plan_inverse);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_x.data, (cpx_t *)h_inv_fourier_mesh_x.data+m_ghost_offset, 1, m_dfft_plan_inverse);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_y.data, (cpx_t *)h_inv_fourier_mesh_y.data+m_ghost_offset, 1, m_dfft_plan_inverse);
+        dfft_execute((cpx_t *)h_fourier_mesh_G_z.data, (cpx_t *)h_inv_fourier_mesh_z.data+m_ghost_offset, 1, m_dfft_plan_inverse);
         #endif
         if (m_prof) m_prof->pop(m_exec_conf);
         }
@@ -441,8 +441,6 @@ void PPPMForceComputeGPU::interpolateForces()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_force->end();
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void PPPMForceComputeGPU::computeVirial()

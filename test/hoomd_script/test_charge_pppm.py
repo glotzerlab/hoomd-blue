@@ -5,13 +5,13 @@ from hoomd_script import *
 import unittest
 import os
 
+context.initialize()
+
 # charge.pppm
 class charge_pppm_tests (unittest.TestCase):
     def setUp(self):
-        print
         self.s = init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
         for i in range(0,50):
             self.s.particles[i].charge = -1;
 

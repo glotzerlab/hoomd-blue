@@ -108,34 +108,34 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
-    
+
     // allocate r_cut pairwise storage
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
-    
+
     // holds the maximum rcut on a per type basis
     GPUArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
-    
+
     // allocate the r_listsq array which accelerates CPU calculations
     GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
-    
+
     // default initialization of the rcut for all pairs
     setRCut(_r_cut, r_buff);
-    
+
     // allocate the number of neighbors (per particle)
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
-    
+
     // default allocation of 8 neighbors per particle for the neighborlist
     GPUArray<unsigned int> nlist(8*m_pdata->getMaxN(), exec_conf);
     m_nlist.swap(nlist);
-    
+
     // allocate head list indexer
     GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
     m_head_list.swap(head_list);
-    
+
     // allocate the max number of neighbors per type allowed
     GPUArray<unsigned int> Nmax(m_pdata->getNTypes(), exec_conf);
     m_Nmax.swap(Nmax);
@@ -147,7 +147,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
             h_Nmax.data[i] = 8;
             }
         }
-    
+
     // allocate overflow flags for the number of neighbors per type
     GPUArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
@@ -208,7 +208,7 @@ void NeighborList::reallocate()
     // resize the head list and number of neighbors per particle
     m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
-    
+
     // force a rebuild
     forceUpdate();
     }
@@ -263,17 +263,17 @@ void NeighborList::compute(unsigned int timestep)
 
     if (m_prof) m_prof->push("Neighbor");
 
-	// take care of some updates if things have changed since construction
+    // take care of some updates if things have changed since construction
     if (m_force_update)
         {
         // build the head list since some sort of change (like a particle sort) happened
         buildHeadList();
-        
-		// update the exclusion data if this is a forced update        
+
+        // update the exclusion data if this is a forced update
         if (m_exclusions_set)
             updateExListIdx();
         }
-            
+
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
@@ -1349,13 +1349,13 @@ void NeighborList::filterNlist()
  * \note The neighbor list is also resized when it requires more memory than is currently allocated.
  */
 void NeighborList::buildHeadList()
-    {   
+    {
     if (m_prof) m_prof->push("head-list");
-    
+
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
-    
+
     unsigned int headAddress = 0;
     for (unsigned int i=0; i < m_pdata->getN(); ++i)
         {
@@ -1367,7 +1367,7 @@ void NeighborList::buildHeadList()
         }
 
     resizeNlist(headAddress);
-    
+
     if (m_prof) m_prof->pop();
     }
 
