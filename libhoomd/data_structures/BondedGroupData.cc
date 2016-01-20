@@ -1268,15 +1268,31 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("setProfiler", &T::setProfiler)
         ;
 
-    typedef typename T::Snapshot Snapshot;
-    class_<Snapshot, boost::shared_ptr<Snapshot> >
-        (snapshot_name.c_str(), init<unsigned int>())
-        .add_property("typeid", &Snapshot::getTypeNP)
-        .add_property("group", &Snapshot::getBondedTagsNP)
-        .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
-        .def("resize", &Snapshot::resize)
-        .def_readonly("N", &Snapshot::size)
-        ;
+    if (T::typemap_val)
+        {
+        // has a type mapping
+        typedef typename T::Snapshot Snapshot;
+        class_<Snapshot, boost::shared_ptr<Snapshot> >
+            (snapshot_name.c_str(), init<unsigned int>())
+            .add_property("typeid", &Snapshot::getTypeNP)
+            .add_property("group", &Snapshot::getBondedTagsNP)
+            .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
+            .def("resize", &Snapshot::resize)
+            .def_readonly("N", &Snapshot::size)
+            ;
+         }
+    else
+        {
+        // has Scalar values
+        typedef typename T::Snapshot Snapshot;
+        class_<Snapshot, boost::shared_ptr<Snapshot> >
+            (snapshot_name.c_str(), init<unsigned int>())
+            .add_property("value", &Snapshot::getValueNP)
+            .add_property("group", &Snapshot::getBondedTagsNP)
+            .def("resize", &Snapshot::resize)
+            .def_readonly("N", &Snapshot::size)
+            ;
+        }
    }
 
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
@@ -1329,8 +1345,20 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
     {
+    assert(has_type_mapping);
     return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
     }
+
+/*! \returns a numpy array that wraps the value data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
+    {
+    assert(!has_type_mapping);
+    return num_util::makeNumFromData(&(this->val[0]), this->val.size());
+    }
+
 
 /*! \returns a numpy array that wraps the groups data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot

@@ -181,6 +181,9 @@ class BondedGroupData : boost::noncopyable
         //! Group data element type
         typedef union group_storage<group_size> members_t;
 
+        //! True if typeval is an integer
+        static const bool typemap_val = has_type_mapping;
+
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
         typedef members_t ranks_t;
@@ -253,6 +256,9 @@ class BondedGroupData : boost::noncopyable
 
             //! Get type as a numpy array
             PyObject* getTypeNP();
+            //! Get value as a numpy array
+            PyObject* getValueNP();
+
             //! Get bonded tags as a numpy array
             PyObject* getBondedTagsNP();
             //! Get the type names for python
