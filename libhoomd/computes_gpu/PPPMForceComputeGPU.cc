@@ -624,6 +624,8 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
 
 void PPPMForceComputeGPU::fixExclusions()
     {
+    if (m_prof) m_prof->push(m_exec_conf, "fix exclusions");
+
     ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -639,7 +641,7 @@ void PPPMForceComputeGPU::fixExclusions()
     gpu_fix_exclusions(d_force.data,
                    d_virial.data,
                    m_virial.getPitch(),
-                   m_pdata->getN(),
+                   m_pdata->getN()+m_pdata->getNGhosts(),
                    d_postype.data,
                    d_charge.data,
                    m_pdata->getBox(),
@@ -654,6 +656,8 @@ void PPPMForceComputeGPU::fixExclusions()
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_PPPMForceComputeGPU()

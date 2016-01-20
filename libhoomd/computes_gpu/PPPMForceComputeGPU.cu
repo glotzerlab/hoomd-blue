@@ -1277,7 +1277,6 @@ scalar_tex_t pdata_charge_tex;
 __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           Scalar *d_virial,
                                           const unsigned int virial_pitch,
-                                          const unsigned int N,
                                           const Scalar4 *d_pos,
                                           const Scalar *d_charge,
                                           const BoxDim box,
@@ -1366,7 +1365,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
 cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar *d_virial,
                            const unsigned int virial_pitch,
-                           const unsigned int N,
+                           const unsigned int Nmax,
                            const Scalar4 *d_pos,
                            const Scalar *d_charge,
                            const BoxDim& box,
@@ -1379,17 +1378,17 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            int block_size,
                            const unsigned int compute_capability)
     {
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // bind the textures on pre sm35 arches
     if (compute_capability < 350)
         {
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*Nmax);
         if (error != cudaSuccess)
             return error;
 
-        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
+        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * Nmax);
         if (error != cudaSuccess)
             return error;
         }
@@ -1397,7 +1396,6 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
      gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
                                                       virial_pitch,
-                                                      N,
                                                       d_pos,
                                                       d_charge,
                                                       box,

@@ -1334,6 +1334,8 @@ void PPPMForceCompute::computeVirial()
 
 void PPPMForceCompute::fixExclusions()
     {
+    if (m_prof) m_prof->push("fix exclusions");
+
     unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
@@ -1413,6 +1415,7 @@ void PPPMForceCompute::fixExclusions()
             h_virial.data[k*virial_pitch+idx] = -virial[k];
         }
 
+    if (m_prof) m_prof->pop();
     }
 
 Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
