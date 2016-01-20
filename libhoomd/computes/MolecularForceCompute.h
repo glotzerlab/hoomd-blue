@@ -133,7 +133,7 @@ class MolecularForceCompute : public ForceConstraint
          */
         virtual Scalar askGhostLayerWidth(unsigned int type)
             {
-            return m_last_d_max + m_nlist->getRBuff();
+            return m_d_max + m_nlist->getRBuff();
             }
         #endif
 
