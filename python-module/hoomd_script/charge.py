@@ -104,7 +104,10 @@ from math import sqrt
 #       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
 #       If you are going to add charged particles at a later point in the simulation with the data access API,
 #       ensure that this group includes those particles as well.
-# \MPI_NOT_SUPPORTED
+#
+# \note In MPI simulations, the number of grid point along every dimensions must be a power of two
+#
+# \MPI_SUPPORTED
 class pppm(force._force):
     ## Specify long-ranged electrostatic interactions between particles
     #
