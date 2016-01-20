@@ -1246,7 +1246,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
         unsigned int n_blocks = num_wave_vectors/run_block_size;
         if (num_wave_vectors % run_block_size) n_blocks += 1;
 
-        gpu_compute_influence_function_kernel<false><<<n_blocks,block_size>>>(mesh_dim,
+        gpu_compute_influence_function_kernel<false><<<n_blocks,run_block_size>>>(mesh_dim,
                                                                              num_wave_vectors,
                                                                              global_dim,
                                                                              d_inf_f,
