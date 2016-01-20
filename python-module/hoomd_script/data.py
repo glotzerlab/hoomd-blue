@@ -233,9 +233,9 @@ import hoomd_script
 # <h3>Constraints</h3>
 #
 # Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
-# The only difference is that instead of a type, # constraints take a distance as parameter.
+# The only difference is that instead of a type, constraints take a distance as parameter.
 #
-# - `N` is the number of constraints in the bond data snapshot
+# - `N` is the number of constraints in the constraint data snapshot
 # \code
 # >>> print(snapshot.constraints.N)
 # 99
@@ -256,11 +256,11 @@ import hoomd_script
 # [6 7]
 # [6 8]
 # [7 8]]
-# >>> snapshot.constraint.group[0] = [10,11]
+# >>> snapshot.constraints.group[0] = [10,11]
 # \endcode
 # - Snapshots store constraint distances as floats
 # \code
-# >>> print(snapshot.bonds.value)
+# >>> print(snapshot.constraints.value)
 # [ 1.5 2.3 1.0 0.1 ]
 # \endcode
 #
