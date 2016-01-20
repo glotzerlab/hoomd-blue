@@ -275,9 +275,14 @@ void PPPMForceCompute::setupCoeffs()
     // get system charge
     m_q = Scalar(0.0);
     m_q2 = Scalar(0.0);
-    for(int i = 0; i < (int)m_pdata->getN(); i++) {
-        m_q += h_charge.data[i];
-        m_q2 += h_charge.data[i]*h_charge.data[i];
+
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        m_q += h_charge.data[j];
+        m_q2 += h_charge.data[j]*h_charge.data[j];
         }
 
     #ifdef ENABLE_MPI
@@ -698,15 +703,15 @@ void PPPMForceCompute::assignParticles()
     // set mesh to zero
     memset(h_mesh.data, 0, sizeof(kiss_fft_cpx)*m_mesh.getNumElements());
 
-    unsigned int nparticles = m_pdata->getN();
-
     Scalar V_cell = box.getVolume()/(Scalar)(m_mesh_points.x*m_mesh_points.y*m_mesh_points.z);
 
-    // loop over local particles
-    for (unsigned int idx = 0; idx < nparticles; ++idx)
+    // loop over group
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        Scalar4 postype = h_postype.data[idx];
+        unsigned int idx = m_group->getMemberIndex(group_idx);
 
+        Scalar4 postype = h_postype.data[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // ignore if NaN
@@ -982,9 +987,11 @@ void PPPMForceCompute::interpolateForces()
 
     const BoxDim& box = m_pdata->getBox();
 
-    unsigned int nptl = m_pdata->getN();
-    for (unsigned int idx = 0; idx < nptl; ++idx)
+    // loop over group
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
+        unsigned int idx = m_group->getMemberIndex(group_idx);
         Scalar4 postype = h_postype.data[idx];
 
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);

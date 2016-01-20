@@ -5,7 +5,7 @@
 
 #ifdef ENABLE_CUDA
 
-#define USE_HOST_DFFT
+//#define USE_HOST_DFFT
 
 #include "CommunicatorGridGPU.h"
 

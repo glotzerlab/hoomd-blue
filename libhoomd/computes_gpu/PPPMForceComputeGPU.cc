@@ -194,6 +194,10 @@ void PPPMForceComputeGPU::assignParticles()
             {
             ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::overwrite);
 
+            // access the group
+            ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+            unsigned int group_size = m_group->getNumMembers();
+
             unsigned int block_size = m_tuner_bin->getParam();
             m_tuner_bin->begin();
             gpu_bin_particles(m_pdata->getN(),
@@ -207,6 +211,8 @@ void PPPMForceComputeGPU::assignParticles()
                               d_charge.data,
                               m_pdata->getBox(),
                               m_order,
+                              d_index_array.data,
+                              group_size,
                               block_size);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -423,6 +429,10 @@ void PPPMForceComputeGPU::interpolateForces()
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
+    // access the group
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getNumMembers();
+
     unsigned int block_size = m_tuner_force->getParam();
     m_tuner_force->begin();
     gpu_compute_forces(m_pdata->getN(),
@@ -436,6 +446,8 @@ void PPPMForceComputeGPU::interpolateForces()
                        d_charge.data,
                        m_pdata->getBox(),
                        m_order,
+                       d_index_array.data,
+                       group_size,
                        block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

@@ -15,6 +15,8 @@ void gpu_bin_particles(const unsigned int N,
                        const Scalar *d_charge,
                        const BoxDim& box,
                        int order,
+                       const unsigned int *d_index_array,
+                       unsigned int group_size,
                        unsigned int block_size);
 
 void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
@@ -60,6 +62,8 @@ void gpu_compute_forces(const unsigned int N,
                         const Scalar *d_charge,
                         const BoxDim& box,
                         int order,
+                        const unsigned int *d_index_array,
+                        unsigned int group_size,
                         unsigned int block_size);
 
 void gpu_compute_pe(unsigned int n_wave_vectors,

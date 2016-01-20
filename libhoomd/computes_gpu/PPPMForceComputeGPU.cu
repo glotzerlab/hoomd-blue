@@ -118,11 +118,14 @@ __global__ void gpu_bin_particles_kernel(const unsigned int N,
                                          const uint3 n_ghost_bins,
                                          const Scalar *d_charge,
                                          const BoxDim box,
-                                         int order)
+                                         int order,
+                                         const unsigned int *d_index_array,
+                                         unsigned int group_size)
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N) return;
+    if (group_idx >= group_size) return;
+    unsigned int idx = d_index_array[group_idx];
 
     Scalar4 postype = d_postype[idx];
 
@@ -173,6 +176,8 @@ void gpu_bin_particles(const unsigned int N,
                        const Scalar *d_charge,
                        const BoxDim& box,
                        int order,
+                       const unsigned int *d_index_array,
+                       unsigned int group_size,
                        unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
@@ -194,7 +199,9 @@ void gpu_bin_particles(const unsigned int N,
              n_ghost_bins,
              d_charge,
              box,
-             order);
+             order,
+             d_index_array,
+             group_size);
     }
 
 __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_dim,
@@ -587,11 +594,15 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                                           const uint3 n_ghost_cells,
                                           const Scalar *d_charge,
                                           const BoxDim box,
-                                          int order)
+                                          int order,
+                                          const unsigned int *d_index_array,
+                                          unsigned int group_size)
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N) return;
+    if (group_idx >= group_size) return;
+
+    unsigned int idx = d_index_array[group_idx];
 
     int3 inner_dim = make_int3(grid_dim.x-2*n_ghost_cells.x,
                                grid_dim.y-2*n_ghost_cells.y,
@@ -700,6 +711,8 @@ void gpu_compute_forces(const unsigned int N,
                         const Scalar *d_charge,
                         const BoxDim& box,
                         int order,
+                        const unsigned int *d_index_array,
+                        unsigned int group_size,
                         unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
@@ -732,7 +745,9 @@ void gpu_compute_forces(const unsigned int N,
              n_ghost_cells,
              d_charge,
              box,
-             order);
+             order,
+             d_index_array,
+             group_size);
     }
 
 __global__ void kernel_calculate_pe_partial(
