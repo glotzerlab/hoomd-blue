@@ -205,7 +205,7 @@ class init_verify_npy_dtype (unittest.TestCase):
             # check the constraints
             self.assertEqual(snapshot.constraints.N, 3)
             self.assertEqual(snapshot.constraints.value.shape, (3,))
-            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshots.constraints.value.dtype == numpy.float64)
+            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshot.constraints.value.dtype == numpy.float64)
             self.assertEqual(snapshot.constraints.group.shape, (3,2))
             self.assertEqual(snapshot.constraints.group.dtype, numpy.uint32)
 
@@ -277,7 +277,7 @@ class init_verify_npy_dtype (unittest.TestCase):
             # check the constraints
             self.assertEqual(snapshot.constraints.N, 3)
             self.assertEqual(snapshot.constraints.value.shape, (3,))
-            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshots.constraints.value.dtype == numpy.float64)
+            self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshot.constraints.value.dtype == numpy.float64)
             self.assertEqual(snapshot.constraints.group.shape, (3,2))
             self.assertEqual(snapshot.constraints.group.dtype, numpy.uint32)
 
