@@ -365,10 +365,24 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
     d_virial[5*virial_pitch+idx] = virialzz;
     }
 
-cudaError_t gpu_dense2sparse(unsigned int n_constraint,
+cudaError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
+                           cusparseHandle_t cusparse_handle,
+                           cusparseMatDescr_t cusparse_mat_descr)
+    {
+    #ifdef CUSOLVER_AVAILABLE
+    // count zeros
+    cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
+        cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
+    #endif
+    return cudaSuccess;
+    }
+
+cudaError_t gpu_dense2sparse(unsigned int n_constraint,
+                           double *d_matrix,
+                           int *d_nnz,
                            cusparseHandle_t cusparse_handle,
                            cusparseMatDescr_t cusparse_mat_descr,
                            int *d_csr_rowptr,
@@ -377,10 +391,6 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
     {
     #ifdef CUSOLVER_AVAILABLE
     // convert dense matrix to compressed sparse row
-
-    // count zeros
-    cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
-        cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
 
     // update values in CSR format
     cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,

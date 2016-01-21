@@ -80,10 +80,16 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const BoxDim box,
                           unsigned int block_size);
 
+cudaError_t gpu_count_nnz(unsigned int n_constraint,
+                           double *d_matrix,
+                           int *d_nnz,
+                           int &nnz,
+                           cusparseHandle_t cusparse_handle,
+                           cusparseMatDescr_t cusparse_mat_descr);
+
 cudaError_t gpu_dense2sparse(unsigned int n_constraint,
                                double *d_matrix,
                                int *d_nnz,
-                               int &nnz,
                                cusparseHandle_t cusparse_handle,
                                cusparseMatDescr_t cusparse_mat_descr,
                                int *d_csr_rowptr,
