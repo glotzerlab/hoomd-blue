@@ -356,9 +356,8 @@ typename EvaluatorWalls<evaluator>::param_type make_wall_params(typename evaluat
     params.rextrap = rextrap;
     return params;
     }
-#endif //__EVALUATOR__WALLS_H__
-#ifndef NVCC
 
+#ifndef NVCC
 //! Exports helper function for parameters based on standard evaluators
 template< class evaluator >
 void export_wall_params_helpers()
@@ -386,3 +385,5 @@ wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<
 //! Exports walls helper function
 void export_wall_field_helpers();
 #endif
+
+#endif //__EVALUATOR__WALLS_H__
