@@ -205,6 +205,7 @@ void gpu_bin_particles(const unsigned int N,
              group_size);
     }
 
+template<unsigned int scratch_size>
 __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_dim,
                                                            const uint3 n_ghost_bins,
                                                            const Scalar4 *d_particle_bins,
@@ -215,7 +216,8 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                                                            Scalar V_cell,
                                                            int order)
     {
-    extern __shared__ Scalar scratch_neighbors[];
+    // allocate local memory for summing up neighbor contributions
+    Scalar scratch_neighbors[scratch_size];
 
     unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -231,9 +233,9 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
     j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
     i = bin % bin_dim.x;
 
-    // reset shared memory
+    // reset local memory
     for (unsigned int sidx = 0; sidx < scratch_idx.getH(); ++sidx)
-        scratch_neighbors[scratch_idx.getH()*threadIdx.x+sidx] = Scalar(0.0);
+        scratch_neighbors[sidx] = Scalar(0.0);
 
     // loop over particles in bin
     unsigned int n_bin = d_n_cell[bin];
@@ -284,7 +286,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
 
                     // compute fraction of particle density assigned to cell
                     // from particles in this bin
-                    scratch_neighbors[scratch_idx.getH()*threadIdx.x+neigh_bin_idx] += z0*result;
+                    scratch_neighbors[neigh_bin_idx] += z0*result;
                     neigh_bin_idx++;
                     }
                 }
@@ -360,7 +362,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                     unsigned int cell_idx = scratch_cell_coord.x + bin_dim.x * (scratch_cell_coord.y + bin_dim.y * scratch_cell_coord.z);
 
                     d_mesh_scratch[scratch_idx(cell_idx,neigh_bin_idx)] =
-                        scratch_neighbors[scratch_idx.getH()*threadIdx.x+neigh_bin_idx];
+                        scratch_neighbors[neigh_bin_idx];
                     }
 
                 ignore_z = false;
@@ -407,45 +409,138 @@ void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
                                          const cudaDeviceProp& dev_prop
                                          )
     {
-    static unsigned int max_block_size = UINT_MAX;
-    static cudaFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    unsigned int run_block_size = min(max_block_size, block_size);
-
-    unsigned int shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
-
-    while (shared_size + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-        {
-        run_block_size -= dev_prop.warpSize;
-
-        shared_size = run_block_size*scratch_idx.getH()*sizeof(Scalar);
-        }
-
-    unsigned int n_blocks = bin_idx.getW()/run_block_size;
-    if (bin_idx.getW()%run_block_size) n_blocks +=1;
-
     Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
 
     cudaMemset(d_mesh_scratch, 0, sizeof(Scalar)*scratch_idx.getNumElements());
 
-    gpu_assign_binned_particles_to_scratch_kernel<<<n_blocks,run_block_size,shared_size>>>(
-          mesh_dim,
-          n_ghost_bins,
-          d_particle_bins,
-          d_n_cell,
-          d_mesh_scratch,
-          bin_idx,
-          scratch_idx,
-          V_cell,
-          order);
+    // pre-defined launch parameters for various interpolation orders
+    if (order < 2)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<1>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            run_block_size -= dev_prop.warpSize;
+            }
+
+        unsigned int n_blocks = bin_idx.getW()/run_block_size;
+        if (bin_idx.getW()%run_block_size) n_blocks +=1;
+
+        gpu_assign_binned_particles_to_scratch_kernel<1><<<n_blocks,run_block_size>>>(
+              mesh_dim,
+              n_ghost_bins,
+              d_particle_bins,
+              d_n_cell,
+              d_mesh_scratch,
+              bin_idx,
+              scratch_idx,
+              V_cell,
+              order);
+        }
+    else if (order < 4)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<27>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            run_block_size -= dev_prop.warpSize;
+            }
+
+        unsigned int n_blocks = bin_idx.getW()/run_block_size;
+        if (bin_idx.getW()%run_block_size) n_blocks +=1;
+
+        gpu_assign_binned_particles_to_scratch_kernel<27><<<n_blocks,run_block_size>>>(
+              mesh_dim,
+              n_ghost_bins,
+              d_particle_bins,
+              d_n_cell,
+              d_mesh_scratch,
+              bin_idx,
+              scratch_idx,
+              V_cell,
+              order);
+        }
+    else if (order < 6)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<125>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            run_block_size -= dev_prop.warpSize;
+            }
+
+        unsigned int n_blocks = bin_idx.getW()/run_block_size;
+        if (bin_idx.getW()%run_block_size) n_blocks +=1;
+
+        gpu_assign_binned_particles_to_scratch_kernel<125><<<n_blocks,run_block_size>>>(
+              mesh_dim,
+              n_ghost_bins,
+              d_particle_bins,
+              d_n_cell,
+              d_mesh_scratch,
+              bin_idx,
+              scratch_idx,
+              V_cell,
+              order);
+        }
+    else if (order < 8)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<343>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(max_block_size, block_size);
+
+        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            run_block_size -= dev_prop.warpSize;
+            }
+
+        unsigned int n_blocks = bin_idx.getW()/run_block_size;
+        if (bin_idx.getW()%run_block_size) n_blocks +=1;
+
+        gpu_assign_binned_particles_to_scratch_kernel<343><<<n_blocks,run_block_size>>>(
+              mesh_dim,
+              n_ghost_bins,
+              d_particle_bins,
+              d_n_cell,
+              d_mesh_scratch,
+              bin_idx,
+              scratch_idx,
+              V_cell,
+              order);
+        }
 
     block_size = 512;
-    n_blocks = (grid_dim.x*grid_dim.y*grid_dim.z)/block_size;
+    unsigned int n_blocks = (grid_dim.x*grid_dim.y*grid_dim.z)/block_size;
     if ((grid_dim.x*grid_dim.y*grid_dim.z)%block_size) n_blocks +=1;
     gpu_reduce_scratch_kernel<<<n_blocks, block_size>>>(grid_dim,
                                                         d_mesh_scratch,

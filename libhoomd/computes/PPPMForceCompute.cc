@@ -64,6 +64,13 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
 
     m_mesh_points = make_uint3(nx, ny, nz);
     m_global_dim = m_mesh_points;
+
+    if (order < 1 || order > PPPM_MAX_ORDER)
+        {
+        m_exec_conf->msg->error() << "charge.pppm: Interpolation order has to be between 1 and " << PPPM_MAX_ORDER << std::endl;
+        throw std::runtime_error("Error initializing PPPMForceCompute.");
+        }
+
     m_order = order;
 
     // radius for stencil and ghost cells

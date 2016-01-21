@@ -256,10 +256,10 @@ void PPPMForceComputeGPU::assignParticles()
                                             m_pdata->getBox(),
                                             block_size,
                                             m_exec_conf->dev_prop);
-        m_tuner_assign->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_tuner_assign->end();
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
