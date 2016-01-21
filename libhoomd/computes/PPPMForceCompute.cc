@@ -1341,12 +1341,12 @@ void PPPMForceCompute::computeVirial()
 
 void PPPMForceCompute::fixExclusions()
     {
-    if (m_prof) m_prof->push("fix exclusions");
-
     unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
+
+    if (m_prof) m_prof->push("fix exclusions");
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
