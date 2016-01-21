@@ -67,16 +67,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef,
     boost::shared_ptr<NeighborList> nlist)
-       : ForceDistanceConstraint(sysdef, nlist),
+       : ForceDistanceConstraint(sysdef, nlist)
 #ifdef CUSOLVER_AVAILABLE
-        m_cusolver_rf_initialized(false),
+        , m_cusolver_rf_initialized(false),
         m_nnz_L_tot(0), m_nnz_U_tot(0),
         m_csr_val_L(m_exec_conf), m_csr_rowptr_L(m_exec_conf), m_csr_colind_L(m_exec_conf),
         m_csr_val_U(m_exec_conf), m_csr_rowptr_U(m_exec_conf), m_csr_colind_U(m_exec_conf),
         m_P(m_exec_conf), m_Q(m_exec_conf), m_T(m_exec_conf),
-        m_nnz(m_exec_conf), m_nnz_tot(0), m_csr_rowptr(m_exec_conf), m_csr_colind(m_exec_conf),
+        m_nnz(m_exec_conf), m_nnz_tot(0)
 #endif
-    m_sparse_val(m_exec_conf)
     {
     m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
@@ -103,6 +102,20 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     cusparseSetMatIndexBase(m_cusparse_mat_descr_U,CUSPARSE_INDEX_BASE_ZERO);
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
     #endif
+
+    // use mapped memory for matrices
+    GPUVector<int> csr_rowptr(m_exec_conf,true);
+    m_csr_rowptr.swap(csr_rowptr);
+
+    GPUVector<int> csr_colind(m_exec_conf,true);
+    m_csr_colind.swap(csr_colind);
+
+    GPUVector<double> sparse_val(m_exec_conf,true);
+    m_sparse_val.swap(sparse_val);
+
+    // reallocate base class array
+    GPUVector<int> sparse_idxlookup(m_exec_conf, true);
+    m_sparse_idxlookup.swap(sparse_idxlookup);
     }
 
 //! Destructor
@@ -248,14 +261,37 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
     // resize sparse matrix storage
     m_nnz.resize(n_constraint);
-    m_csr_rowptr.resize(n_constraint+1);
-    m_csr_colind.resize(n_constraint*n_constraint);
-    m_sparse_val.resize(n_constraint*n_constraint);
 
     if (sparsity_pattern_changed)
         {
         // reset flags
         m_condition.resetFlags(0);
+
+            {
+            // access matrix and vector
+            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
+
+            // access sparse matrix structural data
+            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
+
+            m_nnz_tot = 0;
+
+            // count non zeros
+            gpu_count_nnz(n_constraint,
+                d_cmatrix.data,
+                d_nnz.data,
+                m_nnz_tot,
+                m_cusparse_handle,
+                m_cusparse_mat_descr);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+
+    m_csr_rowptr.resize(n_constraint+1);
+    m_csr_colind.resize(m_nnz_tot);
+    m_sparse_val.resize(m_nnz_tot);
 
             {
             // access matrix and vector
@@ -272,7 +308,6 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
             gpu_dense2sparse(n_constraint,
                 d_cmatrix.data,
                 d_nnz.data,
-                m_nnz_tot,
                 m_cusparse_handle,
                 m_cusparse_mat_descr,
                 d_csr_rowptr.data,
