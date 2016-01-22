@@ -518,15 +518,17 @@ CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
     }
 #endif
 
-void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+bool ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
     unsigned int *label, std::vector<ConstraintData::members_t>& groups)
     {
-    assert(iconstraint < m_cdata->getN() + m_cdata->getNGhosts());
+    assert(iconstraint < groups.size());
 
     // don't mark constraints already visited
     assert(visited.size() > iconstraint);
     if (visited[iconstraint])
-        return;
+        {
+        return false;
+        }
 
     // mark this constraint as visited
     visited[iconstraint] = 1;
@@ -553,6 +555,7 @@ void ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
             dfs(jconstraint, molecule, visited, label, groups);
             }
         }
+    return true;
     }
 
 void ForceDistanceConstraint::initMolecules()
@@ -602,7 +605,8 @@ void ForceDistanceConstraint::assignMoleculeTags()
         h_molecule_tag.data[i] = NO_MOLECULE;
         }
 
-    int molecule = -1;
+    int molecule = 0;
+
         {
         // label ptls by connected component index
         for (unsigned int iconstraint = 0; iconstraint < nconstraint_global; ++iconstraint)
@@ -610,12 +614,15 @@ void ForceDistanceConstraint::assignMoleculeTags()
             if (! visited[iconstraint])
                 {
                 // depth first search
-                dfs(iconstraint, ++molecule, visited, h_molecule_tag.data, groups);
+                if (dfs(iconstraint, molecule, visited, h_molecule_tag.data, groups))
+                    {
+                    molecule++;
+                    }
                 }
             }
         }
 
-    m_n_molecules_global = molecule+1;
+    m_n_molecules_global = molecule;
     }
 
 void export_ForceDistanceConstraint()
