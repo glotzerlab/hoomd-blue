@@ -241,15 +241,31 @@ void PPPMForceComputeGPU::assignParticles()
         ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::read);
         ArrayHandle<Scalar> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
 
-        unsigned int block_size = m_tuner_assign->getParam();
         m_tuner_assign->begin();
-        gpu_assign_binned_particles_to_mesh(m_mesh_points,
+        unsigned int block_size = m_tuner_assign->getParam();
+
+        /*
+        // NOTE: we also provide a determinstic code path which is currently not used
+        gpu_assign_binned_particles_to_mesh_deterministic(m_mesh_points,
                                             m_n_ghost_cells,
                                             m_grid_dim,
                                             d_particle_bins.data,
                                             d_mesh_scratch.data,
                                             m_bin_idx,
                                             m_scratch_idx,
+                                            d_n_cell.data,
+                                            d_mesh.data,
+                                            m_order,
+                                            m_pdata->getBox(),
+                                            block_size,
+                                            m_exec_conf->dev_prop);
+        */
+
+        gpu_assign_binned_particles_to_mesh_nondeterministic(m_mesh_points,
+                                            m_n_ghost_cells,
+                                            m_grid_dim,
+                                            d_particle_bins.data,
+                                            m_bin_idx,
                                             d_n_cell.data,
                                             d_mesh.data,
                                             m_order,

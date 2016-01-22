@@ -394,7 +394,7 @@ __global__ void gpu_reduce_scratch_kernel(const uint3 grid_dim,
     d_mesh[cell_idx].y = Scalar(0.0);
     }
 
-void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
+void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
                                          const uint3 n_ghost_bins,
                                          const uint3 grid_dim,
                                          const Scalar4 *d_particle_bins,
@@ -546,6 +546,192 @@ void gpu_assign_binned_particles_to_mesh(const uint3 mesh_dim,
                                                         d_mesh_scratch,
                                                         scratch_idx,
                                                         d_mesh);
+    }
+
+__global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
+                                                           const uint3 n_ghost_bins,
+                                                           const Scalar4 *d_particle_bins,
+                                                           const unsigned int *d_n_cell,
+                                                           cufftComplex *d_mesh,
+                                                           const Index2D bin_idx,
+                                                           Scalar V_cell,
+                                                           int order)
+    {
+    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (bin >= bin_idx.getW()) return;
+
+    int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
+                             mesh_dim.y+2*n_ghost_bins.y,
+                             mesh_dim.z+2*n_ghost_bins.z);
+
+    // grid coordinates of bin (row-major)
+    int i,j,k;
+    k = bin /bin_dim.y / bin_dim.x;
+    j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
+    i = bin % bin_dim.x;
+
+    // loop over particles in bin
+    unsigned int n_bin = d_n_cell[bin];
+
+    int nlower = - (order - 1)/2;
+    int nupper = order/2;
+
+    Scalar result;
+
+    int mult_fact = 2*order + 1;
+
+    for (unsigned int idx = 0; idx < n_bin; ++idx)
+        {
+        Scalar4 xyzc = d_particle_bins[bin_idx(bin,idx)];
+
+        Scalar x0 = xyzc.w/V_cell;
+
+        bool ignore_x = false;
+        bool ignore_y = false;
+        bool ignore_z = false;
+
+        // loop over neighboring bins
+        for (int l = nlower; l <= nupper; ++l)
+            {
+            // precalculate assignment factor
+            result = Scalar(0.0);
+            for (int iorder = order-1; iorder >= 0; iorder--)
+                {
+                result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * xyzc.x;
+                }
+            Scalar y0 = x0 * result;
+
+            int neighi = i + l;
+            if (neighi >= (int)bin_dim.x)
+                {
+                if (! n_ghost_bins.x)
+                    neighi -= (int)bin_dim.x;
+                else
+                    ignore_x = true;
+                }
+            else if (neighi < 0)
+                {
+                if (! n_ghost_bins.x)
+                    neighi += (int)bin_dim.x;
+                else
+                    ignore_x = true;
+                }
+
+
+            for (int m = nlower; m <= nupper; ++m)
+                {
+                result = Scalar(0.0);
+                for (int iorder = order-1; iorder >= 0; iorder--)
+                    {
+                    result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * xyzc.y;
+                    }
+                Scalar z0 = y0 * result;
+
+                int neighj = j + m;
+                if (neighj >= (int) bin_dim.y)
+                    {
+                    if (! n_ghost_bins.y)
+                        neighj -= (int)bin_dim.y;
+                    else
+                        ignore_y = true;
+                    }
+                else if (neighj < 0)
+                    {
+                    if (! n_ghost_bins.y)
+                        neighj += (int)bin_dim.y;
+                    else
+                        ignore_y = true;
+                    }
+
+
+                for (int n = nlower; n <= nupper; ++n)
+                    {
+                    result = Scalar(0.0);
+                    for (int iorder = order-1; iorder >= 0; iorder--)
+                        {
+                        result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * xyzc.z;
+                        }
+
+                    int neighk = k + n;
+
+                    if (neighk >= (int)bin_dim.z)
+                        {
+                        if (! n_ghost_bins.z)
+                            neighk -= (int)bin_dim.z;
+                        else
+                            ignore_z = true;
+                        }
+                    else if (neighk < 0)
+                        {
+                        if (! n_ghost_bins.z)
+                            neighk += (int)bin_dim.z;
+                        else
+                            ignore_z = true;
+                        }
+
+                    if (!ignore_x && !ignore_y && !ignore_z)
+                        {
+                        // write out to global memory using row-major
+                        unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
+
+                        // compute fraction of particle density assigned to cell
+                        // from particles in this bin
+                        atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
+                        }
+
+                    ignore_z = false;
+                    }
+                ignore_y = false;
+                }
+            ignore_x = false;
+            } // end of loop over neighboring bins
+        } // end of ptl loop
+    }
+
+void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
+                                         const uint3 n_ghost_bins,
+                                         const uint3 grid_dim,
+                                         const Scalar4 *d_particle_bins,
+                                         const Index2D& bin_idx,
+                                         const unsigned int *d_n_cell,
+                                         cufftComplex *d_mesh,
+                                         int order,
+                                         const BoxDim& box,
+                                         unsigned int block_size,
+                                         const cudaDeviceProp& dev_prop
+                                         )
+    {
+    cudaMemset(d_mesh, 0, sizeof(cufftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
+    Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
+
+    static unsigned int max_block_size = UINT_MAX;
+    static cudaFuncAttributes attr;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(max_block_size, block_size);
+
+    while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+        {
+        run_block_size -= dev_prop.warpSize;
+        }
+
+    unsigned int n_blocks = bin_idx.getW()/run_block_size;
+    if (bin_idx.getW()%run_block_size) n_blocks +=1;
+
+    gpu_assign_binned_particles_kernel<<<n_blocks,run_block_size>>>(
+          mesh_dim,
+          n_ghost_bins,
+          d_particle_bins,
+          d_n_cell,
+          d_mesh,
+          bin_idx,
+          V_cell,
+          order);
     }
 
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
