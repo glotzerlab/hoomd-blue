@@ -170,7 +170,10 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     unsigned int bin = ci(ib, jb, kb);
 
     // all particles should be in a valid cell
-    if (ib >= (int)ci.getW() || jb >= (int)ci.getH() || kb >= (int)ci.getD())
+    // all particles should be in a valid cell
+    if (ib < 0 || ib >= (int)ci.getW() ||
+        jb < 0 || jb >= (int)ci.getH() ||
+        kb < 0 || kb >= (int)ci.getD())
         {
         // but ghost particles that are out of range should not produce an error
         if (idx < N)

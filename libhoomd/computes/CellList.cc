@@ -546,7 +546,9 @@ void CellList::computeCellList()
         unsigned int bin = ci(ib, jb, kb);
 
         // all particles should be in a valid cell
-        if (ib >= (int)m_dim.x || jb >= (int)m_dim.y || kb >= (int)m_dim.z)
+        if (ib < 0 || ib >= (int)m_dim.x ||
+            jb < 0 || jb >= (int)m_dim.y ||
+            kb < 0 || kb >= (int)m_dim.z)
             {
             // but ghost particles that are out of range should not produce an error
             if (n < m_pdata->getN())
