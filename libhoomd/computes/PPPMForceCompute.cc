@@ -853,9 +853,6 @@ void PPPMForceCompute::assignParticles()
 
 void PPPMForceCompute::updateMeshes()
     {
-
-    ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::read);
-
     if (m_kiss_fft_initialized)
         {
         if (m_prof) m_prof->push("FFT");
