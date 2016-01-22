@@ -164,7 +164,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
 
     private:
         //! Helper function to perform a depth-first search
-        void dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+        bool dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
             unsigned int *label, std::vector<ConstraintData::members_t>& groups);
     };
 

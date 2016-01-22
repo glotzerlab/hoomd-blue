@@ -218,7 +218,6 @@ void MolecularForceCompute::initMolecules()
     // count molecule lengths
     for (unsigned int i = 0; i < nptl_local; ++i)
         {
-        assert(i < label.size());
         unsigned int molecule_i = local_molecule_idx[i];
         if (molecule_i != NO_MOLECULE)
             {
@@ -253,7 +252,6 @@ void MolecularForceCompute::initMolecules()
 
     for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
         {
-        assert(iptl < label.size());
         unsigned int i_mol = local_molecule_idx[iptl];
 
         if (i_mol != NO_MOLECULE)
@@ -297,10 +295,10 @@ void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plan
         assert(tag <= m_pdata->getMaximumTag());
 
         unsigned int molecule_tag = h_molecule_tag.data[tag];
-        assert(molecule_tag < m_n_molecules_global);
 
         if (molecule_tag != NO_MOLECULE)
             {
+            assert(molecule_tag < m_n_molecules_global);
             unsigned int mol_idx = h_molecule_idx.data[molecule_tag];
 
             if (plan != 0)
