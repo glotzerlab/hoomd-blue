@@ -110,7 +110,9 @@ void PPPMForceComputeGPU::initializeFFT()
     m_scratch_idx = Index2D(n_particle_bins,(2*m_radius+1)*(2*m_radius+1)*(2*m_radius+1));
 
     // allocate mesh and transformed mesh
-    GPUArray<cufftComplex> mesh(m_n_cells,m_exec_conf);
+
+    // pad with offset
+    GPUArray<cufftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
 
     GPUArray<cufftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
@@ -125,13 +127,14 @@ void PPPMForceComputeGPU::initializeFFT()
     GPUArray<cufftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
-    GPUArray<cufftComplex> inv_fourier_mesh_x(m_n_cells, m_exec_conf);
+    // pad with offset
+    GPUArray<cufftComplex> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GPUArray<cufftComplex> inv_fourier_mesh_y(m_n_cells, m_exec_conf);
+    GPUArray<cufftComplex> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells, m_exec_conf);
+    GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
 
     GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(), m_exec_conf);

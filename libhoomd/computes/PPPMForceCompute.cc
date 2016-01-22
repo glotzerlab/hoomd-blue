@@ -481,7 +481,9 @@ void PPPMForceCompute::initializeFFT()
         }
 
     // allocate mesh and transformed mesh
-    GPUArray<kiss_fft_cpx> mesh(m_n_cells,m_exec_conf);
+
+    // pad with offset
+    GPUArray<kiss_fft_cpx> mesh(m_n_cells + m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
 
     GPUArray<kiss_fft_cpx> fourier_mesh(m_n_inner_cells, m_exec_conf);
@@ -496,13 +498,15 @@ void PPPMForceCompute::initializeFFT()
     GPUArray<kiss_fft_cpx> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells, m_exec_conf);
+    // pad with offset
+
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells, m_exec_conf);
+    GPUArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
     }
 
