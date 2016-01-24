@@ -103,6 +103,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
     #endif
 
+    #ifdef CUSOLVER_AVAILABLE
     // use mapped memory for matrices
     GPUVector<int> csr_rowptr(m_exec_conf,true);
     m_csr_rowptr.swap(csr_rowptr);
@@ -116,6 +117,7 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemD
     // reallocate base class array
     GPUVector<int> sparse_idxlookup(m_exec_conf, true);
     m_sparse_idxlookup.swap(sparse_idxlookup);
+    #endif
     }
 
 //! Destructor
