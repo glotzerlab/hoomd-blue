@@ -279,9 +279,9 @@ class sphere(_constraint_force):
 #
 # The constraint algorithm implemented is described in
 #
-# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
+# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul., vol. 13, no. 6, pp. 395--405, 1994.
 # and
-# [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
+# [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp. 188--197, Sep. 2001.
 #
 # In brief, a linear matrix equation is solved that is second order in the Lagrange multipliers, which guarantees that
 # both the distance constraint and there time derivatives are conserved within the accuracy of the Velocity
