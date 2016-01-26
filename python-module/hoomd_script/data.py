@@ -230,6 +230,40 @@ import hoomd_script
 # * `snapshot.dihedrals.group` is Nx4
 # * `snapshot.impropers.group` is Nx4
 #
+# <h3>Constraints</h3>
+#
+# Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
+# The only difference is that instead of a type, constraints take a distance as parameter.
+#
+# - `N` is the number of constraints in the constraint data snapshot
+# \code
+# >>> print(snapshot.constraints.N)
+# 99
+# \endcode
+# - Change the number of constraints in the snapshot with resize. Existing constraints are
+#   preserved after the resize. Any newly created constraints will be initialized to 0. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.constraints.*`
+# \code
+# >>> snapshot.constraints.resize(1000);
+# \endcode
+# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the constraint `i`. The second axis `j` goes over
+#   the individual particles in the constraint. The value of each element is the tag of the particle participating in the
+#   constraint.
+# \code
+# >>> print(snapshot.constraints.group)
+# [[4 5]
+# [6 7]
+# [6 8]
+# [7 8]]
+# >>> snapshot.constraints.group[0] = [10,11]
+# \endcode
+# - Snapshots store constraint distances as floats
+# \code
+# >>> print(snapshot.constraints.value)
+# [ 1.5 2.3 1.0 0.1 ]
+# \endcode
+#
 # \section data_proxy Proxy access
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
@@ -476,6 +510,21 @@ import hoomd_script
 # appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
 # <hr>
 #
+# <hr>
+# <h3>Constraints</h3>
+# Constraints may be added and removed from within the job script.
+#
+# To add a constraint of length 1.5 between particles 0 and 1:
+# \code
+# >>> t = system.constraints.add(0, 1, 1.5)
+# \endcode
+#
+# To remove it again:
+# \code
+# >>> system.contraints.remove(t)
+# \endcode
+#
+# <hr>
 # <h3>Forces</h3>
 # Forces can be accessed in a similar way.
 # \code
@@ -757,6 +806,7 @@ class system_data(meta._metadata):
         self.angles = angle_data(sysdef.getAngleData());
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
+        self.constraints = constraint_data(sysdef.getConstraintData());
         self.bodies = body_data(sysdef.getRigidData());
 
         # base class constructor
@@ -770,7 +820,7 @@ class system_data(meta._metadata):
     # in the snapshot.
     #
     # \param particles If true, particle data is included in the snapshot
-    # \param bonds If true, bond, angle, dihedral, and improper data is included in the snapshot
+    # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
     # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
@@ -806,9 +856,9 @@ class system_data(meta._metadata):
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
         else:
             raise ValueError("dtype must be float or double");
 
@@ -921,6 +971,7 @@ class system_data(meta._metadata):
         data['angles'] = self.angles
         data['dihedrals'] = self.dihedrals
         data['impropers'] = self.impropers
+        data['constraints'] = self.constraints
         data['bodies'] = self.bodies
 
         data['timestep'] = globals.system.getCurrentTimeStep()
@@ -1651,6 +1702,184 @@ class bond_data_proxy:
 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
+
+## \internal
+# \brief Access constraint data
+#
+# constraint_data provides access to the constraints in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# bond_data, documented by example.
+#
+class constraint_data(meta._metadata):
+    ## \internal
+    # \brief bond_data iterator
+    class constraint_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.tag = 0;
+        def __iter__(self):
+            return self;
+        def __next__(self):
+            if self.tag == len(self.data):
+                raise StopIteration;
+
+            result = self.data[self.tag];
+            self.tag += 1;
+            return result;
+
+        # support python2
+        next = __next__;
+
+    ## \internal
+    # \brief create a constraint_data
+    #
+    # \param bdata ConstraintData to connect
+    def __init__(self, cdata):
+        self.cdata = cdata;
+
+        # base class constructor
+        meta._metadata.__init__(self)
+
+    ## \internal
+    # \brief Add a new distance constraint
+    # \param a Tag of the first particle in the bond
+    # \param b Tag of the second particle in the bond
+    # \param d Distance of the constraint to add
+    # \returns Unique tag identifying this bond
+    def add(self, a, b, d):
+        return self.cdata.addBondedGroup(hoomd.Constraint(float(d), a, b));
+
+    ## \internal
+    # \brief Remove a bond by tag
+    # \param tag Unique tag of the bond to remove
+    def remove(self, tag):
+        self.cdata.removeBondedGroup(tag);
+
+    ## \var cdata
+    # \internal
+    # \brief ConstraintData to which this instance is connected
+
+    ## \internal
+    # \brief Get a constraint_data_proxy reference to the bond with contiguous id \a id
+    # \param id Constraint id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.cdata.getNthTag(id);
+        return constraint_data_proxy(self.cdata, tag);
+
+    ## \internal
+    # \brief Get a constriant_data_proxy reference to the bond with tag \a tag
+    # \param tag Bond tag to access
+    def get(self, tag):
+        if tag > self.cdata.getMaximumTag() or tag < 0:
+            raise IndexError;
+        return constraint_data_proxy(self.cdata, tag);
+
+    ## \internal
+    # \brief Set a constraint's properties
+    # \param id constraint id to set
+    # \param b Value containing properties to set
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change constraints once they are created');
+
+    ## \internal
+    # \brief Delete a constraint by id
+    # \param id Constraint id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.cdata.getNthTag(id);
+        self.cdata.removeBondedGroup(tag);
+
+    ## \internal
+    # \brief Get the number of bonds
+    def __len__(self):
+        return self.cdata.getNGlobal();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Constraint Data for %d constraints" % (self.cdata.getNGlobal());
+        return result
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return constraint_data.constraint_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this bond_data instance
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['N'] = len(self)
+        return data
+
+## Access a single constraint via a proxy
+#
+# constraint_data_proxy provides access to all of the properties of a single constraint in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# constraint_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : A unique integer attached to each constraint (not in any particular range). A constraint's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed constraint may be recycled).
+# - \c d            : A float indicating the constraint distance
+# - \c a            : An integer indexing the A particle in the constraint. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the constraint. Particle tags run from 0 to N-1;
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow
+# dynamic creation of new type names from within the python API.
+# \MPI_SUPPORTED
+class constraint_data_proxy:
+    ## \internal
+    # \brief create a constraint_data_proxy
+    #
+    # \param cdata ConstraintData to which this proxy belongs
+    # \param tag Tag of this constraint in \a cdata
+    def __init__(self, cdata, tag):
+        self.cdata = cdata;
+        self.tag = tag;
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "d            : " + str(self.d) + "\n";
+        return result;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "a":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constraint.a;
+        if name == "b":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constraint.b;
+        if name == "d":
+            constraint = self.cdata.getGroupByTag(self.tag);
+            return constraint.d;
+
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
+        if name == "d":
+            raise AttributeError;
+
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
 
 ## \internal
 # \brief Access angle data

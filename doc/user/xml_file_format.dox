@@ -137,6 +137,7 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b angle (\ref sec_xml_angle)
  - \b dihedral (\ref sec_xml_dihedral)
  - \b improper (\ref sec_xml_improper)
+ - \b constraint (\ref sec_xml_constraint)
 
 \section sec_xml_box Simulation box specification
 
@@ -598,5 +599,31 @@ Specifying the improper dihedrals themselves doesn't result in any additional fo
 that, you must specify an improper force (see \link hoomd_script.improper improper\endlink). Coefficients for the
 associated improper force can be set separately for each improper type by name (for example,
 see \link hoomd_script.improper.harmonic improper.harmonic\endlink).
+
+\section sec_xml_constraint Pairwise distance constraints
+
+The `<constraint>` node specifies any number of constraints between particles in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.7 and newer
+
+Example:
+~~~~
+<constraint>
+0 1 1.5
+1 2 2.5
+</constraint>
+~~~~
+
+\b Attributes:
+
+- \a num (\b optional) number of particles coming in the node content. This attribute is written by
+    \link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The above example creates two constraints: the first constraint between particles 0 and 1, with a
+fixed distance of 1.5, the second constraint between particles 1 and 2, with a distance of 2.5.
+
+Specifying the constraints themselves doesn't result in any additional forces on particles. For
+that, you must specify a distance constraint force (see \link hoomd_script.constrain.distance distance \endlink).
 
 */

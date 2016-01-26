@@ -125,6 +125,26 @@ uint3 CellList::computeDimensions()
     dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
     dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
 
+    // size the ghost layer width
+    m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
+        if (ghost_width > Scalar(0.0))
+            {
+            if (!box.getPeriodic().x)
+                m_ghost_width.x = ghost_width;
+
+            if (!box.getPeriodic().y)
+                m_ghost_width.y = ghost_width;
+
+            if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+                m_ghost_width.z = ghost_width;
+            }
+        }
+#endif
+
     // expand for ghost width if communicating ghosts
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -277,26 +297,6 @@ void CellList::initializeWidth()
 
     // get the local box
     const BoxDim& box = m_pdata->getBox();
-
-    // size the ghost layer width
-    m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
-        if (ghost_width > Scalar(0.0))
-            {
-            if (!box.getPeriodic().x)
-                m_ghost_width.x = ghost_width;
-
-            if (!box.getPeriodic().y)
-                m_ghost_width.y = ghost_width;
-
-            if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-                m_ghost_width.z = ghost_width;
-            }
-        }
-#endif
 
     // initialize dimensions and width
     m_dim = computeDimensions();
@@ -546,7 +546,9 @@ void CellList::computeCellList()
         unsigned int bin = ci(ib, jb, kb);
 
         // all particles should be in a valid cell
-        if (ib >= (int)m_dim.x || jb >= (int)m_dim.y || kb >= (int)m_dim.z)
+        if (ib < 0 || ib >= (int)m_dim.x ||
+            jb < 0 || jb >= (int)m_dim.y ||
+            kb < 0 || kb >= (int)m_dim.z)
             {
             // but ghost particles that are out of range should not produce an error
             if (n < m_pdata->getN())

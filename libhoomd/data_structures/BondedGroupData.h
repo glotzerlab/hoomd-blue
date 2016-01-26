@@ -67,6 +67,8 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "GPUVector.h"
 #include "Profiler.h"
 #include "Index1D.h"
+#include "HOOMDMath.h"
+#include "ParticleData.h"
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
@@ -84,9 +86,6 @@ using namespace boost::python;
 #include <sstream>
 #include <set>
 
-//! Forward declarations
-class ParticleData;
-
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
  * tags or particle indices or other information */
@@ -97,19 +96,29 @@ union group_storage
     unsigned int idx[group_size];
     };
 
+//! A union to allow storing a scalar constraint value or a type integer
+union typeval_union
+    {
+    unsigned int type;
+    Scalar val;
+    };
+
+typedef typeval_union typeval_t;
+
 #ifdef ENABLE_MPI
 //! Packed group entry for communication
 template<unsigned int group_size>
 struct packed_storage
     {
     group_storage<group_size> tags;  //!< Member tags
-    unsigned int type;               //!< Type of bonded group
+    typeval_t typeval;               //!< Type of bonded group or constraint value
     unsigned int group_tag;          //!< Tag of this group
     group_storage<group_size> ranks; //!< Current list of member ranks
     };
 #endif
 
 #ifdef ENABLE_MPI
+BOOST_CLASS_IMPLEMENTATION(typeval_t,boost::serialization::object_serializable)
 BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
 BOOST_CLASS_IMPLEMENTATION(group_storage<3>,boost::serialization::object_serializable)
 BOOST_CLASS_IMPLEMENTATION(group_storage<4>,boost::serialization::object_serializable)
@@ -118,6 +127,15 @@ namespace boost
    //! Serialization functions for group data types
    namespace serialization
         {
+        //! Serialization of typeval_union
+        template<class Archive>
+        void serialize(Archive & ar, typeval_t & t, const unsigned int version)
+            {
+            // serialize both members
+            ar & t.val;
+            ar & t.type;
+            }
+
         //! Serialization of group_storage<2> (bonds)
         template<class Archive>
         void serialize(Archive & ar, group_storage<2> & s, const unsigned int version)
@@ -153,7 +171,7 @@ namespace boost
  *  \tpp group_size Size of groups
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
-template<unsigned int group_size, typename Group, const char *name>
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping = true>
 class BondedGroupData : boost::noncopyable
     {
     public:
@@ -162,6 +180,9 @@ class BondedGroupData : boost::noncopyable
 
         //! Group data element type
         typedef union group_storage<group_size> members_t;
+
+        //! True if typeval is an integer
+        static const bool typemap_val = has_type_mapping;
 
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
@@ -205,7 +226,14 @@ class BondedGroupData : boost::noncopyable
                 group_storage<group_size> def;
                 memset(&def, 0, sizeof(def));
 
-                type_id.resize(n_groups, 0);
+                if (has_type_mapping)
+                    {
+                    type_id.resize(n_groups, 0);
+                    }
+                else
+                    {
+                    val.resize(n_groups, 0);
+                    }
                 groups.resize(n_groups, def);
                 size = n_groups;
                 }
@@ -215,7 +243,8 @@ class BondedGroupData : boost::noncopyable
              */
             bool validate() const
                 {
-                if (groups.size() != type_id.size()) return false;
+                if (has_type_mapping && groups.size() != type_id.size()) return false;
+                if (!has_type_mapping && groups.size() != val.size()) return false;
                 return true;
                 }
 
@@ -227,6 +256,9 @@ class BondedGroupData : boost::noncopyable
 
             //! Get type as a numpy array
             PyObject* getTypeNP();
+            //! Get value as a numpy array
+            PyObject* getValueNP();
+
             //! Get bonded tags as a numpy array
             PyObject* getBondedTagsNP();
             //! Get the type names for python
@@ -235,6 +267,7 @@ class BondedGroupData : boost::noncopyable
             void setTypes(boost::python::list types);
 
             std::vector<unsigned int> type_id;             //!< Stores type for each group
+            std::vector<Scalar> val;                       //!< Stores constraint value for each group
             std::vector<members_t> groups;                 //!< Stores the data for each group
             std::vector<std::string> type_mapping;         //!< Names of group types
             unsigned int size;                             //!< Number of bonds in the snapshot
@@ -259,8 +292,38 @@ class BondedGroupData : boost::noncopyable
         //! Get local number of bonded groups
         unsigned int getN() const
             {
-            return m_groups.size();
+            return m_n_groups;
             }
+
+        //! Remove all ghost groups
+        /*! This method does not actually operate on the group data, it just ensures
+            that the internal counters are reset.
+         */
+        void removeAllGhostGroups()
+            {
+            unsigned int new_size = m_groups.size() - m_n_ghost;
+            reallocate(new_size);
+            m_n_ghost = 0;
+            }
+
+        //! Add ghost groups
+        /*! \param nghost The number of ghost groups to add
+         *
+         * This method does not modify any actual group data.
+         */
+        void addGhostGroups(unsigned int ngroup)
+            {
+            unsigned int new_size = m_groups.size()+ngroup;
+            reallocate(new_size);
+            m_n_ghost += ngroup;
+            }
+
+        //! Get local number of bonded groups
+        unsigned int getNGhosts() const
+            {
+            return m_n_ghost;
+            }
+
 
         //! Get global number of bonded groups
         unsigned int getNGlobal() const
@@ -305,12 +368,40 @@ class BondedGroupData : boost::noncopyable
         //! Get the members of a bonded group by index
         const members_t getMembersByIndex(unsigned int group_idx) const;
 
-        //! Get the members of a bonded group by tag
+        //! Get the type of a bonded group by index
         unsigned int getTypeByIndex(unsigned int group_idx) const;
+
+        //! Get the constraint value of a bonded group by index
+        Scalar getValueByIndex(unsigned int group_idx) const;
 
         /*
          * Access to data structures
          */
+
+        //! Add local groups
+        /*! \note It is assumed that there are no ghost groups present
+            at the time this method is called
+         */
+        void addGroups(unsigned int ngroup)
+            {
+            assert(m_n_ghost == 0);
+            unsigned int new_size = m_n_groups + ngroup;
+            reallocate(new_size);
+            m_n_groups += ngroup;
+            }
+
+        //! Remove local groups
+        /*! \note It is assumed that there are no ghost groups present
+            at the time this method is called
+         */
+        void removeGroups(unsigned int nremove)
+            {
+            assert(m_n_ghost == 0);
+            assert(m_n_groups >= nremove);
+            unsigned int new_size = m_n_groups - nremove;
+            reallocate(new_size);
+            m_n_groups -= nremove;
+            }
 
         //! Return group table (const)
         const GPUVector<members_t>& getMembersArray() const
@@ -319,9 +410,9 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Return group table (const)
-        const GPUVector<unsigned int>& getTypesArray() const
+        const GPUVector<typeval_t>& getTypeValArray() const
             {
-            return m_group_type;
+            return m_group_typeval;
             }
 
         //! Return list of group tags (const)
@@ -344,32 +435,32 @@ class BondedGroupData : boost::noncopyable
             }
         #endif
 
-        //! Return group table (const)
+        //! Return group table
         GPUVector<members_t>& getMembersArray()
             {
             return m_groups;
             }
 
-        //! Return group table (const)
-        GPUVector<unsigned int>& getTypesArray()
+        //! Return group table
+        GPUVector<typeval_t>& getTypeValArray()
             {
-            return m_group_type;
+            return m_group_typeval;
             }
 
-        //! Return list of group tags (const)
+        //! Return list of group tags
         GPUVector<unsigned int>& getTags()
             {
             return m_group_tag;
             }
 
-        //! Return reverse-lookup table (group tag-> group index) (const)
+        //! Return reverse-lookup table (group tag-> group index)
         GPUVector<unsigned int>& getRTags()
             {
             return m_group_rtag;
             }
 
         #ifdef ENABLE_MPI
-        //! Return auxillary array of member particle ranks (const)
+        //! Return auxillary array of member particle ranks
         GPUVector<ranks_t>& getRanksArray()
             {
             return m_group_ranks;
@@ -393,11 +484,11 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Return group table (swap-in)
-        GPUVector<unsigned int>& getAltTypesArray()
+        GPUVector<typeval_t>& getAltTypeValArray()
             {
             // resize to size of primary group types array
-            m_group_type_alt.resize(m_group_type.size());
-            return m_group_type_alt;
+            m_group_typeval_alt.resize(m_group_typeval.size());
+            return m_group_typeval_alt;
             }
 
         //! Return list of group tags (swap-in)
@@ -424,11 +515,11 @@ class BondedGroupData : boost::noncopyable
             m_groups.swap(m_groups_alt);
             }
 
-        //! Swap group type arrays
+        //! Swap group type/value arrays
         void swapTypeArrays()
             {
-            assert(!m_group_type_alt.isNull());
-            m_group_type.swap(m_group_type_alt);
+            assert(!m_group_typeval_alt.isNull());
+            m_group_typeval.swap(m_group_typeval_alt);
             }
 
         //! Swap group tag arrays
@@ -493,7 +584,7 @@ class BondedGroupData : boost::noncopyable
         //! Return list of number of groups per particle
         const GPUArray<unsigned int>& getNGroupsArray() const
             {
-            return m_n_groups;
+            return m_gpu_n_groups;
             }
 
         /*
@@ -501,9 +592,7 @@ class BondedGroupData : boost::noncopyable
          */
 
         //! Add a single bonded group on all processors
-        /*! \param type_id Type of group to add
-         * \param member_tags All particle tag that are members of this bonded group
-         * \returns Tag of newly added bond
+        /*! \param g Definition of group to add
          */
         unsigned int addBondedGroup(Group g);
 
@@ -527,7 +616,25 @@ class BondedGroupData : boost::noncopyable
             return m_group_num_change_signal.connect(func);
             }
 
-        //! Set a flag to trigger rebuild of index table
+        //! Connects a function to be called every time the local number of bonded groups changes
+        boost::signals2::connection connectGroupReorder(
+            const boost::function<void ()> &func)
+            {
+            return m_group_reorder_signal.connect(func);
+            }
+
+
+        //! Notify subscribers that groups have been reordered
+        void notifyGroupReorder()
+            {
+            // set flag to trigger rebuild of GPU table
+            m_groups_dirty = true;
+
+            // notify subscribers
+            m_group_reorder_signal();
+            }
+
+        //! Indicate that GPU table needs to be rebuilt
         void setDirty()
             {
             m_groups_dirty = true;
@@ -546,15 +653,18 @@ class BondedGroupData : boost::noncopyable
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
 
-        GPUVector<members_t> m_groups;            //!< List of groups
-        GPUVector<unsigned int> m_group_type;        //!< List of group types
+        GPUVector<members_t> m_groups;               //!< List of groups
+        GPUVector<typeval_t> m_group_typeval;        //!< List of group types/constraint values
         GPUVector<unsigned int> m_group_tag;         //!< List of group tags
         GPUVector<unsigned int> m_group_rtag;        //!< Global reverse-lookup table for group tags
         GPUVector<members_t> m_gpu_table;            //!< Storage for groups by particle index for access on the GPU
         GPUVector<unsigned int> m_gpu_pos_table;     //!< Position of particle idx in group table
         Index2D m_gpu_table_indexer;                 //!< Indexer for GPU table
-        GPUVector<unsigned int> m_n_groups;          //!< Number of entries in lookup table per particle
+        GPUVector<unsigned int> m_gpu_n_groups;      //!< Number of entries in lookup table per particle
         std::vector<std::string> m_type_mapping;     //!< Mapping of types of bonded groups
+
+        unsigned int m_n_groups;                     //!< Number of local groups
+        unsigned int m_n_ghost;                      //!< Number of ghost groups with no local ptl
 
         #ifdef ENABLE_MPI
         GPUVector<ranks_t> m_group_ranks;       //!< 2D list of group member ranks
@@ -562,7 +672,7 @@ class BondedGroupData : boost::noncopyable
 
         /* alternate (stand-by) arrays for swapping in reordered groups */
         GPUVector<members_t> m_groups_alt;           //!< List of groups (swap-in)
-        GPUVector<unsigned int> m_group_type_alt;       //!< List of group types (swap-in)
+        GPUVector<typeval_t> m_group_typeval_alt;    //!< List of group types/constraint values (swap-in)
         GPUVector<unsigned int> m_group_tag_alt;     //!< List of group tags (swap-in)
         #ifdef ENABLE_MPI
         GPUVector<ranks_t> m_group_ranks_alt;   //!< 2D list of group member ranks (swap-in)
@@ -584,6 +694,7 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
+        boost::signals2::signal<void ()> m_group_reorder_signal;    //!< Signal that is triggered when groups are added or deleted locally
 
         //! Initialize internal memory
         void initialize();
@@ -593,6 +704,22 @@ class BondedGroupData : boost::noncopyable
 
         //! Helper function to rebuild lookup by index table
         void rebuildGPUTable();
+
+        //! Resize internal tables
+        /*! \param new_size New size of local group tables, new_size = n_local + n_ghost
+         */
+        void reallocate(unsigned int new_size)
+            {
+            m_groups.resize(new_size);
+            m_group_typeval.resize(new_size);
+            m_group_tag.resize(new_size);
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition())
+                {
+                m_group_ranks.resize(new_size);
+                }
+            #endif
+            }
 
         #ifdef ENABLE_CUDA
         //! Helper function to rebuild lookup by index table on the GPU
@@ -634,8 +761,8 @@ struct Bond {
     /*! \param type
      *  \param members group members
      */
-    Bond(unsigned int _type, members_t _members)
-        : type(_type), a(_members.tag[0]), b(_members.tag[1])
+    Bond(typeval_t _typeval, members_t _members)
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1])
         { }
 
 
@@ -649,9 +776,11 @@ struct Bond {
         }
 
     //! This helper function needs to be provided for the templated BondData to work correctly
-    unsigned int get_type() const
+    typeval_t get_typeval() const
         {
-        return type;
+        typeval_t t;
+        t.type = type;
+        return t;
         }
 
     //! This helper function needs to be provided for the templated BondData to work correctly
@@ -694,8 +823,8 @@ struct Angle {
     /*! \param type
      *  \param members group members
      */
-    Angle(unsigned int _type, members_t _members)
-        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2])
+    Angle(typeval_t _typeval, members_t _members)
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2])
         { }
 
 
@@ -710,9 +839,11 @@ struct Angle {
         }
 
     //! This helper function needs to be provided for the templated AngleData to work correctly
-    unsigned int get_type() const
+    typeval_t get_typeval() const
         {
-        return type;
+        typeval_t t;
+        t.type = type;
+        return t;
         }
 
     //! This helper function needs to be provided for the templated AngleData to work correctly
@@ -757,8 +888,8 @@ struct Dihedral {
     /*! \param type
      *  \param members group members
      */
-    Dihedral(unsigned int _type, members_t _members)
-        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]), d(_members.tag[3])
+    Dihedral(typeval_t _typeval, members_t _members)
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]), d(_members.tag[3])
         { }
 
 
@@ -774,9 +905,11 @@ struct Dihedral {
         }
 
     //! This helper function needs to be provided for the templated DihedralData to work correctly
-    unsigned int get_type() const
+    typeval_t get_typeval() const
         {
-        return type;
+        typeval_t t;
+        t.type = type;
+        return t;
         }
 
     //! This helper function needs to be provided for the templated DihedralData to work correctly
@@ -808,5 +941,73 @@ extern char name_improper_data[];
 
 //! Definition of ImproperData
 typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
+
+/*
+ * ConstraintData
+ *
+ * constraints use the same data type as bonds
+ */
+extern char name_constraint_data[];
+
+//! Definition of a constraint
+/*! Constraints are essentially bonds, but of a single type
+    The type information stores the constraint distance
+ */
+struct Constraint {
+    typedef group_storage<2> members_t;
+
+    //! Constructor
+    /*! \param d Constraint distance
+     * \param _a First bond member
+     * \param _b Second bond member
+     */
+    Constraint(Scalar _d, unsigned int _a, unsigned int _b)
+        : d(_d), a(_a), b(_b)
+        { }
+
+    //! Constructor that takes a members_t (used internally by BondData)
+    /*! \param type
+     *  \param members group members
+     */
+    Constraint(typeval_t _typeval, members_t _members)
+        : d(_typeval.val), a(_members.tag[0]), b(_members.tag[1])
+        { }
+
+    //! This helper function needs to be provided for the templated BondData to work correctly
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        return m;
+        }
+
+    //! This helper function needs to be provided for the templated BondData to work correctly
+    typeval_t get_typeval() const
+        {
+        typeval_t t;
+        t.val = d;
+        return t;
+        }
+
+    //! This helper function needs to be provided for the templated ConstraintData to work correctly
+    static void export_to_python()
+        {
+        boost::python::class_<Constraint>("Constraint", init<Scalar, unsigned int, unsigned int>())
+            .def_readonly("d", &Constraint::d)
+            .def_readonly("a", &Constraint::a)
+            .def_readonly("b", &Constraint::b)
+        ;
+        }
+
+    Scalar d;           //!< Constraint distance
+    unsigned int a;     //!< First constraint member
+    unsigned int b;     //!< Second constraint member
+    };
+
+
+//! Definition of ConstraintData
+typedef BondedGroupData<2, Constraint, name_constraint_data, false> ConstraintData;
+
 
 #endif

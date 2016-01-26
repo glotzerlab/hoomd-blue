@@ -71,6 +71,7 @@ from hoomd_script import util;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import meta;
+from hoomd_script import nlist;
 
 ## \internal
 # \brief Base class for constraint forces
@@ -238,7 +239,7 @@ _constraint_force.cur_id = 0;
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
 # them to a sphere.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
     #
@@ -252,12 +253,6 @@ class sphere(_constraint_force):
     # \endcode
     def __init__(self, group, P, r):
         util.print_status_line();
-
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("constrain.sphere is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing constraint force.")
 
         # initialize the base class
         _constraint_force.__init__(self);
@@ -276,3 +271,68 @@ class sphere(_constraint_force):
         self.P = P
         self.r = r
         self.metadata_fields = ['group','P', 'r']
+
+## Constrain pairwise particle distances
+#
+# The command constrain.distance specifies that forces will be applied to all particles pairs for
+# which constraints have been defined
+#
+# The constraint algorithm implemented is described in
+#
+# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul., vol. 13, no. 6, pp. 395--405, 1994.
+# and
+# [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp. 188--197, Sep. 2001.
+#
+# In brief, the second derivative of the Lagrange multipliers with resepect to time is set to zero, such
+# that both the distance constraints and their time derivatives are conserved within the accuracy of the Velocity
+# Verlet scheme, i.e. within \f$ \Delta t^2 \f$. The corresponding linear system of equations is solved.
+# Because constraints are satisfied at \f$ t + 2 \Delta t \f$, the scheme is self-correcting and drifts are avoided.
+#
+# \note In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
+# Therefore, if molecules defined by constraints extend over more than half the local domain size, an error is raised.
+#
+# \warning constrain.distance() does not currently interoperate with integrate.brownian() or integrate.langevin()
+#
+# \sa hoomd_script.data.system_data
+#
+# \MPI_SUPPORTED
+class distance(_constraint_force):
+    ## Specify the pairwise %distance constraint %force
+    #
+    # \b Examples:
+    # \code
+    # constrain.distance()
+    # \endcode
+    def __init__(self):
+        util.print_status_line();
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        self.nlist = nlist._subscribe_global_nlist(lambda: self.get_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition, self.nlist.cpp_nlist);
+        else:
+            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition, self.nlist.cpp_nlist);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+    def get_rcut(self):
+        # do not update dictionary
+        r_cut_dict = nlist.rcut();
+
+        return r_cut_dict;
+
+    ## Set parameters for constraint computation
+    #
+    # \param rel_tol The relative tolerance with which constraint violations are detected (**optional**)
+    # \b Examples:
+    # \code
+    # dist = constrain.distance()
+    # dist.set_params(rel_tol=0.0001)
+    def set_params(self,rel_tol=None):
+        if rel_tol is not None:
+            self.cpp_force.setRelativeTolerance(float(rel_tol))
+

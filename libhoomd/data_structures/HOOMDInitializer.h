@@ -183,6 +183,8 @@ class HOOMDInitializer
         void parseDihedralNode(const XMLNode& node);
         //! Helper function to parse the improper node
         void parseImproperNode(const XMLNode& node);
+        //! Helper function to parse the constraint node
+        void parseConstraintsNode(const XMLNode& node);
         //! Parse charge node
         void parseChargeNode(const XMLNode& node);
         //! Parse orientation node
@@ -225,7 +227,9 @@ class HOOMDInitializer
         std::vector< unsigned int > m_dihedral_types; //!< Dihedral types read in from the file
         std::vector< ImproperData::members_t > m_impropers;  //!< Improper read in from the file
         std::vector< unsigned int > m_improper_types; //!< Improper read in from the file
-        unsigned int m_timestep;                    //!< The time stamp
+        std::vector< ConstraintData::members_t > m_constraints;  //!< Constraint read in from the file
+        std::vector< Scalar > m_constraint_distances;//!< Constraint distances
+        unsigned int m_timestep;                     //!< The time stamp
 
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids

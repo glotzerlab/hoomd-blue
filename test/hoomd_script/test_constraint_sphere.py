@@ -9,9 +9,9 @@ import os
 class constraint_sphere_tests (unittest.TestCase):
     def setUp(self):
         print
-        sysdef = init.create_empty(N=2, box=data.boxdim(L=40), particle_types=['A']);
-        sysdef.particles[0].position = (5,0,0);
-        sysdef.particles[1].position = (-5,1,1);
+        self.sysdef = init.create_empty(N=2, box=data.boxdim(L=40), particle_types=['A']);
+        self.sysdef.particles[0].position = (5,0,0);
+        self.sysdef.particles[1].position = (-5,1,1);
 
         sorter.set_params(grid=8)
 
@@ -21,6 +21,10 @@ class constraint_sphere_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.langevin(group=all, T=1.2, seed=0);
         run(10);
+        pos0 = self.sysdef.particles[0].position
+        self.assertAlmostEqual(pos0[0]*pos0[0]+pos0[1]*pos0[1]+pos0[2]*pos0[2],5*5,1)
+        pos1 = self.sysdef.particles[1].position
+        self.assertAlmostEqual(pos1[0]*pos1[0]+pos1[1]*pos1[1]+pos1[2]*pos1[2],5*5,1)
 
     def test_error(self):
         all = group.all()

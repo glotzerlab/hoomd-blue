@@ -127,6 +127,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "MolecularForceCompute.h"
+#include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -172,6 +174,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
@@ -515,6 +518,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
     export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
     export_BondedGroupData<ImproperData,Dihedral>("ImproperData","ImproperDataSnapshot",false);
+    export_BondedGroupData<ConstraintData,Constraint>("ConstraintData","ConstraintDataSnapshot");
 
     // initializers
     export_RandomInitializer();
@@ -567,6 +571,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
+    export_MolecularForceCompute();
+    export_ForceDistanceConstraint();
     export_PPPMForceCompute();
     export_wall_field_helpers();
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
@@ -617,6 +623,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
+    export_ForceDistanceConstraintGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");

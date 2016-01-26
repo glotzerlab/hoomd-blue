@@ -100,6 +100,7 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
     m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
+    m_parser_map["constraint"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
     m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
@@ -317,6 +318,24 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
 
     idata.type_mapping = m_improper_type_mapping;
 
+    /*
+     * Initialize improper data
+     */
+    ConstraintData::Snapshot& cdata = snapshot->constraint_data;
+
+    // allocate memory
+    cdata.resize(m_constraints.size());
+
+    // loop through all the constraints and add a constraint for each
+    for (unsigned int i = 0; i < m_constraints.size(); i++)
+        {
+        cdata.groups[i] = m_constraints[i];
+        cdata.val[i] = m_constraint_distances[i];
+        }
+
+    // initialize with empty vector
+    cdata.type_mapping = std::vector<std::string>();
+
     return snapshot;
     }
 
@@ -374,6 +393,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.4");
     valid_versions.push_back("1.5");
     valid_versions.push_back("1.6");
+    valid_versions.push_back("1.7");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -386,7 +406,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     if (!valid)
         m_exec_conf->msg->warning() << endl
-             << "hoomd_xml file with version not in the range 1.0-1.6  specified,"
+             << "hoomd_xml file with version not in the range 1.0-1.7  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
 
     // the file was parsed successfully by the XML reader. Extract the information now
@@ -539,6 +559,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
+    if (m_constraints.size() > 0)
+        m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_orientation.size() > 0)
@@ -944,6 +966,40 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
             }
         }
     }
+
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b constraint node and fills out m_constraints. The number
+    of constraints in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseConstraintsNode(const XMLNode &node)
+    {
+    // check that this is actually a constraint node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("constraint"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        unsigned int a, b;
+        Scalar d;
+        parser >> a >> b >> d;
+        if (parser.good())
+            {
+            ConstraintData::members_t constraint;
+            constraint.tag[0] = a; constraint.tag[1] = b;
+            m_constraints.push_back(constraint);
+            m_constraint_distances.push_back(d);
+            }
+        }
+    }
+
 
 /*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b charge node and fills out m_charge_array. The number

@@ -84,7 +84,8 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
         m_output_type(false), m_output_bond(false), m_output_angle(false),
-        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
+        m_output_dihedral(false), m_output_improper(false), m_output_constraint(false),
+        m_output_accel(false), m_output_body(false),
         m_output_charge(false), m_output_orientation(false), m_output_angmom(false),
         m_output_moment_inertia(false), m_vizsigma_set(false), m_mode_restart(mode_restart)
     {
@@ -161,6 +162,14 @@ void HOOMDDumpWriter::setOutputImproper(bool enable)
     {
     m_output_improper = enable;
     }
+
+/*! \param enable Set to true to output constraints to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputConstraint(bool enable)
+    {
+    m_output_constraint = enable;
+    }
+
 /*! \param enable Set to true to output acceleration to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputAccel(bool enable)
@@ -224,6 +233,10 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     ImproperData::Snapshot idata_snapshot(m_sysdef->getImproperData()->getNGlobal());
     if (m_output_improper) m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
 
+    ConstraintData::Snapshot cdata_snapshot(m_sysdef->getConstraintData()->getNGlobal());
+    if (m_output_constraint) m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
+
+
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
     if (m_pdata->getDomainDecomposition() && ! m_exec_conf->isRoot())
@@ -247,7 +260,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.6\">" << "\n";
+    f << "<hoomd_xml version=\"1.7\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
       << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
@@ -476,6 +489,23 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</improper>" << "\n";
         }
 
+    // if constraint is true, write out constraints to the xml file
+    if (m_output_constraint)
+        {
+        f << "<constraint num=\"" << cdata_snapshot.groups.size() << "\">" << "\n";
+        boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
+
+        // loop over all angles and write them out
+        for (unsigned int i = 0; i < cdata_snapshot.groups.size(); i++)
+            {
+            ConstraintData::members_t constraint = cdata_snapshot.groups[i];
+            Scalar constraint_dist = cdata_snapshot.val[i];
+            f << constraint.tag[0]  << " " << constraint.tag[1] << " " << constraint_dist << "\n";
+            }
+
+        f << "</constraint>" << "\n";
+        }
+
     // If the charge flag is true output the mass of all particles to the file
     if (m_output_charge)
         {
@@ -623,6 +653,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
     .def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
     .def("setOutputImproper", &HOOMDDumpWriter::setOutputImproper)
+    .def("setOutputConstraint", &HOOMDDumpWriter::setOutputConstraint)
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
