@@ -51,6 +51,12 @@ class PPPMForceCompute : public ForceCompute
          */
         Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        //! Get sum of charges
+        Scalar getQSum();
+
+        //! Get sum of squares of charges
+        Scalar getQ2Sum();
+
     protected:
         /*! Compute the biased forces for this collective variable.
             The force that is written to the force arrays must be
@@ -105,12 +111,6 @@ class PPPMForceCompute : public ForceCompute
 
         //! Compute the optimal influence function
         virtual void computeInfluenceFunction();
-
-        //! The TSC (triangular-shaped cloud) charge assignment function
-        Scalar assignTSC(Scalar x);
-
-        //! Derivative of the TSC (triangular-shaped cloud) charge assignment function
-        Scalar assignTSCderiv(Scalar x);
 
         //! Helper function to assign particle coordinates to mesh
         virtual void assignParticles();

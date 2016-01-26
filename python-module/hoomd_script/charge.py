@@ -195,12 +195,11 @@ class pppm(force._force):
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
-        q2 = 0
+
+        # get sum of charges and of squared charges
+        q = self.cpp_force.getQSum();
+        q2 = self.cpp_force.getQ2Sum();
         N = globals.system_definition.getParticleData().getNGlobal()
-        for i in range(0,N):
-            tag = globals.system_definition.getParticleData().getNthTag(i)
-            q = globals.system_definition.getParticleData().getCharge(tag)
-            q2 += q*q
         box = globals.system_definition.getParticleData().getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y

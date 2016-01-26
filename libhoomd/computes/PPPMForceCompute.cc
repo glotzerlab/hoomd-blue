@@ -1437,11 +1437,68 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
     return ForceCompute::getLogValue(quantity, timestep);
     }
 
+Scalar PPPMForceCompute::getQSum()
+    {
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    unsigned int group_size = m_group->getNumMembers();
+    Scalar q(0.0);
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        q += h_charge.data[j];
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // reduce sum
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &q,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    return q;
+    }
+
+Scalar PPPMForceCompute::getQ2Sum()
+    {
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    unsigned int group_size = m_group->getNumMembers();
+    Scalar q2(0.0);
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        q2 += h_charge.data[j]*h_charge.data[j];
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // reduce sum
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &q2,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return q2;
+    }
+
 void export_PPPMForceCompute()
     {
     class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
         ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>,
             boost::shared_ptr<NeighborList>, boost::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
+        .def("getQSum", &PPPMForceCompute::getQSum)
+        .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
         ;
     }
