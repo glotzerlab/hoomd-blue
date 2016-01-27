@@ -31,6 +31,12 @@ class PPPMForceCompute : public ForceCompute
         virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
             unsigned int order, Scalar kappa, Scalar rcut);
 
+        //! Set the update period
+        void setUpdatePeriod(unsigned int period)
+            {
+            m_period = period;
+            }
+
         void computeForces(unsigned int timestep);
 
         /*! Returns the names of provided log quantities.
@@ -160,6 +166,9 @@ class PPPMForceCompute : public ForceCompute
         std::vector<std::string> m_log_names;           //!< Name of the log quantity
 
         bool m_dfft_initialized;                   //! True if host dfft has been initialized
+
+        unsigned int m_period;                     //!< Update period for PPPM
+        bool m_force_compute;                      //!< True if we are forced to compute
 
         //! Compute virial on mesh
         void computeVirialMesh();

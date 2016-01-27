@@ -174,11 +174,14 @@ class pppm(force._force):
     # \param Nz - Number of grid points in z direction
     # \param order - Number of grid points in each direction to assign charges to
     # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
+    # \param period - (Optional) Update period for the long-range part, in number of time steps
     #
     # Using set_params() requires that the specified PPPM force has been saved in a variable. i.e.
     # \code
     # pppm = charge.pppm()
     # \endcode
+    #
+    # \note Setting period to a value greater than 1 can degrade the accuracy of the PPPM calculation.
     #
     # \b Examples:
     # \code
@@ -187,7 +190,7 @@ class pppm(force._force):
     # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
     # The parameters for PPPM  must be set
     # before the run() can be started.
-    def set_params(self, Nx, Ny, Nz, order, rcut):
+    def set_params(self, Nx, Ny, Nz, order, rcut, period=1):
         util.print_status_line();
 
         if globals.system_definition.getNDimensions() != 3:
@@ -254,6 +257,9 @@ class pppm(force._force):
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
+
+        # set the update period
+        self.cpp_force.setUpdatePeriod(period)
 
     def update_coeffs(self):
         if not self.params_set:

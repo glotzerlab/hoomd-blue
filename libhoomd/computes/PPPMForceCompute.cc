@@ -39,7 +39,9 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
       m_q(0.0),
       m_q2(0.0),
       m_kiss_fft_initialized(false),
-      m_dfft_initialized(false)
+      m_dfft_initialized(false),
+      m_period(1),
+      m_force_compute(true)
     {
 
     m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&PPPMForceCompute::setBoxChange, this));
@@ -1210,72 +1212,83 @@ Scalar PPPMForceCompute::computePE()
 
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
-    if (m_prof) m_prof->push("PPPM");
-
-    if (m_need_initialize)
+    if (m_particles_sorted)
         {
-        if (!m_params_set)
+        // need to recompute forces
+        m_force_compute = true;
+        }
+
+    if ((timestep % m_period) == 0 || m_force_compute)
+        {
+        if (m_prof) m_prof->push("PPPM");
+
+        if (m_need_initialize)
             {
-            m_exec_conf->msg->error() << "charge.pppm: charge.pppm() requires parameters to be set before run()"
-                << std::endl;
-            throw std::runtime_error("Error computing PPPM forces");
+            if (!m_params_set)
+                {
+                m_exec_conf->msg->error() << "charge.pppm: charge.pppm() requires parameters to be set before run()"
+                    << std::endl;
+                throw std::runtime_error("Error computing PPPM forces");
+                }
+
+            // allocate memory and initialize arrays
+            setupMesh();
+
+            // setup tables and do misc validation
+            setupCoeffs();
+
+            computeInfluenceFunction();
+            m_need_initialize = false;
             }
 
-        // allocate memory and initialize arrays
-        setupMesh();
+        bool ghost_cell_num_changed = false;
+        uint3 n_ghost_cells = computeGhostCellNum();
 
-        // setup tables and do misc validation
-        setupCoeffs();
+        // do we need to reallocate?
+        if (m_n_ghost_cells.x != n_ghost_cells.x ||
+            m_n_ghost_cells.y != n_ghost_cells.y ||
+            m_n_ghost_cells.z != n_ghost_cells.z)
+            ghost_cell_num_changed = true;
 
-        computeInfluenceFunction();
-        m_need_initialize = false;
+        if (m_box_changed || ghost_cell_num_changed)
+            {
+            if (ghost_cell_num_changed) setupMesh();
+            computeInfluenceFunction();
+            m_box_changed = false;
+            }
+
+        assignParticles();
+
+        updateMeshes();
+
+        PDataFlags flags = this->m_pdata->getFlags();
+        if (flags[pdata_flag::potential_energy])
+            {
+            computePE();
+            }
+
+        interpolateForces();
+
+        if (flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+            {
+            computeVirial();
+            }
+        else
+            {
+            for (unsigned int i = 0; i < 6; ++i)
+                m_external_virial[i] = Scalar(0.0);
+            }
+
+        // If there are exclusions, correct for the long-range part of the potential
+        if(m_nlist->getExclusionsSet())
+            {
+            fixExclusions();
+            }
+
+        if (m_prof) m_prof->pop();
+
+        m_force_compute = false;
         }
-
-    bool ghost_cell_num_changed = false;
-    uint3 n_ghost_cells = computeGhostCellNum();
-
-    // do we need to reallocate?
-    if (m_n_ghost_cells.x != n_ghost_cells.x ||
-        m_n_ghost_cells.y != n_ghost_cells.y ||
-        m_n_ghost_cells.z != n_ghost_cells.z)
-        ghost_cell_num_changed = true;
-
-    if (m_box_changed || ghost_cell_num_changed)
-        {
-        if (ghost_cell_num_changed) setupMesh();
-        computeInfluenceFunction();
-        m_box_changed = false;
-        }
-
-    assignParticles();
-
-    updateMeshes();
-
-    PDataFlags flags = this->m_pdata->getFlags();
-    if (flags[pdata_flag::potential_energy])
-        {
-        computePE();
-        }
-
-    interpolateForces();
-
-    if (flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
-        {
-        computeVirial();
-        }
-    else
-        {
-        for (unsigned int i = 0; i < 6; ++i)
-            m_external_virial[i] = Scalar(0.0);
-        }
-
-    // If there are exclusions, correct for the long-range part of the potential
-    if(m_nlist->getExclusionsSet())
-        {
-        fixExclusions();
-        }
-
-    if (m_prof) m_prof->pop();
     }
 
 void PPPMForceCompute::computeVirial()
@@ -1500,5 +1513,6 @@ void export_PPPMForceCompute()
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
+        .def("setUpdatePeriod", &PPPMForceCompute::setUpdatePeriod)
         ;
     }
