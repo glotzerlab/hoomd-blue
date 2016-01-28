@@ -47,17 +47,20 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// this include is necessary to get MPI included before anything else to support intel MPI
+#include "ExecutionConfiguration.h"
+
 //! Name the unit test module
 #define BOOST_TEST_MODULE walldata
 #include "boost_utf_configure.h"
+
+#include "WallData.h"
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <cstdlib>
 #include <vector>
-
-#include "WallData.h"
 
 BOOST_AUTO_TEST_CASE( construction )
     {
