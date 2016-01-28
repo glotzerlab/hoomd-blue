@@ -449,6 +449,68 @@ void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     #endif
     }
 
+//! Helper function for converting python wall group structure to wall_type
+wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
+    {
+    wall_type w;
+    w.numSpheres = boost::python::len(walls.attr("spheres"));
+    w.numCylinders = boost::python::len(walls.attr("cylinders"));
+    w.numPlanes = boost::python::len(walls.attr("planes"));
+
+    if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
+        {
+        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed was specified in a wall force." << std::endl;
+        throw std::runtime_error("Error loading wall group.");
+        }
+    else
+        {
+        for(unsigned int i = 0; i < w.numSpheres; i++)
+            {
+            Scalar     r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("_origin"));
+            bool     inside =boost::python::extract<bool>(walls.attr("spheres")[i].attr("inside"));
+            w.Spheres[i] = SphereWall(r, origin, inside);
+            }
+        for(unsigned int i = 0; i < w.numCylinders; i++)
+            {
+            Scalar     r = boost::python::extract<Scalar>(walls.attr("cylinders")[i].attr("r"));
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_origin"));
+            Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_axis"));
+            bool     inside =boost::python::extract<bool>(walls.attr("cylinders")[i].attr("inside"));
+            w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
+            }
+        for(unsigned int i = 0; i < w.numPlanes; i++)
+            {
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
+            Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
+            bool    inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
+            w.Planes[i] = PlaneWall(origin, normal, inside);
+            }
+        return w;
+        }
+    }
+
+//! Exports helper function for parameters based on standard evaluators
+template< class evaluator >
+void export_wall_params_helpers()
+    {
+    using namespace boost::python;
+    class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
+        .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
+        .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
+        .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
+        ;
+    def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
+    }
+
+//! Combines exports of evaluators and parameter helper functions
+template < class evaluator >
+void export_PotentialExternalWall(const std::string& name)
+    {
+    export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
+    export_wall_params_helpers<evaluator>();
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -568,7 +630,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListTree();
     export_ConstraintSphere();
     export_PPPMForceCompute();
-    export_wall_field_helpers();
+    class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
+    def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
     export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");

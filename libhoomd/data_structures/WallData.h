@@ -58,9 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
-#include <cstdlib>
-#include <vector>
-#include <string.h>
 
 #ifdef NVCC
 #define DEVICE __device__
