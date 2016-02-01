@@ -278,6 +278,9 @@ template < class T, class Base > void export_PotentialPairGPU(const std::string&
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;
+
+    // boost 1.60.0 compatibility
+    register_ptr_to_python< boost::shared_ptr<T> >();
     }
 
 #endif // ENABLE_CUDA

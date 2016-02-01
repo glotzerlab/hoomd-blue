@@ -1173,7 +1173,11 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("resize", &Snapshot::resize)
         .def_readonly("N", &Snapshot::size)
         ;
-   }
+
+    // boost 1.60.0 compatibility
+    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+    }
 
 template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int n,
