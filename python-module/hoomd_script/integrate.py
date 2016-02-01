@@ -1172,7 +1172,7 @@ class brownian(_integration_method):
     # typeA = group.type('A');
     # integrator = integrate.brownian(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
-    def __init__(self, group, T, seed, dscale=False):
+    def __init__(self, group, T, seed, dscale=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # initialize base class
@@ -1200,7 +1200,9 @@ class brownian(_integration_method):
                                    T.cpp_variant,
                                    seed,
                                    use_lambda,
-                                   float(dscale));
+                                   float(dscale),
+                                   noiseless_t, 
+                                   noiseless_r);
 
         self.cpp_method.validateGroup()
 

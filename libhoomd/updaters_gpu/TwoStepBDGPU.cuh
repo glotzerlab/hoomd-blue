@@ -76,6 +76,8 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const langevin_step_two_args& langevin_args,
                                   const bool aniso,
                                   const Scalar deltaT,
-                                  const unsigned int D);
+                                  const unsigned int D,
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r);
 
 #endif //__TWO_STEP_BD_GPU_CUH__

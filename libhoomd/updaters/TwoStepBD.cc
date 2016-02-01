@@ -80,8 +80,12 @@ TwoStepBD::TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
-                           Scalar lambda)
-  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda)
+                           Scalar lambda,
+                           bool noiseless_t,
+                           bool noiseless_r
+                           )
+  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), 
+    m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -151,6 +155,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
         // it is not the dimensionality of the system
         Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*currentTemp/m_deltaT);
+        if (m_noiseless_t) coeff = 0.0;
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -190,7 +195,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 // original Gaussian random torque
                 Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
-
+                if (m_noiseless_r) tau_r = 0.0;
+                
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
                 Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
                 // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
@@ -225,6 +231,8 @@ void export_TwoStepBD()
                             boost::shared_ptr<Variant>,
                             unsigned int,
                             bool,
-                            Scalar>())
+                            Scalar,
+                            bool, 
+                            bool>())
         ;
     }

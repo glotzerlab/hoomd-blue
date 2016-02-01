@@ -79,8 +79,10 @@ TwoStepBDGPU::TwoStepBDGPU(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
-                           Scalar lambda)
-    : TwoStepBD(sysdef, group, T, seed, use_lambda, lambda)
+                           Scalar lambda,
+                           bool noiseless_t,
+                           bool noiseless_r)
+    : TwoStepBD(sysdef, group, T, seed, use_lambda, lambda, noiseless_t, noiseless_r)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -155,7 +157,9 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
                           args,
                           aniso,
                           m_deltaT,
-                          D);
+                          D, 
+                          m_noiseless_t, 
+                          m_noiseless_r);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -181,7 +185,8 @@ void export_TwoStepBDGPU()
                                boost::shared_ptr<Variant>,
                                unsigned int,
                                bool,
-                               Scalar
-                               >())
+                               Scalar,
+                               bool,
+                               bool>())
         ;
     }

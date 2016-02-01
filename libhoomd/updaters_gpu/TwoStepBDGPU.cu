@@ -112,7 +112,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const Scalar T,
                                   const bool aniso,
                                   const Scalar deltaT,
-                                  unsigned int D)
+                                  unsigned int D, 
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r)
     {
     if (!use_lambda)
         {
@@ -172,6 +174,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
         // it is not the dimensionality of the system
         Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*T/deltaT);
+        if (d_noiseless_t) coeff = 0.0;
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -214,8 +217,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 {
                 Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
+                if (d_noiseless_r) tau_r = 0.0;
+
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
-                tau_r = 0;
                 Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
                 quat<Scalar> omega (make_scalar4(0,0,0, theta));                
                 quat<Scalar> q (d_orientation[idx]);
@@ -258,7 +262,9 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const langevin_step_two_args& langevin_args,
                                   const bool aniso,
                                   const Scalar deltaT,
-                                  const unsigned int D)
+                                  const unsigned int D, 
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r)
     {
 
     // setup the grid to run the kernel
@@ -292,7 +298,9 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                  langevin_args.T,
                                  aniso,
                                  deltaT,
-                                 D);
+                                 D, 
+                                 d_noiseless_t,
+                                 d_noiseless_r);
 
     return cudaSuccess;
     }
