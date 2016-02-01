@@ -215,6 +215,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
+                tau_r = 0;
                 Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
                 quat<Scalar> omega (make_scalar4(0,0,0, theta));                
                 quat<Scalar> q (d_orientation[idx]);
