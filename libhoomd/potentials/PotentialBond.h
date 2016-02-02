@@ -390,7 +390,9 @@ template < class T > void export_PotentialBond(const std::string& name)
         ;
 
     // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
     register_ptr_to_python< boost::shared_ptr<T> >();
+    #endif
     }
 
 #endif

@@ -503,7 +503,9 @@ void export_wall_params_helpers()
     def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
 
     // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
     register_ptr_to_python< boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
+    #endif
     }
 
 //! Combines exports of evaluators and parameter helper functions
@@ -775,6 +777,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Messenger();
 
     // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
     register_ptr_to_python< boost::shared_ptr< IMDInterface > >();
     // register_ptr_to_python< boost::shared_ptr< AnalyzerWrap > >();
     register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
@@ -864,9 +867,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< float2 > >();
     register_ptr_to_python< boost::shared_ptr< float3 > >();
     register_ptr_to_python< boost::shared_ptr< float4 > >();
-    register_ptr_to_python< boost::shared_ptr< Scalar2 > >();
-    register_ptr_to_python< boost::shared_ptr< Scalar3 > >();
-    register_ptr_to_python< boost::shared_ptr< Scalar4 > >();
     register_ptr_to_python< boost::shared_ptr< uint2 > >();
     register_ptr_to_python< boost::shared_ptr< uint3 > >();
     register_ptr_to_python< boost::shared_ptr< uint4 > >();
@@ -924,5 +924,6 @@ BOOST_PYTHON_MODULE(hoomd)
     #ifdef ENABLE_MPI
     register_ptr_to_python< boost::shared_ptr< Communicator > >();
     register_ptr_to_python< boost::shared_ptr< LoadBalancer > >();
+    #endif
     #endif
     }
