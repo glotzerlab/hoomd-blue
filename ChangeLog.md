@@ -16,6 +16,7 @@
 * Add integrate.brownian to the documentation index
 * Fix misc doc typos
 * Fix runtime errors with boost 1.60.0
+* Fix corrupt metadata dumps in MPI runs
 
 ## v1.3.1
 
