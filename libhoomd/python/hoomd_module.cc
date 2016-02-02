@@ -786,7 +786,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< Logger > >();
     register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();
-    register_ptr_to_python< boost::shared_ptr< Communicator > >();
     // register_ptr_to_python< boost::shared_ptr< ComputeWrap > >();
     register_ptr_to_python< boost::shared_ptr< TablePotential > >();
     register_ptr_to_python< boost::shared_ptr< PPPMForceCompute > >();
@@ -857,7 +856,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNHRigid > >();
-    register_ptr_to_python< boost::shared_ptr< LoadBalancer > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdater > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizer > >();
     register_ptr_to_python< boost::shared_ptr< double2 > >();
@@ -882,7 +880,10 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< Messenger > >();
 
     #ifdef ENABLE_CUDA
+    #ifdef ENABLE_MPI
+    register_ptr_to_python< boost::shared_ptr< LoadBalancerGPU > >();
     register_ptr_to_python< boost::shared_ptr< CommunicatorGPU > >();
+    #endif
     register_ptr_to_python< boost::shared_ptr< TableAngleForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUStencil > >();
@@ -913,11 +914,15 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< LoadBalancerGPU > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdaterGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVERigidGPU > >();
+    #endif
+
+    #ifdef ENABLE_MPI
+    register_ptr_to_python< boost::shared_ptr< Communicator > >();
+    register_ptr_to_python< boost::shared_ptr< LoadBalancer > >();
     #endif
     }
