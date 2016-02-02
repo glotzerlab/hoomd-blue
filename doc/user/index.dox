@@ -150,6 +150,7 @@ Table of contents:
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>Enables a variety of standard integration methods </i>
    - \link hoomd_script.integrate.berendsen integrate.berendsen\endlink - <i>NVT integration via the Berendsen thermostat</i>
    - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>NVT integration of rigid bodies via Brownian Dynamics</i>
+   - \link hoomd_script.integrate.brownian integrate.brownian\endlink - <i>Brownian dynamics </i>
    - \link hoomd_script.integrate.langevin integrate.langevin\endlink - <i>Langevin dynamics </i>
    - \link hoomd_script.integrate.nph integrate.nph\endlink - <i>NPH integration via the Andersen / modified Parrinello-Rahman barostat </i>
    - \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink - <i>NPH Integration of rigid bodies</i>

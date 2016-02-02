@@ -580,7 +580,7 @@ def charged(name='charged'):
 # \code
 # groupA = group.type(name='groupA', type='A')
 # all = group.all()
-# nottypeA = group.union(name="particles-not-typeA", a=all, b=groupA)
+# nottypeA = group.difference(name="particles-not-typeA", a=all, b=groupA)
 # \endcode
 def difference(name, a, b):
     new_cpp_group = hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);

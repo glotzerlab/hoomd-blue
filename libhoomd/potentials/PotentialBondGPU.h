@@ -220,6 +220,9 @@ template < class T, class Base > void export_PotentialBondGPU(const std::string&
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
               ;
+
+    // boost 1.60.0 compatibility
+    register_ptr_to_python< boost::shared_ptr<T> >();
     }
 
 #endif // ENABLE_CUDA

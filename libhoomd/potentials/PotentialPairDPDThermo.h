@@ -351,6 +351,9 @@ template < class T, class Base > void export_PotentialPairDPDThermo(const std::s
                   .def("setSeed", &T::setSeed)
                   .def("setT", &T::setT)
                   ;
+
+    // boost 1.60.0 compatibility
+    register_ptr_to_python< boost::shared_ptr<T> >();
     }
 
 

@@ -566,6 +566,9 @@ template < class T > void export_PotentialTersoff(const std::string& name)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
                   ;
+
+    // boost 1.60.0 compatibility
+    register_ptr_to_python< boost::shared_ptr<T> >();
     }
 
 
