@@ -885,6 +885,8 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< VariantConst > >();
     register_ptr_to_python< boost::shared_ptr< VariantLinear > >();
     register_ptr_to_python< boost::shared_ptr< Messenger > >();
+    register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_MPI
@@ -926,6 +928,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVERigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
     #endif
 
     #ifdef ENABLE_MPI
