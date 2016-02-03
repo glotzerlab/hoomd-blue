@@ -167,7 +167,7 @@ class EvaluatorWalls
                 if (!std::isfinite(force_divr))
                 #endif
                     {
-                        force_divr = Scalar3(0.0,0.0,0.0);
+                        force_divr = Scalar(0.0);
                         pair_eng = Scalar(0.0);
                     }
                 // add the force and potential energy to the particle i
@@ -203,7 +203,7 @@ class EvaluatorWalls
                 if (!std::isfinite(force_divr))
                 #endif
                     {
-                        force_divr = Scalar3(0.0,0.0,0.0);
+                        force_divr = Scalar(0.0);
                         pair_eng = Scalar(0.0);
                     }
                 // add the force and potential energy to the particle i
