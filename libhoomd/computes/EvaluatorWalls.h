@@ -353,7 +353,7 @@ class EvaluatorWalls
         */
         static std::string getName()
             {
-            return std::string("walls_") + evaluator::getName();
+            return std::string("wall_") + evaluator::getName();
             }
         #endif
 
