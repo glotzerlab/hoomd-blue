@@ -80,15 +80,15 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * Git >= 1.7.0
      * Doxygen  >= 1.8.5
 
-For a discussion of which kind of MPI library is best for your situation, see \ref sec_mpi_best_practices.
+See \ref sec_mpi_best_practices for a discussion of which kind of MPI library is best for your situation
 See \ref sec_build_linux_generic_mpi for instructions on building an MPI enabled hoomd.
 
 \subsection sec_software_req_clusters Loading software prerequisites on clusters
 
 Most cluster administrators provide versions of python, numpy, mpi, and cuda as modules. Some provide boost, and a few
 provide boost with a working boost::python. Here are the module commands necessary to load prerequisites at national
-supercomputing centers. Each code block also specifies a recommended install location ${SOFTWARE_ROOT} where hoomd can
-be loaded on the compute nodes with minimal filesystem impact. On many clusters, administrators will block your account
+supercomputers. Each code block also specifies a recommended install location ${SOFTWARE_ROOT} where hoomd can
+be loaded on the compute nodes with minimal file system impact. On many clusters, administrators will block your account
 without warning if you launch hoomd from $HOME.
 
 \b OLCF \b Titan:
@@ -135,15 +135,17 @@ module load gnutools
 module load scipy
 module load cmake
 module load cuda/7.0
-# module load boost/1.55.0  # boost::python is not currently functional, you need to build boost.
+# module load boost/1.55.0
 
 export CC=`which icc`
 export CXX=`which icpc`
 export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
 ~~~~
 
-Note: The python module on comet provides both python2 and python3, but the python3 install does not have many modules.
-Build hoomd against python2: `cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2`
+Comet's boost module exists and has boost::python, but it is non-functional. You need to build boost: see \ref sec_building_boost.
+
+Note: The python module on comet provides both python2. You need to force hoomd to build
+against python2: `cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2`
 
 Note: CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
 with ENABLE_CUDA=off.
@@ -162,12 +164,13 @@ module load cuda/7.0
 module load cmake
 module load git
 module load python/2.7.9
-# boost on Stampede does not include boost::python, you need to build boost.
 
 export CC=`which icc`
 export CXX=`which icpc`
 export $SOFTWARE_ROOT=${WORK}/software
 ~~~~~
+
+Stampede's boost module does not include boost::python, you need to build boost: see \ref sec_building_boost.
 
 Note: Stampede admins highly recommend building with the intel compiler and MPI libraries. They attribute random crashes
 to the mvapich library and GNU compiler.
@@ -217,8 +220,8 @@ Then set BOOST_ROOT=${SOFTWARE_ROOT}/boost before running cmake.
 
 \subsection sec_building_workstation Installing prerequisites on a workstation
 
-On your workstation, use your systems package manager to install all of the perquisite libraries. Some linux
-distributions separate -dev and normal packages, you need the development packages to build hoomd. Also, many linux
+On your workstation, use your systems package manager to install all of the prerequisite libraries. Some linux
+distributions separate `-dev` and normal packages, you need the development packages to build hoomd. Also, many linux
 distributions ship both python2 and python3, but only build boost against python2. On such systems, you need to force
 hoomd to build against python2. Check the hoomd-users mailing lists for posts by users who share their hoomd build
 instructions on a variety of distributions.
@@ -239,9 +242,10 @@ $ cd build
 $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/hoomd
 $ make -j20
 ~~~~
-Note: for development, you do not need to `make install`. You can just run `make` and launch `python-runner/hoomd`.
+Note: for development, you do not need to `make install`. `make` builds a functioning hoomd install:
+launch `python-runner/hoomd`.
 
-Now run
+Run:
 ~~~~
 $ make test
 ~~~~
@@ -252,7 +256,7 @@ To install a stable version for general use, run `make install` and add ${SOFTWA
 
 \section sec_build_linux_generic_mpi Compiling with MPI enabled
 
-### Preinstalled MPI
+### System provided MPI
 
 If your cluster administrator provides an installation of MPI, you need to figure out if is in your
 `$PATH`. If the command
