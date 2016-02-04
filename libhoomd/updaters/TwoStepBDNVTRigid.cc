@@ -74,7 +74,7 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                      boost::shared_ptr<Variant> T,
                                      unsigned int seed,
                                      bool gamma_diam)
-    : TwoStepNVERigid(sysdef, group), m_seed(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVERigid(sysdef, group), m_seed(seed), m_gamma_diam(gamma_diam), m_gamma_r(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVTRigid" << endl;
 
@@ -148,6 +148,113 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
+    
+    
+/*! \param typ Particle type to set gamma for
+    \param gamma The gamma value to set
+*/
+void TwoStepBDNVTRigid::setGamma_r(Scalar gamma_r)
+    {
+    // check for user errors
+    m_gamma_r = gamma_r;
+    }
+    
+    
+/* override NVERigid Step One
+*/
+void TwoStepBDNVTRigid::integrateStepOne(unsigned int timestep)
+    {
+    if (m_first_step)
+        {
+        setup();
+        m_first_step = false;
+        }
+
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+
+    if (m_prof)
+        m_prof->push("NVE rigid step 1");
+
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    const Scalar D = Scalar(m_sysdef->getNDimensions());
+
+    // now we can get on with the velocity verlet: initial integration
+    {
+    // rigid data handles
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+
+    ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+
+    Scalar h_gamma_r (m_gamma_r);
+    
+    Scalar dt_half = 0.5 * m_deltaT;
+    Scalar dtfm;
+    
+    // initialize the RNG
+    Saru saru(m_seed, timestep);
+
+    // for each body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
+        dtfm = dt_half / body_mass_handle.data[body];
+        vel_handle.data[body].x += dtfm * force_handle.data[body].x;
+        vel_handle.data[body].y += dtfm * force_handle.data[body].y;
+        vel_handle.data[body].z += dtfm * force_handle.data[body].z;
+
+        com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
+        com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
+        com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
+
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);        
+            
+        // added:
+        if (D < 3.0)
+            {
+            torque_handle.data[body].x -= h_gamma_r * angvel_handle.data[body].x;
+            torque_handle.data[body].y -= h_gamma_r * angvel_handle.data[body].y;
+            torque_handle.data[body].z -= h_gamma_r * angvel_handle.data[body].z;
+            }
+
+        // update the angular momentum
+        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+
+        // update quaternion and angular velocity
+        advanceQuaternion(angmom_handle.data[body],
+                          moment_inertia_handle.data[body],
+                          angvel_handle.data[body],
+                          ex_space_handle.data[body],
+                          ey_space_handle.data[body],
+                          ez_space_handle.data[body],
+                          m_deltaT,
+                          orientation_handle.data[body]);
+        }
+    } // out of scope for handles
+
+
+    if (m_prof)
+        m_prof->pop();
+    }
+
+
 
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
@@ -274,5 +381,6 @@ void export_TwoStepBDNVTRigid()
                          bool
                          >())
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
+        .def("setGamma_r", &TwoStepBDNVTRigid::setGamma_r)
         ;
     }

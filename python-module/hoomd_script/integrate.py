@@ -1607,6 +1607,14 @@ class bdnvt_rigid(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+                
+                
+    def set_gamma_r(self, gamma_r):
+        util.print_status_line();
+        self.check_initialization();
+        
+        self.cpp_method.setGamma_r(gamma_r);
+
 
 ## NPT Integration for rigid bodies
 #

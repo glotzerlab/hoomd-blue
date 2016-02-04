@@ -218,3 +218,163 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
 
     return cudaSuccess;
     }
+    
+
+#pragma mark RIGID_STEP_ONE_KERNEL
+/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
+    \param rdata_com Body center of mass
+    \param rdata_vel Body translational velocity
+    \param rdata_angmom Angular momentum
+    \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
+    \param rdata_body_image Body image
+    \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
+    \param n_group_bodies Number of rigid bodies in my group
+    \param n_bodies Total number of rigid bodies
+    \param deltaT Timestep
+    \param box Box dimensions for periodic boundary condition handling
+*/
+extern "C" __global__ void gpu_bdnvt_rigid_step_one_body_kernel(Scalar4* rdata_com,
+                                                        Scalar4* rdata_vel,
+                                                        Scalar4* rdata_angmom,
+                                                        Scalar4* rdata_angvel,
+                                                        Scalar4* rdata_orientation,
+                                                        int3* rdata_body_image,
+                                                        Scalar4* rdata_conjqm,
+                                                        Scalar *d_rigid_mass,
+                                                        Scalar4 *d_rigid_mi,
+                                                        Scalar4 *d_rigid_force,
+                                                        Scalar4 *d_rigid_torque,
+                                                        unsigned int *d_rigid_group,
+                                                        unsigned int n_group_bodies,
+                                                        unsigned int n_bodies,
+                                                        BoxDim box,
+                                                        Scalar deltaT)
+    {
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx >= n_group_bodies)
+        return;
+
+    // do velocity verlet update
+    // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
+    // r(t+deltaT) = r(t) + v(t+deltaT/2)*deltaT
+    Scalar body_mass;
+    Scalar4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
+    int3 body_image;
+    Scalar dt_half = Scalar(0.5) * deltaT;
+
+    unsigned int idx_body = d_rigid_group[group_idx];
+    body_mass = d_rigid_mass[idx_body];
+    moment_inertia = d_rigid_mi[idx_body];
+    com = rdata_com[idx_body];
+    vel = rdata_vel[idx_body];
+    angmom = rdata_angmom[idx_body];
+    orientation = rdata_orientation[idx_body];
+    body_image = rdata_body_image[idx_body];
+    force = d_rigid_force[idx_body];
+    torque = d_rigid_torque[idx_body];
+
+    exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+
+    // update velocity
+    Scalar dtfm = dt_half / body_mass;
+
+    Scalar4 vel2;
+    vel2.x = vel.x + dtfm * force.x;
+    vel2.y = vel.y + dtfm * force.y;
+    vel2.z = vel.z + dtfm * force.z;
+    vel2.w = vel.w;
+
+    // update position
+    Scalar3 pos2;
+    pos2.x = com.x + vel2.x * deltaT;
+    pos2.y = com.y + vel2.y * deltaT;
+    pos2.z = com.z + vel2.z * deltaT;
+
+    // time to fix the periodic boundary conditions
+    box.wrap(pos2, body_image);
+
+    // update the angular momentum and angular velocity
+    Scalar4 angmom2;
+    angmom2.x = angmom.x + dt_half * torque.x;
+    angmom2.y = angmom.y + dt_half * torque.y;
+    angmom2.z = angmom.z + dt_half * torque.z;
+    angmom2.w = Scalar(0.0);
+
+    Scalar4 angvel2;
+    advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, deltaT, orientation);
+
+    // write out the results
+    rdata_com[idx_body] = make_scalar4(pos2.x, pos2.y, pos2.z, com.w);
+    rdata_vel[idx_body] = vel2;
+    rdata_angmom[idx_body] = angmom2;
+    rdata_angvel[idx_body] = angvel2;
+    rdata_orientation[idx_body] = orientation;
+    rdata_body_image[idx_body] = body_image;
+    }
+
+// Takes the first 1/2 step forward in the NVE integration step
+/*! \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Particle net forces
+    \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Amount of real time to step forward in one time step
+*/
+cudaError_t gpu_bdnvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   const BoxDim& box,
+                                   Scalar deltaT)
+    {
+    assert(d_net_force);
+    assert(d_group_members);
+    assert(rigid_data.com);
+    assert(rigid_data.vel);
+    assert(rigid_data.angmom);
+    assert(rigid_data.angvel);
+    assert(rigid_data.orientation);
+    assert(rigid_data.body_image);
+    assert(rigid_data.conjqm);
+    assert(rigid_data.body_mass);
+    assert(rigid_data.moment_inertia);
+    assert(rigid_data.force);
+    assert(rigid_data.torque);
+    assert(rigid_data.body_indices);
+
+    unsigned int n_bodies = rigid_data.n_bodies;
+    unsigned int n_group_bodies = rigid_data.n_group_bodies;
+
+    // setup the grid to run the kernel for rigid bodies
+    int block_size = 64;
+    int n_blocks = n_group_bodies / block_size + 1;
+    dim3 body_grid(n_blocks, 1, 1);
+    dim3 body_threads(block_size, 1, 1);
+
+    gpu_nve_rigid_step_one_body_kernel<<< body_grid, body_threads >>>(rigid_data.com,
+                                                           rigid_data.vel,
+                                                           rigid_data.angmom,
+                                                           rigid_data.angvel,
+                                                           rigid_data.orientation,
+                                                           rigid_data.body_image,
+                                                           rigid_data.conjqm,
+                                                           rigid_data.body_mass,
+                                                           rigid_data.moment_inertia,
+                                                           rigid_data.force,
+                                                           rigid_data.torque,
+                                                           rigid_data.body_indices,
+                                                           n_group_bodies,
+                                                           n_bodies,
+                                                           box,
+                                                           deltaT);
+
+
+    return cudaSuccess;
+    }
