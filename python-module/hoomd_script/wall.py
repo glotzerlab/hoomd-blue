@@ -204,6 +204,8 @@ class group():
     # \param name Name of the wall structure (string, defaults to empty string).
     # \param walls Wall objects to be included in the group
     #
+    # \note \par Initializing with data structures wall.group(.....) and the add() will not work in python 2.7.
+    #
     # \b Example:
     # \code
     # empty_wall_object=wall.group()
