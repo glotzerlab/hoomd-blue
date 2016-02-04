@@ -54,6 +54,15 @@ class wall_lj_tests (unittest.TestCase):
         integrate.nve(all);
         self.assertRaises(RuntimeError, run, 10);
 
+    # test particle at the center
+    def test_center(self):
+        self.s.particles[0].position=(0,0,0)
+        # specify Lennard-Jones interactions between particle pairs
+        lj = pair.lj(r_cut=2.5)
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        run(100)
+
+
     # test setting coefficients
     def test_force_coeff(self):
         lj_wall = wall.lj(self.walls, r_cut=3.0);
