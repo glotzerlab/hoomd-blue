@@ -58,7 +58,7 @@ Table of contents:
     - \ref sec_building_boost
     - \ref sec_building_workstation
 - \ref sec_build_linux_generic_compile
-- \ref sec_build_linux_generic_mpi 
+- \ref sec_build_linux_generic_mpi
 - \ref sec_build_options
 - \ref sec_build_plugin
 <hr>
@@ -67,18 +67,18 @@ Table of contents:
 
 HOOMD-blue requires a number of prerequisite software packages and libraries.
 
-- Required to compile:
-    - Python >= 2.6
-    - numpy >= 1.7
-    - boost >= 1.39.0
-    - CMake >= 2.6.2
-    - C++ Compiler
-    - CUDA Toolkit >= 5.0
-- For parallel builds
-    - MPI (generic, or with CUDA-Support: MVAPICH2 >= 1.8, OpenMPI >= 1.7)
-- Useful developer tools
-    - Git >= 1.7.0
-    - Doxygen  >= 1.8.5
+ * Required:
+     * Python >= 2.6
+     * numpy >= 1.7
+     * boost >= 1.39.0
+     * CMake >= 2.6.2
+     * C++ Compiler (tested with gcc, clang, intel)
+ * Optional:
+     * NVIDIA CUDA Toolkit >= 5.0
+     * MPI (tested with OpenMPI, MVAPICH, impi)
+ * Useful developer tools
+     * Git >= 1.7.0
+     * Doxygen  >= 1.8.5
 
 For a discussion of which kind of MPI library is best for your situation, see \ref sec_mpi_best_practices.
 See \ref sec_build_linux_generic_mpi for instructions on building an MPI enabled hoomd.
@@ -89,27 +89,39 @@ Most cluster administrators provide versions of python, numpy, mpi, and cuda as 
 provide boost with a working boost::python. Here are the module commands necessary to load prerequisites at national
 supercomputing centers. Each code block also specifies a recommended install location ${SOFTWARE_ROOT} where hoomd can
 be loaded on the compute nodes with minimal filesystem impact. On many clusters, administrators will block your account
-if you launch hoomd from $HOME.
+without warning if you launch hoomd from $HOME.
 
 \b OLCF \b Titan:
 ```
 module unload PrgEnv-pgi
 module load PrgEnv-gnu
-module load cmake3/2.8.11.2
+module load cmake/2.8.11.2
 module load git
 module load cudatoolkit
-
 module load python/3.4.3
 module load python_numpy/1.9.2
 module load boost/1.60.0
 export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/titan
 ```
 
+For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/titan-user-guide/
+
 \b OLCF \b Eos:
+
 ```
-# TODO:
+module unload PrgEnv-intel
+module load PrgEnv-gnu
+module load cmake
+module load git
+module load python/3.4.3
+module load python_numpy/1.9.2
+module load boost/1.60.0
 export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/eos
+export CC="cc -dynamic"
+export CXX="CC -dynamic"
 ```
+
+For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/eos-user-guide/
 
 \b XSEDE \b SDSC \b Comet:
 
@@ -123,7 +135,7 @@ module load gnutools
 module load scipy
 module load cmake
 module load cuda/7.0
-# module load boost/1.55.0  # boost::python is not currently functional, build your own boost
+# module load boost/1.55.0  # boost::python is not currently functional, you need to build boost.
 
 export CC=`which icc`
 export CXX=`which icpc`
@@ -133,10 +145,12 @@ export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
 Note: The python module on comet provides both python2 and python3, but the python3 install does not have many modules.
 Build hoomd against python2: `cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2`
 
-Note: CUDA libraries are not available on CPU only nodes on Comet. You must build hoomd with ENABLE_CUDA=off
-to run on the CPU only nodes.
+Note: CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
+with ENABLE_CUDA=off.
 
-Note: Don't skip setting CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
+Note: Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
+
+For more information, see: http://www.sdsc.edu/support/user_guides/comet.html
 
 \b XSEDE \b SDSC \b Stampede:
 
@@ -148,7 +162,7 @@ module load cuda/7.0
 module load cmake
 module load git
 module load python/2.7.9
-# boost on Stampede does not include boost::python, build your own boost on Stampede.
+# boost on Stampede does not include boost::python, you need to build boost.
 
 export CC=`which icc`
 export CXX=`which icpc`
@@ -158,16 +172,20 @@ export $SOFTWARE_ROOT=${WORK}/software
 Note: Stampede admins highly recommend building with the intel compiler and MPI libraries. They attribute random crashes
 to the mvapich library and GNU compiler.
 
-Note: CUDA libraries are not available on CPU only nodes on Stampede. You must build hoomd with ENABLE_CUDA=off
-to run on the CPU only nodes.
+Note: CUDA libraries are only available on GPU nodes on Stampede. To run on the CPU-only nodes, you must build hoomd
+with ENABLE_CUDA=off.
+
+Note: Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
+
+For more information, see: https://portal.tacc.utexas.edu/user-guides/stampede
 
 \subsection sec_building_boost Building boost on clusters
 
 Not all clusters have a functioning boost::python library. On these systems, you will need to build your own boost
 library. Download and unpack the latest version of the boost source code.
 
-Then run the following code. The variables are set for Comet, you will need to change the python version and root
-to match your cluster.
+Then run the following in the shell. The variables are set for Comet, you will need to change the python version
+and root directory to match your cluster.
 
 ~~~~
 PREFIX="${SOFTWARE_ROOT}/boost"
@@ -192,7 +210,7 @@ PYTHON_ROOT="/opt/python"
         python="${PY_VER}" \
         --layout=system \
         -j20 \
-        install 
+        install
 ~~~~
 
 Then set BOOST_ROOT=${SOFTWARE_ROOT}/boost before running cmake.
