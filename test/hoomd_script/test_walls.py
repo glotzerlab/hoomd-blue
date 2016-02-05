@@ -31,8 +31,8 @@ class wall_group_tests(unittest.TestCase):
         walls.add_sphere(r=4, origin=(0.0, 0.0, 0.0), inside=True);
         walls.del_sphere(0);
 
-        lj_wall = wall.lj(walls);
-        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        lj_wall = wall.lj(walls, r_cut=3.0);
+        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         run(1);
 
     def test_add_cylinder(self):
@@ -40,8 +40,8 @@ class wall_group_tests(unittest.TestCase):
         walls.add_cylinder(r=4, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True);
         walls.del_cylinder(0);
 
-        lj_wall = wall.lj(walls);
-        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        lj_wall = wall.lj(walls, r_cut=3.0);
+        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         run(1);
 
     def test_add_plane(self):
@@ -50,15 +50,15 @@ class wall_group_tests(unittest.TestCase):
         walls.add_plane(normal=(-1.0, 0.0, 0.0), origin=(4.0, 0.0, 0.0), inside=False);
         walls.del_plane([0,1]);
 
-        lj_wall = wall.lj(walls);
-        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        lj_wall = wall.lj(walls, r_cut=3.0);
+        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         run(1);
 
     def test_add_multiple(self):
         walls = wall.group(wall.plane(origin=(0,0,4), normal=(0,0,-1)))
 
-        lj_wall = wall.lj(walls);
-        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        lj_wall = wall.lj(walls, r_cut=3.0);
+        lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
         run(1);
 
     def tearDown(self):
