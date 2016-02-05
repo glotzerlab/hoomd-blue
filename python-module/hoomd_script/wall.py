@@ -223,19 +223,19 @@ class group():
     # hoomd_script.wall.plane plane\endlink, and lists of any
     # combination of these.
     def add(self,wall,index=False):
-        if (type(wall)==type(sphere())):
+        if (isinstance(wall, sphere)):
             self.spheres.append(wall);
-        elif (type(wall)==type(cylinder())):
+        elif (isinstance(wall, cylinder)):
             self.cylinders.append(wall);
-        elif (type(wall)==type(plane())):
+        elif (isinstance(wall, plane)):
             self.planes.append(wall);
         elif (type(wall)==list):
             for wall_el in wall:
-                if (type(wall_el)==type(sphere())):
+                if (isinstance(wall_el, sphere)):
                     self.spheres.append(wall_el);
-                elif (type(wall_el)==type(cylinder())):
+                elif (isinstance(wall_el, cylinder)):
                     self.cylinders.append(wall_el);
-                elif (type(wall_el)==type(plane())):
+                elif (isinstance(wall_el, plane)):
                     self.planes.append(wall_el);
                 else:
                     print("Input of type "+str(type(wall_el))+" is not allowed. Skipping invalid list element...");
@@ -695,7 +695,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -739,7 +739,7 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
@@ -799,7 +799,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -843,7 +843,7 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -890,7 +890,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -939,7 +939,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -991,4 +991,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
