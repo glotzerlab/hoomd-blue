@@ -52,6 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigidGPU.cuh"
 
 #include "saruprngCUDA.h"
+#include "VectorMath.h"
+#include "HOOMDMath.h"
 
 #include <assert.h>
 
@@ -219,26 +221,10 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
     return cudaSuccess;
     }
     
-
+//////////////////
+    
 #pragma mark RIGID_STEP_ONE_KERNEL
-/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
-    \param rdata_com Body center of mass
-    \param rdata_vel Body translational velocity
-    \param rdata_angmom Angular momentum
-    \param rdata_angvel Angular velocity
-    \param rdata_orientation Quaternion
-    \param rdata_body_image Body image
-    \param rdata_conjqm Conjugate quaternion momentum
-    \param d_rigid_mass Body mass
-    \param d_rigid_mi Body inertia moments
-    \param d_rigid_force Body forces
-    \param d_rigid_torque Body torques
-    \param d_rigid_group Body indices
-    \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Total number of rigid bodies
-    \param deltaT Timestep
-    \param box Box dimensions for periodic boundary condition handling
-*/
+
 extern "C" __global__ void gpu_bdnvt_rigid_step_one_body_kernel(Scalar4* rdata_com,
                                                         Scalar4* rdata_vel,
                                                         Scalar4* rdata_angmom,
@@ -254,7 +240,9 @@ extern "C" __global__ void gpu_bdnvt_rigid_step_one_body_kernel(Scalar4* rdata_c
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies,
                                                         BoxDim box,
-                                                        Scalar deltaT)
+                                                        Scalar deltaT,
+                                                        Scalar D,
+                                                        Scalar gamma_r)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -300,6 +288,15 @@ extern "C" __global__ void gpu_bdnvt_rigid_step_one_body_kernel(Scalar4* rdata_c
     // time to fix the periodic boundary conditions
     box.wrap(pos2, body_image);
 
+    // added:
+    if (D < 3.0)
+        {
+        Scalar4 angvel = rdata_angvel[idx_body];
+        torque.x -= gamma_r * angvel.x;
+        torque.y -= gamma_r * angvel.y;
+        torque.z -= gamma_r * angvel.z;
+        }
+
     // update the angular momentum and angular velocity
     Scalar4 angmom2;
     angmom2.x = angmom.x + dt_half * torque.x;
@@ -332,7 +329,9 @@ cudaError_t gpu_bdnvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int group_size,
                                    Scalar4 *d_net_force,
                                    const BoxDim& box,
-                                   Scalar deltaT)
+                                   const Scalar deltaT,
+                                   const Scalar gamma_r,
+                                   const Scalar D)
     {
     assert(d_net_force);
     assert(d_group_members);
@@ -357,8 +356,8 @@ cudaError_t gpu_bdnvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
     int n_blocks = n_group_bodies / block_size + 1;
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
-
-    gpu_nve_rigid_step_one_body_kernel<<< body_grid, body_threads >>>(rigid_data.com,
+    
+    gpu_bdnvt_rigid_step_one_body_kernel<<< body_grid, body_threads >>>(rigid_data.com,
                                                            rigid_data.vel,
                                                            rigid_data.angmom,
                                                            rigid_data.angvel,
@@ -373,7 +372,9 @@ cudaError_t gpu_bdnvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                                            n_group_bodies,
                                                            n_bodies,
                                                            box,
-                                                           deltaT);
+                                                           deltaT, 
+                                                           D,
+                                                           gamma_r);
 
 
     return cudaSuccess;

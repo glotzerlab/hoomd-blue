@@ -163,13 +163,17 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
+    Scalar D = Scalar(m_sysdef->getNDimensions());
+
     // perform the update on the GPU
-    gpu_nve_rigid_step_one(d_rdata,
+    gpu_bdnvt_rigid_step_one(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            box,
-                           m_deltaT);
+                           m_deltaT, 
+                           m_gamma_r,
+                           D);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
