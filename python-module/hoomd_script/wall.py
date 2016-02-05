@@ -204,8 +204,6 @@ class group():
     # \param name Name of the wall structure (string, defaults to empty string).
     # \param walls Wall objects to be included in the group
     #
-    # \note \par Initializing with data structures wall.group(.....) and the add() will not work in python 2.7.
-    #
     # \b Example:
     # \code
     # empty_wall_object=wall.group()
@@ -225,19 +223,19 @@ class group():
     # hoomd_script.wall.plane plane\endlink, and lists of any
     # combination of these.
     def add(self,wall,index=False):
-        if (type(wall)==type(sphere())):
+        if (isinstance(wall, sphere)):
             self.spheres.append(wall);
-        elif (type(wall)==type(cylinder())):
+        elif (isinstance(wall, cylinder)):
             self.cylinders.append(wall);
-        elif (type(wall)==type(plane())):
+        elif (isinstance(wall, plane)):
             self.planes.append(wall);
         elif (type(wall)==list):
             for wall_el in wall:
-                if (type(wall_el)==type(sphere())):
+                if (isinstance(wall_el, sphere)):
                     self.spheres.append(wall_el);
-                elif (type(wall_el)==type(cylinder())):
+                elif (isinstance(wall_el, cylinder)):
                     self.cylinders.append(wall_el);
-                elif (type(wall_el)==type(plane())):
+                elif (isinstance(wall_el, plane)):
                     self.planes.append(wall_el);
                 else:
                     print("Input of type "+str(type(wall_el))+" is not allowed. Skipping invalid list element...");
