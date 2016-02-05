@@ -10,6 +10,17 @@ context.initialize()
 
 #test wall.group()
 class wall_group_tests(unittest.TestCase):
+    def setUp(self):
+        snapshot = data.make_snapshot(N=2,
+                                      box=data.boxdim(L=20),
+                                      particle_types=['A']);
+
+        snapshot.particles.position[:] = [[0,0,-1], [0,0,1]];
+        init.read_snapshot(snapshot)
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
+
     # basic test of creation for walls structure
     def test(self):
         walls=wall.group();
@@ -20,10 +31,18 @@ class wall_group_tests(unittest.TestCase):
         walls.add_sphere(r=4, origin=(0.0, 0.0, 0.0), inside=True);
         walls.del_sphere(0);
 
+        lj_wall = wall.lj(walls);
+        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        run(1);
+
     def test_add_cylinder(self):
         walls=wall.group();
         walls.add_cylinder(r=4, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True);
         walls.del_cylinder(0);
+
+        lj_wall = wall.lj(walls);
+        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        run(1);
 
     def test_add_plane(self):
         walls=wall.group();
@@ -31,6 +50,19 @@ class wall_group_tests(unittest.TestCase):
         walls.add_plane(normal=(-1.0, 0.0, 0.0), origin=(4.0, 0.0, 0.0), inside=False);
         walls.del_plane([0,1]);
 
+        lj_wall = wall.lj(walls);
+        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        run(1);
+
+    def test_add_multiple(self):
+        walls = wall.group(wall.plane(origin=(0,0,4), normal=(0,0,-1)))
+
+        lj_wall = wall.lj(walls);
+        lj_wall.force_coeff.set('A', sigma=1.0, alpha=1.0)
+        run(1);
+
+    def tearDown(self):
+        init.reset();
 
 # test lj wall force in standard mode
 class wall_lj_tests (unittest.TestCase):
