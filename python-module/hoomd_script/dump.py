@@ -639,3 +639,7 @@ class pos(analyze._analyzer):
     def set_def(self, typ, shape):
         v = globals.system_definition.getParticleData().getTypeByName(typ);
         self.cpp_analyzer.setDef(v, shape)
+
+    def set_info(self, addInfo):
+        if addInfo is not None:
+            self.cpp_analyzer.setAddInfo(addInfo);
