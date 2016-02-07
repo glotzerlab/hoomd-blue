@@ -1280,7 +1280,13 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
-         }
+
+        // boost 1.60.0 compatibility
+        #if (BOOST_VERSION >= 106000)
+        register_ptr_to_python< boost::shared_ptr<T> >();
+        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        #endif
+        }
     else
         {
         // has Scalar values
@@ -1292,6 +1298,12 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
+
+        // boost 1.60.0 compatibility
+        #if (BOOST_VERSION >= 106000)
+        register_ptr_to_python< boost::shared_ptr<T> >();
+        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        #endif
         }
    }
 

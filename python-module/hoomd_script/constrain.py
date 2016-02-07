@@ -279,14 +279,14 @@ class sphere(_constraint_force):
 #
 # The constraint algorithm implemented is described in
 #
-# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations,” Mol. Simul., vol. 13, no. 6, pp. 395–405, 1994.
+# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul., vol. 13, no. 6, pp. 395--405, 1994.
 # and
-# [2] M. Yoneya, “A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations,” J. Comput. Phys., vol. 172, no. 1, pp. 188–197, Sep. 2001.
+# [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp. 188--197, Sep. 2001.
 #
-# In brief, a linear matrix equation is solved that is second order in the Lagrange multipliers, which guarantees that
-# both the distance constraint and there time derivatives are conserved within the accuracy of the Velocity
-# Verlet scheme, i.e. within \f$ \Delta t^2 \f$. Because constraints are satisfied at \f$ t + 2 \Delta t \f$, the scheme
-# is self-correcting and drifts are avoided.
+# In brief, the second derivative of the Lagrange multipliers with resepect to time is set to zero, such
+# that both the distance constraints and their time derivatives are conserved within the accuracy of the Velocity
+# Verlet scheme, i.e. within \f$ \Delta t^2 \f$. The corresponding linear system of equations is solved.
+# Because constraints are satisfied at \f$ t + 2 \Delta t \f$, the scheme is self-correcting and drifts are avoided.
 #
 # \note In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
 # Therefore, if molecules defined by constraints extend over more than half the local domain size, an error is raised.
