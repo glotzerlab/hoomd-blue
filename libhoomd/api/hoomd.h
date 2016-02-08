@@ -1,6 +1,6 @@
-/*
+>>/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -67,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
-#include "HOOMDBinaryInitializer.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
@@ -123,6 +122,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
+#include "MolecularForceCompute.h"
+#include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
 #include "PotentialTersoff.h"
@@ -160,6 +161,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ActiveForceComputeGPU.h"
+#include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "PPPMForceComputeGPU.h"

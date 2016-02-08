@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -680,7 +680,7 @@ int ExecutionConfiguration::guessLocalRank()
 
         // some SLURMs set LOCALID to 0 on all ranks, check for this
         MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Comm_size(m_mpi_comm, &num_total_ranks);
+        MPI_Comm_size(MPI_COMM_WORLD, &num_total_ranks);
         if (errors == num_total_ranks)
             {
             msg->notice(3) << "SLURM_LOCALID is 0 on all ranks" << std::endl;

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -88,6 +88,8 @@ Integrator::~Integrator()
         m_request_flags_connection.disconnect();
     if (m_callback_connection.connected())
         m_callback_connection.disconnect();
+    if (m_comm_callback_connection.connected())
+        m_comm_callback_connection.disconnect();
     #endif
     }
 
@@ -430,6 +432,14 @@ void Integrator::computeNetForce(unsigned int timestep)
     if (m_constraint_forces.size() == 0)
         return;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // communicate the net force
+        m_comm->updateNetForce(timestep);
+        }
+    #endif
+
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
@@ -452,7 +462,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
@@ -671,6 +681,14 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     if (m_constraint_forces.size() == 0)
         return;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // communicate the net force
+        m_comm->updateNetForce(timestep);
+        }
+    #endif
+
     // compute all the constraint forces next
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
@@ -692,9 +710,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
 
         // now, add up the accelerations
         // sum all the forces into the net force
@@ -872,6 +890,9 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
 
     if (! m_callback_connection.connected() && m_comm)
         m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
+
+    if (! m_comm_callback_connection.connected() && m_comm)
+        m_comm_callback_connection = comm->addCommunicationCallback(bind(&Integrator::ghostCommunicationCallback, this, _1));
     }
 
 void Integrator::computeCallback(unsigned int timestep)
@@ -881,11 +902,19 @@ void Integrator::computeCallback(unsigned int timestep)
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
+    }
 
-    // pre-compute all active constraint forces
+void Integrator::ghostCommunicationCallback(const GPUArray<unsigned int>& plans)
+    {
+    // identify additonal ghost particles
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        (*force_compute)->addGhostParticles(plans);
+
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->preCompute(timestep);
+        (*force_constraint)->addGhostParticles(plans);
     }
 #endif
 

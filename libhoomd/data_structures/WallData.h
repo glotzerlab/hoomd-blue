@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -58,9 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
-#include <cstdlib>
-#include <vector>
-#include <string.h>
 
 #ifdef NVCC
 #define DEVICE __device__
@@ -143,6 +140,8 @@ struct PlaneWall
     };
 
 //! Point to wall vector for a sphere wall geometry
+/* Returns 0 vector when all normal directions are equal
+*/
 DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
@@ -164,6 +163,8 @@ DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar
     };
 
 //! Point to wall vector for a cylinder wall geometry
+/* Returns 0 vector when all normal directions are equal
+*/
 DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;

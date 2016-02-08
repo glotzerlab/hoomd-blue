@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -77,11 +77,26 @@ Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& com
     }
 
 template<class group_data>
-void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
+void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete, bool local_multiple)
     {
     if (m_gdata->getNGlobal())
         {
         if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+
+            {
+            // wipe out reverse-lookup tag -> idx for old ghost groups
+            ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
+            for (unsigned int i = 0; i < m_gdata->getNGhosts(); i++)
+                {
+                unsigned int idx = m_gdata->getN() + i;
+                h_group_rtag.data[h_group_tag.data[idx]] = GROUP_NOT_LOCAL;
+                }
+            }
+
+
+        // remove ghost groups
+        m_gdata->removeAllGhostGroups();
 
         // send map for rank updates
         typedef std::multimap<unsigned int, rank_element_t> map_t;
@@ -386,7 +401,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
             {
             ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_group_type(m_gdata->getTypesArray(), access_location::host, access_mode::read);
+            ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::read);
@@ -419,7 +434,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                     // insert into send map
                     typename group_data::packed_t el;
                     el.tags = h_groups.data[group_idx];
-                    el.type = h_group_type.data[group_idx];
+                    el.typeval = h_group_typeval.data[group_idx];
                     el.group_tag = h_group_tag.data[group_idx];
                     el.ranks = h_group_ranks.data[group_idx];
 
@@ -437,7 +452,12 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                         unsigned int pidx = h_rtag.data[tag];
 
                         if (pidx != NOT_LOCAL && !h_comm_flags.data[pidx])
-                            is_local = true;
+                            {
+                            if (local_multiple || i == 0)
+                                {
+                                is_local = true;
+                                }
+                            }
                         }
 
                     // if group is no longer local, flag for removal
@@ -450,13 +470,13 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
         unsigned int new_ngroups;
             {
             ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_group_type(m_gdata->getTypesArray(), access_location::host, access_mode::read);
+            ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::read);
 
             // access alternate arrays to write to
             ArrayHandle<typename group_data::members_t> h_groups_alt(m_gdata->getAltMembersArray(), access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_group_type_alt(m_gdata->getAltTypesArray(), access_location::host, access_mode::overwrite);
+            ArrayHandle<typeval_t> h_group_typeval_alt(m_gdata->getAltTypeValArray(), access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_group_tag_alt(m_gdata->getAltTags(), access_location::host, access_mode::overwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks_alt(m_gdata->getAltRanksArray(), access_location::host, access_mode::overwrite);
 
@@ -473,7 +493,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                 if (keep)
                     {
                     h_groups_alt.data[n] = h_groups.data[group_idx];
-                    h_group_type_alt.data[n] = h_group_type.data[group_idx];
+                    h_group_typeval_alt.data[n] = h_group_typeval.data[group_idx];
                     h_group_tag_alt.data[n] = group_tag;
                     h_group_ranks_alt.data[n] = h_group_ranks.data[group_idx];
 
@@ -485,23 +505,18 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                 new_ngroups = n;
             }
 
-        // resize alternate arrays to number of groups
-        GPUVector<typename group_data::members_t>& alt_groups_array = m_gdata->getAltMembersArray();
-        GPUVector<unsigned int>& alt_group_type_array = m_gdata->getAltTypesArray();
-        GPUVector<unsigned int>& alt_group_tag_array = m_gdata->getAltTags();
-        GPUVector<typename group_data::ranks_t>& alt_group_ranks_array = m_gdata->getAltRanksArray();
-
-        assert(new_ngroups <= m_gdata->getN());
-        alt_groups_array.resize(new_ngroups);
-        alt_group_type_array.resize(new_ngroups);
-        alt_group_tag_array.resize(new_ngroups);
-        alt_group_ranks_array.resize(new_ngroups);
 
         // make alternate arrays current
         m_gdata->swapMemberArrays();
         m_gdata->swapTypeArrays();
         m_gdata->swapTagArrays();
         m_gdata->swapRankArrays();
+
+
+        assert(new_ngroups <= m_gdata->getN());
+
+        // resize group arrays
+        m_gdata->removeGroups(m_gdata->getN() - new_ngroups);
 
         assert(m_gdata->getN() == new_ngroups);
 
@@ -648,23 +663,23 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
         unsigned int n_recv_unique = recv_map.size();
 
         unsigned int old_ngroups = m_gdata->getN();
-        new_ngroups = old_ngroups + n_recv_unique;
 
         // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
+        m_gdata->addGroups(n_recv_unique);
+
         GPUVector<typename group_data::members_t>& groups_array = m_gdata->getMembersArray();
-        GPUVector<unsigned int>& group_type_array = m_gdata->getTypesArray();
+        GPUVector<typeval_t>& group_typeval_array = m_gdata->getTypeValArray();
         GPUVector<unsigned int>& group_tag_array = m_gdata->getTags();
         GPUVector<typename group_data::ranks_t>& group_ranks_array = m_gdata->getRanksArray();
 
-        groups_array.resize(new_ngroups);
-        group_type_array.resize(new_ngroups);
-        group_tag_array.resize(new_ngroups);
-        group_ranks_array.resize(new_ngroups);
+        unsigned int nremove = 0;
+
+        unsigned int myrank = m_exec_conf->getRank();
 
             {
             ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::members_t> h_groups(groups_array, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_group_type(group_type_array, access_location::host, access_mode::readwrite);
+            ArrayHandle<typeval_t> h_group_typeval(group_typeval_array, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_group_tag(group_tag_array, access_location::host, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> h_group_ranks(group_ranks_array, access_location::host, access_mode::readwrite);
 
@@ -677,28 +692,44 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                 unsigned int tag = el.group_tag;
                 unsigned int group_rtag = h_group_rtag.data[tag];
 
-                if (group_rtag == GROUP_NOT_LOCAL)
+                bool remove = false;
+                if (! local_multiple)
                     {
-                    h_groups.data[add_idx] = el.tags;
-                    h_group_type.data[add_idx] = el.type;
-                    h_group_tag.data[add_idx] = tag;
-                    h_group_ranks.data[add_idx] = el.ranks;
+                    // only add if we own the first particle
+                    assert(group_data::size);
+                    if (el.ranks.idx[0] != myrank)
+                        {
+                        remove = true;
+                        }
+                    }
 
-                    // update reverse-lookup table
-                    h_group_rtag.data[tag] = add_idx++;
+                if (!remove)
+                    {
+                    if (group_rtag == GROUP_NOT_LOCAL)
+                        {
+                        h_groups.data[add_idx] = el.tags;
+                        h_group_typeval.data[add_idx] = el.typeval;
+                        h_group_tag.data[add_idx] = tag;
+                        h_group_ranks.data[add_idx] = el.ranks;
+
+                        // update reverse-lookup table
+                        h_group_rtag.data[tag] = add_idx++;
+                        }
+                    else
+                        {
+                        remove = true;
+                        }
+                    }
+
+                if (remove)
+                    {
+                    nremove++;
                     }
                 }
-            new_ngroups = add_idx;
             }
 
         // resize arrays to final size
-        groups_array.resize(new_ngroups);
-        group_type_array.resize(new_ngroups);
-        group_tag_array.resize(new_ngroups);
-        group_ranks_array.resize(new_ngroups);
-
-        // indicate that group table has changed
-        m_gdata->setDirty();
+        m_gdata->removeGroups(nremove);
 
         if (m_comm.m_prof) m_comm.m_prof->pop();
         }
@@ -807,6 +838,264 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
         }
     }
 
+template<class group_data>
+void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
+    const GPUArray<unsigned int>& plans, unsigned int mask)
+    {
+    if (m_gdata->getNGlobal())
+        {
+        if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+
+        // send plan for groups
+        std::vector<unsigned int> group_plan(m_gdata->getN(), 0);
+
+            {
+            ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_plan(plans, access_location::host, access_mode::read);
+
+            unsigned int ngroups_local = m_gdata->getN();
+
+            unsigned int n_local = m_comm.m_pdata->getN();
+            unsigned int max_local = n_local + m_comm.m_pdata->getNGhosts();
+
+            for (unsigned int group_idx = 0; group_idx < ngroups_local; group_idx++)
+                {
+                typename group_data::members_t members = h_groups.data[group_idx];
+
+                assert(group_data::size);
+                unsigned int plan = 0;
+                for (unsigned int i = 0; i < group_data::size; ++i)
+                    {
+                    unsigned int tag = members.tag[i];
+                    unsigned int pidx = h_rtag.data[tag];
+
+                    if (i==0 && pidx >= n_local)
+                        {
+                        // only the rank that owns the first ptl of a group sends it as a ghost
+                        plan = 0;
+                        break;
+                        }
+
+                    assert(pidx != NOT_LOCAL);
+                    assert(pidx <= m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts());
+
+                    if (pidx >= max_local)
+                        {
+                        this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
+                        throw std::runtime_error("Error during communication");
+                        }
+
+                    plan |= h_plan.data[pidx];
+                    }
+
+                group_plan[group_idx] = plan;
+                } // end loop over groups
+            }
+
+
+        for (unsigned int dir = 0; dir < 6; dir++)
+            {
+            if (! m_comm.isCommunicating(dir) ) continue;
+
+            unsigned int send_neighbor = m_comm.m_decomposition->getNeighborRank(dir);
+
+            // we receive from the direction opposite to the one we send to
+            unsigned int recv_neighbor;
+            if (dir % 2 == 0)
+                recv_neighbor = m_comm.m_decomposition->getNeighborRank(dir+1);
+            else
+                recv_neighbor = m_comm.m_decomposition->getNeighborRank(dir-1);
+
+            /*
+             * Fill send buffers, exchange groups according to plans
+             */
+
+            // resize buffers
+            std::vector<unsigned int> plan_copybuf(m_gdata->getN(),0);
+            m_groups_sendbuf.resize(m_gdata->getN());
+            std::vector<unsigned int> copy_ghost_tags();
+            unsigned int num_copy_ghosts;
+            unsigned int num_recv_ghosts;
+
+            num_copy_ghosts = 0;
+
+            // resize array of ghost particle tags
+            unsigned int max_copy_ghosts = m_gdata->getN() + m_gdata->getNGhosts();
+
+            // resize buffers
+            plan_copybuf.resize(max_copy_ghosts);
+            m_groups_sendbuf.resize(max_copy_ghosts);
+
+
+                {
+                ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::read);
+                ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::read);
+
+                for (unsigned int idx = 0; idx < m_gdata->getN() + m_gdata->getNGhosts(); idx++)
+                    {
+                    if (group_plan[idx] & (1 << dir))
+                        {
+                        // send plan
+                        plan_copybuf[num_copy_ghosts] = group_plan[idx];
+
+                        // pack group
+                        typename group_data::packed_t el;
+                        el.tags = h_groups.data[idx];
+                        el.typeval = h_group_typeval.data[idx];
+                        el.group_tag = h_group_tag.data[idx];
+                        el.ranks = h_group_ranks.data[idx];
+
+                        m_groups_sendbuf[num_copy_ghosts] = el;
+                        num_copy_ghosts++;
+                        }
+                    }
+                }
+
+            if (m_comm.m_prof)
+                m_comm.m_prof->push("MPI send/recv");
+
+            // communicate size of the message that will contain the particle data
+            MPI_Request reqs[4];
+            MPI_Status status[4];
+
+            MPI_Isend(&num_copy_ghosts,
+                sizeof(unsigned int),
+                MPI_BYTE,
+                send_neighbor,
+                0,
+                m_comm.m_mpi_comm,
+                &reqs[0]);
+            MPI_Irecv(&num_recv_ghosts,
+                sizeof(unsigned int),
+                MPI_BYTE,
+                recv_neighbor,
+                0,
+                m_comm.m_mpi_comm,
+                &reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            if (m_comm.m_prof)
+                m_comm.m_prof->pop();
+
+            // append ghosts at the end of particle data array
+            unsigned int start_idx = m_gdata->getN() + m_gdata->getNGhosts();
+
+            // resize plan array
+            group_plan.resize(m_gdata->getN() + m_gdata->getNGhosts()+ num_recv_ghosts);
+
+            // resize recv buf
+            m_groups_recvbuf.resize(num_recv_ghosts);
+
+            // exchange group data, write directly to the particle data arrays
+            if (m_comm.m_prof)
+                m_comm.m_prof->push("MPI send/recv");
+
+                {
+                MPI_Isend(&plan_copybuf.front(),
+                    num_copy_ghosts*sizeof(unsigned int),
+                    MPI_BYTE,
+                    send_neighbor,
+                    1,
+                    m_comm.m_mpi_comm,
+                    &reqs[0]);
+                MPI_Irecv(&group_plan.front()+ start_idx,
+                    num_recv_ghosts*sizeof(unsigned int),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    1,
+                    m_comm.m_mpi_comm,
+                    &reqs[1]);
+
+                MPI_Isend(&m_groups_sendbuf.front(),
+                    num_copy_ghosts*sizeof(typename group_data::packed_t),
+                    MPI_BYTE,
+                    send_neighbor,
+                    2,
+                    m_comm.m_mpi_comm,
+                    &reqs[2]);
+                MPI_Irecv(&m_groups_recvbuf.front(),
+                    num_recv_ghosts*sizeof(typename group_data::packed_t),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    2,
+                    m_comm.m_mpi_comm,
+                    &reqs[3]);
+                MPI_Waitall(4, reqs, status);
+                }
+
+            if (m_comm.m_prof)
+                m_comm.m_prof->pop();
+
+            unsigned int old_n_ghost = m_gdata->getNGhosts();
+
+            // accommodate new ghost particles
+            m_gdata->addGhostGroups(num_recv_ghosts);
+
+            unsigned int added_groups = 0;
+                {
+                // access group data
+                ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(), access_location::host, access_mode::readwrite);
+                ArrayHandle<typeval_t> h_group_typeval(m_gdata->getTypeValArray(), access_location::host, access_mode::readwrite);
+                ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(), access_location::host, access_mode::readwrite);
+                ArrayHandle<typename group_data::ranks_t> h_group_ranks(m_gdata->getRanksArray(), access_location::host, access_mode::readwrite);
+                ArrayHandle<unsigned int> h_group_rtag(m_gdata->getRTags(), access_location::host, access_mode::readwrite);
+
+                // access particle data
+                ArrayHandle<unsigned int> h_rtag(m_comm.m_pdata->getRTags(), access_location::host, access_mode::read);
+
+                unsigned int max_local = m_comm.m_pdata->getN() + m_comm.m_pdata->getNGhosts();
+
+                // unpack group buffer
+                for (unsigned int i = 0; i < num_recv_ghosts; i++)
+                    {
+                    typename group_data::packed_t el = m_groups_recvbuf[i];
+                    if (h_group_rtag.data[el.group_tag] != GROUP_NOT_LOCAL)
+                        continue;
+
+                    bool has_nonlocal_members = false;
+                    for (unsigned int j = 0; j < group_data::size; ++j)
+                        {
+                        unsigned int tag = el.tags.tag[j];
+                        assert(tag <= m_comm.m_pdata->getMaximumTag());
+                        if (h_rtag.data[tag] >= max_local)
+                            {
+                            has_nonlocal_members = true;
+                            break;
+                            }
+                        }
+
+                    // omit nonlocal groups
+                    if (has_nonlocal_members)
+                        continue;
+
+                    h_groups.data[start_idx + added_groups] = el.tags;
+                    h_group_typeval.data[start_idx + added_groups] = el.typeval;
+                    h_group_tag.data[start_idx + added_groups] = el.group_tag;
+                    h_group_ranks.data[start_idx + added_groups] = el.ranks;
+                    h_group_rtag.data[el.group_tag] = start_idx+added_groups;
+
+                    added_groups++;
+                    }
+                }
+
+            // update ghost group number
+            m_gdata->removeAllGhostGroups();
+            m_gdata->addGhostGroups(old_n_ghost+added_groups);
+            } // end loop over direction
+
+        if (m_comm.m_prof)
+            m_comm.m_prof->pop();
+
+        // notify subscribers that group order has changed
+        m_gdata->notifyGroupReorder();
+
+        } // end if groups exist
+    }
+
+
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<DomainDecomposition> decomposition)
@@ -826,6 +1115,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_orientation_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
+            m_netforce_copybuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
             m_plan(m_exec_conf),
             m_last_flags(0),
@@ -834,6 +1124,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_angle_comm(*this, m_sysdef->getAngleData()),
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
             m_improper_comm(*this, m_sysdef->getImproperData()),
+            m_constraint_comm(*this, m_sysdef->getConstraintData()),
             m_is_first_step(true)
     {
     // initialize array of neighbor processor ids
@@ -883,6 +1174,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_impropers_changed = true;
     m_improper_connection = m_sysdef->getImproperData()->connectGroupNumChange(boost::bind(&Communicator::setImpropersChanged, this));
 
+    m_constraints_changed = true;
+    m_constraint_connection= m_sysdef->getConstraintData()->connectGroupNumChange(boost::bind(&Communicator::setConstraintsChanged, this));
+
     // allocate memory
     GPUArray<unsigned int> neighbors(NEIGH_MAX,m_exec_conf);
     m_neighbors.swap(neighbors);
@@ -931,6 +1225,7 @@ Communicator::~Communicator()
     m_angle_connection.disconnect();
     m_dihedral_connection.disconnect();
     m_improper_connection.disconnect();
+    m_constraint_connection.disconnect();
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1064,11 +1359,8 @@ void Communicator::communicate(unsigned int timestep)
         m_compute_callbacks(timestep);
         }
 
-    // other functions involving syncing
-    m_comm_callbacks(timestep);
-
     // distance check (synchronizes the GPU execution stream)
-    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+    bool migrate = m_migrate_requests(timestep) || m_force_migrate || m_is_first_step;
 
     if (!precompute && !migrate)
         {
@@ -1151,20 +1443,24 @@ void Communicator::migrateParticles()
          * Bonded group communication, determine groups to be sent
          */
         // Bonds
-        m_bond_comm.migrateGroups(m_bonds_changed);
+        m_bond_comm.migrateGroups(m_bonds_changed, true);
         m_bonds_changed = false;
 
         // Angles
-        m_angle_comm.migrateGroups(m_angles_changed);
+        m_angle_comm.migrateGroups(m_angles_changed, true);
         m_angles_changed = false;
 
         // Dihedrals
-        m_dihedral_comm.migrateGroups(m_dihedrals_changed);
+        m_dihedral_comm.migrateGroups(m_dihedrals_changed, true);
         m_dihedrals_changed = false;
 
         // Dihedrals
-        m_improper_comm.migrateGroups(m_impropers_changed);
+        m_improper_comm.migrateGroups(m_impropers_changed, true);
         m_impropers_changed = false;
+
+        // Constraints
+        m_constraint_comm.migrateGroups(m_constraints_changed, true);
+        m_constraints_changed = false;
 
         // fill send buffer
         std::vector<unsigned int> comm_flag_out; // not currently used
@@ -1272,11 +1568,6 @@ void Communicator::exchangeGhosts()
         }
 
     /*
-     * Mark particles that are part of incomplete bonds for sending
-     */
-    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-    /*
      * Mark non-bonded atoms for sending
      */
     updateGhostWidth();
@@ -1342,6 +1633,12 @@ void Communicator::exchangeGhosts()
 
     // impropers
     m_improper_comm.markGhostParticles(m_plan,mask);
+
+    // constraints
+    m_constraint_comm.markGhostParticles(m_plan, mask);
+
+    // mark additional ghost particles requested by ForceComputes
+    m_comm_callbacks(m_plan);
 
     /*
      * Fill send buffers, exchange particles according to plans
@@ -1638,6 +1935,9 @@ void Communicator::exchangeGhosts()
             }
         } // end dir loop
 
+    // exchange ghost constraints along with ghost particles
+    m_constraint_comm.exchangeGhostGroups(m_plan, mask);
+
     m_last_flags = flags;
 
     if (m_prof)
@@ -1817,6 +2117,96 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
         if (m_prof)
             m_prof->pop();
     }
+
+void Communicator::updateNetForce(unsigned int timestep)
+    {
+    CommFlags flags = getFlags();
+    if (! flags[comm_flag::net_force])
+        return;
+
+    // we have a current m_copy_ghosts liss which contain the indices of particles
+    // to send to neighboring processors
+    if (m_prof)
+        m_prof->push("comm_ghost_net_force");
+
+    m_exec_conf->msg->notice(7) << "Communicator: update net force" << std::endl;
+
+    // update data in these arrays
+
+    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+
+    m_netforce_copybuf.clear();
+
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        if (! isCommunicating(dir) ) continue;
+
+        // resize send buffer
+        unsigned int old_size = m_netforce_copybuf.size();
+        m_netforce_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+
+            {
+            ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_netforce_copybuf(m_netforce_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            // copy net forces of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy net force into send buffer
+                h_netforce_copybuf.data[ghost_idx] = h_netforce.data[idx];
+                }
+            }
+
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+
+        // we receive from the direction opposite to the one we send to
+        unsigned int recv_neighbor;
+        if (dir % 2 == 0)
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+        else
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
+
+        unsigned int start_idx;
+
+        if (m_prof)
+            m_prof->push("MPI send/recv");
+
+        start_idx = m_pdata->getN() + num_tot_recv_ghosts;
+
+        num_tot_recv_ghosts += m_num_recv_ghosts[dir];
+
+        size_t sz = 0;
+            {
+            MPI_Request reqs[2];
+            MPI_Status status[2];
+
+            ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_netforce_copybuf(m_netforce_copybuf, access_location::host, access_mode::read);
+
+            // exchange particle data, write directly to the particle data arrays
+            MPI_Isend(h_netforce_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_netforce.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            sz += sizeof(Scalar4);
+            }
+
+        if (m_prof)
+            m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sz);
+
+        } // end dir loop
+
+        if (m_prof)
+            m_prof->pop();
+    }
+
 
 void Communicator::removeGhostParticleTags()
     {

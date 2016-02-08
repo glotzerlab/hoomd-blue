@@ -365,6 +365,41 @@ class bond_data_access_tests (unittest.TestCase):
         with self.assertRaises(RuntimeError):
             ptag = self.s.bonds[l_bonds-1].a
 
+    # tests constraints
+    def test_constraints(self):
+        self.assertEqual(0, len(self.s.constraints));
+
+        # add some constraints
+        b0 = self.s.constraints.add(0, 1,1.5);
+        self.assertEqual(1, len(self.s.constraints));
+        b1 = self.s.constraints.add(10, 11,2.5);
+        self.assertEqual(2, len(self.s.constraints));
+        b2 = self.s.constraints.add(50, 20,3.5);
+        self.assertEqual(3, len(self.s.constraints));
+
+        # check that we can get all constraint parameters
+        for c in self.s.constraints:
+            c.d
+            c.a
+            c.b
+
+        ####################################
+        # test deletion by tag
+        self.s.constraints.remove(b1);
+        self.assertEqual(2, len(self.s.constraints));
+
+        # test deletion by index (check constraint a value to delete the constraint with a=0)
+        if self.s.constraints[0].tag == b0:
+            del self.s.constraints[0];
+        else:
+            del self.s.constraints[1];
+
+        self.assertEqual(b2, self.s.constraints[0].tag);
+        self.assertEqual(b2, self.s.constraints.get(b2).tag);
+        self.assertEqual(50, self.s.constraints[0].a);
+        self.assertEqual(20, self.s.constraints[0].b);
+        self.assertEqual(3.5, self.s.constraints[0].d)
+
     def tearDown(self):
         del self.s
         init.reset();

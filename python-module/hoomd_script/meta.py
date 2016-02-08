@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -178,7 +178,9 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
 
     # dump to JSON
     meta_str = json.dumps(metadata,default=default_handler,indent=indent)
-    if filename is not None:
+
+    # only write files on rank 0
+    if filename is not None and hoomd_script.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             file.write(meta_str)
     return json.loads(meta_str)

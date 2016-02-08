@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -21,10 +21,10 @@
 # * All publications and presentations based on HOOMD-blue, including any reports
 # or published results obtained, in whole or in part, with HOOMD-blue, will
 # acknowledge its use according to the terms posted at the time of submission on:
-# http:/\codeblue.umich.edu/hoomd-blue/citations.html
+# http://codeblue.umich.edu/hoomd-blue/citations.html
 
 # * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http:/\codeblue.umich.edu/hoomd-blue/
+# http://codeblue.umich.edu/hoomd-blue/
 
 # * Apart from the above required attributions, neither the name of the copyright
 # holder nor the names of HOOMD-blue's contributors may be used to endorse or
@@ -196,7 +196,7 @@ import math;
 # [0:	Radius=4.0	Origin=(1.0, 2.0, 1.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
 # planes:0{}
 # \endcode
-class group():
+class group(object):
 
     ## Creates the wall group which can be named to easily find in the metadata.
     # Required to call and create an object before walls can be added to that
@@ -223,19 +223,19 @@ class group():
     # hoomd_script.wall.plane plane\endlink, and lists of any
     # combination of these.
     def add(self,wall,index=False):
-        if (type(wall)==type(sphere())):
+        if (isinstance(wall, sphere)):
             self.spheres.append(wall);
-        elif (type(wall)==type(cylinder())):
+        elif (isinstance(wall, cylinder)):
             self.cylinders.append(wall);
-        elif (type(wall)==type(plane())):
+        elif (isinstance(wall, plane)):
             self.planes.append(wall);
         elif (type(wall)==list):
             for wall_el in wall:
-                if (type(wall_el)==type(sphere())):
+                if (isinstance(wall_el, sphere)):
                     self.spheres.append(wall_el);
-                elif (type(wall_el)==type(cylinder())):
+                elif (isinstance(wall_el, cylinder)):
                     self.cylinders.append(wall_el);
-                elif (type(wall_el)==type(plane())):
+                elif (isinstance(wall_el, plane)):
                     self.planes.append(wall_el);
                 else:
                     print("Input of type "+str(type(wall_el))+" is not allowed. Skipping invalid list element...");
@@ -386,7 +386,7 @@ class group():
 # planes:1{
 # [0:	Origin=(-3.0, 0.0, 0.0)	Normal=(1.0, 0.0, 0.0)]}
 # \endcode
-class sphere:
+class sphere(object):
     ## Creates a sphere wall definition.
     # \param r Sphere radius (in distance units)\n <i>Default : 0.0</i>
     # \param origin Sphere origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
@@ -418,7 +418,7 @@ class sphere:
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
-class cylinder:
+class cylinder(object):
     ## Creates a cylinder wall definition.
     # \param r Cylinder radius (in distance units)\n <i>Default : 0.0</i>
     # \param origin Cylinder origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
@@ -459,7 +459,7 @@ class cylinder:
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
-class plane:
+class plane(object):
     ## Creates a plane wall definition.
     # \param origin Plane origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
     # \param normal Plane normal vector (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 1.0)</i>
@@ -695,7 +695,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -739,7 +739,7 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_walls_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
@@ -799,7 +799,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -843,7 +843,7 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_walls_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -890,7 +890,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_walls_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -939,7 +939,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_walls_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -991,4 +991,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_walls_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return hoomd.make_wall_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);

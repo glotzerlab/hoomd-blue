@@ -1,18 +1,12 @@
 # Maintainer: joaander
 
-##################################
-## find the threads library
-find_package(Threads)
-
 include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
 
 ################################
 ## Define common libraries used by every target in HOOMD
-set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
+set(BOOST_LIBS
         ${Boost_FILESYSTEM_LIBRARY}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
         ${Boost_SIGNALS_LIBRARY}
-        ${Boost_IOSTREAMS_LIBRARY}
         )
 
 string(TOUPPER ${BOOST_PYTHON_COMPONENT} UPPER_BOOST_PYTHON_COMPONENT )
@@ -43,13 +37,16 @@ endif (UNIX AND NOT APPLE)
 set(HOOMD_COMMON_LIBS
         ${HOOMD_PYTHON_LIBRARY}
         ${BOOST_LIBS}
-        ${CMAKE_THREAD_LIBS_INIT}
         ${ZLIB_LIBRARIES}
         ${ADDITIONAL_LIBS}
         )
 
 if (ENABLE_CUDA)
+    if (NOT CUSOLVER_AVAILABLE)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY})
+    else()
+    list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
+    endif()
 
     if (ENABLE_NVTOOLS)
         list(APPEND HOOMD_COMMON_LIBS ${CUDA_nvToolsExt_LIBRARY})

@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -106,7 +106,7 @@ import hoomd_script
 ## \internal
 # \brief Generic neighbor list object
 #
-# Any bonds defined in the simulation are automatically used to exclude bonded particle
+# Any bonds and constraints defined in the simulation are automatically used to exclude the linked particle
 # pairs from appearing in the neighbor list. Use the command reset_exclusions() to change this behavior.
 #
 # Neighborlists are properly and efficiently calculated in 2D simulations if the z dimension of the box is small,
@@ -180,7 +180,7 @@ class _nlist:
             util._disable_status_lines = False;
         elif not self.is_exclusion_overridden:
             util._disable_status_lines = True;
-            self.reset_exclusions(exclusions=['body', 'bond']);
+            self.reset_exclusions(exclusions=['body', 'bond','constraint']);
             util._disable_status_lines = False;
 
 
@@ -254,16 +254,18 @@ class _nlist:
     #
     # By default, the following are excluded from short range %pair interactions.
     # - Directly bonded particles
+    # - Directly constrained particles
     # - Particles that are in the same rigid body
     #
     # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
-    # the exclusion for bonded particles.
+    # the exclusion for bonded or constrained particles.
     #
     # Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
     # All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
     #
     # Valid types are:
     # - \b %bond - Exclude particles that are directly bonded together
+    # - \b %constraint - Exclude particles that are directly constrained
     # - \b %angle - Exclude the two outside particles in all defined angles.
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
     # - \b %body - Exclude particles that belong to the same body
@@ -280,6 +282,7 @@ class _nlist:
     # nl.reset_exclusions(exclusions = ['1-2'])
     # nl.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
     # nl.reset_exclusions(exclusions = ['bond', 'angle'])
+    # nl.reset_exclusions(exclusions = ['bond', 'angle','constraint'])
     # nl.reset_exclusions(exclusions = [])
     # \endcode
     #
@@ -319,6 +322,10 @@ class _nlist:
         if 'body' in exclusions:
             self.cpp_nlist.setFilterBody(True);
             exclusions.remove('body');
+
+        if 'constraint' in exclusions:
+            self.cpp_nlist.addExclusionsFromConstraints();
+            exclusions.remove('constraint');
 
         # exclusions given in 1-2/1-3/1-4 notation.
         if '1-2' in exclusions:

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -220,6 +220,10 @@ class ComputeThermo : public Compute
         */
         Scalar getRotationalKineticEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
             if (flags[pdata_flag::rotational_kinetic_energy])
@@ -238,6 +242,10 @@ class ComputeThermo : public Compute
         */
         Scalar getKineticEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             // return only translational component if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);

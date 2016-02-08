@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,6 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Maintainer: baschult
 
+// this include is necessary to get MPI included before anything else to support intel MPI
+#include "ExecutionConfiguration.h"
 
 #include <iostream>
 

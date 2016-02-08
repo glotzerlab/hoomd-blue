@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -171,7 +171,7 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 */
 void ConstraintSphere::validate()
     {
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -235,7 +235,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         bond_virial[i]=Scalar(0.0);
 
     ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_type(m_bond_data->getTypesArray(), access_location::host, access_mode::read);
+    ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
 
@@ -293,7 +293,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         Scalar rsq = dot(dx,dx);
 
         // get parameters for this bond type
-        param_type param = h_params.data[h_type.data[i]];
+        param_type param = h_params.data[h_typeval.data[i].type];
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
@@ -388,6 +388,11 @@ template < class T > void export_PotentialBond(const std::string& name)
         (name.c_str(), init< boost::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr<T> >();
+    #endif
     }
 
 #endif
