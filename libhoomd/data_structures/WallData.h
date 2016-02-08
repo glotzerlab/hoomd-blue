@@ -140,6 +140,8 @@ struct PlaneWall
     };
 
 //! Point to wall vector for a sphere wall geometry
+/* Returns 0 vector when all normal directions are equal
+*/
 DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
@@ -161,6 +163,8 @@ DEVICE inline vec3<Scalar> vecPtToWall(const SphereWall& wall, const vec3<Scalar
     };
 
 //! Point to wall vector for a cylinder wall geometry
+/* Returns 0 vector when all normal directions are equal
+*/
 DEVICE inline vec3<Scalar> vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;

@@ -2,7 +2,8 @@
 
 [TOC]
 
-The following conventions apply to all code written in HOOMD-blue, whether it be C++, python, CMake, etc. Pull requests will not be accepted and feature branches will not be merged unless these conventions are followed.
+The following conventions apply to all code written in HOOMD-blue, whether it be C++, python, CMake, etc. Pull requests
+will not be accepted and feature branches will not be merged unless these conventions are followed.
 
 ## Indentation
 
@@ -107,7 +108,7 @@ cout << "This is a really long message, with "
 
 ```
 #!c++
-cout << "This is a really long message, with " << message.length() << "Characters in it:" 
+cout << "This is a really long message, with " << message.length() << "Characters in it:"
    << message << endl;
 ```
 
@@ -132,15 +133,15 @@ int some_really_long_function_name(int with_really_long, Foo argument, Bar lists
 // go from
 int some_really_long_function_name(int with_really_long_arguments, int or, int maybe, float there, char are, int just, float a, int lot, char of, int them)
 // to
-int some_really_long_function_name(int with_really_long_arguments, 
-                                   int or, 
-                                   int maybe, 
-                                   float there, 
-                                   char are, 
-                                   int just, 
-                                   float a, 
-                                   int lot, 
-                                   char of, 
+int some_really_long_function_name(int with_really_long_arguments,
+                                   int or,
+                                   int maybe,
+                                   float there,
+                                   char are,
+                                   int just,
+                                   float a,
+                                   int lot,
+                                   char of,
                                    int them)
 ```
 
@@ -226,48 +227,48 @@ The cc-mode that is used by default in Emacs and XEmacs for c/cpp code has a pre
 ;; define hoomd-indentation style. this is a modified version of the "whitesmith" style.
 (defconst my-hoomd-style
   '((c-tab-always-indent        . t)
-    (c-basic-offset . 4) 
+    (c-basic-offset . 4)
     (c-comment-only-line-offset . 0)
-    (c-offsets-alist 
-     (knr-argdecl-intro . +) 
-     (label . 0) 
-     (statement-cont . +) 
-     (substatement-open . +) 
-     (substatement-label . +) 
-     (block-open . +) 
-     (statement-block-intro . c-lineup-whitesmith-in-block) 
-     (block-close . c-lineup-whitesmith-in-block) 
-     (inline-open . +) 
-     (defun-open . +) 
-     (defun-block-intro . c-lineup-whitesmith-in-block) 
-     (defun-close . c-lineup-whitesmith-in-block) 
-     (brace-list-open . +) 
-     (brace-list-intro . c-lineup-whitesmith-in-block) 
-     (brace-entry-open . c-indent-multi-line-block) 
-     (brace-list-close . c-lineup-whitesmith-in-block) 
-     (class-open . +) 
-     (inclass . +) 
-     (class-close . +) 
-     (inexpr-class . +) 
+    (c-offsets-alist
+     (knr-argdecl-intro . +)
+     (label . 0)
+     (statement-cont . +)
+     (substatement-open . +)
+     (substatement-label . +)
+     (block-open . +)
+     (statement-block-intro . c-lineup-whitesmith-in-block)
+     (block-close . c-lineup-whitesmith-in-block)
+     (inline-open . +)
+     (defun-open . +)
+     (defun-block-intro . c-lineup-whitesmith-in-block)
+     (defun-close . c-lineup-whitesmith-in-block)
+     (brace-list-open . +)
+     (brace-list-intro . c-lineup-whitesmith-in-block)
+     (brace-entry-open . c-indent-multi-line-block)
+     (brace-list-close . c-lineup-whitesmith-in-block)
+     (class-open . +)
+     (inclass . +)
+     (class-close . +)
+     (inexpr-class . +)
      (access-label . -)
-     (extern-lang-open . +) 
-     (inextern-lang . c-lineup-whitesmith-in-block) 
-     (extern-lang-close . +) 
-     (namespace-open . +) 
-     (innamespace . c-lineup-whitesmith-in-block) 
-     (namespace-close . +) 
-     (module-open . +) 
-     (inmodule . c-lineup-whitesmith-in-block) 
-     (module-close . +) 
-     (composition-open . +) 
-     (incomposition . c-lineup-whitesmith-in-block) 
+     (extern-lang-open . +)
+     (inextern-lang . c-lineup-whitesmith-in-block)
+     (extern-lang-close . +)
+     (namespace-open . +)
+     (innamespace . c-lineup-whitesmith-in-block)
+     (namespace-close . +)
+     (module-open . +)
+     (inmodule . c-lineup-whitesmith-in-block)
+     (module-close . +)
+     (composition-open . +)
+     (incomposition . c-lineup-whitesmith-in-block)
      (composition-close . +)
      )
     (c-echo-syntactic-information-p . t))
     "HOOMD-blue Programming Style")
 
 (require 'cc-mode)
-(c-add-style "hoomd" my-hoomd-style) 
+(c-add-style "hoomd" my-hoomd-style)
 
 ;; define customization function
 (defun my-c-mode-common-hook ()

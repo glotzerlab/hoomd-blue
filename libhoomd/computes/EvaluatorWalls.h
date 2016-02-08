@@ -160,9 +160,19 @@ class EvaluatorWalls
 
             if (evaluated)
                 {
+                // correctly result in a 0 force in this case
+                #ifdef NVCC
+                if (!isfinite(force_divr))
+                #else
+                if (!std::isfinite(force_divr))
+                #endif
+                    {
+                        force_divr = Scalar(0.0);
+                        pair_eng = Scalar(0.0);
+                    }
                 // add the force and potential energy to the particle i
                 F += dr*force_divr;
-                energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 }
             }
 
@@ -184,9 +194,21 @@ class EvaluatorWalls
             if (evaluated)
                 {
                 // add the force and potential energy to the particle i
-                energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                pair_eng = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
-                F += dr * force_divr;
+                // correctly result in a 0 force in this case
+                #ifdef NVCC
+                if (!isfinite(force_divr))
+                #else
+                if (!std::isfinite(force_divr))
+                #endif
+                    {
+                        force_divr = Scalar(0.0);
+                        pair_eng = Scalar(0.0);
+                    }
+                // add the force and potential energy to the particle i
+                F += dr*force_divr;
+                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 }
             }
 
@@ -331,7 +353,7 @@ class EvaluatorWalls
         */
         static std::string getName()
             {
-            return std::string("walls_") + evaluator::getName();
+            return std::string("wall_") + evaluator::getName();
             }
         #endif
 
