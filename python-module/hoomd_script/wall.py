@@ -196,7 +196,7 @@ import math;
 # [0:	Radius=4.0	Origin=(1.0, 2.0, 1.0)	Axis=(0.0, 0.0, 1.0)	Inside=True]}
 # planes:0{}
 # \endcode
-class group():
+class group(object):
 
     ## Creates the wall group which can be named to easily find in the metadata.
     # Required to call and create an object before walls can be added to that
@@ -386,7 +386,7 @@ class group():
 # planes:1{
 # [0:	Origin=(-3.0, 0.0, 0.0)	Normal=(1.0, 0.0, 0.0)]}
 # \endcode
-class sphere:
+class sphere(object):
     ## Creates a sphere wall definition.
     # \param r Sphere radius (in distance units)\n <i>Default : 0.0</i>
     # \param origin Sphere origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
@@ -418,7 +418,7 @@ class sphere:
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
-class cylinder:
+class cylinder(object):
     ## Creates a cylinder wall definition.
     # \param r Cylinder radius (in distance units)\n <i>Default : 0.0</i>
     # \param origin Cylinder origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
@@ -459,7 +459,7 @@ class cylinder:
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
 # For an example see \link hoomd_script.wall.sphere sphere\endlink.
-class plane:
+class plane(object):
     ## Creates a plane wall definition.
     # \param origin Plane origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
     # \param normal Plane normal vector (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 1.0)</i>
