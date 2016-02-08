@@ -21,13 +21,6 @@ class integrate_nvt_tests (unittest.TestCase):
         integrate.nvt(all, T=1.2, tau=0.5);
         run(100);
 
-    # tests mtk=False
-    def test_no_mtk(self):
-        all = group.all();
-        integrate.mode_standard(dt=0.005);
-        integrate.nvt(all, T=1.2, tau=0.5, mtk=False);
-        run(100);
-
     # test set_params
     def test_set_params(self):
         all = group.all();

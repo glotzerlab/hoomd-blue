@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "HOOMDInitializer.h"
 #include "NeighborListBinned.h"
-#include "TwoStepNVT.h"
+#include "TwoStepNVTMTK.h"
 #include "ComputeThermo.h"
 
 #ifdef ENABLE_CUDA
@@ -123,7 +123,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     boost::shared_ptr<Variant> T(new VariantConst(1.0));
     boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
-    boost::shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, thermo, 0.5, T));
+    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
     boost::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));

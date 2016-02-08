@@ -101,7 +101,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
-#include "TwoStepNVT.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepBerendsen.h"
@@ -134,7 +133,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda.h>
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
-#include "TwoStepNVTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepBerendsenGPU.h"

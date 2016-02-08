@@ -103,7 +103,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
-#include "TwoStepNVT.h"
 #include "TwoStepNVTMTK.h"
 #include "TwoStepLangevinBase.h"
 #include "TwoStepLangevin.h"
@@ -142,7 +141,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda.h>
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
-#include "TwoStepNVTGPU.h"
 #include "TwoStepLangevinGPU.h"
 #include "TwoStepBDGPU.h"
 #include "TwoStepNPTMTKGPU.h"
@@ -729,7 +727,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SFCPackUpdater();
     export_BoxResizeUpdater();
     export_TwoStepNVE();
-    export_TwoStepNVT();
     export_TwoStepNVTMTK();
     export_TwoStepLangevinBase();
     export_TwoStepLangevin();
@@ -748,7 +745,6 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_CUDA
     export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
-    export_TwoStepNVTGPU();
     export_TwoStepNVTMTKGPU();
     export_TwoStepLangevinGPU();
     export_TwoStepBDGPU();
@@ -845,7 +841,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< System > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVT > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
@@ -914,7 +909,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTKGPU > >();
