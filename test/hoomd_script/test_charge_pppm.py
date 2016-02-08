@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -26,10 +27,10 @@ class charge_pppm_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
-        
+
         del all
         del c
-        
+
 
     # Cannot test pppm multiple times currently because of implementation limitations
     ## test missing coefficients

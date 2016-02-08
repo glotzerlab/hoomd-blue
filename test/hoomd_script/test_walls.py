@@ -2,11 +2,10 @@
 # Maintainer: jproc
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 import numpy as np
-
-context.initialize()
 
 #test wall.group()
 class wall_group_tests(unittest.TestCase):

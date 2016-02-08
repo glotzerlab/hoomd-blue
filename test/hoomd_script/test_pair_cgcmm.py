@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -35,7 +36,7 @@ class pair_cgcmm_tests (unittest.TestCase):
         cgcmm = pair.cgcmm(r_cut=2.5);
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
-    
+
     # test nlist subscribe
     def test_nlist_subscribe(self):
         nl = nlist.cell()
