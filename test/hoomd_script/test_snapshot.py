@@ -126,6 +126,15 @@ class init_take_restore_snapshot (unittest.TestCase):
         self.s.restore_snapshot(snapshot)
         self.assertEqual(len(self.s.particles), l_new)
 
+    # test what happens when no bond snapshot is requested
+    def test_no_bonds(self):
+        snap = self.s.take_snapshot(particles=False, bonds=False, rigid_bodies=False, integrators=False);
+        self.assertEqual(len(snap.particles.types), 0);
+        self.assertEqual(len(snap.bonds.types), 0);
+        self.assertEqual(len(snap.impropers.types), 0);
+        self.assertEqual(len(snap.angles.types), 0);
+        self.assertEqual(len(snap.dihedrals.types), 0);
+
     def tearDown(self):
         del self.s
         init.reset();

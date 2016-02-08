@@ -33,6 +33,15 @@ class init_create_random_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         self.assertRaises(RuntimeError, init.create_random, N=100, phi_p=0.05);
 
+    # test that angle,dihedral, and improper types are initialized correctly
+    def test_angleA(self):
+        s = init.create_random(N=100, phi_p=0.05);
+        snap = s.take_snapshot(all=True);
+        self.assertEqual(len(snap.bonds.types), 0);
+        self.assertEqual(len(snap.impropers.types), 0);
+        self.assertEqual(len(snap.angles.types), 0);
+        self.assertEqual(len(snap.dihedrals.types), 0);
+
     def tearDown(self):
         init.reset();
 
