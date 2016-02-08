@@ -489,6 +489,7 @@ def tag_list(name, tags):
 # \endcode
 def type(type, name=None, update=False):
     util.print_status_line();
+    type = str(type);
 
     # check if initialization has occurred
     if not init.is_initialized():

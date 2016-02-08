@@ -1110,6 +1110,7 @@ class langevin(_integration_method):
     def set_gamma(self, a, gamma):
         util.print_status_line();
         self.check_initialization();
+        a = str(a);
 
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1248,6 +1249,7 @@ class brownian(_integration_method):
     def set_gamma(self, a, gamma):
         util.print_status_line();
         self.check_initialization();
+        a = str(a);
 
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1562,6 +1564,7 @@ class bdnvt_rigid(_integration_method):
     def set_gamma(self, a, gamma):
         util.print_status_line();
         self.check_initialization();
+        a = str(a);
 
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];

@@ -150,6 +150,8 @@ class coeff:
     ## \internal
     # \brief Sets a single parameter
     def set_single(self, type, coeffs):
+        type = str(type);
+
         # create the type identifier if it hasn't been created yet
         if (not type in self.values):
             self.values[type] = {};
@@ -620,7 +622,7 @@ class opls(force._force):
             if not cur_type in self.opls_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in dihedral.opls\n");
                 raise RuntimeError("Error updating coefficients");
-                
+
     ## \internal
     # \brief Get metadata
     def get_metadata(self):

@@ -138,6 +138,7 @@ class harmonic(force._force):
     # before the run() can be started.
     def set_coeff(self, improper_type, k, chi):
         util.print_status_line();
+        improper_type = str(improper_type);
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(globals.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
