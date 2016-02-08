@@ -34,6 +34,7 @@ For more detailed instructions, [see the documentationn](https://codeblue.umich.
 
  * Required:
      * Python >= 2.6
+     * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.6.2
      * C++ Compiler (tested with gcc, clang, intel)
