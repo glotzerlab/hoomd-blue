@@ -8,6 +8,10 @@
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 
+## v1.3.2
+
+Released 2016/02/08
+
 *Bug fixes*
 
 * Fix wrong access to system.box
