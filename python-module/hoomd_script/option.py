@@ -59,7 +59,7 @@
 from optparse import OptionParser;
 
 import hoomd;
-from hoomd_script import globals;
+import hoomd_script
 import sys;
 import shlex;
 import os;
@@ -135,6 +135,8 @@ def _parse_command_line(arg_string=None):
 
     (cmd_options, args) = parser.parse_args(args=input_args);
 
+    print(cmd_options.mode)
+
     # chedk for valid mode setting
     if cmd_options.mode is not None:
         if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu" or cmd_options.mode == "auto"):
@@ -165,7 +167,7 @@ def _parse_command_line(arg_string=None):
     # Convert nx to an integer
     if cmd_options.nx is not None:
         if not hoomd.is_MPI_available():
-            globals.msg.error("The --nx option is only avaible in MPI builds.\n");
+            hoomd_script.context.msg.error("The --nx option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.nx = int(cmd_options.nx);
@@ -175,7 +177,7 @@ def _parse_command_line(arg_string=None):
     # Convert ny to an integer
     if cmd_options.ny is not None:
         if not hoomd.is_MPI_available():
-            globals.msg.error("The --ny option is only avaible in MPI builds.\n");
+            hoomd_script.context.msg.error("The --ny option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.ny = int(cmd_options.ny);
@@ -185,7 +187,7 @@ def _parse_command_line(arg_string=None):
     # Convert nz to an integer
     if cmd_options.nz is not None:
        if not hoomd.is_MPI_available():
-            globals.msg.error("The --nz option is only avaible in MPI builds.\n");
+            hoomd_script.context.msg.error("The --nz option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
        try:
             cmd_options.nz = int(cmd_options.nz);
@@ -193,46 +195,46 @@ def _parse_command_line(arg_string=None):
             parser.error('--nz must be an integer')
 
     # copy command line options over to global options
-    globals.options.mode = cmd_options.mode;
-    globals.options.gpu = cmd_options.gpu;
-    globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
-    globals.options.min_cpu = cmd_options.min_cpu;
-    globals.options.ignore_display = cmd_options.ignore_display;
+    hoomd_script.context.options.mode = cmd_options.mode;
+    hoomd_script.context.options.gpu = cmd_options.gpu;
+    hoomd_script.context.options.gpu_error_checking = cmd_options.gpu_error_checking;
+    hoomd_script.context.options.min_cpu = cmd_options.min_cpu;
+    hoomd_script.context.options.ignore_display = cmd_options.ignore_display;
 
-    globals.options.nx = cmd_options.nx;
-    globals.options.ny = cmd_options.ny;
-    globals.options.nz = cmd_options.nz;
-    globals.options.linear = cmd_options.linear
-    globals.options.onelevel = cmd_options.onelevel
+    hoomd_script.context.options.nx = cmd_options.nx;
+    hoomd_script.context.options.ny = cmd_options.ny;
+    hoomd_script.context.options.nz = cmd_options.nz;
+    hoomd_script.context.options.linear = cmd_options.linear
+    hoomd_script.context.options.onelevel = cmd_options.onelevel
 
     if cmd_options.notice_level is not None:
-        globals.options.notice_level = cmd_options.notice_level;
-        globals.msg.setNoticeLevel(globals.options.notice_level);
+        hoomd_script.context.options.notice_level = cmd_options.notice_level;
+        hoomd_script.context.msg.setNoticeLevel(hoomd_script.context.options.notice_level);
 
     if cmd_options.msg_file is not None:
-        globals.options.msg_file = cmd_options.msg_file;
-        globals.msg.openFile(globals.options.msg_file);
+        hoomd_script.context.options.msg_file = cmd_options.msg_file;
+        hoomd_script.context.msg.openFile(hoomd_script.context.options.msg_file);
 
     if cmd_options.shared_msg_file is not None:
         if not hoomd.is_MPI_available():
-            globals.msg.error("Shared log files are only available in MPI builds.\n");
+            hoomd_script.context.msg.error("Shared log files are only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
-        globals.options.shared_msg_file = cmd_options.shared_msg_file;
-        globals.msg.setSharedFile(globals.options.shared_msg_file);
+        hoomd_script.context.options.shared_msg_file = cmd_options.shared_msg_file;
+        hoomd_script.context.msg.setSharedFile(hoomd_script.context.options.shared_msg_file);
 
     if cmd_options.nrank is not None:
         if not hoomd.is_MPI_available():
-            globals.msg.error("The --nrank option is only avaible in MPI builds.\n");
+            hoomd_script.context.msg.error("The --nrank option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
         # check validity
         nrank = int(cmd_options.nrank)
         if (hoomd.ExecutionConfiguration.getNRanksGlobal() % nrank):
-            globals.msg.error("Total number of ranks is not a multiple of --nrank\n");
+            hoomd_script.context.msg.error("Total number of ranks is not a multiple of --nrank\n");
             raise RuntimeError('Error checking option');
-        globals.options.nrank = nrank
+        hoomd_script.context.options.nrank = nrank
 
     if cmd_options.user is not None:
-        globals.options.user = shlex.split(cmd_options.user);
+        hoomd_script.context.options.user = shlex.split(cmd_options.user);
 
 ## Get user options
 #
@@ -241,7 +243,7 @@ def _parse_command_line(arg_string=None):
 #
 def get_user():
     _verify_init();
-    return globals.options.user;
+    return hoomd_script.context.options.user;
 
 ## Set the notice level
 #
@@ -258,11 +260,11 @@ def set_notice_level(notice_level):
     try:
         notice_level = int(notice_level);
     except ValueError:
-        globals.msg.error("notice-level must be an integer\n");
+        hoomd_script.context.msg.error("notice-level must be an integer\n");
         raise RuntimeError('Error setting option');
 
-    globals.msg.setNoticeLevel(notice_level);
-    globals.options.notice_level = notice_level;
+    hoomd_script.context.msg.setNoticeLevel(notice_level);
+    hoomd_script.context.options.notice_level = notice_level;
 
 ## Set the message file
 #
@@ -279,11 +281,11 @@ def set_msg_file(fname):
     _verify_init();
 
     if fname is not None:
-        globals.msg.openFile(fname);
+        hoomd_script.context.msg.openFile(fname);
     else:
-        globals.msg.openStd();
+        hoomd_script.context.msg.openStd();
 
-    globals.options.msg_file = fname;
+    hoomd_script.context.options.msg_file = fname;
 
 ## Set the Autotuner parameters
 #
@@ -295,17 +297,12 @@ def set_msg_file(fname):
 def set_autotuner_params(enable=True, period=100000):
     _verify_init();
 
-    globals.options.autotuner_period = period;
-    globals.options.autotuner_enable = enable;
+    hoomd_script.context.options.autotuner_period = period;
+    hoomd_script.context.options.autotuner_enable = enable;
 
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    if globals.options is None:
-        globals.msg.error("call context.initialize() before any other method in hoomd.")
+    if hoomd_script.context.options is None:
+        hoomd_script.context.msg.error("call context.initialize() before any other method in hoomd.")
         raise RuntimeError("hoomd execution context is not available")
-
-################### Parse command line on load
-if '_HOOMD_EXEC' in os.environ:
-    globals.options = options();
-    _parse_command_line();

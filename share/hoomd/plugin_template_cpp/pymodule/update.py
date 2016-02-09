@@ -54,11 +54,12 @@
 # in front
 from hoomd_plugins.plugin_template import _plugin_template
 
-# Next, since we are extending an updater, we need to bring in the base class updater and some other parts from 
+# Next, since we are extending an updater, we need to bring in the base class updater and some other parts from
 # hoomd_script
 from hoomd_script.update import _updater
 from hoomd_script import util
 from hoomd_script import globals
+import hoomd_script
 import hoomd
 
 ## Zeroes all particle velocities
@@ -69,7 +70,7 @@ class example(_updater):
     ## Initialize the velocity zeroer
     #
     # \param period Velocities will be zeroed every \a period time steps
-    # 
+    #
     # \b Examples:
     # \code
     # plugin_template.update.example()
@@ -79,12 +80,12 @@ class example(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         util.print_status_line();
-    
+
         # initialize base class
         _updater.__init__(self);
-        
+
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_updater = _plugin_template.ExampleUpdater(globals.system_definition);
         else:
             self.cpp_updater = _plugin_template.ExampleUpdaterGPU(globals.system_definition);

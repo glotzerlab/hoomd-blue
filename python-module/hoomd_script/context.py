@@ -65,6 +65,20 @@ import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
 
+## Global Messenger
+# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
+# messages
+msg = hoomd.Messenger();
+
+## Global bibliography
+bib = None;
+
+## Global options
+options = None;
+
+## Global variable that holds the execution configuration for reference by the python API
+exec_conf = None;
+
 ## Initialize the execution context
 # \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
 #
@@ -82,20 +96,87 @@ CLOCK_START = time.clock()
 # \endcode
 #
 def initialize(args=None):
-    if hoomd_script.globals.exec_conf is not None:
-        hoomd_script.globals.msg.error("Cannot change execution mode after initialization\n");
+    global exec_conf, msg, options
+
+    if exec_conf is not None:
+        msg.error("Cannot change execution mode after initialization\n");
         raise RuntimeError('Error setting option');
 
-    hoomd_script.globals.options = hoomd_script.option.options();
+    options = hoomd_script.option.options();
     hoomd_script.option._parse_command_line(args);
 
-    hoomd_script.init._create_exec_conf();
+    _create_exec_conf();
+
+## Get the current processor name
+#
+# platform.node() can spawn forked processes in some version of MPI.
+# This avoids that problem by using MPI information about the hostname directly
+# when it is available. MPI is initialized on module load if it is available,
+# so this data is accessible immediately.
+#
+# \returns String name for the current processor
+# \internal
+def _get_proc_name():
+    if hoomd.is_MPI_available():
+        return hoomd.get_mpi_proc_name()
+    else:
+        return platform.node()
+
+## Initializes the execution configuration
+#
+# \internal
+def _create_exec_conf():
+    global exec_conf, options, msg
+
+    # use a cached execution configuration if available
+    if exec_conf is not None:
+        return exec_conf
+
+    mpi_available = hoomd.is_MPI_available();
+
+    # error out on nyx/flux if the auto mode is set
+    if options.mode == 'auto':
+        host = _get_proc_name()
+        if "flux" in host or "nyx" in host:
+            msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
+            raise RuntimeError("Error initializing");
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
+    elif options.mode == "cpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
+    elif options.mode == "gpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
+    else:
+        raise RuntimeError("Invalid mode");
+
+    # convert None options to defaults
+    if options.gpu is None:
+        gpu_id = -1;
+    else:
+        gpu_id = int(options.gpu);
+
+    if options.nrank is None:
+        nrank = 0;
+    else:
+        nrank = int(options.nrank);
+
+    # create the specified configuration
+    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
+
+    # if gpu_error_checking is set, enable it on the GPU
+    if options.gpu_error_checking:
+       exec_conf.setCUDAErrorChecking(True);
+
+    exec_conf = exec_conf;
+
+    return exec_conf;
 
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    if hoomd_script.globals.exec_conf is None:
-        hoomd_script.globals.msg.error("call context.initialize() before any other method in hoomd.")
+    global exec_conf, msg
+
+    if exec_conf is None:
+        msg.error("call context.initialize() before any other method in hoomd.")
         raise RuntimeError("hoomd execution context is not available")
 
 ## \internal
@@ -114,10 +195,11 @@ class ExecutionContext(hoomd_script.meta._metadata):
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
     def _get_exec_conf(self):
-        if hoomd_script.globals.exec_conf is None:
+        global exec_conf
+        if exec_conf is None:
             raise RuntimeError("Not initialized.")
         else:
-            return hoomd_script.globals.exec_conf
+            return exec_conf
 
     # \brief Return the network hostname.
     @property

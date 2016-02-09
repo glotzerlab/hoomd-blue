@@ -72,6 +72,7 @@ from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import meta;
 from hoomd_script import nlist;
+import hoomd_script;
 
 ## \internal
 # \brief Base class for constraint forces
@@ -93,7 +94,7 @@ class _constraint_force(meta._metadata):
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            globals.msg.error("Cannot create force before initialization\n");
+            hoomd_script.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
 
         self.cpp_force = None;
@@ -129,7 +130,7 @@ class _constraint_force(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
 
@@ -158,7 +159,7 @@ class _constraint_force(meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            globals.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd_script.context.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -214,7 +215,7 @@ class _constraint_force(meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            globals.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd_script.context.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system
@@ -259,7 +260,7 @@ class sphere(_constraint_force):
 
         # create the c++ mirror class
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
         else:
             self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
@@ -312,7 +313,7 @@ class distance(_constraint_force):
         self.nlist = nlist._subscribe_global_nlist(lambda: self.get_rcut())
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition, self.nlist.cpp_nlist);
         else:
             self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition, self.nlist.cpp_nlist);

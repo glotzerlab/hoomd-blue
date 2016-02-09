@@ -851,7 +851,7 @@ class system_data(meta._metadata):
                 integrators=True
 
         if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or integrators):
-            globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
+            hoomd_script.context.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
 
         # take the snapshot
@@ -900,11 +900,11 @@ class system_data(meta._metadata):
         nz = int(nz)
 
         if nx == ny == nz == 1:
-            globals.msg.warning("All replication factors == 1. Not replicating system.\n")
+            hoomd_script.context.msg.warning("All replication factors == 1. Not replicating system.\n")
             return
 
         if nx <= 0 or ny <= 0 or nz <= 0:
-            globals.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            hoomd_script.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
@@ -1083,7 +1083,7 @@ class pdata_types_proxy:
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                globals.msg.warning("Type '"+name+"' already defined.\n");
+                hoomd_script.context.msg.warning("Type '"+name+"' already defined.\n");
                 return i
 
         typeid = self.pdata.addType(name);
@@ -2398,7 +2398,7 @@ class body_data_proxy:
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
+                hoomd_script.context.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error accessing body data.")
 
         self.bdata = bdata;

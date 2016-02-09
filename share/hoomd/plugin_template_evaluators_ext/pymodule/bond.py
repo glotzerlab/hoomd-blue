@@ -54,6 +54,7 @@ from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 from hoomd_script import util
 from hoomd_script import globals
 from hoomd_script.bond import _bond
+import hoomd_script
 import hoomd
 import math
 
@@ -105,7 +106,7 @@ class harmonic_dpd(_bond):
         _bond.__init__(self,name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPD(globals.system_definition,self.name);
         else:
             self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPDGPU(globals.system_definition,self.name);

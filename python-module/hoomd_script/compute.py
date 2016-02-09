@@ -54,6 +54,7 @@ from hoomd_script import globals;
 import sys;
 from hoomd_script import util;
 from hoomd_script import init;
+import hoomd_script;
 
 ## \package hoomd_script.compute
 # \brief Commands that %compute properties of the system
@@ -79,7 +80,7 @@ class _compute:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot create compute before initialization\n");
+            hoomd_script.context.msg.error("Cannot create compute before initialization\n");
             raise RuntimeError('Error creating compute');
 
         self.cpp_compute = None;
@@ -108,7 +109,7 @@ class _compute:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_compute is None:
-            globals.msg.error('Bug in hoomd_script: cpp_compute not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_compute not set, please report\n');
             raise RuntimeError();
 
     ## Disables the compute
@@ -136,7 +137,7 @@ class _compute:
 
         # check if we are already disabled
         if not self.enabled:
-            globals.msg.warning("Ignoring command to disable a compute that is already disabled");
+            hoomd_script.context.msg.warning("Ignoring command to disable a compute that is already disabled");
             return;
 
         globals.system.removeCompute(self.compute_name);
@@ -156,7 +157,7 @@ class _compute:
 
         # check if we are already disabled
         if self.enabled:
-            globals.msg.warning("Ignoring command to enable a compute that is already enabled");
+            hoomd_script.context.msg.warning("Ignoring command to enable a compute that is already enabled");
             return;
 
         globals.system.addCompute(self.cpp_compute, self.compute_name);
@@ -230,12 +231,12 @@ class thermo(_compute):
         # warn user if an existing compute thermo already uses this group or name
         for t in globals.thermos:
             if t.group is group:
-                globals.msg.warning("compute.thermo already specified for this group");
+                hoomd_script.context.msg.warning("compute.thermo already specified for this group");
             elif t.group.name == group.name:
-                globals.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
+                hoomd_script.context.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_compute = hoomd.ComputeThermo(globals.system_definition, group.cpp_group, suffix);
         else:
             self.cpp_compute = hoomd.ComputeThermoGPU(globals.system_definition, group.cpp_group, suffix);

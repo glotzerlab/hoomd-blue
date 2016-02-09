@@ -62,6 +62,7 @@ from hoomd_script import analyze;
 import sys;
 from hoomd_script import util;
 from hoomd_script import group as hs_group;
+import hoomd_script
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
@@ -343,7 +344,7 @@ class mol2(analyze._analyzer):
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
+                hoomd_script.context.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error writing MOL2 file.")
 
         # initialize base class
@@ -472,13 +473,13 @@ class dcd(analyze._analyzer):
         util.print_status_line();
 
         if self.enabled == False:
-            globals.msg.error("you cannot re-enable DCD output after it has been disabled\n");
+            hoomd_script.context.msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
 
     def set_period(self, period):
         util.print_status_line();
 
-        globals.msg.error("you cannot change the period of a dcd dump writer\n");
+        hoomd_script.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
 
@@ -521,7 +522,7 @@ class pdb(analyze._analyzer):
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
+                hoomd_script.context.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error writing PDB file.")
 
 

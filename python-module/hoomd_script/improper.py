@@ -54,6 +54,7 @@ from hoomd_script import globals;
 import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
+import hoomd_script;
 
 import math;
 import sys;
@@ -100,14 +101,14 @@ class harmonic(force._force):
         util.print_status_line();
         # check that some impropers are defined
         if globals.system_definition.getImproperData().getNGlobal() == 0:
-            globals.msg.error("No impropers are defined.\n");
+            hoomd_script.context.msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
 
         # initialize the base class
         force._force.__init__(self);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
@@ -157,5 +158,5 @@ class harmonic(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.improper_types_set:
-                globals.msg.error(str(cur_type) + " coefficients missing in improper.harmonic\n");
+                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in improper.harmonic\n");
                 raise RuntimeError("Error updating coefficients");

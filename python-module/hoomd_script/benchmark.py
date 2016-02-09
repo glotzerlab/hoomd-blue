@@ -77,7 +77,7 @@ except ImportError:
 def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     # check if initialization has occurred
     if not init.is_initialized():
-        globals.msg.error("Cannot tune r_buff before initialization\n");
+        hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
 

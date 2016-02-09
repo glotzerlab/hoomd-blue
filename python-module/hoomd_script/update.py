@@ -57,6 +57,7 @@ from hoomd_script import variant;
 import sys;
 from hoomd_script import init;
 from hoomd_script import meta;
+import hoomd_script
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -81,7 +82,7 @@ class _updater(meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot create updater before initialization\n");
+            hoomd_script.context.msg.error("Cannot create updater before initialization\n");
             raise RuntimeError('Error creating updater');
 
         self.cpp_updater = None;
@@ -122,7 +123,7 @@ class _updater(meta._metadata):
             globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000, -1);
             globals.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
-            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
+            hoomd_script.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
             raise RuntimeError('Error creating updater');
 
     ## \var enabled
@@ -146,7 +147,7 @@ class _updater(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_updater is None:
-            globals.msg.error('Bug in hoomd_script: cpp_updater not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_updater not set, please report\n');
             raise RuntimeError();
 
     ## Disables the updater
@@ -174,7 +175,7 @@ class _updater(meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            globals.msg.warning("Ignoring command to disable an updater that is already disabled");
+            hoomd_script.context.msg.warning("Ignoring command to disable an updater that is already disabled");
             return;
 
         self.prev_period = globals.system.getUpdaterPeriod(self.updater_name);
@@ -195,7 +196,7 @@ class _updater(meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            globals.msg.warning("Ignoring command to enable an updater that is already enabled");
+            hoomd_script.context.msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
 
         globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
@@ -234,9 +235,9 @@ class _updater(meta._metadata):
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            globals.msg.warning("A period cannot be changed to a variable one");
+            hoomd_script.context.msg.warning("A period cannot be changed to a variable one");
         else:
-            globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+            hoomd_script.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     ## \internal
     # \brief Get metadata
@@ -294,14 +295,14 @@ class sort(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
         else:
             self.cpp_updater = hoomd.SFCPackUpdaterGPU(globals.system_definition);
 
         default_period = 300;
         # change default period to 100 on the CPU
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             default_period = 100;
 
         self.setupUpdater(default_period);
@@ -456,7 +457,7 @@ class enforce2d(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.Enforce2DUpdater(globals.system_definition);
         else:
             self.cpp_updater = hoomd.Enforce2DUpdaterGPU(globals.system_definition);
@@ -526,7 +527,7 @@ class box_resize(_updater):
             Lz = L;
 
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
-            globals.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
+            hoomd_script.context.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
             return
 
 
@@ -654,11 +655,11 @@ class balance(_updater):
 
         # balancing cannot be done without mpi
         if not hoomd.is_MPI_available():
-            globals.msg.warning("Ignoring balance command, not supported in current configuration.\n")
+            hoomd_script.context.msg.warning("Ignoring balance command, not supported in current configuration.\n")
             return
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.LoadBalancer(globals.system_definition, globals.decomposition.cpp_dd);
         else:
             self.cpp_updater = hoomd.LoadBalancerGPU(globals.system_definition, globals.decomposition.cpp_dd);

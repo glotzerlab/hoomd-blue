@@ -56,6 +56,7 @@ from hoomd_script import util;
 from hoomd_script import data;
 from hoomd_script import init;
 from hoomd_script import meta;
+import hoomd_script;
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -82,7 +83,7 @@ class _force(meta._metadata):
     def __init__(self, name=None):
         # check if initialization has occured
         if not init.is_initialized():
-            globals.msg.error("Cannot create force before initialization\n");
+            hoomd_script.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
 
         # Allow force to store a name.  Used for discombobulation in the logger
@@ -122,7 +123,7 @@ class _force(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
 
@@ -160,7 +161,7 @@ class _force(meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            globals.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd_script.context.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -218,7 +219,7 @@ class _force(meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            globals.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd_script.context.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system if it was removed

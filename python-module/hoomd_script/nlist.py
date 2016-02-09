@@ -53,7 +53,7 @@ from hoomd_script import globals;
 from hoomd_script import init
 from hoomd_script import util;
 import hoomd;
-import hoomd_script
+import hoomd_script;
 
 ## \package hoomd_script.nlist
 # \brief Commands that create neighbor lists
@@ -78,7 +78,7 @@ import hoomd_script
 # the number fraction of big objects is low. Because the performance of these algorithms depends sensitively on your
 # system and hardware, you should carefully test which option is fastest for your simulation.
 #
-# Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$ 
+# Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$
 # will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
 # or for belonging to the same rigid body (see reset_exclusions()).
 #
@@ -120,9 +120,9 @@ class _nlist:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            globals.msg.error("Cannot create neighbor list before initialization\n");
+            hoomd_script.context.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
-        
+
         # default exclusions
         self.is_exclusion_overridden = False;
         self.exclusions = None
@@ -152,7 +152,7 @@ class _nlist:
             rcut_obj = c();
             if rcut_obj is not None:
                 r_cut_max.merge(rcut_obj);
-        
+
         # ensure that all type pairs are filled
         r_cut_max.fill()
         self.r_cut = r_cut_max;
@@ -234,7 +234,7 @@ class _nlist:
         util.print_status_line();
 
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -291,7 +291,7 @@ class _nlist:
         self.is_exclusion_overridden = True;
 
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # clear all of the existing exclusions
@@ -342,7 +342,7 @@ class _nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            globals.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
+            hoomd_script.context.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -372,7 +372,7 @@ class _nlist:
     def benchmark(self, n):
         # check that we have been initialized properly
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error benchmarking neighbor list');
 
         # run the benchmark
@@ -390,11 +390,11 @@ class _nlist:
     #
     def query_update_period(self):
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
-        
+
     ## Make a series of short runs to determine the fastest performing r_buff setting
     # \param warmup Number of time steps to run() to warm up the benchmark
     # \param r_min Smallest value of r_buff to test
@@ -421,10 +421,10 @@ class _nlist:
     def tune(self, warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot tune r_buff before initialization\n");
-        
+            hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
+
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         # start off at a check_period of 1
@@ -467,10 +467,10 @@ class _nlist:
         hoomd_script.run(warmup);
 
         # notify the user of the benchmark results
-        globals.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
-        globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        globals.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
-        globals.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
+        hoomd_script.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+        hoomd_script.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd_script.context.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+        hoomd_script.context.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
 
         # set the found max check period
         if set_max_check_period:
@@ -503,18 +503,18 @@ class rcut:
         # create the pair if it hasn't been created yet
         if (not (a,b) in self.values) and (not (b,a) in self.values):
             self.values[(a,b)] = -1.0; # negative means this hasn't been set yet
-           
-        # find the pair we seek    
+
+        # find the pair we seek
         if (a,b) in self.values:
             cur_pair = (a,b);
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            globals.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
+            hoomd_script.context.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
             raise RuntimeError("Error fetching rcut(i,j) pair");
-        
+
         return cur_pair;
-            
+
     ## \internal
     # \brief Forces a change of a single r_cut
     # \details
@@ -523,7 +523,7 @@ class rcut:
     # \param cutoff Cutoff radius
     def set_pair(self, a, b, cutoff):
         cur_pair = self.ensure_pair(a,b);
-        
+
         if cutoff is None or cutoff is False:
             cutoff = -1.0
         else:
@@ -538,13 +538,13 @@ class rcut:
     # \param cutoff Cutoff radius
     def merge_pair(self,a,b,cutoff):
         cur_pair = self.ensure_pair(a,b);
-        
+
         if cutoff is None or cutoff is False:
             cutoff = -1.0
         else:
             cutoff = float(cutoff);
-        self.values[cur_pair] = max(cutoff,self.values[cur_pair]); 
-            
+        self.values[cur_pair] = max(cutoff,self.values[cur_pair]);
+
     ## \internal
     # \brief Gets the value of a single %pair coefficient
     # \param a First name in the type pair
@@ -552,7 +552,7 @@ class rcut:
     def get_pair(self, a, b):
         cur_pair = self.ensure_pair(a,b);
         return self.values[cur_pair];
-    
+
     ## \internal
     # \brief Merges two rcut objects by maximum cutoff
     # \param rcut_obj The other rcut to merge in
@@ -560,7 +560,7 @@ class rcut:
         for pair in rcut_obj.values:
             (a,b) = pair;
             self.merge_pair(a,b,rcut_obj.values[pair]);
-        
+
     ## \internal
     # \brief Fills out the rcut(i,j) dictionary to include default unset keys
     #
@@ -568,7 +568,7 @@ class rcut:
     def fill(self):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            globals.msg.error("Cannot fill rcut(i,j) before initialization\n");
+            hoomd_script.context.msg.error("Cannot fill rcut(i,j) before initialization\n");
             raise RuntimeError('Error filling nlist rcut(i,j)');
 
         # get a list of types from the particle data
@@ -582,7 +582,7 @@ class rcut:
             for j in range(i,ntypes):
                 a = type_list[i];
                 b = type_list[j];
-                    
+
                 # ensure the pair
                 cur_pair = self.ensure_pair(a,b);
 
@@ -633,7 +633,7 @@ class cell(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_cl = hoomd.CellList(globals.system_definition)
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
@@ -645,10 +645,10 @@ class cell(_nlist):
         self.cpp_nlist.setEvery(check_period, dist_check)
 
         globals.system.addCompute(self.cpp_nlist, self.name)
-        
+
         # register this neighbor list with the globals
         globals.neighbor_lists += [self]
-        
+
         # save the user defined parameters
         util._disable_status_lines = True
         self.set_params(r_buff, check_period, d_max, dist_check)
@@ -714,7 +714,7 @@ class cell(_nlist):
         util.print_status_line();
 
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -790,7 +790,7 @@ class stencil(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_cl = hoomd.CellList(globals.system_definition)
             globals.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
@@ -806,10 +806,10 @@ class stencil(_nlist):
         self.cpp_nlist.setEvery(check_period, dist_check)
 
         globals.system.addCompute(self.cpp_nlist, self.name)
-        
+
         # register this neighbor list with the globals
         globals.neighbor_lists += [self]
-        
+
         # save the user defined parameters
         util._disable_status_lines = True
         self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
@@ -876,7 +876,7 @@ class stencil(_nlist):
         util.print_status_line();
 
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -919,10 +919,10 @@ class stencil(_nlist):
 
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot tune r_buff before initialization\n");
+            hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         min_cell_width = min_width
@@ -968,9 +968,9 @@ class stencil(_nlist):
         self.set_params(cell_width=fastest_width);
 
         # notify the user of the benchmark results
-        globals.msg.notice(2, "cell width = " + str(width_list) + '\n');
-        globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        globals.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+        hoomd_script.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
+        hoomd_script.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd_script.context.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
 
         # return the results to the script
         return fastest_width
@@ -1023,7 +1023,7 @@ class tree(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, default_r_cut, default_r_buff)
         else:
             self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, default_r_cut, default_r_buff)
@@ -1037,10 +1037,10 @@ class tree(_nlist):
             self.name = name
 
         globals.system.addCompute(self.cpp_nlist, self.name)
-        
+
         # register this neighbor list with the globals
         globals.neighbor_lists += [self]
-        
+
         # save the user defined parameters
         util._disable_status_lines = True
         self.set_params(r_buff, check_period, d_max, dist_check)
@@ -1056,7 +1056,7 @@ def _subscribe_global_nlist(cb):
     # create a global neighbor list if it doesn't exist
     if globals.neighbor_list is None:
         globals.neighbor_list = cell();
-    
+
     # subscribe and force an update
     globals.neighbor_list.subscribe(cb);
     globals.neighbor_list.update_rcut();
@@ -1122,7 +1122,7 @@ def _subscribe_global_nlist(cb):
 def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=True):
     util.print_status_line();
     if globals.neighbor_list is None:
-        globals.msg.error('Cannot set global neighbor list parameters without creating it first\n');
+        hoomd_script.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
@@ -1167,7 +1167,7 @@ def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, dete
 def reset_exclusions(exclusions = None):
     util.print_status_line();
     if globals.neighbor_list is None:
-        globals.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
+        hoomd_script.context.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
@@ -1199,7 +1199,7 @@ def reset_exclusions(exclusions = None):
 def benchmark(n):
     util.print_status_line();
     if globals.neighbor_list is None:
-        globals.msg.error('Cannot benchmark global neighbor list without creating it first\n');
+        hoomd_script.context.msg.error('Cannot benchmark global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
@@ -1220,7 +1220,7 @@ def benchmark(n):
 def query_update_period():
     util.print_status_line();
     if globals.neighbor_list is None:
-        globals.msg.error('Cannot query global neighbor list without creating it first\n');
+        hoomd_script.context.msg.error('Cannot query global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;

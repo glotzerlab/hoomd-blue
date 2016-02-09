@@ -86,6 +86,7 @@ from hoomd_script import globals;
 from hoomd_script import force;
 from hoomd_script import util;
 from hoomd_script import meta;
+import hoomd_script
 import hoomd;
 import math;
 
@@ -280,7 +281,7 @@ class group(object):
                 try:
                     del(self.spheres[i]);
                 except IndexValueError:
-                    globals.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_sphere failed")
 
     ## Deletes the cylinder or cylinders in index.
@@ -296,7 +297,7 @@ class group(object):
                 try:
                     del(self.cylinders[i]);
                 except IndexValueError:
-                    globals.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_cylinder failed")
 
     ## Deletes the plane or planes in index.
@@ -312,7 +313,7 @@ class group(object):
                 try:
                     del(self.planes[i]);
                 except IndexValueError:
-                    globals.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_plane failed")
 
     ## \internal
@@ -615,7 +616,7 @@ class wallpotential(external._external_force):
     ## \internal
     # \brief passes the wall field
     def process_field_coeff(self, coeff):
-        return hoomd.make_wall_field_params(coeff, globals.exec_conf);
+        return hoomd.make_wall_field_params(coeff, hoomd_script.context.exec_conf);
 
     ## \internal
     # \brief Return metadata for this wall potential
@@ -674,7 +675,7 @@ class lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialLJ(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialLJ;
         else:
@@ -723,7 +724,7 @@ class gauss(wallpotential):
         # initialize the base class
         wallpotential.__init__(self, walls, r_cut, name);
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialGauss(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialGauss;
         else:
@@ -775,10 +776,10 @@ class slj(wallpotential):
         if d_max is None :
             sysdef = globals.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd_script.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialSLJ(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialSLJ;
         else:
@@ -828,7 +829,7 @@ class yukawa(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialYukawa(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialYukawa;
         else:
@@ -872,7 +873,7 @@ class morse(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialMorse(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMorse;
         else:
@@ -918,7 +919,7 @@ class force_shifted_lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialForceShiftedLJ(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialForceShiftedLJ;
         else:
@@ -968,7 +969,7 @@ class mie(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.WallsPotentialMie(globals.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMie;
         else:

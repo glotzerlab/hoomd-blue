@@ -3,6 +3,7 @@
 # Maintainer: mphoward
 
 from hoomd_script import *
+import hoomd_script
 context.initialize()
 import hoomd
 import unittest
@@ -175,7 +176,7 @@ class decomposition_tests (unittest.TestCase):
                 comm.decomposition(x=[0.2,0.3,0.1], nx=2)
 
             # set a global value, and try with nx arg set
-            globals.options.nx = 8
+            hoomd_script.context.options.nx = 8
             comm.decomposition(nx=4)
             dd = globals.decomposition._make_cpp_decomposition(boxdim)
 
@@ -200,14 +201,14 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(0)[6], 0.75)
             self.assertAlmostEquals(dd.getCumulativeFractions(0)[7], 0.875)
             self.assertAlmostEquals(dd.getCumulativeFractions(0)[8], 1.0)
-            globals.options.nx = None # undo this so that it doesn't contaminate other dimensions
+            hoomd_script.context.options.nx = None # undo this so that it doesn't contaminate other dimensions
 
             # this is wrong to set both, so it should fail
             with self.assertRaises(RuntimeError):
                 comm.decomposition(y=[0.2,0.3,0.1], ny=2)
 
             # set a global value, and try with ny arg set
-            globals.options.ny = 8
+            hoomd_script.context.options.ny = 8
             comm.decomposition(ny=4)
             dd = globals.decomposition._make_cpp_decomposition(boxdim)
 
@@ -232,14 +233,14 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[6], 0.75)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[7], 0.875)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[8], 1.0)
-            globals.options.ny = None # undo this so that it doesn't contaminate other dimensions
+            hoomd_script.context.options.ny = None # undo this so that it doesn't contaminate other dimensions
 
             # this is wrong to set both, so it should fail
             with self.assertRaises(RuntimeError):
                 comm.decomposition(z=[0.2,0.3,0.1], nz=2)
 
             # set a global value, and try with nz arg set
-            globals.options.nz = 8
+            hoomd_script.context.options.nz = 8
             comm.decomposition(nz=4)
             dd = globals.decomposition._make_cpp_decomposition(boxdim)
 
@@ -266,8 +267,8 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[8], 1.0)
 
             # the linear command should take precedence over the z command
-            globals.options.nz = 4
-            globals.options.linear = True
+            hoomd_script.context.options.nz = 4
+            hoomd_script.context.options.linear = True
             comm.decomposition()
             dd = globals.decomposition._make_cpp_decomposition(boxdim)
 
@@ -283,8 +284,8 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[8], 1.0)
 
             # clear out these options so they don't contaminate other tests
-            globals.options.nz = None
-            globals.options.linear = None
+            hoomd_script.context.options.nz = None
+            hoomd_script.context.options.linear = None
 
     ## Test that balancing fails after initialization
     def test_wrong_order(self):

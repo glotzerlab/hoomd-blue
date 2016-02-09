@@ -104,7 +104,7 @@ from hoomd import WalltimeLimitReached;
 # into python with "from hoomd_script import *"
 
 # output the version info on import
-globals.msg.notice(1, hoomd.output_version_info())
+context.msg.notice(1, hoomd.output_version_info())
 
 # ensure creation of global bibliography to print HOOMD base citations
 cite._ensure_global_bib()
@@ -116,8 +116,8 @@ _default_excepthook = sys.excepthook;
 def _hoomd_sys_excepthook(type, value, traceback):
     _default_excepthook(type, value, traceback);
     sys.stderr.flush();
-    if globals.exec_conf is not None:
-        hoomd.abort_mpi(globals.exec_conf);
+    if context.exec_conf is not None:
+        hoomd.abort_mpi(context.exec_conf);
 
 # install the hoomd excepthook to abort MPI runs if there are uncaught exceptions
 sys.excepthook = _hoomd_sys_excepthook;
@@ -227,18 +227,18 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         _util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        globals.msg.error("Cannot run before initialization\n");
+        context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
     if globals.integrator is None:
-        globals.msg.warning("Starting a run without an integrator set");
+        context.msg.warning("Starting a run without an integrator set");
     else:
         globals.integrator.update_forces();
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
 
     # update autotuner parameters
-    globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
+    globals.system.setAutotunerParams(context.options.autotuner_enable, int(context.options.autotuner_period));
 
     # if rigid bodies, setxv
     if len(data.system_data(globals.system_definition).bodies) > 0:
@@ -252,7 +252,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
         globals.neighbor_list.update_exclusions_defaults();
-    
+
     # update all user-defined neighbor lists
     for nl in globals.neighbor_lists:
         nl.update_rcut()
@@ -260,16 +260,16 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # detect 0 hours remaining properly
     if limit_hours == 0.0:
-        globals.msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
+        context.msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
         return;
     if limit_hours is None:
         limit_hours = 0.0
 
     if not quiet:
-        globals.msg.notice(1, "** starting run **\n");
+        context.msg.notice(1, "** starting run **\n");
     globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
-        globals.msg.notice(1, "** run complete **\n");
+        context.msg.notice(1, "** run complete **\n");
 
 ## \brief Runs the simulation up to a given time step number
 #
@@ -293,7 +293,7 @@ def run_upto(step, **keywords):
         _util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        globals.msg.error("Cannot run before initialization\n");
+        context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
     # determine the number of steps to run
@@ -301,7 +301,7 @@ def run_upto(step, **keywords):
     cur_step = globals.system.getCurrentTimeStep();
 
     if cur_step >= step:
-        globals.msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
+        context.msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
         return;
 
     n_steps = step - cur_step;
@@ -316,7 +316,7 @@ def run_upto(step, **keywords):
 def get_step():
     # check if initialization has occurred
     if not init.is_initialized():
-        globals.msg.error("Cannot get step before initialization\n");
+        context.msg.error("Cannot get step before initialization\n");
         raise RuntimeError('Error getting step');
 
     return globals.system.getCurrentTimeStep();

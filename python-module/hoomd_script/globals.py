@@ -63,9 +63,6 @@
 
 import hoomd;
 
-## Global variable that holds the execution configuration for reference by the python API
-exec_conf = None;
-
 ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
 system_definition = None;
 
@@ -111,23 +108,12 @@ thermos = [];
 ## Cached all group
 group_all = None;
 
-## Global options
-options = None;
-
-## Global Messenger
-# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
-# messages
-msg = hoomd.Messenger();
-
-## Global bibliography
-bib = None;
-
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
     global system_definition, system, decomposition, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, neighbor_lists, loggers, analyzers, thermos, updaters;
-    global sorter, group_all, exec_conf, bib;
+    global sorter, group_all;
 
     system_definition = None;
     system = None;
@@ -145,4 +131,3 @@ def clear():
     group_all = None;
     sorter = None;
     updaters = []
-    bib = None;

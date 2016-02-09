@@ -54,6 +54,7 @@ from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 from hoomd_script import pair
 from hoomd_script import util
 from hoomd_script import globals
+import hoomd_script
 import hoomd
 import math
 
@@ -103,7 +104,7 @@ class lj2(pair.pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _evaluators_ext_template.PotentialPairLJ2(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _evaluators_ext_template.PotentialPairLJ2;
         else:

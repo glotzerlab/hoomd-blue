@@ -55,6 +55,7 @@ import sys;
 from hoomd_script import util;
 from hoomd_script import init;
 from hoomd_script import meta;
+import hoomd_script;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -130,7 +131,7 @@ class _analyzer(meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot create analyzer before initialization\n");
+            hoomd_script.context.msg.error("Cannot create analyzer before initialization\n");
             raise RuntimeError('Error creating analyzer');
 
         self.cpp_analyzer = None;
@@ -169,7 +170,7 @@ class _analyzer(meta._metadata):
             globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
             globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
-            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
+            hoomd_script.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
             raise RuntimeError('Error creating analyzer');
 
     ## \var enabled
@@ -193,7 +194,7 @@ class _analyzer(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_analyzer is None:
-            globals.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
+            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
             raise RuntimeError();
 
     ## Disables the analyzer
@@ -221,7 +222,7 @@ class _analyzer(meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            globals.msg.warning("Ignoring command to disable an analyzer that is already disabled");
+            hoomd_script.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
             return;
 
         self.prev_period = globals.system.getAnalyzerPeriod(self.analyzer_name);
@@ -242,7 +243,7 @@ class _analyzer(meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            globals.msg.warning("Ignoring command to enable an analyzer that is already enabled");
+            hoomd_script.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
 
         globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
@@ -279,9 +280,9 @@ class _analyzer(meta._metadata):
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            globals.msg.warning("A period cannot be changed to a variable one");
+            hoomd_script.context.msg.warning("A period cannot be changed to a variable one");
         else:
-            globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+            hoomd_script.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     ## \internal
     # \brief Get metadata
@@ -669,7 +670,7 @@ class msd(_analyzer):
 
         # it is an error to specify no groups
         if len(groups) == 0:
-            globals.msg.error('At least one group must be specified to analyze.msd\n');
+            hoomd_script.context.msg.error('At least one group must be specified to analyze.msd\n');
             raise RuntimeError('Error creating analyzer');
 
         # set the group columns
