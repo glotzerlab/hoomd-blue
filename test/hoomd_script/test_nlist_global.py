@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -37,7 +38,7 @@ class pair_nlist_tests (unittest.TestCase):
         self.assertRaises(RuntimeError,
                           nlist.reset_exclusions,
                           exclusions = ['bond', 'angle', 'invalid']);
-    
+
     # test tuning via the wrapper
     def test_tune(self):
         tune.r_buff(warmup=100, r_min=0.1, r_max=0.25, jumps=10, steps=50)
