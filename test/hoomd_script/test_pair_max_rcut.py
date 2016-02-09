@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -37,7 +38,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(3.0, globals.neighbor_list.r_cut.get_pair('A','A'));
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','B'));
         self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut.get_pair('B','B'));
-        
+
         # update a pair coefficient, and check
         lj.pair_coeff.set('A','B', r_cut = 5.0)
         globals.neighbor_list.update_rcut()
@@ -58,7 +59,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=1.0)
         run(1)
         self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut.get_pair('B','B'));
-    
+
     # test independent subscription to two neighbor list
     def test_multi_nlist_subscribe(self):
         # subscribe to a tree neighbor list
@@ -73,7 +74,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(3.0, nl.r_cut.get_pair('A','A'));
         self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','B'));
         self.assertAlmostEqual(3.1, nl.r_cut.get_pair('B','B'));
-        
+
         # update a pair coefficient, and check
         lj.pair_coeff.set('A','B', r_cut = 5.0)
         nl.update_rcut()
@@ -94,7 +95,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut.get_pair('A','A'));
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('B','A'));
         self.assertAlmostEqual(5.1, globals.neighbor_list.r_cut.get_pair('B','B'));
-        
+
         # now, attach a third potential to the tree neighbor list, and things should change there
         slj = pair.slj(r_cut=1.0, nlist=nl, d_max=1.0)
         slj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
