@@ -12,6 +12,10 @@
 
 * context.initialize() is now required before any hoomd_script call.
 
+*Other changes*
+
+* CMake minimum version is now 2.8
+
 ## Upcoming release
 
 *Bug fixes*
