@@ -415,14 +415,8 @@ class mode_standard(_integrator):
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
-# integrate.nvt performs constant volume, constant temperature simulations using the Nos&eacute;-Hoover thermostat.
-#
-# There are two implementations of NVT in hoomd:
-#   * The MTK equations are described in Refs. \cite Martyna1994 \cite Martyna1996.
-#   * The other mode is Equation 13 in ref. \cite Bond1999.
-#
-# MTK exhibits superior time stability and accuracy, it is the default. The other mode is deprecated and will be
-# removed in a future version of HOOMD-blue. It is kept now for backwards compatibility.
+# integrate.nvt performs constant volume, constant temperature simulations using the Nos&eacute;-Hoover thermostat,
+# using the MTK equations described in Refs. \cite Martyna1994 \cite Martyna1996.
 #
 # integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -437,7 +431,6 @@ class nvt(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the Nos&eacute;-Hoover thermostat. (in energy units)
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
-    # \param mtk If *true* (default), use the time-reversible and measure-preserving Martyna-Tobias-Klein (MTK) update equations
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
@@ -452,11 +445,10 @@ class nvt(_integration_method):
     # all = group.all()
     # integrate.nvt(group=all, T=1.0, tau=0.5)
     # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
-    # integrator = integrate.nvt(group=all, tau=1.0, T=0.65, mtk=False)
     # typeA = group.type('A')
     # integrator = integrate.nvt(group=typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
-    def __init__(self, group, T, tau, mtk=True):
+    def __init__(self, group, T, tau):
         util.print_status_line();
 
         # initialize base class
@@ -486,18 +478,10 @@ class nvt(_integration_method):
         # setup suffix
         suffix = '_' + group.name;
 
-        # initialize the reflected c++ class
-        if mtk is False:
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
-            else:
-                self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepNVTMTK(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNVTMTK(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
-            else:
-                self.cpp_method = hoomd.TwoStepNVTMTKGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
-
+            self.cpp_method = hoomd.TwoStepNVTMTKGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
 
         self.cpp_method.validateGroup()
 
@@ -961,18 +945,6 @@ class nve(_integration_method):
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
-
-## \internal
-# Old style bdnvt
-def bdnvt(group, T, seed=0, gamma_diam=False, limit=None, tally=False):
-    globals.msg.warning("integrate.bdnvt is deprecated and will be removed.\n")
-    globals.msg.warning("Use integrate.langevin or integrate.brownian instead.\n");
-
-    if gamma_diam:
-        dscale = 1.0;
-    else:
-        dscale = False;
-    return langevin(group, T, seed, dscale, tally)
 
 ## Langevin dynamics
 #

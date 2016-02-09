@@ -2,11 +2,26 @@
 
 [TOC]
 
-## Upcoming release
+## v2.0.0
 
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+
+*Changes that job script modifications*
+
+* context.initialize() is now required before any hoomd_script call.
+
+*Other changes*
+
+* CMake minimum version is now 2.8
+
+*Removed*
+
+* Removed `integrate.bdnvt`: use `integrate.langevin`
+* Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
+
+## Upcoming release
 
 *Bug fixes*
 

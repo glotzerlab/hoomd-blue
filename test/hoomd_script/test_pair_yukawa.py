@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -48,7 +49,7 @@ class pair_yukawa_tests (unittest.TestCase):
         yuk.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
-    
+
     # test nlist subscribe
     def test_nlist_subscribe(self):
         nl = nlist.cell()
