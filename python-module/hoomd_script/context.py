@@ -82,6 +82,8 @@ exec_conf = None;
 ## Current simulation context
 current = None;
 
+_prev_args = None;
+
 ## Simulation context
 #
 # Store all of the context related to a single simulation, including the system state, forces, updaters, integration
@@ -185,7 +187,10 @@ class SimulationContext(object):
 # (if any). By default, initialize() reads arguments given on the command line. Provide a string to initialize()
 # to set the launch configuration within the job script.
 #
-# initialize() should be called immediately after `from hoomd_script import *`.
+# initialize() can be called more than once in a script. However, the execution parameters are fixed on the first call
+# and args is ignored. Subsequent calls to initialize() create a new SimulationContext and set it current. This
+# behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
+# set when rerunning the notebook within an existing kernel.
 #
 # **Example:**
 # \code
@@ -195,11 +200,14 @@ class SimulationContext(object):
 # \endcode
 #
 def initialize(args=None):
-    global exec_conf, msg, options, current
+    global exec_conf, msg, options, current, _prev_args
+    _prev_args = args;
 
     if exec_conf is not None:
-        msg.error("Cannot change execution mode after initialization\n");
-        raise RuntimeError('Error setting option');
+        if args != _prev_args:
+            msg.warning("Ignoring new options, cannot change execution mode after initialization.\n");
+        current = SimulationContext();
+        return current
 
     options = hoomd_script.option.options();
     hoomd_script.option._parse_command_line(args);
@@ -207,6 +215,7 @@ def initialize(args=None):
     _create_exec_conf();
 
     current = SimulationContext();
+    return current
 
 ## Get the current processor name
 #
