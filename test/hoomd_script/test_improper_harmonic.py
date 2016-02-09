@@ -5,19 +5,36 @@ from hoomd_script import *
 context.initialize()
 import unittest
 import os
+import numpy
 
 # tests improper.harmonic
 class improper_harmonic_tests (unittest.TestCase):
     def setUp(self):
         print
-        # create a polymer system and add a dihedral to it
-        self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
-        self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-        self.polymers = [self.polymer1, self.polymer2]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.35, B=0.35)
-        sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        sys.impropers.add('improperA',0, 1, 2, 3);
+        snap = data.make_snapshot(N=40,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  bond_types = [],
+                                  angle_types = [],
+                                  dihedral_types = [],
+                                  improper_types = ['improperA'])
+
+        if comm.get_rank() == 0:
+            snap.impropers.resize(10);
+
+            for i in range(10):
+                x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                snap.particles.position[4*i+0,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+1,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+2,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+3,:] = x;
+
+                snap.impropers.group[i,:] = [4*i+0, 4*i+1, 4*i+2, 4*i+3];
+
+        init.read_snapshot(snap)
 
         sorter.set_params(grid=8)
 
