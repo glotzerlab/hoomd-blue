@@ -80,7 +80,6 @@ set(TEST_LIST
     test_cgcmm_force
     test_morse_force
     test_force_shifted_lj
-    test_nvt_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
     test_temp_rescale_updater
@@ -121,7 +120,6 @@ if(ENABLE_MPI AND NOT HOOMD_SKIP_LONG_TESTS)
     # define every test together with the number of processors
     ADD_TO_MPI_TESTS(test_communication 8)
     ADD_TO_MPI_TESTS(test_load_balancer 8)
-    ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})

@@ -19,6 +19,7 @@
 *Removed*
 
 * Removed `integrate.bdnvt`: use `integrate.langevin`
+* Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
 
 ## Upcoming release
 
