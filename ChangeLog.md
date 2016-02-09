@@ -16,6 +16,10 @@
 
 * CMake minimum version is now 2.8
 
+*Removed*
+
+* Removed `integrate.bdnvt`: use `integrate.langevin`
+
 ## Upcoming release
 
 *Bug fixes*
