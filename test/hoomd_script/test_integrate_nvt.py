@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 

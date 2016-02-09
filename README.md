@@ -36,7 +36,7 @@ For more detailed instructions, [see the documentationn](https://codeblue.umich.
      * Python >= 2.6
      * numpy >= 1.7
      * boost >= 1.39.0
-     * CMake >= 2.6.2
+     * CMake >= 2.8.0
      * C++ Compiler (tested with gcc, clang, intel)
  * Optional:
      * NVIDIA CUDA Toolkit >= 5.0
