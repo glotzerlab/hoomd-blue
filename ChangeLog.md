@@ -4,6 +4,10 @@
 
 ## v2.0.0
 
+*Bug fixes*
+
+* Angles, dihedrals, and impropers no longer initialize with one default type.
+
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
