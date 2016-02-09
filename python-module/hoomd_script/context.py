@@ -59,6 +59,7 @@ import hoomd;
 import hoomd_script
 import socket
 import getpass
+import platform
 
 # The following global variables keep track of the walltime and processing time since the import of hoomd_script
 import time
@@ -179,6 +180,9 @@ class SimulationContext(object):
         global current
 
         current = self;
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
 
 ## Initialize the execution context
 # \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
