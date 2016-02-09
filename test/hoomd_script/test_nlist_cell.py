@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 
@@ -10,7 +11,7 @@ class nlist_cell_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=1000, phi_p=0.05);
-        
+
         # directly create a neighbor list
         self.nl = nlist.cell()
 
@@ -43,7 +44,7 @@ class nlist_cell_tests (unittest.TestCase):
     # test tuning
     def test_tune(self):
         self.nl.tune(warmup=100, r_min=0.1, r_max=0.25, jumps=10, steps=50)
-    
+
     # test multiple neighbor lists can coexist with different parameters
     def test_multi(self):
         self.nl.set_params(r_buff = 0.3)
@@ -61,7 +62,7 @@ class nlist_cell_tests (unittest.TestCase):
         # check that each neighbor list has the right cutoff
         self.assertAlmostEqual(self.nl.r_cut.get_pair('A','A'), 2.0)
         self.assertAlmostEqual(nl2.r_cut.get_pair('A','A'), 4.0)
-        
+
         # force an update to trigger and recheck that the right coefficients updated
         lj1.pair_coeff.set('A','A', r_cut = 5.0)
         run(1)

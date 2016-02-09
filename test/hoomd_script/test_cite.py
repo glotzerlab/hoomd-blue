@@ -2,6 +2,7 @@
 # Maintainer: mphoward
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 import tempfile

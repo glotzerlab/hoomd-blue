@@ -2,11 +2,11 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+context.initialize()
 import unittest
 import os
 import numpy
 import math
-context.initialize()
 
 def almost_equal(u, v, e=0.001):
     return math.fabs(u-v)/math.fabs(u) <= e and math.fabs(u-v) / math.fabs(v) <= e;
