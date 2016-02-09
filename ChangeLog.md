@@ -8,13 +8,14 @@
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 
-*Changes that job script modifications*
+*Changes that require job script modifications*
 
-* context.initialize() is now required before any hoomd_script call.
+* context.initialize() is now required before any hoomd script command.
 
 *Other changes*
 
 * CMake minimum version is now 2.8
+* Convert particle type names to `str` to allow unicode type name input
 
 *Removed*
 

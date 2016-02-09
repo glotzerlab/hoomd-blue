@@ -228,6 +228,9 @@ class coeff:
     ## \internal
     # \brief Sets a single parameter
     def set_single(self, a, b, coeffs):
+        a = str(a);
+        b = str(b);
+
         # create the pair if it hasn't been created it
         if (not (a,b) in self.values) and (not (b,a) in self.values):
             self.values[(a,b)] = {};

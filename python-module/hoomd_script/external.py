@@ -158,6 +158,8 @@ class coeff:
     ## \internal
     # \brief Sets a single parameter
     def set_single(self, type, coeffs):
+        type = str(type);
+
         # create the type identifier if it hasn't been created yet
         if (not type in self.values):
             self.values[type] = {};
