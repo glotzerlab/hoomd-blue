@@ -66,7 +66,7 @@ class pair_yukawa_tests (unittest.TestCase):
         self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

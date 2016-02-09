@@ -68,7 +68,7 @@ class integrate_langevin_tests (unittest.TestCase):
         run(100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 # validate langevin diffusion
@@ -142,7 +142,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
             print(vsq)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

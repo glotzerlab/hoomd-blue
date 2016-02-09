@@ -44,7 +44,7 @@ class dmp_mol2_tests (unittest.TestCase):
             os.remove(self.tmp_file + ".0000000000.mol2")
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

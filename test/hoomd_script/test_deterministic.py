@@ -49,7 +49,7 @@ class determinstic(unittest.TestCase):
         del self.harmonic
         del self.pair
         del self.s
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

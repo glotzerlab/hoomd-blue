@@ -107,7 +107,7 @@ class bond_harmonic_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

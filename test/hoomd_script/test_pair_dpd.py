@@ -33,7 +33,7 @@ class pair_dpd_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, dpd.update_coeffs);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

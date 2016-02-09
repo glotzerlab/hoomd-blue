@@ -19,7 +19,7 @@ class update_sorter_tests (unittest.TestCase):
         sorter.set_params(grid=20);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

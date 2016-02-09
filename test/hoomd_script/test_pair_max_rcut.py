@@ -114,7 +114,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(3.1, nl.r_cut.get_pair('B','B'));
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

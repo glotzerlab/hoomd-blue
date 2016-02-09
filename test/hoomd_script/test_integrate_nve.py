@@ -48,7 +48,7 @@ class integrate_nve_tests (unittest.TestCase):
         run(1);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

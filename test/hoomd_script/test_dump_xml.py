@@ -49,7 +49,7 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(angmom=True);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

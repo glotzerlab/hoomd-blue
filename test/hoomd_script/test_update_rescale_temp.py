@@ -58,7 +58,7 @@ class update_rescale_temp_tests (unittest.TestCase):
         upd.set_params(T=1.2);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

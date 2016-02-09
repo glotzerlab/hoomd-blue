@@ -57,7 +57,7 @@ class pair_cgcmm_tests (unittest.TestCase):
         cgcmm.update_coeffs();
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

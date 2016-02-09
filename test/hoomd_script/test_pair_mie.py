@@ -97,7 +97,7 @@ class pair_mie_tests (unittest.TestCase):
         mie.update_coeffs();
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

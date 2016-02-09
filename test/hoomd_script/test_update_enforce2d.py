@@ -22,7 +22,7 @@ class update_enforce2d_tests (unittest.TestCase):
         run(100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

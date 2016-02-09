@@ -124,7 +124,7 @@ class cite_tests (unittest.TestCase):
             self.assertTrue(nl2 > nl1)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
         hoomd_script.context.bib = None;
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);

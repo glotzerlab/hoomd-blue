@@ -56,7 +56,7 @@ class integrate_bdnvt_rigid_tests (unittest.TestCase):
         run(100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 # unit tests for integrate.nve_rigid w/o rigid bodies
 class integrate_bdnvt_rigid_nobody_tests (unittest.TestCase):
@@ -73,7 +73,7 @@ class integrate_bdnvt_rigid_nobody_tests (unittest.TestCase):
         run(1);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

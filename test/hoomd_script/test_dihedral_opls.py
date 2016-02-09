@@ -46,7 +46,7 @@ class dihedral_opls_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 

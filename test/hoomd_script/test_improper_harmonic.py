@@ -44,7 +44,7 @@ class improper_harmonic_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

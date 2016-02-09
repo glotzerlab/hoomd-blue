@@ -36,7 +36,7 @@ class init_create_random_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, init.create_random, N=100, phi_p=0.05);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

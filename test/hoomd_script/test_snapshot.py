@@ -41,7 +41,7 @@ class init_take_restore_snapshot (unittest.TestCase):
     def test_read_snapshot(self):
         snapshot = self.s.take_snapshot(all=True)
         del self.s
-        init.reset()
+        context.initialize()
         self.s = init.read_snapshot(snapshot)
 
     # test that adding and removing bonds works with take/restore snapshot
@@ -130,7 +130,7 @@ class init_take_restore_snapshot (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 # test take_snapshot with the numpy API
 class init_verify_npy_dtype (unittest.TestCase):
@@ -293,7 +293,7 @@ class init_verify_npy_dtype (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 
 # test make_snapshot and read_snapshot
@@ -444,7 +444,7 @@ class init_take_snapshot_float (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 
 # test make_snapshot and read_snapshot in double precision
@@ -596,7 +596,7 @@ class init_take_snapshot_double (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 
 class init_take_snapshot (unittest.TestCase):

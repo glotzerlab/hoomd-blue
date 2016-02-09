@@ -98,7 +98,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           separation=bad_separation3);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

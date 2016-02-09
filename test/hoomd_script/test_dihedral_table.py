@@ -72,7 +72,7 @@ class dihedral_table_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.sys
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

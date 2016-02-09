@@ -44,7 +44,7 @@ class dmp_pos_tests (unittest.TestCase):
             os.remove(self.tmp_file)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

@@ -293,7 +293,7 @@ class decomposition_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05)
         with self.assertRaises(RuntimeError):
             comm.decomposition(y=0.3)
-        init.reset()
+        context.initialize()
 
     ## Test that errors are raised if fractional divisions exceed 1.0
     def test_bad_fractions(self):

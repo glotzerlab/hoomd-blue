@@ -33,7 +33,7 @@ class replicate(unittest.TestCase):
     def tearDown(self):
         del self.harmonic
         del self.pair
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

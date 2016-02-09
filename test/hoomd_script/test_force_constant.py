@@ -35,7 +35,7 @@ class force_constant_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, const.benchmark, 500);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

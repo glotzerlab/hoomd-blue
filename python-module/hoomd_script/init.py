@@ -81,61 +81,6 @@ def is_initialized():
     else:
         return True;
 
-## Resets all hoomd_script variables
-#
-# After calling init.reset() all global variables used in hoomd_script are cleared and all allocated
-# memory is freed so the simulation can begin anew without needing to launch hoomd again.
-#
-# \note There is a very important memory management issue that must be kept in mind when using
-# reset(). If you have saved a variable such as an integrator or a force for changing parameters,
-# that saved object \b must be deleted before the reset() command is called. If all objects are
-# not deleted, then a memory leak will result causing repeated runs of even a small simulation
-# to eventually run the system out of memory. reset() will throw an error if it detects that this
-# is the case.
-#
-# \note When using the python data access in hoomd scripts, iterators must also be deleted
-# \code
-# for p in sysdef.particles:
-#   # do something
-#
-# del p
-# init.reste()
-# \endcode
-#
-# \b Example:
-# \code
-# init.create_random(N=1000, phi_p = 0.2)
-# lj = pair.lj(r_cut=3.0)
-# .... setup and run simulation
-# del lj
-# init.reset()
-# init.create_random(N=2000, phi_p = 0.2)
-# .... setup and run simulation
-# \endcode
-def reset():
-    if not is_initialized():
-        hoomd_script.context.msg.warning("Trying to reset an uninitialized system\n");
-        return;
-
-    # perform some reference counting magic to verify that the user has cleared all saved variables
-    sysdef = hoomd_script.context.current.system_definition;
-    hoomd_script.context.current.clear();
-
-    gc.collect();
-    count = sysdef.getPDataRefs()
-
-    # note: the check should be against 2, getrefcount counts the temporary reference
-    # passed to it in the argument
-    expected_count = 7
-    if count != expected_count:
-        hoomd_script.context.msg.warning("Not all saved variables were cleared before calling reset()\n");
-        hoomd_script.context.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");
-        hoomd_script.context.msg.warning("Going to try and reset anyways, further errors (such as out of memory) may result\n");
-
-    del sysdef
-    gc.collect();
-    gc.collect();
-
 ## Create an empty system
 #
 # \param N Number of particles to create

@@ -40,7 +40,7 @@ class analyze_callback_tests(unittest.TestCase):
         self.assertEqual(self.test_index_2, 10)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

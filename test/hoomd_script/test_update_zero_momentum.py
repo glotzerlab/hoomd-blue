@@ -31,7 +31,7 @@ class update_zero_momentum_tests (unittest.TestCase):
         run(100);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

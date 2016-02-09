@@ -44,7 +44,7 @@ class dmp_pdb_tests (unittest.TestCase):
             os.remove(self.tmp_file + ".0000000000.pdb")
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

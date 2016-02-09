@@ -100,7 +100,7 @@ A B C
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);
             os.remove(self.tmp_file2);
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

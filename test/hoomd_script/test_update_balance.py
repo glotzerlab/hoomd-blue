@@ -29,7 +29,7 @@ class load_balance_tests (unittest.TestCase):
 
     def tearDown(self):
         if comm.get_num_ranks() > 1:
-            init.reset()
+            context.initialize()
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
