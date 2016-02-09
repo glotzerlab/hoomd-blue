@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -18,7 +19,7 @@ class angle_harmonic_tests (unittest.TestCase):
         self.separation=dict(A=0.35, B=0.35)
         sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
 
-        angle_data = globals.system_definition.getAngleData();
+        angle_data = hoomd_script.context.current.system_definition.getAngleData();
         sys.angles.add('angleA', 0, 1, 2);
 
         sorter.set_params(grid=8)

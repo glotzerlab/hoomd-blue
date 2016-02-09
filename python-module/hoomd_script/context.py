@@ -79,6 +79,105 @@ options = None;
 ## Global variable that holds the execution configuration for reference by the python API
 exec_conf = None;
 
+## Current simulation context
+current = None;
+
+## Simulation context
+#
+# Store all of the context related to a single simulation, including the system state, forces, updaters, integration
+# methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
+# active simulation context. You swap between simulation contexts by using this class as a context manager:
+#
+# ```
+# sim1 = context.SimulationContext();
+# sim2 = context.SimulationContext();
+# with sim1:
+#   init.read_xml('init1.xml');
+#   lj = pair.lj(...)
+#   ...
+#
+# with sim2:
+#   init.read_xml('init2.xml');
+#   gauss = pair.gauss(...)
+#   ...
+#
+# # run simulation 1 for a bit
+# with sim1:
+#    run(100)
+#
+# # run simulation 2 for a bit
+# with sim2:
+#    run(100)
+# ```
+#
+# If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
+# and erase the existing one.
+#
+# ```
+# context.initialize()
+# init.read_xml('init1.xml');
+# lj = pair.lj(...)
+# ...
+# run(100);
+#
+# context.initialize()
+# init.read_xml('init2.xml');
+# gauss = pair.gauss(...)
+# ...
+# run(100)
+# ```
+class SimulationContext(object):
+    def __init__(self):
+        ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
+        self.system_definition = None;
+
+        ## Global variable that holds the System shared by all parts of hoomd_script
+        self.system = None;
+
+        ## Global variable that holds the balanced domain decomposition in MPI runs if it is requested
+        self.decomposition = None
+
+        ## Global variable that holds the sorter
+        self.sorter = None;
+
+        ## Global variable that tracks the all of the force computes specified in the script so far
+        self.forces = [];
+
+        ## Global variable that tracks the all of the constraint force computes specified in the script so far
+        self.constraint_forces = [];
+
+        ## Global variable that tracks all the integration methods that have been specified in the script so far
+        self.integration_methods = [];
+
+        ## Global variable tracking the last _integrator set
+        self.integrator = None;
+
+        ## Global variable tracking the system's neighborlist
+        self.neighbor_list = None;
+
+        ## Global variable tracking all neighbor lists that have been created
+        self.neighbor_lists = []
+
+        ## Global variable tracking all the loggers that have been created
+        self.loggers = [];
+
+        ## Global variable tracking all the analyzers that have been created
+        self.analyzers = [];
+
+        ## Global variable tracking all the updaters that have been created
+        self.updaters = [];
+
+        ## Global variable tracking all the compute thermos that have been created
+        self.thermos = [];
+
+        ## Cached all group
+        self.group_all = None;
+
+    def __enter__(self):
+        global current
+
+        current = self;
+
 ## Initialize the execution context
 # \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
 #
@@ -96,7 +195,7 @@ exec_conf = None;
 # \endcode
 #
 def initialize(args=None):
-    global exec_conf, msg, options
+    global exec_conf, msg, options, current
 
     if exec_conf is not None:
         msg.error("Cannot change execution mode after initialization\n");
@@ -106,6 +205,8 @@ def initialize(args=None):
     hoomd_script.option._parse_command_line(args);
 
     _create_exec_conf();
+
+    current = SimulationContext();
 
 ## Get the current processor name
 #
@@ -173,7 +274,7 @@ def _create_exec_conf():
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    global exec_conf, msg
+    global exec_conf, msg, current
 
     if exec_conf is None:
         msg.error("call context.initialize() before any other method in hoomd.")

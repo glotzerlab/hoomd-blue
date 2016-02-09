@@ -74,7 +74,6 @@ from hoomd_script import dump;
 from hoomd_script import force;
 from hoomd_script import external;
 from hoomd_script import constrain;
-from hoomd_script import globals;
 from hoomd_script import group;
 from hoomd_script import integrate;
 from hoomd_script import option;
@@ -230,31 +229,31 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
-    if globals.integrator is None:
+    if context.current.integrator is None:
         context.msg.warning("Starting a run without an integrator set");
     else:
-        globals.integrator.update_forces();
-        globals.integrator.update_methods();
-        globals.integrator.update_thermos();
+        context.current.integrator.update_forces();
+        context.current.integrator.update_methods();
+        context.current.integrator.update_thermos();
 
     # update autotuner parameters
-    globals.system.setAutotunerParams(context.options.autotuner_enable, int(context.options.autotuner_period));
+    context.current.system.setAutotunerParams(context.options.autotuner_enable, int(context.options.autotuner_period));
 
     # if rigid bodies, setxv
-    if len(data.system_data(globals.system_definition).bodies) > 0:
-        data.system_data(globals.system_definition).bodies.updateRV()
+    if len(data.system_data(context.current.system_definition).bodies) > 0:
+        data.system_data(context.current.system_definition).bodies.updateRV()
 
-    for logger in globals.loggers:
+    for logger in context.current.loggers:
         logger.update_quantities();
-    globals.system.enableProfiler(profile);
-    globals.system.enableQuietRun(quiet);
+    context.current.system.enableProfiler(profile);
+    context.current.system.enableQuietRun(quiet);
 
-    if globals.neighbor_list:
-        globals.neighbor_list.update_rcut();
-        globals.neighbor_list.update_exclusions_defaults();
+    if context.current.neighbor_list:
+        context.current.neighbor_list.update_rcut();
+        context.current.neighbor_list.update_exclusions_defaults();
 
     # update all user-defined neighbor lists
-    for nl in globals.neighbor_lists:
+    for nl in context.current.neighbor_lists:
         nl.update_rcut()
         nl.update_exclusions_defaults()
 
@@ -267,7 +266,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     if not quiet:
         context.msg.notice(1, "** starting run **\n");
-    globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
+    context.current.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
         context.msg.notice(1, "** run complete **\n");
 
@@ -298,7 +297,7 @@ def run_upto(step, **keywords):
 
     # determine the number of steps to run
     step = int(step);
-    cur_step = globals.system.getCurrentTimeStep();
+    cur_step = context.current.system.getCurrentTimeStep();
 
     if cur_step >= step:
         context.msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
@@ -319,7 +318,7 @@ def get_step():
         context.msg.error("Cannot get step before initialization\n");
         raise RuntimeError('Error getting step');
 
-    return globals.system.getCurrentTimeStep();
+    return context.current.system.getCurrentTimeStep();
 
 ## Start CUDA profiling
 #

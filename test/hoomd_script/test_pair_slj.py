@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -49,18 +50,18 @@ class pair_slj_tests (unittest.TestCase):
     def test_nlist_subscribe(self):
         lj = pair.slj(r_cut=2.5, d_max=2.0);
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
     # test nlist subscribe
     def test_nlist_subscribe(self):
         nl = nlist.cell()
         lj = pair.slj(r_cut=2.5, d_max=2.0, nlist=nl);
-        self.assertEqual(globals.neighbor_list, None)
+        self.assertEqual(hoomd_script.context.current.neighbor_list, None)
 
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         nl.update_rcut();
@@ -82,7 +83,7 @@ class pair_slj_tests (unittest.TestCase):
             p.diameter = r
 
         lj = pair.slj(r_cut=3.0);
-        self.assertAlmostEqual(globals.neighbor_list.cpp_nlist.getMaximumDiameter(), rmax,5)
+        self.assertAlmostEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getMaximumDiameter(), rmax,5)
 
     def tearDown(self):
         del self.s

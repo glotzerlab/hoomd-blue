@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -18,7 +19,7 @@ class dihedral_harmonic_tests (unittest.TestCase):
         self.separation=dict(A=0.35, B=0.35)
         sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
 
-        dihedral_data = globals.system_definition.getDihedralData();
+        dihedral_data = hoomd_script.context.current.system_definition.getDihedralData();
         sys.dihedrals.add('dihedralA', 0, 1, 2, 3);
 
         sorter.set_params(grid=8)

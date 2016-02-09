@@ -82,7 +82,6 @@
 # for more details of implementing a force.
 
 from hoomd_script import external;
-from hoomd_script import globals;
 from hoomd_script import force;
 from hoomd_script import util;
 from hoomd_script import meta;
@@ -628,9 +627,9 @@ class wallpotential(external._external_force):
     ## \internal
     # \brief Fixes negative values to zero before squaring
     def update_coeffs(self):
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
-            type=globals.system_definition.getParticleData().getNameByType(i);
+            type=hoomd_script.context.current.system_definition.getParticleData().getNameByType(i);
             if self.force_coeff.values[str(type)]['r_cut']<=0:
                 self.force_coeff.values[str(type)]['r_cut']=0;
         external._external_force.update_coeffs(self);
@@ -676,14 +675,14 @@ class lj(wallpotential):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialLJ(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialLJ(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialLJGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialLJGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -725,14 +724,14 @@ class gauss(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialGauss(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialGauss(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialGauss;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialGaussGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialGaussGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialGaussGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma'];
@@ -774,20 +773,20 @@ class slj(wallpotential):
 
         # update the neighbor list
         if d_max is None :
-            sysdef = globals.system_definition;
+            sysdef = hoomd_script.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
             hoomd_script.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialSLJ(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialSLJ(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialSLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialSLJGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialSLJGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialSLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -830,13 +829,13 @@ class yukawa(wallpotential):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialYukawa(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialYukawa(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialYukawa;
         else:
-            self.cpp_force = hoomd.WallsPotentialYukawaGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialYukawaGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialYukawaGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'kappa'];
@@ -874,14 +873,14 @@ class morse(wallpotential):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialMorse(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialMorse(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMorse;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialMorseGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialMorseGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMorseGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['D0', 'alpha', 'r0'];
@@ -920,14 +919,14 @@ class force_shifted_lj(wallpotential):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialForceShiftedLJ(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialForceShiftedLJ(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialForceShiftedLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialForceShiftedLJGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialForceShiftedLJGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialForceShiftedLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -970,14 +969,14 @@ class mie(wallpotential):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialMie(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialMie(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMie;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialMieGPU(globals.system_definition, self.name);
+            self.cpp_force = hoomd.WallsPotentialMieGPU(hoomd_script.context.current.system_definition, self.name);
             self.cpp_class = hoomd.WallsPotentialMieGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];

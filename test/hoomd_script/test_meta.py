@@ -2,6 +2,7 @@
 # Maintainer: csadorf
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os

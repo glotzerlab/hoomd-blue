@@ -49,7 +49,6 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import globals;
 import sys;
 import hoomd;
 from hoomd_script import util;
@@ -101,7 +100,7 @@ class _force(meta._metadata):
         self.force_name = "force%d" % (id);
         self.enabled = True;
         self.log =True;
-        globals.forces.append(self);
+        hoomd_script.context.current.forces.append(self);
 
         # base class constructor
         meta._metadata.__init__(self)
@@ -169,7 +168,7 @@ class _force(meta._metadata):
 
         # remove the compute from the system if it is not going to be logged
         if not log:
-            globals.system.removeCompute(self.force_name);
+            hoomd_script.context.current.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -224,7 +223,7 @@ class _force(meta._metadata):
 
         # add the compute back to the system if it was removed
         if not self.log:
-            globals.system.addCompute(self.cpp_force, self.force_name);
+            hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.enabled = True;
         self.log = True;
@@ -286,9 +285,9 @@ class constant(_force):
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, group.cpp_group, fx, fy, fz);
+            self.cpp_force = hoomd.ConstForceCompute(hoomd_script.context.current.system_definition, group.cpp_group, fx, fy, fz);
         else:
-            self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
+            self.cpp_force = hoomd.ConstForceCompute(hoomd_script.context.current.system_definition, hoomd_script.context.current.group_all.cpp_group, fx, fy, fz);
 
         # store metadata
         self.metadata_fields = ['fx','fy','fz']
@@ -299,7 +298,7 @@ class constant(_force):
             self.metadata_fields.append('group')
             self.group = group
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     ## Change the value of the force
     #
@@ -352,9 +351,9 @@ class const_external_field_dipole(_force):
         _force.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(globals.system_definition, field_x, field_y, field_z, p)
+        self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(hoomd_script.context.current.system_definition, field_x, field_y, field_z, p)
 
-        globals.system.addCompute(self.cpp_force, self.force_name)
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # store metadata
         self.metdata_fields = ['field_x', 'field_y', 'field_z']

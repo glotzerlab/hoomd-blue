@@ -2,6 +2,7 @@
 # Maintainer: mspells
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -58,12 +59,12 @@ class pair_gb_tests (unittest.TestCase):
     def test_nlist_subscribe(self):
         gb = pair.gb(r_cut=2.5);
         gb.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
         gb.pair_coeff.set('A', 'A', r_cut = 2.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
     def tearDown(self):
         init.reset();

@@ -50,7 +50,6 @@
 # Maintainer: mphoward / All Developers are free to add commands for new features
 
 from hoomd_script import util
-from hoomd_script import globals
 from hoomd_script import comm
 import hoomd_script
 import textwrap

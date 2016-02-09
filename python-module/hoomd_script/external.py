@@ -56,7 +56,6 @@
 # As an example, a force derived from a %periodic potential can be used to induce a concentration modulation
 # in the system.
 
-from hoomd_script import globals;
 from hoomd_script import force;
 import hoomd;
 from hoomd_script import util;
@@ -191,10 +190,10 @@ class coeff:
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -284,10 +283,10 @@ class _external_force(force._force):
                raise RuntimeError("Error updating force coefficients");
 
             # set all the params
-            ntypes = globals.system_definition.getParticleData().getNTypes();
+            ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
             type_list = [];
             for i in range(0,ntypes):
-                type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+                type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
             for i in range(0,ntypes):
                 # build a dict of the coeffs to pass to proces_coeff
@@ -350,11 +349,11 @@ class periodic(_external_force):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalPeriodic(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialExternalPeriodic(hoomd_script.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(hoomd_script.context.current.system_definition,self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['A','i','w','p'];
@@ -398,11 +397,11 @@ class e_field(_external_force):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalElectricField(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialExternalElectricField(hoomd_script.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalElectricFieldGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialExternalElectricFieldGPU(hoomd_script.context.current.system_definition,self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = None;

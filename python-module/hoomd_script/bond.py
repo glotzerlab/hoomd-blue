@@ -50,7 +50,6 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 from hoomd_script import force;
-from hoomd_script import globals;
 import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
@@ -196,10 +195,10 @@ class coeff:
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getBondData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getBondData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getBondData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -279,10 +278,10 @@ class _bond(force._force):
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getBondData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getBondData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
@@ -336,17 +335,17 @@ class harmonic(_bond):
         _bond.__init__(self);
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getNGlobal() == 0:
+        if hoomd_script.context.current.system_definition.getBondData().getNGlobal() == 0:
             hoomd_script.context.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondHarmonic(hoomd_script.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialBondHarmonicGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondHarmonicGPU(hoomd_script.context.current.system_definition,self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['k','r0'];
@@ -404,7 +403,7 @@ class fene(_bond):
         util.print_status_line();
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getNGlobal() == 0:
+        if hoomd_script.context.current.system_definition.getBondData().getNGlobal() == 0:
             hoomd_script.context.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
@@ -413,11 +412,11 @@ class fene(_bond):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondFENE(hoomd_script.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialBondFENEGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondFENEGPU(hoomd_script.context.current.system_definition,self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['k','r0','epsilon','sigma'];
@@ -548,11 +547,11 @@ class table(force._force):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
+            self.cpp_force = hoomd.BondTablePotential(hoomd_script.context.current.system_definition, int(width), self.name);
         else:
-            self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
+            self.cpp_force = hoomd.BondTablePotentialGPU(hoomd_script.context.current.system_definition, int(width), self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent matrix
         self.bond_coeff = coeff();
@@ -588,10 +587,10 @@ class table(force._force):
             raise RuntimeError("Error updating bond coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getBondData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getBondData().getNameByType(i));
 
 
         # loop through all of the unique type bonds and evaluate the table

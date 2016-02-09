@@ -49,19 +49,19 @@
 
 # Maintainer: joaander
 
-from hoomd_script import globals;
 from hoomd_script import util;
+import hoomd_script;
 
 ## \package hoomd_script.sorter
 # \brief Wrapper for "global" sorter commands
 #
-# This package is a thin wrapper around globals.sorter. It takes the place of the old model for making the
+# This package is a thin wrapper around hoomd_script.context.current.sorter. It takes the place of the old model for making the
 # global sorter available as "sorter" in the __main__ namespace. Moving it into the hoomd_script namespace
 # is backwards compatible as long as the user does "from hoomd_script import *" - but it also makes it much easier
 # to reference the sorter from modules other than __main__.
 #
 # Backwards compatibility is only ensured if the script only uses the public python facing API. Bypassing this to get
-# at the C++ interface should be done through globals.sorter
+# at the C++ interface should be done through hoomd_script.context.current.sorter
 #
 
 ## \internal
@@ -69,7 +69,7 @@ from hoomd_script import util;
 def set_params(*args, **kwargs):
     util.print_status_line();
     util._disable_status_lines = True;
-    globals.sorter.set_params(*args, **kwargs);
+    hoomd_script.context.current.sorter.set_params(*args, **kwargs);
     util._disable_status_lines = False;
 
 ## \internal
@@ -77,7 +77,7 @@ def set_params(*args, **kwargs):
 def disable(*args, **kwargs):
     util.print_status_line();
     util._disable_status_lines = True;
-    globals.sorter.disable(*args, **kwargs);
+    hoomd_script.context.current.sorter.disable(*args, **kwargs);
     util._disable_status_lines = False;
 
 ## \internal
@@ -85,7 +85,7 @@ def disable(*args, **kwargs):
 def enable(*args, **kwargs):
     util.print_status_line();
     util._disable_status_lines = True;
-    globals.sorter.enable(*args, **kwargs);
+    hoomd_script.context.current.sorter.enable(*args, **kwargs);
     util._disable_status_lines = False;
 
 ## \internal
@@ -93,5 +93,5 @@ def enable(*args, **kwargs):
 def set_period(*args, **kwargs):
     util.print_status_line();
     util._disable_status_lines = True;
-    globals.sorter.set_period(*args, **kwargs);
+    hoomd_script.context.current.sorter.set_period(*args, **kwargs);
     util._disable_status_lines = False;

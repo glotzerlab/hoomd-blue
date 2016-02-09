@@ -49,7 +49,6 @@
 
 # Maintainer: joaander
 
-from hoomd_script import globals;
 from hoomd_script import init
 from hoomd_script import util;
 import hoomd;
@@ -84,13 +83,13 @@ import hoomd_script;
 #
 # In previous versions of HOOMD-blue, %pair forces automatically created and subscribed to a single global neighbor
 # list that was automatically created. Backwards compatibility is maintained to this behavior if a neighbor list is
-# not specified by a %pair force. This package also maintains a thin wrapper around globals.neighbor_list for
+# not specified by a %pair force. This package also maintains a thin wrapper around hoomd_script.context.current.neighbor_list for
 # for interfacing with this object. It takes the place of the old model for making the global neighbor list available
 # as "nlist" in the __main__ namespace. Moving it into the hoomd_script namespace is backwards compatible as long as
 # the user does "from hoomd_script import *" - but it also makes it much easier to reference the nlist from modules
 # other than __main__. Backwards compatibility is only ensured if the script only uses the public python facing API.
-# Bypassing this to get at the C++ interface should be done through globals.neighbor_list . These wrappers are
-# (re-)documented below, but should \b only be used to interface with globals.neighbor_list. Otherwise, the methods
+# Bypassing this to get at the C++ interface should be done through hoomd_script.context.current.neighbor_list . These wrappers are
+# (re-)documented below, but should \b only be used to interface with hoomd_script.context.current.neighbor_list. Otherwise, the methods
 # should be called directly on the neighbor list objects themselves. These global wrappers may be deprecated in a
 # future release.
 #
@@ -158,10 +157,10 @@ class _nlist:
         self.r_cut = r_cut_max;
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # loop over all possible pairs and require that a dictionary key exists for them
         for i in range(0,ntypes):
@@ -447,11 +446,11 @@ class _nlist:
             # run the benchmark 3 times
             tps = [];
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
 
             # record the median tps of the 3
             tps.sort();
@@ -572,10 +571,10 @@ class rcut:
             raise RuntimeError('Error filling nlist rcut(i,j)');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # loop over all possible pairs and require that a dictionary key exists for them
         for i in range(0,ntypes):
@@ -634,20 +633,20 @@ class cell(_nlist):
 
         # create the C++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_cl = hoomd.CellList(globals.system_definition)
-            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            self.cpp_cl = hoomd.CellList(hoomd_script.context.current.system_definition)
+            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = hoomd.NeighborListBinned(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
         else:
-            self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
-            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            self.cpp_cl  = hoomd.CellListGPU(hoomd_script.context.current.system_definition)
+            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = hoomd.NeighborListGPUBinned(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
-        globals.system.addCompute(self.cpp_nlist, self.name)
+        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the globals
-        globals.neighbor_lists += [self]
+        hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
         util._disable_status_lines = True
@@ -791,24 +790,24 @@ class stencil(_nlist):
 
         # create the C++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_cl = hoomd.CellList(globals.system_definition)
-            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
-            globals.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_cl = hoomd.CellList(hoomd_script.context.current.system_definition)
+            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = hoomd.CellListStencil(hoomd_script.context.current.system_definition, self.cpp_cl)
+            hoomd_script.context.current.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListStencil(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
         else:
-            self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
-            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = hoomd.CellListStencil(globals.system_definition, self.cpp_cl)
-            globals.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListGPUStencil(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_cl  = hoomd.CellListGPU(hoomd_script.context.current.system_definition)
+            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = hoomd.CellListStencil(hoomd_script.context.current.system_definition, self.cpp_cl)
+            hoomd_script.context.current.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = hoomd.NeighborListGPUStencil(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
-        globals.system.addCompute(self.cpp_nlist, self.name)
+        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the globals
-        globals.neighbor_lists += [self]
+        hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
         util._disable_status_lines = True
@@ -949,11 +948,11 @@ class stencil(_nlist):
             # run the benchmark 3 times
             tps = [];
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
             hoomd_script.run(steps);
-            tps.append(globals.system.getLastTPS())
+            tps.append(hoomd_script.context.current.system.getLastTPS())
 
             # record the median tps of the 3
             tps.sort();
@@ -1024,9 +1023,9 @@ class tree(_nlist):
 
         # create the C++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, default_r_cut, default_r_buff)
+            self.cpp_nlist = hoomd.NeighborListTree(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff)
         else:
-            self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, default_r_cut, default_r_buff)
+            self.cpp_nlist = hoomd.NeighborListGPUTree(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
@@ -1036,10 +1035,10 @@ class tree(_nlist):
         else:
             self.name = name
 
-        globals.system.addCompute(self.cpp_nlist, self.name)
+        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the globals
-        globals.neighbor_lists += [self]
+        hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
         util._disable_status_lines = True
@@ -1054,14 +1053,14 @@ tree.cur_id = 0
 # If no neighbor list has been created, create one. If there is one, subscribe the new potential and update the rcut
 def _subscribe_global_nlist(cb):
     # create a global neighbor list if it doesn't exist
-    if globals.neighbor_list is None:
-        globals.neighbor_list = cell();
+    if hoomd_script.context.current.neighbor_list is None:
+        hoomd_script.context.current.neighbor_list = cell();
 
     # subscribe and force an update
-    globals.neighbor_list.subscribe(cb);
-    globals.neighbor_list.update_rcut();
+    hoomd_script.context.current.neighbor_list.subscribe(cb);
+    hoomd_script.context.current.neighbor_list.update_rcut();
 
-    return globals.neighbor_list;
+    return hoomd_script.context.current.neighbor_list;
 
 ## Thin wrapper for changing parameters for the global neighbor list
 #
@@ -1121,12 +1120,12 @@ def _subscribe_global_nlist(cb):
 # \endcode
 def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=True):
     util.print_status_line();
-    if globals.neighbor_list is None:
+    if hoomd_script.context.current.neighbor_list is None:
         hoomd_script.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
+    hoomd_script.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
     util._disable_status_lines = False;
 
 ## Thin wrapper for resetting exclusion for global neighbor list
@@ -1166,12 +1165,12 @@ def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, dete
 #
 def reset_exclusions(exclusions = None):
     util.print_status_line();
-    if globals.neighbor_list is None:
+    if hoomd_script.context.current.neighbor_list is None:
         hoomd_script.context.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.reset_exclusions(exclusions);
+    hoomd_script.context.current.neighbor_list.reset_exclusions(exclusions);
     util._disable_status_lines = False;
 
 ## Thin wrapper for benchmarking the global neighbor list
@@ -1198,12 +1197,12 @@ def reset_exclusions(exclusions = None):
 #
 def benchmark(n):
     util.print_status_line();
-    if globals.neighbor_list is None:
+    if hoomd_script.context.current.neighbor_list is None:
         hoomd_script.context.msg.error('Cannot benchmark global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.benchmark(n);
+    hoomd_script.context.current.neighbor_list.benchmark(n);
     util._disable_status_lines = False;
 
 ## Thin wrapper for querying the update period for the global neighbor list
@@ -1219,10 +1218,10 @@ def benchmark(n):
 #
 def query_update_period():
     util.print_status_line();
-    if globals.neighbor_list is None:
+    if hoomd_script.context.current.neighbor_list is None:
         hoomd_script.context.msg.error('Cannot query global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.query_update_period(*args, **kwargs);
+    hoomd_script.context.current.neighbor_list.query_update_period(*args, **kwargs);
     util._disable_status_lines = False;

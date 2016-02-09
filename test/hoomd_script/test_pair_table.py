@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -36,18 +37,18 @@ class pair_table_tests (unittest.TestCase):
         table = pair.table(width=1000);
         table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
         table.update_coeffs();
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(1.0, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
         table.pair_coeff.set('A', 'A', rmax = 2.5)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
     # test nlist subscribe
     def test_nlist_subscribe(self):
         nl = nlist.cell()
         table = pair.table(width=1000, nlist=nl);
-        self.assertEqual(globals.neighbor_list, None)
+        self.assertEqual(hoomd_script.context.current.neighbor_list, None)
 
         table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
         table.update_coeffs();

@@ -64,7 +64,6 @@
 # temperature for thermostatting and logging.
 #
 
-from hoomd_script import globals;
 from hoomd_script import force;
 import hoomd;
 from hoomd_script import util;
@@ -105,7 +104,7 @@ class _constraint_force(meta._metadata):
 
         self.force_name = "constraint_force%d" % (id);
         self.enabled = True;
-        globals.constraint_forces.append(self);
+        hoomd_script.context.current.constraint_forces.append(self);
 
         # create force data iterator
         self.forces = data.force_data(self);
@@ -165,7 +164,7 @@ class _constraint_force(meta._metadata):
         self.enabled = False;
 
         # remove the compute from the system
-        globals.system.removeCompute(self.force_name);
+        hoomd_script.context.current.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -219,7 +218,7 @@ class _constraint_force(meta._metadata):
             return;
 
         # add the compute back to the system
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.enabled = True;
 
@@ -261,11 +260,11 @@ class sphere(_constraint_force):
         # create the c++ mirror class
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
+            self.cpp_force = hoomd.ConstraintSphere(hoomd_script.context.current.system_definition, group.cpp_group, P, r);
         else:
-            self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
+            self.cpp_force = hoomd.ConstraintSphereGPU(hoomd_script.context.current.system_definition, group.cpp_group, P, r);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # store metadata
         self.group = group
@@ -314,11 +313,11 @@ class distance(_constraint_force):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition, self.nlist.cpp_nlist);
+            self.cpp_force = hoomd.ForceDistanceConstraint(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist);
         else:
-            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition, self.nlist.cpp_nlist);
+            self.cpp_force = hoomd.ForceDistanceConstraintGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     def get_rcut(self):
         # do not update dictionary

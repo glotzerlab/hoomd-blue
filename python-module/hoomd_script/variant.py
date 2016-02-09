@@ -50,9 +50,9 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
-from hoomd_script import globals;
 import sys;
 from hoomd_script import init;
+import hoomd_script
 
 ## \package hoomd_script.variant
 # \brief Commands for specifying values that vary over time
@@ -98,7 +98,7 @@ class _constant(_variant):
 
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantConst(val);
-        self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+        self.cpp_variant.setOffset(hoomd_script.context.current.system.getCurrentTimeStep());
 
     ## \internal
     # \brief return metadata
@@ -160,13 +160,13 @@ class linear_interp(_variant):
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantLinear();
         if zero == 'now':
-            self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+            self.cpp_variant.setOffset(hoomd_script.context.current.system.getCurrentTimeStep());
         else:
             # validate zero
             if zero < 0:
                 hoomd_script.context.msg.error("Cannot create a linear_interp variant with a negative zero\n");
                 raise RuntimeError('Error creating variant');
-            if zero > globals.system.getCurrentTimeStep():
+            if zero > hoomd_script.context.current.system.getCurrentTimeStep():
                 hoomd_script.context.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
                 raise RuntimeError('Error creating variant');
 

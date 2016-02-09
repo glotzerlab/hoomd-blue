@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -82,8 +83,8 @@ class bond_harmonic_tests (unittest.TestCase):
         integrate.nve(all);
         run(100)
 
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10))
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10))
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10))
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10))
 
         # delete bonds connected to a particle
         tags = []
@@ -99,8 +100,8 @@ class bond_harmonic_tests (unittest.TestCase):
 
         run(100)
 
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+2)
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+2)
         del lj
         del harmonic
 

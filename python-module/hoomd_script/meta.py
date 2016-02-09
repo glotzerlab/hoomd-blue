@@ -150,14 +150,14 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     obj['context'] = hoomd_script.context.ExecutionContext()
     obj['hoomd'] = hoomd_script.context.HOOMDContext()
 
-    global_objs = [hoomd_script.data.system_data(hoomd_script.globals.system_definition)];
-    global_objs += hoomd_script.globals.forces;
-    global_objs += hoomd_script.globals.constraint_forces;
-    global_objs += [hoomd_script.globals.integrator];
-    global_objs += hoomd_script.globals.integration_methods;
-    global_objs += hoomd_script.globals.forces
-    global_objs += hoomd_script.globals.analyzers;
-    global_objs += hoomd_script.globals.updaters;
+    global_objs = [hoomd_script.data.system_data(hoomd_script.hoomd_script.context.current.system_definition)];
+    global_objs += hoomd_script.hoomd_script.context.current.forces;
+    global_objs += hoomd_script.hoomd_script.context.current.constraint_forces;
+    global_objs += [hoomd_script.hoomd_script.context.current.integrator];
+    global_objs += hoomd_script.hoomd_script.context.current.integration_methods;
+    global_objs += hoomd_script.hoomd_script.context.current.forces
+    global_objs += hoomd_script.hoomd_script.context.current.analyzers;
+    global_objs += hoomd_script.hoomd_script.context.current.updaters;
 
     # add list of objects to JSON
     for o in global_objs:

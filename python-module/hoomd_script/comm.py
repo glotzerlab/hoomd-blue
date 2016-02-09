@@ -54,7 +54,6 @@
 
 import hoomd;
 from hoomd_script import util;
-from hoomd_script import globals;
 import hoomd_script;
 
 import sys;
@@ -166,7 +165,7 @@ class decomposition():
         util.print_status_line()
 
         # check that system is not initialized
-        if globals.system is not None:
+        if hoomd_script.context.current.system is not None:
             hoomd_script.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
@@ -210,10 +209,10 @@ class decomposition():
                     self.uniform_z = True
 
             # set the global decomposition to this class
-            if globals.decomposition is not None:
+            if hoomd_script.context.current.decomposition is not None:
                 hoomd_script.context.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
 
-            globals.decomposition = self
+            hoomd_script.context.current.decomposition = self
 
     ## Set parameters for the decomposition before initialization.
     # \param x First nx-1 fractional domain widths (if \a nx is None)

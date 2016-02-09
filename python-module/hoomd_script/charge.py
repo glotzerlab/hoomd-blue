@@ -64,7 +64,6 @@
 # - pppm
 #
 
-from hoomd_script import globals;
 from hoomd_script import force;
 import hoomd;
 from hoomd_script import util;
@@ -123,7 +122,7 @@ class pppm(force._force):
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd_script.context.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing PPPM.")
 
@@ -140,11 +139,11 @@ class pppm(force._force):
             self.nlist.update_rcut()
 
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, self.nlist.cpp_nlist, group.cpp_group);
+            self.cpp_force = hoomd.PPPMForceCompute(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
         else:
-            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, self.nlist.cpp_nlist, group.cpp_group);
+            self.cpp_force = hoomd.PPPMForceComputeGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # error check flag - must be set to true by set_params in order for the run() to commence
         self.params_set = False;
@@ -194,17 +193,17 @@ class pppm(force._force):
     def set_params(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
 
-        if globals.system_definition.getNDimensions() != 3:
+        if hoomd_script.context.current.system_definition.getNDimensions() != 3:
             hoomd_script.context.msg.error("System must be 3 dimensional\n");
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
         q2 = 0
-        N = globals.system_definition.getParticleData().getN()
+        N = hoomd_script.context.current.system_definition.getParticleData().getN()
         for i in range(0,N):
-            q = globals.system_definition.getParticleData().getCharge(i)
+            q = hoomd_script.context.current.system_definition.getParticleData().getCharge(i)
             q2 += q*q
-        box = globals.system_definition.getParticleData().getBox()
+        box = hoomd_script.context.current.system_definition.getParticleData().getBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z
@@ -245,10 +244,10 @@ class pppm(force._force):
                 hoomd_script.context.msg.error("kappa not converging\n");
                 raise RuntimeError("Cannot compute PPPM");
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         util._disable_status_lines = True;
         for i in range(0,ntypes):

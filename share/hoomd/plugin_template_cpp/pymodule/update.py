@@ -58,7 +58,6 @@ from hoomd_plugins.plugin_template import _plugin_template
 # hoomd_script
 from hoomd_script.update import _updater
 from hoomd_script import util
-from hoomd_script import globals
 import hoomd_script
 import hoomd
 
@@ -86,9 +85,9 @@ class example(_updater):
 
         # initialize the reflected c++ class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_updater = _plugin_template.ExampleUpdater(globals.system_definition);
+            self.cpp_updater = _plugin_template.ExampleUpdater(hoomd_script.context.current.system_definition);
         else:
-            self.cpp_updater = _plugin_template.ExampleUpdaterGPU(globals.system_definition);
+            self.cpp_updater = _plugin_template.ExampleUpdaterGPU(hoomd_script.context.current.system_definition);
 
         self.setupUpdater(period);
 

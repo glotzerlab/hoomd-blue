@@ -3,6 +3,7 @@
 # Maintainer: mphoward
 
 from hoomd_script import *
+import hoomd_script;
 import hoomd_script
 context.initialize()
 import hoomd
@@ -18,7 +19,7 @@ class decomposition_tests (unittest.TestCase):
 
             # test the default constructor, which should make a uniform decomposition
             comm.decomposition()
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 3)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 3)
@@ -38,7 +39,7 @@ class decomposition_tests (unittest.TestCase):
 
             # explicitly set the grid dimensions in the constructor
             comm.decomposition(nx=2, ny=2, nz=2)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 3)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 3)
@@ -58,7 +59,7 @@ class decomposition_tests (unittest.TestCase):
 
             # shuffle dimensions
             comm.decomposition(nx=2, ny=4, nz=1)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 3)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 5)
@@ -79,7 +80,7 @@ class decomposition_tests (unittest.TestCase):
 
             # shuffle dimensions
             comm.decomposition(nx=4, ny=1, nz=2)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 5)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 2)
@@ -100,7 +101,7 @@ class decomposition_tests (unittest.TestCase):
 
             # shuffle dimensions
             comm.decomposition(nx=1, ny=2, nz=4)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 2)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 3)
@@ -123,12 +124,12 @@ class decomposition_tests (unittest.TestCase):
     def test_basic_balance(self):
         if comm.get_num_ranks() == 1:
             comm.decomposition(x=0.5)
-            self.assertEqual(globals.decomposition, None)
+            self.assertEqual(hoomd_script.context.current.decomposition, None)
         elif comm.get_num_ranks() > 1:
             box = data.boxdim(L=10)
             boxdim = box._getBoxDim()
             comm.decomposition(z=0.2)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 3)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 3)
@@ -147,7 +148,7 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[2], 1.0)
 
             comm.decomposition(x=[0.2,0.3,0.1], y=0.3)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
             self.assertEquals(len(dd.getCumulativeFractions(0)), 5)
             self.assertEquals(len(dd.getCumulativeFractions(1)), 3)
             self.assertEquals(len(dd.getCumulativeFractions(2)), 2)
@@ -178,7 +179,7 @@ class decomposition_tests (unittest.TestCase):
             # set a global value, and try with nx arg set
             hoomd_script.context.options.nx = 8
             comm.decomposition(nx=4)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 5)
             self.assertAlmostEquals(dd.getCumulativeFractions(0)[0], 0.0)
@@ -189,7 +190,7 @@ class decomposition_tests (unittest.TestCase):
 
             # now fallback to the global one
             comm.decomposition()
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(0)), 9)
             self.assertAlmostEquals(dd.getCumulativeFractions(0)[0], 0.0)
@@ -210,7 +211,7 @@ class decomposition_tests (unittest.TestCase):
             # set a global value, and try with ny arg set
             hoomd_script.context.options.ny = 8
             comm.decomposition(ny=4)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(1)), 5)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[0], 0.0)
@@ -221,7 +222,7 @@ class decomposition_tests (unittest.TestCase):
 
             # now fallback to the global one
             comm.decomposition()
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(1)), 9)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[0], 0.0)
@@ -242,7 +243,7 @@ class decomposition_tests (unittest.TestCase):
             # set a global value, and try with nz arg set
             hoomd_script.context.options.nz = 8
             comm.decomposition(nz=4)
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(2)), 5)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[0], 0.0)
@@ -253,7 +254,7 @@ class decomposition_tests (unittest.TestCase):
 
             # now fallback to the global one
             comm.decomposition()
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(2)), 9)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[0], 0.0)
@@ -270,7 +271,7 @@ class decomposition_tests (unittest.TestCase):
             hoomd_script.context.options.nz = 4
             hoomd_script.context.options.linear = True
             comm.decomposition()
-            dd = globals.decomposition._make_cpp_decomposition(boxdim)
+            dd = hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             self.assertEquals(len(dd.getCumulativeFractions(2)), 9)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[0], 0.0)
@@ -301,51 +302,51 @@ class decomposition_tests (unittest.TestCase):
             boxdim = box._getBoxDim()
             with self.assertRaises(RuntimeError):
                 comm.decomposition(x=-0.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(x=1.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(x=[0.2,0.9])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(x=[0.3,-0.1])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(y=-0.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(y=1.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(y=[0.2,0.9])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(y=[0.3,-0.1])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(z=-0.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(z=1.2)
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(z=[0.2,0.9])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
             with self.assertRaises(RuntimeError):
                 comm.decomposition(z=[0.3,-0.1])
-                globals.decomposition._make_cpp_decomposition(boxdim)
+                hoomd_script.context.current.decomposition._make_cpp_decomposition(boxdim)
 
     ## Test that parameters are set correctly
     def test_set_params(self):
@@ -353,64 +354,64 @@ class decomposition_tests (unittest.TestCase):
             dd = comm.decomposition(x=[0.3],y=[0.4],z=[0.6])
 
             # check that the grid was set correctly in the constructor (via set_params)
-            self.assertFalse(globals.decomposition.uniform_x)
-            self.assertFalse(globals.decomposition.uniform_y)
-            self.assertFalse(globals.decomposition.uniform_z)
-            self.assertAlmostEqual(globals.decomposition.x[0], 0.3)
-            self.assertAlmostEqual(globals.decomposition.y[0], 0.4)
-            self.assertAlmostEqual(globals.decomposition.z[0], 0.6)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.x[0], 0.3)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.y[0], 0.4)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.z[0], 0.6)
 
             # switch everything to a uniform grid (doesn't matter that it is infeasible, we aren't actually constructing it)
             dd.set_params(nx=4)
             dd.set_params(ny=5)
             dd.set_params(nz=6)
-            self.assertTrue(globals.decomposition.uniform_x)
-            self.assertTrue(globals.decomposition.uniform_y)
-            self.assertTrue(globals.decomposition.uniform_z)
-            self.assertEqual(globals.decomposition.nx, 4)
-            self.assertEqual(globals.decomposition.ny, 5)
-            self.assertEqual(globals.decomposition.nz, 6)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertEqual(hoomd_script.context.current.decomposition.nx, 4)
+            self.assertEqual(hoomd_script.context.current.decomposition.ny, 5)
+            self.assertEqual(hoomd_script.context.current.decomposition.nz, 6)
 
             # do it all in one function call to make sure this works
             dd.set_params(nx=2, ny=3, nz=4)
-            self.assertTrue(globals.decomposition.uniform_x)
-            self.assertTrue(globals.decomposition.uniform_y)
-            self.assertTrue(globals.decomposition.uniform_z)
-            self.assertEqual(globals.decomposition.nx, 2)
-            self.assertEqual(globals.decomposition.ny, 3)
-            self.assertEqual(globals.decomposition.nz, 4)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertEqual(hoomd_script.context.current.decomposition.nx, 2)
+            self.assertEqual(hoomd_script.context.current.decomposition.ny, 3)
+            self.assertEqual(hoomd_script.context.current.decomposition.nz, 4)
 
             # now back to a new non-uniform spacing
             dd.set_params(x=0.6)
             dd.set_params(y=0.4)
             dd.set_params(z=0.3)
-            self.assertFalse(globals.decomposition.uniform_x)
-            self.assertFalse(globals.decomposition.uniform_y)
-            self.assertFalse(globals.decomposition.uniform_z)
-            self.assertAlmostEqual(globals.decomposition.x[0], 0.6)
-            self.assertAlmostEqual(globals.decomposition.y[0], 0.4)
-            self.assertAlmostEqual(globals.decomposition.z[0], 0.3)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.x[0], 0.6)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.y[0], 0.4)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.z[0], 0.3)
 
             # do it all at once
             dd.set_params(x=[0.2,0.3], y=[0.4,0.1], z=[0.25,0.25])
-            self.assertFalse(globals.decomposition.uniform_x)
-            self.assertFalse(globals.decomposition.uniform_y)
-            self.assertFalse(globals.decomposition.uniform_z)
-            self.assertAlmostEqual(globals.decomposition.x[0], 0.2)
-            self.assertAlmostEqual(globals.decomposition.x[1], 0.3)
-            self.assertAlmostEqual(globals.decomposition.y[0], 0.4)
-            self.assertAlmostEqual(globals.decomposition.y[1], 0.1)
-            self.assertAlmostEqual(globals.decomposition.z[0], 0.25)
-            self.assertAlmostEqual(globals.decomposition.z[1], 0.25)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.x[0], 0.2)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.x[1], 0.3)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.y[0], 0.4)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.y[1], 0.1)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.z[0], 0.25)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.z[1], 0.25)
 
             # try a mixture of things
             dd.set_params(nx=3, y=0.8, nz=2)
-            self.assertTrue(globals.decomposition.uniform_x)
-            self.assertFalse(globals.decomposition.uniform_y)
-            self.assertTrue(globals.decomposition.uniform_z)
-            self.assertEqual(globals.decomposition.nx, 3)
-            self.assertAlmostEqual(globals.decomposition.y[0], 0.8)
-            self.assertEqual(globals.decomposition.nz, 2)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_x)
+            self.assertFalse(hoomd_script.context.current.decomposition.uniform_y)
+            self.assertTrue(hoomd_script.context.current.decomposition.uniform_z)
+            self.assertEqual(hoomd_script.context.current.decomposition.nx, 3)
+            self.assertAlmostEqual(hoomd_script.context.current.decomposition.y[0], 0.8)
+            self.assertEqual(hoomd_script.context.current.decomposition.nz, 2)
 
             with self.assertRaises(RuntimeError):
                 dd.set_params(x=0.2, nx=4)

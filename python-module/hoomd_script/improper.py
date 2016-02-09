@@ -50,7 +50,6 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 from hoomd_script import force;
-from hoomd_script import globals;
 import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
@@ -100,7 +99,7 @@ class harmonic(force._force):
     def __init__(self):
         util.print_status_line();
         # check that some impropers are defined
-        if globals.system_definition.getImproperData().getNGlobal() == 0:
+        if hoomd_script.context.current.system_definition.getImproperData().getNGlobal() == 0:
             hoomd_script.context.msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
 
@@ -109,11 +108,11 @@ class harmonic(force._force):
 
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
+            self.cpp_force = hoomd.HarmonicImproperForceCompute(hoomd_script.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
+            self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(hoomd_script.context.current.system_definition);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # variable for tracking which improper type coefficients have been set
         self.improper_types_set = [];
@@ -142,7 +141,7 @@ class harmonic(force._force):
         improper_type = str(improper_type);
 
         # set the parameters for the appropriate type
-        self.cpp_force.setParams(globals.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
+        self.cpp_force.setParams(hoomd_script.context.current.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
 
         # track which particle types we have set
         if not improper_type in self.improper_types_set:
@@ -150,10 +149,10 @@ class harmonic(force._force):
 
     def update_coeffs(self):
         # get a list of all improper types in the simulation
-        ntypes = globals.system_definition.getImproperData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getImproperData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getImproperData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getImproperData().getNameByType(i));
 
         # check to see if all particle types have been set
         for cur_type in type_list:
