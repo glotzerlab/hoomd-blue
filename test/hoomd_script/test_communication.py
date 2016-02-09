@@ -144,7 +144,7 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[0], 0.0)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[1], 0.2)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[2], 1.0)
-        
+
             comm.decomposition(x=[0.2,0.3,0.1], y=0.3)
             dd = globals.decomposition._make_cpp_decomposition(boxdim)
             self.assertEquals(len(dd.getCumulativeFractions(0)), 5)
@@ -160,7 +160,7 @@ class decomposition_tests (unittest.TestCase):
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[0], 0.0)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[1], 0.3)
             self.assertAlmostEquals(dd.getCumulativeFractions(1)[2], 1.0)
-        
+
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[0], 0.0)
             self.assertAlmostEquals(dd.getCumulativeFractions(2)[1], 1.0)
 
@@ -288,7 +288,7 @@ class decomposition_tests (unittest.TestCase):
 
     ## Test that balancing fails after initialization
     def test_wrong_order(self):
-        init.create_random(N=100, phi_p=0.05)        
+        init.create_random(N=100, phi_p=0.05)
         with self.assertRaises(RuntimeError):
             comm.decomposition(y=0.3)
         init.reset()
