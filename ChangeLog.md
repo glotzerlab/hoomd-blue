@@ -13,6 +13,7 @@
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 * `context.initialize()` can now be called multiple times - useful in jupyter notebooks
 * Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
+* `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.
 
 *Changes that require job script modifications*
 
