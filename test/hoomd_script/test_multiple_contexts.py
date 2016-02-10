@@ -13,7 +13,7 @@ class multi_context(unittest.TestCase):
         self.c2 = context.SimulationContext()
 
         with self.c1:
-            init.create_random(N=500, phi_p=0.2)
+            init.create_random(N=2000, phi_p=0.2)
             lj = pair.lj(r_cut=3.0)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
@@ -21,7 +21,7 @@ class multi_context(unittest.TestCase):
             integrate.nvt(group=group.all(), T=1.2, tau=0.5)
 
         with self.c2:
-            init.create_random(N=200, phi_p=0.02)
+            init.create_random(N=1000, phi_p=0.02)
             lj = pair.lj(r_cut=3.0)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
