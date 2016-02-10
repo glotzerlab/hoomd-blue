@@ -68,30 +68,30 @@ import hoomd_script;
 # \brief Thin wrapper for set_params
 def set_params(*args, **kwargs):
     util.print_status_line();
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.sorter.set_params(*args, **kwargs);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for disable
 def disable(*args, **kwargs):
     util.print_status_line();
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.sorter.disable(*args, **kwargs);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for enable
 def enable(*args, **kwargs):
     util.print_status_line();
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.sorter.enable(*args, **kwargs);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for set_period
 def set_period(*args, **kwargs):
     util.print_status_line();
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.sorter.set_period(*args, **kwargs);
-    util._disable_status_lines = False;
+    util.unquiet_status();

@@ -61,12 +61,28 @@ import hoomd_script;
 # \brief Internal utility functions used by hoomd_script
 
 ## \internal
-# \brief Internal flag tracking if
-_disable_status_lines = False;
+# \brief Internal flag tracking if status lines should be quieted
+_status_quiet_count = 0;
+
+## Quiet the status line output
+#
+# After calling quiet_status(), hoomd will no longer print out the line of code that executes each hoomd script command.
+# Call unquiet_status() to enable the status messages again. These two methods work on a push/pop mechanism,
+# messages are only enabled after a number of unquiet_status() calls equal to the number of prior quiet_status() calls.
+def quiet_status():
+    global _status_quiet_count;
+    _status_quiet_count = _status_quiet_count+1;
+
+## Resume the status line output
+#
+# See quiet_status()
+def unquiet_status():
+    global _status_quiet_count;
+    _status_quiet_count = max(0, _status_quiet_count-1);
 
 ## Prints a status line tracking the execution of the current hoomd script
 def print_status_line():
-    if _disable_status_lines:
+    if _status_quiet_count > 0:
         return;
 
     # get the traceback info first

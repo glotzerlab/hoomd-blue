@@ -525,9 +525,9 @@ class table(force._force):
                   hoomd_script.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
                   raise RuntimeError("Error reading table file");
 
-          util._disable_status_lines = True;
+          util.quiet_status();
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-          util._disable_status_lines = True;
+          util.unquiet_status();
 
     ## \internal
     # \brief Get metadata

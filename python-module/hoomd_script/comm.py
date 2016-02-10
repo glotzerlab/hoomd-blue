@@ -189,9 +189,9 @@ class decomposition():
             self.uniform_y = True
             self.uniform_z = True
 
-            util._disable_status_lines = True
+            util.quiet_status()
             self.set_params(x,y,z,nx,ny,nz)
-            util._disable_status_lines = False
+            util.unquiet_status()
 
             # do a one time update of the cuts to the global values if a global is set
             if not self.x and self.nx == 0 and hoomd_script.context.options.nx is not None:

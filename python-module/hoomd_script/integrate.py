@@ -368,10 +368,10 @@ class mode_standard(_integrator):
 
         hoomd_script.context.current.system.setIntegrator(self.cpp_integrator);
 
-        util._disable_status_lines = True;
+        util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
     ## \internal
     #  \brief Cached set of anisotropic mode enums for ease of access
@@ -463,9 +463,9 @@ class nvt(_integration_method):
         if group is hoomd_script.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
-            util._disable_status_lines = True;
+            util.quiet_status();
             thermo = compute.thermo(group_copy);
-            util._disable_status_lines = False;
+            util.unquiet_status();
         else:
             thermo = compute._get_unique_thermo(group=group);
 
@@ -645,9 +645,9 @@ class npt(_integration_method):
         if group is hoomd_script.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__npt_all";
-            util._disable_status_lines = True;
+            util.quiet_status();
             thermo_group = compute.thermo(group_copy);
-            util._disable_status_lines = False;
+            util.unquiet_status();
         else:
             thermo_group = compute._get_unique_thermo(group=group);
 
@@ -845,9 +845,9 @@ class nph(npt):
         util.print_status_line();
 
         # initialize base class
-        util._disable_status_lines = True;
+        util.quiet_status();
         npt.__init__(self, nph=True, T=1.0, **params);
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
 ## NVE Integration via Velocity-Verlet
 #

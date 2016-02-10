@@ -633,10 +633,10 @@ def _perform_common_init_tasks():
     hoomd_script.context.current.sorter = update.sort();
 
     # create the default compute.thermo on the all group
-    util._disable_status_lines = True;
+    util.quiet_status();
     all = group.all();
     compute._get_unique_thermo(group=all);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
     # set up Communicator, and register it with the System
     if hoomd.is_MPI_available():
@@ -665,9 +665,9 @@ def _create_domain_decomposition(box):
     # okay, we want a decomposition but one isn't set, so make a default one
     if hoomd_script.context.current.decomposition is None:
         # this is happening transparently to the user, so hush this up
-        util._disable_status_lines = True
+        util.quiet_status()
         hoomd_script.context.current.decomposition = comm.decomposition()
-        util._disable_status_lines = False
+        util.unquiet_status()
 
     return hoomd_script.context.current.decomposition._make_cpp_decomposition(box)
 

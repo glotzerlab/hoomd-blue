@@ -545,7 +545,7 @@ def charged(name='charged'):
         hoomd_script.context.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
-    util._disable_status_lines = True;
+    util.quiet_status();
 
     # determine the group of particles that are charged
     charged_tags = [];
@@ -556,7 +556,7 @@ def charged(name='charged'):
             charged_tags.append(i);
 
     retval = tag_list(name, charged_tags);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
     return retval;
 

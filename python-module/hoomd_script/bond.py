@@ -671,6 +671,6 @@ class table(force._force):
                   hoomd_script.context.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
                   raise RuntimeError("Error reading table file");
 
-          util._disable_status_lines = True;
+          util.quiet_status();
           self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-          util._disable_status_lines = True;
+          util.unquiet_status();
