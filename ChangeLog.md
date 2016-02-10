@@ -19,6 +19,8 @@
 * `context.initialize()` is now required before any other hoomd script command.
 * `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
 * Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
+* bonds, angles, dihedrals, and impropers no longer use the `set_coeff` syntax. Use `bond_coeff.set`, `angle_coeff.set`,
+  `dihedral_coeff.set`, and `improper_coeff.set` instead.
 
 *Other changes*
 
