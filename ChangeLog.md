@@ -13,7 +13,7 @@
 *Changes that require job script modifications*
 
 * `context.initialize()` is now required before any other hoomd script command.
-* `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext` as a context manager.
+* `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
 * Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
 
 *Other changes*

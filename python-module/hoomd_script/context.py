@@ -111,6 +111,10 @@ _prev_args = None;
 # # run simulation 2 for a bit
 # with sim2:
 #    run(100)
+#
+# # set_current sets the current context without needing to use with
+# sim1.set_current()
+# run(100)
 # ```
 #
 # If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
@@ -176,13 +180,21 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
-    def __enter__(self):
+    def set_current(self):
         global current
 
         current = self;
 
+    def __enter__(self):
+        global current
+
+        self.prev = current;
+        current = self;
+
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        global current
+
+        current = self.prev;
 
 ## Initialize the execution context
 # \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
