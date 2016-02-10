@@ -45,7 +45,7 @@ class angle_harmonic_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         harmonic = angle.harmonic();
-        harmonic.set_coeff('angleA', k=1.0, t0=0.78125)
+        harmonic.angle_coeff.set('angleA', k=1.0, t0=0.78125)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
