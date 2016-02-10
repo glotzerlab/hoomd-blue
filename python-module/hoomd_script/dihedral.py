@@ -253,7 +253,7 @@ class coeff:
 # - \f$ n \f$ - angle scaling factor (unitless)
 #
 # Coefficients \f$ k \f$, \f$ d \f$, \f$ n \f$ and  must be set for each type of %dihedral in the simulation using
-# set_coeff().
+# dihedral_coeff.set().
 #
 # \b Examples:
 # \code
@@ -547,7 +547,7 @@ class table(force._force):
 # in the Fourier series (in energy units).
 #
 # \f$ k_1 \f$, \f$ k_2 \f$, \f$ k_3 \f$, and \f$ k_4 \f$ must be set for each type of %dihedral in the simulation using
-# set_coeff().
+# dihedral_coeff.set().
 #
 # \b Example:
 # \code

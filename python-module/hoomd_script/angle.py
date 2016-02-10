@@ -254,7 +254,7 @@ class coeff:
 # - \f$ k \f$ - %force constant (in units of energy/radians^2)
 #
 # Coefficients \f$ k \f$ and \f$ \theta_0 \f$ must be set for each type of %angle in the simulation using
-# set_coeff().
+# angle_coeff.set().
 #
 # \b Examples:
 # \code
