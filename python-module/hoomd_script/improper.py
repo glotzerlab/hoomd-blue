@@ -72,6 +72,175 @@ import sys;
 # specify an improper force (i.e. improper.harmonic), are forces actually calculated between the
 # listed particles.
 
+## Defines %improper coefficients
+# \brief Defines improper potential coefficients
+# The coefficients for all %improper force are specified using this class. Coefficients are
+# specified per improper type.
+#
+# There are two ways to set the coefficients for a particular %improper %force.
+# The first way is to save the %improper %force in a variable and call set() directly.
+# See below for an example of this.
+#
+# The second method is to build the coeff class first and then assign it to the
+# %improper %force. There are some advantages to this method in that you could specify a
+# complicated set of %improper %force coefficients in a separate python file and import
+# it into your job script.
+#
+# Example:
+# \code
+# my_coeffs = improper.coeff();
+# my_improper_force.improper_coeff.set('polymer', k=330.0, r=0.84)
+# my_improper_force.improper_coeff.set('backbone', k=330.0, r=0.84)
+# \endcode
+class coeff:
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+        self.default_coeff = {}
+
+    ## \var values
+    # \internal
+    # \brief Contains the vector of set values in a dictionary
+
+    ## \var default_coeff
+    # \internal
+    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
+
+    ## \internal
+    # \brief Sets a default value for a given coefficient
+    # \details
+    # \param name Name of the coefficient to for which to set the default
+    # \param value Default value to set
+    #
+    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
+    # all the time. set_default_coeff() sets
+    def set_default_coeff(self, name, value):
+        self.default_coeff[name] = value;
+
+    ## Sets parameters for one improper type
+    # \param type Type of improper
+    # \param coeffs Named coefficients (see below for examples)
+    #
+    # Calling set() results in one or more parameters being set for a improper type. Types are identified
+    # by name, and parameters are also added by name. Which parameters you need to specify depends on the %improper
+    # %force you are setting these coefficients for, see the corresponding documentation.
+    #
+    # All possible improper types as defined in the simulation box must be specified before executing run().
+    # You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+    # improper types that do not exist in the simulation. This can be useful in defining a %force field for many
+    # different types of impropers even when some simulations only include a subset.
+    #
+    # To set the same coefficients between many particle types, provide a list of type names instead of a single
+    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
+    # of particles in the simulation can be gotten from a saved \c system from the init command.
+    #
+    # \b Examples:
+    # \code
+    # my_improper_force.improper_coeff.set('polymer', k=330.0, r0=0.84)
+    # my_improper_force.improper_coeff.set('backbone', k=1000.0, r0=1.0)
+    # my_improper_force.improper_coeff.set(['improperA','improperB'], k=100, r0=0.0)
+    # \endcode
+    #
+    # \note Single parameters can be updated. If both k and r0 have already been set for a particle type,
+    # then executing coeff.set('polymer', r0=1.0) will %update the value of polymer impropers and leave the other
+    # parameters as they were previously set.
+    #
+    def set(self, type, **coeffs):
+        util.print_status_line();
+
+        # listify the input
+        if isinstance(type, str):
+            type = [type];
+
+        for typei in type:
+            self.set_single(typei, coeffs);
+
+    ## \internal
+    # \brief Sets a single parameter
+    def set_single(self, type, coeffs):
+        type = str(type);
+
+        # create the type identifier if it hasn't been created yet
+        if (not type in self.values):
+            self.values[type] = {};
+
+        # update each of the values provided
+        if len(coeffs) == 0:
+            hoomd_script.context.msg.error("No coefficents specified\n");
+        for name, val in coeffs.items():
+            self.values[type][name] = val;
+
+        # set the default values
+        for name, val in self.default_coeff.items():
+            # don't override a coeff if it is already set
+            if not name in self.values[type]:
+                self.values[type][name] = val;
+
+    ## \internal
+    # \brief Verifies that all values are set
+    # \details
+    # \param self Python required self variable
+    # \param required_coeffs list of required variables
+    #
+    # This can only be run after the system has been initialized
+    def verify(self, required_coeffs):
+        # first, check that the system has been initialized
+        if not hoomd_script.init.is_initialized():
+            hoomd_script.context.msg.error("Cannot verify improper coefficients before initialization\n");
+            raise RuntimeError('Error verifying force coefficients');
+
+        # get a list of types from the particle data
+        ntypes = hoomd_script.context.current.system_definition.getImproperData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd_script.context.current.system_definition.getImproperData().getNameByType(i));
+
+        valid = True;
+        # loop over all possible types and verify that all required variables are set
+        for i in range(0,ntypes):
+            type = type_list[i];
+
+            if type not in self.values.keys():
+                hoomd_script.context.msg.error("Improper type " +str(type) + " not found in improper coeff\n");
+                valid = False;
+                continue;
+
+            # verify that all required values are set by counting the matches
+            count = 0;
+            for coeff_name in self.values[type].keys():
+                if not coeff_name in required_coeffs:
+                    hoomd_script.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                          ", but is not used by the improper force\n");
+                else:
+                    count += 1;
+
+            if count != len(required_coeffs):
+                hoomd_script.context.msg.error("Improper type " + str(type) + " is missing required coefficients\n");
+                valid = False;
+
+        return valid;
+
+    ## \internal
+    # \brief Gets the value of a single %improper %force coefficient
+    # \detail
+    # \param type Name of improper type
+    # \param coeff_name Coefficient to get
+    def get(self, type, coeff_name):
+        if type not in self.values.keys():
+            hoomd_script.context.msg.error("Bug detected in force.coeff. Please report\n");
+            raise RuntimeError("Error setting improper coeff");
+
+        return self.values[type][coeff_name];
+
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
+
 ## Harmonic %improper force
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
@@ -84,7 +253,13 @@ import sys;
 # - \f$ \chi_{0} \f$ - equilibrium angle (in radians)
 #
 # Coefficients \f$ k \f$ and \f$ \chi_0 \f$ must be set for each type of %improper in the simulation using
-# set_coeff().
+# improper_coeff.set().
+#
+# \b Examples:
+# \code
+# harmonic.improper_coeff.set('heme-ang', k=30.0, chi=1.57)
+# harmonic.improper_coeff.set('hdyro-bond', k=20.0, chi=1.57)
+# \endcode
 #
 # \note Specifying the improper.harmonic command when no impropers are defined in the simulation results in an error.
 #
@@ -106,6 +281,8 @@ class harmonic(force._force):
         # initialize the base class
         force._force.__init__(self);
 
+        self.improper_coeff = coeff();
+
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicImproperForceCompute(hoomd_script.context.current.system_definition);
@@ -114,48 +291,38 @@ class harmonic(force._force):
 
         hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # variable for tracking which improper type coefficients have been set
-        self.improper_types_set = [];
+        self.required_coeffs = ['k', 'chi'];
 
-    ## Sets the %harmonic %improper coefficients for a particular %improper type
-    #
-    # \param improper_type Improper type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
-    # \param chi Coefficient \f$ \chi \f$ in the %force
-    #
-    # Using set_coeff() requires that the specified %improper %force has been saved in a variable. i.e.
-    # \code
-    # harmonic = improper.harmonic()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # harmonic.set_coeff('heme-ang', k=30.0, chi=1.57)
-    # harmonic.set_coeff('hdyro-bond', k=20.0, chi=1.57)
-    # \endcode
-    #
-    # The coefficients for every %improper type in the simulation must be set
-    # before the run() can be started.
-    def set_coeff(self, improper_type, k, chi):
-        util.print_status_line();
-        improper_type = str(improper_type);
-
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(hoomd_script.context.current.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
-
-        # track which particle types we have set
-        if not improper_type in self.improper_types_set:
-            self.improper_types_set.append(improper_type);
-
+    ## \internal
+    # \brief Update coefficients in C++
     def update_coeffs(self):
-        # get a list of all improper types in the simulation
+        coeff_list = self.required_coeffs;
+        # check that the force coefficients are valid
+        if not self.improper_coeff.verify(coeff_list):
+           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           raise RuntimeError("Error updating force coefficients");
+
+        # set all the params
         ntypes = hoomd_script.context.current.system_definition.getImproperData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(hoomd_script.context.current.system_definition.getImproperData().getNameByType(i));
 
-        # check to see if all particle types have been set
-        for cur_type in type_list:
-            if not cur_type in self.improper_types_set:
-                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in improper.harmonic\n");
-                raise RuntimeError("Error updating coefficients");
+        for i in range(0,ntypes):
+            # build a dict of the coeffs to pass to proces_coeff
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.improper_coeff.get(type_list[i], name);
+
+            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['chi']);
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['improper_coeff'] = self.improper_coeff
+        return data
