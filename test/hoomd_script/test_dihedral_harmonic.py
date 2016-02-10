@@ -45,7 +45,7 @@ class dihedral_harmonic_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         harmonic = dihedral.harmonic();
-        harmonic.set_coeff('dihedralA', k=1.0, d=1, n=4)
+        harmonic.dihedral_coeff.set('dihedralA', k=1.0, d=1, n=4)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);

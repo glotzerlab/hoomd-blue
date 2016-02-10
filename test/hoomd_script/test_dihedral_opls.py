@@ -46,7 +46,7 @@ class dihedral_opls_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         oplsdi = dihedral.opls();
-        oplsdi.set_coeff('dihedralA', k1=1.0, k2=2.0, k3=3.0, k4=4.0)
+        oplsdi.dihedral_coeff.set('dihedralA', k1=1.0, k2=2.0, k3=3.0, k4=4.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
