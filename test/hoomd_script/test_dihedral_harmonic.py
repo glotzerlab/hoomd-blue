@@ -6,21 +6,35 @@ import hoomd_script;
 context.initialize()
 import unittest
 import os
+import numpy
 
 # tests dihedral.harmonic
 class dihedral_harmonic_tests (unittest.TestCase):
     def setUp(self):
         print
-        # create a polymer system and add a dihedral to it
-        self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
-        self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-        self.polymers = [self.polymer1, self.polymer2]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.35, B=0.35)
-        sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        snap = data.make_snapshot(N=40,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  bond_types = [],
+                                  angle_types = [],
+                                  dihedral_types = ['dihedralA'],
+                                  improper_types = [])
 
-        dihedral_data = hoomd_script.context.current.system_definition.getDihedralData();
-        sys.dihedrals.add('dihedralA', 0, 1, 2, 3);
+        if comm.get_rank() == 0:
+            snap.dihedrals.resize(10);
+            for i in range(10):
+                x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                snap.particles.position[4*i+0,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+1,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+2,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+3,:] = x;
+
+                snap.dihedrals.group[i,:] = [4*i+0, 4*i+1, 4*i+2, 4*i+3];
+
+        init.read_snapshot(snap)
 
         sorter.set_params(grid=8)
 

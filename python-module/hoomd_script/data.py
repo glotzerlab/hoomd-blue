@@ -849,10 +849,6 @@ class system_data(meta._metadata):
                 rigid_bodies=True
                 integrators=True
 
-        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or integrators):
-            hoomd_script.context.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
-            return None
-
         # take the snapshot
         if dtype == 'float':
             cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)

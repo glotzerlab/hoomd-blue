@@ -4,6 +4,10 @@
 
 ## v2.0.0
 
+*Bug fixes*
+
+* Angles, dihedrals, and impropers no longer initialize with one default type.
+
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
@@ -20,6 +24,7 @@
 
 * CMake minimum version is now 2.8
 * Convert particle type names to `str` to allow unicode type name input
+* `__version__` is now available in the top level package
 
 *Removed*
 

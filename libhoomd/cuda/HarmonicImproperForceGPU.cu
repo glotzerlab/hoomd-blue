@@ -331,6 +331,9 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
     {
     assert(d_params);
 
+    if (N == 0)
+        return cudaSuccess;
+
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {

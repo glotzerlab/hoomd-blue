@@ -118,27 +118,7 @@ def _hoomd_sys_excepthook(type, value, traceback):
     if context.exec_conf is not None:
         hoomd.abort_mpi(context.exec_conf);
 
-# install the hoomd excepthook to abort MPI runs if there are uncaught exceptions
-sys.excepthook = _hoomd_sys_excepthook;
-
-## \internal
-# \brief Major version of hoomd_script
-_version_major = 1;
-
-## \internal
-# \brief Minor version of hoomd_script
-_version_minor = 0;
-
-## \brief Get the version information of hoomd_script
-# \returns a tuple (major, minor)
-#
-# This version is the version number of \b hoomd_script , not HOOMD as a whole. It is intended for use by
-# third party API plugins that interface with hoomd_script. When new features are added (i.e. a new command
-# or a new option to an existing command), the minor version will be incremented. When major changes are implemented
-# or changes that break backwards compatibility are made, then the major version is incremented and the minor reset
-# to 0. Only one such increment of either type will occur per each tagged release of HOOMD.
-def get_hoomd_script_version():
-    return (_version_major, _version_minor)
+__version__ = "{0}.{1}.{2}".format(*hoomd.__version__)
 
 ## \brief Runs the simulation for a given number of time steps
 #

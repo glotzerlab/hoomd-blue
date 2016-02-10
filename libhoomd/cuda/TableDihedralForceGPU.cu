@@ -369,6 +369,9 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
     assert(d_tables);
     assert(table_width > 1);
 
+    if (N == 0)
+        return cudaSuccess;
+
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {

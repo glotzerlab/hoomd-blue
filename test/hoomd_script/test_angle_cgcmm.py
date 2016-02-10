@@ -6,19 +6,36 @@ import hoomd_script;
 context.initialize()
 import unittest
 import os
+import numpy
 
 # tests angle.cgcmm
 class angle_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
         # create a polymer system and add a few angles to it
-        self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
-        self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-        self.polymers = [self.polymer1, self.polymer2]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.35, B=0.35)
-        sys=init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        sys.angles.add('angleA', 0, 1, 2)
+        snap = data.make_snapshot(N=40,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  bond_types = [],
+                                  angle_types = ['angleA'],
+                                  dihedral_types = [],
+                                  improper_types = [])
+
+        if comm.get_rank() == 0:
+            snap.angles.resize(10);
+            for i in range(10):
+                x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                snap.particles.position[4*i+0,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+1,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+2,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+3,:] = x;
+
+                snap.angles.group[i,:] = [4*i+0, 4*i+1, 4*i+2];
+
+        init.read_snapshot(snap)
 
         sorter.set_params(grid=8)
 

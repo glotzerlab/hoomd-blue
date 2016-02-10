@@ -334,6 +334,9 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     assert(d_CGCMMsr);
     assert(d_CGCMMepow);
 
+    if (N == 0)
+        return cudaSuccess;
+
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {

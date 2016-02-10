@@ -201,8 +201,6 @@ class BondedGroupData : boost::noncopyable
             //! Default constructor
             Snapshot()
                 {
-                // provide default type mapping for one type
-                type_mapping.push_back(std::string(name) + "A");
                 size = 0;
                 }
 
@@ -212,9 +210,6 @@ class BondedGroupData : boost::noncopyable
             Snapshot(unsigned int n_groups)
                 {
                 resize(n_groups);
-
-                // provide default type mapping
-                type_mapping.push_back(std::string(name) + "A");
                 }
 
             //! Resize the snapshot
