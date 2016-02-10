@@ -71,7 +71,7 @@ class angle_table_tests (unittest.TestCase):
         harmonic_1 = angle.table(width=1000)
         harmonic_1.angle_coeff.set('angleA', func=lambda theta: (0.5*1*theta*theta, -theta), coeff=dict())
         harmonic_2 = angle.harmonic()
-        harmonic_2.set_coeff('angleA', k=1.0, t0=0)
+        harmonic_2.angle_coeff.set('angleA', k=1.0, t0=0)
         integrate.mode_standard(dt=0.005);
         all = group.all()
         integrate.nve(all)

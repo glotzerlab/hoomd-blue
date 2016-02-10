@@ -71,7 +71,7 @@ class dihedral_table_tests (unittest.TestCase):
         harmonic_1 = dihedral.table(width=1000)
         harmonic_1.dihedral_coeff.set('dihedralA', func=lambda theta: (0.5*1*( 1 + math.cos(theta)), 0.5*1*math.sin(theta)),coeff=dict())
         harmonic_2 = dihedral.harmonic()
-        harmonic_2.set_coeff('dihedralA', k=1.0, d=1,n=1)
+        harmonic_2.dihedral_coeff.set('dihedralA', k=1.0, d=1,n=1)
         integrate.mode_standard(dt=0.005);
         all = group.all()
         integrate.nve(all)
