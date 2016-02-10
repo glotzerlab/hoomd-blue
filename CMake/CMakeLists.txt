@@ -10,8 +10,7 @@ set(CMAKE_MODULE_PATH
     PARENT_SCOPE)
 
 ## install the helper modules in linux and mac
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cuda
-                  ${CMAKE_CURRENT_SOURCE_DIR}/thrust
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/thrust
                   ${CMAKE_CURRENT_SOURCE_DIR}/hoomd
                   ${CMAKE_CURRENT_SOURCE_DIR}/git
         DESTINATION ${DATA_INSTALL_DIR}/CMake

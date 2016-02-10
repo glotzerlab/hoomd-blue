@@ -70,6 +70,7 @@ CLOCK_START = time.clock()
 # \note This is initialized to a default messenger on load so that python code may have a unified path for sending
 # messages
 msg = hoomd.Messenger();
+msg.openPython();
 
 ## Global bibliography
 bib = None;
