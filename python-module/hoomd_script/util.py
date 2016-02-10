@@ -56,9 +56,10 @@ import linecache;
 import re;
 import hoomd_script;
 
-## \internal
+## Utility methods
 # \package hoomd_script.util
-# \brief Internal utility functions used by hoomd_script
+#
+# Generic utilities that don't fit anywhere else
 
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted
@@ -80,7 +81,8 @@ def unquiet_status():
     global _status_quiet_count;
     _status_quiet_count = max(0, _status_quiet_count-1);
 
-## Prints a status line tracking the execution of the current hoomd script
+## \internal
+# \brief Prints a status line tracking the execution of the current hoomd script
 def print_status_line():
     if _status_quiet_count > 0:
         return;

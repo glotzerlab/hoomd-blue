@@ -111,6 +111,7 @@ Table of contents:
   - \ref sec_index_benchmark
   - \ref sec_index_communicate
   - \ref sec_index_citation
+  - \ref sec_index_util
 
 \section sec_index_run Run
  - \link hoomd_script.get_step() get_step\endlink - <i>Gets the current time step</i>
@@ -305,5 +306,9 @@ Table of contents:
 
 \section sec_index_citation Citations
  - \link hoomd_script.cite.save() cite.save\endlink - <i>Save citations to a bibtex file.</i>
+
+\section sec_index_util Utilities
+ - \link hoomd_script.util.quiet_status() util.quiet_status\endlink - <i>Quiet status line messages.</i>
+ - \link hoomd_script.util.unquiet_status() util.unquiet_status\endlink - <i>Resume status line messages.</i>
 
 */
