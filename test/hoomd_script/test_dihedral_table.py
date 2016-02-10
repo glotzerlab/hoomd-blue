@@ -6,20 +6,36 @@ context.initialize()
 import unittest
 import os
 import math
+import numpy
 
 # tests dihedral.table
 class dihedral_table_tests (unittest.TestCase):
     def setUp(self):
         print
-        # create a polymer system and add a dihedral to it
-        self.polymer1 = dict(bond_len=1.2, type=['A']*4, bond="linear", count=10);
-        self.polymers = [self.polymer1]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.35, B=0.35)
-        self.sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        snap = data.make_snapshot(N=40,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  bond_types = [],
+                                  angle_types = [],
+                                  dihedral_types = ['dihedralA'],
+                                  improper_types = [])
 
-        for i in range(len(self.sys.particles)//4-1):
-            self.sys.dihedrals.add('dihedralA', 4*i+0, 4*i+1, 4*i+2, 4*i+3);
+        if comm.get_rank() == 0:
+            snap.dihedrals.resize(10);
+
+            for i in range(10):
+                x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                snap.particles.position[4*i+0,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+1,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+2,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+3,:] = x;
+
+                snap.dihedrals.group[i,:] = [4*i+0, 4*i+1, 4*i+2, 4*i+3];
+
+        self.sys = init.read_snapshot(snap)
 
         sorter.set_params(grid=8)
 
@@ -65,9 +81,9 @@ class dihedral_table_tests (unittest.TestCase):
             # we have to have a very rough tolerance (~10%) because
             # of 1) discretization of the potential and 2) different handling of precision issues in both potentials
             self.assertAlmostEqual(f_1.energy, f_2.energy,3)
-            self.assertAlmostEqual(f_1.force[0], f_2.force[0],2)
-            self.assertAlmostEqual(f_1.force[1], f_2.force[1],2)
-            self.assertAlmostEqual(f_1.force[2], f_2.force[2],2)
+            self.assertAlmostEqual(f_1.force[0], f_2.force[0],1)
+            self.assertAlmostEqual(f_1.force[1], f_2.force[1],1)
+            self.assertAlmostEqual(f_1.force[2], f_2.force[2],1)
 
     def tearDown(self):
         del self.sys

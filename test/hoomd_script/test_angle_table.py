@@ -6,20 +6,36 @@ context.initialize()
 import unittest
 import os
 import math
+import numpy
 
 # tests angle.table
 class angle_table_tests (unittest.TestCase):
     def setUp(self):
         print
-        # create a polymer system and add a angle to it
-        self.polymer1 = dict(bond_len=1.2, type=['A']*3, bond="linear", count=10);
-        self.polymers = [self.polymer1]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.35, B=0.35)
-        self.sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        snap = data.make_snapshot(N=40,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  bond_types = [],
+                                  angle_types = ['angleA'],
+                                  dihedral_types = [],
+                                  improper_types = [])
 
-        for i in range(len(self.sys.particles)//3-1):
-            self.sys.angles.add('angleA', 3*i+0, 3*i+1, 3*i+2);
+        if comm.get_rank() == 0:
+            snap.angles.resize(10);
+
+            for i in range(10):
+                x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                snap.particles.position[4*i+0,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+1,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+2,:] = x;
+                x += numpy.random.random(3)
+                snap.particles.position[4*i+3,:] = x;
+
+                snap.angles.group[i,:] = [4*i+0, 4*i+1, 4*i+2];
+
+        self.sys = init.read_snapshot(snap)
 
         sorter.set_params(grid=8)
 

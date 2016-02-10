@@ -19,6 +19,15 @@ class init_create_random_polymer_tests (unittest.TestCase):
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
 
+    # test that angle,dihedral, and improper types are initialized correctly
+    def test_angleA(self):
+        s = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        snap = s.take_snapshot(all=True);
+        self.assertEqual(len(snap.bonds.types), 1);
+        self.assertEqual(len(snap.impropers.types), 0);
+        self.assertEqual(len(snap.angles.types), 0);
+        self.assertEqual(len(snap.dihedrals.types), 0);
+
     # checks for an error if initialized twice
     def test_create_random_inittwice(self):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
