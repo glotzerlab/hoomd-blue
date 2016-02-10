@@ -130,18 +130,15 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
     // sanity checks
     if (N == 0)
         {
-        cerr << endl << "***Error! RandomInitializer: Cannot generate 0 particles" << endl << endl;
-        throw runtime_error("Error initializing RandomInitializer");
+        throw runtime_error("RandomInitializer: Cannot generate 0 particles");
         }
     if (phi_p <= 0)
         {
-        cerr << endl << "***Error! RandomInitializer: phi_p <= 0 doesn't make sense" << endl << endl;
-        throw runtime_error("Error initializing RandomInitializer");
+        throw runtime_error("RandomInitializer: phi_p <= 0 doesn't make sense");
         }
     if (min_dist < 0)
         {
-        cerr << endl << "***Error! RandomInitializer: min_dist <= 0 doesn't make sense" << endl << endl;
-        throw runtime_error("Error initializing RandomInitializer");
+        throw runtime_error("RandomInitializer: min_dist <= 0 doesn't make sense");
         }
 
     Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
@@ -220,10 +217,7 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot()
             tries++;
             if (tries > m_N*100)
                 {
-                cerr << endl
-                     << "***Error! RandomInitializer: Unable to find location for particle after trying many times"
-                     << endl << endl;
-                throw runtime_error("Unable to init system in RandomInitializer");
+                throw runtime_error("Unable to find location for particle after trying many times");
                 }
             }
 
