@@ -455,7 +455,7 @@ def tag_list(name, tags):
     # build a vector of the tags
     cpp_list = hoomd.std_vector_uint();
     for t in tags:
-        cpp_list.push_back(t);
+        cpp_list.append(t);
 
     # create the group
     cpp_group = hoomd.ParticleGroup(hoomd_script.context.current.system_definition, cpp_list);
