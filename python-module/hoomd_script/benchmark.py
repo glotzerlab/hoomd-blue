@@ -49,7 +49,6 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import globals
 from hoomd_script import init
 import hoomd_script
 import hoomd
@@ -77,7 +76,7 @@ except ImportError:
 def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     # check if initialization has occurred
     if not init.is_initialized():
-        globals.msg.error("Cannot tune r_buff before initialization\n");
+        hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
 
@@ -86,6 +85,6 @@ def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
 
     for i in range(0,repeat):
         hoomd_script.run(steps, limit_hours=limit_hours);
-        tps_list.append(globals.system.getLastTPS());
+        tps_list.append(hoomd_script.context.current.system.getLastTPS());
 
     return tps_list;

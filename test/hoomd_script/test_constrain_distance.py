@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -107,8 +108,8 @@ class constrain_distance_tests (unittest.TestCase):
         integrate.nve(all);
         run(100)
 
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), 3)
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), 0)
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(2), 3)
+        self.assertEqual(hoomd_script.context.current.neighbor_list.cpp_nlist.getNumExclusions(1), 0)
 
     # test exceeding the maximum contraint length in MPI
     def test_mpi(self):
@@ -126,7 +127,7 @@ class constrain_distance_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.system
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

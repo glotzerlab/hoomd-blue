@@ -53,7 +53,7 @@ from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 # hoomd_script
 from hoomd_script import pair
 from hoomd_script import util
-from hoomd_script import globals
+import hoomd_script
 import hoomd
 import math
 
@@ -103,18 +103,18 @@ class lj2(pair.pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _evaluators_ext_template.PotentialPairLJ2;
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2GPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2GPU(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _evaluators_ext_template.PotentialPairLJ2GPU;
             # you can play with the block size value, set it to any multiple of 32 up to 1024. Use the
             # lj.benchmark() command to find out which block size performs the fastest
             self.cpp_force.setBlockSize(64);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];

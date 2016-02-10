@@ -2,6 +2,7 @@
 # Maintainer: csadorf
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -16,10 +17,10 @@ class metadata_tests(unittest.TestCase):
 
     def tearDown(self):
         if init.is_initialized():
-            init.reset()
+            context.initialize()
 
     def test_before_init(self):
-        init.reset()
+        context.initialize()
         with self.assertRaises(RuntimeError):
             meta.dump_metadata()
 

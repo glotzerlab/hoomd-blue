@@ -50,9 +50,9 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
-from hoomd_script import globals;
 import sys;
 from hoomd_script import init;
+import hoomd_script
 
 ## \package hoomd_script.variant
 # \brief Commands for specifying values that vary over time
@@ -73,7 +73,7 @@ class _variant:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            globals.msg.error("Cannot create a variant before initialization\n");
+            hoomd_script.context.msg.error("Cannot create a variant before initialization\n");
             raise RuntimeError('Error creating variant');
 
         self.cpp_variant = None;
@@ -98,7 +98,7 @@ class _constant(_variant):
 
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantConst(val);
-        self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+        self.cpp_variant.setOffset(hoomd_script.context.current.system.getCurrentTimeStep());
 
     ## \internal
     # \brief return metadata
@@ -160,14 +160,14 @@ class linear_interp(_variant):
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantLinear();
         if zero == 'now':
-            self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+            self.cpp_variant.setOffset(hoomd_script.context.current.system.getCurrentTimeStep());
         else:
             # validate zero
             if zero < 0:
-                globals.msg.error("Cannot create a linear_interp variant with a negative zero\n");
+                hoomd_script.context.msg.error("Cannot create a linear_interp variant with a negative zero\n");
                 raise RuntimeError('Error creating variant');
-            if zero > globals.system.getCurrentTimeStep():
-                globals.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
+            if zero > hoomd_script.context.current.system.getCurrentTimeStep():
+                hoomd_script.context.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
                 raise RuntimeError('Error creating variant');
 
             zero = int(zero)
@@ -175,12 +175,12 @@ class linear_interp(_variant):
 
         # set the points
         if len(points) == 0:
-            globals.msg.error("Cannot create a linear_interp variant with 0 points\n");
+            hoomd_script.context.msg.error("Cannot create a linear_interp variant with 0 points\n");
             raise RuntimeError('Error creating variant');
 
         for (t, v) in points:
             if t < 0:
-                globals.msg.error("Negative times are not allowed in variant.linear_interp\n");
+                hoomd_script.context.msg.error("Negative times are not allowed in variant.linear_interp\n");
                 raise RuntimeError('Error creating variant');
 
             self.cpp_variant.setPoint(int(t), v);
@@ -207,5 +207,5 @@ def _setup_variant_input(v):
         try:
             return _constant(float(v));
         except ValueError:
-            globals.msg.error("Value must either be a scalar value or a the result of a variant command\n");
+            hoomd_script.context.msg.error("Value must either be a scalar value or a the result of a variant command\n");
             raise RuntimeError('Error creating variant');

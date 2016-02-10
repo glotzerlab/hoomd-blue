@@ -50,7 +50,6 @@
 # Maintainer: joaander
 
 import hoomd
-from hoomd_script import globals
 from hoomd_script import util
 from hoomd_script import meta
 import hoomd_script
@@ -896,11 +895,11 @@ class system_data(meta._metadata):
         nz = int(nz)
 
         if nx == ny == nz == 1:
-            globals.msg.warning("All replication factors == 1. Not replicating system.\n")
+            hoomd_script.context.msg.warning("All replication factors == 1. Not replicating system.\n")
             return
 
         if nx <= 0 or ny <= 0 or nz <= 0:
-            globals.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            hoomd_script.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
@@ -970,7 +969,7 @@ class system_data(meta._metadata):
         data['constraints'] = self.constraints
         data['bodies'] = self.bodies
 
-        data['timestep'] = globals.system.getCurrentTimeStep()
+        data['timestep'] = hoomd_script.context.current.system.getCurrentTimeStep()
         return data
 
     ## Get the system box
@@ -1079,7 +1078,7 @@ class pdata_types_proxy:
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                globals.msg.warning("Type '"+name+"' already defined.\n");
+                hoomd_script.context.msg.warning("Type '"+name+"' already defined.\n");
                 return i
 
         typeid = self.pdata.addType(name);
@@ -1120,7 +1119,7 @@ class particle_data(meta._metadata):
     def __init__(self, pdata):
         self.pdata = pdata;
 
-        self.types = pdata_types_proxy(globals.system_definition.getParticleData())
+        self.types = pdata_types_proxy(hoomd_script.context.current.system_definition.getParticleData())
 
         # base class constructor
         meta._metadata.__init__(self)
@@ -1442,7 +1441,7 @@ class force_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return globals.system_definition.getParticleData().getNGlobal();
+        return hoomd_script.context.current.system_definition.getParticleData().getNGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -2393,8 +2392,8 @@ class body_data_proxy:
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd_script.context.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error accessing body data.")
 
         self.bdata = bdata;

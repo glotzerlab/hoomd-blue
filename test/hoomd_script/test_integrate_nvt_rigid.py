@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -31,7 +32,7 @@ class integrate_nvt_rigid_tests (unittest.TestCase):
         nvt.set_params(T=1.3);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 # unit tests for integrate.nve_rigid w/o rigid bodies
 class integrate_nvt_rigid_nobody_tests (unittest.TestCase):
@@ -48,7 +49,7 @@ class integrate_nvt_rigid_nobody_tests (unittest.TestCase):
         run(1);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

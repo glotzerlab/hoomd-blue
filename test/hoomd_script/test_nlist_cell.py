@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -71,7 +72,7 @@ class nlist_cell_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.nl
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

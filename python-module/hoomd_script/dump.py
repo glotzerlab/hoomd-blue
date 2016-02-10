@@ -57,11 +57,11 @@
 # each command writes.
 
 import hoomd;
-from hoomd_script import globals;
 from hoomd_script import analyze;
 import sys;
 from hoomd_script import util;
 from hoomd_script import group as hs_group;
+import hoomd_script
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
@@ -118,7 +118,7 @@ class xml(analyze._analyzer):
             raise ValueError("a period must be specified with restart=True");
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename, restart);
+        self.cpp_analyzer = hoomd.HOOMDDumpWriter(hoomd_script.context.current.system_definition, filename, restart);
         util._disable_status_lines = True;
         self.set_params(**params);
         util._disable_status_lines = False;
@@ -287,7 +287,7 @@ class xml(analyze._analyzer):
         self.check_initialization();
 
         if time_step is None:
-            time_step = globals.system.getCurrentTimeStep()
+            time_step = hoomd_script.context.current.system.getCurrentTimeStep()
 
         self.cpp_analyzer.writeFile(filename, time_step);
 
@@ -301,7 +301,7 @@ class xml(analyze._analyzer):
         if not self.restart:
             raise ValueError("Cannot write_restart() when restart=False");
 
-        self.cpp_analyzer.analyze(globals.system.getCurrentTimeStep());
+        self.cpp_analyzer.analyze(hoomd_script.context.current.system.getCurrentTimeStep());
 
 ## Writes a simulation snapshot in the MOL2 format
 #
@@ -342,15 +342,15 @@ class mol2(analyze._analyzer):
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd_script.context.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error writing MOL2 file.")
 
         # initialize base class
         analyze._analyzer.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer = hoomd.MOL2DumpWriter(hoomd_script.context.current.system_definition, filename);
 
         if period is not None:
             self.setupAnalyzer(period, phase);
@@ -456,7 +456,7 @@ class dcd(analyze._analyzer):
             group = hs_group.all();
             util._disable_status_lines = False;
 
-        self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
+        self.cpp_analyzer = hoomd.DCDDumpWriter(hoomd_script.context.current.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
@@ -472,13 +472,13 @@ class dcd(analyze._analyzer):
         util.print_status_line();
 
         if self.enabled == False:
-            globals.msg.error("you cannot re-enable DCD output after it has been disabled\n");
+            hoomd_script.context.msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
 
     def set_period(self, period):
         util.print_status_line();
 
-        globals.msg.error("you cannot change the period of a dcd dump writer\n");
+        hoomd_script.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
 
@@ -520,8 +520,8 @@ class pdb(analyze._analyzer):
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd_script.context.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error writing PDB file.")
 
 
@@ -529,7 +529,7 @@ class pdb(analyze._analyzer):
         analyze._analyzer.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer = hoomd.PDBDumpWriter(hoomd_script.context.current.system_definition, filename);
 
         if period is not None:
             self.setupAnalyzer(period, phase);
@@ -622,7 +622,7 @@ class pos(analyze._analyzer):
         analyze._analyzer.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.POSDumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer = hoomd.POSDumpWriter(hoomd_script.context.current.system_definition, filename);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
 
         if addInfo is not None:
@@ -642,5 +642,5 @@ class pos(analyze._analyzer):
         self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
 
     def set_def(self, typ, shape):
-        v = globals.system_definition.getParticleData().getTypeByName(typ);
+        v = hoomd_script.context.current.system_definition.getParticleData().getTypeByName(typ);
         self.cpp_analyzer.setDef(v, shape)

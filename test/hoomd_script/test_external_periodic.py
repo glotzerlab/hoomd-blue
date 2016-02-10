@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -43,7 +44,7 @@ class external_periodic_tests (unittest.TestCase):
         periodic.update_coeffs();
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

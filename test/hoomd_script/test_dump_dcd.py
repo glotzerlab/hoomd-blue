@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -78,7 +79,7 @@ class dmp_dcd_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, dcd.set_period, 10)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -63,7 +64,7 @@ class analyze_msd_tests (unittest.TestCase):
             os.remove(self.tmp_file+'_B');
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
         if comm.get_rank() == 0:
             os.remove(self.tmp_file);
 

@@ -50,8 +50,8 @@
 # Maintainer: mphoward / All Developers are free to add commands for new features
 
 from hoomd_script import util
-from hoomd_script import globals
 from hoomd_script import comm
+import hoomd_script
 import textwrap
 import os
 
@@ -152,7 +152,7 @@ class _citation(object):
     # \brief Get the citation in human readable format
     # \note Deriving classes \b must implement this method themselves.
     def __str__(self):
-        globals.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own string method\n')
+        hoomd_script.context.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own string method\n')
         raise RuntimeError('Citation does not implement string method')
 
     ## \internal
@@ -160,7 +160,7 @@ class _citation(object):
     def validate(self):
         for entry in self.required_entries:
             if getattr(self,entry) is None:
-                globals.msg.error('Bug in hoomd_script.cite: required field %s not set, please report\n' % entry)
+                hoomd_script.context.msg.error('Bug in hoomd_script.cite: required field %s not set, please report\n' % entry)
                 raise RuntimeError('Required citation field not set')
 
     ## \internal
@@ -189,7 +189,7 @@ class _citation(object):
     # If no note is set for the citation, a default note identifying the HOOMD feature used is generated.
     def bibtex(self):
         if self.bibtex_type is None:
-            globals.msg.error('Bug in hoomd_script.cite: BibTeX record type must be set, please report\n')
+            hoomd_script.context.msg.error('Bug in hoomd_script.cite: BibTeX record type must be set, please report\n')
             raise RuntimeError()
 
         lines = ['@%s{%s,' % (self.bibtex_type, self.cite_key)]
@@ -377,7 +377,7 @@ class bibliography(object):
                     cite_str += log_str
                     cite_str += 'You can save this citation to file using cite.save().\n'
                     cite_str += '-'*5 + '\n'
-                    globals.msg.notice(1, cite_str)
+                    hoomd_script.context.msg.notice(1, cite_str)
 
         # print each feature set together
         for feature in citations:
@@ -389,7 +389,7 @@ class bibliography(object):
             else:
                 cite_str += 'You can save this citation to file using cite.save().\n'
             cite_str += '-'*5 + '\n'
-            globals.msg.notice(1, cite_str)
+            hoomd_script.context.msg.notice(1, cite_str)
 
         # after adding, we need to update the file
         self.updated = True
@@ -443,13 +443,13 @@ class bibliography(object):
 #
 # Citations generated in hoomd_script should always attach to a single global bibliography. This makes %bibliography
 # generation invisible to the HOOMD users (that is, they should never actually instantiate a bibliography themselves).
-# This function provides a convenient way to get the global bibliography while ensuring that it exists: if globals.bib
-# already exists, it returns it. Otherwise, globals.bib is first created and then returned. Any %bibliography in HOOMD
+# This function provides a convenient way to get the global bibliography while ensuring that it exists: if hoomd_script.context.bib
+# already exists, it returns it. Otherwise, hoomd_script.context.bib is first created and then returned. Any %bibliography in HOOMD
 # always includes two references: (1) the original HOOMD paper and (2) the HOOMD-blue website, which are automatically
 # put into the global bibliography. Subsequent citations are then added to these citations.
 def _ensure_global_bib():
-    if globals.bib is None:
-        globals.bib = bibliography()
+    if hoomd_script.context.bib is None:
+        hoomd_script.context.bib = bibliography()
         # the hoomd bibliography always includes the following citations
         hoomd = article(cite_key = 'anderson2008',
                         author = ['J A Anderson','C D Lorenz','A Travesset'],
@@ -483,9 +483,9 @@ def _ensure_global_bib():
 
 
         hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', feature = 'HOOMD-blue')
-        globals.bib.add([hoomd, hoomd_mpi, hoomd_web])
+        hoomd_script.context.bib.add([hoomd, hoomd_mpi, hoomd_web])
 
-    return globals.bib
+    return hoomd_script.context.bib
 
 ## Saves the automatically generated %bibliography to a BibTeX file
 #

@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -44,7 +45,7 @@ class pair_nlist_tests (unittest.TestCase):
         tune.r_buff(warmup=100, r_min=0.1, r_max=0.25, jumps=10, steps=50)
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

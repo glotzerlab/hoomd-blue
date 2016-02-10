@@ -11,10 +11,14 @@
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+* `context.initialize()` can now be called multiple times - useful in jupyter notebooks
+* Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
 
 *Changes that require job script modifications*
 
-* context.initialize() is now required before any hoomd script command.
+* `context.initialize()` is now required before any other hoomd script command.
+* `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
+* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
 
 *Other changes*
 

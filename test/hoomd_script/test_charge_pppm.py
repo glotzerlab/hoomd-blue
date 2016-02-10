@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -52,7 +53,7 @@ class charge_pppm_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

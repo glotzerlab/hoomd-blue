@@ -185,12 +185,6 @@ class SystemDefinition
             return m_integrator_data;
             }
 
-        //! Helper for python memory managment in init.reset
-        long getPDataRefs()
-            {
-            return m_particle_data.use_count();
-            }
-
         //! Return a snapshot of the current system data
         template <class Real>
         boost::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles,

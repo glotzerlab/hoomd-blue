@@ -59,11 +59,142 @@ import hoomd;
 import hoomd_script
 import socket
 import getpass
+import platform
 
 # The following global variables keep track of the walltime and processing time since the import of hoomd_script
 import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
+
+## Global Messenger
+# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
+# messages
+msg = hoomd.Messenger();
+
+## Global bibliography
+bib = None;
+
+## Global options
+options = None;
+
+## Global variable that holds the execution configuration for reference by the python API
+exec_conf = None;
+
+## Current simulation context
+current = None;
+
+_prev_args = None;
+
+## Simulation context
+#
+# Store all of the context related to a single simulation, including the system state, forces, updaters, integration
+# methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
+# active simulation context. You swap between simulation contexts by using this class as a context manager:
+#
+# ```
+# sim1 = context.SimulationContext();
+# sim2 = context.SimulationContext();
+# with sim1:
+#   init.read_xml('init1.xml');
+#   lj = pair.lj(...)
+#   ...
+#
+# with sim2:
+#   init.read_xml('init2.xml');
+#   gauss = pair.gauss(...)
+#   ...
+#
+# # run simulation 1 for a bit
+# with sim1:
+#    run(100)
+#
+# # run simulation 2 for a bit
+# with sim2:
+#    run(100)
+#
+# # set_current sets the current context without needing to use with
+# sim1.set_current()
+# run(100)
+# ```
+#
+# If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
+# and erase the existing one.
+#
+# ```
+# context.initialize()
+# init.read_xml('init1.xml');
+# lj = pair.lj(...)
+# ...
+# run(100);
+#
+# context.initialize()
+# init.read_xml('init2.xml');
+# gauss = pair.gauss(...)
+# ...
+# run(100)
+# ```
+class SimulationContext(object):
+    def __init__(self):
+        ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
+        self.system_definition = None;
+
+        ## Global variable that holds the System shared by all parts of hoomd_script
+        self.system = None;
+
+        ## Global variable that holds the balanced domain decomposition in MPI runs if it is requested
+        self.decomposition = None
+
+        ## Global variable that holds the sorter
+        self.sorter = None;
+
+        ## Global variable that tracks the all of the force computes specified in the script so far
+        self.forces = [];
+
+        ## Global variable that tracks the all of the constraint force computes specified in the script so far
+        self.constraint_forces = [];
+
+        ## Global variable that tracks all the integration methods that have been specified in the script so far
+        self.integration_methods = [];
+
+        ## Global variable tracking the last _integrator set
+        self.integrator = None;
+
+        ## Global variable tracking the system's neighborlist
+        self.neighbor_list = None;
+
+        ## Global variable tracking all neighbor lists that have been created
+        self.neighbor_lists = []
+
+        ## Global variable tracking all the loggers that have been created
+        self.loggers = [];
+
+        ## Global variable tracking all the analyzers that have been created
+        self.analyzers = [];
+
+        ## Global variable tracking all the updaters that have been created
+        self.updaters = [];
+
+        ## Global variable tracking all the compute thermos that have been created
+        self.thermos = [];
+
+        ## Cached all group
+        self.group_all = None;
+
+    def set_current(self):
+        global current
+
+        current = self;
+
+    def __enter__(self):
+        global current
+
+        self.prev = current;
+        current = self;
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        global current
+
+        current = self.prev;
 
 ## Initialize the execution context
 # \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
@@ -72,7 +203,10 @@ CLOCK_START = time.clock()
 # (if any). By default, initialize() reads arguments given on the command line. Provide a string to initialize()
 # to set the launch configuration within the job script.
 #
-# initialize() should be called immediately after `from hoomd_script import *`.
+# initialize() can be called more than once in a script. However, the execution parameters are fixed on the first call
+# and args is ignored. Subsequent calls to initialize() create a new SimulationContext and set it current. This
+# behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
+# set when rerunning the notebook within an existing kernel.
 #
 # **Example:**
 # \code
@@ -82,20 +216,93 @@ CLOCK_START = time.clock()
 # \endcode
 #
 def initialize(args=None):
-    if hoomd_script.globals.exec_conf is not None:
-        hoomd_script.globals.msg.error("Cannot change execution mode after initialization\n");
-        raise RuntimeError('Error setting option');
+    global exec_conf, msg, options, current, _prev_args
+    _prev_args = args;
 
-    hoomd_script.globals.options = hoomd_script.option.options();
+    if exec_conf is not None:
+        if args != _prev_args:
+            msg.warning("Ignoring new options, cannot change execution mode after initialization.\n");
+        current = SimulationContext();
+        return current
+
+    options = hoomd_script.option.options();
     hoomd_script.option._parse_command_line(args);
 
-    hoomd_script.init._create_exec_conf();
+    _create_exec_conf();
+
+    current = SimulationContext();
+    return current
+
+## Get the current processor name
+#
+# platform.node() can spawn forked processes in some version of MPI.
+# This avoids that problem by using MPI information about the hostname directly
+# when it is available. MPI is initialized on module load if it is available,
+# so this data is accessible immediately.
+#
+# \returns String name for the current processor
+# \internal
+def _get_proc_name():
+    if hoomd.is_MPI_available():
+        return hoomd.get_mpi_proc_name()
+    else:
+        return platform.node()
+
+## Initializes the execution configuration
+#
+# \internal
+def _create_exec_conf():
+    global exec_conf, options, msg
+
+    # use a cached execution configuration if available
+    if exec_conf is not None:
+        return exec_conf
+
+    mpi_available = hoomd.is_MPI_available();
+
+    # error out on nyx/flux if the auto mode is set
+    if options.mode == 'auto':
+        host = _get_proc_name()
+        if "flux" in host or "nyx" in host:
+            msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
+            raise RuntimeError("Error initializing");
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
+    elif options.mode == "cpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
+    elif options.mode == "gpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
+    else:
+        raise RuntimeError("Invalid mode");
+
+    # convert None options to defaults
+    if options.gpu is None:
+        gpu_id = -1;
+    else:
+        gpu_id = int(options.gpu);
+
+    if options.nrank is None:
+        nrank = 0;
+    else:
+        nrank = int(options.nrank);
+
+    # create the specified configuration
+    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
+
+    # if gpu_error_checking is set, enable it on the GPU
+    if options.gpu_error_checking:
+       exec_conf.setCUDAErrorChecking(True);
+
+    exec_conf = exec_conf;
+
+    return exec_conf;
 
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    if hoomd_script.globals.exec_conf is None:
-        hoomd_script.globals.msg.error("call context.initialize() before any other method in hoomd.")
+    global exec_conf, msg, current
+
+    if exec_conf is None:
+        msg.error("call context.initialize() before any other method in hoomd.")
         raise RuntimeError("hoomd execution context is not available")
 
 ## \internal
@@ -114,10 +321,11 @@ class ExecutionContext(hoomd_script.meta._metadata):
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
     def _get_exec_conf(self):
-        if hoomd_script.globals.exec_conf is None:
+        global exec_conf
+        if exec_conf is None:
             raise RuntimeError("Not initialized.")
         else:
-            return hoomd_script.globals.exec_conf
+            return exec_conf
 
     # \brief Return the network hostname.
     @property

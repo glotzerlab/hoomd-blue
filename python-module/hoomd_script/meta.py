@@ -123,7 +123,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     hoomd_script.util.print_status_line();
 
     if not hoomd_script.init.is_initialized():
-        hoomd_script.globals.msg.error("Need to initialize system first.\n")
+        hoomd_script.context.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
     metadata = []
@@ -131,7 +131,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
 
     if user is not None:
         if not isinstance(user, collections.Mapping):
-            globals.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
+            hoomd_script.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             obj['user'] = _metadata_from_dict(user);
 
@@ -139,7 +139,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
         try:
             with open(filename) as f:
                 metadata = json.load(f)
-                globals.msg.notice(2,"Appending to file {1}." % filename)
+                hoomd_script.context.msg.notice(2,"Appending to file {1}." % filename)
         except Exception:
             pass
 
@@ -150,14 +150,14 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     obj['context'] = hoomd_script.context.ExecutionContext()
     obj['hoomd'] = hoomd_script.context.HOOMDContext()
 
-    global_objs = [hoomd_script.data.system_data(hoomd_script.globals.system_definition)];
-    global_objs += hoomd_script.globals.forces;
-    global_objs += hoomd_script.globals.constraint_forces;
-    global_objs += [hoomd_script.globals.integrator];
-    global_objs += hoomd_script.globals.integration_methods;
-    global_objs += hoomd_script.globals.forces
-    global_objs += hoomd_script.globals.analyzers;
-    global_objs += hoomd_script.globals.updaters;
+    global_objs = [hoomd_script.data.system_data(hoomd_script.context.current.system_definition)];
+    global_objs += hoomd_script.context.current.forces;
+    global_objs += hoomd_script.context.current.constraint_forces;
+    global_objs += [hoomd_script.context.current.integrator];
+    global_objs += hoomd_script.context.current.integration_methods;
+    global_objs += hoomd_script.context.current.forces
+    global_objs += hoomd_script.context.current.analyzers;
+    global_objs += hoomd_script.context.current.updaters;
 
     # add list of objects to JSON
     for o in global_objs:

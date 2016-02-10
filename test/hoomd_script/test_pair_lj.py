@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -58,18 +59,18 @@ class pair_lj_tests (unittest.TestCase):
     def test_nlist_global_subscribe(self):
         lj = pair.lj(r_cut=2.5);
         lj.pair_coeff.set('A', 'A', sigma = 1.0, epsilon=1.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
     # test specific nlist subscription
     def test_nlist_subscribe(self):
         nl = nlist.cell()
         lj = pair.lj(r_cut=2.5, nlist=nl);
-        self.assertEqual(globals.neighbor_list, None)
+        self.assertEqual(hoomd_script.context.current.neighbor_list, None)
 
         lj.pair_coeff.set('A', 'A', sigma = 1.0, epsilon=1.0)
         nl.update_rcut();
@@ -97,7 +98,7 @@ class pair_lj_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

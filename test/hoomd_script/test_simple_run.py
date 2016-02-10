@@ -2,6 +2,7 @@
 # Maintainer: jglaser
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -15,8 +16,8 @@ class replicate(unittest.TestCase):
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.42, B=0.42)
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
         self.harmonic = bond.harmonic();
         self.harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
         self.pair = pair.lj(r_cut=2.5)
@@ -32,7 +33,7 @@ class replicate(unittest.TestCase):
     def tearDown(self):
         del self.harmonic
         del self.pair
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

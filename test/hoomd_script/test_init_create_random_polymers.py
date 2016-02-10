@@ -1,4 +1,5 @@
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -16,8 +17,8 @@ class init_create_random_polymer_tests (unittest.TestCase):
     # tests basic creation of the random initializer
     def test(self):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
 
     # test that angle,dihedral, and improper types are initialized correctly
     def test_angleA(self):
@@ -106,7 +107,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           separation=bad_separation3);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

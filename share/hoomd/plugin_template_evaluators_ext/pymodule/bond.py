@@ -52,8 +52,8 @@ from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 # Next, since we are extending a bond potential, we need to bring in the base class and some other parts from
 # hoomd_script
 from hoomd_script import util
-from hoomd_script import globals
 from hoomd_script.bond import _bond
+import hoomd_script
 import hoomd
 import math
 
@@ -97,7 +97,7 @@ class harmonic_dpd(_bond):
         util.print_status_line();
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getNumBonds() == 0:
+        if hoomd_script.context.current.system_definition.getBondData().getNumBonds() == 0:
             print >> sys.stderr, "\n***Error! No bonds are defined.\n";
             raise RuntimeError("Error creating bond forces");
 
@@ -105,15 +105,15 @@ class harmonic_dpd(_bond):
         _bond.__init__(self,name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPD(globals.system_definition,self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPD(hoomd_script.context.current.system_definition,self.name);
         else:
-            self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPDGPU(globals.system_definition,self.name);
+            self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPDGPU(hoomd_script.context.current.system_definition,self.name);
             # you can play with the block size value, set it to any multiple of 32 up to 1024. Use the
             # harmonic_dpd.benchmark() command to find out which block size performs the fastest
             self.cpp_force.setBlockSize(64);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.required_coeffs = ['k','r0','r_cut', 'A'];
 

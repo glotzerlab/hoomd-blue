@@ -2,6 +2,7 @@
 # Maintainer: jproc
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -61,7 +62,7 @@ class wall_group_tests(unittest.TestCase):
         run(1);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 # test lj wall force in standard mode
 class wall_lj_tests (unittest.TestCase):
@@ -123,7 +124,7 @@ class wall_lj_tests (unittest.TestCase):
     def tearDown(self):
         del self.s
         del self.walls
-        init.reset();
+        context.initialize();
 
 # test lj wall force in shifted mode
 class wall_shift_tests (unittest.TestCase):
@@ -166,7 +167,7 @@ class wall_shift_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

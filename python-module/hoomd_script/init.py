@@ -59,7 +59,6 @@ import re;
 import platform;
 
 from hoomd_script import util;
-from hoomd_script import globals;
 from hoomd_script import comm;
 import hoomd_script
 
@@ -77,65 +76,10 @@ import hoomd_script
 # Returns True if a previous init.create* or init.read* command has completed successfully and initialized the system.
 # Returns False otherwise.
 def is_initialized():
-    if globals.system is None:
+    if hoomd_script.context.current.system is None:
         return False;
     else:
         return True;
-
-## Resets all hoomd_script variables
-#
-# After calling init.reset() all global variables used in hoomd_script are cleared and all allocated
-# memory is freed so the simulation can begin anew without needing to launch hoomd again.
-#
-# \note There is a very important memory management issue that must be kept in mind when using
-# reset(). If you have saved a variable such as an integrator or a force for changing parameters,
-# that saved object \b must be deleted before the reset() command is called. If all objects are
-# not deleted, then a memory leak will result causing repeated runs of even a small simulation
-# to eventually run the system out of memory. reset() will throw an error if it detects that this
-# is the case.
-#
-# \note When using the python data access in hoomd scripts, iterators must also be deleted
-# \code
-# for p in sysdef.particles:
-#   # do something
-#
-# del p
-# init.reste()
-# \endcode
-#
-# \b Example:
-# \code
-# init.create_random(N=1000, phi_p = 0.2)
-# lj = pair.lj(r_cut=3.0)
-# .... setup and run simulation
-# del lj
-# init.reset()
-# init.create_random(N=2000, phi_p = 0.2)
-# .... setup and run simulation
-# \endcode
-def reset():
-    if not is_initialized():
-        globals.msg.warning("Trying to reset an uninitialized system\n");
-        return;
-
-    # perform some reference counting magic to verify that the user has cleared all saved variables
-    sysdef = globals.system_definition;
-    globals.clear();
-
-    gc.collect();
-    count = sysdef.getPDataRefs()
-
-    # note: the check should be against 2, getrefcount counts the temporary reference
-    # passed to it in the argument
-    expected_count = 7
-    if count != expected_count:
-        globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
-        globals.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");
-        globals.msg.warning("Going to try and reset anyways, further errors (such as out of memory) may result\n");
-
-    del sysdef
-    gc.collect();
-    gc.collect();
 
 ## Create an empty system
 #
@@ -184,60 +128,60 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 
     # check if initialization has already occurred
     if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
-    globals.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
+    hoomd_script.context.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
 
     hoomd_script.context._verify_init();
 
     # create the empty system
     if not isinstance(box, hoomd_script.data.boxdim):
-        globals.msg.error('box must be a data.boxdim object');
+        hoomd_script.context.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
     boxdim = box._getBoxDim();
 
     my_domain_decomposition = _create_domain_decomposition(boxdim);
     if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(N,
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
                                                            len(particle_types),
                                                            len(bond_types),
                                                            len(angle_types),
                                                            len(dihedral_types),
                                                            len(improper_types),
-                                                           hoomd_script.globals.exec_conf,
+                                                           hoomd_script.context.exec_conf,
                                                            my_domain_decomposition);
     else:
-        globals.system_definition = hoomd.SystemDefinition(N,
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
                                                            len(particle_types),
                                                            len(bond_types),
                                                            len(angle_types),
                                                            len(dihedral_types),
                                                            len(improper_types),
-                                                           hoomd_script.globals.exec_conf)
+                                                           hoomd_script.context.exec_conf)
 
-    globals.system_definition.setNDimensions(box.dimensions);
+    hoomd_script.context.current.system_definition.setNDimensions(box.dimensions);
 
     # transfer names to C++
     for i,name in enumerate(particle_types):
-        globals.system_definition.getParticleData().setTypeName(i,name);
+        hoomd_script.context.current.system_definition.getParticleData().setTypeName(i,name);
     for i,name in enumerate(bond_types):
-        globals.system_definition.getBondData().setTypeName(i,name);
+        hoomd_script.context.current.system_definition.getBondData().setTypeName(i,name);
     for i,name in enumerate(angle_types):
-        globals.system_definition.getAngleData().setTypeName(i,name);
+        hoomd_script.context.current.system_definition.getAngleData().setTypeName(i,name);
     for i,name in enumerate(dihedral_types):
-        globals.system_definition.getDihedralData().setTypeName(i,name);
+        hoomd_script.context.current.system_definition.getDihedralData().setTypeName(i,name);
     for i,name in enumerate(improper_types):
-        globals.system_definition.getImproperData().setTypeName(i,name);
+        hoomd_script.context.current.system_definition.getImproperData().setTypeName(i,name);
 
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, 0);
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 ## Reads initial system state from an XML file
 #
@@ -284,7 +228,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
 
     # check if initialization has already occured
     if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error reading XML file");
 
     filename_to_read = filename;
@@ -293,23 +237,23 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
             filename_to_read = restart;
 
     # read in the data
-    initializer = hoomd.HOOMDInitializer(hoomd_script.globals.exec_conf,filename_to_read,wrap_coordinates);
+    initializer = hoomd.HOOMDInitializer(hoomd_script.context.exec_conf,filename_to_read,wrap_coordinates);
     snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf, my_domain_decomposition);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
     else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
 
     # initialize the system
     if time_step is None:
-        globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+        hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, initializer.getTimeStep());
     else:
-        globals.system = hoomd.System(globals.system_definition, time_step);
+        hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 ## Generates N randomly positioned particles of the same type
 #
@@ -348,7 +292,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
 
     # check if initialization has already occured
     if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     # abuse the polymer generator to generate single particles
@@ -362,11 +306,11 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
         raise RuntimeError('box or phi_p must be specified');
 
     if not isinstance(box, hoomd_script.data.boxdim):
-        globals.msg.error('box must be a data.boxdim object');
+        hoomd_script.context.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(hoomd_script.globals.exec_conf, box._getBoxDim(), seed, box.dimensions);
+    generator = hoomd.RandomGenerator(hoomd_script.context.exec_conf, box._getBoxDim(), seed, box.dimensions);
 
     # build type list
     type_vector = hoomd.std_vector_string();
@@ -377,7 +321,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     bond_type = hoomd.std_vector_string();
 
     # create the generator
-    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(hoomd_script.globals.exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
+    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(hoomd_script.context.exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
 
     # set the separation radius
     generator.setSeparationRadius(name, min_dist/2.0);
@@ -390,15 +334,15 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf, my_domain_decomposition);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
     else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
 
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, 0);
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
@@ -510,23 +454,23 @@ def create_random_polymers(box, polymers, separation, seed=1):
 
     # check if initialization has already occured
     if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
     if len(polymers) == 0:
-        globals.msg.error("Polymers list cannot be empty.\n");
+        hoomd_script.context.msg.error("Polymers list cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
     if len(separation) == 0:
-        globals.msg.error("Separation dict cannot be empty.\n");
+        hoomd_script.context.msg.error("Separation dict cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
     if not isinstance(box, hoomd_script.data.boxdim):
-        globals.msg.error('Box must be a data.boxdim object\n');
+        hoomd_script.context.msg.error('Box must be a data.boxdim object\n');
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(hoomd_script.globals.exec_conf,box._getBoxDim(), seed, box.dimensions);
+    generator = hoomd.RandomGenerator(hoomd_script.context.exec_conf,box._getBoxDim(), seed, box.dimensions);
 
     # make a list of types used for an eventual check vs the types in separation for completeness
     types_used = [];
@@ -539,7 +483,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         type_list = [];
         # check that all fields are specified
         if not 'bond_len' in poly:
-            globals.msg.error('Polymer specification missing bond_len\n');
+            hoomd_script.context.msg.error('Polymer specification missing bond_len\n');
             raise RuntimeError("Error creating random polymers");
 
         if min_bond_len is None:
@@ -548,13 +492,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
             min_bond_len = min(min_bond_len, poly['bond_len']);
 
         if not 'type' in poly:
-            globals.msg.error('Polymer specification missing type\n');
+            hoomd_script.context.msg.error('Polymer specification missing type\n');
             raise RuntimeError("Error creating random polymers");
         if not 'count' in poly:
-            globals.msg.error('Polymer specification missing count\n');
+            hoomd_script.context.msg.error('Polymer specification missing count\n');
             raise RuntimeError("Error creating random polymers");
         if not 'bond' in poly:
-            globals.msg.error('Polymer specification missing bond\n');
+            hoomd_script.context.msg.error('Polymer specification missing bond\n');
             raise RuntimeError("Error creating random polymers");
 
         # build type list
@@ -586,31 +530,31 @@ def create_random_polymers(box, polymers, separation, seed=1):
                 elif len(t) == 3:
                     a,b,name = t;
                 else:
-                    globals.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
+                    hoomd_script.context.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
                     raise RuntimeError("Error creating random polymers");
 
                 bond_a.push_back(a);
                 bond_b.push_back(b);
                 bond_name.append(name);
         else:
-            globals.msg.error('Unexpected argument value for polymer bond\n');
+            hoomd_script.context.msg.error('Unexpected argument value for polymer bond\n');
             raise RuntimeError("Error creating random polymers");
 
         # create the generator
-        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(hoomd_script.globals.exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
+        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(hoomd_script.context.exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
 
 
     # check that all used types are in the separation list
     for t in types_used:
         if not t in separation:
-            globals.msg.error("No separation radius specified for type " + str(t) + "\n");
+            hoomd_script.context.msg.error("No separation radius specified for type " + str(t) + "\n");
             raise RuntimeError("Error creating random polymers");
 
     # set the separation radii, checking that it is within the minimum bond length
     for t,r in separation.items():
         generator.setSeparationRadius(t, r);
         if 2*r >= min_bond_len:
-            globals.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
+            hoomd_script.context.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
             raise RuntimeError("Error creating random polymers");
 
     # generate the particles
@@ -621,15 +565,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf, my_domain_decomposition);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
     else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
 
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, 0);
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 ## Initializes the system from a snapshot
 #
@@ -655,23 +599,23 @@ def read_snapshot(snapshot):
 
     # check if initialization has already occured
     if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd_script.globals.exec_conf);
+    snapshot._broadcast(hoomd_script.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf, my_domain_decomposition);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
     else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.globals.exec_conf);
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
 
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, 0);
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 
 ## Performs common initialization tasks
@@ -686,7 +630,7 @@ def _perform_common_init_tasks():
     from hoomd_script import compute;
 
     # create the sorter
-    globals.sorter = update.sort();
+    hoomd_script.context.current.sorter = update.sort();
 
     # create the default compute.thermo on the all group
     util._disable_status_lines = True;
@@ -696,77 +640,16 @@ def _perform_common_init_tasks():
 
     # set up Communicator, and register it with the System
     if hoomd.is_MPI_available():
-        cpp_decomposition = globals.system_definition.getParticleData().getDomainDecomposition();
+        cpp_decomposition = hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition();
         if cpp_decomposition is not None:
             # create the c++ Communicator
-            if not globals.exec_conf.isCUDAEnabled():
-                cpp_communicator = hoomd.Communicator(globals.system_definition, cpp_decomposition)
+            if not hoomd_script.context.exec_conf.isCUDAEnabled():
+                cpp_communicator = hoomd.Communicator(hoomd_script.context.current.system_definition, cpp_decomposition)
             else:
-                cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, cpp_decomposition)
+                cpp_communicator = hoomd.CommunicatorGPU(hoomd_script.context.current.system_definition, cpp_decomposition)
 
             # set Communicator in C++ System
-            globals.system.setCommunicator(cpp_communicator)
-
-## Get the current processor name
-#
-# platform.node() can spawn forked processes in some version of MPI.
-# This avoids that problem by using MPI information about the hostname directly
-# when it is available. MPI is initialized on module load if it is available,
-# so this data is accessible immediately.
-#
-# \returns String name for the current processor
-# \internal
-def _get_proc_name():
-    if hoomd.is_MPI_available():
-        return hoomd.get_mpi_proc_name()
-    else:
-        return platform.node()
-
-## Initializes the execution configuration
-#
-# \internal
-def _create_exec_conf():
-    # use a cached execution configuration if available
-    if globals.exec_conf is not None:
-        return globals.exec_conf
-
-    mpi_available = hoomd.is_MPI_available();
-
-    # error out on nyx/flux if the auto mode is set
-    if globals.options.mode == 'auto':
-        host = _get_proc_name()
-        if "flux" in host or "nyx" in host:
-            globals.msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
-            raise RuntimeError("Error initializing");
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
-    elif globals.options.mode == "cpu":
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
-    elif globals.options.mode == "gpu":
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
-    else:
-        raise RuntimeError("Invalid mode");
-
-    # convert None options to defaults
-    if globals.options.gpu is None:
-        gpu_id = -1;
-    else:
-        gpu_id = int(globals.options.gpu);
-
-    if globals.options.nrank is None:
-        nrank = 0;
-    else:
-        nrank = int(globals.options.nrank);
-
-    # create the specified configuration
-    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, nrank);
-
-    # if gpu_error_checking is set, enable it on the GPU
-    if globals.options.gpu_error_checking:
-       exec_conf.setCUDAErrorChecking(True);
-
-    globals.exec_conf = exec_conf;
-
-    return exec_conf;
+            hoomd_script.context.current.system.setCommunicator(cpp_communicator)
 
 ## Create a DomainDecomposition object
 # \internal
@@ -776,15 +659,15 @@ def _create_domain_decomposition(box):
 
     # if we are only running on one processor, we use optimized code paths
     # for single-GPU execution
-    if globals.exec_conf.getNRanks() == 1:
+    if hoomd_script.context.exec_conf.getNRanks() == 1:
         return None
 
     # okay, we want a decomposition but one isn't set, so make a default one
-    if globals.decomposition is None:
+    if hoomd_script.context.current.decomposition is None:
         # this is happening transparently to the user, so hush this up
         util._disable_status_lines = True
-        globals.decomposition = comm.decomposition()
+        hoomd_script.context.current.decomposition = comm.decomposition()
         util._disable_status_lines = False
 
-    return globals.decomposition._make_cpp_decomposition(box)
+    return hoomd_script.context.current.decomposition._make_cpp_decomposition(box)
 

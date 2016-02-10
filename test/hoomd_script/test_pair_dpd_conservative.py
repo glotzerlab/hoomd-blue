@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -32,7 +33,7 @@ class pair_dpdc_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, dpdc.update_coeffs);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

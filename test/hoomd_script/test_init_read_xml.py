@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -59,16 +60,16 @@ A B C
     # tests basic creation of the random initializer
     def test(self):
         init.read_xml(self.tmp_file);
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
+        self.assertEqual(hoomd_script.context.current.system_definition.getParticleData().getNGlobal(), 3);
 
     # tests creation with a few more arugments specified
     def test_moreargs(self):
         init.read_xml(self.tmp_file, time_step=100);
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
+        self.assertEqual(hoomd_script.context.current.system_definition.getParticleData().getNGlobal(), 3);
 
     # tests creation with out of box particles
     def test_out_of_box_1(self):
@@ -77,17 +78,17 @@ A B C
     # tests creation with out of box particles
     def test_out_of_box_2(self):
         sys=init.read_xml(self.tmp_file2,wrap_coordinates=True)
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
+        self.assertEqual(hoomd_script.context.current.system_definition.getParticleData().getNGlobal(), 3);
         self.assertAlmostEqual(sys.particles[0].position[2],-1,5)
 
     # test read restart file
     def test_read_restart(self):
         sys=init.read_xml(self.tmp_file, self.tmp_file2,wrap_coordinates=True)
-        self.assert_(globals.system_definition);
-        self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
+        self.assert_(hoomd_script.context.current.system_definition);
+        self.assert_(hoomd_script.context.current.system);
+        self.assertEqual(hoomd_script.context.current.system_definition.getParticleData().getNGlobal(), 3);
         self.assertAlmostEqual(sys.particles[0].position[2],-1,5)
 
     # checks for an error if initialized twice
@@ -99,7 +100,7 @@ A B C
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);
             os.remove(self.tmp_file2);
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

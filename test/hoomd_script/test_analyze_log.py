@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -57,7 +58,7 @@ class analyze_log_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, ana.disable);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);
 
@@ -122,7 +123,7 @@ class analyze_log_query_tests (unittest.TestCase):
 
     def tearDown(self):
         self.pair = None;
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

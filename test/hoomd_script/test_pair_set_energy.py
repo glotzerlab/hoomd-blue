@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -37,7 +38,7 @@ class pair_set_energy_tests (unittest.TestCase):
 
     def tearDown(self):
         self.s = None
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

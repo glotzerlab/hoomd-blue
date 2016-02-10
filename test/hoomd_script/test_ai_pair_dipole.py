@@ -2,6 +2,7 @@
 # Maintainer: mspells
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -52,15 +53,15 @@ class pair_dipole_tests (unittest.TestCase):
     def test_nlist_subscribe(self):
         dipole = pair.dipole(r_cut=2.5);
         dipole.pair_coeff.set('A', 'A', mu=1.0, kappa=1.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
         dipole.pair_coeff.set('A', 'A', r_cut = 2.0)
-        globals.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+        hoomd_script.context.current.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, hoomd_script.context.current.neighbor_list.r_cut.get_pair('A','A'));
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 if __name__ == '__main__':

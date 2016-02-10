@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -180,7 +181,7 @@ class particle_data_access_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 # tests for bond, angle, dihedral, and improper data access
 class bond_data_access_tests (unittest.TestCase):
@@ -402,7 +403,7 @@ class bond_data_access_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize();
 
 # pair.lj
 class pair_access_tests (unittest.TestCase):
@@ -424,7 +425,7 @@ class pair_access_tests (unittest.TestCase):
             f = p.torque;
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 
 # tests for body data access
@@ -500,7 +501,7 @@ class body_data_access_tests (unittest.TestCase):
     def tearDown(self):
         if comm.get_num_ranks() == 1:
             del self.s
-            init.reset();
+            context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

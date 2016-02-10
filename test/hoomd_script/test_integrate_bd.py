@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+import hoomd_script;
 context.initialize()
 import unittest
 import os
@@ -44,7 +45,7 @@ class integrate_brownian_script_tests (unittest.TestCase):
         bd.set_gamma('B', 1.0);
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 # validate brownian diffusion
 class integrate_brownian_diffusion (unittest.TestCase):
@@ -104,7 +105,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
             self.assert_(almost_equal(D, T/gamma, 0.1))
 
     def tearDown(self):
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

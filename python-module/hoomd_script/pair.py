@@ -76,7 +76,6 @@
 #
 # \sa \ref page_quick_start
 
-from hoomd_script import globals;
 from hoomd_script import force;
 from hoomd_script import nlist as nl # to avoid naming conflicts
 import hoomd;
@@ -85,6 +84,7 @@ from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import variant;
 from hoomd_script import cite;
+import hoomd_script;
 
 import math;
 import sys;
@@ -241,12 +241,12 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            globals.msg.error("Bug detected in pair.coeff. Please report\n");
+            hoomd_script.context.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
 
         # update each of the values provided
         if len(coeffs) == 0:
-            globals.msg.error("No coefficents specified\n");
+            hoomd_script.context.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[cur_pair][name] = val;
 
@@ -266,14 +266,14 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            globals.msg.error("Cannot verify pair coefficients before initialization\n");
+            hoomd_script.context.msg.error("Cannot verify pair coefficients before initialization\n");
             raise RuntimeError('Error verifying pair coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         valid = True;
         # loop over all possible pairs and verify that all required variables are set
@@ -288,7 +288,7 @@ class coeff:
                 elif (b,a) in self.values:
                     cur_pair = (b,a);
                 else:
-                    globals.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
+                    hoomd_script.context.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
                     valid = False;
                     continue;
 
@@ -296,13 +296,13 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
+                        hoomd_script.context.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
                               ", but is not used by the pair force\n");
                     else:
                         count += 1;
 
                 if count != len(required_coeffs):
-                    globals.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
+                    hoomd_script.context.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
                     valid = False;
 
 
@@ -444,25 +444,25 @@ class pair(force._force):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                globals.msg.error("Invalid mode\n");
+                hoomd_script.context.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
     def process_coeff(self, coeff):
-        globals.msg.error("Bug in hoomd_script, please report\n");
+        hoomd_script.context.msg.error("Bug in hoomd_script, please report\n");
         raise RuntimeError("Error processing coefficients");
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
-            globals.msg.error("Not all pair coefficients are set\n");
+            hoomd_script.context.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
             for j in range(i,ntypes):
@@ -483,10 +483,10 @@ class pair(force._force):
     # \pre update_coeffs must be called before get_max_rcut to verify that the coeffs are set
     def get_max_rcut(self):
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # find the maximum r_cut
         max_rcut = 0.0;
@@ -507,10 +507,10 @@ class pair(force._force):
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
         r_cut_dict = nl.rcut();
@@ -638,15 +638,15 @@ class lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairLJ(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJ;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairLJGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
@@ -727,15 +727,15 @@ class gauss(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairGauss(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGauss;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairGaussGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGaussGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma'];
@@ -831,24 +831,24 @@ class slj(pair):
 
         # update the neighbor list
         if d_max is None :
-            sysdef = globals.system_definition;
+            sysdef = hoomd_script.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd_script.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # SLJ requires diameter shifting to be on
         self.nlist.cpp_nlist.setDiameterShift(True);
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairSLJ(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJ;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairSLJGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
@@ -883,7 +883,7 @@ class slj(pair):
         util.print_status_line();
 
         if mode == "xplor":
-            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
+            hoomd_script.context.msg.error("XPLOR is smoothing is not supported with slj\n");
             raise RuntimeError("Error changing parameters in pair force");
 
         pair.set_params(self, mode=mode);
@@ -953,15 +953,15 @@ class yukawa(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairYukawa(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawa;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairYukawaGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawaGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'kappa'];
@@ -1034,15 +1034,15 @@ class ewald(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairEwald(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairEwald(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairEwald;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairEwaldGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairEwaldGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairEwaldGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['kappa'];
@@ -1119,8 +1119,8 @@ class cgcmm(force._force):
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.cgcmm is not supported in multi-processor simulations.\n\n")
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd_script.context.msg.error("pair.cgcmm is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")
 
         # initialize the base class
@@ -1144,24 +1144,24 @@ class cgcmm(force._force):
             self.nlist.update_rcut()
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, self.nlist.cpp_nlist, r_cut);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.CGCMMForceCompute(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, self.nlist.cpp_nlist, r_cut);
+            self.cpp_force = hoomd.CGCMMForceComputeGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
             self.cpp_force.setBlockSize(128);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     def get_rcut(self):
         if not self.log:
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
         r_cut_dict = nl.rcut();
@@ -1174,14 +1174,14 @@ class cgcmm(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
-            globals.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
+            hoomd_script.context.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
             for j in range(i,ntypes):
@@ -1313,13 +1313,13 @@ class table(force._force):
             self.nlist.update_rcut()
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.TablePotential(globals.system_definition, self.nlist.cpp_nlist, int(width), self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.TablePotential(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, self.nlist.cpp_nlist, int(width), self.name);
+            self.cpp_force = hoomd.TablePotentialGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # stash the width for later use
         self.width = width;
@@ -1352,10 +1352,10 @@ class table(force._force):
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
         r_cut_dict = nl.rcut();
@@ -1369,10 +1369,10 @@ class table(force._force):
 
     def get_max_rcut(self):
         # loop only over current particle types
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # find the maximum rmax to update the neighbor list with
         maxrmax = 0.0;
@@ -1388,14 +1388,14 @@ class table(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            globals.msg.error("Not all pair coefficients are set for pair.table\n");
+            hoomd_script.context.msg.error("Not all pair coefficients are set for pair.table\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         # loop through all of the unique type pairs and evaluate the table
         for i in range(0,ntypes):
@@ -1452,7 +1452,7 @@ class table(force._force):
 
             # validate the input
             if len(values) != 3:
-                globals.msg.error("pair.table: file must have exactly 3 columns\n");
+                hoomd_script.context.msg.error("pair.table: file must have exactly 3 columns\n");
                 raise RuntimeError("Error reading table file");
 
             # append to the tables
@@ -1462,7 +1462,7 @@ class table(force._force):
 
         # validate input
         if self.width != len(r_table):
-            globals.msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
+            hoomd_script.context.msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
             raise RuntimeError("Error reading table file");
 
         # extract rmin and rmax
@@ -1474,7 +1474,7 @@ class table(force._force):
         for i in range(0,self.width):
             r = rmin_table + dr * i;
             if math.fabs(r - r_table[i]) > 1e-3:
-                globals.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
+                hoomd_script.context.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
                 raise RuntimeError("Error reading table file");
 
         util._disable_status_lines = True;
@@ -1547,15 +1547,15 @@ class morse(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMorse(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorse;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMorseGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorseGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['D0', 'alpha', 'r0'];
@@ -1671,15 +1671,15 @@ class dpd(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPD;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['A', 'gamma'];
@@ -1801,15 +1801,15 @@ class dpd_conservative(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPD(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPD;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPDGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['A'];
@@ -1869,8 +1869,8 @@ class eam(force._force):
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
+            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd_script.context.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")
 
         # initialize the base class
@@ -1881,10 +1881,10 @@ class eam(force._force):
         else: raise RuntimeError('Unknown EAM input file type');
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.EAMForceCompute(hoomd_script.context.current.system_definition, file, type_of_file);
         else:
-            self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
+            self.cpp_force = hoomd.EAMForceComputeGPU(hoomd_script.context.current.system_definition, file, type_of_file);
 
         #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
         r_cut_new = self.cpp_force.get_r_cut();
@@ -1898,12 +1898,12 @@ class eam(force._force):
 
         #Load neighbor list to compute.
         self.cpp_force.set_neighbor_list(self.nlist);
-        if globals.exec_conf.isCUDAEnabled():
+        if hoomd_script.context.exec_conf.isCUDAEnabled():
             self.nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
-        globals.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
+        hoomd_script.context.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = coeff();
 
     def update_coeffs(self):
@@ -2029,15 +2029,15 @@ class dpdlj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPD(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPD(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPD;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPDGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon','sigma', 'alpha', 'gamma'];
@@ -2079,7 +2079,7 @@ class dpdlj(pair):
 
         if mode is not None:
             if mode == "xplor":
-                globals.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
+                hoomd_script.context.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
             #use the inherited set_params
@@ -2167,15 +2167,15 @@ class force_shifted_lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairForceShiftedLJ(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJ(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairForceShiftedLJ;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairForceShiftedLJGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
@@ -2236,15 +2236,15 @@ class moliere(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMoliere(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMoliere(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliere;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMoliereGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliereGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
@@ -2310,15 +2310,15 @@ class zbl(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairZBL(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairZBL(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBL;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairZBLGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBLGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
@@ -2372,14 +2372,14 @@ class tersoff(pair):
         self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialTersoff(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialTersoff(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoff;
         else:
-            self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialTersoffGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficients
         self.required_coeffs = ['cutoff_thickness', 'C1', 'C2', 'lambda1', 'lambda2', 'dimer_r', 'n', 'gamma', 'lambda3', 'c', 'd', 'm', 'alpha']
@@ -2493,15 +2493,15 @@ class mie(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairMie(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMie(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMie;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMieGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairMieGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMieGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'n', 'm'];
@@ -2576,21 +2576,21 @@ class ai_pair(pair):
             elif mode == "shift":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
             else:
-                globals.msg.error("Invalid mode\n");
+                hoomd_script.context.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
-            globals.msg.error("Not all pair coefficients are set\n");
+            hoomd_script.context.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
             for j in range(i,ntypes):
@@ -2688,15 +2688,15 @@ class gb(ai_pair):
         neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.AnisoPotentialPairGB(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.AnisoPotentialPairGB(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairGB;
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.AnisoPotentialPairGBGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.AnisoPotentialPairGBGPU(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairGBGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'lperp', 'lpar'];
@@ -2762,15 +2762,15 @@ class dipole(ai_pair):
         neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
 
         ## create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.AnisoPotentialPairDipole(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.AnisoPotentialPairDipole(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairDipole;
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.AnisoPotentialPairDipoleGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = hoomd.AnisoPotentialPairDipoleGPU(hoomd_script.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairDipoleGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         ## setup the coefficent options
         self.required_coeffs = ['mu', 'A', 'kappa'];
