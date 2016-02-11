@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -173,13 +173,13 @@ class NeighborList : public Compute
 
         //! \name Set parameters
         // @{
-        
+
         //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-        
+
         //! Change the cutoff radius by pair
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
-        
+
         //! Change the global buffer radius
         virtual void setRBuff(Scalar r_buff);
 
@@ -249,6 +249,12 @@ class NeighborList : public Compute
             if (m_diameter_shift)
                 min_rlist += m_d_max - Scalar(1.0);
             return min_rlist;
+            }
+
+        //! Get the buffering (skin) length
+        Scalar getRBuff()
+            {
+            return m_r_buff;
             }
 
         // @}
@@ -347,6 +353,9 @@ class NeighborList : public Compute
 
         //! Add exclusions from dihedrals
         void addExclusionsFromDihedrals();
+
+        //! Add an exclusion for every bond in the ConstraintData
+        void addExclusionsFromConstraints();
 
         //! Test if an exclusion has been made
         bool isExcluded(unsigned int tag1, unsigned int tag2);

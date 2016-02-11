@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -472,6 +472,66 @@ __device__ unsigned int get_direction_mask(unsigned int plan)
     return mask;
     }
 
+//! Kernel to select ghost atoms due to non-bonded interactions
+template<unsigned int group_size, typename members_t>
+__global__ void gpu_make_ghost_group_exchange_plan_kernel(
+    unsigned int N,
+    const members_t *d_groups,
+    unsigned int *d_group_plan,
+    const unsigned int *d_rtag,
+    const unsigned int *d_plans,
+    unsigned int n_local
+    )
+    {
+    unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx >= N) return;
+
+    unsigned int plan = 0;
+    members_t members = d_groups[idx];
+
+    for (unsigned int i = 0; i < group_size; ++i)
+        {
+        unsigned int tag = members.tag[i];
+        unsigned int pidx = d_rtag[tag];
+
+        if (i==0 && pidx >= n_local)
+            {
+            // only the rank that owns the first ptl of a group sends it as a ghost
+            plan = 0;
+            break;
+            }
+
+        if (pidx < n_local)
+            {
+            plan |= d_plans[pidx];
+            }
+        }
+
+    d_group_plan[idx] = plan;
+    };
+
+template<unsigned int group_size, typename members_t>
+void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
+                                   const members_t *d_groups,
+                                   unsigned int N,
+                                   const unsigned int *d_rtag,
+                                   const unsigned int *d_plans,
+                                   unsigned int n_local)
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = N/block_size + 1;
+
+    gpu_make_ghost_group_exchange_plan_kernel<group_size><<<n_blocks, block_size>>>(
+        N,
+        d_groups,
+        d_ghost_group_plan,
+        d_rtag,
+        d_plans,
+        n_local);
+    }
+
+
 //! Apply adjacency masks to plan and return number of matching neighbors
 __global__ void  gpu_ghost_neighbor_counts(
     unsigned int N,
@@ -834,6 +894,59 @@ void gpu_exchange_ghosts_pack(
     if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_orientation, d_orientation_sendbuf);
     }
 
+void gpu_exchange_ghosts_pack_netforce(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar4 *d_netforce,
+    Scalar4 *d_netforce_sendbuf)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_out/block_size + 1;
+    gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_netforce, d_netforce_sendbuf);
+    }
+
+
+template<class members_t, class ranks_t, class group_element_t>
+__global__ void gpu_group_pack_kernel(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_group_tag,
+    const members_t *d_groups,
+    const typeval_union *d_group_typeval,
+    const ranks_t *d_group_ranks,
+    group_element_t *d_groups_sendbuf)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= n_out) return;
+
+    unsigned int idx = d_ghost_idx_adj[buf_idx].x;
+
+    group_element_t el;
+    el.tags = d_groups[idx];
+    el.group_tag = d_group_tag[idx];
+    el.typeval = d_group_typeval[idx];
+    el.ranks = d_group_ranks[idx];
+
+    d_groups_sendbuf[buf_idx] = el;
+    }
+
+
+template<class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_pack(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_group_tag,
+    const members_t *d_groups,
+    const typeval_union *d_group_typeval,
+    const ranks_t *d_group_ranks,
+    group_element_t *d_groups_sendbuf)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_out/block_size + 1;
+
+    gpu_group_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_group_tag, d_groups, d_group_typeval, d_group_ranks, d_groups_sendbuf);
+    }
+
 void gpu_communicator_initialize_cache_config()
     {
     cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar>, cudaFuncCachePreferL1);
@@ -884,6 +997,134 @@ void gpu_exchange_ghosts_copy_buf(
     if (send_diameter) gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_diameter_recvbuf, d_diameter);
     if (send_orientation) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_orientation_recvbuf, d_orientation);
     }
+
+void gpu_exchange_ghosts_copy_netforce_buf(
+    unsigned int n_recv,
+    const Scalar4 *d_netforce_recvbuf,
+    Scalar4 *d_netforce)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_recv/block_size + 1;
+    gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_netforce_recvbuf, d_netforce);
+    }
+
+
+template<class members_t, class ranks_t, class group_element_t>
+__global__ void gpu_unpack_groups_kernel(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    typeval_union *d_group_typeval,
+    ranks_t *d_group_ranks,
+    const unsigned int *d_keep,
+    unsigned int *d_scan)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= nrecv) return;
+
+    if (d_keep[buf_idx])
+        {
+        group_element_t el = d_groups_recvbuf[buf_idx];
+
+        unsigned int out_idx = d_scan[buf_idx];
+
+        d_group_tag[out_idx] = el.group_tag;
+        d_groups[out_idx] = el.tags;
+        d_group_typeval[out_idx] = el.typeval;
+        d_group_ranks[out_idx] = el.ranks;
+        }
+    }
+
+template<unsigned int size, class members_t, class group_element_t>
+__global__ void gpu_mark_received_ghost_groups_kernel(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    unsigned int *d_keep,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= nrecv) return;
+
+    group_element_t el = d_groups_recvbuf[buf_idx];
+
+    unsigned int keep = 0;
+
+    unsigned int group_tag = el.group_tag;
+    if (d_group_rtag[group_tag] == GROUP_NOT_LOCAL)
+        {
+        bool has_nonlocal_members = false;
+        for (unsigned int j = 0; j < size; ++j)
+            {
+            unsigned int tag = el.tags.tag[j];
+            if (d_rtag[tag] >= max_n_local)
+                {
+                has_nonlocal_members = true;
+                break;
+                }
+            }
+
+        if (!has_nonlocal_members)
+            {
+            keep = 1;
+            }
+        }
+
+    d_keep[buf_idx] = keep;
+    }
+
+
+template<unsigned int size, class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_copy_buf(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    typeval_union *d_group_typeval,
+    ranks_t *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = nrecv/block_size + 1;
+
+    gpu_mark_received_ghost_groups_kernel<size><<<block_size, n_blocks>>>(
+        nrecv,
+        d_groups_recvbuf,
+        d_group_tag,
+        d_groups,
+        d_keep,
+        d_group_rtag,
+        d_rtag,
+        max_n_local);
+
+    if (nrecv)
+        {
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_keep,
+            nrecv, (unsigned int) 0, mgpu::plus<unsigned int>(),
+            (unsigned int *)NULL, &n_keep, d_scan, *mgpu_context);
+        }
+
+    gpu_unpack_groups_kernel<<<n_blocks, block_size>>>(
+        nrecv,
+        d_groups_recvbuf,
+        d_group_tag,
+        d_groups,
+        d_group_typeval,
+        d_group_ranks,
+        d_keep,
+        d_scan);
+    }
+
 
 void gpu_compute_ghost_rtags(
      unsigned int first_idx,
@@ -1213,7 +1454,7 @@ template<unsigned int group_size, typename group_t, typename ranks_t, typename p
 __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
     unsigned int n_groups,
     const group_t *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
@@ -1223,7 +1464,8 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_t *d_out_groups,
-    unsigned int *d_out_rank_mask)
+    unsigned int *d_out_rank_mask,
+    bool local_multiple)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= n_groups) return;
@@ -1238,7 +1480,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
 
         packed_t el;
         el.tags = d_groups[group_idx];
-        el.type = d_group_type[group_idx];
+        el.typeval = d_group_typeval[group_idx];
         el.group_tag = d_group_tag[group_idx];
         el.ranks = d_group_ranks[group_idx];
         d_out_groups[out_idx] = el;
@@ -1251,7 +1493,12 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
             unsigned int tag = el.tags.tag[i];
             unsigned int pidx = d_rtag[tag];
             if (pidx != NOT_LOCAL && !d_comm_flags[pidx])
-                is_local = true;
+                {
+                if (local_multiple || i == 0)
+                    {
+                    is_local = true;
+                    }
+                }
             }
 
         // if group is no longer local, flag for removal
@@ -1270,7 +1517,7 @@ template<unsigned int group_size, typename group_t, typename ranks_t, typename p
 void gpu_scatter_and_mark_groups_for_removal(
     unsigned int n_groups,
     const group_t *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
@@ -1280,7 +1527,8 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_t *d_out_groups,
-    unsigned int *d_out_rank_mask)
+    unsigned int *d_out_rank_mask,
+    bool local_multiple)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1288,7 +1536,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     gpu_scatter_and_mark_groups_for_removal_kernel<group_size><<<n_blocks, block_size>>>(
         n_groups,
         d_groups,
-        d_group_type,
+        d_group_typeval,
         d_group_tag,
         d_group_rtag,
         d_group_ranks,
@@ -1298,7 +1546,8 @@ void gpu_scatter_and_mark_groups_for_removal(
         my_rank,
         d_scan,
         d_out_groups,
-        d_out_rank_mask);
+        d_out_rank_mask,
+        local_multiple);
     }
 
 template<typename group_t, typename ranks_t>
@@ -1306,8 +1555,8 @@ __global__ void gpu_remove_groups_kernel(
     unsigned int n_groups,
     const group_t *d_groups,
     group_t *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const ranks_t *d_group_ranks,
@@ -1328,7 +1577,7 @@ __global__ void gpu_remove_groups_kernel(
         {
         // scatter into output array
         d_groups_alt[out_idx] = d_groups[group_idx];
-        d_group_type_alt[out_idx] = d_group_type[group_idx];
+        d_group_typeval_alt[out_idx] = d_group_typeval[group_idx];
         d_group_tag_alt[out_idx] = group_tag;
         d_group_ranks_alt[out_idx] = d_group_ranks[group_idx];
 
@@ -1341,8 +1590,8 @@ template<typename group_t, typename ranks_t>
 void gpu_remove_groups(unsigned int n_groups,
     const group_t *d_groups,
     group_t *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const ranks_t *d_group_ranks,
@@ -1366,8 +1615,8 @@ void gpu_remove_groups(unsigned int n_groups,
         n_groups,
         d_groups,
         d_groups_alt,
-        d_group_type,
-        d_group_type_alt,
+        d_group_typeval,
+        d_group_typeval_alt,
         d_group_tag,
         d_group_tag_alt,
         d_group_ranks,
@@ -1381,7 +1630,9 @@ __global__ void gpu_count_unique_groups_kernel(
     unsigned int n_recv,
     const packed_t *d_groups_in,
     const unsigned int *d_group_rtag,
-    unsigned int *d_scan)
+    unsigned int *d_scan,
+    bool local_multiple,
+    unsigned int myrank)
     {
     unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1391,8 +1642,18 @@ __global__ void gpu_count_unique_groups_kernel(
 
     unsigned int rtag = d_group_rtag[el.group_tag];
 
+    bool remove = false;
+    if (!local_multiple)
+        {
+        // only add if we own the first particle
+        if (el.ranks.idx[0] != myrank)
+            {
+            remove = true;
+            }
+        }
+
     // write out zero-one array
-    d_scan[recv_idx] = (rtag == GROUP_NOT_LOCAL) ? 1 : 0;
+    d_scan[recv_idx] = (!remove && rtag == GROUP_NOT_LOCAL) ? 1 : 0;
     }
 
 template<typename packed_t, typename group_t, typename ranks_t>
@@ -1402,10 +1663,12 @@ __global__ void gpu_add_groups_kernel(
     const packed_t *d_groups_in,
     const unsigned int *d_scan,
     group_t *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
-    unsigned int *d_group_rtag)
+    unsigned int *d_group_rtag,
+    bool local_multiple,
+    unsigned int myrank)
     {
     unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1413,14 +1676,24 @@ __global__ void gpu_add_groups_kernel(
 
     packed_t el = d_groups_in[recv_idx];
 
+    bool remove = false;
+    if (!local_multiple)
+        {
+        // only add if we own the first particle
+        if (el.ranks.idx[0] != myrank)
+            {
+            remove = true;
+            }
+        }
+
     unsigned int tag = el.group_tag;
     unsigned int rtag = d_group_rtag[tag];
-    if (rtag == GROUP_NOT_LOCAL)
+    if (!remove && rtag == GROUP_NOT_LOCAL)
         {
         unsigned int add_idx = n_groups + d_scan[recv_idx];
 
         d_groups[add_idx] = el.tags;
-        d_group_type[add_idx] = el.type;
+        d_group_typeval[add_idx] = el.typeval;
         d_group_tag[add_idx] = tag;
         d_group_ranks[add_idx] = el.ranks;
 
@@ -1434,12 +1707,14 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_t *d_groups_in,
     group_t *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context)
     {
     unsigned int block_size = 512;
@@ -1450,7 +1725,9 @@ void gpu_add_groups(unsigned int n_groups,
         n_recv,
         d_groups_in,
         d_group_rtag,
-        d_tmp);
+        d_tmp,
+        local_multiple,
+        myrank);
 
     unsigned int n_unique;
 
@@ -1470,10 +1747,12 @@ void gpu_add_groups(unsigned int n_groups,
         d_groups_in,
         d_tmp,
         d_groups,
-        d_group_type,
+        d_group_typeval,
         d_group_tag,
         d_group_ranks,
-        d_group_rtag);
+        d_group_rtag,
+        local_multiple,
+        myrank);
     }
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
@@ -1655,7 +1934,7 @@ template void gpu_update_ranks_table<2>(
 template void gpu_scatter_and_mark_groups_for_removal<2>(
     unsigned int n_groups,
     const group_storage<2> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<2> *d_group_ranks,
@@ -1665,13 +1944,14 @@ template void gpu_scatter_and_mark_groups_for_removal<2>(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_storage<2> *d_out_groups,
-    unsigned int *d_out_rank_mask);
+    unsigned int *d_out_rank_mask,
+    bool local_multiple);
 
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<2> *d_groups,
     group_storage<2> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<2> *d_group_ranks,
@@ -1685,12 +1965,14 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<2> *d_groups_in,
     group_storage<2> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<2> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_mark_bonded_ghosts<2>(
@@ -1750,7 +2032,7 @@ template void gpu_update_ranks_table<3>(
 template void gpu_scatter_and_mark_groups_for_removal<3>(
     unsigned int n_groups,
     const group_storage<3> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<3> *d_group_ranks,
@@ -1760,13 +2042,14 @@ template void gpu_scatter_and_mark_groups_for_removal<3>(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_storage<3> *d_out_groups,
-    unsigned int *d_out_rank_mask);
+    unsigned int *d_out_rank_mask,
+    bool local_multiple);
 
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<3> *d_groups,
     group_storage<3> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<3> *d_group_ranks,
@@ -1780,12 +2063,14 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<3> *d_groups_in,
     group_storage<3> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<3> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_mark_bonded_ghosts<3>(
@@ -1845,7 +2130,7 @@ template void gpu_update_ranks_table<4>(
 template void gpu_scatter_and_mark_groups_for_removal<4>(
     unsigned int n_groups,
     const group_storage<4> *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<4> *d_group_ranks,
@@ -1855,13 +2140,14 @@ template void gpu_scatter_and_mark_groups_for_removal<4>(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_storage<4> *d_out_groups,
-    unsigned int *d_out_rank_mask);
+    unsigned int *d_out_rank_mask,
+    bool local_multiple);
 
 template void gpu_remove_groups(unsigned int n_groups,
     const group_storage<4> *d_groups,
     group_storage<4> *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const group_storage<4> *d_group_ranks,
@@ -1875,12 +2161,14 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_storage<4> *d_groups_in,
     group_storage<4> *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     group_storage<4> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_mark_bonded_ghosts<4>(
@@ -1896,5 +2184,39 @@ template void gpu_mark_bonded_ghosts<4>(
     const unsigned int *d_cart_ranks,
     unsigned int my_rank,
     unsigned int mask);
+
+/*
+ *! Explicit template instantiations for ConstraintData (n=2)
+ */
+template void gpu_make_ghost_group_exchange_plan<2>(unsigned int *d_ghost_group_plan,
+       const group_storage<2> *d_groups,
+       unsigned int N,
+       const unsigned int *d_rtag,
+       const unsigned int *d_plans,
+       unsigned int n_local);
+
+template void gpu_exchange_ghost_groups_pack(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_group_tag,
+    const group_storage<2> *d_groups,
+    const typeval_union *d_group_typeval,
+    const group_storage<2> *d_group_ranks,
+    packed_storage<2> *d_groups_sendbuf);
+
+template void gpu_exchange_ghost_groups_copy_buf<2>(
+    unsigned int nrecv,
+    const packed_storage<2> *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    group_storage<2> *d_groups,
+    typeval_union *d_group_typeval,
+    group_storage<2> *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context);
 
 #endif // ENABLE_MPI

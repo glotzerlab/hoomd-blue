@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -170,7 +170,10 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     unsigned int bin = ci(ib, jb, kb);
 
     // all particles should be in a valid cell
-    if (ib >= (int)ci.getW() || jb >= (int)ci.getH() || kb >= (int)ci.getD())
+    // all particles should be in a valid cell
+    if (ib < 0 || ib >= (int)ci.getW() ||
+        jb < 0 || jb >= (int)ci.getH() ||
+        kb < 0 || kb >= (int)ci.getD())
         {
         // but ghost particles that are out of range should not produce an error
         if (idx < N)

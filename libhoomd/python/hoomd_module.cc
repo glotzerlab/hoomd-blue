@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -129,6 +129,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "ConstraintEllipsoid.h"
+#include "MolecularForceCompute.h"
+#include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -175,6 +177,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "ConstraintEllipsoidGPU.h"
+#include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
@@ -453,6 +456,73 @@ void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     #endif
     }
 
+//! Helper function for converting python wall group structure to wall_type
+wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
+    {
+    wall_type w;
+    w.numSpheres = boost::python::len(walls.attr("spheres"));
+    w.numCylinders = boost::python::len(walls.attr("cylinders"));
+    w.numPlanes = boost::python::len(walls.attr("planes"));
+
+    if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
+        {
+        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed was specified in a wall force." << std::endl;
+        throw std::runtime_error("Error loading wall group.");
+        }
+    else
+        {
+        for(unsigned int i = 0; i < w.numSpheres; i++)
+            {
+            Scalar     r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("_origin"));
+            bool     inside =boost::python::extract<bool>(walls.attr("spheres")[i].attr("inside"));
+            w.Spheres[i] = SphereWall(r, origin, inside);
+            }
+        for(unsigned int i = 0; i < w.numCylinders; i++)
+            {
+            Scalar     r = boost::python::extract<Scalar>(walls.attr("cylinders")[i].attr("r"));
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_origin"));
+            Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_axis"));
+            bool     inside =boost::python::extract<bool>(walls.attr("cylinders")[i].attr("inside"));
+            w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
+            }
+        for(unsigned int i = 0; i < w.numPlanes; i++)
+            {
+            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
+            Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
+            bool    inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
+            w.Planes[i] = PlaneWall(origin, normal, inside);
+            }
+        return w;
+        }
+    }
+
+//! Exports helper function for parameters based on standard evaluators
+template< class evaluator >
+void export_wall_params_helpers()
+    {
+    using namespace boost::python;
+    class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
+        .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
+        .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
+        .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
+        ;
+    def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
+    #endif
+    }
+
+//! Combines exports of evaluators and parameter helper functions
+template < class evaluator >
+void export_PotentialExternalWall(const std::string& name)
+    {
+    export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
+    export_wall_params_helpers<evaluator>();
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -519,6 +589,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
     export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
     export_BondedGroupData<ImproperData,Dihedral>("ImproperData","ImproperDataSnapshot",false);
+    export_BondedGroupData<ConstraintData,Constraint>("ConstraintData","ConstraintDataSnapshot");
 
     // initializers
     export_RandomInitializer();
@@ -572,8 +643,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListStencil();
     export_NeighborListTree();
     export_ConstraintSphere();
+    export_MolecularForceCompute();
+    export_ForceDistanceConstraint();
     export_PPPMForceCompute();
-    export_wall_field_helpers();
+    class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
+    def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
     export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
@@ -623,6 +697,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
     //    export_ConstExternalFieldDipoleForceComputeGPU();
+    export_ForceDistanceConstraintGPU();
+//    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
     export_ActiveForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
@@ -715,4 +791,158 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // messenger
     export_Messenger();
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr< IMDInterface > >();
+    // register_ptr_to_python< boost::shared_ptr< AnalyzerWrap > >();
+    register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< PDBDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< MOL2DumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
+    register_ptr_to_python< boost::shared_ptr< Logger > >();
+    register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
+    register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();
+    // register_ptr_to_python< boost::shared_ptr< ComputeWrap > >();
+    register_ptr_to_python< boost::shared_ptr< TablePotential > >();
+    register_ptr_to_python< boost::shared_ptr< PPPMForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< ConstExternalFieldDipoleForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< CellList > >();
+    register_ptr_to_python< boost::shared_ptr< EAMForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListStencil > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListBinned > >();
+    register_ptr_to_python< boost::shared_ptr< ConstForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< TableDihedralForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< CellListStencil > >();
+    register_ptr_to_python< boost::shared_ptr< TableAngleForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< ConstraintSphere > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborList > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListTree > >();
+    register_ptr_to_python< boost::shared_ptr< ComputeThermo > >();
+    register_ptr_to_python< boost::shared_ptr< ForceConstraint > >();
+    register_ptr_to_python< boost::shared_ptr< BondTablePotential > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceCompute > >();
+    // register_ptr_to_python< boost::shared_ptr< ForceComputeWrap > >();
+    register_ptr_to_python< boost::shared_ptr< CGCMMForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< ExecutionConfiguration > >();
+    register_ptr_to_python< boost::shared_ptr< SnapshotRigidData > >();
+    register_ptr_to_python< boost::shared_ptr< RigidData > >();
+    register_ptr_to_python< boost::shared_ptr< SystemDefinition > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleData > >();
+    register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<float> > >();
+    register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<double> > >();
+    register_ptr_to_python< boost::shared_ptr< RandomGenerator > >();
+    // register_ptr_to_python< boost::shared_ptr< ParticleGeneratorWrap > >();
+    register_ptr_to_python< boost::shared_ptr< PolymerParticleGenerator > >();
+    register_ptr_to_python< boost::shared_ptr< HOOMDInitializer > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleGroup > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelector > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelectorAll > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelectorTag > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelectorType > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelectorRigid > >();
+    register_ptr_to_python< boost::shared_ptr< ParticleSelectorCuboid > >();
+    register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<float> > >();
+    register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<double> > >();
+    register_ptr_to_python< boost::shared_ptr< wall_type > >();
+    register_ptr_to_python< boost::shared_ptr< System > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigid > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVT > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigid > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
+    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBD > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTK > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigid > >();
+    register_ptr_to_python< boost::shared_ptr< BoxResizeUpdater > >();
+    register_ptr_to_python< boost::shared_ptr< TempRescaleUpdater > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTK > >();
+    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigid > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsen > >();
+    register_ptr_to_python< boost::shared_ptr< IntegratorTwoStep > >();
+    // register_ptr_to_python< boost::shared_ptr< UpdaterWrap > >();
+    register_ptr_to_python< boost::shared_ptr< Integrator > >();
+    register_ptr_to_python< boost::shared_ptr< IntegrationMethodTwoStep > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigid > >();
+    register_ptr_to_python< boost::shared_ptr< ZeroMomentumUpdater > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigid > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNHRigid > >();
+    register_ptr_to_python< boost::shared_ptr< SFCPackUpdater > >();
+    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizer > >();
+    register_ptr_to_python< boost::shared_ptr< double2 > >();
+    register_ptr_to_python< boost::shared_ptr< double3 > >();
+    register_ptr_to_python< boost::shared_ptr< double4 > >();
+    register_ptr_to_python< boost::shared_ptr< float2 > >();
+    register_ptr_to_python< boost::shared_ptr< float3 > >();
+    register_ptr_to_python< boost::shared_ptr< float4 > >();
+    register_ptr_to_python< boost::shared_ptr< uint2 > >();
+    register_ptr_to_python< boost::shared_ptr< uint3 > >();
+    register_ptr_to_python< boost::shared_ptr< uint4 > >();
+    register_ptr_to_python< boost::shared_ptr< int2 > >();
+    register_ptr_to_python< boost::shared_ptr< int3 > >();
+    register_ptr_to_python< boost::shared_ptr< int4 > >();
+    register_ptr_to_python< boost::shared_ptr< char3 > >();
+    register_ptr_to_python< boost::shared_ptr< Variant > >();
+    register_ptr_to_python< boost::shared_ptr< VariantConst > >();
+    register_ptr_to_python< boost::shared_ptr< VariantLinear > >();
+    register_ptr_to_python< boost::shared_ptr< Messenger > >();
+    register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
+    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
+
+    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_MPI
+    register_ptr_to_python< boost::shared_ptr< LoadBalancerGPU > >();
+    register_ptr_to_python< boost::shared_ptr< CommunicatorGPU > >();
+    #endif
+    register_ptr_to_python< boost::shared_ptr< TableAngleForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListGPUStencil > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< PPPMForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TableDihedralForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TablePotentialGPU > >();
+    register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
+    register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
+    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< CellListGPU > >();
+    register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();
+    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< CGCMMForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< ComputeThermoGPU > >();
+    register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVTGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTKGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTKGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBDGPU > >();
+    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< SFCPackUpdaterGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
+    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigidGPU > >();
+    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
+    #endif
+
+    #ifdef ENABLE_MPI
+    register_ptr_to_python< boost::shared_ptr< Communicator > >();
+    register_ptr_to_python< boost::shared_ptr< LoadBalancer > >();
+    #endif
+    #endif
     }

@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -127,7 +127,7 @@ def reset():
 
     # note: the check should be against 2, getrefcount counts the temporary reference
     # passed to it in the argument
-    expected_count = 6
+    expected_count = 7
     if count != expected_count:
         globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
         globals.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");

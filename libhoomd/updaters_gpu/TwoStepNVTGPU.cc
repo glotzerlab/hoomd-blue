@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -166,21 +166,6 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         }
 
 
-    // if MPI is enabled and we have a communicator, register the thermo to compute during communication
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // lazy register update of thermodynamic quantities with Communicator
-        if (! m_comm_connection.connected())
-            m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
-        // note: requesting the address of m_thermo would normally mean circumventing reference
-        // counting, but here we are safe since there is still a shared_ptr ref
-        // to ComputeThermo in the class
-        if (! m_compute_connection.connected())
-            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
-        }
-    #endif
-
     // done profiling
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -193,17 +178,11 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    // if MPI is disabled or we do not have a communicator, update the thermostat
-    #ifdef ENABLE_MPI
-    if (!m_comm)
-    #endif
-        {
-        // compute the current thermodynamic properties
-        m_thermo->compute(timestep+1);
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
 
-        // get temperature and advance thermostat
-        advanceThermostat(timestep+1);
-        }
+    // get temperature and advance thermostat
+    advanceThermostat(timestep+1);
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

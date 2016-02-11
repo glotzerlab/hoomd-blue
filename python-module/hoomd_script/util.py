@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -74,7 +74,7 @@ def print_status_line():
     if len(stack) < 3:
         globals.msg.notice(2, "hoomd_script executing unknown command\n");
 
-    if sys.version_info < (3,5):
+    if sys.version_info[:3] != (3, 5, 0):
         frame = -3
     else:
         frame = -4

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -134,7 +134,7 @@ string output_version_info()
 
     // output the compiled date and copyright information
     o << "Compiled: " << COMPILE_DATE << endl;
-    o << "Copyright 2009-2015 The Regents of the University of Michigan." << endl << endl;
+    o << "Copyright 2009-2016 The Regents of the University of Michigan." << endl << endl;
 
     // output the paper citation information
     o << "All publications and presentations based on HOOMD-blue, including any reports" << endl;

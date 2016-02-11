@@ -2,6 +2,31 @@
 
 [TOC]
 
+## Upcoming release
+
+*New features*
+
+* Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+
+*Bug fixes*
+
+* Fix wrong access to system.box
+* Fix kinetic energy logging in MPI
+* Fix particle out of box error if particles are initialized on the boundary in MPI
+* Add integrate.brownian to the documentation index
+* Fix misc doc typos
+* Fix runtime errors with boost 1.60.0
+* Fix corrupt metadata dumps in MPI runs
+
+## v1.3.1
+
+Released 2016/1/14
+
+*Bug fixes*
+
+* Fix invalid MPI communicator error with Intel MPI
+* Fix python 3.5.1 seg fault
+
 ## v1.3.0
 
 Released 2015/12/8

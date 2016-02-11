@@ -117,7 +117,6 @@ endforeach(test)
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
     test_charge_pppm
-    test_constraint_sphere
     test_dump_mol2
     test_dump_pdb
     test_integrate_bdnvt_rigid
@@ -127,6 +126,7 @@ SET(EXCLUDE_FROM_MPI
     test_update_rescale_temp
     test_walls
     test_communication
+    test_constrain_distance
     )
 
 if (ENABLE_MPI)
@@ -140,6 +140,9 @@ if (ENABLE_MPI)
 
     # communication test needs to be run on 8 procs
     add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_communication.py 8)
+
+    # run constraint test on 8 procs
+    add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_constrain_distance.py 8)
 endif(ENABLE_MPI)
 
 if (ENABLE_CUDA)

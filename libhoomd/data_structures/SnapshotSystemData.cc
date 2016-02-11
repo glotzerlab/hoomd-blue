@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -87,6 +87,9 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
         dihedral_data.replicate(n,old_n);
     if (has_improper_data)
         improper_data.replicate(n,old_n);
+    if (has_constraint_data)
+        constraint_data.replicate(n,old_n);
+
     // replication of rigid data is currently pointless,
     // as RigidData cannot be re-initialized with a different number of rigid bodies
     if (has_rigid_data)
@@ -119,6 +122,7 @@ void export_SnapshotSystemData()
     .def_readwrite("angles", &SnapshotSystemData<float>::angle_data)
     .def_readwrite("dihedrals", &SnapshotSystemData<float>::dihedral_data)
     .def_readwrite("impropers", &SnapshotSystemData<float>::improper_data)
+    .def_readwrite("constraints", &SnapshotSystemData<float>::constraint_data)
     .def_readwrite("bodies", &SnapshotSystemData<float>::rigid_data)
     .def("replicate", &SnapshotSystemData<float>::replicate)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
@@ -135,6 +139,7 @@ void export_SnapshotSystemData()
     .def_readwrite("angles", &SnapshotSystemData<double>::angle_data)
     .def_readwrite("dihedrals", &SnapshotSystemData<double>::dihedral_data)
     .def_readwrite("impropers", &SnapshotSystemData<double>::improper_data)
+    .def_readwrite("constraints", &SnapshotSystemData<double>::constraint_data)
     .def_readwrite("bodies", &SnapshotSystemData<double>::rigid_data)
     .def("replicate", &SnapshotSystemData<double>::replicate)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)

@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -580,7 +580,7 @@ def charged(name='charged'):
 # \code
 # groupA = group.type(name='groupA', type='A')
 # all = group.all()
-# nottypeA = group.union(name="particles-not-typeA", a=all, b=groupA)
+# nottypeA = group.difference(name="particles-not-typeA", a=all, b=groupA)
 # \endcode
 def difference(name, a, b):
     new_cpp_group = hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);

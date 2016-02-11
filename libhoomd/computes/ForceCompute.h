@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -172,6 +172,16 @@ class ForceCompute : public Compute
             {
             // by default, only translational degrees of freedom are integrated
             return false;
+            }
+
+        //! Request communication of additional ghost particles
+        /*! \param plans Plans of already marked ghost particles
+
+            See documentation for Communicator for meaning of the plan bitflags
+         */
+        virtual void addGhostParticles(const GPUArray<unsigned int>& plans)
+            {
+            // base class implementation does nothing
             }
 
     protected:

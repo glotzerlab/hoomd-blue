@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -828,7 +828,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
-            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
             BoxDim global_box = m_global_box;
 
