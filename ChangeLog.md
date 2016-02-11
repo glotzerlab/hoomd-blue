@@ -14,6 +14,8 @@
 * `context.initialize()` can now be called multiple times - useful in jupyter notebooks
 * Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
 * `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.
+* Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
+  notebook output blocks.
 
 *Changes that require job script modifications*
 

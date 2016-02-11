@@ -246,8 +246,8 @@ void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set rcut for a non existant type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
+        m_exec_conf->msg->error() << std::endl << "Trying to set rcut for a non existant type! "
+                                  << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 
@@ -267,8 +267,8 @@ void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set ron for a non existant type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
+        m_exec_conf->msg->error() << std::endl << "Trying to set ron for a non existant type! "
+                                  << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 
@@ -303,7 +303,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
     else
         {
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                  << std::endl << std::endl;
+                                        << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -326,8 +326,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialTersoff cannot handle a half neighborlist"
-                  << std::endl << std::endl;
+        m_exec_conf->msg->error() << std::endl << "PotentialTersoff cannot handle a half neighborlist"
+                                  << std::endl;
         throw std::runtime_error("Error computing forces in PotentialTersoff");
         }
 

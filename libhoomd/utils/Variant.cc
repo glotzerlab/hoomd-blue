@@ -92,8 +92,7 @@ double VariantLinear::getValue(unsigned int timestep)
     // handle the degenerate case that the variant is empty
     if (m_values.empty())
         {
-        cerr << endl << "***Error! No points specified to VariantLinear" << endl << endl;
-        throw runtime_error("Error getting variant value");
+        throw runtime_error("Error: No points specified to VariantLinear");
         }
 
     // handle the degernate case that there is only one value in the variant

@@ -1,13 +1,5 @@
 # Maintainer: joaander
 
-## install the share directory
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks
-        DESTINATION ${DATA_INSTALL_DIR}
-        PATTERN "*.hoomd"
-        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE
-        PATTERN ".svn" EXCLUDE
-        )
-
 ## install the icon, mime type and application menu entry in linux
 if (NOT WIN32 AND NOT APPLE)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons ${CMAKE_CURRENT_SOURCE_DIR}/mime ${CMAKE_CURRENT_SOURCE_DIR}/applications

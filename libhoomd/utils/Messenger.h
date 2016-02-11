@@ -61,9 +61,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
+#endif
+
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/categories.hpp>
-#endif
+#include <boost/python.hpp>
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -79,6 +81,50 @@ struct nullstream: std::ostream
     {
     //! Construct a null stream
     nullstream(): std::ios(0), std::ostream(0) {}
+    };
+
+//! A boost::iostreams sink that writes to sys.stdout in python
+class pysys_stdout_sink
+    {
+    public:
+        typedef char char_type;
+        typedef boost::iostreams::sink_tag category;
+
+        std::streamsize write( const char* s, std::streamsize n )
+            {
+            // PySys_WriteStdout truncates to 1000 chars
+            std::streamsize written = std::min( n, std::streamsize(1000) );
+            std::ostringstream oss;
+            oss << "%." << written << "s";
+
+            PyGILState_STATE gilstate = PyGILState_Ensure();
+            PySys_WriteStdout(oss.str().c_str(), s);
+            PyGILState_Release(gilstate);
+
+            return written;
+            }
+    };
+
+//! A boost::iostreams sink that writes to sys.stderr in python
+class pysys_stderr_sink
+    {
+    public:
+        typedef char char_type;
+        typedef boost::iostreams::sink_tag category;
+
+        std::streamsize write( const char* s, std::streamsize n )
+            {
+            // PySys_WriteStdout truncates to 1000 chars
+            std::streamsize written = std::min( n, std::streamsize(1000) );
+            std::ostringstream oss;
+            oss << "%." << written << "s";
+
+            PyGILState_STATE gilstate = PyGILState_Ensure();
+            PySys_WriteStderr(oss.str().c_str(), s);
+            PyGILState_Release(gilstate);
+
+            return written;
+            }
     };
 
 #ifdef ENABLE_MPI
@@ -378,6 +424,9 @@ class Messenger
         //! Open a file for error, warning, and notice streams
         void openFile(const std::string& fname);
 
+        //! "Open" python sys.stdout and sys.stderr
+        void openPython();
+
 #ifdef ENABLE_MPI
         //! Request logging of notices, warning and errors into shared log file
         /*! \param fname The filenam
@@ -414,7 +463,8 @@ class Messenger
         std::ostream *m_notice_stream;  //!< notice stream
 
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
-        boost::shared_ptr<std::ostream>  m_file;           //!< File stream
+        boost::shared_ptr<std::ostream>  m_file_out;     //!< File stream (stdout)
+        boost::shared_ptr<std::ostream>  m_file_err;     //!< File stream (stderr)
 
         std::string m_err_prefix;       //!< Prefix for error messages
         std::string m_warning_prefix;   //!< Prefix for warning messages

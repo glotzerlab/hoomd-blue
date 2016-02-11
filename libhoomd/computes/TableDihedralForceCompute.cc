@@ -122,7 +122,7 @@ void TableDihedralForceCompute::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        cout << endl << "***Error! Invalid dihedral type specified" << endl << endl;
+        m_exec_conf->msg->error() << "dihedral.table: Invalid dihedral type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialDihedral");
         }
 
