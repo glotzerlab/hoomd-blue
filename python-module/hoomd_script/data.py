@@ -1224,9 +1224,6 @@ class particle_data(meta._metadata):
 # - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
 # - \c net_torque   : Net torque on the particle (x, y, z) (in torque units)
 #
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-#
 class particle_data_proxy:
     ## \internal
     # \brief create a particle_data_proxy
