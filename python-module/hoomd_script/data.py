@@ -95,7 +95,7 @@ import hoomd_script
 # \code
 # snapshot = system.take_snapshot(all=True)
 # if comm.get_rank() == 0:
-#     print(numpy.mean(snapshot.particles.velocity))
+#     s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
 #     snapshot.particles.position[0] = [1,2,3];
 #
 # system.restore_snapshot(snapshot);
@@ -995,10 +995,10 @@ class system_data(meta._metadata):
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # particle_data, documented by example.
 #
-class pdata_types_proxy:
+class pdata_types_proxy(object):
     ## \internal
     # \brief particle_data iterator
-    class pdata_types_iterator:
+    class pdata_types_iterator(object):
         def __init__(self, data):
             self.data = data;
             self.index = 0;
@@ -1224,7 +1224,7 @@ class particle_data(meta._metadata):
 # - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
 # - \c net_torque   : Net torque on the particle (x, y, z) (in torque units)
 #
-class particle_data_proxy:
+class particle_data_proxy(object):
     ## \internal
     # \brief create a particle_data_proxy
     #
@@ -1362,7 +1362,7 @@ class particle_data_proxy:
         self.pdata.setOrientation(self.tag, o);
 
     @property
-    def angular_momentum():
+    def angular_momentum(self):
         a = self.pdata.getAngularMomentum(self.tag);
         return (a.x, a.y, a.z, a.w);
 
@@ -1410,10 +1410,10 @@ class particle_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data, documented by example.
 #
-class force_data:
+class force_data(object):
     ## \internal
     # \brief force_data iterator
-    class force_data_iterator:
+    class force_data_iterator(object):
         def __init__(self, data):
             self.data = data;
             self.index = 0;
@@ -1486,7 +1486,7 @@ class force_data:
 # - \c energy         : A float containing the contribution of this particle to the total potential energy
 # - \c torque         : A 3-tuple of floats (x, y, z) listing the current torque on the particle
 #
-class force_data_proxy:
+class force_data_proxy(object):
     ## \internal
     # \brief create a force_data_proxy
     #
@@ -1663,7 +1663,7 @@ class bond_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class bond_data_proxy:
+class bond_data_proxy(object):
     ## \internal
     # \brief create a bond_data_proxy
     #
@@ -1833,7 +1833,7 @@ class constraint_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class constraint_data_proxy:
+class constraint_data_proxy(object):
     ## \internal
     # \brief create a constraint_data_proxy
     #
@@ -2002,7 +2002,7 @@ class angle_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class angle_data_proxy:
+class angle_data_proxy(object):
     ## \internal
     # \brief create a angle_data_proxy
     #
@@ -2187,7 +2187,7 @@ class dihedral_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class dihedral_data_proxy:
+class dihedral_data_proxy(object):
     ## \internal
     # \brief create a dihedral_data_proxy
     #
@@ -2344,7 +2344,7 @@ class body_data(meta._metadata):
 # - \c moment_inertia : the principle components of the moment of inertia
 # - \c particle_disp : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
 # \MPI_NOT_SUPPORTED
-class body_data_proxy:
+class body_data_proxy(object):
     ## \internal
     # \brief create a body_data_proxy
     #
