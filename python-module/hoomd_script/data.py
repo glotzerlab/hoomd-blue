@@ -903,18 +903,18 @@ class system_data(meta._metadata):
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
-        util._disable_status_lines = True
+        util.quiet_status()
         cpp_snapshot = self.take_snapshot(all=True)
-        util._disable_status_lines = False
+        util.unquiet_status()
 
         if hoomd_script.comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
         # restore from snapshot
-        util._disable_status_lines = True
+        util.quiet_status()
         self.restore_snapshot(cpp_snapshot)
-        util._disable_status_lines = False
+        util.unquiet_status()
 
     ## Re-initializes the system from a snapshot
     #

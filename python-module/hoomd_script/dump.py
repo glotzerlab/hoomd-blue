@@ -119,18 +119,18 @@ class xml(analyze._analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDDumpWriter(hoomd_script.context.current.system_definition, filename, restart);
-        util._disable_status_lines = True;
+        util.quiet_status();
         self.set_params(**params);
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
         if period is not None:
             self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            util._disable_status_lines = True;
+            util.quiet_status();
             self.write(filename, time_step);
-            util._disable_status_lines = False;
+            util.unquiet_status();
         else:
             self.enabled = False;
 
@@ -357,9 +357,9 @@ class mol2(analyze._analyzer):
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            util._disable_status_lines = True;
+            util.quiet_status();
             self.write(filename);
-            util._disable_status_lines = False;
+            util.unquiet_status();
         else:
             self.enabled = False;
 
@@ -452,9 +452,9 @@ class dcd(analyze._analyzer):
             reported_period = 1;
 
         if group is None:
-            util._disable_status_lines = True;
+            util.quiet_status();
             group = hs_group.all();
-            util._disable_status_lines = False;
+            util.unquiet_status();
 
         self.cpp_analyzer = hoomd.DCDDumpWriter(hoomd_script.context.current.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
@@ -536,9 +536,9 @@ class pdb(analyze._analyzer):
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            util._disable_status_lines = True;
+            util.quiet_status();
             self.write(filename);
-            util._disable_status_lines = False;
+            util.unquiet_status();
         else:
             self.enabled = False;
 

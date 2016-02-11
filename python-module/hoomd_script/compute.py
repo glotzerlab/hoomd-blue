@@ -259,7 +259,7 @@ def _get_unique_thermo(group):
             return t;
 
     # if we get here, there were no matches: create a new one
-    util._disable_status_lines = True;
+    util.quiet_status();
     res = thermo(group);
-    util._disable_status_lines = False;
+    util.unquiet_status();
     return res;

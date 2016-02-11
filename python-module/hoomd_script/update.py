@@ -671,9 +671,9 @@ class balance(_updater):
         self.phase = phase
 
         # configure the parameters
-        util._disable_status_lines = True
+        util.quiet_status()
         self.set_params(x,y,z,tolerance, maxiter)
-        util._disable_status_lines = False
+        util.unquiet_status()
 
     ## Change load balancing parameters
     #

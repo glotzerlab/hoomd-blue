@@ -85,7 +85,7 @@ import hoomd_script
 # \MPI_SUPPORTED
 def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     util.print_status_line();
-    util._disable_status_lines = True;
+    util.quiet_status();
     tuner_output = hoomd_script.context.current.neighbor_list.tune(warmup, r_min, r_max, jumps, steps, set_max_check_period)
-    util._disable_status_lines = False;
+    util.unquiet_status();
     return tuner_output

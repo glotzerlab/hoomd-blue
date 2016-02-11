@@ -285,9 +285,9 @@ def run_upto(step, **keywords):
 
     n_steps = step - cur_step;
 
-    _util._disable_status_lines = True;
+    _util.quiet_status();
     run(n_steps, **keywords);
-    _util._disable_status_lines = False;
+    _util.unquiet_status();
 
 ## Get the current simulation time step
 #

@@ -173,14 +173,14 @@ class _nlist:
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
     def update_exclusions_defaults(self):
         if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
-            util._disable_status_lines = True;
+            util.quiet_status();
             # update exclusions using stored values
             self.reset_exclusions(exclusions=self.exclusions)
-            util._disable_status_lines = False;
+            util.unquiet_status();
         elif not self.is_exclusion_overridden:
-            util._disable_status_lines = True;
+            util.quiet_status();
             self.reset_exclusions(exclusions=['body', 'bond','constraint']);
-            util._disable_status_lines = False;
+            util.unquiet_status();
 
 
     ## Change neighbor list parameters
@@ -649,9 +649,9 @@ class cell(_nlist):
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util._disable_status_lines = True
+        util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        util._disable_status_lines = False
+        util.unquiet_status()
 
     ## Change neighbor list parameters
     #
@@ -810,9 +810,9 @@ class stencil(_nlist):
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util._disable_status_lines = True
+        util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
-        util._disable_status_lines = False
+        util.unquiet_status()
 
     ## Change neighbor list parameters
     #
@@ -1041,9 +1041,9 @@ class tree(_nlist):
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util._disable_status_lines = True
+        util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        util._disable_status_lines = False
+        util.unquiet_status()
 tree.cur_id = 0
 
 ## \internal
@@ -1124,9 +1124,9 @@ def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, dete
         hoomd_script.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## Thin wrapper for resetting exclusion for global neighbor list
 #
@@ -1169,9 +1169,9 @@ def reset_exclusions(exclusions = None):
         hoomd_script.context.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.neighbor_list.reset_exclusions(exclusions);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## Thin wrapper for benchmarking the global neighbor list
 #
@@ -1201,9 +1201,9 @@ def benchmark(n):
         hoomd_script.context.msg.error('Cannot benchmark global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.neighbor_list.benchmark(n);
-    util._disable_status_lines = False;
+    util.unquiet_status();
 
 ## Thin wrapper for querying the update period for the global neighbor list
 #
@@ -1222,6 +1222,6 @@ def query_update_period():
         hoomd_script.context.msg.error('Cannot query global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util._disable_status_lines = True;
+    util.quiet_status();
     hoomd_script.context.current.neighbor_list.query_update_period(*args, **kwargs);
-    util._disable_status_lines = False;
+    util.unquiet_status();

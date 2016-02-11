@@ -149,26 +149,26 @@ class pppm(force._force):
         self.params_set = False;
 
         # initialize the short range part of electrostatics
-        util._disable_status_lines = True;
+        util.quiet_status();
         self.ewald = pair.ewald(r_cut = 0.0, nlist = self.nlist);
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
     # overrride disable and enable to work with both of the forces
     def disable(self, log=False):
         util.print_status_line();
 
-        util._disable_status_lines = True;
+        util.quiet_status();
         force._force.disable(self, log);
         self.ewald.disable(log);
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
     def enable(self):
         util.print_status_line();
 
-        util._disable_status_lines = True;
+        util.quiet_status();
         force._force.enable(self);
         self.ewald.enable();
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
     ## Sets the PPPM parameters
     #
@@ -249,11 +249,11 @@ class pppm(force._force):
         for i in range(0,ntypes):
             type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
 
-        util._disable_status_lines = True;
+        util.quiet_status();
         for i in range(0,ntypes):
             for j in range(0,ntypes):
                 self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
-        util._disable_status_lines = False;
+        util.unquiet_status();
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
