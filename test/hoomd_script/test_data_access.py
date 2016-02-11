@@ -86,7 +86,9 @@ class particle_data_access_tests (unittest.TestCase):
             t = p.net_torque;
 
         # test setting properties for just one particle
+        print(self.s.particles[0])
         self.s.particles[0].position = (1,2,3);
+        print(self.s.particles[0])
         t = self.s.particles[0].position;
         self.assertAlmostEqual(1, t[0], 5)
         self.assertAlmostEqual(2, t[1], 5)

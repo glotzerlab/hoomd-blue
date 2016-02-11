@@ -95,7 +95,7 @@ import hoomd_script
 # \code
 # snapshot = system.take_snapshot(all=True)
 # if comm.get_rank() == 0:
-#     print(numpy.mean(snapshot.particles.velocity))
+#     s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
 #     snapshot.particles.position[0] = [1,2,3];
 #
 # system.restore_snapshot(snapshot);
@@ -995,10 +995,10 @@ class system_data(meta._metadata):
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # particle_data, documented by example.
 #
-class pdata_types_proxy:
+class pdata_types_proxy(object):
     ## \internal
     # \brief particle_data iterator
-    class pdata_types_iterator:
+    class pdata_types_iterator(object):
         def __init__(self, data):
             self.data = data;
             self.index = 0;
@@ -1224,10 +1224,7 @@ class particle_data(meta._metadata):
 # - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
 # - \c net_torque   : Net torque on the particle (x, y, z) (in torque units)
 #
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-#
-class particle_data_proxy:
+class particle_data_proxy(object):
     ## \internal
     # \brief create a particle_data_proxy
     #
@@ -1260,130 +1257,151 @@ class particle_data_proxy:
         result += "net_torque  : " + str(self.net_torque) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "position":
-            pos = self.pdata.getPosition(self.tag);
-            return (pos.x, pos.y, pos.z);
-        if name == "velocity":
-            vel = self.pdata.getVelocity(self.tag);
-            return (vel.x, vel.y, vel.z);
-        if name == "acceleration":
-            accel = self.pdata.getAcceleration(self.tag);
-            return (accel.x, accel.y, accel.z);
-        if name == "image":
-            image = self.pdata.getImage(self.tag);
-            return (image.x, image.y, image.z);
-        if name == "charge":
-            return self.pdata.getCharge(self.tag);
-        if name == "mass":
-            return self.pdata.getMass(self.tag);
-        if name == "diameter":
-            return self.pdata.getDiameter(self.tag);
-        if name == "typeid":
-            return self.pdata.getType(self.tag);
-        if name == "body":
-            return self.pdata.getBody(self.tag);
-        if name == "type":
-            typeid = self.pdata.getType(self.tag);
-            return self.pdata.getNameByType(typeid);
-        if name == "orientation":
-            o = self.pdata.getOrientation(self.tag);
-            return (o.x, o.y, o.z, o.w);
-        if name == "angular_momentum":
-            a = self.pdata.getAngularMomentum(self.tag);
-            return (a.x, a.y, a.z, a.w);
-        if name == "moment_inertia":
-            m = self.pdata.getMomentsOfInertia(self.tag)
-            return (m.x, m.y, m.z);
-        if name == "net_force":
-            f = self.pdata.getPNetForce(self.tag);
-            return (f.x, f.y, f.z);
-        if name == "net_energy":
-            f = self.pdata.getPNetForce(self.tag);
-            return f.w;
-        if name == "net_torque":
-            f = self.pdata.getNetTorque(self.tag);
-            return (f.x, f.y, f.z);
+    @property
+    def position(self):
+        pos = self.pdata.getPosition(self.tag);
+        return (pos.x, pos.y, pos.z);
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @position.setter
+    def position(self, value):
+        v = hoomd.Scalar3();
+        v.x = float(value[0]);
+        v.y = float(value[1]);
+        v.z = float(value[2]);
+        self.pdata.setPosition(self.tag, v, True);
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "position":
-            v = hoomd.Scalar3();
-            v.x = float(value[0]);
-            v.y = float(value[1]);
-            v.z = float(value[2]);
-            self.pdata.setPosition(self.tag, v, True);
-            return;
-        if name == "velocity":
-            v = hoomd.Scalar3();
-            v.x = float(value[0]);
-            v.y = float(value[1]);
-            v.z = float(value[2]);
-            self.pdata.setVelocity(self.tag, v);
-            return;
-        if name == "image":
-            v = hoomd.int3();
-            v.x = int(value[0]);
-            v.y = int(value[1]);
-            v.z = int(value[2]);
-            self.pdata.setImage(self.tag, v);
-            return;
-        if name == "charge":
-            self.pdata.setCharge(self.tag, float(value));
-            return;
-        if name == "mass":
-            self.pdata.setMass(self.tag, float(value));
-            return;
-        if name == "diameter":
-            self.pdata.setDiameter(self.tag, value);
-            return;
-        if name == "body":
-            self.pdata.setBody(self.tag, value);
-            return;
-        if name == "type":
-            typeid = self.pdata.getTypeByName(value);
-            self.pdata.setType(self.tag, typeid);
-            return;
-        if name == "typeid":
-            raise AttributeError;
-        if name == "acceleration":
-            raise AttributeError;
-        if name == "orientation":
-            o = hoomd.Scalar4();
-            o.x = float(value[0]);
-            o.y = float(value[1]);
-            o.z = float(value[2]);
-            o.w = float(value[3]);
-            self.pdata.setOrientation(self.tag, o);
-            return;
-        if name == "angular_momentum":
-            a = hoomd.Scalar4();
-            a.x = float(value[0]);
-            a.y = float(value[1]);
-            a.z = float(value[2]);
-            a.w = float(value[3]);
-            self.pdata.setAngularMomentum(self.tag, a);
-            return;
-        if name == "moment_inertia":
-            m = hoomd.Scalar3();
-            m.x = float(value[0]);
-            m.y = float(value[1]);
-            m.z = float(value[2]);
-            self.pdata.setMomentsOfInertia(self.tag, m);
-            return;
-        if name == "net_force":
-            raise AttributeError;
-        if name == "net_energy":
-            raise AttributeError;
+    @property
+    def velocity(self):
+        vel = self.pdata.getVelocity(self.tag);
+        return (vel.x, vel.y, vel.z);
 
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+    @velocity.setter
+    def velocity(self, value):
+        v = hoomd.Scalar3();
+        v.x = float(value[0]);
+        v.y = float(value[1]);
+        v.z = float(value[2]);
+        self.pdata.setVelocity(self.tag, v);
+
+    @property
+    def acceleration(self):
+        accel = self.pdata.getAcceleration(self.tag);
+        return (accel.x, accel.y, accel.z);
+
+    @property
+    def image(self):
+        image = self.pdata.getImage(self.tag);
+        return (image.x, image.y, image.z);
+
+    @image.setter
+    def image(self, value):
+        v = hoomd.int3();
+        v.x = int(value[0]);
+        v.y = int(value[1]);
+        v.z = int(value[2]);
+        self.pdata.setImage(self.tag, v);
+
+    @property
+    def charge(self):
+        return self.pdata.getCharge(self.tag);
+
+    @charge.setter
+    def charge(self, value):
+        self.pdata.setCharge(self.tag, float(value));
+
+    @property
+    def mass(self):
+        return self.pdata.getMass(self.tag);
+
+    @mass.setter
+    def mass(self, value):
+        self.pdata.setMass(self.tag, float(value));
+
+    @property
+    def diameter(self):
+        return self.pdata.getDiameter(self.tag);
+
+    @diameter.setter
+    def diameter(self, value):
+        self.pdata.setDiameter(self.tag, value);
+
+    @property
+    def typeid(self):
+        return self.pdata.getType(self.tag);
+
+    @property
+    def body(self):
+        return self.pdata.getBody(self.tag);
+
+    @body.setter
+    def body(self, value):
+        self.pdata.setBody(self.tag, value);
+
+    @property
+    def type(self):
+        typeid = self.pdata.getType(self.tag);
+        return self.pdata.getNameByType(typeid);
+
+    @type.setter
+    def type(self, value):
+        typeid = self.pdata.getTypeByName(value);
+        self.pdata.setType(self.tag, typeid);
+
+    @property
+    def orientation(self):
+        o = self.pdata.getOrientation(self.tag);
+        return (o.x, o.y, o.z, o.w);
+
+    @orientation.setter
+    def orientation(self, value):
+        o = hoomd.Scalar4();
+        o.x = float(value[0]);
+        o.y = float(value[1]);
+        o.z = float(value[2]);
+        o.w = float(value[3]);
+        self.pdata.setOrientation(self.tag, o);
+
+    @property
+    def angular_momentum(self):
+        a = self.pdata.getAngularMomentum(self.tag);
+        return (a.x, a.y, a.z, a.w);
+
+    @angular_momentum.setter
+    def angular_momentum(self, value):
+        a = hoomd.Scalar4();
+        a.x = float(value[0]);
+        a.y = float(value[1]);
+        a.z = float(value[2]);
+        a.w = float(value[3]);
+        self.pdata.setAngularMomentum(self.tag, a);
+
+    @property
+    def moment_inertia(self):
+        m = self.pdata.getMomentsOfInertia(self.tag)
+        return (m.x, m.y, m.z);
+
+    @moment_inertia.setter
+    def moment_inertia(self, value):
+        m = hoomd.Scalar3();
+        m.x = float(value[0]);
+        m.y = float(value[1]);
+        m.z = float(value[2]);
+        self.pdata.setMomentsOfInertia(self.tag, m);
+
+    @property
+    def net_force(self):
+        f = self.pdata.getPNetForce(self.tag);
+        return (f.x, f.y, f.z);
+
+    @property
+    def net_energy(self):
+        f = self.pdata.getPNetForce(self.tag);
+        return f.w;
+
+    @property
+    def net_torque(self):
+        f = self.pdata.getNetTorque(self.tag);
+        return (f.x, f.y, f.z);
 
 ## \internal
 # Access force data
@@ -1392,10 +1410,10 @@ class particle_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data, documented by example.
 #
-class force_data:
+class force_data(object):
     ## \internal
     # \brief force_data iterator
-    class force_data_iterator:
+    class force_data_iterator(object):
         def __init__(self, data):
             self.data = data;
             self.index = 0;
@@ -1468,7 +1486,7 @@ class force_data:
 # - \c energy         : A float containing the contribution of this particle to the total potential energy
 # - \c torque         : A 3-tuple of floats (x, y, z) listing the current torque on the particle
 #
-class force_data_proxy:
+class force_data_proxy(object):
     ## \internal
     # \brief create a force_data_proxy
     #
@@ -1489,28 +1507,30 @@ class force_data_proxy:
         result += "torque      : " + str(self.torque) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "force":
-            f = self.fdata.cpp_force.getForce(self.tag);
-            return (f.x, f.y, f.z);
-        if name == "virial":
-            return (self.fdata.cpp_force.getVirial(self.tag,0),
-                    self.fdata.cpp_force.getVirial(self.tag,1),
-                    self.fdata.cpp_force.getVirial(self.tag,2),
-                    self.fdata.cpp_force.getVirial(self.tag,3),
-                    self.fdata.cpp_force.getVirial(self.tag,4),
-                    self.fdata.cpp_force.getVirial(self.tag,5));
-        if name == "energy":
-            energy = self.fdata.cpp_force.getEnergy(self.tag);
-            return energy;
-        if name == "torque":
-            f = self.fdata.cpp_force.getTorque(self.tag);
-            return (f.x, f.y, f.z)
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def force(self):
+        f = self.fdata.cpp_force.getForce(self.tag);
+        return (f.x, f.y, f.z);
+
+    @property
+    def virial(self):
+        return (self.fdata.cpp_force.getVirial(self.tag,0),
+                self.fdata.cpp_force.getVirial(self.tag,1),
+                self.fdata.cpp_force.getVirial(self.tag,2),
+                self.fdata.cpp_force.getVirial(self.tag,3),
+                self.fdata.cpp_force.getVirial(self.tag,4),
+                self.fdata.cpp_force.getVirial(self.tag,5));
+
+    @property
+    def energy(self):
+        energy = self.fdata.cpp_force.getEnergy(self.tag);
+        return energy;
+
+    @property
+    def torque(self):
+        f = self.fdata.cpp_force.getTorque(self.tag);
+        return (f.x, f.y, f.z)
 
 ## \internal
 # \brief Access bond data
@@ -1643,7 +1663,7 @@ class bond_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class bond_data_proxy:
+class bond_data_proxy(object):
     ## \internal
     # \brief create a bond_data_proxy
     #
@@ -1663,40 +1683,26 @@ class bond_data_proxy:
         result += "type         : " + str(self.type) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "a":
-            bond = self.bdata.getGroupByTag(self.tag);
-            return bond.a;
-        if name == "b":
-            bond = self.bdata.getGroupByTag(self.tag);
-            return bond.b;
-        if name == "typeid":
-            bond = self.bdata.getGroupByTag(self.tag);
-            return bond.type;
-        if name == "type":
-            bond = self.bdata.getGroupByTag(self.tag);
-            typeid = bond.type;
-            return self.bdata.getNameByType(typeid);
+    @property
+    def a(self):
+        bond = self.bdata.getGroupByTag(self.tag);
+        return bond.a;
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def b(self):
+        bond = self.bdata.getGroupByTag(self.tag);
+        return bond.b;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "a":
-            raise AttributeError;
-        if name == "b":
-            raise AttributeError;
-        if name == "type":
-            raise AttributeError;
-        if name == "typeid":
-            raise AttributeError;
+    @property
+    def typeid(self):
+        bond = self.bdata.getGroupByTag(self.tag);
+        return bond.type;
 
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+    @property
+    def type(self):
+        bond = self.bdata.getGroupByTag(self.tag);
+        typeid = bond.type;
+        return self.bdata.getNameByType(typeid);
 
 ## \internal
 # \brief Access constraint data
@@ -1827,7 +1833,7 @@ class constraint_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class constraint_data_proxy:
+class constraint_data_proxy(object):
     ## \internal
     # \brief create a constraint_data_proxy
     #
@@ -1846,35 +1852,20 @@ class constraint_data_proxy:
         result += "d            : " + str(self.d) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "a":
-            constraint = self.cdata.getGroupByTag(self.tag);
-            return constraint.a;
-        if name == "b":
-            constraint = self.cdata.getGroupByTag(self.tag);
-            return constraint.b;
-        if name == "d":
-            constraint = self.cdata.getGroupByTag(self.tag);
-            return constraint.d;
+    @property
+    def a(self):
+        constraint = self.cdata.getGroupByTag(self.tag);
+        return constraint.a;
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def b(self):
+        constraint = self.cdata.getGroupByTag(self.tag);
+        return constraint.b;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "a":
-            raise AttributeError;
-        if name == "b":
-            raise AttributeError;
-        if name == "d":
-            raise AttributeError;
-
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
-
+    @property
+    def d(self):
+        constraint = self.cdata.getGroupByTag(self.tag);
+        return constraint.d;
 
 ## \internal
 # \brief Access angle data
@@ -2011,7 +2002,7 @@ class angle_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class angle_data_proxy:
+class angle_data_proxy(object):
     ## \internal
     # \brief create a angle_data_proxy
     #
@@ -2033,45 +2024,31 @@ class angle_data_proxy:
         result += "type         : " + str(self.type) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "a":
-            angle = self.adata.getGroupByTag(self.tag);
-            return angle.a;
-        if name == "b":
-            angle = self.adata.getGroupByTag(self.tag);
-            return angle.b;
-        if name == "c":
-            angle = self.adata.getGroupByTag(self.tag);
-            return angle.c;
-        if name == "typeid":
-            angle = self.adata.getGroupByTag(self.tag);
-            return angle.type;
-        if name == "type":
-            angle = self.adata.getGroupByTag(self.tag);
-            typeid = angle.type;
-            return self.adata.getNameByType(typeid);
+    @property
+    def a(self):
+        angle = self.adata.getGroupByTag(self.tag);
+        return angle.a;
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def b(self):
+        angle = self.adata.getGroupByTag(self.tag);
+        return angle.b;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "a":
-            raise AttributeError;
-        if name == "b":
-            raise AttributeError;
-        if name == "c":
-            raise AttributeError;
-        if name == "type":
-            raise AttributeError;
-        if name == "typeid":
-            raise AttributeError;
+    @property
+    def c(self):
+        angle = self.adata.getGroupByTag(self.tag);
+        return angle.c;
 
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+    @property
+    def typeid(self):
+        angle = self.adata.getGroupByTag(self.tag);
+        return angle.type;
+
+    @property
+    def type(self):
+        angle = self.adata.getGroupByTag(self.tag);
+        typeid = angle.type;
+        return self.adata.getNameByType(typeid);
 
 ## \internal
 # \brief Access dihedral data
@@ -2210,7 +2187,7 @@ class dihedral_data(meta._metadata):
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
 # \MPI_SUPPORTED
-class dihedral_data_proxy:
+class dihedral_data_proxy(object):
     ## \internal
     # \brief create a dihedral_data_proxy
     #
@@ -2233,50 +2210,35 @@ class dihedral_data_proxy:
         result += "type         : " + str(self.type) + "\n";
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "a":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            return dihedral.a;
-        if name == "b":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            return dihedral.b;
-        if name == "c":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            return dihedral.c;
-        if name == "d":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            return dihedral.d;
-        if name == "typeid":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            return dihedral.type;
-        if name == "type":
-            dihedral = self.ddata.getGroupByTag(self.tag);
-            typeid = dihedral.type;
-            return self.ddata.getNameByType(typeid);
+    @property
+    def a(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        return dihedral.a;
+    @property
+    def b(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        return dihedral.b;
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def c(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        return dihedral.c;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "a":
-            raise AttributeError;
-        if name == "b":
-            raise AttributeError;
-        if name == "c":
-            raise AttributeError;
-        if name == "d":
-            raise AttributeError;
-        if name == "type":
-            raise AttributeError;
-        if name == "typeid":
-            raise AttributeError;
+    @property
+    def d(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        return dihedral.d;
 
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+    @property
+    def typeid(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        return dihedral.type;
+
+    @property
+    def type(self):
+        dihedral = self.ddata.getGroupByTag(self.tag);
+        typeid = dihedral.type;
+        return self.ddata.getNameByType(typeid);
 
 ## \internal
 # \brief Access body data
@@ -2382,7 +2344,7 @@ class body_data(meta._metadata):
 # - \c moment_inertia : the principle components of the moment of inertia
 # - \c particle_disp : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
 # \MPI_NOT_SUPPORTED
-class body_data_proxy:
+class body_data_proxy(object):
     ## \internal
     # \brief create a body_data_proxy
     #
@@ -2417,108 +2379,119 @@ class body_data_proxy:
 
         return result;
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "COM":
-            COM = self.bdata.getBodyCOM(self.tag);
-            return (COM.x, COM.y, COM.z);
-        if name == "velocity":
-            velocity = self.bdata.getBodyVel(self.tag);
-            return (velocity.x, velocity.y, velocity.z);
-        if name == "orientation":
-            orientation = self.bdata.getBodyOrientation(self.tag);
-            return (orientation.x, orientation.y, orientation.z, orientation.w);
-        if name == "angular_momentum":
-            angular_momentum = self.bdata.getBodyAngMom(self.tag);
-            return (angular_momentum.x, angular_momentum.y, angular_momentum.z);
-        if name == "num_particles":
-            num_particles = self.bdata.getBodyNSize(self.tag);
-            return num_particles;
-        if name == "mass":
-            mass = self.bdata.getMass(self.tag);
-            return mass;
-        if name == "moment_inertia":
-            moment_inertia = self.bdata.getBodyMomInertia(self.tag);
-            return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
-        if name == "particle_tags":
-            particle_tags = [];
-            for i in range(0, self.num_particles):
-               particle_tags.append(self.bdata.getParticleTag(self.tag, i));
-            return particle_tags;
-        if name == "particle_disp":
-            particle_disp = [];
-            for i in range(0, self.num_particles):
-               disp = self.bdata.getParticleDisp(self.tag, i);
-               particle_disp.append([disp.x, disp.y, disp.z]);
-            return particle_disp;
-        if name == "net_force":
-            f = self.bdata.getBodyNetForce(self.tag);
-            return (f.x, f.y, f.z);
-        if name == "net_torque":
-            t = self.bdata.getBodyNetTorque(self.tag);
-            return (t.x, t.y, t.z);
+    @property
+    def COM(self):
+        COM = self.bdata.getBodyCOM(self.tag);
+        return (COM.x, COM.y, COM.z);
 
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
+    @property
+    def velocity(self):
+        velocity = self.bdata.getBodyVel(self.tag);
+        return (velocity.x, velocity.y, velocity.z);
 
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "COM":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setBodyCOM(self.tag, p);
-            return;
-        if name == "velocity":
-            v = hoomd.Scalar3();
-            v.x = float(value[0]);
-            v.y = float(value[1]);
-            v.z = float(value[2]);
-            self.bdata.setBodyVel(self.tag, v);
-            return;
-        if name == "mass":
-            self.bdata.setMass(self.tag, value);
-            return;
-        if name == "orientation":
-            q = hoomd.Scalar4();
-            q.x = float(value[0]);
-            q.y = float(value[1]);
-            q.z = float(value[2]);
-            q.w = float(value[3]);
-            self.bdata.setBodyOrientation(self.tag, q);
-            return;
-        if name == "angular_momentum":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setAngMom(self.tag, p);
-            return;
-        if name == "moment_inertia":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setBodyMomInertia(self.tag, p);
-            return;
-        if name == "particle_disp":
-            p = hoomd.Scalar3();
-            for i in range(0, self.num_particles):
-                p.x = float(value[i][0]);
-                p.y = float(value[i][1]);
-                p.z = float(value[i][2]);
-                self.bdata.setParticleDisp(self.tag, i, p);
-            return;
-        if name == "net_force":
-            raise AttributeError;
-        if name == "net_torque":
-            raise AttributeError;
+    @property
+    def orientation(self):
+        orientation = self.bdata.getBodyOrientation(self.tag);
+        return (orientation.x, orientation.y, orientation.z, orientation.w);
 
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
+    @property
+    def angular_momentum(self):
+        angular_momentum = self.bdata.getBodyAngMom(self.tag);
+        return (angular_momentum.x, angular_momentum.y, angular_momentum.z);
+
+    @property
+    def num_particles(self):
+        num_particles = self.bdata.getBodyNSize(self.tag);
+        return num_particles;
+
+    @property
+    def mass(self):
+        mass = self.bdata.getMass(self.tag);
+        return mass;
+
+    @property
+    def moment_inertia(self):
+        moment_inertia = self.bdata.getBodyMomInertia(self.tag);
+        return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
+
+    @property
+    def particle_tags(self):
+        particle_tags = [];
+        for i in range(0, self.num_particles):
+           particle_tags.append(self.bdata.getParticleTag(self.tag, i));
+        return particle_tags;
+
+    @property
+    def particle_disp(self):
+        particle_disp = [];
+        for i in range(0, self.num_particles):
+           disp = self.bdata.getParticleDisp(self.tag, i);
+           particle_disp.append([disp.x, disp.y, disp.z]);
+        return particle_disp;
+
+    @property
+    def net_force(self):
+        f = self.bdata.getBodyNetForce(self.tag);
+        return (f.x, f.y, f.z);
+
+    @property
+    def net_torque(self):
+        t = self.bdata.getBodyNetTorque(self.tag);
+        return (t.x, t.y, t.z);
+
+    @COM.setter
+    def COM(self, value):
+        p = hoomd.Scalar3();
+        p.x = float(value[0]);
+        p.y = float(value[1]);
+        p.z = float(value[2]);
+        self.bdata.setBodyCOM(self.tag, p);
+
+    @velocity.setter
+    def velocity(self, value):
+        v = hoomd.Scalar3();
+        v.x = float(value[0]);
+        v.y = float(value[1]);
+        v.z = float(value[2]);
+        self.bdata.setBodyVel(self.tag, v);
+
+    @mass.setter
+    def mass(self, value):
+        self.bdata.setMass(self.tag, value);
+
+    @orientation.setter
+    def orientation(self, value):
+        q = hoomd.Scalar4();
+        q.x = float(value[0]);
+        q.y = float(value[1]);
+        q.z = float(value[2]);
+        q.w = float(value[3]);
+        self.bdata.setBodyOrientation(self.tag, q);
+
+    @angular_momentum.setter
+    def angular_momentum(self, value):
+        p = hoomd.Scalar3();
+        p.x = float(value[0]);
+        p.y = float(value[1]);
+        p.z = float(value[2]);
+        self.bdata.setAngMom(self.tag, p);
+
+    @moment_inertia.setter
+    def moment_inertia(self, value):
+        p = hoomd.Scalar3();
+        p.x = float(value[0]);
+        p.y = float(value[1]);
+        p.z = float(value[2]);
+        self.bdata.setBodyMomInertia(self.tag, p);
+
+    @particle_disp.setter
+    def particle_disp(self, value):
+        p = hoomd.Scalar3();
+        for i in range(0, self.num_particles):
+            p.x = float(value[i][0]);
+            p.y = float(value[i][1]);
+            p.z = float(value[i][2]);
+            self.bdata.setParticleDisp(self.tag, i, p);
 
 ## \internal
 # \brief Get data.boxdim from a SnapshotSystemData
