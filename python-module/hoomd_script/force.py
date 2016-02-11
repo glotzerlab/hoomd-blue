@@ -338,12 +338,13 @@ class constant(_force):
 # The command force.active specifies that an %active %force should be added to all particles.
 # Obeys \f$\delta {\bf r}_i = \delta t v_0 \hat{p}_i\f$, where \f$ v_0 \f$ is the active velocity. In 2D
 # \f$\hat{p}_i = (\cos \theta_i, \sin \theta_i)\f$ is the active force vector for particle \f$i\f$; and the
-# diffusion of the active force vector follows \f$\delta \theta = \delta t \xi \Gamma\f$,
-# where \f$\xi\f$ is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
+# diffusion of the active force vector follows \f$\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma\f$,
+# where \f$D_r\f$ is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
 # whose components are uncorrelated in time, space, and between particles.
 # In 3D, \f$\hat{p}_i\f$ is a unit vector in 3D space, and diffusion follows
-# \f$\delta \hat{p}_i = \delta t \xi \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)\f$, where
-# \f$\hat{p}_r\f$ is an uncorrelated random unit vector.
+# \f$\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)\f$, where
+# \f$\hat{p}_r\f$ is an uncorrelated random unit vector. The persistence length of an active particle's path is
+# \f$ v_0 / D_r\f$.
 #
 # NO MPI
 class active(_force):
@@ -353,7 +354,7 @@ class active(_force):
     # \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     # \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     # relevant for non-point-like anisotropic particles.
-    # \param rotation_diff rotational diffusion constant, \f$\xi\f$, for all particles in the group.
+    # \param rotation_diff rotational diffusion constant, \f$D_r\f$, for all particles in the group.
     # \param constraint specifies a constraint surface, to which particles are confined,
     # such as update.constraint_ellipsoid.
     # \param group Group for which the force will be set

@@ -191,7 +191,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
     {
         Saru saru(idx, timestep, m_seed);
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+        delta_theta = m_rotationConst * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(h_actVec.data[i].y, h_actVec.data[i].x);
         theta += delta_theta;
@@ -227,7 +227,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             current_vec.y = h_actVec.data[i].y;
             current_vec.z = h_actVec.data[i].z;
             
-            Scalar delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar delta_theta = m_rotationConst * gaussian_rng(saru, 1.0);
             h_actVec.data[i].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             h_actVec.data[i].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
             h_actVec.data[i].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
@@ -249,7 +249,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep, unsigned int
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = m_deltaT * m_rotationDiff * gaussian_rng(saru, 1.0);
+            delta_theta = m_rotationConst * gaussian_rng(saru, 1.0);
 
             h_actVec.data[i].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             h_actVec.data[i].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
@@ -300,7 +300,9 @@ void ActiveForceCompute::setConstraint(unsigned int i)
 void ActiveForceCompute::computeForces(unsigned int timestep)
 {
     if (last_computed != timestep)    
-    {  
+    {
+        m_rotationConst = sqrt(2.0 * m_rotationDiff * m_deltaT);
+        
         last_computed = timestep;
         if (m_particles_sorted==true)
         {

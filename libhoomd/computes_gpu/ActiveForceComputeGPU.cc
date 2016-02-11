@@ -215,7 +215,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                 m_ry,
                                                 m_rz,
                                                 is2D,
-                                                m_deltaT * m_rotationDiff,
+                                                m_rotationConst,
                                                 timestep,
                                                 m_seed,
                                                 m_block_size);
@@ -261,7 +261,9 @@ void ActiveForceComputeGPU::computeForces(unsigned int timestep)
     assert(m_pdata);
 
     if (last_computed != timestep)    
-    {  
+    {
+        m_rotationConst = sqrt(2.0 * m_rotationDiff * m_deltaT);
+        
         last_computed = timestep;
         // run the kernel in parallel on all GPUs
         if (m_rx != 0)

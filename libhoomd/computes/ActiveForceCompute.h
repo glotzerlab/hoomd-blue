@@ -106,6 +106,7 @@ class ActiveForceCompute : public ForceCompute
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
         Scalar m_rotationDiff;
+        Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid
         Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
