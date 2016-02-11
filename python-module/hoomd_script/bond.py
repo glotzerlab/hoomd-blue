@@ -316,7 +316,6 @@ class _bond(force._force):
 #
 # Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
 # \link hoomd_script.bond.coeff.set bond_coeff.set()\endlink
-# \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
 # \MPI_SUPPORTED
 class harmonic(_bond):
     ## Specify the %harmonic %bond %force
@@ -350,13 +349,6 @@ class harmonic(_bond):
         # setup the coefficient options
         self.required_coeffs = ['k','r0'];
 
-    ## Set parameters for %harmonic %bond %force  (\b deprecated)
-    # \param type bond type
-    # \param coeffs named bond coefficients
-    def set_coeff(self, type, **coeffs):
-        hoomd_script.context.msg.warning("Syntax bond.harmonic.set_coeff deprecated.\n");
-        self.bond_coeff.set(type,**coeffs)
-
     def process_coeff(self, coeff):
         k = coeff['k'];
         r0 = coeff['r0'];
@@ -386,7 +378,6 @@ class harmonic(_bond):
 # Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for
 # each type of %bond in the simulation using
 # \link bond.coeff.set bond_coeff.set()\endlink.
-# \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
 # \MPI_SUPPORTED
 class fene(_bond):
     ## Specify the %fene %bond %force
@@ -420,13 +411,6 @@ class fene(_bond):
 
         # setup the coefficient options
         self.required_coeffs = ['k','r0','epsilon','sigma'];
-
-    ## Set parameters for %fene %bond %force (\b deprecated)
-    # \param type bond type
-    # \param coeffs named bond coefficients
-    def set_coeff(self, type, **coeffs):
-        hoomd_script.context.msg.warning("Syntax bond.fene.set_coeff deprecated.\n");
-        self.bond_coeff.set(type, **coeffs)
 
     def process_coeff(self, coeff):
         k = coeff['k'];

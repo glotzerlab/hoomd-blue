@@ -46,7 +46,7 @@ class improper_harmonic_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         harmonic = improper.harmonic();
-        harmonic.set_coeff('improperA', k=30.0, chi=1.57)
+        harmonic.improper_coeff.set('improperA', k=30.0, chi=1.57)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);

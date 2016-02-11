@@ -253,7 +253,13 @@ class coeff:
 # - \f$ n \f$ - angle scaling factor (unitless)
 #
 # Coefficients \f$ k \f$, \f$ d \f$, \f$ n \f$ and  must be set for each type of %dihedral in the simulation using
-# set_coeff().
+# dihedral_coeff.set().
+#
+# \b Examples:
+# \code
+# harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
+# harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4)
+# \endcode
 #
 # \note Specifying the dihedral.harmonic command when no dihedrals are defined in the simulation results in an error.
 # \MPI_SUPPORTED
@@ -274,6 +280,8 @@ class harmonic(force._force):
         # initialize the base class
         force._force.__init__(self);
 
+        self.dihedral_coeff = coeff();
+
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicDihedralForceCompute(hoomd_script.context.current.system_definition);
@@ -282,52 +290,41 @@ class harmonic(force._force):
 
         hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # variable for tracking which dihedral type coefficients have been set
-        self.dihedral_types_set = [];
+        self.required_coeffs = ['k', 'd', 'n'];
 
-    ## Sets the %harmonic %dihedral coefficients for a particular %dihedral type
-    #
-    # \param dihedral_type Dihedral type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force (in energy units)
-    # \param d Coefficient \f$ d \f$ in the %force, and must be either -1 or 1
-    # \param n Coefficient \f$ n \f$ in the %force
-        #
-    # Using set_coeff() requires that the specified %dihedral %force has been saved in a variable. i.e.
-    # \code
-    # harmonic = dihedral.harmonic()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # harmonic.set_coeff('phi-ang', k=30.0, d=-1, n=3)
-    # harmonic.set_coeff('psi-ang', k=100.0, d=1, n=4)
-    # \endcode
-    #
-    # The coefficients for every %dihedral type in the simulation must be set
-    # before the run() can be started.
-    def set_coeff(self, dihedral_type, k, d, n):
-        util.print_status_line();
-
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(hoomd_script.context.current.system_definition.getDihedralData().getTypeByName(dihedral_type), k, d, n);
-
-        # track which particle types we have set
-        if not dihedral_type in self.dihedral_types_set:
-            self.dihedral_types_set.append(dihedral_type);
-
+    ## \internal
+    # \brief Update coefficients in C++
     def update_coeffs(self):
-        # get a list of all dihedral types in the simulation
+        coeff_list = self.required_coeffs;
+        # check that the force coefficients are valid
+        if not self.dihedral_coeff.verify(coeff_list):
+           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           raise RuntimeError("Error updating force coefficients");
+
+        # set all the params
         ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
 
-        # check to see if all particle types have been set
-        for cur_type in type_list:
-            if not cur_type in self.dihedral_types_set:
-                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in dihedral.harmonic\n");
-                raise RuntimeError("Error updating coefficients");
+        for i in range(0,ntypes):
+            # build a dict of the coeffs to pass to proces_coeff
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.dihedral_coeff.get(type_list[i], name);
 
+            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['d'], coeff_dict['n']);
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data
 
 ## Tabulated %dihedral %force
 #
@@ -550,7 +547,12 @@ class table(force._force):
 # in the Fourier series (in energy units).
 #
 # \f$ k_1 \f$, \f$ k_2 \f$, \f$ k_3 \f$, and \f$ k_4 \f$ must be set for each type of %dihedral in the simulation using
-# set_coeff().
+# dihedral_coeff.set().
+#
+# \b Example:
+# \code
+# opls_di.dihedral_coeff.set('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
+# \endcode
 #
 # \note Specifying the dihedral.opls command when no dihedrals are defined in the simulation results in an error.
 # \MPI_SUPPORTED
@@ -571,6 +573,8 @@ class opls(force._force):
         # initialize the base class
         force._force.__init__(self);
 
+        self.dihedral_coeff = coeff();
+
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.OPLSDihedralForceCompute(hoomd_script.context.current.system_definition);
@@ -579,51 +583,38 @@ class opls(force._force):
 
         hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # variable for tracking which dihedral type coefficients have been set
-        self.opls_types_set = [];
+        self.required_coeffs = ['k1', 'k2', 'k3', 'k4'];
 
-    ## Sets the OPLS coefficients for a particular %dihedral type
-    #
-    # \param dihedral_type Dihedral type to set coefficients for
-    # \param k1 Force coefficient \f$ k_1 \f$ (in energy units)
-    # \param k2 Force coefficient \f$ k_2 \f$ (in energy units)
-    # \param k3 Force coefficient \f$ k_3 \f$ (in energy units)
-    # \param k4 Force coefficient \f$ k_4 \f$ (in energy units)
-    #
-    # Using set_coeff() requires that the specified %dihedral %force has been saved in a variable. i.e.
-    # \code
-    # opls_di = dihedral.opls()
-    # \endcode
-    #
-    # \b Example:
-    # \code
-    # opls_di.set_coeff('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
-    # \endcode
-    #
-    # The coefficients for every %dihedral type in the simulation must be set
-    # before the run() can be started.
-    def set_coeff(self, dihedral_type, k1, k2, k3, k4):
-        util.print_status_line();
-
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(hoomd_script.context.current.system_definition.getDihedralData().getTypeByName(dihedral_type),
-                                    k1, k2, k3, k4);
-
-        # track which particle types we have set
-        if not dihedral_type in self.opls_types_set:
-            self.opls_types_set.append(dihedral_type);
-
+    ## \internal
+    # \brief Update coefficients in C++
     def update_coeffs(self):
-        # get a list of all dihedral types in the simulation
-        # check to see if all particle types have been set
+        coeff_list = self.required_coeffs;
+        # check that the force coefficients are valid
+        if not self.dihedral_coeff.verify(coeff_list):
+           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           raise RuntimeError("Error updating force coefficients");
+
+        # set all the params
         ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
-        for i in range(0, ntypes):
-            cur_type = hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i);
-            if not cur_type in self.opls_types_set:
-                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in dihedral.opls\n");
-                raise RuntimeError("Error updating coefficients");
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
+
+        for i in range(0,ntypes):
+            # build a dict of the coeffs to pass to proces_coeff
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.dihedral_coeff.get(type_list[i], name);
+
+            self.cpp_force.setParams(i, coeff_dict['k1'], coeff_dict['k2'], coeff_dict['k3'], coeff_dict['k4']);
 
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        raise NotImplementedError()
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data

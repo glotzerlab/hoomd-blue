@@ -254,7 +254,13 @@ class coeff:
 # - \f$ k \f$ - %force constant (in units of energy/radians^2)
 #
 # Coefficients \f$ k \f$ and \f$ \theta_0 \f$ must be set for each type of %angle in the simulation using
-# set_coeff().
+# angle_coeff.set().
+#
+# \b Examples:
+# \code
+# harmonic.angle_coeff.set('polymer', k=3.0, t0=0.7851)
+# harmonic.angle_coeff.set('backbone', k=100.0, t0=1.0)
+# \endcode
 #
 # \note Specifying the angle.harmonic command when no angles are defined in the simulation results in an error.
 # \MPI_SUPPORTED
@@ -275,6 +281,9 @@ class harmonic(force._force):
         # initialize the base class
         force._force.__init__(self);
 
+        # setup the coefficient vector
+        self.angle_coeff = coeff();
+
         # create the c++ mirror class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicAngleForceCompute(hoomd_script.context.current.system_definition);
@@ -283,50 +292,41 @@ class harmonic(force._force):
 
         hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # variable for tracking which angle type coefficients have been set
-        self.angle_types_set = [];
+        self.required_coeffs = ['k', 't0'];
 
-    ## Sets the %harmonic %angle coefficients for a particular %angle type
-    #
-    # \param angle_type Angle type to set coefficients for
-    # \param k Coefficient \f$ k \f$ (in units of energy/radians^2)
-    # \param t0 Coefficient \f$ \theta_0 \f$ (in radians)
-    #
-    # Using set_coeff() requires that the specified %angle %force has been saved in a variable. i.e.
-    # \code
-    # harmonic = angle.harmonic()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # harmonic.set_coeff('polymer', k=3.0, t0=0.7851)
-    # harmonic.set_coeff('backbone', k=100.0, t0=1.0)
-    # \endcode
-    #
-    # The coefficients for every %angle type in the simulation must be set
-    # before the run() can be started.
-    def set_coeff(self, angle_type, k, t0):
-        util.print_status_line();
-
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(hoomd_script.context.current.system_definition.getAngleData().getTypeByName(angle_type), k, t0);
-
-        # track which particle types we have set
-        if not angle_type in self.angle_types_set:
-            self.angle_types_set.append(angle_type);
-
+    ## \internal
+    # \brief Update coefficients in C++
     def update_coeffs(self):
-        # get a list of all angle types in the simulation
+        coeff_list = self.required_coeffs;
+        # check that the force coefficients are valid
+        if not self.angle_coeff.verify(coeff_list):
+           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           raise RuntimeError("Error updating force coefficients");
+
+        # set all the params
         ntypes = hoomd_script.context.current.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(hoomd_script.context.current.system_definition.getAngleData().getNameByType(i));
 
-        # check to see if all particle types have been set
-        for cur_type in type_list:
-            if not cur_type in self.angle_types_set:
-                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in angle.harmonic\n");
-                raise RuntimeError("Error updating coefficients");
+        for i in range(0,ntypes):
+            # build a dict of the coeffs to pass to proces_coeff
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.angle_coeff.get(type_list[i], name);
+
+            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['t0']);
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['angle_coeff'] = self.angle_coeff
+        return data
 
 ## CGCMM %angle force
 #
