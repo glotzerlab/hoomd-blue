@@ -150,6 +150,11 @@ class Analyzer : boost::noncopyable
             return PDataFlags(0);
             }
 
+        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
+            {
+            return m_exec_conf;
+            }
+
 #ifdef ENABLE_MPI
         //! Set the communicator to use
         /*! \param comm The Communicator

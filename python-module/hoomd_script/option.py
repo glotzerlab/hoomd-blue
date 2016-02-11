@@ -135,8 +135,6 @@ def _parse_command_line(arg_string=None):
 
     (cmd_options, args) = parser.parse_args(args=input_args);
 
-    print(cmd_options.mode)
-
     # chedk for valid mode setting
     if cmd_options.mode is not None:
         if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu" or cmd_options.mode == "auto"):

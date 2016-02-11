@@ -63,8 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 using namespace std;
 
-#include <boost/python.hpp>
-
 using namespace boost::python;
 
 /*! \post Warning and error streams are set to cerr
@@ -106,7 +104,8 @@ Messenger::Messenger(const Messenger& msg)
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
     m_nullstream = msg.m_nullstream;
-    m_file = msg.m_file;
+    m_file_out = msg.m_file_out;
+    m_file_err = msg.m_file_err;
     m_err_prefix = msg.m_err_prefix;
     m_warning_prefix = msg.m_warning_prefix;
     m_notice_prefix = msg.m_notice_prefix;
@@ -135,7 +134,8 @@ Messenger& Messenger::operator=(Messenger& msg)
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
     m_nullstream = msg.m_nullstream;
-    m_file = msg.m_file;
+    m_file_out = msg.m_file_out;
+    m_file_err = msg.m_file_err;
     m_err_prefix = msg.m_err_prefix;
     m_warning_prefix = msg.m_warning_prefix;
     m_notice_prefix = msg.m_notice_prefix;
@@ -321,10 +321,30 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg) const
 */
 void Messenger::openFile(const std::string& fname)
     {
-    m_file = boost::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
-    m_err_stream = m_file.get();
-    m_warning_stream = m_file.get();
-    m_notice_stream = m_file.get();
+    m_file_out = boost::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
+    m_file_err = boost::shared_ptr<std::ostream>();
+    m_err_stream = m_file_out.get();
+    m_warning_stream = m_file_out.get();
+    m_notice_stream = m_file_out.get();
+    }
+
+/*! Sets all messenger output streams to ones that use PySys_WriteStd* functions so that messenger output
+    is sent through sys.std*. This is useful in jupyter notebooks so that the output is displayed in the
+    notebook properly. It is also useful if the user decides to remap sys.stdout to something.
+
+    The iostream writes acquire the GIL, so they are safe to call from methods that have released the GIL.
+*/
+void Messenger::openPython()
+    {
+    boost::iostreams::stream<pysys_stdout_sink> *stdout_ios = new boost::iostreams::stream<pysys_stdout_sink>();
+    boost::iostreams::stream<pysys_stderr_sink> *stderr_ios = new boost::iostreams::stream<pysys_stderr_sink>();
+
+    // now update the error, warning, and notice streams
+    m_file_out = boost::shared_ptr<std::ostream>(stdout_ios);
+    m_file_err = boost::shared_ptr<std::ostream>(stderr_ios);
+    m_err_stream = m_file_err.get();
+    m_warning_stream = m_file_err.get();
+    m_notice_stream = m_file_out.get();
     }
 
 #ifdef ENABLE_MPI
@@ -340,10 +360,11 @@ void Messenger::openSharedFile()
     boost::iostreams::stream<mpi_io> *mpi_ios = new boost::iostreams::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
 
     // now update the error, warning, and notice streams
-    m_file = boost::shared_ptr<std::ostream>(mpi_ios);
-    m_err_stream = m_file.get();
-    m_warning_stream = m_file.get();
-    m_notice_stream = m_file.get();
+    m_file_out = boost::shared_ptr<std::ostream>(mpi_ios);
+    m_file_err = boost::shared_ptr<std::ostream>();
+    m_err_stream = m_file_out.get();
+    m_warning_stream = m_file_out.get();
+    m_notice_stream = m_file_out.get();
     }
 #endif
 
@@ -351,7 +372,8 @@ void Messenger::openSharedFile()
 */
 void Messenger::openStd()
     {
-    m_file = boost::shared_ptr<std::ostream>();
+    m_file_out = boost::shared_ptr<std::ostream>();
+    m_file_err = boost::shared_ptr<std::ostream>();
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
@@ -438,6 +460,7 @@ void export_Messenger()
          .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
          .def("setWarningPrefix", &Messenger::setWarningPrefix)
          .def("openFile", &Messenger::openFile)
+         .def("openPython", &Messenger::openPython)
 #ifdef ENABLE_MPI
          .def("setSharedFile", &Messenger::setSharedFile)
 #endif

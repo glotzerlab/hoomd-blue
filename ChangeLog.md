@@ -13,6 +13,8 @@
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 * `context.initialize()` can now be called multiple times - useful in jupyter notebooks
 * Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
+* Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
+  notebook output blocks.
 
 *Changes that require job script modifications*
 
