@@ -76,7 +76,9 @@ class TwoStepBDNVTRigidGPU : public TwoStepBDNVTRigid
                              boost::shared_ptr<ParticleGroup> group,
                              boost::shared_ptr<Variant> T,
                              unsigned int seed,
-                             bool gamma_diam);
+                             bool gamma_diam,
+                             bool noiseless_t,
+                             bool noiseless_r);
         virtual ~TwoStepBDNVTRigidGPU() {};
 
         //! Performs the first step of the integration

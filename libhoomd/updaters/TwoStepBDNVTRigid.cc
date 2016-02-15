@@ -73,8 +73,12 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                      boost::shared_ptr<ParticleGroup> group,
                                      boost::shared_ptr<Variant> T,
                                      unsigned int seed,
-                                     bool gamma_diam)
-    : TwoStepNVERigid(sysdef, group), m_seed(seed), m_gamma_diam(gamma_diam), m_gamma_r(0)
+                                     bool gamma_diam, 
+                                     bool noiseless_t,
+                                     bool noiseless_r
+                                    )
+    : TwoStepNVERigid(sysdef, group), m_seed(seed), m_gamma_diam(gamma_diam), m_gamma_r(0),
+      m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVTRigid" << endl;
 
@@ -200,7 +204,7 @@ void TwoStepBDNVTRigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
 
-    Scalar h_gamma_r (m_gamma_r);
+    // Scalar h_gamma_r (m_gamma_r);
     
     Scalar dt_half = 0.5 * m_deltaT;
     Scalar dtfm;
@@ -224,13 +228,13 @@ void TwoStepBDNVTRigid::integrateStepOne(unsigned int timestep)
 
         box.wrap(com_handle.data[body], body_image_handle.data[body]);        
             
-        // added:
-        if (D < 3.0)
-            {
-            torque_handle.data[body].x -= h_gamma_r * angvel_handle.data[body].x;
-            torque_handle.data[body].y -= h_gamma_r * angvel_handle.data[body].y;
-            torque_handle.data[body].z -= h_gamma_r * angvel_handle.data[body].z;
-            }
+        // // added:
+        // if (D < 3.0)
+        //     {
+        //     torque_handle.data[body].x -= h_gamma_r * angvel_handle.data[body].x;
+        //     torque_handle.data[body].y -= h_gamma_r * angvel_handle.data[body].y;
+        //     torque_handle.data[body].z -= h_gamma_r * angvel_handle.data[body].z;
+        //     }
 
         // update the angular momentum
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
@@ -270,27 +274,93 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         m_prof->push("BD NVT rigid step 2");
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    
+    
+    // skip all random and damping force update before the rigid body force and torque calculation
+    // if (0)
+    //     {
+    //     // Modify the net forces with the random and drag forces
+    //     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    //     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+        
+    //     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+    //     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
 
+    //     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    //     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    //     // grab some initial variables
+    //     const Scalar currentTemp = m_temperature->getValue(timestep);
+    //     const Scalar D = Scalar(m_sysdef->getNDimensions());
+
+    //     // initialize the RNG
+    //     Saru saru(m_seed, timestep);
+
+    //     // a(t+deltaT) gets modified with the bd forces
+    //     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+
+    //     unsigned int group_size = m_group->getNumMembers();
+    //     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    //         {
+    //         unsigned int j = m_group->getMemberIndex(group_idx);
+
+    //         // first, calculate the BD forces
+    //         // Generate three random numbers
+    //         Scalar rx = saru.d(-1,1);
+    //         Scalar ry = saru.d(-1,1);
+    //         Scalar rz = saru.d(-1,1);
+
+    //         Scalar gamma;
+    //         if (m_gamma_diam)
+    //             gamma = h_diameter.data[j];
+    //         else
+    //             {
+    //             unsigned int type = __scalar_as_int(h_pos.data[j].w);
+    //             gamma = h_gamma.data[type];
+    //             }
+
+    //         // compute the bd force
+    //         Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
+    //         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
+    //         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
+    //         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
+
+    //         if (D < 3.0)
+    //             bd_fz = Scalar(0.0);
+
+    //         h_net_force.data[j].x += bd_fx;
+    //         h_net_force.data[j].y += bd_fy;
+    //         h_net_force.data[j].z += bd_fz;
+    //         }
+    //     }
+
+    // Perform the second step like in TwoStepNVERigid
+    // compute net forces and torques on rigid bodies from particle forces
+    computeForceAndTorque(timestep);
+    
+    
+    // added: resume the random and damping force calculation
     {
     // Modify the net forces with the random and drag forces
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-
+    
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
 
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    
     // grab some initial variables
     const Scalar currentTemp = m_temperature->getValue(timestep);
     const Scalar D = Scalar(m_sysdef->getNDimensions());
 
     // initialize the RNG
     Saru saru(m_seed, timestep);
-
-    // a(t+deltaT) gets modified with the bd forces
-    // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    
+    // for each particle
     unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
@@ -313,6 +383,8 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
 
         // compute the bd force
         Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
+        if (m_noiseless_t)  coeff = Scalar(0.0);
+
         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
@@ -324,12 +396,29 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         h_net_force.data[j].y += bd_fy;
         h_net_force.data[j].z += bd_fz;
         }
+        
+        
+    // for each body
+    Scalar h_gamma_r (m_gamma_r);
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+
+        if (D < 3.0)
+            {
+            Scalar rrx = saru.d(-1,1);
+            Scalar rry = saru.d(-1,1);
+            Scalar rrz = saru.d(-1,1);
+            Scalar coeff_r = sqrt(Scalar(6.0)*h_gamma_r*currentTemp/m_deltaT);
+            if (m_noiseless_r)  coeff_r = Scalar(0.0);
+            
+            torque_handle.data[body].x += coeff_r * rrx - h_gamma_r * angvel_handle.data[body].x;
+            torque_handle.data[body].y += coeff_r * rry - h_gamma_r * angvel_handle.data[body].y;
+            torque_handle.data[body].z += coeff_r * rrz - h_gamma_r * angvel_handle.data[body].z;
+            }
+        }
     }
-
-    // Perform the second step like in TwoStepNVERigid
-    // compute net forces and torques on rigid bodies from particle forces
-    computeForceAndTorque(timestep);
-
+        
     {
     // rigid data handes
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
@@ -378,6 +467,8 @@ void export_TwoStepBDNVTRigid()
                          boost::shared_ptr<ParticleGroup>,
                          boost::shared_ptr<Variant>,
                          unsigned int,
+                         bool,
+                         bool, 
                          bool
                          >())
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)

@@ -1506,7 +1506,7 @@ class bdnvt_rigid(_integration_method):
     # integrator = integrate.bdnvt_rigid(group=all, T=1.0, seed=100)
     # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=True)
     # \endcode
-    def __init__(self, group, T, seed=0, gamma_diam=False):
+    def __init__(self, group, T, seed=0, gamma_diam=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # register the citation
@@ -1537,9 +1537,9 @@ class bdnvt_rigid(_integration_method):
 
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepBDNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, noiseless_t, noiseless_r);
         else:
-            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, noiseless_t, noiseless_r);
 
         self.cpp_method.validateGroup()
 
@@ -1548,7 +1548,9 @@ class bdnvt_rigid(_integration_method):
         self.T = T
         self.seed = seed
         self.metadata_fields = ['group','T','seed']
-
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
+        
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     #
