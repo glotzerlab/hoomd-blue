@@ -224,10 +224,46 @@ void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plan
             {
             assert(molecule_tag < m_n_molecules_global);
 
+            unsigned int mol_plan = 0;
+            std::map<unsigned int, unsigned int>::iterator it = ghost_molecule_plans.find(molecule_tag);
+            bool update = false;
+            if (it != ghost_molecule_plans.end())
+                {
+                mol_plan = it->second;
+                update = true;
+                }
+
             if (plan != 0)
                 {
                 ghost_molecules.insert(std::make_pair(molecule_tag, tag));
+
+                // combine plan
+                if (update)
+                    {
+                    it->second = mol_plan | plan;
+                    }
+                else
+                    {
+                    ghost_molecule_plans.insert(std::make_pair(molecule_tag, mol_plan | plan));
+                    }
                 }
+            }
+        }
+
+    // complete ghost molecules by adding those ptls without own plans
+    for (unsigned int i = 0; i < nptl_local; ++i)
+        {
+        // only consider particles sent as ghosts
+        unsigned int plan = h_plans.data[i];
+
+        unsigned int tag = h_tag.data[i];
+        assert(tag <= m_pdata->getMaximumTag());
+
+        unsigned int molecule_tag = h_molecule_tag.data[tag];
+
+        if (molecule_tag != NO_MOLECULE)
+            {
+            assert(molecule_tag < m_n_molecules_global);
 
             unsigned int mol_plan = 0;
             std::map<unsigned int, unsigned int>::iterator it = ghost_molecule_plans.find(molecule_tag);
@@ -236,11 +272,14 @@ void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plan
                 mol_plan = it->second;
                 }
 
-            // combine plan
-            ghost_molecule_plans.insert(std::make_pair(molecule_tag, mol_plan | plan));
+            if (mol_plan == 0) continue;
+
+            if (plan == 0)
+                {
+                ghost_molecules.insert(std::make_pair(molecule_tag, tag));
+                }
             }
         }
-
 
     // for every ghost molecule, combine plans
     for (std::multimap<unsigned int, unsigned int>::iterator it = ghost_molecules.begin(); it != ghost_molecules.end(); ++it)

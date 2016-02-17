@@ -2976,6 +2976,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
 
         m_netforce_ghost_recvbuf.resize(n_max);
 
+        if (flags[comm_flag::net_torque])
+            {
+            m_nettorque_ghost_recvbuf.resize(n_max);
+            }
+
         // first ghost ptl index
         unsigned int first_idx = m_pdata->getN();
 

@@ -912,6 +912,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // get type mapping
         m_type_mapping = snapshot.type_mapping;
 
+        if (my_rank != root)
+            {
+            m_type_mapping.clear();
+            }
+
         // broadcast type mapping
         bcast(m_type_mapping, root, mpi_comm);
 

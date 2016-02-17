@@ -155,11 +155,6 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
-    // slave any composite degrees of freedom
-    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeDOFs(timestep, true);
-
     if (m_prof)
         m_prof->pop();
 
@@ -172,6 +167,11 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_comm->communicate(timestep+1);
         }
 #endif
+
+    // slave any composite degrees of freedom
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeDOFs(timestep, true);
 
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -372,11 +372,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    // ensure that any rigid bodies are correctly initialized
-    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeDOFs(timestep, true);
-
     // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
@@ -393,6 +388,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             m_comm->communicate(timestep);
             }
 #endif
+
+        // ensure that any rigid bodies are correctly initialized
+        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            (*force_composite)->updateCompositeDOFs(timestep, true);
 
         // net force is always needed (ticket #393)
         computeNetForce(timestep);

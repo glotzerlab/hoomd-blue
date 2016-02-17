@@ -187,6 +187,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
         m_d_max_changed[body_typeid] = true;
+
+        // also need to update ghost layer for constituent types
+        for (unsigned int i = 0; i < type.size(); ++i)
+            {
+            m_d_max_changed[type[i]] = true;
+            }
         }
    }
 
@@ -226,22 +232,44 @@ Scalar ForceComposite::askGhostLayerWidth(unsigned int type)
         assert(m_body_len.getNumElements() > type);
 
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
 
-        // compute maximum diameter for this body type
-        for (unsigned int i = 0; i < h_body_len.data[type]; ++i)
-            {
-            for (unsigned int j = 0; j < h_body_len.data[type]; ++j)
-                {
-                Scalar3 dr = h_body_pos.data[m_body_idx(type,i)] - h_body_pos.data[m_body_idx(type,j)];
-                Scalar d = sqrt(dot(dr,dr));
+        // find largest body diameter this particle participates in
+        unsigned int ntypes = m_pdata->getNTypes();
 
-                if (d > m_d_max[type])
+        for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
+            {
+            bool part_of_body = (type == body_type);
+
+            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                {
+                if (type == h_body_type.data[m_body_idx(body_type, i)])
                     {
-                    m_d_max[type] = d;
+                    part_of_body = true;
+                    }
+                }
+
+            if (!part_of_body) continue;
+
+            // compute maximum diameter for this body_type
+            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                {
+                for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                    {
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)] - h_body_pos.data[m_body_idx(body_type,j)];
+                    Scalar d = sqrt(dot(dr,dr));
+
+                    if (d > m_d_max[type])
+                        {
+                        m_d_max[type] = d;
+                        }
                     }
                 }
             }
+
+        m_exec_conf->msg->notice(7) << "ForceComposite: ghost layer for type " << m_pdata->getNameByType(type) << ": "
+            << m_d_max[type] << std::endl;
 
         m_d_max_changed[type] = false;
         }
@@ -276,7 +304,6 @@ void ForceComposite::createRigidBodies()
             }
 
         SnapshotParticleData<Scalar> snap;
-        SnapshotParticleData<Scalar> snap_in;
 
         // take a snapshot on rank 0
         m_pdata->takeSnapshot(snap);
@@ -349,6 +376,8 @@ void ForceComposite::createRigidBodies()
 
         unsigned int ndim = m_sysdef->getNDimensions();
 
+        const BoxDim& global_box = m_pdata->getGlobalBox();
+
         if (m_exec_conf->getRank() == 0)
             {
             unsigned int old_size = snap.size;
@@ -363,6 +392,8 @@ void ForceComposite::createRigidBodies()
 
             // acces body data
             ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
             // create copies
@@ -381,6 +412,10 @@ void ForceComposite::createRigidBodies()
 
                     // set contiguous molecule tag
                     molecule_tag[i] = nbodies;
+
+                    vec3<Scalar> central_pos(snap.pos[i]);
+                    quat<Scalar> central_orientation(snap.orientation[i]);
+                    int3 central_img = snap.image[i];
 
                     unsigned int body_type = snap.type[i];
 
@@ -403,6 +438,20 @@ void ForceComposite::createRigidBodies()
                         // and no anisotropic degrees of freedom (this is used to suppress
                         // updating the orientation of this ptl in the Integrator)
                         snap.inertia[snap_idx_out] = vec3<Scalar>(0,0,0);
+
+                        // update position and orientation to ensure particles end up in correct domain
+                        vec3<Scalar> pos(central_pos);
+
+                        pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
+                        quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
+
+                        // wrap into box
+                        int3 img = central_img;
+                        global_box.wrap(pos, img);
+
+                        snap.pos[snap_idx_out] = pos;
+                        snap.image[snap_idx_out] = img;
+                        snap.orientation[snap_idx_out] = orientation;
 
                         snap_idx_out++;
                         }
@@ -606,6 +655,7 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -619,8 +669,6 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-
-    unsigned int nptl_local = m_pdata->getN();
 
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
@@ -636,10 +684,14 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
         unsigned int central_tag = h_body.data[first_idx];
 
+        // body tag equals tag for central ptl
         assert(central_tag <= m_pdata->getMaximumTag());
+        assert(central_tag == h_tag.data[first_idx]);
+
         unsigned int central_idx = h_rtag.data[central_tag];
 
         // central ptl position and orientation
+        assert(central_idx <= m_pdata->getN() + m_pdata->getNGhosts());
         Scalar4 postype = h_postype.data[central_idx];
         vec3<Scalar> pos(postype);
         quat<Scalar> orientation(h_orientation.data[central_idx]);
@@ -656,9 +708,6 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
-
-            // ghost particles are fixed on the owning rank
-            if (idxj >= nptl_local) continue;
 
             //if (update_rq)
                 {
