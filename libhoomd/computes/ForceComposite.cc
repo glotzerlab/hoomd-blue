@@ -509,6 +509,8 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_force.data,0, sizeof(Scalar4)*m_pdata->getN());
     memset(h_torque.data,0, sizeof(Scalar4)*m_pdata->getN());
 
+    unsigned int nptl_local = m_pdata->getN();
+
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
         unsigned int len = h_molecule_length.data[ibody];
@@ -539,6 +541,9 @@ void ForceComposite::computeForces(unsigned int timestep)
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
 
+            // do not compute force on ghost particles
+            if (idxj >= nptl_local) continue;
+
             // force and torque on particle
             Scalar4 net_force = h_net_force.data[idxj];
             vec3<Scalar> f(net_force);
@@ -556,8 +561,12 @@ void ForceComposite::computeForces(unsigned int timestep)
             // spatial offset of particle
             vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl-1)]);
 
+            // rotate into space frame
+            quat<Scalar> q(h_orientation.data[idxj]);
+            vec3<Scalar> dr_space = rotate(q, dr);
+
             // torque = r x f
-            vec3<Scalar> delta_torque(cross(dr,f));
+            vec3<Scalar> delta_torque(cross(dr_space,f));
             h_torque.data[central_idx].x += delta_torque.x;
             h_torque.data[central_idx].y += delta_torque.y;
             h_torque.data[central_idx].z += delta_torque.z;
@@ -611,6 +620,8 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
     const BoxDim& box = m_pdata->getBox();
 
+    unsigned int nptl_local = m_pdata->getN();
+
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
         unsigned int len = h_molecule_length.data[ibody];
@@ -645,6 +656,9 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
+
+            // ghost particles are fixed on the owning rank
+            if (idxj >= nptl_local) continue;
 
             //if (update_rq)
                 {
