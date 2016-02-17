@@ -129,6 +129,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphere.h"
 #include "MolecularForceCompute.h"
 #include "ForceDistanceConstraint.h"
+#include "ForceComposite.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -565,6 +566,9 @@ BOOST_PYTHON_MODULE(hoomd)
     class_<std::vector<Scalar3> >("std_vector_scalar3")
     .def(vector_indexing_suite<std::vector<Scalar3> >());
 
+    class_<std::vector<Scalar4> >("std_vector_scalar4")
+    .def(vector_indexing_suite<std::vector<Scalar4> >());
+
     InstallSIGINTHandler();
 
     // utils
@@ -640,6 +644,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphere();
     export_MolecularForceCompute();
     export_ForceDistanceConstraint();
+    export_ForceComposite();
     export_PPPMForceCompute();
     class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
     def("make_wall_field_params", &make_wall_field_params);
@@ -887,6 +892,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< Messenger > >();
     register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
+    register_ptr_to_python< boost::shared_ptr< ForceComposite > >();
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_MPI

@@ -178,6 +178,12 @@ class _integrator(meta._metadata):
             if f.enabled:
                 self.cpp_integrator.addForceConstraint(f.cpp_force);
 
+                # register any composite body forces
+                if f.composite:
+                    self.cpp_integrator.addForceComposite(f.cpp_force);
+
+                f.update_coeffs();
+
 
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class

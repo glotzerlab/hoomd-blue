@@ -914,7 +914,6 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
             // resize buffers
             std::vector<unsigned int> plan_copybuf(m_gdata->getN(),0);
             m_groups_sendbuf.resize(m_gdata->getN());
-            std::vector<unsigned int> copy_ghost_tags();
             unsigned int num_copy_ghosts;
             unsigned int num_recv_ghosts;
 
@@ -1111,12 +1110,15 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_pos_copybuf(m_exec_conf),
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
+            m_body_copybuf(m_exec_conf),
             m_velocity_copybuf(m_exec_conf),
             m_orientation_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
             m_netforce_copybuf(m_exec_conf),
+            m_nettorque_copybuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
+            m_ghosts_added(0),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -1648,6 +1650,7 @@ void Communicator::exchangeGhosts()
     m_plan_copybuf.resize(m_pdata->getN());
     m_pos_copybuf.resize(m_pdata->getN());
     m_charge_copybuf.resize(m_pdata->getN());
+    m_body_copybuf.resize(m_pdata->getN());
     m_diameter_copybuf.resize(m_pdata->getN());
     m_velocity_copybuf.resize(m_pdata->getN());
     m_orientation_copybuf.resize(m_pdata->getN());
@@ -1669,6 +1672,7 @@ void Communicator::exchangeGhosts()
         m_plan_copybuf.resize(max_copy_ghosts);
         m_pos_copybuf.resize(max_copy_ghosts);
         m_charge_copybuf.resize(max_copy_ghosts);
+        m_body_copybuf.resize(max_copy_ghosts);
         m_diameter_copybuf.resize(max_copy_ghosts);
         m_velocity_copybuf.resize(max_copy_ghosts);
         m_orientation_copybuf.resize(max_copy_ghosts);
@@ -1679,6 +1683,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1689,6 +1694,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_body_copybuf(m_body_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_velocity_copybuf(m_velocity_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::overwrite);
 
@@ -1701,6 +1707,7 @@ void Communicator::exchangeGhosts()
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
                     h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
                     h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
+                    h_body_copybuf.data[m_num_copy_ghosts[dir]] = h_body.data[idx];
                     h_velocity_copybuf.data[m_num_copy_ghosts[dir]] = h_vel.data[idx];
                     h_orientation_copybuf.data[m_num_copy_ghosts[dir]] = h_orientation.data[idx];
                     h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
@@ -1764,6 +1771,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body_copybuf(m_body_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_velocity_copybuf(m_velocity_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::read);
 
@@ -1771,6 +1779,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
@@ -1898,6 +1907,24 @@ void Communicator::exchangeGhosts()
                     &reqs[nreq++]);
                 }
 
+            if (flags[comm_flag::body])
+                {
+                MPI_Isend(h_body_copybuf.data,
+                    m_num_copy_ghosts[dir]*sizeof(unsigned int),
+                    MPI_BYTE,
+                    send_neighbor,
+                    8,
+                    m_mpi_comm,
+                    &reqs[nreq++]);
+                MPI_Irecv(h_body.data + start_idx,
+                    m_num_recv_ghosts[dir]*sizeof(unsigned int),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    8,
+                    m_mpi_comm,
+                    &reqs[nreq++]);
+                }
+
             MPI_Waitall(nreq, reqs, status);
             }
 
@@ -1932,8 +1959,11 @@ void Communicator::exchangeGhosts()
                 assert(h_rtag.data[h_tag.data[idx]] == NOT_LOCAL);
                 h_rtag.data[h_tag.data[idx]] = idx;
                 }
+
             }
         } // end dir loop
+
+    m_ghosts_added = m_pdata->getNGhosts();
 
     // exchange ghost constraints along with ghost particles
     m_constraint_comm.exchangeGhostGroups(m_plan, mask);
@@ -2043,7 +2073,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         size_t sz = 0;
         // only non-permanent fields (position, velocity, orientation) need to be considered here
-        // charge and diameter are not updated during a run
+        // charge, body and diameter are not updated between neighbor list builds
         if (flags[comm_flag::position])
             {
             MPI_Request reqs[2];
@@ -2121,7 +2151,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 void Communicator::updateNetForce(unsigned int timestep)
     {
     CommFlags flags = getFlags();
-    if (! flags[comm_flag::net_force])
+    if (! flags[comm_flag::net_force] && ! flags[comm_flag::net_torque])
         return;
 
     // we have a current m_copy_ghosts liss which contain the indices of particles
@@ -2129,13 +2159,14 @@ void Communicator::updateNetForce(unsigned int timestep)
     if (m_prof)
         m_prof->push("comm_ghost_net_force");
 
-    m_exec_conf->msg->notice(7) << "Communicator: update net force" << std::endl;
+    m_exec_conf->msg->notice(7) << "Communicator: update net force and torque" << std::endl;
 
     // update data in these arrays
 
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
     m_netforce_copybuf.clear();
+    m_nettorque_copybuf.clear();
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -2144,6 +2175,11 @@ void Communicator::updateNetForce(unsigned int timestep)
         // resize send buffer
         unsigned int old_size = m_netforce_copybuf.size();
         m_netforce_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+
+        if (flags[comm_flag::net_torque])
+            {
+            m_nettorque_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+            }
 
             {
             ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::read);
@@ -2160,6 +2196,23 @@ void Communicator::updateNetForce(unsigned int timestep)
 
                 // copy net force into send buffer
                 h_netforce_copybuf.data[ghost_idx] = h_netforce.data[idx];
+                }
+
+            if (flags[comm_flag::net_torque])
+                {
+                ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::overwrite);
+
+                // copy net torques of ghost particles
+                for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                    {
+                    unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                    assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                    // copy net force into send buffer
+                    h_nettorque.data[ghost_idx] = h_nettorque.data[idx];
+                    }
                 }
             }
 
@@ -2198,6 +2251,21 @@ void Communicator::updateNetForce(unsigned int timestep)
             sz += sizeof(Scalar4);
             }
 
+        if (flags[comm_flag::net_torque])
+            {
+            MPI_Request reqs[2];
+            MPI_Status status[2];
+
+            ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::read);
+
+            MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_nettorque.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            sz += sizeof(Scalar4);
+            }
+
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sz);
 
@@ -2213,11 +2281,13 @@ void Communicator::removeGhostParticleTags()
     // wipe out reverse-lookup tag -> idx for old ghost atoms
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-    for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
+    for (unsigned int i = 0; i < m_ghosts_added; i++)
         {
         unsigned int idx = m_pdata->getN() + i;
         h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
         }
+
+    m_ghosts_added = 0;
     }
 
 const BoxDim Communicator::getShiftedBox() const

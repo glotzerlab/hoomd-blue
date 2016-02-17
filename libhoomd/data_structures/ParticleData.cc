@@ -189,13 +189,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
-    // allocate reverse-lookup tag list
-    GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
-    m_rtag.swap(rtag);
-
-    // initialize number of particles
-    setNGlobal(snapshot.size);
-
     #ifdef ENABLE_MPI
     // Set up domain decomposition information
     if (decomposition) setDomainDecomposition(decomposition);
@@ -743,13 +736,14 @@ bool ParticleData::inBox(const SnapshotParticleData<Real> &snap)
 
 //! Initialize from a snapshot
 /*! \param snapshot the initial particle data
+    \param ignore_bodies If True, ignore particles that have a body flag set
 
     \post the particle data arrays are initialized from the snapshot, in index order
 
     \pre In parallel simulations, the local box size must be set before a call to initializeFromSnapshot().
  */
 template <class Real>
-void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snapshot)
+void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snapshot, bool ignore_bodies)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
 
@@ -772,7 +766,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         m_recycled_tags.pop();
 
     // global number of particles
-    unsigned int nglobal;
+    unsigned int nglobal = 0;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -834,6 +828,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             // loop over particles in snapshot, place them into domains
             for (typename std::vector< vec3<Real> >::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
+                unsigned int snap_idx = it - snapshot.pos.begin();
+
+                // if requested, do not initalize constituent particles of rigid bodies
+                if (ignore_bodies && snapshot.body[snap_idx] != NO_BODY)
+                    {
+                    continue;
+                    }
+
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
                 Scalar3 f = m_global_box.makeFraction(pos);
@@ -863,8 +865,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                     flags.z = 1;
                     }
 
-                unsigned int tag = it - snapshot.pos.begin();
-                int3 img = snapshot.image[tag];
+                int3 img = snapshot.image[snap_idx];
 
                 // only wrap if the particles is on one of the boundaries
                 uchar3 periodic = make_uchar3(flags.x,flags.y,flags.z);
@@ -876,7 +877,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
                 if (rank >= n_ranks)
                     {
-                    m_exec_conf->msg->error() << "init.*: Particle " << tag << " out of bounds." << std::endl;
+                    m_exec_conf->msg->error() << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
                     m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
                     m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
                     m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
@@ -892,17 +893,17 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
                 image_proc[rank].push_back(img);
-                vel_proc[rank].push_back(vec_to_scalar3(snapshot.vel[tag]));
-                accel_proc[rank].push_back(vec_to_scalar3(snapshot.accel[tag]));
-                type_proc[rank].push_back(snapshot.type[tag]);
-                mass_proc[rank].push_back(snapshot.mass[tag]);
-                charge_proc[rank].push_back(snapshot.charge[tag]);
-                diameter_proc[rank].push_back(snapshot.diameter[tag]);
-                body_proc[rank].push_back(snapshot.body[tag]);
-                orientation_proc[rank].push_back(quat_to_scalar4(snapshot.orientation[tag]));
-                angmom_proc[rank].push_back(quat_to_scalar4(snapshot.angmom[tag]));
-                inertia_proc[rank].push_back(vec_to_scalar3(snapshot.inertia[tag]));
-                tag_proc[rank].push_back(tag);
+                vel_proc[rank].push_back(vec_to_scalar3(snapshot.vel[snap_idx]));
+                accel_proc[rank].push_back(vec_to_scalar3(snapshot.accel[snap_idx]));
+                type_proc[rank].push_back(snapshot.type[snap_idx]);
+                mass_proc[rank].push_back(snapshot.mass[snap_idx]);
+                charge_proc[rank].push_back(snapshot.charge[snap_idx]);
+                diameter_proc[rank].push_back(snapshot.diameter[snap_idx]);
+                body_proc[rank].push_back(snapshot.body[snap_idx]);
+                orientation_proc[rank].push_back(quat_to_scalar4(snapshot.orientation[snap_idx]));
+                angmom_proc[rank].push_back(quat_to_scalar4(snapshot.angmom[snap_idx]));
+                inertia_proc[rank].push_back(vec_to_scalar3(snapshot.inertia[snap_idx]));
+                tag_proc[rank].push_back(nglobal++);
                 N_proc[rank]++;
                 }
 
@@ -915,7 +916,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         bcast(m_type_mapping, root, mpi_comm);
 
         // broadcast global number of particles
-        nglobal = snapshot.size;
         bcast(nglobal, root, mpi_comm);
 
         // allocate array for reverse-lookup tags
@@ -1029,17 +1029,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
         m_rtag.swap(rtag);
 
-        m_nparticles = snapshot.size;
-
-        // global number of ptls == local number of ptls
-        nglobal = m_nparticles;
-
-        // update list of active tags
-        for (unsigned int tag = 0; tag < nglobal; tag++)
-            {
-            m_tag_set.insert(tag);
-            }
-
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
@@ -1059,27 +1048,45 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
-        for (unsigned int tag = 0; tag < m_nparticles; tag++)
+        for (unsigned int snap_idx = 0; snap_idx < snapshot.size; snap_idx++)
             {
-            h_pos.data[tag] = make_scalar4(snapshot.pos[tag].x,
-                                           snapshot.pos[tag].y,
-                                           snapshot.pos[tag].z,
-                                           __int_as_scalar(snapshot.type[tag]));
-            h_vel.data[tag] = make_scalar4(snapshot.vel[tag].x,
-                                             snapshot.vel[tag].y,
-                                             snapshot.vel[tag].z,
-                                             snapshot.mass[tag]);
-            h_accel.data[tag] = vec_to_scalar3(snapshot.accel[tag]);
-            h_charge.data[tag] = snapshot.charge[tag];
-            h_diameter.data[tag] = snapshot.diameter[tag];
-            h_image.data[tag] = snapshot.image[tag];
-            h_tag.data[tag] = tag;
-            h_rtag.data[tag] = tag;
-            h_body.data[tag] = snapshot.body[tag];
-            h_orientation.data[tag] = quat_to_scalar4(snapshot.orientation[tag]);
-            h_angmom.data[tag] = quat_to_scalar4(snapshot.angmom[tag]);
-            h_inertia.data[tag] = vec_to_scalar3(snapshot.inertia[tag]);
+            // if requested, do not initalize constituent particles of rigid bodies
+            if (ignore_bodies && snapshot.body[snap_idx] != NO_BODY)
+                {
+                continue;
+                }
+
+            h_pos.data[nglobal] = make_scalar4(snapshot.pos[snap_idx].x,
+                                           snapshot.pos[snap_idx].y,
+                                           snapshot.pos[snap_idx].z,
+                                           __int_as_scalar(snapshot.type[snap_idx]));
+            h_vel.data[nglobal] = make_scalar4(snapshot.vel[snap_idx].x,
+                                             snapshot.vel[snap_idx].y,
+                                             snapshot.vel[snap_idx].z,
+                                             snapshot.mass[snap_idx]);
+            h_accel.data[nglobal] = vec_to_scalar3(snapshot.accel[snap_idx]);
+            h_charge.data[nglobal] = snapshot.charge[snap_idx];
+            h_diameter.data[nglobal] = snapshot.diameter[snap_idx];
+            h_image.data[nglobal] = snapshot.image[snap_idx];
+            h_tag.data[nglobal] = nglobal;
+            h_rtag.data[nglobal] = nglobal;
+            h_body.data[nglobal] = snapshot.body[snap_idx];
+            h_orientation.data[nglobal] = quat_to_scalar4(snapshot.orientation[snap_idx]);
+            h_angmom.data[nglobal] = quat_to_scalar4(snapshot.angmom[snap_idx]);
+            h_inertia.data[nglobal] = vec_to_scalar3(snapshot.inertia[snap_idx]);
+            nglobal++;
             }
+
+        m_nparticles = nglobal;
+
+        // update list of active tags
+        for (unsigned int tag = 0; tag < nglobal; tag++)
+            {
+            m_tag_set.insert(tag);
+            }
+
+        // rtag size reflects actual number of tags
+        m_rtag.resize(nglobal);
 
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
@@ -2352,7 +2359,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
                                            boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
-template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot);
+template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
 template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
 
 
@@ -2361,7 +2368,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
-template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot);
+template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
 template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 

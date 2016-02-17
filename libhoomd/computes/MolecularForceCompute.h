@@ -55,8 +55,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file MolecularForceCompute.h
     \brief Base class for ForceConstraints that depend on a molecular topology
 
-    Holds the data structures defining molecule topologies which are
-    required for communication
+    Implements the data structures that define a molecule topology.
+    MolecularForceCompute maintains a list of local molecules and their constituent particles, and
+    the particles are sorted according to global particle tag.
+
+    Every molecule has a unique contiguous tag, 0 <=tag <m_n_molecules_global.
+
+    Derived classes take care of resizing the ghost layer accordingly so that
+    spanning molecules are communicated correctly. They connect to the Communciator
+    signal using addGhostLayerWidthRequest() .
+
+    In MPI simulations, MolecularForceCompute ensures that local molecules are complete by requesting communication of all
+    members of a molecule even if only a single particle member falls into the ghost layer.
 */
 
 #ifdef NVCC
@@ -72,8 +82,7 @@ class MolecularForceCompute : public ForceConstraint
     {
     public:
         //! Constructs the compute
-        MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist);
+        MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~MolecularForceCompute();
@@ -86,9 +95,6 @@ class MolecularForceCompute : public ForceConstraint
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
             {
             CommFlags flags = CommFlags(0);
-
-            // request communication of particle forces
-            flags[comm_flag::net_force] = 1;
 
             // request communication of tags
             flags[comm_flag::tag] = 1;
@@ -104,64 +110,22 @@ class MolecularForceCompute : public ForceConstraint
             See documentation for Communicator for meaning of the plan bitflags
          */
         virtual void addGhostParticles(const GPUArray<unsigned int>& plans);
-
-        //! Returns true if we need to migrate in this timestep
-        virtual bool askMigrateRequest(unsigned int timestep);
-
-        //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
-            {
-            // call base class method to set m_comm
-            ForceConstraint::setCommunicator(comm);
-
-            if (!m_comm_migrate_connection.connected())
-                {
-                // register this class with the communciator
-                m_comm_migrate_connection = m_comm->addMigrateRequest(
-                    boost::bind(&MolecularForceCompute::askMigrateRequest, this, _1));
-                }
-            if (!m_comm_ghost_layer_connection.connected())
-                {
-                // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&MolecularForceCompute::askGhostLayerWidth, this, _1));
-                }
-           }
-
-        //! Returns the requested ghost layer width for all types
-        /*! \param type the type for which we are requesting info
-         */
-        virtual Scalar askGhostLayerWidth(unsigned int type)
-            {
-            return m_d_max + m_nlist->getRBuff();
-            }
-        #endif
+       #endif
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< Pointer to neighbor list
-
-        boost::signals2::connection m_comm_migrate_connection; //!< Connection to be asked for migrate requests
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
 
         GPUVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
         GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
         GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         GPUVector<unsigned int> m_molecule_idx;     //!< Local molecule idx per global molecule tag
 
-        Scalar m_d_max;                             //!< Current maximum local molecule diameter
-        Scalar m_last_d_max;                        //!< Last maximum local molecule diameter
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 
-        //! construct a list of local molecule fragments
+        //! construct a list of local molecules
         virtual void initMolecules();
-
-        //! get maximum diameter of local molecules
-        virtual Scalar getMaxDiameter();
-
-    private:
-        bool m_is_first_step;                       //!< True if molecule list is uninitialized
     };
 
 //! Exports the MolecularForceCompute to python

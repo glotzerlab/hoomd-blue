@@ -184,6 +184,12 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<Scalar> charge_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
     m_charge_ghost_recvbuf.swap(charge_ghost_recvbuf);
 
+    GPUVector<unsigned int> body_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    m_body_ghost_sendbuf.swap(body_ghost_sendbuf);
+
+    GPUVector<unsigned int> body_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    m_body_ghost_recvbuf.swap(body_ghost_recvbuf);
+
     GPUVector<Scalar> diameter_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
     m_diameter_ghost_sendbuf.swap(diameter_ghost_sendbuf);
 
@@ -201,6 +207,12 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
     m_netforce_ghost_recvbuf.swap(netforce_ghost_recvbuf);
+
+    GPUVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
+    m_nettorque_ghost_sendbuf.swap(nettorque_ghost_sendbuf);
+
+    GPUVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
+    m_nettorque_ghost_recvbuf.swap(nettorque_ghost_recvbuf);
 
     #ifndef ENABLE_MPI_CUDA
     // initialize standby buffers (oppposite mapped setting)
@@ -227,6 +239,12 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUVector<Scalar> charge_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
     m_charge_ghost_recvbuf_alt.swap(charge_ghost_recvbuf_alt);
+
+    GPUVector<unsigned int> body_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
+    m_body_ghost_sendbuf_alt.swap(body_ghost_sendbuf_alt);
+
+    GPUVector<unsigned int> body_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
+    m_body_ghost_recvbuf_alt.swap(body_ghost_recvbuf_alt);
 
     GPUVector<Scalar> diameter_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
     m_diameter_ghost_sendbuf_alt.swap(diameter_ghost_sendbuf_alt);
@@ -1792,13 +1810,15 @@ void CommunicatorGPU::removeGhostParticleTags()
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
-        gpu_reset_rtags(m_pdata->getNGhosts(),
+        gpu_reset_rtags(m_ghosts_added,
                         d_tag.data + m_pdata->getN(),
                         d_rtag.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+
+    m_ghosts_added = 0;
     }
 
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
@@ -1922,6 +1942,7 @@ void CommunicatorGPU::exchangeGhosts()
         if (flags[comm_flag::position]) m_pos_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::velocity]) m_vel_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::charge]) m_charge_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::body]) m_body_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::diameter]) m_diameter_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::orientation]) m_orientation_ghost_sendbuf.resize(n_max);
 
@@ -1964,6 +1985,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
@@ -1976,6 +1998,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar> d_charge_ghost_sendbuf(m_charge_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_body_ghost_sendbuf(m_body_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar> d_diameter_ghost_sendbuf(m_diameter_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
 
@@ -1992,18 +2015,21 @@ void CommunicatorGPU::exchangeGhosts()
                 d_vel.data,
                 d_charge.data,
                 d_diameter.data,
+                d_body.data,
                 d_orientation.data,
                 d_tag_ghost_sendbuf.data,
                 d_pos_ghost_sendbuf.data,
                 d_vel_ghost_sendbuf.data,
                 d_charge_ghost_sendbuf.data,
                 d_diameter_ghost_sendbuf.data,
+                d_body_ghost_sendbuf.data,
                 d_orientation_ghost_sendbuf.data,
                 flags[comm_flag::tag],
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
                 flags[comm_flag::diameter],
+                flags[comm_flag::body],
                 flags[comm_flag::orientation],
                 di,
                 my_pos,
@@ -2083,6 +2109,7 @@ void CommunicatorGPU::exchangeGhosts()
         if (flags[comm_flag::position]) m_pos_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::velocity]) m_vel_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::charge]) m_charge_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::body]) m_body_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::diameter]) m_diameter_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::orientation]) m_orientation_ghost_recvbuf.resize(n_max);
 
@@ -2102,6 +2129,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> body_ghost_recvbuf_handle(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
             // send buffers
@@ -2109,6 +2137,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> body_ghost_sendbuf_handle(m_body_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
 
@@ -2120,6 +2149,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandleAsync<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandleAsync<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandleAsync<unsigned int> body_ghost_recvbuf_handle(m_body_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandleAsync<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandleAsync<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
             // send buffers
@@ -2127,6 +2157,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> body_ghost_sendbuf_handle(m_body_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
 
@@ -2318,6 +2349,34 @@ void CommunicatorGPU::exchangeGhosts()
                         }
                     recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
                     }
+
+                if (flags[comm_flag::body])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(body_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            MPI_BYTE,
+                            neighbor,
+                            7,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(body_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            MPI_BYTE,
+                            neighbor,
+                            7,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    }
                 } // end neighbor loop
 
             std::vector<MPI_Status> stats(reqs.size());
@@ -2337,6 +2396,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge_ghost_recvbuf(m_charge_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body_ghost_recvbuf(m_body_ghost_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter_ghost_recvbuf(m_diameter_ghost_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf, access_location::device, access_mode::read);
             // access particle data
@@ -2344,6 +2404,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
@@ -2355,18 +2416,21 @@ void CommunicatorGPU::exchangeGhosts()
                 d_vel_ghost_recvbuf.data,
                 d_charge_ghost_recvbuf.data,
                 d_diameter_ghost_recvbuf.data,
+                d_body_ghost_recvbuf.data,
                 d_orientation_ghost_recvbuf.data,
                 d_tag.data + first_idx,
                 d_pos.data + first_idx,
                 d_vel.data + first_idx,
                 d_charge.data + first_idx,
                 d_diameter.data + first_idx,
+                d_body.data + first_idx,
                 d_orientation.data + first_idx,
                 flags[comm_flag::tag],
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
                 flags[comm_flag::diameter],
+                flags[comm_flag::body],
                 flags[comm_flag::orientation]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -2386,6 +2450,8 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         } // end main communication loop
+
+    m_ghosts_added = m_pdata->getNGhosts();
 
     // exchange ghost constraints along with ghost particles
     m_constraint_comm.exchangeGhostGroups(m_ghost_plan);
@@ -2432,6 +2498,9 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             m_diameter_ghost_recvbuf_alt.resize(m_diameter_ghost_recvbuf.size());
             m_diameter_ghost_recvbuf.swap(m_diameter_ghost_recvbuf_alt);
 
+            m_body_ghost_recvbuf_alt.resize(m_body_ghost_recvbuf.size());
+            m_body_ghost_recvbuf.swap(m_body_ghost_recvbuf_alt);
+
             m_mapped_ghost_recv = mapped_ghost_recv;
             }
         if (mapped_ghost_send != m_mapped_ghost_send)
@@ -2453,6 +2522,9 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
 
             m_diameter_ghost_sendbuf_alt.resize(m_diameter_ghost_sendbuf.size());
             m_diameter_ghost_sendbuf.swap(m_diameter_ghost_sendbuf_alt);
+
+            m_body_ghost_sendbuf_alt.resize(m_body_ghost_sendbuf.size());
+            m_body_ghost_sendbuf.swap(m_body_ghost_sendbuf_alt);
 
             m_mapped_ghost_send = mapped_ghost_send;
             }
@@ -2492,16 +2564,19 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                 d_vel.data,
                 NULL,
                 NULL,
+                NULL,
                 d_orientation.data,
                 NULL,
                 d_pos_ghost_sendbuf.data,
                 d_vel_ghost_sendbuf.data,
                 NULL,
                 NULL,
+                NULL,
                 d_orientation_ghost_sendbuf.data,
                 false,
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
+                false,
                 false,
                 false,
                 flags[comm_flag::orientation],
@@ -2711,16 +2786,19 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                     d_vel_ghost_recvbuf.data,
                     NULL,
                     NULL,
+                    NULL,
                     d_orientation_ghost_recvbuf.data,
                     NULL,
                     d_pos.data + first_idx,
                     d_vel.data + first_idx,
                     NULL,
                     NULL,
+                    NULL,
                     d_orientation.data + first_idx,
                     false,
                     flags[comm_flag::position],
                     flags[comm_flag::velocity],
+                    false,
                     false,
                     false,
                     flags[comm_flag::orientation]);
@@ -2787,16 +2865,19 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
                 d_vel_ghost_recvbuf.data,
                 NULL,
                 NULL,
+                NULL,
                 d_orientation_ghost_recvbuf.data,
                 NULL,
                 d_pos.data + first_idx,
                 d_vel.data + first_idx,
                 NULL,
                 NULL,
+                NULL,
                 d_orientation.data + first_idx,
                 false,
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
+                false,
                 false,
                 false,
                 flags[comm_flag::orientation]);
@@ -2817,10 +2898,10 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
 void CommunicatorGPU::updateNetForce(unsigned int timestep)
     {
     CommFlags flags = getFlags();
-    if (! flags[comm_flag::net_force])
+    if (! flags[comm_flag::net_force] && !flags[comm_flag::net_torque])
         return;
 
-    m_exec_conf->msg->notice(7) << "CommunicatorGPU: update net force" << std::endl;
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: update net force and torque" << std::endl;
 
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_net_force");
 
@@ -2836,6 +2917,10 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
 
         m_netforce_ghost_sendbuf.resize(n_max);
 
+        if (flags[comm_flag::net_torque])
+            {
+            m_nettorque_ghost_sendbuf.resize(n_max);
+            }
 
             {
             // access particle data
@@ -2856,6 +2941,28 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+
+        if (flags[comm_flag::net_torque])
+            {
+            // access particle data
+            ArrayHandle<Scalar4> d_nettorque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+
+            // access ghost send indices
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::read);
+
+            // access output buffers
+            ArrayHandle<Scalar4> d_nettorque_ghost_sendbuf(m_nettorque_ghost_sendbuf, access_location::device, access_mode::overwrite);
+
+            // Pack ghosts into send buffers
+            gpu_exchange_ghosts_pack_netforce(
+                m_n_send_ghosts_tot[stage],
+                d_ghost_idx_adj.data + m_idx_offs[stage],
+                d_nettorque.data,
+                d_nettorque_ghost_sendbuf.data);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
         if (m_prof) m_prof->pop(m_exec_conf);
 
         /*
@@ -2880,9 +2987,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             unsigned int offs = 0;
             // recv buffer
             ArrayHandle<Scalar4> h_netforce_ghost_recvbuf(m_netforce_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_nettorque_ghost_recvbuf(m_nettorque_ghost_recvbuf, access_location::host, access_mode::overwrite);
 
             // send buffer
             ArrayHandle<Scalar4> h_netforce_ghost_sendbuf(m_netforce_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_nettorque_ghost_sendbuf(m_nettorque_ghost_sendbuf, access_location::host, access_mode::read);
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
@@ -2927,6 +3036,35 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                     m_reqs.push_back(req);
                     }
                 recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+
+                if (flags[comm_flag::net_torque])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(h_nettorque_ghost_sendbuf.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        m_reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(h_nettorque_ghost_recvbuf.data + m_ghost_offs[stage][ineigh] + offs,
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        m_reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    }
                 }
 
             // complete communication
@@ -2936,9 +3074,8 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-
-        //only unpack in non-CUDA MPI builds
         if (m_prof) m_prof->push(m_exec_conf,"unpack");
+
             {
             // access receive buffers
             ArrayHandle<Scalar4> d_netforce_ghost_recvbuf(m_netforce_ghost_recvbuf, access_location::device, access_mode::read);
@@ -2951,6 +3088,23 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                 m_n_recv_ghosts_tot[stage],
                 d_netforce_ghost_recvbuf.data,
                 d_netforce.data + first_idx);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        if (flags[comm_flag::net_torque])
+            {
+            // access receive buffers
+            ArrayHandle<Scalar4> d_nettorque_ghost_recvbuf(m_nettorque_ghost_recvbuf, access_location::device, access_mode::read);
+
+            // access particle data
+            ArrayHandle<Scalar4> d_nettorque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
+
+            // copy recv buf into particle data
+            gpu_exchange_ghosts_copy_netforce_buf(
+                m_n_recv_ghosts_tot[stage],
+                d_nettorque_ghost_recvbuf.data,
+                d_nettorque.data + first_idx);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }

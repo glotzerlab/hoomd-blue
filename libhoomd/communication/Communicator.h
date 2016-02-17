@@ -111,7 +111,9 @@ struct comm_flag
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
         orientation, //! Bit id in CommFlags for particle orientation
-        net_force    //! Communicate net force
+        body,        //! Bit id in CommFlags for particle body id
+        net_force,   //! Communicate net force
+        net_torque   //! Commuicate net torque
         };
     };
 
@@ -612,11 +614,13 @@ class Communicator
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+        GPUVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
         GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
         GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
         GPUVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
+        GPUVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
@@ -625,6 +629,9 @@ class Communicator
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+
+        unsigned int m_ghosts_added;             //!< Number of ghosts added
+
         //! Update the ghost width array
         void updateGhostWidth();
 

@@ -155,9 +155,10 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
-    // Update the rigid body particle positions and velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->setRV(true);
+    // slave any composite degrees of freedom
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeDOFs(timestep, true);
 
     if (m_prof)
         m_prof->pop();
@@ -192,13 +193,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
 
-    // Update the rigid body particle velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() > 0)
-       m_sysdef->getRigidData()->setRV(false);
+    // slave any composite degrees of freedom
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeDOFs(timestep+1, false);
 
     // if the virial needs to be computed and there are rigid bodies, perform the virial correction
-    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->computeVirialCorrectionEnd(m_deltaT/2.0);
+    //if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
+    //    m_sysdef->getRigidData()->computeVirialCorrectionEnd(m_deltaT/2.0);
 
     if (m_prof)
         m_prof->pop();
@@ -257,6 +258,26 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
     m_methods.clear();
     m_gave_warning = false;
     }
+
+/*! \param fc ForceComposite to add
+*/
+void IntegratorTwoStep::addForceComposite(boost::shared_ptr<ForceComposite> fc)
+    {
+    assert(fc);
+    m_composite_forces.push_back(fc);
+    }
+
+/*! Call removeForceComputes() to completely wipe out the list of force computes
+    that the integrator uses to sum forces.
+*/
+void IntegratorTwoStep::removeForceComputes()
+    {
+    Integrator::removeForceComputes();
+
+    // Remove ForceComposite objects
+    m_composite_forces.clear();
+    }
+
 
 /*! \returns true If all added integration methods have valid restart information
 */
@@ -351,6 +372,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
+    // ensure that any rigid bodies are correctly initialized
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeDOFs(timestep, true);
+
     // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
@@ -378,8 +404,8 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // for the moment, isotropic_virial is invalid on the first step if there are any rigid bodies
         // a future update to the restart data format (that saves net_force and net_virial) will make it
         // valid when there is a valid restart
-        if (m_sysdef->getRigidData()->getNumBodies() > 0)
-            m_pdata->removeFlag(pdata_flag::isotropic_virial);
+        //if (m_sysdef->getRigidData()->getNumBodies() > 0)
+        //    m_pdata->removeFlag(pdata_flag::isotropic_virial);
         }
     }
 
@@ -432,6 +458,8 @@ void export_IntegratorTwoStep()
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
+        .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
+        .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
         ;
 
     enum_<IntegratorTwoStep::AnisotropicMode>("IntegratorAnisotropicMode")

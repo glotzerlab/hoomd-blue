@@ -202,30 +202,10 @@ unsigned int IntegrationMethodTwoStep::getRotationalNDOF(boost::shared_ptr<Parti
 /*! Checks that every particle in the group is valid. This method may be called by anyone wishing to make this
     error check.
 
-    The base class defines a valid particle as one that does not belong to a rigid body (as this is the common case).
-    Derived classes may override this method to perform custom checks.
+    The base class does nothing
 */
 void IntegrationMethodTwoStep::validateGroup()
     {
-    for (unsigned int gidx = 0; gidx < m_group->getNumMembersGlobal(); gidx++)
-        {
-        unsigned int tag = m_group->getMemberTag(gidx);
-        if (m_pdata->isParticleLocal(tag))
-            {
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-            unsigned int body = h_body.data[h_rtag.data[tag]];
-
-            if (body != NO_BODY)
-                {
-                m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
-                     << "This integration method does not operate on rigid bodies" << endl;
-
-                throw std::runtime_error("Error initializing integration method");
-                }
-            }
-        }
     }
 
 

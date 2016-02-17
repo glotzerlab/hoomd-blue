@@ -659,7 +659,7 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the local maximum particle number changes
         boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
-        //! Connects a function to be called every time the ghost particles are reinitialized
+        //! Connects a function to be called every time the ghost particles become invalid
         boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
 
         #ifdef ENABLE_MPI
@@ -856,7 +856,7 @@ class ParticleData : boost::noncopyable
 
         //! Initialize from a snapshot
         template <class Real>
-        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot);
+        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot, bool ignore_bodies=false);
 
         //! Take a snapshot
         template <class Real>
@@ -868,8 +868,10 @@ class ParticleData : boost::noncopyable
         //! Remove all ghost particles from system
         void removeAllGhostParticles()
             {
-            notifyGhostParticlesRemoved();
+            // reset ghost particle number
             m_nghosts = 0;
+
+            notifyGhostParticlesRemoved();
             }
 
 #ifdef ENABLE_MPI

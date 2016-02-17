@@ -867,18 +867,21 @@ void gpu_exchange_ghosts_pack(
     const Scalar4 *d_vel,
     const Scalar *d_charge,
     const Scalar *d_diameter,
+    const unsigned int *d_body,
     const Scalar4 *d_orientation,
     unsigned int *d_tag_sendbuf,
     Scalar4 *d_pos_sendbuf,
     Scalar4 *d_vel_sendbuf,
     Scalar *d_charge_sendbuf,
     Scalar *d_diameter_sendbuf,
+    unsigned int *d_body_sendbuf,
     Scalar4 *d_orientation_sendbuf,
     bool send_tag,
     bool send_pos,
     bool send_vel,
     bool send_charge,
     bool send_diameter,
+    bool send_body,
     bool send_orientation,
     const Index3D &di,
     uint3 my_pos,
@@ -891,6 +894,7 @@ void gpu_exchange_ghosts_pack(
     if (send_vel) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_vel, d_vel_sendbuf);
     if (send_charge) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_charge, d_charge_sendbuf);
     if (send_diameter) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_diameter, d_diameter_sendbuf);
+    if (send_body) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_body, d_body_sendbuf);
     if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_orientation, d_orientation_sendbuf);
     }
 
@@ -974,18 +978,21 @@ void gpu_exchange_ghosts_copy_buf(
     const Scalar4 *d_vel_recvbuf,
     const Scalar *d_charge_recvbuf,
     const Scalar *d_diameter_recvbuf,
+    const unsigned int *d_body_recvbuf,
     const Scalar4 *d_orientation_recvbuf,
     unsigned int *d_tag,
     Scalar4 *d_pos,
     Scalar4 *d_vel,
     Scalar *d_charge,
     Scalar *d_diameter,
+    unsigned int *d_body,
     Scalar4 *d_orientation,
     bool send_tag,
     bool send_pos,
     bool send_vel,
     bool send_charge,
     bool send_diameter,
+    bool send_body,
     bool send_orientation)
     {
     unsigned int block_size = 256;
@@ -995,6 +1002,7 @@ void gpu_exchange_ghosts_copy_buf(
     if (send_vel) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_vel_recvbuf, d_vel);
     if (send_charge) gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_charge_recvbuf, d_charge);
     if (send_diameter) gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_diameter_recvbuf, d_diameter);
+    if (send_body) gpu_unpack_kernel<unsigned int><<<n_blocks, block_size>>>(n_recv, d_body_recvbuf, d_body);
     if (send_orientation) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_orientation_recvbuf, d_orientation);
     }
 
