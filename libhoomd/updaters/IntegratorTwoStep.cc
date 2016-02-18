@@ -186,9 +186,9 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // if the virial needs to be computed and there are rigid bodies, perform the virial correction
-    PDataFlags flags = m_pdata->getFlags();
-    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->computeVirialCorrectionStart();
+    //PDataFlags flags = m_pdata->getFlags();
+    //if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
+    //    m_sysdef->getRigidData()->computeVirialCorrectionStart();
 
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)

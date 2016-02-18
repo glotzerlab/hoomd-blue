@@ -501,10 +501,6 @@ void ForceComposite::createRigidBodies()
                         // this particle does not introduce additional degrees of freedom
                         m_ndof_removed += ndim;
 
-                        // and no anisotropic degrees of freedom (this is used to suppress
-                        // updating the orientation of this ptl in the Integrator)
-                        snap_out.inertia[snap_idx_out] = vec3<Scalar>(0,0,0);
-
                         // update position and orientation to ensure particles end up in correct domain
                         vec3<Scalar> pos(central_pos);
 
@@ -578,6 +574,9 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 
     // request communication of particle torques
     flags[comm_flag::net_torque] = 1;
+
+    // request velocities
+    flags[comm_flag::velocity] = 1;
 
     // request body ids
     flags[comm_flag::body] = 1;
@@ -675,9 +674,9 @@ void ForceComposite::computeForces(unsigned int timestep)
             vec3<Scalar> f(net_force);
 
             // sum up center of mass force
-            h_force.data[central_idx].x += net_force.x;
-            h_force.data[central_idx].y += net_force.y;
-            h_force.data[central_idx].z += net_force.z;
+            h_force.data[central_idx].x += f.x;
+            h_force.data[central_idx].y += f.y;
+            h_force.data[central_idx].z += f.z;
 
             unsigned int tagj = h_tag.data[idxj];
             assert(tagj <= m_pdata->getMaximumTag());

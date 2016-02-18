@@ -454,8 +454,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
         unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
@@ -468,8 +470,10 @@ void Integrator::computeNetForce(unsigned int timestep)
             //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
             GPUArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
+            GPUArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
+            ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
             unsigned int virial_pitch = h_virial_array.getPitch();
 
 
@@ -479,6 +483,12 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_force.data[j].y += h_force.data[j].y;
                 h_net_force.data[j].z += h_force.data[j].z;
                 h_net_force.data[j].w += h_force.data[j].w;
+
+                h_net_torque.data[j].x += h_torque.data[j].x;
+                h_net_torque.data[j].y += h_torque.data[j].y;
+                h_net_torque.data[j].z += h_torque.data[j].z;
+                h_net_torque.data[j].w += h_torque.data[j].w;
+
                 for (unsigned int k = 0; k < 6; k++)
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
