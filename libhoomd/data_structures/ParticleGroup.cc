@@ -223,6 +223,41 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     }
 
 //////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorRigidCenter
+
+ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(boost::shared_ptr<SystemDefinition> sysdef)
+    :ParticleSelector(sysdef)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag is a center particle of a rigid body
+*/
+bool ParticleSelectorRigidCenter::isSelected(unsigned int tag) const
+    {
+    assert(tag <= m_pdata->getMaximumTag());
+
+    // access array directly instead of going through the getBody() interface
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    unsigned int body = h_body.data[idx];
+
+    // see if it matches the criteria
+    return (body == tag);
+    }
+
+
+//////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
 
 ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
@@ -809,5 +844,9 @@ void export_ParticleGroup()
 
     class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
+        ;
+
+    class_<ParticleSelectorRigidCenter, boost::shared_ptr<ParticleSelectorRigidCenter>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorRigidCenter", init< boost::shared_ptr<SystemDefinition> >())
         ;
     }
