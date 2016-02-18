@@ -194,8 +194,13 @@ void MolecularForceCompute::initMolecules()
     }
 
 #ifdef ENABLE_MPI
+/* This method adds particles that belong to the same molecule as a particle that is being
+   communicated to the communication list. This is necessary for rigid bodies to ensure
+   that the central particle always gets communicated.
+*/
 void MolecularForceCompute::addGhostParticles(const GPUArray<unsigned int>& plans)
     {
+    return;
     if (!m_n_molecules_global) return;
 
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);

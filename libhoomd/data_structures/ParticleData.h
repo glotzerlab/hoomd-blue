@@ -182,6 +182,9 @@ struct SnapshotParticleData {
      */
     void resize(unsigned int N);
 
+    //! Insert n elements at position i
+    void insert(unsigned int i, unsigned int n);
+
     //! Validate the snapshot
     /*! \returns true if the number of elements is consistent
      */

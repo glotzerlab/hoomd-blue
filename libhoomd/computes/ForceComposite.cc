@@ -187,12 +187,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
         m_d_max_changed[body_typeid] = true;
-
-        // also need to update ghost layer for constituent types
-        for (unsigned int i = 0; i < type.size(); ++i)
-            {
-            m_d_max_changed[type[i]] = true;
-            }
         }
    }
 
@@ -223,8 +217,10 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
     }
 
-Scalar ForceComposite::askGhostLayerWidth(unsigned int type)
+Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type)
     {
+    // the point of having a ghost layer for rigid bodies is to ensure that
+    // the central ptl always gets communicated
     if (m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
@@ -232,44 +228,22 @@ Scalar ForceComposite::askGhostLayerWidth(unsigned int type)
         assert(m_body_len.getNumElements() > type);
 
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
 
-        // find largest body diameter this particle participates in
-        unsigned int ntypes = m_pdata->getNTypes();
-
-        for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
+        // compute maximum distance to central particle
+        for (unsigned int i = 0; i < h_body_len.data[type]; ++i)
             {
-            bool part_of_body = (type == body_type);
+            Scalar3 r = h_body_pos.data[m_body_idx(type,i)];
+            Scalar d = sqrt(dot(r,r));
 
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+            if (d > m_d_max[type])
                 {
-                if (type == h_body_type.data[m_body_idx(body_type, i)])
-                    {
-                    part_of_body = true;
-                    }
-                }
-
-            if (!part_of_body) continue;
-
-            // compute maximum diameter for this body_type
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-                {
-                for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                    {
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)] - h_body_pos.data[m_body_idx(body_type,j)];
-                    Scalar d = sqrt(dot(dr,dr));
-
-                    if (d > m_d_max[type])
-                        {
-                        m_d_max[type] = d;
-                        }
-                    }
+                m_d_max[type] = d;
                 }
             }
 
-        m_exec_conf->msg->notice(7) << "ForceComposite: ghost layer for type " << m_pdata->getNameByType(type) << ": "
-            << m_d_max[type] << std::endl;
+        m_exec_conf->msg->notice(7) << "ForceComposite: additional ghost layer for type "
+            << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
 
         m_d_max_changed[type] = false;
         }
@@ -378,23 +352,22 @@ void ForceComposite::createRigidBodies()
 
         const BoxDim& global_box = m_pdata->getGlobalBox();
 
+        SnapshotParticleData<Scalar> snap_out = snap;
+
         if (m_exec_conf->getRank() == 0)
             {
             unsigned int old_size = snap.size;
 
-            // resize snapshot
-            snap.resize(old_size + n_add_ptls);
-
             // resize and reset global molecule table
             molecule_tag.resize(old_size+n_add_ptls, NO_MOLECULE);
-
-            unsigned int snap_idx_out = old_size;
 
             // acces body data
             ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
             ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+
+            unsigned int snap_idx_out = 0;
 
             // create copies
             for (unsigned i = 0; i < old_size; ++i)
@@ -407,27 +380,35 @@ void ForceComposite::createRigidBodies()
 
                 if (is_central_ptl)
                     {
+                    unsigned int body_type = snap.type[i];
+
+                    unsigned body_tag = snap_idx_out;
+
                     // set body id to tag of central ptl
-                    snap.body[i] = i;
+                    snap_out.body[snap_idx_out] = body_tag;
 
                     // set contiguous molecule tag
-                    molecule_tag[i] = nbodies;
+                    molecule_tag[snap_idx_out] = nbodies;
 
                     vec3<Scalar> central_pos(snap.pos[i]);
                     quat<Scalar> central_orientation(snap.orientation[i]);
                     int3 central_img = snap.image[i];
 
-                    unsigned int body_type = snap.type[i];
+                    snap_idx_out++;
 
-                    for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                    // insert elements into snapshot
+                    unsigned int n= h_body_len.data[body_type];
+                    snap_out.insert(snap_idx_out, n);
+
+                    for (unsigned int j = 0; j < n; ++j)
                         {
                         // position and orientation will be overwritten during integration, no need to set here
 
                         // set type
-                        snap.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
+                        snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
 
                         // set body index on constituent particle
-                        snap.body[snap_idx_out] = snap.body[i];
+                        snap_out.body[snap_idx_out] = body_tag;
 
                         // use contiguous molecule tag
                         molecule_tag[snap_idx_out] = nbodies;
@@ -437,7 +418,7 @@ void ForceComposite::createRigidBodies()
 
                         // and no anisotropic degrees of freedom (this is used to suppress
                         // updating the orientation of this ptl in the Integrator)
-                        snap.inertia[snap_idx_out] = vec3<Scalar>(0,0,0);
+                        snap_out.inertia[snap_idx_out] = vec3<Scalar>(0,0,0);
 
                         // update position and orientation to ensure particles end up in correct domain
                         vec3<Scalar> pos(central_pos);
@@ -449,15 +430,16 @@ void ForceComposite::createRigidBodies()
                         int3 img = central_img;
                         global_box.wrap(pos, img);
 
-                        snap.pos[snap_idx_out] = pos;
-                        snap.image[snap_idx_out] = img;
-                        snap.orientation[snap_idx_out] = orientation;
+                        snap_out.pos[snap_idx_out] = pos;
+                        snap_out.image[snap_idx_out] = img;
+                        snap_out.orientation[snap_idx_out] = orientation;
 
                         snap_idx_out++;
                         }
 
                     nbodies++;
                     }
+
                 }
             }
 
@@ -465,7 +447,7 @@ void ForceComposite::createRigidBodies()
             << n_add_ptls << " particles)" << std::endl;
 
         // re-initialize, keeping particles with body != NO_BODY at this time
-        m_pdata->initializeFromSnapshot(snap, false);
+        m_pdata->initializeFromSnapshot(snap_out, false);
 
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -534,6 +516,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     // access particle data
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
@@ -574,6 +557,12 @@ void ForceComposite::computeForces(unsigned int timestep)
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
+        // do not compute force on ghost particles
+        if (central_idx >= nptl_local) continue;
+
+        // the central ptl must be present
+        assert(central_tag == h_tag.data[first_idx]);
+
         // central ptl position and orientation
         Scalar4 postype = h_postype.data[central_idx];
         vec3<Scalar> pos(postype);
@@ -590,9 +579,6 @@ void ForceComposite::computeForces(unsigned int timestep)
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
 
-            // do not compute force on ghost particles
-            if (idxj >= nptl_local) continue;
-
             // force and torque on particle
             Scalar4 net_force = h_net_force.data[idxj];
             vec3<Scalar> f(net_force);
@@ -603,15 +589,18 @@ void ForceComposite::computeForces(unsigned int timestep)
             h_force.data[central_idx].z += net_force.z;
             h_force.data[central_idx].w += net_force.w;
 
-            // the molecule list is in tag order, therefore the central particle comes first
-            assert(len == h_body_len.data[type]+1);
-            assert(jptl >= 1);
+            unsigned int tagj = h_tag.data[idxj];
+            assert(tagj <= m_pdata->getMaximumTag());
 
-            // spatial offset of particle
-            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl-1)]);
+            // the first ptl in the body is the central ptl
+            assert(tagj-central_tag >= 1);
+
+            // we know that the tag of the constituent ptl relative to the central ptl indicates
+            // the position in the rigid body
+            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
 
             // rotate into space frame
-            quat<Scalar> q(h_orientation.data[idxj]);
+            quat<Scalar> q(h_orientation.data[central_idx]);
             vec3<Scalar> dr_space = rotate(q, dr);
 
             // torque = r x f
@@ -686,9 +675,10 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
         // body tag equals tag for central ptl
         assert(central_tag <= m_pdata->getMaximumTag());
-        assert(central_tag == h_tag.data[first_idx]);
-
         unsigned int central_idx = h_rtag.data[central_tag];
+
+        // central ptl is present
+        assert(central_tag == h_tag.data[first_idx]);
 
         // central ptl position and orientation
         assert(central_idx <= m_pdata->getN() + m_pdata->getNGhosts());
@@ -705,19 +695,22 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
             unsigned int idxj = h_molecule_list.data[m_molecule_indexer(ibody, jptl)];
+            assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
+
+            unsigned int tagj = h_tag.data[idxj];
 
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
 
             //if (update_rq)
                 {
-                // the molecule list is in tag order, therefore the central particle comes first
-                assert(len == h_body_len.data[type]+1);
-                assert(jptl >= 1);
+                // the first molecule ptl is the central ptl
+                assert(tagj-central_tag >= 1);
 
-                // the order in the molecule list matches the order of the body definition, since both are in tag-order
-                vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, jptl-1)]);
-                quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, jptl-1)]);
+                // we know that the tag of the constituent ptl relative to the central ptl indicates
+                // the position in the rigid body
+                vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
+                quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tagj - central_tag - 1)]);
 
                 // update position and orientation
                 vec3<Scalar> updated_pos(pos);

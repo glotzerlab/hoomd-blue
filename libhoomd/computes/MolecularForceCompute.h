@@ -59,6 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     MolecularForceCompute maintains a list of local molecules and their constituent particles, and
     the particles are sorted according to global particle tag.
 
+    The data structures are initialized by calling initMolecules(). This is done in the derived class
+    whenever particles are reordered.
+
     Every molecule has a unique contiguous tag, 0 <=tag <m_n_molecules_global.
 
     Derived classes take care of resizing the ghost layer accordingly so that
@@ -110,7 +113,7 @@ class MolecularForceCompute : public ForceConstraint
             See documentation for Communicator for meaning of the plan bitflags
          */
         virtual void addGhostParticles(const GPUArray<unsigned int>& plans);
-       #endif
+        #endif
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< Pointer to neighbor list

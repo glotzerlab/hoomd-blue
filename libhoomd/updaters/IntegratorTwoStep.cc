@@ -173,6 +173,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
         (*force_composite)->updateCompositeDOFs(timestep, true);
 
+
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)

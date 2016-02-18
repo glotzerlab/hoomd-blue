@@ -1539,6 +1539,22 @@ void Communicator::updateGhostWidth()
             }
         m_r_ghost_max = r_ghost_max;
         }
+
+    if (m_ghost_layer_extra_width_requests.num_slots())
+        {
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
+
+        // reduce per type using the signals, and then overall
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            Scalar r_ghost_extra_i = m_ghost_layer_extra_width_requests(cur_type);
+
+            // add sum of inputs
+            h_r_ghost.data[cur_type] += r_ghost_extra_i;
+
+            if (h_r_ghost.data[cur_type] > m_r_ghost_max) m_r_ghost_max = h_r_ghost.data[cur_type];
+            }
+        }
     }
 
 //! Build ghost particle list, exchange ghost particle data

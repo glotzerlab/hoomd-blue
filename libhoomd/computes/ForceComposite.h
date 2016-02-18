@@ -140,8 +140,8 @@ class ForceComposite : public MolecularForceCompute
             m_ptls_added_removed = true;
             }
 
-        //! Return the requested ghost layer width
-        virtual Scalar askGhostLayerWidth(unsigned int type);
+        //! Return the requested ghost layer width to be added to the exisiting ghost layer
+        virtual Scalar requestGhostLayerExtraWidth(unsigned int type);
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
@@ -153,8 +153,8 @@ class ForceComposite : public MolecularForceCompute
             if (!m_comm_ghost_layer_connection.connected())
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceComposite::askGhostLayerWidth, this, _1));
+                m_comm_ghost_layer_connection = m_comm->addGhostLayerExtraWidthRequest(
+                    boost::bind(&ForceComposite::requestGhostLayerExtraWidth, this, _1));
                 }
            }
         #endif

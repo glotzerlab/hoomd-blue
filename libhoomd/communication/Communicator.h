@@ -200,6 +200,37 @@ struct ghost_layer_max
         }
     };
 
+//! Perform a sum reduction on the return values of several signals
+struct ghost_layer_add
+    {
+    //! This is needed by boost::signals2
+    typedef Scalar result_type;
+
+    //! Max-reduce return values
+    /*! \param first First return value
+        \param last Last return value
+     */
+    template<typename InputIterator>
+    Scalar operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last)
+            {
+            return Scalar(0.0);
+            }
+
+        Scalar return_value = *first++;
+        while (first != last)
+            {
+            assert(*first >= Scalar(0.0));
+            return_value += *first;
+            first++;
+            }
+
+        return return_value;
+        }
+    };
+
+
 //! A compact storage for rank information
 template<typename ranks_t>
 struct rank_element
@@ -307,6 +338,19 @@ class Communicator
         boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
             {
             return m_ghost_layer_width_requests.connect(subscriber);
+            }
+
+        //! Subscribe to list of functions that request aadditional ghost layer width
+        /*! This method keeps track of all functions that request ghost layer width that is added to the
+         * width determined from m_ghost_layer_width_requests
+         *
+         * The actual extra width is chosen from the sum over the inputs
+         *
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addGhostLayerExtraWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+            {
+            return m_ghost_layer_extra_width_requests.connect(subscriber);
             }
 
         //! Subscribe to list of functions that determine the communication flags
@@ -645,6 +689,9 @@ class Communicator
 
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
+
+        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_add>
+            m_ghost_layer_extra_width_requests;  //!< List of functions that request additional ghost layer width
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
