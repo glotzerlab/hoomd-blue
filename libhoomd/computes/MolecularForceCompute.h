@@ -106,13 +106,6 @@ class MolecularForceCompute : public ForceConstraint
 
             return flags;
             }
-
-        //! Request communication of additional ghost particles
-        /*! \param plans Plans of already marked ghost particles
-
-            See documentation for Communicator for meaning of the plan bitflags
-         */
-        virtual void addGhostParticles(const GPUArray<unsigned int>& plans);
         #endif
 
     protected:

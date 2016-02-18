@@ -1659,9 +1659,6 @@ void Communicator::exchangeGhosts()
     // constraints
     m_constraint_comm.markGhostParticles(m_plan, mask);
 
-    // mark additional ghost particles requested by ForceComputes
-    m_comm_callbacks(m_plan);
-
     /*
      * Fill send buffers, exchange particles according to plans
      */

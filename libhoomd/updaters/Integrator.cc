@@ -88,8 +88,6 @@ Integrator::~Integrator()
         m_request_flags_connection.disconnect();
     if (m_callback_connection.connected())
         m_callback_connection.disconnect();
-    if (m_comm_callback_connection.connected())
-        m_comm_callback_connection.disconnect();
     #endif
     }
 
@@ -890,9 +888,6 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
 
     if (! m_callback_connection.connected() && m_comm)
         m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
-
-    if (! m_comm_callback_connection.connected() && m_comm)
-        m_comm_callback_connection = comm->addCommunicationCallback(bind(&Integrator::ghostCommunicationCallback, this, _1));
     }
 
 void Integrator::computeCallback(unsigned int timestep)
@@ -902,19 +897,6 @@ void Integrator::computeCallback(unsigned int timestep)
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
-    }
-
-void Integrator::ghostCommunicationCallback(const GPUArray<unsigned int>& plans)
-    {
-    // identify additonal ghost particles
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->addGhostParticles(plans);
-
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->addGhostParticles(plans);
     }
 #endif
 

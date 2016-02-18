@@ -1900,9 +1900,6 @@ void CommunicatorGPU::exchangeGhosts()
         // constraints
         m_constraint_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
-        // mark additional ghost particles requested by ForceComputes
-        m_comm_callbacks(m_ghost_plan);
-
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
