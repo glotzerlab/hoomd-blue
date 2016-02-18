@@ -217,17 +217,20 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
     }
 
-Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type)
+Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_ghost_max)
     {
     // the point of having a ghost layer for rigid bodies is to ensure that
     // the central ptl always gets communicated
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+
+    bool is_body_type = h_body_len.data[type] > 0;
+
     if (m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
 
         assert(m_body_len.getNumElements() > type);
 
-        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
 
         // compute maximum distance to central particle
@@ -248,7 +251,14 @@ Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type)
         m_d_max_changed[type] = false;
         }
 
-    return m_d_max[type];
+    if (is_body_type)
+        {
+        return m_d_max[type] + r_ghost_max;
+        }
+    else
+        {
+        return m_d_max[type];
+        }
     }
 
 void ForceComposite::createRigidBodies()
@@ -662,12 +672,9 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
         unsigned int len = h_molecule_length.data[ibody];
-
-        // ignore zero length molecules
-        if (len == 0) continue;
+        assert(len>0);
 
         // get central ptl tag from first ptl in molecule
-        assert(len>0);
         unsigned int first_idx = h_molecule_list.data[m_molecule_indexer(ibody,0)];
 
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());

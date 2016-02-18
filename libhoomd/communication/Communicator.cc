@@ -1545,15 +1545,19 @@ void Communicator::updateGhostWidth()
         ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
 
         // reduce per type using the signals, and then overall
+        Scalar new_r_ghost_max = m_r_ghost_max;
+
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
-            Scalar r_ghost_extra_i = m_ghost_layer_extra_width_requests(cur_type);
+            Scalar r_ghost_extra_i = m_ghost_layer_extra_width_requests(cur_type, m_r_ghost_max);
 
             // add sum of inputs
-            h_r_ghost.data[cur_type] += r_ghost_extra_i;
+            h_r_ghost.data[cur_type] = r_ghost_extra_i;
 
-            if (h_r_ghost.data[cur_type] > m_r_ghost_max) m_r_ghost_max = h_r_ghost.data[cur_type];
+            if (h_r_ghost.data[cur_type] > new_r_ghost_max) new_r_ghost_max = h_r_ghost.data[cur_type];
             }
+
+        m_r_ghost_max = new_r_ghost_max;
         }
     }
 

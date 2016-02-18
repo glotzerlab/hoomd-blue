@@ -342,13 +342,13 @@ class Communicator
 
         //! Subscribe to list of functions that request aadditional ghost layer width
         /*! This method keeps track of all functions that request ghost layer width that is added to the
-         * width determined from m_ghost_layer_width_requests
+         * maximum width determined from m_ghost_layer_width_requests
          *
          * The actual extra width is chosen from the sum over the inputs
          *
          * \return A connection to the present class
          */
-        boost::signals2::connection addGhostLayerExtraWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+        boost::signals2::connection addGhostLayerExtraWidthRequest(const boost::function<Scalar (unsigned int, Scalar)>& subscriber)
             {
             return m_ghost_layer_extra_width_requests.connect(subscriber);
             }
@@ -690,7 +690,7 @@ class Communicator
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
-        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_add>
+        boost::signals2::signal<Scalar (unsigned int type, Scalar r_ghost_max), ghost_layer_add>
             m_ghost_layer_extra_width_requests;  //!< List of functions that request additional ghost layer width
 
         boost::signals2::signal<void (unsigned int timestep)>
