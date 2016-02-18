@@ -206,6 +206,27 @@ unsigned int IntegrationMethodTwoStep::getRotationalNDOF(boost::shared_ptr<Parti
 */
 void IntegrationMethodTwoStep::validateGroup()
     {
+    for (unsigned int gidx = 0; gidx < m_group->getNumMembersGlobal(); gidx++)
+        {
+        unsigned int tag = m_group->getMemberTag(gidx);
+        if (m_pdata->isParticleLocal(tag))
+            {
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+            unsigned int body = h_body.data[h_rtag.data[tag]];
+
+            if (body != NO_BODY && body != tag)
+                {
+                m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body, but is not its center particle. "
+                    << std::endl << "This integration method does not operate on constituent particles."
+                    << std::endl << std::endl;
+                throw std::runtime_error("Error initializing integration method");
+                }
+            }
+        }
+
     }
 
 
