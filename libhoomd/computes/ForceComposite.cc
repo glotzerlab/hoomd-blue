@@ -93,6 +93,12 @@ ForceComposite::~ForceComposite()
     m_num_type_change_connection.disconnect();
 
     m_global_ptl_num_change_connection.disconnect();
+
+    if (m_comm_ghost_layer_connection.connected())
+        m_comm_ghost_layer_connection.disconnect();
+
+    if (m_comm_extra_ghost_layer_connection.connected())
+        m_comm_extra_ghost_layer_connection.disconnect();
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -187,6 +193,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
         m_d_max_changed[body_typeid] = true;
+
+        // also update diameter on constituent particles
+        for (unsigned int i = 0; i < type.size(); ++i)
+            {
+            m_d_max_changed[type[i]] = true;
+            }
         }
    }
 
@@ -217,15 +229,78 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
     }
 
-Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_ghost_max)
+Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
     {
-    // the point of having a ghost layer for rigid bodies is to ensure that
-    // the central ptl always gets communicated
+    // the normal ghost layer is there to ensure that constituent particles are always
+    // communicated for every central particle
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     bool is_body_type = h_body_len.data[type] > 0;
 
-    if (m_d_max_changed[type])
+    if (!is_body_type && m_d_max_changed[type])
+        {
+        m_d_max[type] = Scalar(0.0);
+
+        assert(m_body_len.getNumElements() > type);
+
+        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+
+        unsigned int ntypes = m_pdata->getNTypes();
+
+        // find maximum body radius over all bodies this type participates in
+        for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
+            {
+            bool is_part_of_body = false;
+            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                {
+                if (h_body_type.data[i] == type)
+                    {
+                    is_part_of_body = true;
+                    break;
+                    }
+                }
+
+            if (! is_part_of_body) continue;
+
+            // compute maximum distance to central particle
+            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                {
+                Scalar3 r = h_body_pos.data[m_body_idx(body_type,i)];
+                Scalar d = sqrt(dot(r,r));
+
+                if (d > m_d_max[type])
+                    {
+                    m_d_max[type] = d;
+                    }
+                }
+            }
+
+        m_exec_conf->msg->notice(7) << "ForceComposite: request ghost layer for type "
+            << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
+
+        m_d_max_changed[type] = false;
+        }
+
+    if (is_body_type)
+        {
+        return Scalar(0.0);
+        }
+    else
+        {
+        return m_d_max[type];
+        }
+    }
+
+Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_ghost_max)
+    {
+    // the point of having an extra ghost layer for rigid bodies is to ensure that
+    // the central ptl always gets communicated for remote constituent particles
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+
+    bool is_body_type = h_body_len.data[type] > 0;
+
+    if (is_body_type && m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
 
@@ -245,7 +320,7 @@ Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_g
                 }
             }
 
-        m_exec_conf->msg->notice(7) << "ForceComposite: additional ghost layer for type "
+        m_exec_conf->msg->notice(7) << "ForceComposite: request additional ghost layer for type "
             << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
 
         m_d_max_changed[type] = false;
@@ -257,7 +332,7 @@ Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_g
         }
     else
         {
-        return m_d_max[type];
+        return Scalar(0.0);
         }
     }
 
@@ -516,9 +591,12 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(unsigned int timestep)
     {
+    // at this point, all constituent particles of a local rigid body (i.e. one for which the central particle
+    // is local) need to be present to correctly compute forces
+
     if (m_particles_sorted)
         {
-        // initialize molecule tabe
+        // initialize molecule table
         initMolecules();
         m_particles_sorted = false;
         }
@@ -581,6 +659,9 @@ void ForceComposite::computeForces(unsigned int timestep)
         // body type
         unsigned int type = __scalar_as_int(postype.w);
 
+        // the rigid body must be complete (+1 for central ptl)
+        assert(len == h_body_len.data[type] + 1);
+
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
@@ -597,7 +678,6 @@ void ForceComposite::computeForces(unsigned int timestep)
             h_force.data[central_idx].x += net_force.x;
             h_force.data[central_idx].y += net_force.y;
             h_force.data[central_idx].z += net_force.z;
-            h_force.data[central_idx].w += net_force.w;
 
             unsigned int tagj = h_tag.data[idxj];
             assert(tagj <= m_pdata->getMaximumTag());
@@ -651,6 +731,8 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -709,20 +791,22 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
             // do not overwrite the central ptl
             if (idxj == central_idx) continue;
 
-            //if (update_rq)
+            vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
+            vec3<Scalar> dr_space = rotate(orientation, local_pos);
+
+           //if (update_rq)
                 {
                 // the first molecule ptl is the central ptl
                 assert(tagj-central_tag >= 1);
 
-                // we know that the tag of the constituent ptl relative to the central ptl indicates
-                // the position in the rigid body
-                vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
-                quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tagj - central_tag - 1)]);
-
                 // update position and orientation
                 vec3<Scalar> updated_pos(pos);
 
-                updated_pos += rotate(orientation, local_pos);
+                // we know that the tag of the constituent ptl relative to the central ptl indicates
+                // the position in the rigid body
+                quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tagj - central_tag - 1)]);
+
+                updated_pos += dr_space;
                 quat<Scalar> updated_orientation = orientation*local_orientation;
 
                 // this runs before the ForceComputes, wrap particle into box
@@ -733,6 +817,14 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
                 h_orientation.data[idxj] = quat_to_scalar4(updated_orientation);
                 h_image.data[idxj] = imgj;
                 }
+
+            quat<Scalar> angmom(h_angmom.data[central_idx]);
+            vec3<Scalar> ang_vel = (Scalar(1./2.)*conj(orientation)*angmom).v;
+
+            vec3<Scalar> v = vec3<Scalar>(h_vel.data[central_idx]) + cross(ang_vel,dr_space);
+            h_vel.data[idxj].x = v.x;
+            h_vel.data[idxj].y = v.y;
+            h_vel.data[idxj].z = v.z;
             }
         }
     }

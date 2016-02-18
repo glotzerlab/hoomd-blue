@@ -1524,6 +1524,16 @@ void Communicator::migrateParticles()
 
 void Communicator::updateGhostWidth()
     {
+        {
+        // reset ghost layers
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+
+        for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
+            {
+            h_r_ghost.data[i] = Scalar(0.0);
+            }
+        }
+
     if (m_ghost_layer_width_requests.num_slots())
         {
         // update the ghost layer width only if subscribers are available
@@ -1552,7 +1562,7 @@ void Communicator::updateGhostWidth()
             Scalar r_ghost_extra_i = m_ghost_layer_extra_width_requests(cur_type, m_r_ghost_max);
 
             // add sum of inputs
-            h_r_ghost.data[cur_type] = r_ghost_extra_i;
+            h_r_ghost.data[cur_type] += r_ghost_extra_i;
 
             if (h_r_ghost.data[cur_type] > new_r_ghost_max) new_r_ghost_max = h_r_ghost.data[cur_type];
             }

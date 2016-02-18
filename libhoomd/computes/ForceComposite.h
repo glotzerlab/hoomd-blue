@@ -140,7 +140,10 @@ class ForceComposite : public MolecularForceCompute
             m_ptls_added_removed = true;
             }
 
-        //! Return the requested ghost layer width to be added to the existing ghost layer
+        //! Return the requested minimum ghost layer width
+        virtual Scalar requestGhostLayerWidth(unsigned int type);
+
+       //! Return the requested ghost layer width to be added to the existing ghost layer
         virtual Scalar requestGhostLayerExtraWidth(unsigned int type, Scalar r_ghost_max);
 
         #ifdef ENABLE_MPI
@@ -153,7 +156,10 @@ class ForceComposite : public MolecularForceCompute
             if (!m_comm_ghost_layer_connection.connected())
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerExtraWidthRequest(
+                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
+                    boost::bind(&ForceComposite::requestGhostLayerWidth, this, _1));
+
+                m_comm_extra_ghost_layer_connection = m_comm->addGhostLayerExtraWidthRequest(
                     boost::bind(&ForceComposite::requestGhostLayerExtraWidth, this, _1, _2));
                 }
            }
@@ -170,6 +176,7 @@ class ForceComposite : public MolecularForceCompute
         boost::signals2::connection m_global_ptl_num_change_connection;
 
         boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        boost::signals2::connection m_comm_extra_ghost_layer_connection; //!< Connection to be asked for extra ghost layer width requests
     };
 
 //! Exports the ForceComposite to python
