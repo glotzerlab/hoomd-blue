@@ -2193,7 +2193,11 @@ void Communicator::updateNetForce(unsigned int timestep)
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
     m_netforce_copybuf.clear();
-    m_nettorque_copybuf.clear();
+
+    if (flags[comm_flag::net_torque])
+        {
+        m_nettorque_copybuf.clear();
+        }
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -2205,6 +2209,7 @@ void Communicator::updateNetForce(unsigned int timestep)
 
         if (flags[comm_flag::net_torque])
             {
+            old_size = m_nettorque_copybuf.size();
             m_nettorque_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
             }
 
@@ -2238,7 +2243,7 @@ void Communicator::updateNetForce(unsigned int timestep)
                     assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
 
                     // copy net force into send buffer
-                    h_nettorque.data[ghost_idx] = h_nettorque.data[idx];
+                    h_nettorque_copybuf.data[ghost_idx] = h_nettorque.data[idx];
                     }
                 }
             }
@@ -2286,8 +2291,8 @@ void Communicator::updateNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::read);
 
-            MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_nettorque.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
+            MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_nettorque.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[1]);
             MPI_Waitall(2, reqs, status);
 
             sz += sizeof(Scalar4);
