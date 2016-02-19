@@ -115,6 +115,11 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     for (unsigned int i = 0; i < group_size; i++)
     {
         h_activeMag.data[i] = sqrt(m_f_lst[i].x*m_f_lst[i].x + m_f_lst[i].y*m_f_lst[i].y + m_f_lst[i].z*m_f_lst[i].z);
+        if(h_activeMag.data[i] == 0.0) // fixes divide by 0 case if magnitude of active force vector is 0
+        {
+            h_activeMag.data[i] = 0.000000000001;
+        }
+        
         h_activeVec.data[i] = make_scalar3(0, 0, 0);
         h_activeVec.data[i].x = m_f_lst[i].x / h_activeMag.data[i];
         h_activeVec.data[i].y = m_f_lst[i].y / h_activeMag.data[i];
