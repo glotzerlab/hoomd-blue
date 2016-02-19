@@ -2974,7 +2974,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
                     mass[k] = mass[i];
                     charge[k] = charge[i];
                     diameter[k] = diameter[i];
-                    body[k] = body[i];
+                    body[k] = j*old_size + body[i];
                     orientation[k] = orientation[i];
                     angmom[k] = angmom[i];
                     inertia[k] = inertia[i];
