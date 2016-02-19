@@ -47,14 +47,15 @@ class test_constrain_rigid(unittest.TestCase):
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
 
+        center = group.rigid_center()
+
         # thermalize
-        langevin = integrate.langevin(group=group.all(),T=1.0,seed=123)
+        langevin = integrate.langevin(group=center,T=1.0,seed=123)
         langevin.set_gamma('A',2.0)
         langevin.set_gamma('B',2.0)
         run(100)
         langevin.disable()
 
-        center = group.rigid_center()
         nve = integrate.nve(group=center)
 
         log = analyze.log(filename=None,quantities=['potential_energy','kinetic_energy'],period=10)

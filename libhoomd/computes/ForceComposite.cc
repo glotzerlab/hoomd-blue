@@ -96,9 +96,6 @@ ForceComposite::~ForceComposite()
 
     if (m_comm_ghost_layer_connection.connected())
         m_comm_ghost_layer_connection.disconnect();
-
-    if (m_comm_extra_ghost_layer_connection.connected())
-        m_comm_extra_ghost_layer_connection.disconnect();
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -235,9 +232,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
     // communicated for every central particle
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
-    bool is_body_type = h_body_len.data[type] > 0;
-
-    if (!is_body_type && m_d_max_changed[type])
+    if (m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
 
@@ -251,7 +246,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = false;
+            bool is_part_of_body = (body_type == type);
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
                 if (h_body_type.data[i] == type)
@@ -282,58 +277,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
         m_d_max_changed[type] = false;
         }
 
-    if (is_body_type)
-        {
-        return Scalar(0.0);
-        }
-    else
-        {
-        return m_d_max[type];
-        }
-    }
-
-Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_ghost_max)
-    {
-    // the point of having an extra ghost layer for rigid bodies is to ensure that
-    // the central ptl always gets communicated for remote constituent particles
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-
-    bool is_body_type = h_body_len.data[type] > 0;
-
-    if (is_body_type && m_d_max_changed[type])
-        {
-        m_d_max[type] = Scalar(0.0);
-
-        assert(m_body_len.getNumElements() > type);
-
-        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-
-        // compute maximum distance to central particle
-        for (unsigned int i = 0; i < h_body_len.data[type]; ++i)
-            {
-            Scalar3 r = h_body_pos.data[m_body_idx(type,i)];
-            Scalar d = sqrt(dot(r,r));
-
-            if (d > m_d_max[type])
-                {
-                m_d_max[type] = d;
-                }
-            }
-
-        m_exec_conf->msg->notice(7) << "ForceComposite: requesting additional ghost layer for type "
-            << m_pdata->getNameByType(type) << ": " << m_d_max[type] + r_ghost_max << std::endl;
-
-        m_d_max_changed[type] = false;
-        }
-
-    if (is_body_type)
-        {
-        return m_d_max[type] + r_ghost_max;
-        }
-    else
-        {
-        return Scalar(0.0);
-        }
+    return m_d_max[type];
     }
 
 void ForceComposite::createRigidBodies()
@@ -752,6 +696,9 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
             // only update local composite particles
             continue;
             }
+
+        if (central_idx == NOT_LOCAL && iptl >= m_pdata->getN())
+            continue;
 
         if (central_idx == NOT_LOCAL)
             {
