@@ -592,12 +592,10 @@ void ForceComposite::computeForces(unsigned int timestep)
     {
     // at this point, all constituent particles of a local rigid body (i.e. one for which the central particle
     // is local) need to be present to correctly compute forces
-
     if (m_particles_sorted)
         {
         // initialize molecule table
         initMolecules();
-        m_particles_sorted = false;
         }
 
     // access particle data
@@ -658,15 +656,20 @@ void ForceComposite::computeForces(unsigned int timestep)
         // body type
         unsigned int type = __scalar_as_int(postype.w);
 
-        // the rigid body must be complete (+1 for central ptl)
-        assert(len == h_body_len.data[type] + 1);
+        if (len != h_body_len.data[type] + 1)
+            {
+            m_exec_conf->msg->error() << "constrain.rigd(): Composite particle with body tag " << central_tag << " incomplete" 
+                << std::endl << std::endl;
+            throw std::runtime_error("Error computing composite particle forces.\n");
+            }
+
 
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
             unsigned int idxj = h_molecule_list.data[m_molecule_indexer(ibody, jptl)];
+            assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
 
-            // do not overwrite the central ptl
             if (idxj == central_idx) continue;
 
             // force and torque on particle
@@ -680,9 +683,6 @@ void ForceComposite::computeForces(unsigned int timestep)
 
             unsigned int tagj = h_tag.data[idxj];
             assert(tagj <= m_pdata->getMaximumTag());
-
-            // the first ptl in the body is the central ptl
-            assert(tagj-central_tag >= 1);
 
             // we know that the tag of the constituent ptl relative to the central ptl indicates
             // the position in the rigid body
@@ -713,16 +713,8 @@ void ForceComposite::computeForces(unsigned int timestep)
     based on the body center of mass and particle relative position in each body frame.
 */
 
-void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
+void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote)
     {
-    // (re-)initialize molecule table
-    if (m_particles_sorted)
-        {
-        initMolecules();
-
-        // do not reset flag just yet, it will be reset upon a call to compute()
-        }
-
     // access to the force
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
 
@@ -730,8 +722,11 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+    /*
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    */
 
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -742,34 +737,39 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
-    // for each local body
-    unsigned int nmol = m_molecule_indexer.getW();
-
-    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
-
     const BoxDim& box = m_pdata->getBox();
 
-    for (unsigned int ibody = 0; ibody < nmol; ibody++)
+    // update local particles only
+    unsigned int nptl_local = m_pdata->getN();
+
+    for (unsigned int iptl = 0; iptl < nptl_local; iptl++)
         {
-        unsigned int len = h_molecule_length.data[ibody];
-        assert(len>0);
-
-        // get central ptl tag from first ptl in molecule
-        unsigned int first_idx = h_molecule_list.data[m_molecule_indexer(ibody,0)];
-
-        assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
-        unsigned int central_tag = h_body.data[first_idx];
+        unsigned int central_tag = h_body.data[iptl];
 
         // body tag equals tag for central ptl
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        // central ptl is present
-        assert(central_tag == h_tag.data[first_idx]);
+        if ((!remote && central_idx >= m_pdata->getN()) ||
+            (remote && central_idx < m_pdata->getN()))
+            {
+            // only update local/non-local composite particles
+            continue;
+            }
+
+        if (central_idx == NOT_LOCAL)
+            {
+            m_exec_conf->msg->error() << "constrain.rigd(): Missing central particle tag " << central_tag << "!"
+                << std::endl << std::endl;
+            throw std::runtime_error("Error updating composite particles.\n");
+            }
 
         // central ptl position and orientation
         assert(central_idx <= m_pdata->getN() + m_pdata->getNGhosts());
+
+        // do not overwrite the central ptl
+        if (iptl == central_idx) continue;
+
         Scalar4 postype = h_postype.data[central_idx];
         vec3<Scalar> pos(postype);
         quat<Scalar> orientation(h_orientation.data[central_idx]);
@@ -779,44 +779,33 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
 
         int3 img = h_image.data[central_idx];
 
-        // update constituent ptls
-        for (unsigned int jptl = 0; jptl < len; ++jptl)
-            {
-            unsigned int idxj = h_molecule_list.data[m_molecule_indexer(ibody, jptl)];
-            assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
+        unsigned int tag = h_tag.data[iptl];
 
-            unsigned int tagj = h_tag.data[idxj];
+        vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tag - central_tag - 1)]);
+        vec3<Scalar> dr_space = rotate(orientation, local_pos);
 
-            // do not overwrite the central ptl
-            if (idxj == central_idx) continue;
+        // the first molecule ptl is the central ptl
+        assert(tag-central_tag >= 1);
 
-            vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
-            vec3<Scalar> dr_space = rotate(orientation, local_pos);
+        // update position and orientation
+        vec3<Scalar> updated_pos(pos);
 
-           //if (update_rq)
-                {
-                // the first molecule ptl is the central ptl
-                assert(tagj-central_tag >= 1);
+        // we know that the tag of the constituent ptl relative to the central ptl indicates
+        // the position in the rigid body
+        quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tag - central_tag - 1)]);
 
-                // update position and orientation
-                vec3<Scalar> updated_pos(pos);
+        updated_pos += dr_space;
+        quat<Scalar> updated_orientation = orientation*local_orientation;
 
-                // we know that the tag of the constituent ptl relative to the central ptl indicates
-                // the position in the rigid body
-                quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tagj - central_tag - 1)]);
+        // this runs before the ForceComputes, wrap particle into box
+        int3 imgi = img;
+        box.wrap(updated_pos, imgi);
 
-                updated_pos += dr_space;
-                quat<Scalar> updated_orientation = orientation*local_orientation;
+        h_postype.data[iptl] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[iptl].w);
+        h_orientation.data[iptl] = quat_to_scalar4(updated_orientation);
+        h_image.data[iptl] = imgi;
 
-                // this runs before the ForceComputes, wrap particle into box
-                int3 imgj = img;
-                box.wrap(updated_pos, imgj);
-
-                h_postype.data[idxj] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[idxj].w);
-                h_orientation.data[idxj] = quat_to_scalar4(updated_orientation);
-                h_image.data[idxj] = imgj;
-                }
-
+        /*
             quat<Scalar> angmom(h_angmom.data[central_idx]);
             vec3<Scalar> ang_vel = (Scalar(1./2.)*conj(orientation)*angmom).v;
 
@@ -824,7 +813,7 @@ void ForceComposite::updateCompositeDOFs(unsigned int timestep, bool update_rq)
             h_vel.data[idxj].x = v.x;
             h_vel.data[idxj].y = v.y;
             h_vel.data[idxj].z = v.z;
-            }
+         */
         }
     }
 

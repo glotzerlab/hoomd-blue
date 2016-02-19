@@ -105,12 +105,12 @@ class ForceComposite : public MolecularForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
-        //! Update the composite body degrees of freedom
+        //! Update the constituent particles of a composite particle
         /*  Using the position, velocity and orientation of the central particle
-         * \param update_rq If true, the positions and orientations of the central particle
-         *       have been updated (otherwise velocity and angular momentum only)
+         * \param remote If true, consider remote bodies, otherwise bodies
+         *        with a local central particle
          */
-        virtual void updateCompositeDOFs(unsigned int timestep, bool update_rq);
+        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
 
         //! Create copies of rigid body constituent particles
         virtual void createRigidBodies();

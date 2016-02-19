@@ -158,6 +158,11 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
+    // slave any constituent particles of local particles
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeParticles(timestep+1, false);
+
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -165,14 +170,12 @@ void IntegratorTwoStep::update(unsigned int timestep)
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
         m_comm->communicate(timestep+1);
+
+        // update local constituent particles of remote composite particles
+        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            (*force_composite)->updateCompositeParticles(timestep+1, true);
         }
 #endif
-
-    // slave any composite degrees of freedom
-    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeDOFs(timestep, true);
-
 
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -194,9 +197,14 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
 
-    // slave any composite degrees of freedom
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeDOFs(timestep+1, false);
+    /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
+       in the second step.
+
+       Otherwise we would have to update ghost positions for central particles
+       here in order to update the constituent particles.
+
+       This assumption may not currently hold for some integrators (Langevin/Brownian), I'll have to check.
+     */
 
     // if the virial needs to be computed and there are rigid bodies, perform the virial correction
     //if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
@@ -379,6 +387,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_first_step = false;
         m_prepared = true;
 
+        // ensure that any rigid bodies are correctly initialized
+        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            (*force_composite)->updateCompositeParticles(timestep, false);
+
 #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -387,13 +400,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
             // perform communication
             m_comm->communicate(timestep);
+
+            for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+                (*force_composite)->updateCompositeParticles(timestep, true);
             }
 #endif
-
-        // ensure that any rigid bodies are correctly initialized
-        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            (*force_composite)->updateCompositeDOFs(timestep, true);
 
         // net force is always needed (ticket #393)
         computeNetForce(timestep);
