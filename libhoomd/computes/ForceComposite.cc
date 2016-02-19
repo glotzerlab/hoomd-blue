@@ -231,7 +231,7 @@ void ForceComposite::slotNumTypesChange()
 
 Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
     {
-    // the normal ghost layer is there to ensure that constituent particles are always
+    // the default ghost layer is there to ensure that constituent particles are always
     // communicated for every central particle
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
@@ -276,7 +276,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
                 }
             }
 
-        m_exec_conf->msg->notice(7) << "ForceComposite: request ghost layer for type "
+        m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
             << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
 
         m_d_max_changed[type] = false;
@@ -320,8 +320,8 @@ Scalar ForceComposite::requestGhostLayerExtraWidth(unsigned int type, Scalar r_g
                 }
             }
 
-        m_exec_conf->msg->notice(7) << "ForceComposite: request additional ghost layer for type "
-            << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
+        m_exec_conf->msg->notice(7) << "ForceComposite: requesting additional ghost layer for type "
+            << m_pdata->getNameByType(type) << ": " << m_d_max[type] + r_ghost_max << std::endl;
 
         m_d_max_changed[type] = false;
         }
@@ -569,14 +569,14 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     {
     CommFlags flags = CommFlags(0);
 
+    // request orientations
+    flags[comm_flag::orientation] = 1;
+
     // request communication of particle forces
     flags[comm_flag::net_force] = 1;
 
     // request communication of particle torques
     flags[comm_flag::net_torque] = 1;
-
-    // request velocities
-    flags[comm_flag::velocity] = 1;
 
     // request body ids
     flags[comm_flag::body] = 1;
@@ -650,7 +650,6 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         // central ptl position and orientation
         Scalar4 postype = h_postype.data[central_idx];
-        vec3<Scalar> pos(postype);
         quat<Scalar> orientation(h_orientation.data[central_idx]);
 
         // body type
@@ -662,7 +661,6 @@ void ForceComposite::computeForces(unsigned int timestep)
                 << std::endl << std::endl;
             throw std::runtime_error("Error computing composite particle forces.\n");
             }
-
 
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
@@ -689,8 +687,7 @@ void ForceComposite::computeForces(unsigned int timestep)
             vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
 
             // rotate into space frame
-            quat<Scalar> q(h_orientation.data[central_idx]);
-            vec3<Scalar> dr_space = rotate(q, dr);
+            vec3<Scalar> dr_space = rotate(orientation, dr);
 
             // torque = r x f
             vec3<Scalar> delta_torque(cross(dr_space,f));
@@ -715,9 +712,6 @@ void ForceComposite::computeForces(unsigned int timestep)
 
 void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote)
     {
-    // access to the force
-    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
-
     // access the particle data arrays
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
@@ -739,21 +733,23 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
     const BoxDim& box = m_pdata->getBox();
 
-    // update local particles only
-    unsigned int nptl_local = m_pdata->getN();
+    // we need to update both local and ghost particles
+    unsigned int nptl = m_pdata->getN() + m_pdata->getNGhosts();
 
-    for (unsigned int iptl = 0; iptl < nptl_local; iptl++)
+    for (unsigned int iptl = 0; iptl < nptl; iptl++)
         {
         unsigned int central_tag = h_body.data[iptl];
+
+        if (central_tag == NO_BODY)
+            continue;
 
         // body tag equals tag for central ptl
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        if ((!remote && central_idx >= m_pdata->getN()) ||
-            (remote && central_idx < m_pdata->getN()))
+        if ((!remote && central_idx >= m_pdata->getN()))
             {
-            // only update local/non-local composite particles
+            // only update local composite particles
             continue;
             }
 
@@ -784,7 +780,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
         vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tag - central_tag - 1)]);
         vec3<Scalar> dr_space = rotate(orientation, local_pos);
 
-        // the first molecule ptl is the central ptl
         assert(tag-central_tag >= 1);
 
         // update position and orientation

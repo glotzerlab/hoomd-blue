@@ -158,7 +158,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
-    // slave any constituent particles of local particles
+    // slave any constituents of local composite particles
     std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
     for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
         (*force_composite)->updateCompositeParticles(timestep+1, false);
@@ -171,7 +171,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
         m_comm->communicate(timestep+1);
 
-        // update local constituent particles of remote composite particles
+        // update local constituents of remote composite particles
         for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
             (*force_composite)->updateCompositeParticles(timestep+1, true);
         }
@@ -203,7 +203,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
        Otherwise we would have to update ghost positions for central particles
        here in order to update the constituent particles.
 
-       This assumption may not currently hold for some integrators (Langevin/Brownian), I'll have to check.
+       TODO: check this assumptions holds for all integrators
      */
 
     // if the virial needs to be computed and there are rigid bodies, perform the virial correction
@@ -401,12 +401,13 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             // perform communication
             m_comm->communicate(timestep);
 
+            // update local constituents of remote composite particles
             for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-                (*force_composite)->updateCompositeParticles(timestep, true);
+                (*force_composite)->updateCompositeParticles(timestep+1, true);
             }
 #endif
 
-        // net force is always needed (ticket #393)
+        // net force is always needed
         computeNetForce(timestep);
 
         // but the accelerations only need to be calculated if the restart is not valid

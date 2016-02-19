@@ -1537,7 +1537,7 @@ void Communicator::updateGhostWidth()
     if (m_ghost_layer_width_requests.num_slots())
         {
         // update the ghost layer width only if subscribers are available
-        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
 
         // reduce per type using the signals, and then overall
         Scalar r_ghost_max = 0.0;
@@ -2288,7 +2288,7 @@ void Communicator::updateNetForce(unsigned int timestep)
             MPI_Request reqs[2];
             MPI_Status status[2];
 
-            ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::read);
 
             MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[0]);
