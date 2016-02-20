@@ -622,6 +622,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
+    export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
@@ -664,6 +665,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>("PotentialPairReactionFieldGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
