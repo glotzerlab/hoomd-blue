@@ -1,5 +1,5 @@
 # -*- coding: iso-8859-1 -*-
-# Maintainer: joaander
+# Maintainer: jglaser
 
 from hoomd_script import *
 import unittest
