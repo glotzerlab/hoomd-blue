@@ -79,6 +79,8 @@ class test_pair_reaction_field_potential(unittest.TestCase):
     # test the calculation of force and potential
     def test_potential(self):
         rf = pair.reaction_field(r_cut=2.0)
+
+        # basic test case
         rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=3.0)
         rf.set_params(mode="no_shift")
 
@@ -101,6 +103,7 @@ class test_pair_reaction_field_potential(unittest.TestCase):
         self.assertAlmostEqual(f1[1],0)
         self.assertAlmostEqual(f1[2],0)
 
+        # test energy shift
         rf.set_params(mode="shift")
         run(1)
 
@@ -119,6 +122,31 @@ class test_pair_reaction_field_potential(unittest.TestCase):
         self.assertAlmostEqual(f1[0],0.674603,5)
         self.assertAlmostEqual(f1[1],0)
         self.assertAlmostEqual(f1[2],0)
+
+        # test infinite eps_rf
+        rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=0)
+        rf.set_params(mode="no_shift")
+
+        run(1)
+
+        f0 = rf.forces[0].force
+        f1 = rf.forces[1].force
+        e0 = rf.forces[0].energy
+        e1 = rf.forces[1].energy
+
+        self.assertAlmostEqual(e0,0.5*1.61458,5)
+        self.assertAlmostEqual(e1,0.5*1.61458,5)
+
+        self.assertAlmostEqual(f0[0],-0.513889,5)
+        self.assertAlmostEqual(f0[1],0)
+        self.assertAlmostEqual(f0[2],0)
+
+        self.assertAlmostEqual(f1[0],0.513889,5)
+        self.assertAlmostEqual(f1[1],0)
+        self.assertAlmostEqual(f1[2],0)
+
+        rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=0)
+        rf.set_params(mode="no_shift")
 
     def tearDown(self):
         init.reset();

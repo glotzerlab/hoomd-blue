@@ -142,7 +142,7 @@ class EvaluatorPairReactionField
                 Scalar eps_fac = (epsrf - Scalar(1.0))/(Scalar(2.0)*epsrf+Scalar(1.0))*rcut3inv;
                 if (epsrf == Scalar(0.0))
                     {
-                    eps_fac = Scalar(1.0/2.0);
+                    eps_fac = Scalar(1.0/2.0)*rcut3inv;
                     }
 
                 force_divr = epsilon * (r2inv * rinv - Scalar(2.0)*eps_fac);
