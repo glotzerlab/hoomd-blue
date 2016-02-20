@@ -2798,14 +2798,12 @@ class dipole(ai_pair):
 #    The reaction field potential does not require charge or diameter to be set. Two parameters,
 #    \f$ \varepsilon \f$ and \f$ \epsilon_{RF} \f$ are needed.
 #
-# Discussion of an electric dipole in a dielectric continuum:
-#
 # [1] J. a. Barker and R. O. Watts, “Monte Carlo studies of the dielectric properties of water-like
 #     models,” Mol. Phys., vol. 26, no. June 2015, pp. 789–792, 1973.
 #
 # For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
-# If \f$ epsilon_{RF} \f$ is specified as zero, it will be represent infinity.
+# If \f$ epsilon_{RF} \f$ is specified as zero, it will represent infinity.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
 # the \ref page_quick_start for information on how to set coefficients.
@@ -2816,7 +2814,7 @@ class dipole(ai_pair):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.reation_field is a standard %pair potential and supports a number of energy shift / smoothing modes.
+# pair.reaction_field is a standard %pair potential and supports a number of energy shift / smoothing modes.
 # See hoomd_script.pair.pair for a full
 # description of the various options.
 #
