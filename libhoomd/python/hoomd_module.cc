@@ -912,7 +912,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
-    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >():
+    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >();
     register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< CellListGPU > >();
     register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();
