@@ -85,6 +85,13 @@ ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
         }
 
     m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "force_composite", this->m_exec_conf));
+
+    // initialize autotuner
+    std::vector<unsigned int> valid_params_update;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        valid_params_update.push_back(block_size);
+
+    m_tuner_update.reset(new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));
     }
 
 ForceCompositeGPU::~ForceCompositeGPU()
@@ -167,6 +174,56 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool remote)
+    {
+    if (m_prof)
+        m_prof->push(m_exec_conf, "constrain_rigid");
+
+    if (m_prof)
+        m_prof->push(m_exec_conf, "update");
+
+    // access the particle data arrays
+    ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+
+    // access body positions and orientations
+    ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
+
+    m_tuner_update->begin();
+    unsigned int block_size = m_tuner_update->getParam();
+
+    gpu_update_composite(m_pdata->getN(),
+        m_pdata->getNGhosts(),
+        d_body.data,
+        d_rtag.data,
+        d_tag.data,
+        d_postype.data,
+        d_orientation.data,
+        m_body_idx,
+        d_body_pos.data,
+        d_body_orientation.data,
+        d_image.data,
+        m_pdata->getBox(),
+        remote,
+        block_size);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_tuner_update->end();
+
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
+
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
+    }
 
 void export_ForceCompositeGPU()
     {

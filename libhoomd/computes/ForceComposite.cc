@@ -663,7 +663,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 

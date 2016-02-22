@@ -49,8 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <VectorMath.h>
 #include "Index1D.h"
-
-const unsigned int NO_BODY = 0xffffffff;
+#include "ParticleData.cuh"
 
 // Maintainer: jglaser
 
@@ -82,13 +81,6 @@ extern __shared__ Scalar3 sum[];
     as n_bodies_per_block is increased, but only up to 8. n_bodies_per_block=16 slows performance significantly.
     Based on these performance results, this kernel is hardcoded to handle only 1,2,4,8 n_bodies_per_block
     with a power of 2 block size (hardcoded to 64 in the kernel launch).
-
-    However, there is one issue to the n_bodies_per_block parallelism reduction. If the reduction results in too few
-    blocks, performance can actually be reduced. For example, if there are only 64 bodies running at the "most optimal"
-    n_bodies_per_block=8 results in only 8 blocks on the GPU! That isn't even enough to heat up all 15 SMs on GF100.
-    Even though n_bodies_per_block=1 is not fully optimal per block, running 64 slow blocks in parallel is faster than
-    running 8 fast blocks in parallel. Testing on GF100 determines that 60 blocks is the dividing line (makes sense -
-    that's 4 blocks active on each SM).
 */
 __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Scalar4* d_torque,
@@ -336,4 +328,108 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         return cudaSuccess;
     }
 
+__global__ void gpu_update_composite_kernel(unsigned int N,
+    unsigned int n_ghost,
+    const unsigned int *d_body,
+    const unsigned int *d_rtag,
+    const unsigned int *d_tag,
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    Index2D body_indexer,
+    const Scalar3 *d_body_pos,
+    const Scalar4 *d_body_orientation,
+    int3 *d_image,
+    const BoxDim box,
+    bool remote)
+    {
 
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N+n_ghost) return;
+
+    unsigned int central_tag = d_body[idx];
+
+    if (central_tag == NO_BODY) return;
+
+    unsigned int central_idx = d_rtag[central_tag];
+
+    if (!remote && central_idx >= N)
+        {
+         // only update local composite particles
+        return;
+        }
+
+    if (central_idx == NOT_LOCAL && idx >= N) return;
+
+    // do not overwrite central ptl
+    if (idx == central_idx) return;
+
+    Scalar4 postype = d_postype[central_idx];
+    vec3<Scalar> pos(postype);
+    quat<Scalar> orientation(d_orientation[central_idx]);
+
+    unsigned int type = __scalar_as_int(postype.w);
+
+    int3 img = d_image[central_idx];
+    unsigned int tag = d_tag[idx];
+
+    vec3<Scalar> local_pos(d_body_pos[body_indexer(type, tag - central_tag - 1)]);
+    vec3<Scalar> dr_space = rotate(orientation, local_pos);
+
+    vec3<Scalar> updated_pos(pos);
+    updated_pos += dr_space;
+
+    quat<Scalar> local_orientation(d_body_orientation[body_indexer(type, tag - central_tag - 1)]);
+    quat<Scalar> updated_orientation = orientation*local_orientation;
+
+    int3 imgi = img;
+    box.wrap(updated_pos, imgi);
+    d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, postype.w);
+    d_image[idx] = imgi;
+    }
+
+void gpu_update_composite(unsigned int N,
+    unsigned int n_ghost,
+    const unsigned int *d_body,
+    const unsigned int *d_rtag,
+    const unsigned int *d_tag,
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    Index2D body_indexer,
+    const Scalar3 *d_body_pos,
+    const Scalar4 *d_body_orientation,
+    int3 *d_image,
+    const BoxDim box,
+    bool remote,
+    unsigned int block_size)
+    {
+    unsigned int run_block_size = block_size;
+
+    static unsigned int max_block_size = UINT_MAX;
+    static cudaFuncAttributes attr;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncGetAttributes(&attr, (const void *) gpu_update_composite_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    if (max_block_size <= run_block_size)
+        {
+        run_block_size = max_block_size;
+        }
+
+    unsigned int n_blocks = (N+n_ghost)/run_block_size + 1;
+    gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
+        n_ghost,
+        d_body,
+        d_rtag,
+        d_tag,
+        d_postype,
+        d_orientation,
+        body_indexer,
+        d_body_pos,
+        d_body_orientation,
+        d_image,
+        box,
+        remote);
+    }

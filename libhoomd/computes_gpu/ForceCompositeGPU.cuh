@@ -74,3 +74,18 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
                  const cudaDeviceProp& dev_prop);
+
+void gpu_update_composite(unsigned int N,
+    unsigned int n_ghost,
+    const unsigned int *d_body,
+    const unsigned int *d_rtag,
+    const unsigned int *d_tag,
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    Index2D body_indexer,
+    const Scalar3 *d_body_pos,
+    const Scalar4 *d_body_orientation,
+    int3 *d_image,
+    const BoxDim box,
+    bool remote,
+    unsigned int block_size);

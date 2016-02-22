@@ -77,7 +77,7 @@ class ForceCompositeGPU : public ForceComposite
          * \param remote If true, consider remote bodies, otherwise bodies
          *        with a local central particle
          */
-//        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -91,6 +91,9 @@ class ForceCompositeGPU : public ForceComposite
 
             m_tuner_force->setPeriod(period);
             m_tuner_force->setEnabled(enable);
+
+            m_tuner_update->setPeriod(period);
+            m_tuner_update->setEnabled(enable);
             }
 
 
@@ -99,6 +102,7 @@ class ForceCompositeGPU : public ForceComposite
         virtual void computeForces(unsigned int timestep);
 
         boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size and threads per particle
+        boost::scoped_ptr<Autotuner> m_tuner_update;//!< Autotuner for block size of update kernel
     };
 
 //! Exports the ForceCompositeGPU to python
