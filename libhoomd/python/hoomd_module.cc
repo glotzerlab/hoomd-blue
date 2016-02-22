@@ -158,6 +158,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
+#include "ForceCompositeGPU.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "BondTablePotentialGPU.h"
@@ -665,6 +666,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListGPUStencil();
     export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
+    export_ForceCompositeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
@@ -910,6 +912,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
+    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >():
     register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< CellListGPU > >();
     register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();

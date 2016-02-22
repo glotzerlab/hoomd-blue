@@ -63,8 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
-        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
-        m_ndof_removed(0)
+        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
     m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&ForceComposite::slotNumTypesChange, this));
@@ -374,11 +373,6 @@ void ForceComposite::createRigidBodies()
         // number of bodies in system
         unsigned int nbodies = 0;
 
-        // degrees of freedom removed
-        m_ndof_removed = 0;
-
-        unsigned int ndim = m_sysdef->getNDimensions();
-
         const BoxDim& global_box = m_pdata->getGlobalBox();
 
         SnapshotParticleData<Scalar> snap_out = snap;
@@ -442,9 +436,6 @@ void ForceComposite::createRigidBodies()
                         // use contiguous molecule tag
                         molecule_tag[snap_idx_out] = nbodies;
 
-                        // this particle does not introduce additional degrees of freedom
-                        m_ndof_removed += ndim;
-
                         // update position and orientation to ensure particles end up in correct domain
                         vec3<Scalar> pos(central_pos);
 
@@ -496,7 +487,6 @@ void ForceComposite::createRigidBodies()
         if (m_pdata->getDomainDecomposition())
             {
             bcast(m_n_molecules_global, 0, m_exec_conf->getMPICommunicator());
-            bcast(m_ndof_removed, 0, m_exec_conf->getMPICommunicator());
             }
         #endif
 

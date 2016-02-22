@@ -91,9 +91,6 @@ class ForceComposite : public MolecularForceCompute
             std::vector<Scalar3>& pos,
             std::vector<Scalar4>& orientation);
 
-        //! Return the number of DOF removed by this constraint
-        //virtual unsigned int getNDOFRemoved() { return m_ndof_removed; }
-
         //! Returns true because we compute the torque on the central particle
         virtual bool isAnisotropic()
             {
@@ -118,8 +115,6 @@ class ForceComposite : public MolecularForceCompute
     protected:
         bool m_bodies_changed;          //!< True if constituent particles have changed
         bool m_ptls_added_removed;      //!< True if particles have been added or removed
-
-        unsigned int m_ndof_removed;    //!< Number of degrees of freedom removed
 
         GPUArray<unsigned int> m_body_types;    //!< Constituent ptl types per type id (2D)
         GPUArray<Scalar3> m_body_pos;           //!< Constituent ptl offsets per type id (2D)

@@ -362,7 +362,7 @@ class rigid(_constraint_force):
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.ForceComposite(globals.system_definition);
         else:
-            self.cpp_force = hoomd.ForceComposite(globals.system_definition);
+            self.cpp_force = hoomd.ForceCompositeGPU(globals.system_definition);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
