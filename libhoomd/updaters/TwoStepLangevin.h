@@ -81,7 +81,9 @@ class TwoStepLangevin : public TwoStepLangevinBase
                      unsigned int seed,
                      bool use_lambda,
                      Scalar lambda,
-                     const std::string& suffix = std::string(""));
+                     const std::string& suffix = std::string(""),
+                     bool noiseless_t,
+                     bool noiseless_r);
         virtual ~TwoStepLangevin();
 
         //! Turn on or off Tally
@@ -108,6 +110,8 @@ class TwoStepLangevin : public TwoStepLangevinBase
         Scalar m_extra_energy_overdeltaT;  //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         std::string m_log_name;            //!< Name of the reservoir quantity that we log
+        bool m_noiseless_t;
+        bool m_noiseless_r;
     };
 
 //! Exports the TwoStepLangevin class to python

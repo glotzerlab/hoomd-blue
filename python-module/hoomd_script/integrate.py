@@ -1022,7 +1022,7 @@ class langevin(_integration_method):
     # typeA = group.type('A');
     # integrator = integrate.langevin(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
-    def __init__(self, group, T, seed, dscale=False, tally=False):
+    def __init__(self, group, T, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # initialize base class
@@ -1053,7 +1053,10 @@ class langevin(_integration_method):
                                    T.cpp_variant,
                                    seed,
                                    use_lambda,
-                                   float(dscale), suffix);
+                                   float(dscale),
+                                   suffix, 
+                                   noiseless_t, 
+                                   noiseless_r);
 
         self.cpp_method.setTally(tally);
 
@@ -1120,6 +1123,21 @@ class langevin(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+                
+                
+    def set_gamma_r(self, a, gamma_r):
+        util.print_status_line();
+        self.check_initialization();
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # change the parameters
+        for i in range(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma_r(i,gamma_r);   
 
 ## Brownian dynamics
 #

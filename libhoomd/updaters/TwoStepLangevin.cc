@@ -78,8 +78,11 @@ TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
-                           const std::string& suffix)
-    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
+                           const std::string& suffix,                     
+                           bool noiseless_t,
+                           bool noiseless_r)
+    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
+      m_tally(false), m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
 
@@ -134,6 +137,11 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
+    const unsigned int D = Scalar(m_sysdef->getNDimensions());
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    
     const BoxDim& box = m_pdata->getBox();
 
     // perform the first half step of velocity verlet
@@ -156,6 +164,50 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
+        
+        // if (D < 3 && m_aniso)
+        // {
+        //     unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
+        //     Scalar gamma_r = h_gamma_r.data[type_r];
+            
+        //     if (gamma_r)
+        //         {
+        //         // original Gaussian random torque
+        //         Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+        //         Scalar tau_r = gaussian_rng(saru, sigma_r); 
+        //         if (m_noiseless_r) tau_r = 0.0;
+                
+                
+        //         vec3<Scalar> axis (0.0, 0.0, 1.0);
+        //         Scalar a = (h_torque.data[j].z + tau_r) / gamma_r;
+        //         // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+        //         quat<Scalar> omega (make_scalar4(0,0,0, theta));
+        //         quat<Scalar> q (h_orientation.data[j]);
+        //         q += Scalar(0.5) * m_deltaT * omega * q ;               
+                
+        //         // re-normalize (improves stability)
+        //         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+        //         h_orientation.data[j] = quat_to_scalar4(q);
+        //         }
+        //     }
+                // {
+                // Scalar rrx = saru.d(-1,1);
+                // Scalar rry = saru.d(-1,1);
+                // Scalar rrz = saru.d(-1,1);
+                // Scalar coeff_r = sqrt(Scalar(6.0)*h_gamma_r*currentTemp/m_deltaT);
+                // if (m_noiseless_r)  coeff_r = Scalar(0.0);
+                
+                // torque_handle.data[body].x -= h_gamma_r * angvel_handle.data[body].x;
+                // torque_handle.data[body].y -= h_gamma_r * angvel_handle.data[body].y;
+                // // torque_handle.data[body].x += coeff_r * rrx - h_gamma_r * angvel_handle.data[body].x;
+                // // torque_handle.data[body].y += coeff_r * rry - h_gamma_r * angvel_handle.data[body].y;
+                // torque_handle.data[body].z += coeff_r * rrz - h_gamma_r * angvel_handle.data[body].z;
+                // }
+        // }
+        }
+        
+        
+        
         }
 
     // done profiling
@@ -271,7 +323,9 @@ void export_TwoStepLangevin()
                             unsigned int,
                             bool,
                             Scalar,
-                            const std::string&
+                            const std::string&,
+                            bool,
+                            bool
                             >())
         .def("setTally", &TwoStepLangevin::setTally)
         ;
