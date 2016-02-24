@@ -75,6 +75,28 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int block_size,
                  const cudaDeviceProp& dev_prop);
 
+cudaError_t gpu_rigid_virial(Scalar* d_virial,
+                 const unsigned int *d_molecule_len,
+                 const unsigned int *d_molecule_list,
+                 const unsigned int *d_tag,
+                 const unsigned int *d_rtag,
+                 Index2D molecule_indexer,
+                 const Scalar4 *d_postype,
+                 const Scalar4* d_orientation,
+                 Index2D body_indexer,
+                 Scalar3* d_body_pos,
+                 Scalar4* d_body_orientation,
+                 const Scalar4* d_net_force,
+                 const Scalar *d_net_virial,
+                 unsigned int n_mol,
+                 unsigned int N,
+                 unsigned int n_bodies_per_block,
+                 unsigned int net_virial_pitch,
+                 unsigned int virial_pitch,
+                 unsigned int block_size,
+                 const cudaDeviceProp& dev_prop);
+
+
 void gpu_update_composite(unsigned int N,
     unsigned int n_ghost,
     const unsigned int *d_body,

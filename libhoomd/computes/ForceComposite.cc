@@ -542,10 +542,12 @@ void ForceComposite::computeForces(unsigned int timestep)
     // access net force and torque acting on constituent particles
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
 
     // access the force and torque array for the central ptl
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     // for each local body
     unsigned int nmol = m_molecule_indexer.getW();
@@ -559,8 +561,17 @@ void ForceComposite::computeForces(unsigned int timestep)
     // reset constraint forces and torques
     memset(h_force.data,0, sizeof(Scalar4)*m_pdata->getN());
     memset(h_torque.data,0, sizeof(Scalar4)*m_pdata->getN());
+    memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
     unsigned int nptl_local = m_pdata->getN();
+    unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
+
+    PDataFlags flags = m_pdata->getFlags();
+    bool compute_virial = false;
+    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+        {
+        compute_virial = true;
+        }
 
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
@@ -591,7 +602,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         if (len != h_body_len.data[type] + 1)
             {
-            m_exec_conf->msg->error() << "constrain.rigd(): Composite particle with body tag " << central_tag << " incomplete" 
+            m_exec_conf->msg->error() << "constrain.rigd(): Composite particle with body tag " << central_tag << " incomplete"
                 << std::endl << std::endl;
             throw std::runtime_error("Error computing composite particle forces.\n");
             }
@@ -636,6 +647,25 @@ void ForceComposite::computeForces(unsigned int timestep)
             h_torque.data[central_idx].x += net_torque.x;
             h_torque.data[central_idx].y += net_torque.y;
             h_torque.data[central_idx].z += net_torque.z;
+
+            if (compute_virial)
+                {
+                // sum up virial
+                Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
+                Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
+                Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
+                Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
+                Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
+                Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+
+                // subtract intra-body virial prt
+                h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
+                h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
+                h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
+                h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
+                h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
+                h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                }
             }
         }
     }
@@ -735,16 +765,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
         h_postype.data[iptl] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[iptl].w);
         h_orientation.data[iptl] = quat_to_scalar4(updated_orientation);
         h_image.data[iptl] = imgi;
-
-        /*
-            quat<Scalar> angmom(h_angmom.data[central_idx]);
-            vec3<Scalar> ang_vel = (Scalar(1./2.)*conj(orientation)*angmom).v;
-
-            vec3<Scalar> v = vec3<Scalar>(h_vel.data[central_idx]) + cross(ang_vel,dr_space);
-            h_vel.data[idxj].x = v.x;
-            h_vel.data[idxj].y = v.y;
-            h_vel.data[idxj].z = v.z;
-         */
         }
     }
 

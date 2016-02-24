@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ Scalar3 sum[];
+extern __shared__ Scalar sum_virial[];
 
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
@@ -244,6 +245,184 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
     }
 
+__global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
+                                                const unsigned int *d_molecule_len,
+                                                const unsigned int *d_molecule_list,
+                                                const unsigned int *d_tag,
+                                                const unsigned int *d_rtag,
+                                                Index2D molecule_indexer,
+                                                const Scalar4 *d_postype,
+                                                const Scalar4* d_orientation,
+                                                Index2D body_indexer,
+                                                Scalar3* d_body_pos,
+                                                Scalar4* d_body_orientation,
+                                                const Scalar4* d_net_force,
+                                                const Scalar* d_net_virial,
+                                                unsigned int n_mol,
+                                                unsigned int N,
+                                                unsigned int net_virial_pitch,
+                                                unsigned int virial_pitch,
+                                                unsigned int window_size,
+                                                unsigned int thread_mask,
+                                                unsigned int n_bodies_per_block)
+    {
+    // determine which body (0 ... n_bodies_per_block-1) this thread is working on
+    // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
+    unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
+
+    // body_force and body_torque are each shared memory arrays with 1 element per threads
+    Scalar *body_virial_xx = sum_virial;
+    Scalar *body_virial_xy = &sum_virial[1*blockDim.x];
+    Scalar *body_virial_xz = &sum_virial[2*blockDim.x];
+    Scalar *body_virial_yy = &sum_virial[3*blockDim.x];
+    Scalar *body_virial_yz = &sum_virial[4*blockDim.x];
+    Scalar *body_virial_zz = &sum_virial[5*blockDim.x];
+
+    // store body type, orientation and the index in molecule list in shared memory. Up to 16 bodies per block can
+    // be handled.
+    __shared__ unsigned int body_type[16];
+    __shared__ Scalar4 body_orientation[16];
+    __shared__ unsigned int mol_idx[16];
+    __shared__ unsigned int central_idx[16];
+
+    // each thread makes partial sums of the virial of all the particles that this thread loops over
+    Scalar sum_virial_xx(0.0);
+    Scalar sum_virial_xy(0.0);
+    Scalar sum_virial_xz(0.0);
+    Scalar sum_virial_yy(0.0);
+    Scalar sum_virial_yz(0.0);
+    Scalar sum_virial_zz(0.0);
+
+    // thread_mask is a bitmask that masks out the high bits in threadIdx.x.
+    // threadIdx.x & thread_mask is an index from 0 to block_size/n_bodies_per_block-1 and determines what offset
+    // this thread is to use when accessing the particles in the body
+    if ((threadIdx.x & thread_mask) == 0)
+        {
+        // thread 0 for this body reads in the body id and orientation and stores them in shared memory
+        int group_idx = blockIdx.x*n_bodies_per_block + m;
+        if (group_idx < n_mol)
+            {
+            mol_idx[m] = group_idx;
+
+            // first ptl is central ptl
+            central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
+            body_type[m] = __scalar_as_int(d_postype[central_idx[m]].w);
+            body_orientation[m] = d_orientation[central_idx[m]];
+            }
+        else
+            {
+            mol_idx[m] = NO_BODY;
+            }
+        }
+
+    __syncthreads();
+
+    // compute the number of windows that we need to loop over
+    unsigned int n_windows = n_mol / window_size + 1;
+
+    // slide the window throughout the block
+    for (unsigned int start = 0; start < n_windows; start++)
+        {
+        Scalar4 fi = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        Scalar4 ti = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+        // determine the index with this body that this particle should handle
+        unsigned int k = start * window_size + (threadIdx.x & thread_mask);
+
+        if (mol_idx[m] == NO_BODY || central_idx[m] >= N)
+            {
+            // only local central ptls
+            continue;
+            }
+
+        unsigned int mol_len = d_molecule_len[mol_idx[m]];
+        unsigned int central_tag = d_tag[central_idx[m]];
+
+        // if that index is in the body we are actually handling a real body
+        if (k < mol_len)
+            {
+            // determine the particle idx of the particle
+            unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+
+            unsigned int tag = d_tag[pidx];
+
+            // indices are in tag order, and the first ptl is the central ptl
+            unsigned int local_idx = tag-central_tag - 1;
+
+            // if this particle is not the central particle
+            if (pidx != central_idx[m])
+                {
+                // calculate body force and torques
+                vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
+                fi = d_net_force[pidx];
+
+                // This might require more calculations but more stable
+                // particularly when rigid bodies are bigger than half the box
+                vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+
+                // sum up virial
+                Scalar virialxx = d_net_virial[0*net_virial_pitch+pidx];
+                Scalar virialxy = d_net_virial[1*net_virial_pitch+pidx];
+                Scalar virialxz = d_net_virial[2*net_virial_pitch+pidx];
+                Scalar virialyy = d_net_virial[3*net_virial_pitch+pidx];
+                Scalar virialyz = d_net_virial[4*net_virial_pitch+pidx];
+                Scalar virialzz = d_net_virial[5*net_virial_pitch+pidx];
+
+                // subtract intra-body virial prt
+                sum_virial_xx += virialxx - fi.x*ri.x;
+                sum_virial_xy += virialxy - fi.x*ri.y;
+                sum_virial_xz += virialxz - fi.x*ri.z;
+                sum_virial_yy += virialyy - fi.y*ri.y;
+                sum_virial_yz += virialyz - fi.y*ri.z;
+                sum_virial_zz += virialzz - fi.z*ri.z;
+                }
+            }
+        }
+
+    __syncthreads();
+
+    // put the partial sums into shared memory
+    body_virial_xx[threadIdx.x] = sum_virial_xx;
+    body_virial_xy[threadIdx.x] = sum_virial_xy;
+    body_virial_xz[threadIdx.x] = sum_virial_xz;
+    body_virial_yy[threadIdx.x] = sum_virial_yy;
+    body_virial_yz[threadIdx.x] = sum_virial_yz;
+    body_virial_zz[threadIdx.x] = sum_virial_zz;
+
+    __syncthreads();
+
+    // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
+    // just within its own group
+    unsigned int offset = window_size >> 1;
+    while (offset > 0)
+        {
+        if ((threadIdx.x & thread_mask) < offset)
+            {
+            body_virial_xx[threadIdx.x] += body_virial_xx[threadIdx.x + offset];
+            body_virial_xy[threadIdx.x] += body_virial_xy[threadIdx.x + offset];
+            body_virial_xz[threadIdx.x] += body_virial_xz[threadIdx.x + offset];
+            body_virial_yy[threadIdx.x] += body_virial_yy[threadIdx.x + offset];
+            body_virial_yz[threadIdx.x] += body_virial_yz[threadIdx.x + offset];
+            body_virial_zz[threadIdx.x] += body_virial_zz[threadIdx.x + offset];
+            }
+
+        offset >>= 1;
+
+        __syncthreads();
+        }
+
+    // thread 0 within this body writes out the total virial for the body
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY)
+        {
+        d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
+        d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
+        d_virial[2*virial_pitch+central_idx[m]] = body_virial_xz[threadIdx.x];
+        d_virial[3*virial_pitch+central_idx[m]] = body_virial_yy[threadIdx.x];
+        d_virial[4*virial_pitch+central_idx[m]] = body_virial_yz[threadIdx.x];
+        d_virial[5*virial_pitch+central_idx[m]] = body_virial_yz[threadIdx.x];
+        }
+    }
+
 
 /*!
 */
@@ -325,8 +504,91 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         thread_mask,
         n_bodies_per_block);
 
-        return cudaSuccess;
+    return cudaSuccess;
     }
+
+cudaError_t gpu_rigid_virial(Scalar* d_virial,
+                 const unsigned int *d_molecule_len,
+                 const unsigned int *d_molecule_list,
+                 const unsigned int *d_tag,
+                 const unsigned int *d_rtag,
+                 Index2D molecule_indexer,
+                 const Scalar4 *d_postype,
+                 const Scalar4* d_orientation,
+                 Index2D body_indexer,
+                 Scalar3* d_body_pos,
+                 Scalar4* d_body_orientation,
+                 const Scalar4* d_net_force,
+                 const Scalar* d_net_virial,
+                 unsigned int n_mol,
+                 unsigned int N,
+                 unsigned int n_bodies_per_block,
+                 unsigned int net_virial_pitch,
+                 unsigned int virial_pitch,
+                 unsigned int block_size,
+                 const cudaDeviceProp& dev_prop)
+    {
+    // reset force and torque
+    cudaMemset(d_virial,0, sizeof(Scalar)*N*6);
+
+    dim3 force_grid(n_mol / n_bodies_per_block + 1, 1, 1);
+
+    static unsigned int max_block_size = UINT_MAX;
+    static cudaFuncAttributes attr;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_virial_sliding_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
+
+    // round down to nearest power of two
+    unsigned int b = 1;
+    while (b * 2 < run_block_size) { b *= 2; }
+    run_block_size = b;
+
+    unsigned int window_size = run_block_size / n_bodies_per_block;
+    unsigned int thread_mask = window_size - 1;
+
+    unsigned int shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+
+    while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+        {
+        // block size is power of two
+        run_block_size /= 2;
+
+        shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+
+        window_size = run_block_size / n_bodies_per_block;
+        thread_mask = window_size - 1;
+        }
+
+    gpu_rigid_virial_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
+        d_virial,
+        d_molecule_len,
+        d_molecule_list,
+        d_tag,
+        d_rtag,
+        molecule_indexer,
+        d_postype,
+        d_orientation,
+        body_indexer,
+        d_body_pos,
+        d_body_orientation,
+        d_net_force,
+        d_net_virial,
+        n_mol,
+        N,
+        net_virial_pitch,
+        virial_pitch,
+        window_size,
+        thread_mask,
+        n_bodies_per_block);
+
+    return cudaSuccess;
+    }
+
 
 __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int n_ghost,

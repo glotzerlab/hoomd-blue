@@ -93,6 +93,9 @@ class ForceCompositeGPU : public ForceComposite
             m_tuner_force->setPeriod(period);
             m_tuner_force->setEnabled(enable);
 
+            m_tuner_virial->setPeriod(period);
+            m_tuner_virial->setEnabled(enable);
+
             m_tuner_update->setPeriod(period);
             m_tuner_update->setEnabled(enable);
             }
@@ -102,8 +105,9 @@ class ForceCompositeGPU : public ForceComposite
         //! Compute the forces and torques on the central particle
         virtual void computeForces(unsigned int timestep);
 
-        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size and threads per particle
-        boost::scoped_ptr<Autotuner> m_tuner_update;//!< Autotuner for block size of update kernel
+        boost::scoped_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
+        boost::scoped_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
+        boost::scoped_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
     };
 
 //! Exports the ForceCompositeGPU to python

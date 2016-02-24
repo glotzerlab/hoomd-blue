@@ -85,6 +85,7 @@ ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
         }
 
     m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "force_composite", this->m_exec_conf));
+    m_tuner_virial.reset(new Autotuner(valid_params, 5, 100000, "virial_composite", this->m_exec_conf));
 
     // initialize autotuner
     std::vector<unsigned int> valid_params_update;
@@ -125,10 +126,12 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     // access net force and torque acting on constituent particles
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
 
     // access the force and torque array for the central ptl
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
     // for each local body
     unsigned int nmol = m_molecule_indexer.getW();
@@ -169,6 +172,49 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
+
+    PDataFlags flags = m_pdata->getFlags();
+    bool compute_virial = false;
+    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+        {
+        compute_virial = true;
+        }
+
+    if (compute_virial)
+        {
+        m_tuner_virial->begin();
+        param = m_tuner_virial->getParam();
+        block_size = param % 10000;
+        n_bodies_per_block = param/10000;
+
+        // launch GPU kernel
+        gpu_rigid_virial(d_virial.data,
+                        d_molecule_length.data,
+                        d_molecule_list.data,
+                        d_tag.data,
+                        d_rtag.data,
+                        m_molecule_indexer,
+                        d_postype.data,
+                        d_orientation.data,
+                        m_body_idx,
+                        d_body_pos.data,
+                        d_body_orientation.data,
+                        d_net_force.data,
+                        d_net_virial.data,
+                        nmol,
+                        m_pdata->getN(),
+                        n_bodies_per_block,
+                        m_pdata->getNetVirial().getPitch(),
+                        m_virial_pitch,
+                        block_size,
+                        m_exec_conf->dev_prop);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_tuner_virial->end();
+        }
+
 
     if (m_prof) m_prof->pop(m_exec_conf);
     if (m_prof) m_prof->pop(m_exec_conf);
