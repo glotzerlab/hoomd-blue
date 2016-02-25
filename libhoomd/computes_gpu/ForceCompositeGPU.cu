@@ -558,7 +558,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
         // block size is power of two
         run_block_size /= 2;
 
-        shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+        shared_bytes = 6 * run_block_size * sizeof(Scalar);
 
         window_size = run_block_size / n_bodies_per_block;
         thread_mask = window_size - 1;
