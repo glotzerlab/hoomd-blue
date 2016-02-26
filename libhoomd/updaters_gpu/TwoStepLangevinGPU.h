@@ -77,6 +77,8 @@ class TwoStepLangevinGPU : public TwoStepLangevin
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
+                           bool noiseless_t,
+                           bool noiseless_r,
                            const std::string& suffix = std::string(""));
         virtual ~TwoStepLangevinGPU() {};
 

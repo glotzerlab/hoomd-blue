@@ -73,6 +73,8 @@ struct langevin_step_two_args
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
     unsigned int num_blocks;  //!<  Number of blocks
+    bool noiseless_t;         //!<  If true, there is no noise on translational degrees of freedom
+    bool noiseless_r;         //!<  If true, there is no noise on rotational degrees of freedom
     bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
@@ -88,5 +90,16 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   const langevin_step_two_args& langevin_args,
                                   Scalar deltaT,
                                   unsigned int D);
+
+//! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
+cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT,
+                             Scalar scale);
+
 
 #endif //__TWO_STEP_LANGEVIN_GPU_CUH__

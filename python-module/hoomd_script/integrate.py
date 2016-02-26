@@ -1054,9 +1054,9 @@ class langevin(_integration_method):
                                    seed,
                                    use_lambda,
                                    float(dscale),
-                                   suffix, 
                                    noiseless_t, 
-                                   noiseless_r);
+                                   noiseless_r,
+                                   suffix);
 
         self.cpp_method.setTally(tally);
 

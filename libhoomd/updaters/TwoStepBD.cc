@@ -155,7 +155,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
         // it is not the dimensionality of the system
         Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*currentTemp/m_deltaT);
-        if (m_noiseless_t) coeff = 0.0;
+        if (m_noiseless_t) 
+            coeff = Scalar(0.0);
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -195,7 +196,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 // original Gaussian random torque
                 Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
-                if (m_noiseless_r) tau_r = 0.0;
+                if (m_noiseless_r) 
+                    tau_r = Scalar(0.0);
                 
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
                 Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;

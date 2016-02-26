@@ -111,6 +111,8 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  unsigned int timestep,
                                  unsigned int seed,
                                  Scalar T,
+                                 bool noiseless_t,
+                                 bool noiseless_r, 
                                  Scalar deltaT,
                                  unsigned int D,
                                  bool tally,
@@ -161,7 +163,8 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
         Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
+        if (noiseless_t) 
+            coeff = Scalar(0.0);
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
 
@@ -197,6 +200,14 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
+        
+        
+        // torque update with drag and noise
+        // TBA.......
+        
+        // step two for the ang_mom update
+        // TBA.......
+        
         }
 
     if (tally)
@@ -265,6 +276,88 @@ extern "C" __global__
     if (threadIdx.x == 0)
         *d_sum = sum;
     }
+    
+    
+//! NO_SQUISH angular part of the second half step
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+__global__ void gpu_langevin_angular_step_two_kernel(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT,
+                             Scalar scale)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+
+        // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> t(d_net_torque[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = Scalar(0.0);
+        if (y_zero) t.y = Scalar(0.0);
+        if (z_zero) t.z = Scalar(0.0);
+
+        // rescale
+        p = p*scale;
+
+        // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+        p += deltaT*q*t;
+
+        d_angmom[idx] = quat_to_scalar4(p);
+        }
+    }
+
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT,
+                             Scalar scale)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_langevin_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT, scale);
+
+    return cudaSuccess;
+    }
 
 
 /*! \param d_pos array of particle positions and types
@@ -279,7 +372,7 @@ extern "C" __global__
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
 
-    This is just a driver for gpu_nve_step_two_kernel(), see it for details.
+    This is just a driver for gpu_langevin_step_two_kernel(), see it for details.
 */
 cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
@@ -320,6 +413,8 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                  langevin_args.timestep,
                                  langevin_args.seed,
                                  langevin_args.T,
+                                 langevin_args.noiseless_t,
+                                 langevin_args.noiseless_r,
                                  deltaT,
                                  D,
                                  langevin_args.tally,
@@ -338,3 +433,5 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     return cudaSuccess;
     }
+    
+

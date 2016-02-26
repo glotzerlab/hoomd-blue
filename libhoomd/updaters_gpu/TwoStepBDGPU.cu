@@ -174,7 +174,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
         // it is not the dimensionality of the system
         Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*T/deltaT);
-        if (d_noiseless_t) coeff = 0.0;
+        if (d_noiseless_t) 
+            coeff = Scalar(0.0);
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -217,7 +218,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 {
                 Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
                 Scalar tau_r = gaussian_rng(saru, sigma_r); 
-                if (d_noiseless_r) tau_r = 0.0;
+                if (d_noiseless_r) 
+                    tau_r = Scalar(0.0);
 
                 vec3<Scalar> axis (0.0, 0.0, 1.0);
                 Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;

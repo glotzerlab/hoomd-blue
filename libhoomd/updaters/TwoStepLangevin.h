@@ -81,9 +81,9 @@ class TwoStepLangevin : public TwoStepLangevinBase
                      unsigned int seed,
                      bool use_lambda,
                      Scalar lambda,
-                     const std::string& suffix = std::string(""),
                      bool noiseless_t,
-                     bool noiseless_r);
+                     bool noiseless_r,
+                     const std::string& suffix = std::string(""));
         virtual ~TwoStepLangevin();
 
         //! Turn on or off Tally

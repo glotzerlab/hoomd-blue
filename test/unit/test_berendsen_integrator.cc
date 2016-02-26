@@ -102,7 +102,7 @@ void berend_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
     boost::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
     berendsen_up->addIntegrationMethod(two_step_berendsen);
 
-    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268, 1, 1.0));
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268, 1, 1.0, false, false));
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
