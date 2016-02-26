@@ -516,8 +516,8 @@ def create_random_polymers(box, polymers, separation, seed=1):
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
             for i in range(0,len(poly['type'])-1):
-                bond_a.push_back(i);
-                bond_b.push_back(i+1);
+                bond_a.append(i);
+                bond_b.append(i+1);
                 bond_name.append('polymer')
         #if it is a list, parse the user custom bonds
         elif type(poly['bond']) == type([]):
@@ -533,8 +533,8 @@ def create_random_polymers(box, polymers, separation, seed=1):
                     hoomd_script.context.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
                     raise RuntimeError("Error creating random polymers");
 
-                bond_a.push_back(a);
-                bond_b.push_back(b);
+                bond_a.append(a);
+                bond_b.append(b);
                 bond_name.append(name);
         else:
             hoomd_script.context.msg.error('Unexpected argument value for polymer bond\n');

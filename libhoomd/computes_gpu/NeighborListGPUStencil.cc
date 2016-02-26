@@ -125,7 +125,7 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
 
     #ifdef ENABLE_MPI
     // synchronize over MPI
-    m_tuner->setSync(m_pdata->getDomainDecomposition());
+    m_tuner->setSync(bool(m_pdata->getDomainDecomposition()));
     #endif
 
     // call this class's special setRCut
@@ -157,7 +157,7 @@ void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)
         Scalar rmin = getMinRCut() + m_r_buff;
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
-        
+
         m_cl->setNominalWidth(rmin);
         }
     }
@@ -171,7 +171,7 @@ void NeighborListGPUStencil::setRCutPair(unsigned int typ1, unsigned int typ2, S
         Scalar rmin = getMinRCut() + m_r_buff;
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
-        
+
         m_cl->setNominalWidth(rmin);
         }
     }
@@ -185,7 +185,7 @@ void NeighborListGPUStencil::setMaximumDiameter(Scalar d_max)
         Scalar rmin = getMinRCut() + m_r_buff;
         if (m_diameter_shift)
             rmin += m_d_max - Scalar(1.0);
-        
+
         m_cl->setNominalWidth(rmin);
         }
     }

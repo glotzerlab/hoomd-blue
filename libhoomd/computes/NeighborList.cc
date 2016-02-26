@@ -108,46 +108,46 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
-    
+
     // allocate r_cut pairwise storage
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
-    
+
     // holds the maximum rcut on a per type basis
     GPUArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
-    
+
     // allocate the r_listsq array which accelerates CPU calculations
     GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
-    
+
     // default initialization of the rcut for all pairs
     setRCut(_r_cut, r_buff);
-    
+
     // allocate the number of neighbors (per particle)
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
-    
+
     // default allocation of 8 neighbors per particle for the neighborlist
     GPUArray<unsigned int> nlist(8*m_pdata->getMaxN(), exec_conf);
     m_nlist.swap(nlist);
-    
+
     // allocate head list indexer
     GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
     m_head_list.swap(head_list);
-    
+
     // allocate the max number of neighbors per type allowed
     GPUArray<unsigned int> Nmax(m_pdata->getNTypes(), exec_conf);
     m_Nmax.swap(Nmax);
     // flood Nmax with 8s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
-        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)   
+        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             h_Nmax.data[i] = 8;
             }
         }
-    
+
     // allocate overflow flags for the number of neighbors per type
     GPUArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
@@ -181,7 +181,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
 
     // connect to max particle change to resize neighborlist arrays
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
-    
+
     // connect to type change to resize type data arrays
     m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborList::reallocateTypes, this));
 
@@ -208,7 +208,7 @@ void NeighborList::reallocate()
     // resize the head list and number of neighbors per particle
     m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
-    
+
     // force a rebuild
     forceUpdate();
     }
@@ -268,12 +268,12 @@ void NeighborList::compute(unsigned int timestep)
         {
         // build the head list since some sort of change (like a particle sort) happened
         buildHeadList();
-        
-		// update the exclusion data if this is a forced update        
+
+		// update the exclusion data if this is a forced update
         if (m_exclusions_set)
             updateExListIdx();
         }
-            
+
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
@@ -289,7 +289,7 @@ void NeighborList::compute(unsigned int timestep)
                 {
                 // always rebuild the head list after an overflow
                 buildHeadList();
-                
+
                 // zero out the conditions for the next build
                 resetConditions();
                 }
@@ -348,7 +348,7 @@ double NeighborList::benchmark(unsigned int num_iters)
  */
 void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     {
-    
+
     // loop on all pairs to set the same r_cut
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
@@ -357,11 +357,11 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
             setRCutPair(i,j,r_cut);
             }
         }
-        
+
     setRBuff(r_buff);
     }
 
-/*! 
+/*!
  * \param typ1 Particle type 1
  * \param typ2 Particle type 2
  * \param r_cut Cutoff radius between particles of types 1 and 2
@@ -369,14 +369,14 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
          The new cuttoff will take effect when compute is called for the next timestep.
 */
 void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {   
+    {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existant type! "
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error changing NeighborList parameters");
         }
-        
+
 	// stash the potential rcuts, r_list will be computed on next forced update
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
@@ -386,7 +386,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     m_rcut_signal();
     forceUpdate();
     }
-    
+
 /*! \param r_buff New buffer radius to set
     \note Changing the buffer radius does NOT immediately update the neighborlist.
             The new buffer will take effect when compute is called for the next timestep.
@@ -401,7 +401,7 @@ void NeighborList::setRBuff(Scalar r_buff)
         }
     m_rcut_signal();
     forceUpdate();
-    } 
+    }
 
 void NeighborList::updateRList()
 	{
@@ -972,7 +972,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
         to this method that returned true.
     \returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
         method that returned true.
-    
+
     Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
     in the next call to distanceCheck();
 */
@@ -999,24 +999,24 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
-    
+
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
-    
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
-        
+
         // minimum distance within which all particles should be included
         Scalar old_rmin = h_rcut_max.data[type_i];
-        
+
         // maximum value we have checked for neighbors, defined by the buffer layer
         Scalar rmax = old_rmin + m_r_buff;
-        
+
         // max displacement for each particle (after subtraction of homogeneous dilations)
         const Scalar delta_max = (rmax*lambda_min - old_rmin)/Scalar(2.0);
         Scalar maxsq = (delta_max > 0) ? delta_max*delta_max : 0;
-        
+
         Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
                                   h_pos.data[i].y - lambda.y*h_last_pos.data[i].y,
                                   h_pos.data[i].z - lambda.z*h_last_pos.data[i].z);
@@ -1180,7 +1180,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 /*! Generic statistics that apply to any neighbor list, like the number of updates,
     average number of neighbors, etc... are printed to stdout. Derived classes should
     print any pertinient information they see fit to.
-    
+
     \todo fix these statistics to work correctly for MPI runs
  */
 void NeighborList::printStats()
@@ -1349,13 +1349,13 @@ void NeighborList::filterNlist()
  * \note The neighbor list is also resized when it requires more memory than is currently allocated.
  */
 void NeighborList::buildHeadList()
-    {   
+    {
     if (m_prof) m_prof->push("head-list");
-    
+
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
-    
+
     unsigned int headAddress = 0;
     for (unsigned int i=0; i < m_pdata->getN(); ++i)
         {
@@ -1367,7 +1367,7 @@ void NeighborList::buildHeadList()
         }
 
     resizeNlist(headAddress);
-    
+
     if (m_prof) m_prof->pop();
     }
 
@@ -1382,16 +1382,16 @@ void NeighborList::resizeNlist(unsigned int size)
     if (size > m_nlist.getNumElements())
         {
         m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list" << endl;
-        
+
         unsigned int alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
-        
+
         while (size > alloc_size)
             {
             alloc_size = ((unsigned int) (((float) alloc_size) * 1.125f)) + 1 ;
             }
-        
+
         m_nlist.resize(alloc_size);
-        }    
+        }
     }
 
 /*!
@@ -1475,7 +1475,6 @@ void export_NeighborList()
     {
     class_< std::vector<unsigned int> >("std_vector_uint")
     .def(vector_indexing_suite<std::vector<unsigned int> >())
-    .def("push_back", &std::vector<unsigned int>::push_back)
     ;
 
     scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
