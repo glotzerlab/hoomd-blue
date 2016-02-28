@@ -146,64 +146,56 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
     __syncthreads();
 
-    // compute the number of windows that we need to loop over
-    unsigned int n_windows = n_mol / window_size + 1;
-
-    // slide the window throughout the block
-    for (unsigned int start = 0; start < n_windows; start++)
+    if (mol_idx[m] != NO_BODY && central_idx[m] < N)
         {
-        Scalar4 fi = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        Scalar4 ti = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-        // determine the index with this body that this particle should handle
-        unsigned int k = start * window_size + (threadIdx.x & thread_mask);
-
-        if (mol_idx[m] == NO_BODY || central_idx[m] >= N)
-            {
-            // only local central ptls
-            continue;
-            }
-
+        // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
-        unsigned int central_tag = d_tag[central_idx[m]];
+        unsigned int n_windows = mol_len / window_size + 1;
 
-        // if that index is in the body we are actually handling a real body
-        if (k < mol_len)
+        // slide the window throughout the block
+        for (unsigned int start = 0; start < n_windows; start++)
             {
-            // determine the particle idx of the particle
-            unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+            // determine the index with this body that this particle should handle
+            unsigned int k = start * window_size + (threadIdx.x & thread_mask);
 
-            unsigned int tag = d_tag[pidx];
+            unsigned int central_tag = d_tag[central_idx[m]];
 
-            // indices are in tag order, and the first ptl is the central ptl
-            unsigned int local_idx = tag-central_tag - 1;
-
-            // if this particle is not the central particle
-            if (pidx != central_idx[m])
+            // if that index is in the body we are actually handling a real body
+            if (k < mol_len)
                 {
-                // calculate body force and torques
-                vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
-                fi = d_net_force[pidx];
+                // determine the particle idx of the particle
+                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
-                //will likely need to rotate these components too
-                ti = d_net_torque[pidx];
+                unsigned int tag = d_tag[pidx];
 
-                // tally the force in the per thread counter
-                sum_force.x += fi.x;
-                sum_force.y += fi.y;
-                sum_force.z += fi.z;
+                // indices are in tag order, and the first ptl is the central ptl
+                unsigned int local_idx = tag-central_tag - 1;
 
-                // This might require more calculations but more stable
-                // particularly when rigid bodies are bigger than half the box
-                vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+                // if this particle is not the central particle
+                if (pidx != central_idx[m])
+                    {
+                    // calculate body force and torques
+                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
+                    Scalar4 fi = d_net_force[pidx];
 
-                // torque = r x f
-                vec3<Scalar> del_torque(cross(ri, vec3<Scalar>(fi)));
+                    //will likely need to rotate these components too
+                    vec3<Scalar> ti(d_net_torque[pidx]);
 
-                // tally the torque in the per thread counter
-                sum_torque.x += del_torque.x;
-                sum_torque.y += del_torque.y;
-                sum_torque.z += del_torque.z;
+                    // tally the force in the per thread counter
+                    sum_force.x += fi.x;
+                    sum_force.y += fi.y;
+                    sum_force.z += fi.z;
+
+                    vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+
+                    // torque = r x f
+                    vec3<Scalar> del_torque(cross(ri, vec3<Scalar>(fi)));
+
+                    // tally the torque in the per thread counter
+                    sum_torque.x += ti.x+del_torque.x;
+                    sum_torque.y += ti.y+del_torque.y;
+                    sum_torque.z += ti.z+del_torque.z;
+                    }
                 }
             }
         }
@@ -317,64 +309,55 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
     __syncthreads();
 
-    // compute the number of windows that we need to loop over
-    unsigned int n_windows = n_mol / window_size + 1;
-
-    // slide the window throughout the block
-    for (unsigned int start = 0; start < n_windows; start++)
+    if (mol_idx[m] != NO_BODY && central_idx[m] < N)
         {
-        Scalar4 fi = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        Scalar4 ti = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-        // determine the index with this body that this particle should handle
-        unsigned int k = start * window_size + (threadIdx.x & thread_mask);
-
-        if (mol_idx[m] == NO_BODY || central_idx[m] >= N)
-            {
-            // only local central ptls
-            continue;
-            }
-
+        // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
-        unsigned int central_tag = d_tag[central_idx[m]];
+        unsigned int n_windows = mol_len / window_size + 1;
 
-        // if that index is in the body we are actually handling a real body
-        if (k < mol_len)
+        // slide the window throughout the block
+        for (unsigned int start = 0; start < n_windows; start++)
             {
-            // determine the particle idx of the particle
-            unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+            // determine the index with this body that this particle should handle
+            unsigned int k = start * window_size + (threadIdx.x & thread_mask);
 
-            unsigned int tag = d_tag[pidx];
+            unsigned int central_tag = d_tag[central_idx[m]];
 
-            // indices are in tag order, and the first ptl is the central ptl
-            unsigned int local_idx = tag-central_tag - 1;
-
-            // if this particle is not the central particle
-            if (pidx != central_idx[m])
+            // if that index is in the body we are actually handling a real body
+            if (k < mol_len)
                 {
-                // calculate body force and torques
-                vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
-                fi = d_net_force[pidx];
+                // determine the particle idx of the particle
+                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
-                // This might require more calculations but more stable
-                // particularly when rigid bodies are bigger than half the box
-                vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+                unsigned int tag = d_tag[pidx];
 
-                // sum up virial
-                Scalar virialxx = d_net_virial[0*net_virial_pitch+pidx];
-                Scalar virialxy = d_net_virial[1*net_virial_pitch+pidx];
-                Scalar virialxz = d_net_virial[2*net_virial_pitch+pidx];
-                Scalar virialyy = d_net_virial[3*net_virial_pitch+pidx];
-                Scalar virialyz = d_net_virial[4*net_virial_pitch+pidx];
-                Scalar virialzz = d_net_virial[5*net_virial_pitch+pidx];
+                // indices are in tag order, and the first ptl is the central ptl
+                unsigned int local_idx = tag-central_tag - 1;
 
-                // subtract intra-body virial prt
-                sum_virial_xx += virialxx - fi.x*ri.x;
-                sum_virial_xy += virialxy - fi.x*ri.y;
-                sum_virial_xz += virialxz - fi.x*ri.z;
-                sum_virial_yy += virialyy - fi.y*ri.y;
-                sum_virial_yz += virialyz - fi.y*ri.z;
-                sum_virial_zz += virialzz - fi.z*ri.z;
+                // if this particle is not the central particle
+                if (pidx != central_idx[m])
+                    {
+                    // calculate body force and torques
+                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
+                    Scalar4 fi = d_net_force[pidx];
+                    vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+
+                    // sum up virial
+                    Scalar virialxx = d_net_virial[0*net_virial_pitch+pidx];
+                    Scalar virialxy = d_net_virial[1*net_virial_pitch+pidx];
+                    Scalar virialxz = d_net_virial[2*net_virial_pitch+pidx];
+                    Scalar virialyy = d_net_virial[3*net_virial_pitch+pidx];
+                    Scalar virialyz = d_net_virial[4*net_virial_pitch+pidx];
+                    Scalar virialzz = d_net_virial[5*net_virial_pitch+pidx];
+
+                    // subtract intra-body virial prt
+                    sum_virial_xx += virialxx - fi.x*ri.x;
+                    sum_virial_xy += virialxy - fi.x*ri.y;
+                    sum_virial_xz += virialxz - fi.x*ri.z;
+                    sum_virial_yy += virialyy - fi.y*ri.y;
+                    sum_virial_yz += virialyz - fi.y*ri.z;
+                    sum_virial_zz += virialzz - fi.z*ri.z;
+                    }
                 }
             }
         }
@@ -419,7 +402,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         d_virial[2*virial_pitch+central_idx[m]] = body_virial_xz[threadIdx.x];
         d_virial[3*virial_pitch+central_idx[m]] = body_virial_yy[threadIdx.x];
         d_virial[4*virial_pitch+central_idx[m]] = body_virial_yz[threadIdx.x];
-        d_virial[5*virial_pitch+central_idx[m]] = body_virial_yz[threadIdx.x];
+        d_virial[5*virial_pitch+central_idx[m]] = body_virial_zz[threadIdx.x];
         }
     }
 
@@ -464,7 +447,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
 
     // round down to nearest power of two
     unsigned int b = 1;
-    while (b * 2 < run_block_size) { b *= 2; }
+    while (b * 2 <= run_block_size) { b *= 2; }
     run_block_size = b;
 
     unsigned int window_size = run_block_size / n_bodies_per_block;
@@ -529,7 +512,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const cudaDeviceProp& dev_prop)
     {
     // reset force and torque
-    cudaMemset(d_virial,0, sizeof(Scalar)*N*6);
+    cudaMemset(d_virial,0, sizeof(Scalar)*virial_pitch*6);
 
     dim3 force_grid(n_mol / n_bodies_per_block + 1, 1, 1);
 
@@ -545,13 +528,13 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
 
     // round down to nearest power of two
     unsigned int b = 1;
-    while (b * 2 < run_block_size) { b *= 2; }
+    while (b * 2 <= run_block_size) { b *= 2; }
     run_block_size = b;
 
     unsigned int window_size = run_block_size / n_bodies_per_block;
     unsigned int thread_mask = window_size - 1;
 
-    unsigned int shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+    unsigned int shared_bytes = 6 * run_block_size * sizeof(Scalar);
 
     while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
         {

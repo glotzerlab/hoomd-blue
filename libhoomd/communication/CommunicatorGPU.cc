@@ -214,6 +214,12 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
     m_nettorque_ghost_recvbuf.swap(nettorque_ghost_recvbuf);
 
+    GPUVector<Scalar> netvirial_ghost_sendbuf(m_exec_conf);
+    m_netvirial_ghost_sendbuf.swap(netvirial_ghost_sendbuf);
+
+    GPUVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
+    m_netvirial_ghost_recvbuf.swap(netvirial_ghost_recvbuf);
+
     #ifndef ENABLE_MPI_CUDA
     // initialize standby buffers (oppposite mapped setting)
     GPUVector<unsigned int> tag_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
@@ -2895,10 +2901,25 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
 void CommunicatorGPU::updateNetForce(unsigned int timestep)
     {
     CommFlags flags = getFlags();
-    if (! flags[comm_flag::net_force] && !flags[comm_flag::net_torque])
+    if (! flags[comm_flag::net_force] && !flags[comm_flag::net_torque] && !flags[comm_flag::net_virial])
         return;
 
-    m_exec_conf->msg->notice(7) << "CommunicatorGPU: update net force and torque" << std::endl;
+    std::ostringstream oss;
+    oss << "CommunicatorGPU: update net ";
+    if (flags[comm_flag::net_force])
+        {
+        oss << "force ";
+        }
+    if (flags[comm_flag::net_torque])
+        {
+        oss << "torque ";
+        }
+    if (flags[comm_flag::net_virial])
+        {
+        oss << "virial";
+        }
+
+    m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_net_force");
 
@@ -2917,6 +2938,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
         if (flags[comm_flag::net_torque])
             {
             m_nettorque_ghost_sendbuf.resize(n_max);
+            }
+
+        if (flags[comm_flag::net_torque])
+            {
+            m_netvirial_ghost_sendbuf.resize(6*n_max);
             }
 
             {
@@ -2960,6 +2986,29 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
+        if (flags[comm_flag::net_virial])
+            {
+            // access particle data
+            ArrayHandle<Scalar> d_netvirial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
+
+            // access ghost send indices
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::read);
+
+            // access output buffers
+            ArrayHandle<Scalar> d_netvirial_ghost_sendbuf(m_netvirial_ghost_sendbuf, access_location::device, access_mode::overwrite);
+
+            // Pack ghosts into send buffers
+            gpu_exchange_ghosts_pack_netvirial(
+                m_n_send_ghosts_tot[stage],
+                d_ghost_idx_adj.data + m_idx_offs[stage],
+                d_netvirial.data,
+                d_netvirial_ghost_sendbuf.data,
+                m_pdata->getNetVirial().getPitch());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+
         if (m_prof) m_prof->pop(m_exec_conf);
 
         /*
@@ -2978,6 +3027,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             m_nettorque_ghost_recvbuf.resize(n_max);
             }
 
+        if (flags[comm_flag::net_virial])
+            {
+            m_netvirial_ghost_recvbuf.resize(6*n_max);
+            }
+
         // first ghost ptl index
         unsigned int first_idx = m_pdata->getN();
 
@@ -2990,10 +3044,12 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             // recv buffer
             ArrayHandle<Scalar4> h_netforce_ghost_recvbuf(m_netforce_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_nettorque_ghost_recvbuf(m_nettorque_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> h_netvirial_ghost_recvbuf(m_netvirial_ghost_recvbuf, access_location::host, access_mode::overwrite);
 
             // send buffer
             ArrayHandle<Scalar4> h_netforce_ghost_sendbuf(m_netforce_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_nettorque_ghost_sendbuf(m_nettorque_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_netvirial_ghost_sendbuf(m_netvirial_ghost_sendbuf, access_location::host, access_mode::read);
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
@@ -3067,6 +3123,36 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                         }
                     recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
                     }
+
+                if (flags[comm_flag::net_virial])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(h_netvirial_ghost_sendbuf.data+6*h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        m_reqs.push_back(req);
+                        }
+                    send_bytes += 6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(h_netvirial_ghost_recvbuf.data + 6*(m_ghost_offs[stage][ineigh] + offs),
+                            6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        m_reqs.push_back(req);
+                        }
+                    recv_bytes += 6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
+                    }
+
                 }
 
             // complete communication
@@ -3110,6 +3196,25 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+
+        if (flags[comm_flag::net_virial])
+            {
+            // access receive buffers
+            ArrayHandle<Scalar> d_netvirial_ghost_recvbuf(m_netvirial_ghost_recvbuf, access_location::device, access_mode::read);
+
+            // access particle data
+            ArrayHandle<Scalar> d_netvirial(m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
+
+            // copy recv buf into particle data
+            gpu_exchange_ghosts_copy_netvirial_buf(
+                m_n_recv_ghosts_tot[stage],
+                d_netvirial_ghost_recvbuf.data,
+                d_netvirial.data + first_idx,
+                m_pdata->getNetVirial().getPitch());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
 
         if (m_prof) m_prof->pop(m_exec_conf);
         } // end main communication loop

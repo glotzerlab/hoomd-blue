@@ -113,7 +113,8 @@ struct comm_flag
         orientation, //! Bit id in CommFlags for particle orientation
         body,        //! Bit id in CommFlags for particle body id
         net_force,   //! Communicate net force
-        net_torque   //! Commuicate net torque
+        net_torque,  //! Communicate net torque
+        net_virial   //! Communicate net virial
         };
     };
 
@@ -652,6 +653,8 @@ class Communicator
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
         GPUVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
         GPUVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
+        GPUVector<Scalar> m_netvirial_copybuf;   //!< Buffer for net virial
+        GPUVector<Scalar> m_netvirial_recvbuf;   //!< Buffer for net virial (receive)
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors

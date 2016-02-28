@@ -293,6 +293,9 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_nettorque_ghost_sendbuf;    //!< Send buffer for nettorque
         GPUVector<Scalar4> m_nettorque_ghost_recvbuf;    //!< Recv buffer for nettorque
 
+        GPUVector<Scalar> m_netvirial_ghost_sendbuf;    //!< Send buffer for netvirial
+        GPUVector<Scalar> m_netvirial_ghost_recvbuf;    //!< Recv buffer for netvirial
+
         GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf_alt
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf_alt
 

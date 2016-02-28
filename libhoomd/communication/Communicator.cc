@@ -1117,6 +1117,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_tag_copybuf(m_exec_conf),
             m_netforce_copybuf(m_exec_conf),
             m_nettorque_copybuf(m_exec_conf),
+            m_netvirial_copybuf(m_exec_conf),
+            m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
             m_plan(m_exec_conf),
@@ -2148,7 +2150,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 void Communicator::updateNetForce(unsigned int timestep)
     {
     CommFlags flags = getFlags();
-    if (! flags[comm_flag::net_force] && ! flags[comm_flag::net_torque])
+    if (! flags[comm_flag::net_force] && ! flags[comm_flag::net_torque] && ! flags[comm_flag::net_virial])
         return;
 
     // we have a current m_copy_ghosts liss which contain the indices of particles
@@ -2156,7 +2158,22 @@ void Communicator::updateNetForce(unsigned int timestep)
     if (m_prof)
         m_prof->push("comm_ghost_net_force");
 
-    m_exec_conf->msg->notice(7) << "Communicator: update net force and torque" << std::endl;
+    std::ostringstream oss;
+    oss << "Communicator: update net ";
+    if (flags[comm_flag::net_force])
+        {
+        oss << "force ";
+        }
+    if (flags[comm_flag::net_torque])
+        {
+        oss << "torque ";
+        }
+    if (flags[comm_flag::net_virial])
+        {
+        oss << "virial";
+        }
+
+    m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
     // update data in these arrays
 
@@ -2167,6 +2184,11 @@ void Communicator::updateNetForce(unsigned int timestep)
     if (flags[comm_flag::net_torque])
         {
         m_nettorque_copybuf.clear();
+        }
+
+    if (flags[comm_flag::net_virial])
+        {
+        m_netvirial_copybuf.clear();
         }
 
     for (unsigned int dir = 0; dir < 6; dir ++)
@@ -2181,6 +2203,12 @@ void Communicator::updateNetForce(unsigned int timestep)
             {
             old_size = m_nettorque_copybuf.size();
             m_nettorque_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+            }
+
+        if (flags[comm_flag::net_virial])
+            {
+            old_size = m_netvirial_copybuf.size();
+            m_netvirial_copybuf.resize(old_size+6*m_num_copy_ghosts[dir]);
             }
 
             {
@@ -2216,6 +2244,30 @@ void Communicator::updateNetForce(unsigned int timestep)
                     h_nettorque_copybuf.data[ghost_idx] = h_nettorque.data[idx];
                     }
                 }
+            if (flags[comm_flag::net_virial])
+                {
+                ArrayHandle<Scalar> h_netvirial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::overwrite);
+
+                unsigned int pitch = m_pdata->getNetVirial().getPitch();
+
+                // copy net torques of ghost particles
+                for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                    {
+                    unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                    assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                    // copy net force into send buffer, transposing
+                    h_netvirial_copybuf.data[6*ghost_idx+0] = h_netvirial.data[0*pitch+idx];
+                    h_netvirial_copybuf.data[6*ghost_idx+1] = h_netvirial.data[1*pitch+idx];
+                    h_netvirial_copybuf.data[6*ghost_idx+2] = h_netvirial.data[2*pitch+idx];
+                    h_netvirial_copybuf.data[6*ghost_idx+3] = h_netvirial.data[3*pitch+idx];
+                    h_netvirial_copybuf.data[6*ghost_idx+4] = h_netvirial.data[4*pitch+idx];
+                    h_netvirial_copybuf.data[6*ghost_idx+5] = h_netvirial.data[5*pitch+idx];
+                    }
+                }
+
             }
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
@@ -2226,7 +2278,6 @@ void Communicator::updateNetForce(unsigned int timestep)
             recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
             recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
 
         unsigned int start_idx;
 
@@ -2268,9 +2319,43 @@ void Communicator::updateNetForce(unsigned int timestep)
             sz += sizeof(Scalar4);
             }
 
+        if (flags[comm_flag::net_virial])
+            {
+            m_netvirial_recvbuf.resize(6*m_num_recv_ghosts[dir]);
+            MPI_Request reqs[2];
+            MPI_Status status[2];
+
+            ArrayHandle<Scalar> h_netvirial_recvbuf(m_netvirial_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::read);
+
+            MPI_Isend(h_netvirial_copybuf.data, 6*m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_netvirial_recvbuf.data, 6*m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            sz += 6*sizeof(Scalar);
+            }
+
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sz);
 
+        if (flags[comm_flag::net_virial])
+            {
+            unsigned int pitch = m_pdata->getNetVirial().getPitch();
+
+            // unpack virial
+            ArrayHandle<Scalar> h_netvirial_recvbuf(m_netvirial_recvbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_netvirial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
+
+            for (unsigned int i = 0; i < m_num_recv_ghosts[dir]; ++i)
+                {
+                h_netvirial.data[0*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+0];
+                h_netvirial.data[1*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+1];
+                h_netvirial.data[2*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+2];
+                h_netvirial.data[3*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+3];
+                h_netvirial.data[4*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+4];
+                h_netvirial.data[5*pitch+start_idx+i] = h_netvirial_recvbuf.data[6*i+5];
+                }
+            }
         } // end dir loop
 
         if (m_prof)

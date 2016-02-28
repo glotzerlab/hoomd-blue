@@ -380,4 +380,16 @@ void gpu_exchange_ghosts_copy_netforce_buf(
     const Scalar4 *d_netforce_recvbuf,
     Scalar4 *d_netforce);
 
+void gpu_exchange_ghosts_pack_netvirial(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar *d_netvirial,
+    Scalar *d_netvirial_sendbuf,
+    unsigned int pitch_in);
+
+void gpu_exchange_ghosts_copy_netvirial_buf(
+    unsigned int n_recv,
+    const Scalar *d_netvirial_recvbuf,
+    Scalar *d_netvirial,
+    unsigned int pitch_out);
 #endif // ENABLE_MPI

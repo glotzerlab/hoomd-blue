@@ -8,15 +8,15 @@ context.initialize()
 class test_constrain_rigid(unittest.TestCase):
     def setUp(self):
         # particle radius
-        N_A = 100
-        N_B = 100
+        N_A = 2000
+        N_B = 2000
 
         r_rounding = .5
         species_A = dict(bond_len=2.1, type=['A'], bond="linear", count=N_A)
         species_B = dict(bond_len=2.1, type=['B'], bond="linear", count=N_B)
 
         # generate a system of N=8 AB diblocks
-        self.system=init.create_random_polymers(box=data.boxdim(L=25), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
+        self.system=init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
 
         for p in self.system.particles:
             p.moment_inertia = (.5,.5,1)
@@ -63,8 +63,9 @@ class test_constrain_rigid(unittest.TestCase):
         # warm up
         run(100)
 
+        # measure
         E0 = log.query('potential_energy') + log.query('kinetic_energy')
-        run(10000)
+        run(1000)
         E1 = log.query('potential_energy') + log.query('kinetic_energy')
 
         # two sig figs
@@ -108,16 +109,18 @@ class test_constrain_rigid(unittest.TestCase):
         run(100)
         langevin.disable()
 
-        npt = integrate.npt(group=center,P=1,tauP=0.5,T=1.0,tau=1.0)
+        P = 2.5
+        npt = integrate.npt(group=center,P=P,tauP=0.5,T=1.0,tau=1.0)
 
-        log = analyze.log(filename=None,quantities=['potential_energy','kinetic_energy','npt_thermostat_energy','npt_barostat_energy'],period=10)
+        log = analyze.log(filename=None,quantities=['potential_energy','kinetic_energy','npt_thermostat_energy','npt_barostat_energy','volume'],period=10)
 
         # warm up
-        run(10000)
+        run(100)
 
-        E0 = log.query('potential_energy') + log.query('kinetic_energy') + log.query('npt_thermostat_energy') + log.query('npt_barostat_energy')
-        run(10000)
-        E1 = log.query('potential_energy') + log.query('kinetic_energy') + log.query('npt_thermostat_energy') + log.query('npt_barostat_energy')
+        # measure
+        E0 = log.query('potential_energy') + log.query('kinetic_energy') + log.query('npt_thermostat_energy') + log.query('npt_barostat_energy') + P*log.query('volume')
+        run(1000)
+        E1 = log.query('potential_energy') + log.query('kinetic_energy') + log.query('npt_thermostat_energy') + log.query('npt_barostat_energy') + P*log.query('volume')
 
         # two sig figs
         self.assertAlmostEqual(E0/round(E0),E1/round(E0),2)

@@ -909,6 +909,37 @@ void gpu_exchange_ghosts_pack_netforce(
     gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_netforce, d_netforce_sendbuf);
     }
 
+__global__ void gpu_pack_netvirial_kernel(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar *in,
+    Scalar *out,
+    unsigned int pitch_in
+    )
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= n_out) return;
+    unsigned int idx = d_ghost_idx_adj[buf_idx].x;
+    out[6*buf_idx+0] = in[idx+0*pitch_in];
+    out[6*buf_idx+1] = in[idx+1*pitch_in];
+    out[6*buf_idx+2] = in[idx+2*pitch_in];
+    out[6*buf_idx+3] = in[idx+3*pitch_in];
+    out[6*buf_idx+4] = in[idx+4*pitch_in];
+    out[6*buf_idx+5] = in[idx+5*pitch_in];
+    }
+
+
+void gpu_exchange_ghosts_pack_netvirial(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar *d_netvirial,
+    Scalar *d_netvirial_sendbuf,
+    unsigned int pitch_in)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_out/block_size + 1;
+    gpu_pack_netvirial_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_netvirial, d_netvirial_sendbuf, pitch_in);
+    }
 
 template<class members_t, class ranks_t, class group_element_t>
 __global__ void gpu_group_pack_kernel(
@@ -1014,6 +1045,33 @@ void gpu_exchange_ghosts_copy_netforce_buf(
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
     gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_netforce_recvbuf, d_netforce);
+    }
+
+__global__ void gpu_unpack_netvirial_kernel(
+    unsigned int n_in,
+    const Scalar *in,
+    Scalar *out,
+    unsigned int pitch_out)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= n_in) return;
+    out[buf_idx+0*pitch_out] = in[6*buf_idx+0];
+    out[buf_idx+1*pitch_out] = in[6*buf_idx+1];
+    out[buf_idx+2*pitch_out] = in[6*buf_idx+2];
+    out[buf_idx+3*pitch_out] = in[6*buf_idx+3];
+    out[buf_idx+4*pitch_out] = in[6*buf_idx+4];
+    out[buf_idx+5*pitch_out] = in[6*buf_idx+5];
+    }
+
+void gpu_exchange_ghosts_copy_netvirial_buf(
+    unsigned int n_recv,
+    const Scalar *d_netvirial_recvbuf,
+    Scalar *d_netvirial,
+    unsigned int pitch_out)
+    {
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_recv/block_size + 1;
+    gpu_unpack_netvirial_kernel<<<n_blocks, block_size>>>(n_recv, d_netvirial_recvbuf, d_netvirial, pitch_out);
     }
 
 
