@@ -70,7 +70,7 @@ using namespace std;
     \param fname_base The base file name to write the output to
 */
 POSDumpWriter::POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname)
-        : Analyzer(sysdef), m_rigid_data(sysdef->getRigidData()), m_unwrap_rigid(false), m_write_info(false)
+        : Analyzer(sysdef), m_unwrap_rigid(false), m_write_info(false)
     {
     bool is_root = true;
 
@@ -144,8 +144,6 @@ void POSDumpWriter::analyze(unsigned int timestep)
         throw runtime_error("Error writing pos dump file");
         }
 
-    ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
-
     // Get the box information
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> a1(box.getLatticeVector(0));
@@ -167,7 +165,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
         }
 
     // if there is a string to be written due to the python method addInfo, write it.
-    if (m_write_info) 
+    if (m_write_info)
         {
         string info = boost::python::extract<string> (m_add_info(timestep));
         m_file << info;
@@ -180,19 +178,6 @@ void POSDumpWriter::analyze(unsigned int timestep)
         quat<Scalar> orientation = snap.orientation[j];
 
         vec3<Scalar> tmp_pos = pos;
-
-        if (m_unwrap_rigid && snap.body[j] != NO_BODY)
-            {
-            int body_ix = body_image_handle.data[snap.body[j]].x;
-            int body_iy = body_image_handle.data[snap.body[j]].y;
-            int body_iz = body_image_handle.data[snap.body[j]].z;
-            int3 particle_img = snap.image[j];
-            int3 img_diff = make_int3(particle_img.x - body_ix,
-                                      particle_img.y - body_iy,
-                                      particle_img.z - body_iz);
-
-            tmp_pos = box.shift(tmp_pos, img_diff);
-            }
 
         // get the type by name
         unsigned int type_id = snap.type[j];

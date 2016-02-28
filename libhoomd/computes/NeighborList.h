@@ -370,27 +370,7 @@ class NeighborList : public Compute
         virtual void setFilterBody(bool filter_body)
             {
             // detect if there are any rigid bodies in the system
-            unsigned int has_bodies = 0;
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-            for (unsigned int i = 0; i < m_pdata->getN(); ++i)
-                {
-                if (h_body.data[i] != NO_BODY)
-                    {
-                    has_bodies = 1;
-                    break;
-                    }
-                }
-            #ifdef ENABLE_MPI
-            if (m_pdata->getDomainDecomposition())
-                {
-                MPI_Allreduce(MPI_IN_PLACE,
-                    &has_bodies,
-                    1,
-                    MPI_UNSIGNED,
-                    MPI_MAX,
-                    m_exec_conf->getMPICommunicator());
-                }
-            #endif
+            bool has_bodies = m_pdata->hasRigidBodies();
             if (has_bodies || !filter_body)
                 {
                 // only activate body filtering if bodies are present,

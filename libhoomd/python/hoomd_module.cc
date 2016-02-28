@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
-#include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
@@ -110,16 +109,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBD.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
-#include "TwoStepNHRigid.h"
-#include "TwoStepNVERigid.h"
-#include "TwoStepNVTRigid.h"
-#include "TwoStepNPTRigid.h"
-#include "TwoStepNPHRigid.h"
-#include "TwoStepBDNVTRigid.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "FIREEnergyMinimizer.h"
-#include "FIREEnergyMinimizerRigid.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
@@ -149,11 +141,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
-#include "TwoStepNVERigidGPU.h"
-#include "TwoStepNVTRigidGPU.h"
-#include "TwoStepNPHRigidGPU.h"
-#include "TwoStepNPTRigidGPU.h"
-#include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUStencil.h"
@@ -171,7 +158,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
-#include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
@@ -581,8 +567,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxDim();
     export_ParticleData();
     export_SnapshotParticleData();
-    export_RigidData();
-    export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_SystemDefinition();
     export_SnapshotSystemData();
@@ -743,15 +727,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBD();
     export_TwoStepNPTMTK();
     export_Berendsen();
-    export_TwoStepNHRigid();
-    export_TwoStepNVERigid();
-    export_TwoStepNVTRigid();
-    export_TwoStepNPHRigid();
-    export_TwoStepNPTRigid();
-    export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
     export_FIREEnergyMinimizer();
-    export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
     export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
@@ -761,14 +738,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDGPU();
     export_TwoStepNPTMTKGPU();
     export_BerendsenGPU();
-    export_TwoStepNVERigidGPU();
-    export_TwoStepNVTRigidGPU();
-    export_TwoStepNPHRigidGPU();
-    export_TwoStepNPTRigidGPU();
-    export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
-    export_FIREEnergyMinimizerRigidGPU();
 #endif
 
 #ifdef ENABLE_MPI
@@ -829,8 +800,6 @@ BOOST_PYTHON_MODULE(hoomd)
     // register_ptr_to_python< boost::shared_ptr< ForceComputeWrap > >();
     register_ptr_to_python< boost::shared_ptr< CGCMMForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< ExecutionConfiguration > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotRigidData > >();
-    register_ptr_to_python< boost::shared_ptr< RigidData > >();
     register_ptr_to_python< boost::shared_ptr< SystemDefinition > >();
     register_ptr_to_python< boost::shared_ptr< ParticleData > >();
     register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<float> > >();
@@ -850,29 +819,22 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<double> > >();
     register_ptr_to_python< boost::shared_ptr< wall_type > >();
     register_ptr_to_python< boost::shared_ptr< System > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVT > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBD > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigid > >();
     register_ptr_to_python< boost::shared_ptr< BoxResizeUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TempRescaleUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBerendsen > >();
     register_ptr_to_python< boost::shared_ptr< IntegratorTwoStep > >();
     // register_ptr_to_python< boost::shared_ptr< UpdaterWrap > >();
     register_ptr_to_python< boost::shared_ptr< Integrator > >();
     register_ptr_to_python< boost::shared_ptr< IntegrationMethodTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigid > >();
     register_ptr_to_python< boost::shared_ptr< ZeroMomentumUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigid > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNHRigid > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdater > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizer > >();
     register_ptr_to_python< boost::shared_ptr< double2 > >();
@@ -921,8 +883,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< ComputeThermoGPU > >();
     register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
@@ -931,12 +891,8 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< TwoStepBDGPU > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
     #endif
 

@@ -414,29 +414,6 @@ import hoomd_script
 # \endcode
 #
 # <hr>
-# <h3>Rigid Body Data</h3>
-# Rigid Body data can be accessed via the body_data_proxy.  Here are examples
-#
-#\code
-#
-# >>> b = system.bodies[0]
-# >>> print(b)
-#num_particles    : 5
-#mass             : 5.0
-# COM              : (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
-# velocity         : (0.0, 0.0, 0.0)
-# orientation      : (0.9244732856750488, -0.3788720965385437, -0.029276784509420395, 0.0307924821972847)
-# angular_momentum (space frame) : (0.0, 0.0, 0.0)
-# moment_inertia: (10.000000953674316, 10.0, 0.0)
-# particle_tags    : [0, 1, 2, 3, 4]
-# particle_disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
-# >>> print(b.COM)
-# (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
-# >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
-#
-#\endcode
-#
-# <hr>
 # <h3>Bond Data</h3>
 # Bonds may be added at any time in the job script.
 # \code
@@ -807,7 +784,6 @@ class system_data(meta._metadata):
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.constraints = constraint_data(sysdef.getConstraintData());
-        self.bodies = body_data(sysdef.getRigidData());
 
         # base class constructor
         meta._metadata.__init__(self)
@@ -821,7 +797,6 @@ class system_data(meta._metadata):
     #
     # \param particles If true, particle data is included in the snapshot
     # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
-    # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
@@ -838,7 +813,6 @@ class system_data(meta._metadata):
     def take_snapshot(self,
                       particles=True,
                       bonds=False,
-                      rigid_bodies=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
@@ -847,18 +821,17 @@ class system_data(meta._metadata):
         if all is True:
                 particles=True
                 bonds=True
-                rigid_bodies=True
                 integrators=True
 
-        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or integrators):
+        if not (particles or bonds or angles or dihedrals or impropers or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,integrators)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,integrators)
         else:
             raise ValueError("dtype must be float or double");
 
@@ -883,8 +856,6 @@ class system_data(meta._metadata):
     # system = init.read_xml("some_file.xml")
     # system.replicate(nx=2,ny=2,nz=2)
     # \endcode
-    #
-    # \note Replication of rigid bodies is currently not supported.
     #
     # \note It is a limitation that in MPI simulations the dimensions of the processor grid
     # are not updated upon replication. For example, if an initially cubic box is replicated along only one
@@ -972,7 +943,6 @@ class system_data(meta._metadata):
         data['dihedrals'] = self.dihedrals
         data['impropers'] = self.impropers
         data['constraints'] = self.constraints
-        data['bodies'] = self.bodies
 
         data['timestep'] = globals.system.getCurrentTimeStep()
         return data
@@ -2278,248 +2248,6 @@ class dihedral_data_proxy:
         if name == "type":
             raise AttributeError;
         if name == "typeid":
-            raise AttributeError;
-
-        # otherwise, consider this an internal attribute to be set in the normal way
-        self.__dict__[name] = value;
-
-## \internal
-# \brief Access body data
-#
-# body_data provides access to the per-body data of all bodies in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
-# body_data, documented by example.
-#
-class body_data(meta._metadata):
-    ## \internal
-    # \brief bond_data iterator
-    class body_data_iterator:
-        def __init__(self, data):
-            self.data = data;
-            self.index = 0;
-        def __iter__(self):
-            return self;
-        def __next__(self):
-            if self.index == len(self.data):
-                raise StopIteration;
-
-            result = self.data[self.index];
-            self.index += 1;
-            return result;
-
-        # support python2
-        next = __next__;
-
-    ## \internal
-    # \brief create a body_data
-    #
-    # \param bdata BodyData to connect
-    def __init__(self, bdata):
-        self.bdata = bdata;
-        meta._metadata.__init__(self)
-
-    # \brief updates the v and x positions of a rigid body
-    # \note the second arguement is dt, but the value should not matter as long as not zero
-    def updateRV(self):
-        self.bdata.setRV(True);
-
-    ## \var bdata
-    # \internal
-    # \brief BodyData to which this instance is connected
-
-    ## \internal
-    # \brief Get a body_proxy reference to the body with body index \a tag
-    # \param tag Body tag to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
-            raise IndexError;
-        return body_data_proxy(self.bdata, tag);
-
-    ## \internal
-    # \brief Set a body's properties
-    # \param tag Body tag to set
-    # \param p Value containing properties to set
-    def __setitem__(self, tag, p):
-        raise RuntimeError('__setitem__ not implemented');
-
-    ## \internal
-    # \brief Get the number of bodies
-    def __len__(self):
-        return self.bdata.getNumBodies();
-
-    ## \internal
-    # \brief Get an informal string representing the object
-    def __str__(self):
-        result = "Body Data for %d bodies" % (self.bdata.getNumBodies());
-        return result
-
-    ## \internal
-    # \brief Return an interator
-    def __iter__(self):
-        return body_data.body_data_iterator(self);
-
-    ## \internal
-    # \brief Return metadata for this body_data instance
-    def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
-        data['nbodies'] = len(self)
-        return data
-
-
-## Access a single body via a proxy
-#
-# body_data_proxy provides access to all of the properties of a single bond in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
-# body_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c num_particles : The number of particles (or interaction sites) composing the body
-# - \c particle_tags : the tags of the particles (or interaction sites) composing the body
-# - \c net_force     : Net force acting on the body (x, y, z) (in force units)
-# - \c net_torque    : Net torque acting on the body (x, y, z) (in units of force * distance)
-#
-# The following attributes can be both read and set
-# - \c mass          : The mass of the body
-# - \c COM           : The Center of Mass position of the body
-# - \c velocity      : The velocity vector of the center of mass of the body
-# - \c orientation   : The orientation of the body (quaternion)
-# - \c angular_momentum : The angular momentum of the body in the space frame
-# - \c moment_inertia : the principle components of the moment of inertia
-# - \c particle_disp : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
-# \MPI_NOT_SUPPORTED
-class body_data_proxy:
-    ## \internal
-    # \brief create a body_data_proxy
-    #
-    # \param bdata RigidData to which this proxy belongs
-    # \param tag tag of this body in \a bdata
-    def __init__(self, bdata, tag):
-
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error accessing body data.")
-
-        self.bdata = bdata;
-        self.tag = tag;
-
-    ## \internal
-    # \brief Get an informal string representing the object
-    def __str__(self):
-        result = "";
-        result += "num_particles    : " + str(self.num_particles) + "\n"
-        result += "mass             : " + str(self.mass) + "\n"
-        result += "COM              : " + str(self.COM) + "\n"
-        result += "velocity         : " + str(self.velocity) + "\n"
-        result += "orientation      : " + str(self.orientation) + "\n"
-        result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"
-        result += "moment_inertia: " + str(self.moment_inertia) + "\n"
-        result += "particle_tags    : " + str(self.particle_tags) + "\n"
-        result += "particle_disp    : " + str(self.particle_disp) + "\n"
-        result += "net_force        : " + str(self.net_force) + "\n"
-        result += "net_torque       : " + str(self.net_torque) + "\n"
-
-        return result;
-
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "COM":
-            COM = self.bdata.getBodyCOM(self.tag);
-            return (COM.x, COM.y, COM.z);
-        if name == "velocity":
-            velocity = self.bdata.getBodyVel(self.tag);
-            return (velocity.x, velocity.y, velocity.z);
-        if name == "orientation":
-            orientation = self.bdata.getBodyOrientation(self.tag);
-            return (orientation.x, orientation.y, orientation.z, orientation.w);
-        if name == "angular_momentum":
-            angular_momentum = self.bdata.getBodyAngMom(self.tag);
-            return (angular_momentum.x, angular_momentum.y, angular_momentum.z);
-        if name == "num_particles":
-            num_particles = self.bdata.getBodyNSize(self.tag);
-            return num_particles;
-        if name == "mass":
-            mass = self.bdata.getMass(self.tag);
-            return mass;
-        if name == "moment_inertia":
-            moment_inertia = self.bdata.getBodyMomInertia(self.tag);
-            return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
-        if name == "particle_tags":
-            particle_tags = [];
-            for i in range(0, self.num_particles):
-               particle_tags.append(self.bdata.getParticleTag(self.tag, i));
-            return particle_tags;
-        if name == "particle_disp":
-            particle_disp = [];
-            for i in range(0, self.num_particles):
-               disp = self.bdata.getParticleDisp(self.tag, i);
-               particle_disp.append([disp.x, disp.y, disp.z]);
-            return particle_disp;
-        if name == "net_force":
-            f = self.bdata.getBodyNetForce(self.tag);
-            return (f.x, f.y, f.z);
-        if name == "net_torque":
-            t = self.bdata.getBodyNetTorque(self.tag);
-            return (t.x, t.y, t.z);
-
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
-
-    ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __setattr__(self, name, value):
-        if name == "COM":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setBodyCOM(self.tag, p);
-            return;
-        if name == "velocity":
-            v = hoomd.Scalar3();
-            v.x = float(value[0]);
-            v.y = float(value[1]);
-            v.z = float(value[2]);
-            self.bdata.setBodyVel(self.tag, v);
-            return;
-        if name == "mass":
-            self.bdata.setMass(self.tag, value);
-            return;
-        if name == "orientation":
-            q = hoomd.Scalar4();
-            q.x = float(value[0]);
-            q.y = float(value[1]);
-            q.z = float(value[2]);
-            q.w = float(value[3]);
-            self.bdata.setBodyOrientation(self.tag, q);
-            return;
-        if name == "angular_momentum":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setAngMom(self.tag, p);
-            return;
-        if name == "moment_inertia":
-            p = hoomd.Scalar3();
-            p.x = float(value[0]);
-            p.y = float(value[1]);
-            p.z = float(value[2]);
-            self.bdata.setBodyMomInertia(self.tag, p);
-            return;
-        if name == "particle_disp":
-            p = hoomd.Scalar3();
-            for i in range(0, self.num_particles):
-                p.x = float(value[i][0]);
-                p.y = float(value[i][1]);
-                p.z = float(value[i][2]);
-                self.bdata.setParticleDisp(self.tag, i, p);
-            return;
-        if name == "net_force":
-            raise AttributeError;
-        if name == "net_torque":
             raise AttributeError;
 
         # otherwise, consider this an internal attribute to be set in the normal way

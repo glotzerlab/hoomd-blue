@@ -115,7 +115,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
-    m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false),
+      m_num_frames_written(0), m_last_written_step(0), m_appending(false),
       m_unwrap_full(false), m_unwrap_rigid(false), m_angle(false),
       m_overwrite(overwrite), m_is_initialized(false)
     {
@@ -361,15 +361,6 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     // we need to unsort the positions and write in tag order
     assert(m_staging_buffer);
 
-#ifdef ENABLE_MPI
-    if (m_comm && m_unwrap_rigid)
-        {
-        m_exec_conf->msg->error() << "dump.dcd: Unwrap of rigid bodies in DCD files is currently not supported in MPI simulations" << endl;
-        throw runtime_error("Error writing DCD file");
-        }
-#endif
-
-    ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getGlobalBox();
 
     unsigned int nparticles = m_group->getNumMembersGlobal();
@@ -383,18 +374,6 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         if (m_unwrap_full)
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
-            }
-        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
-            {
-            int body_ix = body_image_handle.data[snapshot.body[i]].x;
-            int body_iy = body_image_handle.data[snapshot.body[i]].y;
-            int body_iz = body_image_handle.data[snapshot.body[i]].z;
-            int3 particle_img = snapshot.image[i];
-            int3 img_diff = make_int3(particle_img.x - body_ix,
-                                      particle_img.y - body_iy,
-                                      particle_img.z - body_iz);
-
-            tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
             }
         }
 

@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
-#include "RigidData.h"
 
 /*! \ingroup data_structs
 */
@@ -93,7 +92,6 @@ struct SnapshotSystemData {
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data
     ImproperData::Snapshot improper_data;    //!< The improper data
     ConstraintData::Snapshot constraint_data;//!< The constraint data
-    SnapshotRigidData rigid_data;          //!< The rigid body data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
