@@ -74,7 +74,7 @@ ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
         {
         bodies_per_block = 1 << i;
         unsigned int cur_block_size = 1;
-        while (cur_block_size <= dev_prop.maxThreadsPerBlock)
+        while (cur_block_size <= (unsigned int) dev_prop.maxThreadsPerBlock)
             {
             if (cur_block_size >= bodies_per_block)
                 {
