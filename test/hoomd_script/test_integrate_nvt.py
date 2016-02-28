@@ -39,8 +39,9 @@ class integrate_nvt_tests (unittest.TestCase):
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
         mode = integrate.mode_standard(dt=0.005);
-        nvt = integrate.nvt(group=empty, T=1.0, tau=0.5)
-        run(1);
+        with self.assertRaises(RuntimeError):
+            nvt = integrate.nvt(group=empty, T=1.0, tau=0.5)
+            run(1);
 
     def tearDown(self):
         init.reset();
