@@ -2799,7 +2799,7 @@ class dipole(ai_pair):
 #    \f$ \varepsilon \f$ and \f$ \epsilon_{RF} \f$ are needed.
 #
 # [1] J. a. Barker and R. O. Watts, "Monte Carlo studies of the dielectric properties of water-like
-#     models," Mol. Phys., vol. 26, no. June 2015, pp. 789–792, 1973.
+#     models," Mol. Phys., vol. 26, no. June 2015, pp. 789-792, 1973.
 #
 # For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
