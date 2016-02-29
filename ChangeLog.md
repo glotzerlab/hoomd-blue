@@ -16,6 +16,7 @@
 * `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.
 * Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
   notebook output blocks.
+* `analyze.log` can now register python callback functions as sources for logged quantities.
 
 *Changes that require job script modifications*
 
