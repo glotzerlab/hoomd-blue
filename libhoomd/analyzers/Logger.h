@@ -111,6 +111,9 @@ class Logger : public Analyzer
         //! Registers an updater
         void registerUpdater(boost::shared_ptr<Updater> updater);
 
+        //! Register a callback
+        void registerCallback(std::string name, boost::python::object callback);
+
         //! Clears all registered computes and updaters
         void removeAll();
 
@@ -154,6 +157,8 @@ class Logger : public Analyzer
         std::map< std::string, boost::shared_ptr<Compute> > m_compute_quantities;
         //! A map of updaters indexed by logged quantity that they provide
         std::map< std::string, boost::shared_ptr<Updater> > m_updater_quantities;
+        //! List of callbacks
+        std::map< std::string, boost::python::object > m_callback_quantities;
         //! List of quantities to log
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity
