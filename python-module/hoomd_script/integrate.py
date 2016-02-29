@@ -972,7 +972,7 @@ def bdnvt(group, T, seed=0, gamma_diam=False, limit=None, tally=False):
         dscale = 1.0;
     else:
         dscale = False;
-    return langevin(group, T, seed, dscale, tally)
+    return langevin(group, T, seed, dscale, tally, False, False)
 
 ## Langevin dynamics
 #

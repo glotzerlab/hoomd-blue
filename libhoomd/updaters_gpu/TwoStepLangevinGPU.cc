@@ -186,6 +186,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {
@@ -231,29 +232,37 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        }
         
         if (m_aniso)
-        {
-        // second part of angular update
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
-        
-        unsigned int group_size = m_group->getNumMembers();
-        gpu_langevin_angular_step_two(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 group_size,
-                                 m_deltaT,
-                                 1.0);
+            {
+            // second part of angular update
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+            unsigned int group_size = m_group->getNumMembers();
+            gpu_langevin_angular_step_two(d_pos.data,
+                                     d_orientation.data,
+                                     d_angmom.data,
+                                     d_inertia.data,
+                                     d_net_torque.data,
+                                     d_index_array.data,
+                                     d_gamma_r.data,
+                                     d_tag.data,
+                                     group_size,
+                                     args, 
+                                     m_deltaT,
+                                     1.0
+                                     );
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        
         }
+        
+
 
     if (m_tally)
         {

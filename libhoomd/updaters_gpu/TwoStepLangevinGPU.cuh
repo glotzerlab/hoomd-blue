@@ -91,15 +91,20 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar deltaT,
                                   unsigned int D);
 
-//! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
-cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_orientation,
+//! Kernel driver for the second part of the angular Langevin update (NO_SQUISH) by TwoStepLangevinGPU
+cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
+                             Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
-                             const Scalar4 *d_net_torque,
-                             unsigned int *d_group_members,
+                             Scalar4 *d_net_torque,
+                             const unsigned int *d_group_members,
+                             const Scalar *d_gamma_r,
+                             const unsigned int *d_tag,
                              unsigned int group_size,
+                             const langevin_step_two_args& langevin_args,
                              Scalar deltaT,
-                             Scalar scale);
+                             Scalar scale
+                            );
 
 
 #endif //__TWO_STEP_LANGEVIN_GPU_CUH__
