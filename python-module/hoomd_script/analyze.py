@@ -435,6 +435,8 @@ class imd(_analyzer):
 # Use this with the query() method to query the values of properties without the overhead of writing them
 # to disk.
 #
+# You can register custom python callback functions to provide logged quantities with register_callback().
+#
 # \b Examples:
 # \code
 # lj1 = pair.lj(r_cut=3.0, name="lj1")
@@ -589,6 +591,24 @@ class log(_analyzer):
             use_cache = False;
 
         return self.cpp_analyzer.getQuantity(quantity, hoomd_script.context.current.system.getCurrentTimeStep(), use_cache);
+
+    ## Register a callback to produce a logged quantity
+    # \param name Name of the quantity
+    # \param callback A python callable object (i.e. a lambda, function, or class that implements __call__)
+    #
+    # The callback method must take a single argument, the current timestep, and return a single floating point value to
+    # be logged.
+    #
+    # \note One callback can query the value of another, but logged quantities are evaluated in order from left to right.
+    #
+    # \b Examples:
+    # \code
+    # logger = analyze.log(filename='log.dat', quantities=['my_quantity', 'cosm'], period=100)
+    # logger.register_callback('my_quantity', lambda timestep: timestep**2)
+    # logger.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
+    # \endcode
+    def register_callback(self, name, callback):
+        self.cpp_analyzer.registerCallback(name, callback);
 
     ## \internal
     # \brief Re-registers all computes and updaters with the logger

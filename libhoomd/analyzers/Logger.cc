@@ -144,7 +144,10 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
     for (unsigned int i = 0; i < provided_quantities.size(); i++)
         {
         // first check if this quantity is already set, printing a warning if so
-        if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
+        if (   m_compute_quantities.count(provided_quantities[i])
+            || m_updater_quantities.count(provided_quantities[i])
+            || m_callback_quantities.count(provided_quantities[i])
+            )
             m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_compute_quantities[provided_quantities[i]] = compute;
@@ -165,11 +168,32 @@ void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
     for (unsigned int i = 0; i < provided_quantities.size(); i++)
         {
         // first check if this quantity is already set, printing a warning if so
-        if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
+        if (   m_compute_quantities.count(provided_quantities[i])
+            || m_updater_quantities.count(provided_quantities[i])
+            || m_callback_quantities.count(provided_quantities[i])
+            )
             m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_updater_quantities[provided_quantities[i]] = updater;
         }
+    }
+
+/*! \param name Name of the quantity
+    \param callback Python callback that produces the quantity
+
+    After the callback is registered \a name is available as a logger quantity. The callback must return a scalar
+    value and accept the time step as an argument.
+*/
+void Logger::registerCallback(std::string name, boost::python::object callback)
+    {
+    // first check if this quantity is already set, printing a warning if so
+    if (   m_compute_quantities.count(name)
+        || m_updater_quantities.count(name)
+        || m_callback_quantities.count(name)
+        )
+    m_exec_conf->msg->warning() << "analyze.log: The log quantity " << name <<
+                         " has been registered more than once. Only the most recent registration takes effect" << endl;
+    m_callback_quantities[name] = callback;
     }
 
 /*! After calling removeAll(), no quantities are registered for logging
@@ -356,6 +380,21 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
         // get the log value
         return m_updater_quantities[quantity]->getLogValue(quantity, timestep);
         }
+    else if (m_callback_quantities.count(quantity))
+        {
+        // get a quantity from a callback
+        boost::python::object rv = m_callback_quantities[quantity](timestep);
+        extract<Scalar> extracted_rv(rv);
+        if (extracted_rv.check())
+            {
+            return extracted_rv();
+            }
+        else
+            {
+            m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
+            return Scalar(0.0);
+            }
+        }
     else
         {
         m_exec_conf->msg->warning() << "analyze.log: Log quantity " << quantity << " is not registered, logging a value of 0" << endl;
@@ -370,6 +409,7 @@ void export_Logger()
     ("Logger", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)
+    .def("registerCallback", &Logger::registerCallback)
     .def("removeAll", &Logger::removeAll)
     .def("setLoggedQuantities", &Logger::setLoggedQuantities)
     .def("setDelimiter", &Logger::setDelimiter)
