@@ -295,6 +295,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              Scalar T,
                              bool noiseless_r,
                              Scalar deltaT,
+                             unsigned int D,
                              Scalar scale 
                             )
     {
@@ -357,6 +358,10 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             d_net_torque[idx].x += bf_torque.x;
             d_net_torque[idx].y += bf_torque.y;
             d_net_torque[idx].z += bf_torque.z;
+            
+            // with the wishful mind that compiler may use conditional move to avoid branching
+            if (D == 3) d_net_torque[idx].x = 0;
+            if (D == 3) d_net_torque[idx].y = 0;
             }
         
         //////////////////////////////
@@ -408,6 +413,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              unsigned int group_size,
                              const langevin_step_two_args& langevin_args,
                              Scalar deltaT,
+                             unsigned int D,
                              Scalar scale)
     {
     // setup the grid to run the kernel
@@ -431,6 +437,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                                         langevin_args.T,
                                         langevin_args.noiseless_r,
                                         deltaT, 
+                                        D,
                                         scale
                                         );
 

@@ -412,6 +412,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
                 h_net_torque.data[j].x += bf_torque.x;
                 h_net_torque.data[j].y += bf_torque.y;
                 h_net_torque.data[j].z += bf_torque.z;
+                
+                if (D == 3) h_net_torque.data[j].x = 0;
+                if (D == 3) h_net_torque.data[j].y = 0;
                 }
             }
         }

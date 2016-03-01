@@ -253,6 +253,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
                                      group_size,
                                      args, 
                                      m_deltaT,
+                                     D,
                                      1.0
                                      );
 

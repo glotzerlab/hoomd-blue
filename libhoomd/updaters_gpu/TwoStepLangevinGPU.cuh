@@ -103,6 +103,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              unsigned int group_size,
                              const langevin_step_two_args& langevin_args,
                              Scalar deltaT,
+                             unsigned int D,
                              Scalar scale
                             );
 
