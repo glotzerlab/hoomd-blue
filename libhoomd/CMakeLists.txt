@@ -5,7 +5,7 @@ macro(add_libhoomd_source_dir dir)
 add_subdirectory(${dir})
 
 # find all source files in this directory
-file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cc)
+file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cc ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.c)
 file(GLOB CU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cu)
 file(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cuh)
 

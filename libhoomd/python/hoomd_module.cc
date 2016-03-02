@@ -95,6 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PDBDumpWriter.h"
 #include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
+#include "GSDDumpWriter.h"
 #include "Logger.h"
 #include "MSDAnalyzer.h"
 #include "CallbackAnalyzer.h"
@@ -711,6 +712,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_POSDumpWriter();
     export_PDBDumpWriter();
     export_DCDDumpWriter();
+    export_GSDDumpWriter();
     export_MOL2DumpWriter();
     export_Logger();
     export_MSDAnalyzer();

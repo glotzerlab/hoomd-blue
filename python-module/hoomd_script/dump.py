@@ -481,6 +481,98 @@ class dcd(analyze._analyzer):
         hoomd_script.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
+## Writes simulation snapshots in the GSD format
+#
+# Write a simulation snapshot to the specified GSD file at regular intervals.
+# GSD is capable of storing all particle and bond data fields that hoomd stores,
+# in every frame of the trajectory. This allows GSD to store simulations where the
+# number of particles, number of particle types, particle types, diameter, mass,
+# charge, or anything is changing over time.
+#
+# To save on space, GSD does not write values that are all set at defaults. So if
+# all masses are left set at the default of 1.0, mass will not take up any space in
+# the file. To save even more on space, flag fields as static (the default) and
+# dump.gsd will only write them out to frame 0. When reading data from frame *i*,
+# any data field not present will be read from frame 0. This makes every single frame
+# of a GSD file fully specified and simulations initialized with init.read_gsd() can
+# select any frame of the file.
+#
+# The **static** option applies to groups of fields:
+#
+# * attribute
+#     * particles/N
+#     * particles/types
+#     * particles/typeid
+#     * particles/mass
+#     * particles/charge
+#     * particles/diameter
+#     * particles/body
+#     * particles/moment_inertia
+# * property
+#     * particles/position
+#     * particles/orientation
+# * momentum
+#     * particles/velocity
+#     * particles/angmom
+#     * particles/image
+# * topology
+#     * bonds/
+#     * angles/
+#     * dihedrals/
+#     * impropers/
+#     * constraints/
+#
+# See https://bitbucket.org/glotzer/gsd
+#
+# \MPI_SUPPORTED
+class gsd(analyze._analyzer):
+    ## Initialize the gsd writer
+    #
+    # \param filename File name to write
+    # \param period Number of time steps between file dumps, or None to write a single file immediately.
+    # \param group Particle group to output to the dcd file.
+    # \param overwrite When False (the default), any existing GSD file will be appended to. When True, an existing DCD
+    #        file \a filename will be overwritten.
+    # \param truncate When False (the default), frames are appened to the GSD file. When True, truncate the file and
+    #        write a new frame 0 every time.
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    # \param time_step Time step to write to the file (only used when period is None)
+    #
+    # If you only need to store a subset of the system, you can save file size and time spent analyzing data by
+    # specifying a group to write out. dump.gsd will write out all of the particles in the group in ascending
+    # tag order. When the group is not group.all(), dump.gsd will not write the topology fields.
+    #
+    # To write restart files with gsd, set `truncate=True`. This will cause dump.gsd to write a new frame 0
+    # to the file every period steps.
+    #
+    # \b Examples:
+    # \code
+    # dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
+    # dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
+    # dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
+    # \endcode
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, filename, period, group, overwrite=False, truncate=False, phase=-1, time_step=None):
+        util.print_status_line();
+
+        # initialize base class
+        analyze._analyzer.__init__(self);
+
+        self.cpp_analyzer = hoomd.GSDDumpWriter(hoomd_script.context.current.system_definition, filename, group.cpp_group, overwrite, truncate);
+
+        if period is not None:
+            self.setupAnalyzer(period, phase);
+        else:
+            if time_step is None:
+                time_step = hoomd_script.context.current.system.getCurrentTimeStep()
+            self.cpp_analyzer.analyze(time_step);
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.group = group
+        self.metadata_fields = ['filename','period','group']
 
 ## Writes simulation snapshots in the PBD format
 #
