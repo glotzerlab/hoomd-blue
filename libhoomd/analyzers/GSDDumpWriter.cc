@@ -93,6 +93,7 @@ GSDDumpWriter::GSDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
 
 void GSDDumpWriter::checkError(int retval)
     {
+    // checkError prints errors and then throws exceptions for common gsd error codes
     if (retval == -1)
         {
         m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
@@ -116,6 +117,7 @@ void GSDDumpWriter::initFileIO()
         ostringstream o;
         o << "HOOMD-blue " << HOOMD_VERSION_LONG;
 
+        m_exec_conf->msg->notice(3) << "dump.gsd: create gsd file " << m_fname << endl;
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
@@ -128,6 +130,7 @@ void GSDDumpWriter::initFileIO()
         }
 
     // open the file in append mode
+    m_exec_conf->msg->notice(3) << "dump.gsd: open gsd file " << m_fname << endl;
     retval = gsd_open(&m_handle, m_fname.c_str(), GSD_OPEN_APPEND);
     if (retval == -1)
         {
@@ -180,7 +183,10 @@ GSDDumpWriter::~GSDDumpWriter()
     m_exec_conf->msg->notice(5) << "Destroying GSDDumpWriter" << endl;
 
     if (m_is_initialized)
+        {
+        m_exec_conf->msg->notice(5) << "dump.gsd: close gsd file " << m_fname << endl;
         gsd_close(&m_handle);
+        }
     }
 
 /*! \param timestep Current time step of the simulation
@@ -196,8 +202,8 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         m_prof->push("Dump GSD");
 
     // take particle data snapshot
+    m_exec_conf->msg->notice(10) << "dump.gsd: taking particle data snapshot" << endl;
     SnapshotParticleData<float> snapshot(0);
-
     m_pdata->takeSnapshot<float>(snapshot);
 
 #ifdef ENABLE_MPI
@@ -209,11 +215,14 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         }
 #endif
 
+    // open the file if it is not yet opened
     if (! m_is_initialized)
         initFileIO();
 
+    // truncate the file if requested
     if (m_truncate)
         {
+        m_exec_conf->msg->notice(10) << "dump.gsd: truncating file" << endl;
         retval = gsd_truncate(&m_handle);
         if (retval == -1)
             {
@@ -247,10 +256,40 @@ void GSDDumpWriter::analyze(unsigned int timestep)
             }
         }
 
+    uint64_t nframes = gsd_get_nframes(&m_handle);
+    m_exec_conf->msg->notice(10) << "dump.gsd: " << m_fname << " has " << nframes << " frames" << endl;
+
+    // write out the frame header on all frames
     writeFrameHeader(timestep);
-    writeAttributes(snapshot);
-    writeProperties(snapshot);
-    writeMomenta(snapshot);
+
+    // only write out data chunk categories if requested, or if on frame 0
+    if (m_write_attribute || nframes == 0)
+        writeAttributes(snapshot);
+    if (m_write_property || nframes == 0)
+        writeProperties(snapshot);
+    if (m_write_momentum || nframes == 0)
+        writeMomenta(snapshot);
+    if (m_write_topology || nframes == 0)
+        {
+        BondData::Snapshot bdata_snapshot(m_sysdef->getBondData()->getNGlobal());
+        m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
+
+        AngleData::Snapshot adata_snapshot(m_sysdef->getAngleData()->getNGlobal());
+        m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
+
+        DihedralData::Snapshot ddata_snapshot(m_sysdef->getDihedralData()->getNGlobal());
+        m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
+
+        ImproperData::Snapshot idata_snapshot(m_sysdef->getImproperData()->getNGlobal());
+        m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
+
+        ConstraintData::Snapshot cdata_snapshot(m_sysdef->getConstraintData()->getNGlobal());
+        m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
+
+        writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot);
+        }
+
+    m_exec_conf->msg->notice(10) << "dump.gsd: ending frame" << endl;
     retval = gsd_end_frame(&m_handle);
     checkError(retval);
 
@@ -270,17 +309,20 @@ void GSDDumpWriter::analyze(unsigned int timestep)
 void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
     {
     int retval;
+    m_exec_conf->msg->notice(10) << "dump.gsd: writing configuration/step" << endl;
     uint64_t step = timestep;
     retval = gsd_write_chunk(&m_handle, "configuration/step", GSD_TYPE_UINT64, 1, 1, 0, (void *)&step);
     checkError(retval);
 
     if (gsd_get_nframes(&m_handle) == 0)
         {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing configuration/dimensions" << endl;
         uint8_t dimensions = m_sysdef->getNDimensions();
         retval = gsd_write_chunk(&m_handle, "configuration/dimensions", GSD_TYPE_UINT8, 1, 1, 0, (void *)&dimensions);
         checkError(retval);
         }
 
+    m_exec_conf->msg->notice(10) << "dump.gsd: writing configuration/box" << endl;
     BoxDim box = m_pdata->getGlobalBox();
     float box_a[6];
     box_a[0] = box.getL().x;
@@ -292,6 +334,7 @@ void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
     retval = gsd_write_chunk(&m_handle, "configuration/box", GSD_TYPE_FLOAT, 6, 1, 0, (void *)box_a);
     checkError(retval);
 
+    m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/N" << endl;
     uint32_t N = m_group->getNumMembersGlobal();
     retval = gsd_write_chunk(&m_handle, "particles/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
     checkError(retval);
@@ -314,6 +357,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
     max_len += 1;  // for null
 
         {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/types" << endl;
         std::vector<char> types(max_len*m_pdata->getNTypes());
         for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             strncpy(&types[max_len*i], m_pdata->getNameByType(i).c_str(), max_len);
@@ -336,6 +380,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/typeid" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&type[0]);
             checkError(retval);
             }
@@ -357,6 +402,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/mass" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/mass", GSD_TYPE_FLOAT, N, 1, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -374,6 +420,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/charge" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/charge", GSD_TYPE_FLOAT, N, 1, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -392,6 +439,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/diameter" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/diameter", GSD_TYPE_FLOAT, N, 1, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -413,6 +461,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/body" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/body", GSD_TYPE_INT32, N, 1, 0, (void *)&body[0]);
             checkError(retval);
             }
@@ -440,6 +489,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/moment_inertia" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/moment_inertia", GSD_TYPE_FLOAT, N, 3, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -466,6 +516,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
             data[group_idx+N*2] = float(snapshot.pos[t].z);
             }
 
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/position" << endl;
         retval = gsd_write_chunk(&m_handle, "particles/position", GSD_TYPE_FLOAT, N, 3, 0, (void *)&data[0]);
         checkError(retval);
         }
@@ -494,6 +545,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/orientation" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/orientation", GSD_TYPE_FLOAT, N, 4, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -531,6 +583,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/velocity" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/velocity", GSD_TYPE_FLOAT, N, 3, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -560,6 +613,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/angmom" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/angmom", GSD_TYPE_FLOAT, N, 4, 0, (void *)&data[0]);
             checkError(retval);
             }
@@ -587,15 +641,37 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
 
         if (! all_default)
             {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/image" << endl;
             retval = gsd_write_chunk(&m_handle, "particles/image", GSD_TYPE_INT32, N, 3, 0, (void *)&data[0]);
             checkError(retval);
             }
         }
     }
 
+/*! \param bond Bond data snapshot
+    \param angle Angle data snapshot
+    \param dihedral Dihedral data snapshot
+    \param improper Improper data snapshot
+    \param constraint Constraint data snapshot
+
+    Write out all the snapshot data to the GSD file
+*/
+void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
+                                  AngleData::Snapshot& angle,
+                                  DihedralData::Snapshot& dihedral,
+                                  ImproperData::Snapshot& improper,
+                                  ConstraintData::Snapshot& constraint)
+    {
+    // TODO
+    }
+
 void export_GSDDumpWriter()
     {
     class_<GSDDumpWriter, boost::shared_ptr<GSDDumpWriter>, bases<Analyzer>, boost::noncopyable>
     ("GSDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, boost::shared_ptr<ParticleGroup>, bool, bool>())
+        .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
+        .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
+        .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
+        .def("setWriteTopology", &GSDDumpWriter::setWriteTopology)
     ;
     }

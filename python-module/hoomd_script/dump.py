@@ -537,6 +537,7 @@ class gsd(analyze._analyzer):
     #        write a new frame 0 every time.
     # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     # \param time_step Time step to write to the file (only used when period is None)
+    # \param static A list of quantity categories that are static.
     #
     # If you only need to store a subset of the system, you can save file size and time spent analyzing data by
     # specifying a group to write out. dump.gsd will write out all of the particles in the group in ascending
@@ -545,21 +546,46 @@ class gsd(analyze._analyzer):
     # To write restart files with gsd, set `truncate=True`. This will cause dump.gsd to write a new frame 0
     # to the file every period steps.
     #
+    # dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
+    # frames. Quantity categories *not* listed in static are dynamic. dump.gsd writes dynamic quantities to every frame.
+    # The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
+    # In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
+    # save that information in a trajectory for later access. Particle momentum are always changing, but the default is
+    # to not include these quantities to save on file space.
+    #
     # \b Examples:
     # \code
     # dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
     # dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
     # dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
+    # dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group, overwrite=False, truncate=False, phase=-1, time_step=None):
+    def __init__(self,
+                 filename,
+                 period,
+                 group,
+                 overwrite=False,
+                 truncate=False,
+                 phase=-1,
+                 time_step=None,
+                 static=['attribute', 'momentum', 'topology']):
         util.print_status_line();
+
+        for v in static:
+            if v not in ['attribute', 'property', 'momentum', 'topology']:
+                hoomd_script.context.msg.warning("dump.gsd: static quantity", v, "is not recognized");
 
         # initialize base class
         analyze._analyzer.__init__(self);
 
         self.cpp_analyzer = hoomd.GSDDumpWriter(hoomd_script.context.current.system_definition, filename, group.cpp_group, overwrite, truncate);
+
+        self.cpp_analyzer.setWriteAttribute('attribute' not in static);
+        self.cpp_analyzer.setWriteProperty('property' not in static);
+        self.cpp_analyzer.setWriteMomentum('momentum' not in static);
+        self.cpp_analyzer.setWriteTopology('topology' not in static);
 
         if period is not None:
             self.setupAnalyzer(period, phase);
@@ -572,7 +598,8 @@ class gsd(analyze._analyzer):
         self.filename = filename
         self.period = period
         self.group = group
-        self.metadata_fields = ['filename','period','group']
+        self.phase = phase
+        self.metadata_fields = ['filename','period','group', 'phase']
 
 ## Writes simulation snapshots in the PBD format
 #

@@ -85,6 +85,30 @@ class GSDDumpWriter : public Analyzer
                       bool overwrite=false,
                       bool truncate=false);
 
+        //! Control attribute writes
+        void setWriteAttribute(bool b)
+            {
+            m_write_attribute = b;
+            }
+
+        //! Control property writes
+        void setWriteProperty(bool b)
+            {
+            m_write_property = b;
+            }
+
+        //! Control momentum writes
+        void setWriteMomentum(bool b)
+            {
+            m_write_momentum = b;
+            }
+
+        //! Control topology writes
+        void setWriteTopology(bool b)
+            {
+            m_write_topology = b;
+            }
+
         //! Destructor
         ~GSDDumpWriter();
 
@@ -96,6 +120,10 @@ class GSDDumpWriter : public Analyzer
         bool m_overwrite;                   //!< True if file should be overwritten
         bool m_truncate;                    //!< True if we should truncate the file on every analyze()
         bool m_is_initialized;              //!< True if the file is open
+        bool m_write_attribute;             //!< True if attributes should be written
+        bool m_write_property;              //!< True if properties should be written
+        bool m_write_momentum;              //!< True if momenta should be written
+        bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
 
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
@@ -115,7 +143,12 @@ class GSDDumpWriter : public Analyzer
         //! Write particle momenta
         void writeMomenta(const SnapshotParticleData<float>& snapshot);
 
-        // TODO: write topology
+        //! Write bond topology
+        void writeTopology(BondData::Snapshot& bond,
+                           AngleData::Snapshot& angle,
+                           DihedralData::Snapshot& dihedral,
+                           ImproperData::Snapshot& improper,
+                           ConstraintData::Snapshot& constraint);
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
