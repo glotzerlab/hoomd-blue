@@ -122,7 +122,9 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
-    
+    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+
     unsigned int num_blocks = group_size / m_block_size + 1;
 
     langevin_step_two_args args;
@@ -154,6 +156,8 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
                           d_gamma_r.data,
                           d_orientation.data,
                           d_torque.data,
+                          d_inertia.data,
+                          d_angmom.data,
                           args,
                           aniso,
                           m_deltaT,

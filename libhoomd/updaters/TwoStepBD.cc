@@ -250,7 +250,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 if (z_zero) bf_torque.z = 0;
                 
                 // use the damping by gamma_r and rotate back to lab frame 
-                // For Future Updates: take special care when have anisotropic gamma_r 
+                // Notes For the Future: take special care when have anisotropic gamma_r 
+                // if aniso gamma_r, first rotate the torque into particle frame and divide the different gamma_r
+                // and then rotate the "angular velocity" back to lab frame and integrate
                 bf_torque = rotate(q, bf_torque);
                 if (D < 3)
                     {

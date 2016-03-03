@@ -102,7 +102,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const Scalar4 *d_net_force,
                                   const Scalar *d_gamma_r,
                                   Scalar4 *d_orientation,
-                                  const Scalar4 *d_torque,
+                                  Scalar4 *d_torque,
+                                  const Scalar3 *d_inertia,
+                                  Scalar4 *d_angmom,
                                   const Scalar *d_gamma,
                                   const unsigned int n_types,
                                   const bool use_lambda,
@@ -209,25 +211,76 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         
         ///////////////////
         // beginning of rotational noise
-        if (D < 3 && aniso)
+        // if (D < 3 && aniso)
+        //     {
+        //     unsigned int type_r = __scalar_as_int(d_pos[idx].w);
+        //     Scalar gamma_r = s_gammas[type_r + n_types];
+            
+        //     if (gamma_r)
+        //         {
+        //         Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
+        //         Scalar tau_r = gaussian_rng(saru, sigma_r); 
+        //         if (d_noiseless_r) 
+        //             tau_r = Scalar(0.0);
+
+        //         vec3<Scalar> axis (0.0, 0.0, 1.0);
+        //         Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
+        //         quat<Scalar> omega (make_scalar4(0,0,0, theta));                
+        //         quat<Scalar> q (d_orientation[idx]);
+        //         q += Scalar(0.5) * deltaT * omega * q ;
+        //         // re-normalize (improves stability)
+        //         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+        //         d_orientation[idx] = quat_to_scalar4(q);
+        //         }
+        //     }
+        // }
+        
+        
+        /////////////
+        // new code
+        if (aniso)
             {
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
             Scalar gamma_r = s_gammas[type_r + n_types];
-            
             if (gamma_r)
                 {
-                Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
-                Scalar tau_r = gaussian_rng(saru, sigma_r); 
+                quat<Scalar> p(d_angmom[idx]);
+                quat<Scalar> q(d_orientation[idx]);
+                vec3<Scalar> t(d_torque[idx]);
+                vec3<Scalar> I(d_inertia[idx]);
+                
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);  
+                    
+                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*T/deltaT);
                 if (d_noiseless_r) 
-                    tau_r = Scalar(0.0);
+                    sigma_r = Scalar(0.0);
 
-                vec3<Scalar> axis (0.0, 0.0, 1.0);
-                Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
-                quat<Scalar> omega (make_scalar4(0,0,0, theta));                
-                quat<Scalar> q (d_orientation[idx]);
-                q += Scalar(0.5) * deltaT * omega * q ;
-                // re-normalize (improves stability)
-                q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+                // original Gaussian random torque
+                // Gaussian random distribution is preferred in terms of preserving the exact math
+                vec3<Scalar> bf_torque;
+                bf_torque.x = gaussian_rng(saru, sigma_r); 
+                bf_torque.y = gaussian_rng(saru, sigma_r); 
+                bf_torque.z = gaussian_rng(saru, sigma_r);
+                
+                if (x_zero) bf_torque.x = 0;
+                if (y_zero) bf_torque.y = 0;
+                if (z_zero) bf_torque.z = 0;
+                
+                // use the damping by gamma_r and rotate back to lab frame 
+                // For Future Updates: take special care when have anisotropic gamma_r 
+                bf_torque = rotate(q, bf_torque);
+                if (D < 3)
+                    {
+                    bf_torque.x = 0;
+                    bf_torque.y = 0;
+                    t.x = 0;
+                    t.y = 0;
+                    }
+
+                // do the integration for quaternion
+                q += Scalar(0.5) * deltaT * ((t + bf_torque) / gamma_r) * q ;               
+                q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
                 }
             }
@@ -260,7 +313,9 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const Scalar4 *d_net_force,
                                   const Scalar *d_gamma_r,
                                   Scalar4 *d_orientation,
-                                  const Scalar4 *d_torque,
+                                  Scalar4 *d_torque,
+                                  const Scalar3 *d_inertia,
+                                  Scalar4 *d_angmom,
                                   const langevin_step_two_args& langevin_args,
                                   const bool aniso,
                                   const Scalar deltaT,
@@ -291,6 +346,8 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                  d_gamma_r,
                                  d_orientation,
                                  d_torque,
+                                 d_inertia,
+                                 d_angmom,
                                  langevin_args.d_gamma,
                                  langevin_args.n_types,
                                  langevin_args.use_lambda,
