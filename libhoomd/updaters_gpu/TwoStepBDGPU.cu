@@ -244,7 +244,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
             Scalar gamma_r = s_gammas[type_r + n_types];
             if (gamma_r)
                 {
-                quat<Scalar> p(d_angmom[idx]);
+                vec3<Scalar> p_vec;
                 quat<Scalar> q(d_orientation[idx]);
                 vec3<Scalar> t(d_torque[idx]);
                 vec3<Scalar> I(d_inertia[idx]);
@@ -282,6 +282,21 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 q += Scalar(0.5) * deltaT * ((t + bf_torque) / gamma_r) * q ;               
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
+                
+                // draw a new random ang_mom for particle j in body frame
+                p_vec.x = gaussian_rng(saru, fast::sqrt(T * I.x));
+                p_vec.y = gaussian_rng(saru, fast::sqrt(T * I.y));
+                p_vec.z = gaussian_rng(saru, fast::sqrt(T * I.z));
+                if (x_zero) p_vec.x = 0;
+                if (y_zero) p_vec.y = 0;
+                if (z_zero) p_vec.z = 0;
+                
+                // !! Note this isn't well-behaving in 2D, 
+                // !! because may have effective non-zero ang_mom in x,y
+                
+                // store ang_mom quaternion
+                quat<Scalar> p = Scalar(2.0) * q * p_vec;
+                d_angmom[idx] = quat_to_scalar4(p);
                 }
             }
         }

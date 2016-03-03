@@ -224,16 +224,14 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             Scalar gamma_r = h_gamma_r.data[type_r];
             if (gamma_r)
                 {
-                quat<Scalar> p(h_angmom.data[j]);
+                vec3<Scalar> p_vec;
                 quat<Scalar> q(h_orientation.data[j]);
                 vec3<Scalar> t(h_torque.data[j]);
                 vec3<Scalar> I(h_inertia.data[j]);
                 
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);  
-                    
-                // cout << x_zero << y_zero << z_zero << endl;
-                    
+                                        
                 Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
                 if (m_noiseless_r) 
                     sigma_r = Scalar(0.0);
@@ -266,6 +264,21 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;               
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
+                
+                // draw a new random ang_mom for particle j in body frame
+                p_vec.x = gaussian_rng(saru, fast::sqrt(currentTemp * I.x));
+                p_vec.y = gaussian_rng(saru, fast::sqrt(currentTemp * I.y));
+                p_vec.z = gaussian_rng(saru, fast::sqrt(currentTemp * I.z));
+                if (x_zero) p_vec.x = 0;
+                if (y_zero) p_vec.y = 0;
+                if (z_zero) p_vec.z = 0;
+                
+                // !! Note this isn't well-behaving in 2D, 
+                // !! because may have effective non-zero ang_mom in x,y
+                
+                // store ang_mom quaternion
+                quat<Scalar> p = Scalar(2.0) * q * p_vec;
+                h_angmom.data[j] = quat_to_scalar4(p);
                 }
             }
         }
