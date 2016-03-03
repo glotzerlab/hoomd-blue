@@ -126,6 +126,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
     
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
     const BoxDim& box = m_pdata->getBox();
 
     // initialize the RNG
@@ -186,28 +189,80 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         ///////////////
         // for testing rotational noise in rotational Brownian dynamics (2D only!)
 
-        if (D < 3 && m_aniso)
-        {
+        // if (D < 3 && m_aniso)
+        // {
+        //     unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
+        //     Scalar gamma_r = h_gamma_r.data[type_r];
+            
+        //     if (gamma_r)
+        //         {
+        //         // original Gaussian random torque
+        //         Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+        //         Scalar tau_r = gaussian_rng(saru, sigma_r); 
+        //         if (m_noiseless_r) 
+        //             tau_r = Scalar(0.0);
+                
+        //         vec3<Scalar> axis (0.0, 0.0, 1.0);
+        //         Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
+        //         // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
+        //         quat<Scalar> omega (make_scalar4(0,0,0, theta));
+        //         quat<Scalar> q (h_orientation.data[j]);
+        //         q += Scalar(0.5) * m_deltaT * omega * q ;               
+                
+        //         // re-normalize (improves stability)
+        //         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+        //         h_orientation.data[j] = quat_to_scalar4(q);
+        //         }
+        //     }
+        // }
+        
+        //////////////////////////
+        // The new code
+        if (m_aniso)
+            {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
             Scalar gamma_r = h_gamma_r.data[type_r];
-            
             if (gamma_r)
                 {
-                // original Gaussian random torque
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> t(h_torque.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+                
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);  
+                    
+                // cout << x_zero << y_zero << z_zero << endl;
+                    
                 Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
-                Scalar tau_r = gaussian_rng(saru, sigma_r); 
                 if (m_noiseless_r) 
-                    tau_r = Scalar(0.0);
+                    sigma_r = Scalar(0.0);
+
+                // original Gaussian random torque
+                // Gaussian random distribution is preferred in terms of preserving the exact math
+                vec3<Scalar> bf_torque;
+                bf_torque.x = gaussian_rng(saru, sigma_r); 
+                bf_torque.y = gaussian_rng(saru, sigma_r); 
+                bf_torque.z = gaussian_rng(saru, sigma_r);
                 
-                vec3<Scalar> axis (0.0, 0.0, 1.0);
-                Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
-                // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
-                quat<Scalar> omega (make_scalar4(0,0,0, theta));
-                quat<Scalar> q (h_orientation.data[j]);
-                q += Scalar(0.5) * m_deltaT * omega * q ;               
+                if (x_zero) bf_torque.x = 0;
+                if (y_zero) bf_torque.y = 0;
+                if (z_zero) bf_torque.z = 0;
                 
-                // re-normalize (improves stability)
-                q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+                // use the damping by gamma_r and rotate back to lab frame 
+                // For Future Updates: take special care when have anisotropic gamma_r 
+                bf_torque = rotate(q, bf_torque);
+                if (D < 3)
+                    {
+                    bf_torque.x = 0;
+                    bf_torque.y = 0;
+                    t.x = 0;
+                    t.y = 0;
+                    }
+
+                // do the integration for quaternion
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;               
+                q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
                 }
             }
@@ -217,6 +272,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
     }
+    
 
 /*! \param timestep Current time step
 */
