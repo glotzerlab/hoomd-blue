@@ -360,8 +360,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             d_net_torque[idx].z += bf_torque.z;
             
             // with the wishful mind that compiler may use conditional move to avoid branching
-            if (D == 3) d_net_torque[idx].x = 0;
-            if (D == 3) d_net_torque[idx].y = 0;
+            if (D < 3) d_net_torque[idx].x = 0;
+            if (D < 3) d_net_torque[idx].y = 0;
             }
         
         //////////////////////////////
