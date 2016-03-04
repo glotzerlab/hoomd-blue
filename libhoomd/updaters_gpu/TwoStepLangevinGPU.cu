@@ -272,14 +272,24 @@ extern "C" __global__
     
     
 //! NO_SQUISH angular part of the second half step
-/*! \param d_orientation array of particle orientations
+/*! 
+    \param d_pos array of particle positions (4th dimension is particle type)
+    \param d_orientation array of particle orientations
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
+    \param d_tag array of particle tags
     \param group_size Number of members in the group
-    \param deltaT timestep
+    \param timestep Current timestep of the simulation
+    \param seed User chosen random number seed
+    \param T Temperature set point
+    \param d_noiseless_r If set true, there will be no rotational noise (random torque)
+    \param deltaT integration time step size
+    \param D dimensionality of the system
 */
+    
 __global__ void gpu_langevin_angular_step_two_kernel(
                              const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
@@ -394,13 +404,21 @@ __global__ void gpu_langevin_angular_step_two_kernel(
         }
     }
 
-/*! \param d_orientation array of particle orientations
+/*! \param d_pos array of particle positions (4th dimension is particle type)
+    \param d_orientation array of particle orientations
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
+    \param d_tag array of particle tags
     \param group_size Number of members in the group
+    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()
     \param deltaT timestep
+    \param D dimensionality of the system
+    
+    This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
+
 */
 cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
@@ -453,7 +471,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel()
+    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
 

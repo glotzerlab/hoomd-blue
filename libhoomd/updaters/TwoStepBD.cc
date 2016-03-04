@@ -74,6 +74,8 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
+    \param noiseless_t If set true, there will be no translational noise (random force)
+    \param noiseless_r If set true, there will be no rotational noise (random torque)
 */
 TwoStepBD::TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
@@ -185,39 +187,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         else
             h_vel.data[j].z = 0;
         
-        
-        ///////////////
-        // for testing rotational noise in rotational Brownian dynamics (2D only!)
-
-        // if (D < 3 && m_aniso)
-        // {
-        //     unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
-        //     Scalar gamma_r = h_gamma_r.data[type_r];
-            
-        //     if (gamma_r)
-        //         {
-        //         // original Gaussian random torque
-        //         Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
-        //         Scalar tau_r = gaussian_rng(saru, sigma_r); 
-        //         if (m_noiseless_r) 
-        //             tau_r = Scalar(0.0);
-                
-        //         vec3<Scalar> axis (0.0, 0.0, 1.0);
-        //         Scalar theta = (h_torque.data[j].z + tau_r) / gamma_r;
-        //         // quat<Scalar> omega = quat<Scalar>::fromAxisAngle(axis, theta);
-        //         quat<Scalar> omega (make_scalar4(0,0,0, theta));
-        //         quat<Scalar> q (h_orientation.data[j]);
-        //         q += Scalar(0.5) * m_deltaT * omega * q ;               
-                
-        //         // re-normalize (improves stability)
-        //         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
-        //         h_orientation.data[j] = quat_to_scalar4(q);
-        //         }
-        //     }
-        // }
-        
-        //////////////////////////
-        // The new code
+        // rotational random force and orientation quaternion updates
         if (m_aniso)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);

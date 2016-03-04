@@ -1007,6 +1007,8 @@ class langevin(_integration_method):
     # \param tally (optional) If true, the energy exchange between the thermal reservoir and the particles is
     #                         tracked. Total energy conservation can then be monitored by adding
     #                         \b langevin_reservoir_energy_<i>groupname</i> to the logged quantities.
+    # \param noiseless_t If set true, there will be no translational noise (random force)
+    # \param noiseless_r If set true, there will be no rotational noise (random torque)
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -1124,7 +1126,19 @@ class langevin(_integration_method):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
                 
-                
+    ## Set gamma_r for a particle type
+    # \param a Particle type name
+    # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
+    #
+    # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
+    # by name. The default is 1.0 if not specified for a type.
+    #
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma_r('A', gamma_r=2.0)
+    # \endcode
+    # 
     def set_gamma_r(self, a, gamma_r):
         util.print_status_line();
         self.check_initialization();
@@ -1175,6 +1189,8 @@ class brownian(_integration_method):
     # \param T Temperature of the simulation (in energy units).
     # \param seed Random seed to use for generating \f$ \vec{F}_\mathrm{R} \f$.
     # \param dscale Control \f$ \lambda \f$ options. If 0 or False, use \f$ \gamma \f$ values set per type. If non-zero, \f$ \gamma = \lambda d_i \f$.
+    # \param noiseless_t If set true, there will be no translational noise (random force)
+    # \param noiseless_r If set true, there will be no rotational noise (random torque)
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #

@@ -73,8 +73,8 @@ struct langevin_step_two_args
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
     unsigned int num_blocks;  //!<  Number of blocks
-    bool noiseless_t;         //!<  If true, there is no noise on translational degrees of freedom
-    bool noiseless_r;         //!<  If true, there is no noise on rotational degrees of freedom
+    bool noiseless_t;         //!<  If set true, there will be no translational noise (random force)
+    bool noiseless_r;         //!<  If set true, there will be no rotational noise (random torque)
     bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 

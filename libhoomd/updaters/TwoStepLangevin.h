@@ -110,8 +110,8 @@ class TwoStepLangevin : public TwoStepLangevinBase
         Scalar m_extra_energy_overdeltaT;  //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         std::string m_log_name;            //!< Name of the reservoir quantity that we log
-        bool m_noiseless_t;
-        bool m_noiseless_r;
+        bool m_noiseless_t;                //!< If set true, there will be no translational noise (random force)
+        bool m_noiseless_r;                //!< If set true, there will be no rotational noise (random torque)
     };
 
 //! Exports the TwoStepLangevin class to python

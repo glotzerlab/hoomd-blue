@@ -71,7 +71,10 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
+    \param noiseless_t If set true, there will be no translational noise (random force)
+    \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param suffix Suffix to attach to the end of log quantity names
+    
 */
 TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
@@ -377,6 +380,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
             vec3<Scalar> t(h_net_torque.data[j]);
             vec3<Scalar> I(h_inertia.data[j]);
 
+            // s is the pure imaginary quaternion with im. part equal to true angular velocity
             vec3<Scalar> s;
             s = (Scalar(1./2.) * conj(q) * p).v;
             
@@ -387,14 +391,14 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
                 // original Gaussian random torque
                 // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-                Scalar sigma_r = fast::sqrt(Scalar(6.0)*gamma_r*currentTemp/m_deltaT);
-                Scalar rand_x = saru.s<Scalar>(-1,1);
-                Scalar rand_y = saru.s<Scalar>(-1,1);
-                Scalar rand_z = saru.s<Scalar>(-1,1);
-                
+                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
                 if (m_noiseless_r) sigma_r = Scalar(0.0);
                 
-                // check for zero moment of inertia
+                Scalar rand_x = gaussian_rng(saru, sigma_r);
+                Scalar rand_y = gaussian_rng(saru, sigma_r);
+                Scalar rand_z = gaussian_rng(saru, sigma_r);
+                
+                // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
                           
@@ -452,7 +456,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
             // advance p(t+deltaT/2)->p(t+deltaT)
             p += m_deltaT*q*t;
-
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }

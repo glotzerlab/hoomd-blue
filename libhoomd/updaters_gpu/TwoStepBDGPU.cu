@@ -73,6 +73,11 @@ extern __shared__ Scalar s_gammas[];
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
+    \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
+    \param d_orientation Device array of orientation quaternion
+    \param d_torque Device array of net torque on each particle
+    \param d_inertia Device array of moment of inertial of each particle
+    \param d_angmom Device array of transformed angular momentum quaternion of each particle (see online documentation)
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
     \param use_lambda If true, gamma = lambda * diameter
@@ -80,8 +85,11 @@ extern __shared__ Scalar s_gammas[];
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
+    \param aniso If set true, the system would go through rigid body updates for its orientation 
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
+    \param d_noiseless_t If set true, there will be no translational noise (random force)
+    \param d_noiseless_r If set true, there will be no rotational noise (random torque)
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 
@@ -208,36 +216,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         d_vel[idx] = vel;
         d_image[idx] = image;
         
-        
-        ///////////////////
-        // beginning of rotational noise
-        // if (D < 3 && aniso)
-        //     {
-        //     unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-        //     Scalar gamma_r = s_gammas[type_r + n_types];
-            
-        //     if (gamma_r)
-        //         {
-        //         Scalar sigma_r = fast::sqrt(Scalar(2.0) * gamma_r * T / deltaT);
-        //         Scalar tau_r = gaussian_rng(saru, sigma_r); 
-        //         if (d_noiseless_r) 
-        //             tau_r = Scalar(0.0);
-
-        //         vec3<Scalar> axis (0.0, 0.0, 1.0);
-        //         Scalar theta = (d_torque[idx].z + tau_r) / gamma_r;
-        //         quat<Scalar> omega (make_scalar4(0,0,0, theta));                
-        //         quat<Scalar> q (d_orientation[idx]);
-        //         q += Scalar(0.5) * deltaT * omega * q ;
-        //         // re-normalize (improves stability)
-        //         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
-        //         d_orientation[idx] = quat_to_scalar4(q);
-        //         }
-        //     }
-        // }
-        
-        
-        /////////////
-        // new code
+        // rotational random force and orientation quaternion updates
         if (aniso)
             {
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
@@ -249,6 +228,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 vec3<Scalar> t(d_torque[idx]);
                 vec3<Scalar> I(d_inertia[idx]);
                 
+                // check if the shape is degenerate
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);  
                     
@@ -291,7 +271,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;
                 
-                // !! Note this isn't well-behaving in 2D, 
+                // !! Note this ang_mom isn't well-behaving in 2D, 
                 // !! because may have effective non-zero ang_mom in x,y
                 
                 // store ang_mom quaternion
@@ -311,10 +291,18 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
+    \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
+    \param d_orientation Device array of orientation quaternion
+    \param d_torque Device array of net torque on each particle
+    \param d_inertia Device array of moment of inertial of each particle
+    \param d_angmom Device array of transformed angular momentum quaternion of each particle (see online documentation)
     \param langevin_args Collected arguments for gpu_brownian_step_one_kernel()
+    \param aniso If set true, the system would go through rigid body updates for its orientation 
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
-
+    \param d_noiseless_t If set true, there will be no translational noise (random force)
+    \param d_noiseless_r If set true, there will be no rotational noise (random torque)
+    
     This is just a driver for gpu_brownian_step_one_kernel(), see it for details.
 */
 cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
