@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Shared memory array for gpu_langevin_step_two_kernel()
 extern __shared__ Scalar s_gammas[];
+extern __shared__ Scalar s_gammas_r[];
 
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
@@ -128,7 +129,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     {
     if (!use_lambda)
         {
-        // read in the gammas (1 dimensional array), stored in s_gammas[0: n_type-1]
+        // read in the gammas (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic convention)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
             {
             if (cur_offset + threadIdx.x < n_types)
@@ -137,11 +138,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         __syncthreads();
         }
         
-    // read in the gamma_r, stored in s_gammas[n_type : end]
+    // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_types)
-            s_gammas[cur_offset + threadIdx.x + n_types] = d_gamma_r[cur_offset + threadIdx.x];
+            s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
         }
     __syncthreads(); 
     
@@ -220,7 +221,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         if (aniso)
             {
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-            Scalar gamma_r = s_gammas[type_r + n_types];
+            Scalar gamma_r = s_gammas_r[type_r];
             if (gamma_r > 0)
                 {
                 vec3<Scalar> p_vec;

@@ -62,6 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Shared memory array for gpu_langevin_step_two_kernel()
 extern __shared__ Scalar s_gammas[];
 
+//! Shared memory array for gpu_langevin_angular_step_two_kernel()
+extern __shared__ Scalar s_gammas_r[];
+
+
 //! Shared memory used in reducing sums for bd energy tally
 extern __shared__ Scalar bdtally_sdata[];
 
@@ -299,6 +303,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              const unsigned int *d_group_members,
                              const Scalar *d_gamma_r,
                              const unsigned int *d_tag,
+                             unsigned int n_types,
                              unsigned int group_size,
                              unsigned int timestep,
                              unsigned int seed,
@@ -308,7 +313,15 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              unsigned int D,
                              Scalar scale 
                             )
-    {
+    {   
+    // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
+    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < n_types)
+            s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
+        }
+    __syncthreads(); 
+    
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -319,9 +332,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
 
         // torque update with rotational drag and noise
         unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-        Scalar gamma_r = d_gamma_r[type_r];
-        // get body frame ang_mom
-
+        Scalar gamma_r = s_gammas_r[type_r];
         
         if (gamma_r > 0)
             {
@@ -371,7 +382,6 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             }
         
         //////////////////////////////
-
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
         quat<Scalar> q(d_orientation[idx]);
         quat<Scalar> p(d_angmom[idx]);
@@ -445,6 +455,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                                         d_group_members,
                                         d_gamma_r,
                                         d_tag, 
+                                        langevin_args.n_types,
                                         group_size, 
                                         langevin_args.timestep,
                                         langevin_args.seed,
