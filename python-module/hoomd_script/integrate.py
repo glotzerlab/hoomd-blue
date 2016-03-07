@@ -1069,7 +1069,9 @@ class langevin(_integration_method):
         self.T = T
         self.seed = seed
         self.dscale = dscale
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale']
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
+        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
 
     ## Change langevin integrator parameters
     # \param T New temperature (if set) (in energy units)
@@ -1131,7 +1133,8 @@ class langevin(_integration_method):
     # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
     #
     # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
-    # by name. The default is 1.0 if not specified for a type.
+    # by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
+    # zero, it will have no rotational damping or random torque, but still with updates from normal net torque.
     #
     #
     # \b Examples:
@@ -1140,6 +1143,10 @@ class langevin(_integration_method):
     # \endcode
     # 
     def set_gamma_r(self, a, gamma_r):
+        
+        if (gamma_r < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
+        
         util.print_status_line();
         self.check_initialization();
 
@@ -1245,7 +1252,9 @@ class brownian(_integration_method):
         self.T = T
         self.seed = seed
         self.dscale = dscale
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale']
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
+        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
 
     ## Change brownian integrator parameters
     # \param T New temperature (if set) (in energy units)
@@ -1301,7 +1310,8 @@ class brownian(_integration_method):
     # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
     #
     # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
-    # by name. The default is 0.0 if not specified for a type (by default it will not add rotational noise).
+    # by name. The default is 1.0 if not specified for a type. The gamma_r must be positive or zero,
+    # if set zero, it will ignore any rotational updates (due to singularity).
     #
     # It is not an error to specify gammas for particle types that do not exist in the simulation.
     # This can be useful in defining a single simulation script for many different types of particles
@@ -1313,6 +1323,10 @@ class brownian(_integration_method):
     # \endcode
     #
     def set_gamma_r(self, a, gamma_r):
+        
+        if (gamma_r < 0):
+            raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
+        
         util.print_status_line();
         self.check_initialization();
 

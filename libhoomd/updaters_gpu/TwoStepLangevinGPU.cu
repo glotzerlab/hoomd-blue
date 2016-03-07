@@ -318,15 +318,12 @@ __global__ void gpu_langevin_angular_step_two_kernel(
         unsigned int ptag = d_tag[idx];
 
         // torque update with rotational drag and noise
-        // TBA.......        
-
-        
         unsigned int type_r = __scalar_as_int(d_pos[idx].w);
         Scalar gamma_r = d_gamma_r[type_r];
         // get body frame ang_mom
 
         
-        if (gamma_r)
+        if (gamma_r > 0)
             {
             quat<Scalar> q(d_orientation[idx]);
             quat<Scalar> p(d_angmom[idx]);
@@ -341,22 +338,21 @@ __global__ void gpu_langevin_angular_step_two_kernel(
 
             // original Gaussian random torque
             // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-            Scalar sigma_r = fast::sqrt(Scalar(6.0)*gamma_r*T/deltaT);
-            
-            SaruGPU saru(ptag, timestep + seed); // 2 dimensional seeding
-            Scalar rand_x = saru.s<Scalar>(-1.0,1.0);
-            Scalar rand_y = saru.s<Scalar>(-1.0,1.0);
-            Scalar rand_z = saru.s<Scalar>(-1.0,1.0);
-            
+            Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*T/deltaT);
             if (noiseless_r) sigma_r = Scalar(0.0);
+
+            SaruGPU saru(ptag, timestep + seed); // 2 dimensional seeding
+            Scalar rand_x = gaussian_rng(saru, sigma_r);
+            Scalar rand_y = gaussian_rng(saru, sigma_r);
+            Scalar rand_z = gaussian_rng(saru, sigma_r);
             
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
             x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
                       
-            bf_torque.x = rand_x * sigma_r - gamma_r * (s.x / I.x);
-            bf_torque.y = rand_y * sigma_r - gamma_r * (s.y / I.y);
-            bf_torque.z = rand_z * sigma_r - gamma_r * (s.z / I.z);
+            bf_torque.x = rand_x - gamma_r * (s.x / I.x);
+            bf_torque.y = rand_y - gamma_r * (s.y / I.y);
+            bf_torque.z = rand_z - gamma_r * (s.z / I.z);
             
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero) bf_torque.x = 0;

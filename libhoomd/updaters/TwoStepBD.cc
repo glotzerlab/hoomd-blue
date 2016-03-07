@@ -192,7 +192,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
             Scalar gamma_r = h_gamma_r.data[type_r];
-            if (gamma_r)
+            if (gamma_r > 0)
                 {
                 vec3<Scalar> p_vec;
                 quat<Scalar> q(h_orientation.data[j]);

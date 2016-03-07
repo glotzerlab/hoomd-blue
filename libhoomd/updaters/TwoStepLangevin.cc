@@ -369,7 +369,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         // tally the energy transfer from the bd thermal reservor to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
 
-        // add rotational noise for the 2D cases
+        // rotational updates
         if (m_aniso)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
@@ -384,7 +384,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
             vec3<Scalar> s;
             s = (Scalar(1./2.) * conj(q) * p).v;
             
-            if (gamma_r)
+            if (gamma_r > 0)
                 {
                 // first calculate in the body frame random and damping torque imposed by the dynamics
                 vec3<Scalar> bf_torque;
