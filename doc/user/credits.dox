@@ -195,6 +195,10 @@ James Proctor, University of Michigan
  - Refactor external potential framework
  - Wall potentials
 
+Chengyu Dai, University of Michigan
+ - Rewrite integrate.brownian with 3D rotational updates
+ - Rewrite integrate.langevin with 3D rotational updates
+
 <hr>
 <h1>Source code</h1>
 <hr>
