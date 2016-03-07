@@ -70,13 +70,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param origin The x,y,z coordinates of the center of the sphere
     \param inside Determines which half space is evaluated.
 */
+
+#ifdef SINGLE_PRECISION
+#define ALIGN_SCALAR 4
+#else
+#define ALIGN_SCALAR 8
+#endif
+
 struct SphereWall
     {
-    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : r(rad), origin(vec3<Scalar>(orig)), inside(ins) {}
+    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : origin(vec3<Scalar>(orig)), r(rad), inside(ins) {}
+    vec3<Scalar>    origin; // need to order datatype in descending order of type size for Fermi
     Scalar          r;
-    vec3<Scalar>    origin;
     bool            inside;
-    };
+    } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of vec3<Scalar>
 
 //! CylinderWall Constructor
 /*! \param r Radius of the sphere
@@ -87,7 +94,7 @@ struct SphereWall
 */
 struct CylinderWall
     {
-    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : r(rad),  origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), inside(ins)
+    CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r(rad), inside(ins)
         {
         vec3<Scalar> zVec=axis;
         vec3<Scalar> zNorm(0.0,0.0,1.0);
@@ -112,12 +119,12 @@ struct CylinderWall
             Scalar norm=fast::rsqrt(norm2(quatAxisToZRot));
             quatAxisToZRot=norm*quatAxisToZRot;
         }
-    Scalar          r;
+    quat<Scalar>    quatAxisToZRot; // need to order datatype in descending order of type size for Fermi
     vec3<Scalar>    origin;
     vec3<Scalar>    axis;
-    quat<Scalar>    quatAxisToZRot;
+    Scalar          r;
     bool            inside;
-    };
+    } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
 
 //! PlaneWall Constructor
 /*! \param origin The x,y,z coordinates of a point on the cylinder axis
@@ -137,7 +144,7 @@ struct PlaneWall
     vec3<Scalar>    normal;
     vec3<Scalar>    origin;
     bool            inside;
-    };
+    } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of vec3<Scalar>
 
 //! Point to wall vector for a sphere wall geometry
 /* Returns 0 vector when all normal directions are equal

@@ -39,6 +39,19 @@
 
 ## Upcoming release
 
+## v1.3.3
+
+Released 2016/03/06
+
+*Bug fixes*
+
+* Fix problem incluing `hoomd.h` in plugins
+* Fix random memory errors when using walls
+
+## v1.3.2
+
+Released 2016/02/08
+
 *Bug fixes*
 
 * Fix wrong access to system.box
