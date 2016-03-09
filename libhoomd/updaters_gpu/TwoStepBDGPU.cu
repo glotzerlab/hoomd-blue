@@ -136,12 +136,14 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
             }
         __syncthreads();
         }
-                
-    // read in the gamma_r, stored in s_gammas[n_type: 2 * n_type]
+    
+    // read in the gamma_r, stored in s_gammas[n_type: 2 * n_type], which is s_gamma_r[0:n_type]
+        
+    Scalar * s_gammas_r = s_gammas + n_types;
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_types)
-            s_gammas[cur_offset + threadIdx.x + n_types] = d_gamma_r[cur_offset + threadIdx.x];
+            s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
         }
     __syncthreads(); 
     
@@ -220,8 +222,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
             {
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
             
-            // gamma_r is stored in the second half of s_gammas
-            Scalar gamma_r = s_gammas[type_r + n_types];
+            // gamma_r is stored in the second half of s_gammas a.k.a s_gammas_r
+            Scalar gamma_r = s_gammas_r[type_r];
             if (gamma_r > 0)
                 {
                 vec3<Scalar> p_vec;
