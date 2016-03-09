@@ -65,7 +65,6 @@ extern __shared__ Scalar s_gammas[];
 //! Shared memory array for gpu_langevin_angular_step_two_kernel()
 extern __shared__ Scalar s_gammas_r[];
 
-
 //! Shared memory used in reducing sums for bd energy tally
 extern __shared__ Scalar bdtally_sdata[];
 
@@ -446,7 +445,9 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_langevin_angular_step_two_kernel<<< grid, threads >>>
+    gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types),
+                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))
+                                                              ) >>>
                                        (d_pos,
                                         d_orientation, 
                                         d_angmom, 
@@ -504,7 +505,7 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_langevin_step_two_kernel<<< grid,
+    gpu_langevin_step_two_kernel<<< grid, 
                                  threads,
                                  max((unsigned int)(sizeof(Scalar)*langevin_args.n_types),
                                      (unsigned int)(langevin_args.block_size*sizeof(Scalar)))
