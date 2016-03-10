@@ -8,6 +8,10 @@
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 
+*Bug fixes*
+
+* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+
 ## v1.3.3
 
 Released 2016/03/06
