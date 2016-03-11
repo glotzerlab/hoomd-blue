@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -105,6 +105,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
+    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
@@ -151,6 +152,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> >
 
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
+    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
@@ -175,6 +177,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param angles True if angle data should be saved
  *  \param dihedrals True if dihedral data should be saved
  *  \param impropers True if improper data should be saved
+ *  \param constraints True if constraint data should be saved
  *  \param rigid True if rigid data should be saved
  *  \param integrators True if integrator data should be saved
  */
@@ -184,6 +187,7 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
                                                    bool angles,
                                                    bool dihedrals,
                                                    bool impropers,
+                                                   bool constraints,
                                                    bool rigid,
                                                    bool integrators)
     {
@@ -232,6 +236,14 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
         }
     else
         snap->has_improper_data = false;
+
+    if (constraints)
+        {
+        m_constraint_data->takeSnapshot(snap->constraint_data);
+        snap->has_constraint_data = true;
+        }
+    else
+        snap->has_constraint_data = false;
 
     if (rigid)
         {
@@ -285,6 +297,9 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     if (snapshot->has_improper_data)
         m_improper_data->initializeFromSnapshot(snapshot->improper_data);
 
+    if (snapshot->has_constraint_data)
+        m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
+
     if (snapshot->has_rigid_data)
         m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
 
@@ -316,6 +331,7 @@ template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSn
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
+                                                                                              bool constraints,
                                                                                               bool rigid,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot);
@@ -328,6 +344,7 @@ template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeS
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
+                                                                                              bool constraints,
                                                                                               bool rigid,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr< SnapshotSystemData<double> > snapshot);
@@ -348,6 +365,7 @@ void export_SystemDefinition()
     .def("getAngleData", &SystemDefinition::getAngleData)
     .def("getDihedralData", &SystemDefinition::getDihedralData)
     .def("getImproperData", &SystemDefinition::getImproperData)
+    .def("getConstraintData", &SystemDefinition::getConstraintData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)

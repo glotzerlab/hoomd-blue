@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -174,6 +174,9 @@ class Integrator : public Updater
 
         //! Callback for pre-computing the forces
         void computeCallback(unsigned int timestep);
+
+        //! Callback for identifying additional ghost particles
+        void ghostCommunicationCallback(const GPUArray<unsigned int>& plans);
         #endif
 
     protected:
@@ -205,6 +208,7 @@ class Integrator : public Updater
         #ifdef ENABLE_MPI
         boost::signals2::connection m_request_flags_connection;     //!< Connection to Communicator to request communication flags
         boost::signals2::connection m_callback_connection;          //!< Connection to Commmunicator for compute callback
+        boost::signals2::connection m_comm_callback_connection;     //!< Connection to Commmunicator for ghost communication callback
         #endif
     };
 

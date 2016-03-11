@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -560,7 +560,7 @@ inline HOSTDEVICE double acos(double x)
 }
 
 template<class Real, class RNG>
-inline Real DEVICE gaussian_rng(RNG rng, Real sigma)
+inline Real DEVICE gaussian_rng(RNG &rng, const Real sigma)
     {
     // use Box-Muller transformation to get a gaussian random number
     float x1, x2, w, y1;

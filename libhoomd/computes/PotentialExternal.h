@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -298,6 +298,11 @@ void export_PotentialExternal(const std::string& name)
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr<T> >();
+    #endif
     }
 
 #endif

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -271,7 +271,7 @@ template<unsigned int group_size, typename group_t, typename ranks_t, typename p
 void gpu_scatter_and_mark_groups_for_removal(
     unsigned int n_groups,
     const group_t *d_groups,
-    const unsigned int *d_group_type,
+    const typeval_union *d_group_typeval,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
@@ -281,14 +281,15 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int my_rank,
     unsigned int *d_scan,
     packed_t *d_out_groups,
-    unsigned int *d_out_rank_masks);
+    unsigned int *d_out_rank_masks,
+    bool local_multiple);
 
 template<typename group_t, typename ranks_t>
 void gpu_remove_groups(unsigned int n_groups,
     const group_t *d_groups,
     group_t *d_groups_alt,
-    const unsigned int *d_group_type,
-    unsigned int *d_group_type_alt,
+    const typeval_union *d_group_typeval,
+    typeval_union *d_group_typeval_alt,
     const unsigned int *d_group_tag,
     unsigned int *d_group_tag_alt,
     const ranks_t *d_group_ranks,
@@ -303,12 +304,14 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
     const packed_t *d_groups_in,
     group_t *d_groups,
-    unsigned int *d_group_type,
+    typeval_union *d_group_typeval,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
     unsigned int *d_tmp,
+    bool local_multiple,
+    unsigned int myrank,
     mgpu::ContextPtr mgpu_context);
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
@@ -325,5 +328,50 @@ void gpu_mark_bonded_ghosts(
     const unsigned int *d_cart_ranks_inv,
     unsigned int my_rank,
     unsigned int mask);
+
+template<unsigned int group_size, typename members_t>
+void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
+                                   const members_t *d_groups,
+                                   unsigned int N,
+                                   const unsigned int *d_rtag,
+                                   const unsigned int *d_plans,
+                                   unsigned int n_local);
+
+template<class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_pack(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_group_tag,
+    const members_t *d_groups,
+    const typeval_union *d_group_typeval,
+    const ranks_t *d_group_ranks,
+    group_element_t *d_groups_sendbuf);
+
+template<unsigned int size, class members_t, class ranks_t, class group_element_t>
+void gpu_exchange_ghost_groups_copy_buf(
+    unsigned int nrecv,
+    const group_element_t *d_groups_recvbuf,
+    unsigned int *d_group_tag,
+    members_t *d_groups,
+    typeval_union *d_group_typeval,
+    ranks_t *d_group_ranks,
+    unsigned int *d_keep,
+    unsigned int *d_scan,
+    const unsigned int *d_group_rtag,
+    const unsigned int *d_rtag,
+    unsigned int max_n_local,
+    unsigned int &n_keep,
+    mgpu::ContextPtr mgpu_context);
+
+void gpu_exchange_ghosts_pack_netforce(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar4 *d_netforce,
+    Scalar4 *d_netforce_sendbuf);
+
+void gpu_exchange_ghosts_copy_netforce_buf(
+    unsigned int n_recv,
+    const Scalar4 *d_netforce_recvbuf,
+    Scalar4 *d_netforce);
 
 #endif // ENABLE_MPI

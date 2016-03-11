@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -72,6 +72,7 @@ char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_constraint_data[] = "constraint";
 
 /*
  * Implementation of BondedGroupData methods
@@ -81,34 +82,37 @@ char name_improper_data[] = "improper";
     \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
-template<unsigned int group_size, typename Group, const char *name>
-BondedGroupData<group_size, Group, name>::BondedGroupData(
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name<< "s, n=" << group_size << ") "
         << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name>::setDirty, this));
+    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty, this));
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name>::moveParticleGroups, this, _1, _2, _3));
+            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
         }
     #endif
 
-    // offer a default type mapping
-    for (unsigned int i = 0; i < n_group_types; i++)
+    if (has_type_mapping)
         {
-        char suffix[2];
-        suffix[0] = 'A' + i;
-        suffix[1] = '\0';
+        // offer a default type mapping
+        for (unsigned int i = 0; i < n_group_types; i++)
+            {
+            char suffix[2];
+            suffix[0] = 'A' + i;
+            suffix[1] = '\0';
 
-        std::string type_name = std::string(name) + std::string(suffix);
-        m_type_mapping.push_back(type_name);
+            std::string type_name = std::string(name) + std::string(suffix);
+            m_type_mapping.push_back(type_name);
+            }
         }
 
     // initialize data structures
@@ -127,16 +131,16 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
     \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
-template<unsigned int group_size, typename Group, const char *name>
-BondedGroupData<group_size, Group, name>::BondedGroupData(
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     const Snapshot& snapshot)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name>::setDirty,
+    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty,
         this));
 
     #ifdef ENABLE_CUDA
@@ -154,14 +158,14 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
     if (m_pdata->getDomainDecomposition())
         {
         m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name>::moveParticleGroups, this, _1, _2, _3));
+            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
         }
     #endif
     }
 
 //! Destructor
-template<unsigned int group_size, typename Group, const char *name>
-BondedGroupData<group_size, Group, name>::~BondedGroupData()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::~BondedGroupData()
     {
     m_sort_connection.disconnect();
     #ifdef ENABLE_MPI
@@ -170,10 +174,17 @@ BondedGroupData<group_size, Group, name>::~BondedGroupData()
     #endif
     }
 
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::initialize()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
     {
+    // reset global number of groups
     m_nglobal = 0;
+
+    // reset local number of groups
+    m_n_groups = 0;
+
+    // reset local number of ghost groups
+    m_n_ghost = 0;
 
     // clear set of active tags
     m_tag_set.clear();
@@ -187,8 +198,8 @@ void BondedGroupData<group_size, Group, name>::initialize()
     GPUVector<members_t> groups(m_exec_conf);
     m_groups.swap(groups);
 
-    GPUVector<unsigned int> type_id(m_exec_conf);
-    m_group_type.swap(type_id);
+    GPUVector<typeval_t> typeval(m_exec_conf);
+    m_group_typeval.swap(typeval);
 
     GPUVector<unsigned int> group_tag(m_exec_conf);
     m_group_tag.swap(group_tag);
@@ -204,7 +215,7 @@ void BondedGroupData<group_size, Group, name>::initialize()
     m_gpu_pos_table.swap(gpu_pos_table);
 
     GPUVector<unsigned int> n_groups(m_exec_conf);
-    m_n_groups.swap(n_groups);
+    m_gpu_n_groups.swap(n_groups);
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -215,8 +226,8 @@ void BondedGroupData<group_size, Group, name>::initialize()
     #endif
 
     // allocate stand-by arrays
-    GPUVector<unsigned int> type_id_alt(m_exec_conf);
-    m_group_type_alt.swap(type_id_alt);
+    GPUVector<typeval_t> typeval_alt(m_exec_conf);
+    m_group_typeval_alt.swap(typeval_alt);
 
     GPUVector<unsigned int> group_tag_alt(m_exec_conf);
     m_group_tag_alt.swap(group_tag_alt);
@@ -246,8 +257,8 @@ void BondedGroupData<group_size, Group, name>::initialize()
     }
 
 //! Initialize from a snapshot
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::initializeFromSnapshot(const Snapshot& snapshot)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromSnapshot(const Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
@@ -265,40 +276,80 @@ void BondedGroupData<group_size, Group, name>::initializeFromSnapshot(const Snap
         {
         // broadcast to all processors (temporarily)
         std::vector<members_t> all_groups;
-        std::vector<unsigned int> all_type;
+        std::vector<typeval_t> all_typeval;
 
         if (m_exec_conf->getRank() == 0)
             {
             all_groups = snapshot.groups;
-            all_type = snapshot.type_id;
+            if (has_type_mapping)
+                {
+                all_typeval.resize(snapshot.type_id.size());
+                // fill in types
+                for (unsigned int i = 0; i < snapshot.type_id.size(); ++i)
+                    {
+                    typeval_t t;
+                    t.type = snapshot.type_id[i];
+                    all_typeval[i] = t;
+                    }
+                }
+            else
+                {
+                all_typeval.resize(snapshot.val.size());
+                // fill in constraint values
+                for (unsigned int i = 0; i < snapshot.val.size(); ++i)
+                    {
+                    typeval_t t;
+                    t.val = snapshot.val[i];
+                    all_typeval[i] = t;
+                    }
+                }
+
             m_type_mapping = snapshot.type_mapping;
             }
 
         bcast(all_groups, 0, m_exec_conf->getMPICommunicator());
-        bcast(all_type, 0, m_exec_conf->getMPICommunicator());
+        bcast(all_typeval, 0, m_exec_conf->getMPICommunicator());
         bcast(m_type_mapping, 0, m_exec_conf->getMPICommunicator());
 
         // iterate over groups and add those that have local particles
         for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-            addBondedGroup(Group(all_type[group_tag], all_groups[group_tag]));
+            addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
         }
     else
     #endif
         {
         m_type_mapping = snapshot.type_mapping;
 
-        for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
-            addBondedGroup(Group(snapshot.type_id[group_idx], snapshot.groups[group_idx]));
+        if (has_type_mapping)
+            {
+            // create bonded groups with types
+            for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
+                {
+                typeval_t t;
+                t.type = snapshot.type_id[group_idx];
+                addBondedGroup(Group(t, snapshot.groups[group_idx]));
+                }
+            }
+        else
+            {
+            // create constraints
+            for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
+                {
+                typeval_t t;
+                t.val = snapshot.val[group_idx];
+                addBondedGroup(Group(t, snapshot.groups[group_idx]));
+                }
+            }
         }
     }
 
-/*! \param type_id Type of bonded group to add
-    \param member_tags Particle members of group
- */
-template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBondedGroup(Group g)
     {
-    unsigned int type = g.get_type();
+    // we are changing the local number of groups, so remove ghosts
+    removeAllGhostGroups();
+
+    typeval_t typeval = g.get_typeval();
     members_t member_tags = g.get_members();
 
     unsigned int max_tag = m_pdata->getMaximumTag();
@@ -329,11 +380,15 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
                 throw runtime_error(std::string("Error adding ") + name);
                 }
 
-    if (type >= m_type_mapping.size())
+    if (has_type_mapping)
         {
-        m_exec_conf->msg->error() << name << ".*: Invalid " << name << " type " << type
-            << "! The  number of types is " << m_type_mapping.size() << std::endl;
-        throw std::runtime_error(std::string("Error adding ") + name);
+        unsigned int type = typeval.type;
+        if (type >= m_type_mapping.size() && has_type_mapping)
+            {
+            m_exec_conf->msg->error() << name << ".*: Invalid " << name << " type " << type
+                << "! The number of types is " << m_type_mapping.size() << std::endl;
+            throw std::runtime_error(std::string("Error adding ") + name);
+            }
         }
 
     unsigned int tag = 0;
@@ -384,7 +439,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
     if (is_local)
         {
         m_groups.push_back(member_tags);
-        m_group_type.push_back(type);
+        m_group_typeval.push_back(typeval);
         m_group_tag.push_back(tag);
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -397,6 +452,8 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
             m_group_ranks.push_back(r);
             }
         #endif
+
+        m_n_groups++;
         }
 
     // add to set of active tags
@@ -406,11 +463,9 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
     // increment number of bonded groups
     m_nglobal++;
 
-    // set flag to rebuild GPU table
-    m_groups_dirty = true;
-
     // notifiy observers
     m_group_num_change_signal();
+    notifyGroupReorder();
 
     return tag;
     }
@@ -418,8 +473,8 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 //! Return the nth active global tag
 /*! \param n Index of bond in global bond table
  */
-template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getNthTag(unsigned int n)
     {
     if (n >= getNGlobal())
         {
@@ -438,13 +493,13 @@ unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
 /*! \param tag Tag of bonded group
  * \returns the group
  */
-template<unsigned int group_size, typename Group, const char *name>
-const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int tag) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+const Group BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsigned int tag) const
     {
     // Find position of bonded group in list
     unsigned int group_idx = m_group_rtag[tag];
 
-    unsigned int type;
+    typeval_t typeval;
     members_t members;
 
 #ifdef ENABLE_MPI
@@ -452,7 +507,7 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
         {
         int my_rank = m_exec_conf->getRank();
         // set local to rank if the bond is local, -1 if not
-        int rank = group_idx < m_groups.size() ? my_rank : -1;
+        int rank = group_idx < m_n_groups ? my_rank : -1;
 
         // the highest rank owning the group sends it to the others
         MPI_Allreduce(MPI_IN_PLACE,
@@ -471,11 +526,11 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
 
         if (rank == (int)my_rank)
             {
-            type = m_group_type[group_idx];
+            typeval = m_group_typeval[group_idx];
             members = m_groups[group_idx];
             }
 
-        bcast(type, rank, m_exec_conf->getMPICommunicator());
+        bcast(typeval, rank, m_exec_conf->getMPICommunicator());
         bcast(members, rank, m_exec_conf->getMPICommunicator());
         }
     else
@@ -483,12 +538,12 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
         {
         if (group_idx == GROUP_NOT_LOCAL)
             {
-            m_exec_conf->msg->error() << "Trying to get type of " << name << " " << tag
+            m_exec_conf->msg->error() << "Trying to get type or constraint value of " << name << " " << tag
                  << " which does not exist!" << endl;
             throw runtime_error(std::string("Error getting ") + name);
             }
 
-        type = m_group_type[group_idx];
+        typeval = m_group_typeval[group_idx];
         members = m_groups[group_idx];
         }
 
@@ -505,34 +560,50 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
             }
         }
 
-    return Group(type,members);
+    return Group(typeval,members);
     }
 
-/*! \param idx Tag of bonded group
+/*! \param idx Index of bonded group
  * \return Member tags of bonded group
  */
-template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::getTypeByIndex(unsigned int group_idx) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getTypeByIndex(unsigned int group_idx) const
     {
     assert (group_idx < getN());
-    return m_group_type[group_idx];
+    assert(has_type_mapping);
+    return ((typeval_t)m_group_typeval[group_idx]).type;
     }
+
+/*! \param idx Index of bonded group
+ * \return Member tags of bonded group
+ */
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+Scalar BondedGroupData<group_size, Group, name, has_type_mapping>::getValueByIndex(unsigned int group_idx) const
+    {
+    assert (group_idx < getN()+getNGhosts());
+    assert(!has_type_mapping);
+    return ((typeval_t) m_group_typeval[group_idx]).val;
+    }
+
 
 /*! \param idx Tag of bonded group
  * \return Type of bonded group
  */
-template<unsigned int group_size, typename Group, const char *name>
-const typename BondedGroupData<group_size, Group, name>::members_t BondedGroupData<group_size, Group, name>::getMembersByIndex(unsigned int group_idx) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+const typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(unsigned int group_idx) const
     {
-    assert (group_idx < getN());
+    assert (group_idx < getN()+getNGhosts());
     return m_groups[group_idx];
     }
 
 /*! \param tag Tag of bonded group to remove
  */
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int tag)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGroup(unsigned int tag)
     {
+    // we are changing the local particle number, remove ghost groups
+    removeAllGhostGroups();
+
     // sanity check
     if (tag >= m_group_rtag.size())
         {
@@ -578,13 +649,13 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
 
     if (is_local)
         {
-        unsigned int size = m_groups.size();
+        unsigned int size = m_n_groups;
         // If the bonded group is in the middle of the list, move the last element to
         // to the position of the removed element
         if (id < (size-1))
             {
             m_groups[id] = (members_t) m_groups[size-1];
-            m_group_type[id] = (unsigned int) m_group_type[size-1];
+            m_group_typeval[id] = (typeval_t) m_group_typeval[size-1];
             #ifdef ENABLE_MPI
             if (m_pdata->getDomainDecomposition())
                 m_group_ranks[id] = (ranks_t) m_group_ranks[size-1];
@@ -596,12 +667,13 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
 
         // delete last element
         m_groups.pop_back();
-        m_group_type.pop_back();
+        m_group_typeval.pop_back();
         m_group_tag.pop_back();
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
             m_group_ranks.pop_back();
         #endif
+        m_n_groups--;
         }
 
     // remove from set of active tags
@@ -612,17 +684,15 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
     m_recycled_tags.push(tag);
     m_nglobal--;
 
-    // set flag to trigger rebuild of GPU table
-    m_groups_dirty = true;
-
     // notifiy observers
     m_group_num_change_signal();
+    notifyGroupReorder();
     }
 
 /*! \param name Type name
  */
-template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::getTypeByName(const std::string &type_name) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getTypeByName(const std::string &type_name) const
     {
     // search for the name
     for (unsigned int i = 0; i < m_type_mapping.size(); i++)
@@ -638,8 +708,8 @@ unsigned int BondedGroupData<group_size, Group, name>::getTypeByName(const std::
     return 0;
     }
 
-template<unsigned int group_size, typename Group, const char *name>
-const std::string BondedGroupData<group_size, Group, name>::getNameByType(unsigned int type) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+const std::string BondedGroupData<group_size, Group, name, has_type_mapping>::getNameByType(unsigned int type) const
     {
     // check for an invalid request
     if (type >= m_type_mapping.size())
@@ -652,8 +722,8 @@ const std::string BondedGroupData<group_size, Group, name>::getNameByType(unsign
     return m_type_mapping[type];
     }
 
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, const std::string& new_name)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::setTypeName(unsigned int type, const std::string& new_name)
     {
     // check for an invalid request
     if (type >= this->m_type_mapping.size())
@@ -667,8 +737,8 @@ void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, co
 
 /*! Rebuild the cached vector of active tags, if necessary
 */
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::maybe_rebuild_tag_cache()
     {
     if(!m_invalid_cached_tags)
         return;
@@ -690,8 +760,8 @@ void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
     m_invalid_cached_tags = false;
     }
 
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable()
     {
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -703,19 +773,22 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
 
         ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-        m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
+        m_gpu_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
         unsigned int num_groups_max = 0;
+
+        unsigned int ngroups_tot = m_n_groups+m_n_ghost;
             {
-            ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_n_groups(m_gpu_n_groups, access_location::host, access_mode::overwrite);
 
             unsigned int N = m_pdata->getN()+m_pdata->getNGhosts();
+
             // count the number of bonded groups per particle
             // start by initializing the n_groups values to 0
             memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
 
             // loop through the particles and count the number of groups based on each particle index
-            for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
+            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
                 members_t g = m_groups[cur_group];
                 for (unsigned int i = 0; i < group_size; ++i)
@@ -751,7 +824,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
         m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
 
             {
-            ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_n_groups(m_gpu_n_groups, access_location::host, access_mode::overwrite);
             ArrayHandle<members_t> h_gpu_table(m_gpu_table, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_gpu_pos_table(m_gpu_pos_table, access_location::host, access_mode::overwrite);
 
@@ -760,7 +833,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
             memset(h_n_groups.data, 0, sizeof(unsigned int) * (m_pdata->getN()+m_pdata->getNGhosts()));
 
             // loop through all group and add them to each column in the list
-            for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
+            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
                 members_t g = m_groups[cur_group];
 
@@ -771,8 +844,17 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
                     unsigned int num = h_n_groups.data[idx1]++;
 
                     members_t h;
-                    // last element = type
-                    h.idx[group_size-1] = m_group_type[cur_group];
+
+                    if (has_type_mapping)
+                        {
+                        // last element = type
+                        h.idx[group_size-1] = ((typeval_t) m_group_typeval[cur_group]).type;
+                        }
+                    else
+                        {
+                        // last element = local group idx
+                        h.idx[group_size-1] = cur_group;
+                        }
 
                     // list all group members j!=i in p.idx
                     unsigned int n = 0;
@@ -800,13 +882,13 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
     }
 
 #ifdef ENABLE_CUDA
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
     if (m_prof) m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
 
     // resize groups counter
-    m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
+    m_gpu_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     // resize GPU table to current number of particles
     m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH());
@@ -820,9 +902,9 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
 
             {
             ArrayHandle<members_t> d_groups(m_groups, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_group_type(m_group_type, access_location::device, access_mode::read);
+            ArrayHandle<typeval_t> d_group_typeval(m_group_typeval, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_groups(m_gpu_n_groups, access_location::device, access_mode::overwrite);
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_gpu_pos_table(m_gpu_pos_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
@@ -838,10 +920,10 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
 
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
-                m_groups.size(),
+                getN() + getNGhosts(),
                 nptl,
                 d_groups.data,
-                d_group_type.data,
+                d_group_typeval.data,
                 d_rtag.data,
                 d_n_groups.data,
                 m_gpu_table_indexer.getH(),
@@ -855,6 +937,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
                 d_scratch_idx.data,
                 d_offsets.data,
                 d_seg_offsets.data,
+                has_type_mapping,
                 m_mgpu_context);
             }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -894,8 +977,8 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
  *
  *  Data in the snapshot is in tag order, where non-existant tags are skipped
  */
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) const
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
     {
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
@@ -914,16 +997,16 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
     if (m_pdata->getDomainDecomposition())
         {
         // gather local data
-        std::vector<unsigned int> types; // Group types
+        std::vector<typeval_t> typevals; // Group types or constraint values
         std::vector<members_t> members;  // Group members
 
         for (unsigned int group_idx  = 0; group_idx < getN(); ++group_idx)
             {
-            types.push_back(m_group_type[group_idx]);
+            typevals.push_back(m_group_typeval[group_idx]);
             members.push_back(m_groups[group_idx]);
             }
 
-        std::vector< std::vector<unsigned int> > types_proc;     // Group types of every processor
+        std::vector< std::vector<typeval_t> > typevals_proc;     // Group types of every processor
         std::vector< std::vector<members_t> > members_proc;      // Group members of every processor
 
         std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
@@ -931,12 +1014,12 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
         unsigned int size = m_exec_conf->getNRanks();
 
         // resize arrays to accumulate group data of all ranks
-        types_proc.resize(size);
+        typevals_proc.resize(size);
         members_proc.resize(size);
         rtag_map_proc.resize(size);
 
         // gather all processors' data
-        gather_v(types, types_proc, 0, m_exec_conf->getMPICommunicator());
+        gather_v(typevals, typevals_proc, 0, m_exec_conf->getMPICommunicator());
         gather_v(members, members_proc, 0, m_exec_conf->getMPICommunicator());
         gather_v(rtag_map, rtag_map_proc, 0, m_exec_conf->getMPICommunicator());
 
@@ -977,7 +1060,14 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.type_id[snap_id] = types_proc[rank][idx];
+                if (has_type_mapping)
+                    {
+                    snapshot.type_id[snap_id] = typevals_proc[rank][idx].type;
+                    }
+                else
+                    {
+                    snapshot.val[snap_id] = typevals_proc[rank][idx].val;
+                    }
                 snapshot.groups[snap_id] = members_proc[rank][idx];
                 snap_id++;
                 }
@@ -1007,7 +1097,14 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
 
             unsigned int group_idx = rtag_it->second;
             snapshot.groups[snap_id] = m_groups[group_idx];
-            snapshot.type_id[snap_id] = m_group_type[group_idx];
+            if (has_type_mapping)
+                {
+                snapshot.type_id[snap_id] = ((typeval_t) m_group_typeval[group_idx]).type;
+                }
+            else
+                {
+                snapshot.val[snap_id] = ((typeval_t) m_group_typeval[group_idx]).val;
+                }
             snap_id++;
             }
         }
@@ -1016,10 +1113,13 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
     }
 
 #ifdef ENABLE_MPI
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank)
     {
     unsigned int my_rank = m_exec_conf->getRank();
+
+    // first remove any ghost groups
+    removeAllGhostGroups();
 
     // move groups connected to a particle
     if (my_rank == old_rank)
@@ -1027,7 +1127,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
         std::vector<unsigned int> send_groups;
 
         // create a list of groups connected to the particle
-        for (unsigned int group_idx = 0; group_idx < m_groups.size(); ++group_idx)
+        for (unsigned int group_idx = 0; group_idx < m_n_groups; ++group_idx)
             {
             members_t members = m_groups[group_idx];
             bool send = false;
@@ -1056,8 +1156,8 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             members_t members = m_groups[group_idx];
             MPI_Isend(&members, sizeof(members_t), MPI_BYTE, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
-            unsigned int type = m_group_type[group_idx];
-            MPI_Isend(&type, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            typeval_t typeval = m_group_typeval[group_idx];
+            MPI_Isend(&typeval, sizeof(typeval_t), MPI_BYTE, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
             }
         // remove groups that are no longer local
@@ -1075,14 +1175,16 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
                 m_group_rtag[group_tag] = GROUP_NOT_LOCAL;
 
                 m_groups.erase(group_idx);
-                m_group_type.erase(group_idx);
+                m_group_typeval.erase(group_idx);
                 m_group_ranks.erase(group_idx);
                 m_group_tag.erase(group_idx);
+
+                m_n_groups--;
 
                 // reindex rtags
                 ArrayHandle<unsigned int> h_group_rtag(m_group_rtag, access_location::host, access_mode::readwrite);
                 ArrayHandle<unsigned int> h_group_tag(m_group_tag, access_location::host, access_mode::read);
-                for (unsigned int i = 0; i < m_groups.size(); ++i)
+                for (unsigned int i = 0; i < m_n_groups; ++i)
                     h_group_rtag.data[h_group_tag.data[i]] = i;
                 }
             }
@@ -1107,8 +1209,8 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             MPI_Irecv(&members, sizeof(members_t), MPI_BYTE, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
 
-            unsigned int type;
-            MPI_Irecv(&type, 1, MPI_UNSIGNED, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            typeval_t typeval;
+            MPI_Irecv(&typeval, sizeof(typeval_t), MPI_BYTE, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
 
             bool is_local = m_group_rtag[tag] != NOT_LOCAL;
@@ -1120,11 +1222,13 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
                 unsigned int n = m_groups.size();
                 m_group_tag.push_back(tag);
                 m_groups.push_back(members);
-                m_group_type.push_back(type);
+                m_group_typeval.push_back(typeval);
                 ranks_t r;
                 for (unsigned int j = 0; j < group_size; j++)
                     // initialize to zero
                     r.idx[j] = 0;
+
+                m_n_groups++;
 
                 m_group_ranks.push_back(r);
                 m_group_rtag[tag] = n;
@@ -1134,7 +1238,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
 
     // notify observers
     m_group_num_change_signal();
-    m_groups_dirty = true;
+    notifyGroupReorder();
     }
 #endif
 
@@ -1164,60 +1268,115 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("setProfiler", &T::setProfiler)
         ;
 
-    typedef typename T::Snapshot Snapshot;
-    class_<Snapshot, boost::shared_ptr<Snapshot> >
-        (snapshot_name.c_str(), init<unsigned int>())
-        .add_property("typeid", &Snapshot::getTypeNP)
-        .add_property("group", &Snapshot::getBondedTagsNP)
-        .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
-        .def("resize", &Snapshot::resize)
-        .def_readonly("N", &Snapshot::size)
-        ;
+    if (T::typemap_val)
+        {
+        // has a type mapping
+        typedef typename T::Snapshot Snapshot;
+        class_<Snapshot, boost::shared_ptr<Snapshot> >
+            (snapshot_name.c_str(), init<unsigned int>())
+            .add_property("typeid", &Snapshot::getTypeNP)
+            .add_property("group", &Snapshot::getBondedTagsNP)
+            .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
+            .def("resize", &Snapshot::resize)
+            .def_readonly("N", &Snapshot::size)
+            ;
+
+        // boost 1.60.0 compatibility
+        #if (BOOST_VERSION >= 106000)
+        register_ptr_to_python< boost::shared_ptr<T> >();
+        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        #endif
+        }
+    else
+        {
+        // has Scalar values
+        typedef typename T::Snapshot Snapshot;
+        class_<Snapshot, boost::shared_ptr<Snapshot> >
+            (snapshot_name.c_str(), init<unsigned int>())
+            .add_property("value", &Snapshot::getValueNP)
+            .add_property("group", &Snapshot::getBondedTagsNP)
+            .def("resize", &Snapshot::resize)
+            .def_readonly("N", &Snapshot::size)
+            ;
+
+        // boost 1.60.0 compatibility
+        #if (BOOST_VERSION >= 106000)
+        register_ptr_to_python< boost::shared_ptr<T> >();
+        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        #endif
+        }
    }
 
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int n,
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::replicate(unsigned int n,
     unsigned int old_n_particles)
     {
-    unsigned int old_size = groups.size();
+    unsigned int old_size = size;
     groups.resize(n*old_size);
-    type_id.resize(n*old_size);
+    if (has_type_mapping)
+        {
+        type_id.resize(n*old_size);
+        }
+    else
+        {
+        val.resize(n*old_size);
+        }
 
     for (unsigned int i = 0; i < old_size; ++i)
         {
-        typename BondedGroupData<group_size, Group, name>::members_t g;
+        typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t g;
         g = groups[i];
-        unsigned int type = type_id[i];
 
         // replicate bonded group
         for (unsigned int j = 0; j < n; ++j)
             {
-            typename BondedGroupData<group_size, Group, name>::members_t h;
+            typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t h;
 
             // update particle tags
             for (unsigned int k = 0; k < group_size; ++k)
                 h.tag[k] = g.tag[k] + old_n_particles*j;
 
             groups[old_size*j+i] = h;
-            type_id[old_size*j+i] = type;
+            if (has_type_mapping)
+                {
+                type_id[old_size*j+i] = type_id[i];
+                }
+            else
+                {
+                val[old_size*j+i] = val[i];
+                }
             }
         }
+
+    size = n*old_size;
     }
 
 /*! \returns a numpy array that wraps the type_id data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-template<unsigned int group_size, typename Group, const char *name>
-PyObject* BondedGroupData<group_size, Group, name>::Snapshot::getTypeNP()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
     {
+    assert(has_type_mapping);
     return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
     }
+
+/*! \returns a numpy array that wraps the value data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
+    {
+    assert(!has_type_mapping);
+    return num_util::makeNumFromData(&(this->val[0]), this->val.size());
+    }
+
 
 /*! \returns a numpy array that wraps the groups data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-template<unsigned int group_size, typename Group, const char *name>
-PyObject* BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
     {
     std::vector<intp> dims(2);
     dims[0] = this->groups.size();
@@ -1227,8 +1386,8 @@ PyObject* BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
 
 /*! \returns A python list of type names
 */
-template<unsigned int group_size, typename Group, const char *name>
-boost::python::list BondedGroupData<group_size, Group, name>::Snapshot::getTypes()
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+boost::python::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
     {
     boost::python::list types;
 
@@ -1240,8 +1399,8 @@ boost::python::list BondedGroupData<group_size, Group, name>::Snapshot::getTypes
 
 /*! \param types Python list of type names to set
 */
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::Snapshot::setTypes(boost::python::list types)
+template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(boost::python::list types)
     {
     type_mapping.resize(len(types));
 
@@ -1261,3 +1420,6 @@ template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std
 
 template class BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+
+template class BondedGroupData<2, Constraint, name_constraint_data, false>;
+template void export_BondedGroupData<ConstraintData,Constraint>(std::string name,std::string snapshot_name, bool export_struct);

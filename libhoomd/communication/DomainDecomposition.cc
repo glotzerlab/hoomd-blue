@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -342,9 +342,9 @@ void DomainDecomposition::initializeCumulativeFractions(const std::vector<Scalar
                                                         const std::vector<Scalar>& fzs)
     {
     // final sanity check (constructor should handle this correctly)
-    assert(fxs.size() == m_nx);
-    assert(fys.size() == m_ny);
-    assert(fzs.size() == m_nz);
+    assert(fxs.size()+1 == m_nx);
+    assert(fys.size()+1 == m_ny);
+    assert(fzs.size()+1 == m_nz);
 
     // adjust the fraction arrays
     m_cum_frac_x.resize(m_nx+1);
@@ -630,28 +630,30 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     // compute the box the particle should be placed into
     // use the lower_bound (the first element that does not compare last < the search term)
     // then, the domain to place into is it-1 (since we want to place into the one that it actually belongs to)
-    // we need to be careful to wrap around for particles that might go out of the box
+
+    // it is OK for particles to be slightly outside the box, they will get migrated to their correct boxes,
+    // as long as we don't wrap them around. Therefore, shift back into nearest box if that is the case
     std::vector<Scalar>::iterator it;
     it = std::lower_bound(m_cum_frac_x.begin(), m_cum_frac_x.end(), f.x);
     int ix = it - 1 - m_cum_frac_x.begin();
     if (ix < 0)
-        ix += m_nx;
+        ix++;
     else if (ix >= (int)m_nx)
-        ix -= m_nx;
+        ix--;
 
     it = std::lower_bound(m_cum_frac_y.begin(), m_cum_frac_y.end(), f.y);
     int iy = it - 1 - m_cum_frac_y.begin();
     if (iy < 0)
-        iy += m_ny;
+        iy++;
     else if (iy >= (int)m_ny)
-        iy -= m_ny;
+        iy--;
 
     it = std::lower_bound(m_cum_frac_z.begin(), m_cum_frac_z.end(), f.z);
     int iz = it - 1 - m_cum_frac_z.begin();
     if (iz < 0)
-        iz += m_nz;
+        iz++;
     else if (iz >= (int)m_nz)
-        iz -= m_nz;
+        iz--;
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
     unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -79,9 +79,9 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
         // setup the grid to run the kernel
         dim3 grid( external_potential_args.N / run_block_size + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
-        unsigned int bytes = sizeof(typename evaluator::field_type);
+        unsigned int bytes = (sizeof(typename evaluator::field_type)/sizeof(int)+1)*sizeof(int);
 
-        // bind the position texture
+        // run the kernel
         gpu_compute_external_forces_kernel<evaluator><<<grid, threads, bytes>>>(external_potential_args.d_force,
                                                                                 external_potential_args.d_virial,
                                                                                 external_potential_args.virial_pitch,

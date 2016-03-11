@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -272,6 +271,11 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(const std::st
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr<T> >();
+    #endif
     }
 
 #endif // ENABLE_CUDA

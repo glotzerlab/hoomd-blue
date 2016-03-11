@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -119,6 +119,8 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputDihedral(bool enable);
         //! Enables/disables the writing of impropers
         void setOutputImproper(bool enable);
+        //! Enables/disables the writing of constraints
+        void setOutputConstraint(bool enable);
         //! Enables/disables the writing of acceleration
         void setOutputAccel(bool enable);
         //! Enables/disables the writing of body
@@ -152,6 +154,7 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_angle;        //!< true if the angles should be written
         bool m_output_dihedral;     //!< true if dihedrals should be written
         bool m_output_improper;     //!< true if impropers should be written
+        bool m_output_constraint;   //!< true if constraints shoulds be written
         bool m_output_accel;        //!< true if acceleration should be written
         bool m_output_body;         //!< true if body should be written
         bool m_output_charge;       //!< true if body should be written

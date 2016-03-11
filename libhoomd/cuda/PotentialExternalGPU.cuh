@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -129,6 +129,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     // read in field data cooperatively
     extern __shared__ char s_data[];
     typename evaluator::field_type *s_field = (typename evaluator::field_type *)(&s_data[0]);
+
         {
         unsigned int tidx = threadIdx.x;
         unsigned int block_size = blockDim.x;
@@ -143,6 +144,8 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
             }
         }
     const typename evaluator::field_type& field = *s_field;
+
+    __syncthreads();
 
     if (idx >= N)
         return;
