@@ -10,6 +10,23 @@
 
 *Bug fixes*
 
+* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+
+## v1.3.3
+
+Released 2016/03/06
+
+*Bug fixes*
+
+* Fix problem incluing `hoomd.h` in plugins
+* Fix random memory errors when using walls
+
+## v1.3.2
+
+Released 2016/02/08
+
+*Bug fixes*
+
 * Fix wrong access to system.box
 * Fix kinetic energy logging in MPI
 * Fix particle out of box error if particles are initialized on the boundary in MPI
