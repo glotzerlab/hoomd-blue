@@ -96,22 +96,20 @@ class harmonic_dpd(_bond):
     def __init__(self,name=None):
         util.print_status_line();
 
-        # check that some bonds are defined
-        if globals.system_definition.getBondData().getNumBonds() == 0:
-            print >> sys.stderr, "\n***Error! No bonds are defined.\n";
-            raise RuntimeError("Error creating bond forces");
-
         # initialize the base class
         _bond.__init__(self,name);
+
+        # check that some bonds are defined
+        if globals.system_definition.getBondData().getNGlobal() == 0:
+            globals.msg.error("No bonds are defined.\n");
+            raise RuntimeError("Error creating bond forces");
+
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPD(globals.system_definition,self.name);
         else:
             self.cpp_force = _evaluators_ext_template.PotentialBondHarmonicDPDGPU(globals.system_definition,self.name);
-            # you can play with the block size value, set it to any multiple of 32 up to 1024. Use the
-            # harmonic_dpd.benchmark() command to find out which block size performs the fastest
-            self.cpp_force.setBlockSize(64);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
