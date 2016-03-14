@@ -482,9 +482,9 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
                 all_default = false;
                 }
 
-            data[group_idx+N*0] = float(snapshot.inertia[t].x);
-            data[group_idx+N*1] = float(snapshot.inertia[t].y);
-            data[group_idx+N*2] = float(snapshot.inertia[t].z);
+            data[group_idx*3+0] = float(snapshot.inertia[t].x);
+            data[group_idx*3+1] = float(snapshot.inertia[t].y);
+            data[group_idx*3+2] = float(snapshot.inertia[t].z);
             }
 
         if (! all_default)
@@ -511,9 +511,9 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
             {
             unsigned int t = m_group->getMemberTag(group_idx);
-            data[group_idx+N*0] = float(snapshot.pos[t].x);
-            data[group_idx+N*1] = float(snapshot.pos[t].y);
-            data[group_idx+N*2] = float(snapshot.pos[t].z);
+            data[group_idx*3+0] = float(snapshot.pos[t].x);
+            data[group_idx*3+1] = float(snapshot.pos[t].y);
+            data[group_idx*3+2] = float(snapshot.pos[t].z);
             }
 
         m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/position" << endl;
@@ -537,10 +537,10 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
                 all_default = false;
                 }
 
-            data[group_idx+N*0] = float(snapshot.orientation[t].s);
-            data[group_idx+N*1] = float(snapshot.orientation[t].v.x);
-            data[group_idx+N*2] = float(snapshot.orientation[t].v.y);
-            data[group_idx+N*3] = float(snapshot.orientation[t].v.z);
+            data[group_idx*4+0] = float(snapshot.orientation[t].s);
+            data[group_idx*4+1] = float(snapshot.orientation[t].v.x);
+            data[group_idx*4+2] = float(snapshot.orientation[t].v.y);
+            data[group_idx*4+3] = float(snapshot.orientation[t].v.z);
             }
 
         if (! all_default)
@@ -576,9 +576,9 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
                 all_default = false;
                 }
 
-            data[group_idx+N*0] = float(snapshot.vel[t].x);
-            data[group_idx+N*1] = float(snapshot.vel[t].y);
-            data[group_idx+N*2] = float(snapshot.vel[t].z);
+            data[group_idx*3+0] = float(snapshot.vel[t].x);
+            data[group_idx*3+1] = float(snapshot.vel[t].y);
+            data[group_idx*3+2] = float(snapshot.vel[t].z);
             }
 
         if (! all_default)
@@ -605,10 +605,10 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
                 all_default = false;
                 }
 
-            data[group_idx+N*0] = float(snapshot.angmom[t].s);
-            data[group_idx+N*1] = float(snapshot.angmom[t].v.x);
-            data[group_idx+N*2] = float(snapshot.angmom[t].v.y);
-            data[group_idx+N*3] = float(snapshot.angmom[t].v.z);
+            data[group_idx*4+0] = float(snapshot.angmom[t].s);
+            data[group_idx*4+1] = float(snapshot.angmom[t].v.x);
+            data[group_idx*4+2] = float(snapshot.angmom[t].v.y);
+            data[group_idx*4+3] = float(snapshot.angmom[t].v.z);
             }
 
         if (! all_default)
@@ -634,9 +634,9 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
                 all_default = false;
                 }
 
-            data[group_idx+N*0] = float(snapshot.image[t].x);
-            data[group_idx+N*1] = float(snapshot.image[t].y);
-            data[group_idx+N*2] = float(snapshot.image[t].z);
+            data[group_idx*3+0] = float(snapshot.image[t].x);
+            data[group_idx*3+1] = float(snapshot.image[t].y);
+            data[group_idx*3+2] = float(snapshot.image[t].z);
             }
 
         if (! all_default)
