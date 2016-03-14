@@ -617,6 +617,53 @@ def read_snapshot(snapshot):
     _perform_common_init_tasks();
     return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
+## Reads initial system state from an GSD file
+#
+# \param filename File to read
+# \param restart If it exists, read \a restart instead of \a filename
+# \param frame Index of the frame to read from the GSD file
+# \param time_step (if specified) Time step number to use instead of the one stored in the GSD file
+#
+# All particles, bonds, angles, dihedrals, impropers, constraints, and box information
+# are read from the given GSD file at the given frame index. To read and write GSD files
+# outside of hoomd, see http://gsd.readthedocs.org/. dump.gsd writes GSD files.
+#
+# For restartable jobs, specify the initial condition in \a filename and the restart file in \a restart.
+# init.read_gsd will read the restart file if it exists, otherwise it will read \a filename.
+##
+# If \a time_step is specified, its value will be used as the initial time
+# step of the simulation instead of the one read from the GSD file.
+#
+# The result of init.read_gsd can be saved in a variable and later used to read and/or change particle properties
+# later in the script. See hoomd_script.data for more information.
+#
+# \sa dump.gsd
+def read_gsd(filename, restart = None, frame = 0, time_step = None):
+    util.print_status_line();
+
+    hoomd_script.context._verify_init();
+
+    # check if initialization has already occured
+    if is_initialized():
+        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        raise RuntimeError("Error initializing");
+
+    snapshot = hoomd_script.data.gsd_snapshot(filename, frame);
+
+    # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
+    snapshot._broadcast(hoomd_script.context.exec_conf);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
+
+    if my_domain_decomposition is not None:
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+    else:
+        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+
+    # initialize the system
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+
+    _perform_common_init_tasks();
+    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
 
 ## Performs common initialization tasks
 #

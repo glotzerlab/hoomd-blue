@@ -115,6 +115,16 @@ class gsd_write_tests (unittest.TestCase):
         data.gsd_snapshot('test.gsd', frame=0);
         self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
+    # tests init.read_gsd
+    def test_read_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=1);
+        run(5);
+
+        context.initialize();
+        init.read_gsd(filename='test.gsd', frame=4);
+        self.assertRaises(RuntimeError, init.read_gsd, 'test.gsd', frame=5);
+
+
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove('test.gsd');
@@ -192,8 +202,8 @@ class gsd_read_tests (unittest.TestCase):
         self.s = init.read_snapshot(self.snapshot);
         sorter.set_params(grid=8)
 
-    # tests basic creation of the dump
-    def test(self):
+    # tests data.gsd_snapshot
+    def test_gsd_snapshot(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=None);
 
         snap = data.gsd_snapshot('test.gsd', frame=0);
@@ -243,6 +253,14 @@ class gsd_read_tests (unittest.TestCase):
         self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
         numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
         numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
+
+    # tests init.read_gsd
+    def test_read_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=None);
+        context.initialize();
+
+        init.read_gsd(filename='test.gsd');
+
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove('test.gsd');
