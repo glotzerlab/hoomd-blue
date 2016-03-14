@@ -2567,7 +2567,16 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
 
     return snapshot;
 
-
+## Read a snapshot from a GSD file
+#
+# \param filename GSD file to read the snapshot from
+# \param frame Frame to read from the GSD file
+#
+# gsd_snapshot() opens the given GSD file and reads a snapshot from it.
+#
+def gsd_snapshot(filename, frame=0):
+    reader = hoomd.GSDReader(hoomd_script.context.exec_conf, filename, frame);
+    return reader.getSnapshot();
 
 ## \class SnapshotParticleData
 # \brief Snapshot that stores particle properties

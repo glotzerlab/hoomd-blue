@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondedGroupData.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
+#include "GSDReader.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "CellList.h"
@@ -590,6 +591,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_RandomInitializer();
     export_SimpleCubicInitializer();
     export_HOOMDInitializer();
+    export_GSDReader();
     export_RandomGenerator();
 
     // computes
