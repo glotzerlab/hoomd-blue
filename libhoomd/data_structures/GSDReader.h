@@ -114,13 +114,13 @@ class GSDReader
         gsd_handle m_handle;                                         //!< Handle to the file
 
         //! Helper function to read a quantity from the file
-        bool readChunk(void *data, uint64_t frame, const char *name, size_t expected_size);
+        bool readChunk(void *data, uint64_t frame, const char *name, size_t expected_size, unsigned int cur_n=0);
+        //! Helper function to read a type list from the file
+        std::vector<std::string> readTypes(uint64_t frame, const char *name);
 
         // helper functions to read sections of the file
         void readHeader();
-        void readAttributes();
-        void readProperties();
-        void readMomenta();
+        void readParticles();
         void readTopology();
     };
 

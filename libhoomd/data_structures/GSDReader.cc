@@ -143,9 +143,7 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
     m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
 
     readHeader();
-    readAttributes();
-    readProperties();
-    readMomenta();
+    readParticles();
     readTopology();
     }
 
@@ -158,20 +156,23 @@ GSDReader::~GSDReader()
     \param frame Frame index to read from
     \param name Name of the data chunk
     \param exepected_size Expected size of the data chunk in bytes.
+    \param cur_n N in the current frame.
 
     Attempts to read the data chunk of the given name at the given frame. If it is not present at this
     frame, attempt to read from frame 0. If it is also not present at frame 0, return false.
     If the found data chunk is not the expected size, throw an exception.
 
+    Per the GSD spec, keep the default when the frame 0 N does not match the current N.
+
     Return true if data is actually read from the file.
 */
-bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t expected_size)
+bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t expected_size, unsigned int cur_n)
     {
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
     if (entry == NULL && frame != 0)
         entry = gsd_find_chunk(&m_handle, 0, name);
 
-    if (entry == NULL)
+    if (entry == NULL || (cur_n != 0 && entry->N != cur_n))
         return false;
     else
         {
@@ -208,6 +209,60 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
         }
     }
 
+/*! \param frame Frame index to read from
+    \param name Name of the data chunk
+
+    Attempts to read the data chunk of the given name at the given frame. If it is not present at this
+    frame, attempt to read from frame 0. If it is also not present at frame 0, return an empty list.
+
+    If the data chunk is found in the file, return a vector of string type names.
+*/
+std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
+    {
+    std::vector<std::string> type_mapping;
+    const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
+    if (entry == NULL && frame != 0)
+        entry = gsd_find_chunk(&m_handle, 0, name);
+
+    if (entry == NULL)
+        return type_mapping;
+    else
+        {
+        size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
+        std::vector<char> data(actual_size);
+        int retval = gsd_read_chunk(&m_handle, &data[0], entry);
+
+        if (retval == -1)
+            {
+            m_exec_conf->msg->error() << "data.gsd_snapshot: " << strerror(errno) << " - " << m_name << endl;
+            throw runtime_error("Error reading GSD file");
+            }
+        else if (retval == -2)
+            {
+            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
+            throw runtime_error("Error reading GSD file");
+            }
+        else if (retval == -3)
+            {
+            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid GSD file " << m_name << endl;
+            throw runtime_error("Error reading GSD file");
+            }
+        else if (retval != 0)
+            {
+            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
+            throw runtime_error("Error reading GSD file");
+            }
+
+        for (unsigned int i = 0; i < entry->N; i++)
+            {
+            size_t l = strnlen(&data[i*entry->M], entry->M);
+            type_mapping.push_back(std::string(&data[i*entry->M], l));
+            }
+
+        return type_mapping;
+        }
+    }
+
 /*! Read the same data chunks written by GSDDumpWriter::writeFrameHeader
 */
 void GSDReader::readHeader()
@@ -233,25 +288,29 @@ void GSDReader::readHeader()
     m_snapshot->particle_data.resize(N);
     }
 
-/*! Read the same data chunks written by GSDDumpWriter::writeAttributes
+/*! Read the same data chunks for particles
 */
-void GSDReader::readAttributes()
+void GSDReader::readParticles()
     {
+    unsigned int N = m_snapshot->particle_data.size;
+    m_snapshot->particle_data.type_mapping = readTypes(m_frame, "particles/types");
+
+    // the snapshot already has default values, if a chunk is not found, the value
+    // is already at the default, and the failed read is not a problem
+    readChunk(&m_snapshot->particle_data.type[0], m_frame, "particles/typeid", N*4, N);
+    readChunk(&m_snapshot->particle_data.mass[0], m_frame, "particles/mass", N*4, N);
+    readChunk(&m_snapshot->particle_data.charge[0], m_frame, "particles/charge", N*4, N);
+    readChunk(&m_snapshot->particle_data.diameter[0], m_frame, "particles/diameter", N*4, N);
+    readChunk(&m_snapshot->particle_data.body[0], m_frame, "particles/body", N*4, N);
+    readChunk(&m_snapshot->particle_data.inertia[0], m_frame, "particles/moment_inertia", N*12, N);
+    readChunk(&m_snapshot->particle_data.pos[0], m_frame, "particles/position", N*12, N);
+    readChunk(&m_snapshot->particle_data.orientation[0], m_frame, "particles/orientation", N*16, N);
+    readChunk(&m_snapshot->particle_data.vel[0], m_frame, "particles/velocity", N*12, N);
+    readChunk(&m_snapshot->particle_data.angmom[0], m_frame, "particles/angmom", N*16, N);
+    readChunk(&m_snapshot->particle_data.image[0], m_frame, "particles/image", N*12, N);
     }
 
-/*! Read the same data chunks written by GSDDumpWriter::writeProperties
-*/
-void GSDReader::readProperties()
-    {
-    }
-
-/*! Read the same data chunks written by GSDDumpWriter::writeMomenta
-*/
-void GSDReader::readMomenta()
-    {
-    }
-
-/*! Read the same data chunks written by GSDDumpWriter::writeTopology
+/*! Read the same data chunks for topology
 */
 void GSDReader::readTopology()
     {
