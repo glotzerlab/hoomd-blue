@@ -81,7 +81,7 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
     {
     #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
+    if (!m_exec_conf->isRoot())
         {
         return;
         }
@@ -173,9 +173,13 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
         entry = gsd_find_chunk(&m_handle, 0, name);
 
     if (entry == NULL || (cur_n != 0 && entry->N != cur_n))
+        {
+        m_exec_conf->msg->notice(10) << "data.gsd_snapshot: chunk not found " << name << endl;
         return false;
+        }
     else
         {
+        m_exec_conf->msg->notice(7) << "data.gsd_snapshot: reading chunk " << name << endl;
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         if (actual_size != expected_size)
             {
@@ -219,6 +223,8 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
 */
 std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
     {
+    m_exec_conf->msg->notice(7) << "data.gsd_snapshot: reading chunk " << name << endl;
+
     std::vector<std::string> type_mapping;
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
     if (entry == NULL && frame != 0)
@@ -314,7 +320,58 @@ void GSDReader::readParticles()
 */
 void GSDReader::readTopology()
     {
-    // TODO
+    unsigned int N = 0;
+    readChunk(&N, m_frame, "bonds/N", 4);
+    if (N > 0)
+        {
+        m_snapshot->bond_data.resize(N);
+        m_snapshot->bond_data.type_mapping = readTypes(m_frame, "bonds/types");
+        readChunk(&m_snapshot->bond_data.type_id[0], m_frame, "bonds/typeid", N*4, N);
+        readChunk(&m_snapshot->bond_data.groups[0], m_frame, "bonds/group", N*8, N);
+        }
+
+    N = 0;
+    readChunk(&N, m_frame, "angles/N", 4);
+    if (N > 0)
+        {
+        m_snapshot->angle_data.resize(N);
+        m_snapshot->angle_data.type_mapping = readTypes(m_frame, "angles/types");
+        readChunk(&m_snapshot->angle_data.type_id[0], m_frame, "angles/typeid", N*4, N);
+        readChunk(&m_snapshot->angle_data.groups[0], m_frame, "angles/group", N*12, N);
+        }
+
+    N = 0;
+    readChunk(&N, m_frame, "dihedrals/N", 4);
+    if (N > 0)
+        {
+        m_snapshot->dihedral_data.resize(N);
+        m_snapshot->dihedral_data.type_mapping = readTypes(m_frame, "dihedrals/types");
+        readChunk(&m_snapshot->dihedral_data.type_id[0], m_frame, "dihedrals/typeid", N*4, N);
+        readChunk(&m_snapshot->dihedral_data.groups[0], m_frame, "dihedrals/group", N*16, N);
+        }
+
+    N = 0;
+    readChunk(&N, m_frame, "impropers/N", 4);
+    if (N > 0)
+        {
+        m_snapshot->improper_data.resize(N);
+        m_snapshot->improper_data.type_mapping = readTypes(m_frame, "impropers/types");
+        readChunk(&m_snapshot->improper_data.type_id[0], m_frame, "impropers/typeid", N*4, N);
+        readChunk(&m_snapshot->improper_data.groups[0], m_frame, "impropers/group", N*16, N);
+        }
+
+    N = 0;
+    readChunk(&N, m_frame, "constraints/N", 4);
+    if (N > 0)
+        {
+        m_snapshot->constraint_data.resize(N);
+        std::vector<float> data(N);
+        readChunk(&data[0], m_frame, "constraints/value", N*4, N);
+        for (unsigned int i=0; i < N; i++)
+            m_snapshot->constraint_data.val[i] = Scalar(data[i]);
+
+        readChunk(&m_snapshot->constraint_data.groups[0], m_frame, "constraints/group", N*8, N);
+        }
     }
 
 void export_GSDReader()

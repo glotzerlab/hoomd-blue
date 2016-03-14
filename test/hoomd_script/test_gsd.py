@@ -220,6 +220,29 @@ class gsd_read_tests (unittest.TestCase):
         numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
         numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
 
+        self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
+        self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
+        numpy.testing.assert_array_equal(snap.bonds.typeid, self.snapshot.bonds.typeid);
+        numpy.testing.assert_array_equal(snap.bonds.group, self.snapshot.bonds.group);
+
+        self.assertEqual(snap.angles.N, self.snapshot.angles.N);
+        self.assertEqual(snap.angles.types, self.snapshot.angles.types);
+        numpy.testing.assert_array_equal(snap.angles.typeid, self.snapshot.angles.typeid);
+        numpy.testing.assert_array_equal(snap.angles.group, self.snapshot.angles.group);
+
+        self.assertEqual(snap.dihedrals.N, self.snapshot.dihedrals.N);
+        self.assertEqual(snap.dihedrals.types, self.snapshot.dihedrals.types);
+        numpy.testing.assert_array_equal(snap.dihedrals.typeid, self.snapshot.dihedrals.typeid);
+        numpy.testing.assert_array_equal(snap.dihedrals.group, self.snapshot.dihedrals.group);
+
+        self.assertEqual(snap.impropers.N, self.snapshot.impropers.N);
+        self.assertEqual(snap.impropers.types, self.snapshot.impropers.types);
+        numpy.testing.assert_array_equal(snap.impropers.typeid, self.snapshot.impropers.typeid);
+        numpy.testing.assert_array_equal(snap.impropers.group, self.snapshot.impropers.group);
+
+        self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
+        numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
+        numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove('test.gsd');

@@ -269,7 +269,9 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         writeProperties(snapshot);
     if (m_write_momentum || nframes == 0)
         writeMomenta(snapshot);
-    if (m_write_topology || nframes == 0)
+
+    // topology is only meaningful if this is the all group
+    if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal() && (m_write_topology || nframes == 0))
         {
         BondData::Snapshot bdata_snapshot(m_sysdef->getBondData()->getNGlobal());
         m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
@@ -297,6 +299,26 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         m_prof->pop();
     }
 
+
+void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping)
+    {
+    int max_len = 0;
+    for (unsigned int i = 0; i < type_mapping.size(); i++)
+        {
+        max_len = std::max(max_len, (int)type_mapping[i].size());
+        }
+    max_len += 1;  // for null
+
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << chunk << endl;
+        std::vector<char> types(max_len * type_mapping.size());
+        for (unsigned int i = 0; i < type_mapping.size(); i++)
+            strncpy(&types[max_len*i], type_mapping[i].c_str(), max_len);
+        int retval = gsd_write_chunk(&m_handle, chunk.c_str(), GSD_TYPE_UINT8, type_mapping.size(), max_len, 0, (void *)&types[0]);
+        checkError(retval);
+        }
+
+    }
 
 /*! \param timestep
 
@@ -349,21 +371,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
 
-    int max_len = 0;
-    for (unsigned int i = 0; i < snapshot.type_mapping.size(); i++)
-        {
-        max_len = std::max(max_len, (int)snapshot.type_mapping[i].size());
-        }
-    max_len += 1;  // for null
-
-        {
-        m_exec_conf->msg->notice(10) << "dump.gsd: writing particles/types" << endl;
-        std::vector<char> types(max_len*m_pdata->getNTypes());
-        for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
-            strncpy(&types[max_len*i], m_pdata->getNameByType(i).c_str(), max_len);
-        retval = gsd_write_chunk(&m_handle, "particles/types", GSD_TYPE_UINT8, m_pdata->getNTypes(), max_len, 0, (void *)&types[0]);
-        checkError(retval);
-        }
+    writeTypeMapping("particles/types", snapshot.type_mapping);
 
         {
         std::vector<uint32_t> type(N);
@@ -662,7 +670,96 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
                                   ImproperData::Snapshot& improper,
                                   ConstraintData::Snapshot& constraint)
     {
-    // TODO
+    if (bond.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing bonds/N" << endl;
+        uint32_t N = bond.size;
+        int retval = gsd_write_chunk(&m_handle, "bonds/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        writeTypeMapping("bonds/types", bond.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing bonds/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle, "bonds/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&bond.type_id[0]);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing bonds/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "bonds/group", GSD_TYPE_UINT32, N, 2, 0, (void *)&bond.groups[0]);
+        checkError(retval);
+        }
+    if (angle.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing angles/N" << endl;
+        uint32_t N = angle.size;
+        int retval = gsd_write_chunk(&m_handle, "angles/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        writeTypeMapping("angles/types", angle.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing angles/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle, "angles/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&angle.type_id[0]);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing angles/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "angles/group", GSD_TYPE_UINT32, N, 3, 0, (void *)&angle.groups[0]);
+        checkError(retval);
+        }
+    if (dihedral.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing dihedrals/N" << endl;
+        uint32_t N = dihedral.size;
+        int retval = gsd_write_chunk(&m_handle, "dihedrals/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        writeTypeMapping("dihedrals/types", dihedral.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing dihedrals/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle, "dihedrals/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&dihedral.type_id[0]);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing dihedrals/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "dihedrals/group", GSD_TYPE_UINT32, N, 4, 0, (void *)&dihedral.groups[0]);
+        checkError(retval);
+        }
+    if (improper.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing impropers/N" << endl;
+        uint32_t N = improper.size;
+        int retval = gsd_write_chunk(&m_handle, "impropers/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        writeTypeMapping("impropers/types", improper.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing impropers/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle, "impropers/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&improper.type_id[0]);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing impropers/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "impropers/group", GSD_TYPE_UINT32, N, 4, 0, (void *)&improper.groups[0]);
+        checkError(retval);
+        }
+
+    if (constraint.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing constraints/N" << endl;
+        uint32_t N = constraint.size;
+        int retval = gsd_write_chunk(&m_handle, "constraints/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing constraints/value" << endl;
+            {
+            std::vector<float> data(N);
+            for (unsigned int i = 0; i < N; i++)
+                data[i] = float(constraint.val[i]);
+
+            retval = gsd_write_chunk(&m_handle, "constraints/value", GSD_TYPE_FLOAT, N, 1, 0, (void *)&data[0]);
+            checkError(retval);
+            }
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing constraints/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "constraints/group", GSD_TYPE_UINT32, N, 2, 0, (void *)&constraint.groups[0]);
+        checkError(retval);
+        }
     }
 
 void export_GSDDumpWriter()

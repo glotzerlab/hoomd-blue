@@ -128,6 +128,9 @@ class GSDDumpWriter : public Analyzer
 
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
 
+        //! Write a type mapping out to the file
+        void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);
+
         //! Initializes the output file for writing
         void initFileIO();
 
