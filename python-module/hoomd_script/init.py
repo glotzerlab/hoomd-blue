@@ -648,7 +648,11 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd_script.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
-    snapshot = hoomd_script.data.gsd_snapshot(filename, frame);
+
+    reader = hoomd.GSDReader(hoomd_script.context.exec_conf, filename, frame);
+    snapshot = reader.getSnapshot();
+    if time_step is None:
+        time_step = reader.getTimeStep();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
     snapshot._broadcast(hoomd_script.context.exec_conf);
@@ -660,7 +664,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
     return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
