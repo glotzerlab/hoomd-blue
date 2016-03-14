@@ -12,7 +12,7 @@ import numpy
 class gsd_write_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(Lx=10, Ly=20, Lz=30), dtype='float');
         if comm.get_rank() == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
@@ -134,7 +134,7 @@ class gsd_write_tests (unittest.TestCase):
 class gsd_read_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
         if comm.get_rank() == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
@@ -157,7 +157,7 @@ class gsd_read_tests (unittest.TestCase):
             self.snapshot.particles.mass[:] = [33, 34, 35,  36];
             self.snapshot.particles.charge[:] = [44, 45, 46, 47];
             self.snapshot.particles.diameter[:] = [55, 56, 57, 58];
-            self.snapshot.particles.body[:] = [0, 1, 2, 3];
+            self.snapshot.particles.body[:] = [-1, -1, -1, -1];
             self.snapshot.particles.image[0] = [60, 61, 62];
             self.snapshot.particles.image[1] = [61, 62, 63];
             self.snapshot.particles.image[2] = [62, 63, 64];
@@ -205,54 +205,55 @@ class gsd_read_tests (unittest.TestCase):
     # tests data.gsd_snapshot
     def test_gsd_snapshot(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=None);
-
+        
         snap = data.gsd_snapshot('test.gsd', frame=0);
-        self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);
-        self.assertEqual(snap.box.Lx, self.snapshot.box.Lx);
-        self.assertEqual(snap.box.Ly, self.snapshot.box.Ly);
-        self.assertEqual(snap.box.Lz, self.snapshot.box.Lz);
-        self.assertEqual(snap.box.xy, self.snapshot.box.xy);
-        self.assertEqual(snap.box.xz, self.snapshot.box.xz);
-        self.assertEqual(snap.box.yz, self.snapshot.box.yz);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);
+            self.assertEqual(snap.box.Lx, self.snapshot.box.Lx);
+            self.assertEqual(snap.box.Ly, self.snapshot.box.Ly);
+            self.assertEqual(snap.box.Lz, self.snapshot.box.Lz);
+            self.assertEqual(snap.box.xy, self.snapshot.box.xy);
+            self.assertEqual(snap.box.xz, self.snapshot.box.xz);
+            self.assertEqual(snap.box.yz, self.snapshot.box.yz);
 
-        self.assertEqual(snap.particles.N, self.snapshot.particles.N);
-        self.assertEqual(snap.particles.types, self.snapshot.particles.types);
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            self.assertEqual(snap.particles.types, self.snapshot.particles.types);
 
-        numpy.testing.assert_array_equal(snap.particles.typeid, self.snapshot.particles.typeid);
-        numpy.testing.assert_array_equal(snap.particles.mass, self.snapshot.particles.mass);
-        numpy.testing.assert_array_equal(snap.particles.charge, self.snapshot.particles.charge);
-        numpy.testing.assert_array_equal(snap.particles.diameter, self.snapshot.particles.diameter);
-        numpy.testing.assert_array_equal(snap.particles.body, self.snapshot.particles.body);
-        numpy.testing.assert_array_equal(snap.particles.moment_inertia, self.snapshot.particles.moment_inertia);
-        numpy.testing.assert_array_equal(snap.particles.position, self.snapshot.particles.position);
-        numpy.testing.assert_array_equal(snap.particles.orientation, self.snapshot.particles.orientation);
-        numpy.testing.assert_array_equal(snap.particles.velocity, self.snapshot.particles.velocity);
-        numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
-        numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
+            numpy.testing.assert_array_equal(snap.particles.typeid, self.snapshot.particles.typeid);
+            numpy.testing.assert_array_equal(snap.particles.mass, self.snapshot.particles.mass);
+            numpy.testing.assert_array_equal(snap.particles.charge, self.snapshot.particles.charge);
+            numpy.testing.assert_array_equal(snap.particles.diameter, self.snapshot.particles.diameter);
+            numpy.testing.assert_array_equal(snap.particles.body, self.snapshot.particles.body);
+            numpy.testing.assert_array_equal(snap.particles.moment_inertia, self.snapshot.particles.moment_inertia);
+            numpy.testing.assert_array_equal(snap.particles.position, self.snapshot.particles.position);
+            numpy.testing.assert_array_equal(snap.particles.orientation, self.snapshot.particles.orientation);
+            numpy.testing.assert_array_equal(snap.particles.velocity, self.snapshot.particles.velocity);
+            numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
+            numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
 
-        self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
-        self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
-        numpy.testing.assert_array_equal(snap.bonds.typeid, self.snapshot.bonds.typeid);
-        numpy.testing.assert_array_equal(snap.bonds.group, self.snapshot.bonds.group);
+            self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
+            self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
+            numpy.testing.assert_array_equal(snap.bonds.typeid, self.snapshot.bonds.typeid);
+            numpy.testing.assert_array_equal(snap.bonds.group, self.snapshot.bonds.group);
 
-        self.assertEqual(snap.angles.N, self.snapshot.angles.N);
-        self.assertEqual(snap.angles.types, self.snapshot.angles.types);
-        numpy.testing.assert_array_equal(snap.angles.typeid, self.snapshot.angles.typeid);
-        numpy.testing.assert_array_equal(snap.angles.group, self.snapshot.angles.group);
+            self.assertEqual(snap.angles.N, self.snapshot.angles.N);
+            self.assertEqual(snap.angles.types, self.snapshot.angles.types);
+            numpy.testing.assert_array_equal(snap.angles.typeid, self.snapshot.angles.typeid);
+            numpy.testing.assert_array_equal(snap.angles.group, self.snapshot.angles.group);
 
-        self.assertEqual(snap.dihedrals.N, self.snapshot.dihedrals.N);
-        self.assertEqual(snap.dihedrals.types, self.snapshot.dihedrals.types);
-        numpy.testing.assert_array_equal(snap.dihedrals.typeid, self.snapshot.dihedrals.typeid);
-        numpy.testing.assert_array_equal(snap.dihedrals.group, self.snapshot.dihedrals.group);
+            self.assertEqual(snap.dihedrals.N, self.snapshot.dihedrals.N);
+            self.assertEqual(snap.dihedrals.types, self.snapshot.dihedrals.types);
+            numpy.testing.assert_array_equal(snap.dihedrals.typeid, self.snapshot.dihedrals.typeid);
+            numpy.testing.assert_array_equal(snap.dihedrals.group, self.snapshot.dihedrals.group);
 
-        self.assertEqual(snap.impropers.N, self.snapshot.impropers.N);
-        self.assertEqual(snap.impropers.types, self.snapshot.impropers.types);
-        numpy.testing.assert_array_equal(snap.impropers.typeid, self.snapshot.impropers.typeid);
-        numpy.testing.assert_array_equal(snap.impropers.group, self.snapshot.impropers.group);
+            self.assertEqual(snap.impropers.N, self.snapshot.impropers.N);
+            self.assertEqual(snap.impropers.types, self.snapshot.impropers.types);
+            numpy.testing.assert_array_equal(snap.impropers.typeid, self.snapshot.impropers.typeid);
+            numpy.testing.assert_array_equal(snap.impropers.group, self.snapshot.impropers.group);
 
-        self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
-        numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
-        numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
+            self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
+            numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
+            numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
 
     # tests init.read_gsd
     def test_read_gsd(self):
