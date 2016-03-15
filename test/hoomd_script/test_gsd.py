@@ -69,6 +69,11 @@ class gsd_write_tests (unittest.TestCase):
             self.snapshot.constraints.value[0] = 2.5
 
         self.s = init.read_snapshot(self.snapshot);
+
+        lj = pair.lj(r_cut=0.1)
+        lj.pair_coeff.set(['p1', 'p2'], ['p1', 'p2'], epsilon=0, sigma=0.1);
+        integrate.mode_standard(dt=0);
+        integrate.nve(group=group.all());
         sorter.set_params(grid=8)
 
     # tests basic creation of the dump
