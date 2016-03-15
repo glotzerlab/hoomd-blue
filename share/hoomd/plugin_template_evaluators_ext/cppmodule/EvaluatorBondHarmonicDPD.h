@@ -124,7 +124,12 @@ class EvaluatorBondHarmonicDPD
             // evaluate harmonic bond potential
             Scalar r = sqrt(rsq);
             force_divr = K * (r_0 / r - Scalar(1.0));
+            //Get the device vs host isfinite function.
+#ifdef  NVCC
             if (!isfinite(force_divr)) return false;
+#else //NVCC
+            if (!std::isfinite(force_divr)) return false;
+#endif//NVCC
             bond_eng = Scalar(0.5) * K * (r_0 - r) * (r_0 - r);
 
             if (rsq < rcut*rcut)

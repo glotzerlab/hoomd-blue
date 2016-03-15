@@ -90,29 +90,22 @@ class lj2(pair.pair):
     #
     # This method creates the pair force using the c++ classes exported in module.cc. When creating a new pair force,
     # one must update the referenced classes here.
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut,nlist=None, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        pair.pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = pair._update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        pair.pair.__init__(self, r_cut,nlist, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _evaluators_ext_template.PotentialPairLJ2;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2GPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = _evaluators_ext_template.PotentialPairLJ2GPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _evaluators_ext_template.PotentialPairLJ2GPU;
-            # you can play with the block size value, set it to any multiple of 32 up to 1024. Use the
-            # lj.benchmark() command to find out which block size performs the fastest
-            self.cpp_force.setBlockSize(64);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
