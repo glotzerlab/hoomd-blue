@@ -149,6 +149,14 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
 
 GSDReader::~GSDReader()
     {
+    #ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (!m_exec_conf->isRoot())
+        {
+        return;
+        }
+    #endif
+
     gsd_close(&m_handle);
     }
 

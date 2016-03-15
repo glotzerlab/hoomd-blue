@@ -182,7 +182,12 @@ GSDDumpWriter::~GSDDumpWriter()
     {
     m_exec_conf->msg->notice(5) << "Destroying GSDDumpWriter" << endl;
 
-    if (m_is_initialized)
+    bool root=true;
+    #ifdef ENABLE_MPI
+    root = m_exec_conf->isRoot();
+    #endif
+
+    if (root && m_is_initialized)
         {
         m_exec_conf->msg->notice(5) << "dump.gsd: close gsd file " << m_fname << endl;
         gsd_close(&m_handle);
