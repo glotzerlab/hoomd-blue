@@ -140,6 +140,8 @@ class gsd_write_tests (unittest.TestCase):
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove('test.gsd');
+
+        comm.barrier_all();
         context.initialize();
 
 # unit tests for dump.gsd
@@ -277,6 +279,7 @@ class gsd_read_tests (unittest.TestCase):
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove('test.gsd');
+        comm.barrier_all();
         context.initialize();
 
 if __name__ == '__main__':
