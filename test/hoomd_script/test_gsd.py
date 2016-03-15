@@ -77,14 +77,16 @@ class gsd_write_tests (unittest.TestCase):
         run(5);
         # ensure 5 frames are written to the file
         data.gsd_snapshot('test.gsd', frame=4);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=5);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=5);
 
     # tests with phase
     def test_phase(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, phase=0);
         run(1);
         data.gsd_snapshot('test.gsd', frame=0);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
     # tests overwrite
     def test_overwrite(self):
@@ -93,27 +95,31 @@ class gsd_write_tests (unittest.TestCase):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, overwrite=True);
         run(1);
         data.gsd_snapshot('test.gsd', frame=0);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
     # tests truncate
     def test_truncate(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, truncate=True);
         run(5);
         data.gsd_snapshot('test.gsd', frame=0);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
     # test all static quantities
     def test_all_static(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, static=['attribute', 'property', 'momentum', 'topology']);
         run(1);
         data.gsd_snapshot('test.gsd', frame=0);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
     # test write file
     def test_write_immediate(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=None, time_step=1000);
         data.gsd_snapshot('test.gsd', frame=0);
-        self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
     # tests init.read_gsd
     def test_read_gsd(self):
@@ -122,7 +128,8 @@ class gsd_write_tests (unittest.TestCase):
 
         context.initialize();
         init.read_gsd(filename='test.gsd', frame=4);
-        self.assertRaises(RuntimeError, init.read_gsd, 'test.gsd', frame=5);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, init.read_gsd, 'test.gsd', frame=5);
 
 
     def tearDown(self):
@@ -205,7 +212,7 @@ class gsd_read_tests (unittest.TestCase):
     # tests data.gsd_snapshot
     def test_gsd_snapshot(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=None);
-        
+
         snap = data.gsd_snapshot('test.gsd', frame=0);
         if comm.get_rank() == 0:
             self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);

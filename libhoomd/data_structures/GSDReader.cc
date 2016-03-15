@@ -79,6 +79,8 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
                      const uint64_t frame)
     : m_exec_conf(exec_conf), m_timestep(0), m_name(name), m_frame(frame)
     {
+    m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
+
     #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
     if (!m_exec_conf->isRoot())
@@ -140,8 +142,6 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
         throw runtime_error("Error opening GSD file");
         }
 
-    m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
-
     readHeader();
     readParticles();
     readTopology();
@@ -183,7 +183,7 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         if (actual_size != expected_size)
             {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Expecting " << expected_size << " bytes in" << name << " but found " << actual_size << endl;
+            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Expecting " << expected_size << " bytes in " << name << " but found " << actual_size << endl;
             throw runtime_error("Error reading GSD file");
             }
         int retval = gsd_read_chunk(&m_handle, data, entry);

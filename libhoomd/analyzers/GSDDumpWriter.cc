@@ -197,6 +197,7 @@ GSDDumpWriter::~GSDDumpWriter()
 void GSDDumpWriter::analyze(unsigned int timestep)
     {
     int retval;
+    bool root=true;
 
     if (m_prof)
         m_prof->push("Dump GSD");
@@ -208,19 +209,15 @@ void GSDDumpWriter::analyze(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
-        {
-        if (m_prof) m_prof->pop();
-        return;
-        }
+    root = m_exec_conf->isRoot();
 #endif
 
     // open the file if it is not yet opened
-    if (! m_is_initialized)
+    if (! m_is_initialized && root)
         initFileIO();
 
     // truncate the file if requested
-    if (m_truncate)
+    if (m_truncate && root)
         {
         m_exec_conf->msg->notice(10) << "dump.gsd: truncating file" << endl;
         retval = gsd_truncate(&m_handle);
@@ -256,19 +253,30 @@ void GSDDumpWriter::analyze(unsigned int timestep)
             }
         }
 
-    uint64_t nframes = gsd_get_nframes(&m_handle);
-    m_exec_conf->msg->notice(10) << "dump.gsd: " << m_fname << " has " << nframes << " frames" << endl;
+    uint64_t nframes = 0;
+    if (root)
+        {
+        nframes = gsd_get_nframes(&m_handle);
+        m_exec_conf->msg->notice(10) << "dump.gsd: " << m_fname << " has " << nframes << " frames" << endl;
+        }
 
-    // write out the frame header on all frames
-    writeFrameHeader(timestep);
+    #ifdef ENABLE_MPI
+    bcast(nframes, 0, m_exec_conf->getMPICommunicator());
+    #endif
 
-    // only write out data chunk categories if requested, or if on frame 0
-    if (m_write_attribute || nframes == 0)
-        writeAttributes(snapshot);
-    if (m_write_property || nframes == 0)
-        writeProperties(snapshot);
-    if (m_write_momentum || nframes == 0)
-        writeMomenta(snapshot);
+    if (root)
+        {
+        // write out the frame header on all frames
+        writeFrameHeader(timestep);
+
+        // only write out data chunk categories if requested, or if on frame 0
+        if (m_write_attribute || nframes == 0)
+            writeAttributes(snapshot);
+        if (m_write_property || nframes == 0)
+            writeProperties(snapshot);
+        if (m_write_momentum || nframes == 0)
+            writeMomenta(snapshot);
+        }
 
     // topology is only meaningful if this is the all group
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal() && (m_write_topology || nframes == 0))
@@ -288,12 +296,16 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         ConstraintData::Snapshot cdata_snapshot(m_sysdef->getConstraintData()->getNGlobal());
         m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
 
-        writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot);
+        if (root)
+            writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot);
         }
 
-    m_exec_conf->msg->notice(10) << "dump.gsd: ending frame" << endl;
-    retval = gsd_end_frame(&m_handle);
-    checkError(retval);
+    if (root)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: ending frame" << endl;
+        retval = gsd_end_frame(&m_handle);
+        checkError(retval);
+        }
 
     if (m_prof)
         m_prof->pop();
