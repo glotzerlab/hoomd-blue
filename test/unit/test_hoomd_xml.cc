@@ -77,7 +77,7 @@ using namespace std;
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
     // temporary directory for files
-    std::string tmp_path = "test_hoomd_xml_data";
+    std::string tmp_path = ".";
 
     Scalar3 I;
 
@@ -817,14 +817,13 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         }
 
 
-    rmdir(tmp_path.c_str());
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     {
     // temporary directory for files
-    std::string tmp_path = "test_hoomd_xml_data";
+    std::string tmp_path = ".";
 
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
@@ -1046,14 +1045,13 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         f.close();
         unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
-    rmdir(tmp_path.c_str());
     }
 
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     {
     // temporary directory for files
-    std::string tmp_path = "test_hoomd_xml_data";
+    std::string tmp_path = ".";
 
     // create a test input file
     ofstream f((tmp_path+"/test_input.xml").c_str());
@@ -1398,5 +1396,4 @@ im_b 5 4 3 2\n\
 
     // clean up after ourselves
     unlink((tmp_path+"/test_input.xml").c_str());
-    rmdir(tmp_path.c_str());
     }
