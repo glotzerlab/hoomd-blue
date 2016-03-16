@@ -271,6 +271,11 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(const std::st
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;
+
+    // boost 1.60.0 compatibility
+    #if (BOOST_VERSION >= 106000)
+    register_ptr_to_python< boost::shared_ptr<T> >();
+    #endif
     }
 
 #endif // ENABLE_CUDA
