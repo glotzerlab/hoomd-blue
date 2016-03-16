@@ -78,8 +78,6 @@ using namespace std;
 using namespace boost::python;
 
 #include <boost/bind.hpp>
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/iterator/transform_iterator.hpp>
 
 using namespace boost::signals2;
 using namespace boost;
