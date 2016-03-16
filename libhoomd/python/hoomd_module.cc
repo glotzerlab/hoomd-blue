@@ -204,10 +204,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 
-using namespace boost::filesystem;
 using namespace boost::python;
 namespace bnp=boost::python::numeric;
 
@@ -262,30 +259,6 @@ void export_tersoff_params()
 
     def("make_tersoff_params", &make_tersoff_params);
 }
-
-//! Scans for a VMD installation
-/*! \returns Full path to the vmd executable
-    This function is for use by the demos and benchmarks installed with HOOMD.
-*/
-string find_vmd()
-    {
-    // check some likely locations
-    if (exists("/usr/bin/vmd"))
-        return "/usr/bin/vmd";
-    if (exists("/usr/local/bin/vmd"))
-        return "/usr/local/bin/vmd";
-    if (exists("/opt/vmd/bin/vmd"))
-        return "/opt/vmd/bin/vmd";
-    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
-        return("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
-        return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
-        return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-
-    // return an empty string if we didn't find it
-    return "";
-    }
 
 //! Method for getting the current version of HOOMD
 /*! \returns Current HOOMD version identification string
@@ -543,7 +516,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
-    def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
     def("get_num_procs", &get_num_procs);

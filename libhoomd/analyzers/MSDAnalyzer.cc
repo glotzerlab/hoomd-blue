@@ -57,18 +57,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "MSDAnalyzer.h"
 #include "HOOMDInitializer.h"
+#include "Filesystem.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
 
 #include <boost/python.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
 
 using namespace boost::python;
-using namespace boost::filesystem;
 
 #include <iomanip>
 using namespace std;
@@ -104,7 +102,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
 #endif
 
     // open the file
-    if (exists(fname) && !overwrite)
+    if (filesystem::exists(fname) && !overwrite)
         {
         m_exec_conf->msg->notice(3) << "analyze.msd: Appending msd to existing file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);

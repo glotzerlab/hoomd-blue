@@ -63,10 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 using namespace boost::python;
-using namespace boost::filesystem;
 
 #include <iomanip>
 using namespace std;

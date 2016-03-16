@@ -49,13 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "ExecutionConfiguration.h"
+#include "Filesystem.h"
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-using namespace boost::filesystem;
 
 #include "Messenger.h"
 
@@ -171,11 +169,6 @@ BOOST_AUTO_TEST_CASE( Messenger_prefix )
 
 BOOST_AUTO_TEST_CASE( Messenger_file )
     {
-    // temporary directory for files (avoid race conditions in multiple test invocations)
-    path ph = unique_path();
-    create_directories(ph);
-    std::string tmp_path = ph.string();
-
     // scope the messengers so that the file is closed and written
         {
         Messenger msg;
@@ -185,7 +178,7 @@ BOOST_AUTO_TEST_CASE( Messenger_file )
         msg.setNoticePrefix("note");
 
         // test opening a file
-        msg.openFile(tmp_path+"/test_messenger_output");
+        msg.openFile("test_messenger_output");
 
         // also test that we can write to the file from 2 messengers
         Messenger msg2(msg);
@@ -200,10 +193,10 @@ BOOST_AUTO_TEST_CASE( Messenger_file )
         }
 
     // make sure the file was created
-    BOOST_REQUIRE(exists(tmp_path+"/test_messenger_output"));
+    BOOST_REQUIRE(filesystem::exists("test_messenger_output"));
 
     // read in the file and make sure correct data was written
-    ifstream f((tmp_path+"/test_messenger_output").c_str());
+    ifstream f("test_messenger_output");
     string line;
 
     getline(f, line);
@@ -223,5 +216,5 @@ BOOST_AUTO_TEST_CASE( Messenger_file )
     BOOST_REQUIRE(!f.bad());
     f.close();
 
-    remove_all(ph);
+    unlink("test_messenger_output");
     }

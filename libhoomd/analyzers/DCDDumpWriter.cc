@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "DCDDumpWriter.h"
+#include "Filesystem.h"
 #include "time.h"
 
 #ifdef ENABLE_MPI
@@ -65,9 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 
 #include <boost/python.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-using boost::filesystem::exists;
 using namespace boost::python;
 using namespace std;
 
@@ -126,7 +124,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
 void DCDDumpWriter::initFileIO()
     {
     // handle appending to an existing file if it is requested
-    if (!m_overwrite && exists(m_fname))
+    if (!m_overwrite && filesystem::exists(m_fname))
         {
         m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
 

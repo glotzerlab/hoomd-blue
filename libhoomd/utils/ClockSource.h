@@ -60,11 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __CLOCK_SOURCE_H__
 #define __CLOCK_SOURCE_H__
 
-// The clock code uses 64 bit integers for big numbers of nanoseconds. Include the
-// cross-platform int64_t types from boost
-#include <boost/cstdint.hpp>
-using boost::int64_t;
-using boost::uint64_t;
+// The clock code uses 64 bit integers for big numbers of nanoseconds.
+#include <stdint.h>
 
 #include <string>
 

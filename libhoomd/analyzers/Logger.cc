@@ -56,16 +56,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "Logger.h"
+#include "Filesystem.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
 
 #include <boost/python.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 using namespace boost::python;
-using namespace boost::filesystem;
 
 #include <stdexcept>
 #include <iomanip>
@@ -107,7 +105,7 @@ void Logger::openOutputFiles()
             return;
 #endif
     // open the file
-    if (exists(m_filename) && m_appending)
+    if (filesystem::exists(m_filename) && m_appending)
         {
         m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << m_filename << "\"" << endl;
         m_file.open(m_filename.c_str(), ios_base::in | ios_base::out | ios_base::ate);

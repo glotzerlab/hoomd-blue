@@ -73,9 +73,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #endif
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-
 //! Get the path this executable is in
 std::string getExePath();
 

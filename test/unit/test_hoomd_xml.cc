@@ -54,12 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
 #include "BondedGroupData.h"
+#include "Filesystem.h"
 
 #include <iostream>
 #include <sstream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-using namespace boost::filesystem;
 #include <boost/shared_ptr.hpp>
 using namespace boost;
 
@@ -78,10 +76,8 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
-    // temporary directory for files (avoid race conditions in multiple test invocations)
-    path ph = unique_path();
-    create_directories(ph);
-    std::string tmp_path = ph.string();
+    // temporary directory for files
+    std::string tmp_path = "test_hoomd_xml_data";
 
     Scalar3 I;
 
@@ -242,7 +238,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->analyze(0);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists(tmp_path+"/test.0000000000.xml"));
+        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000000.xml").c_str());
@@ -271,6 +267,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
         BOOST_REQUIRE(!f.bad());
         f.close();
+        unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
 
     // second test: test position
@@ -281,7 +278,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->analyze(10);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists(tmp_path+"/test.0000000010.xml"));
+        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000010.xml"));
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000010.xml").c_str());
@@ -317,6 +314,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // </configuration
         getline(f, line); // </HOOMD_xml
         f.close();
+        unlink((tmp_path+"/test.0000000010.xml").c_str());
         }
 
     // third test: test velocity
@@ -358,6 +356,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</velocity>");
         f.close();
+        unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
 
     // fourth test: the type array
@@ -399,6 +398,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</type>");
         f.close();
+        unlink((tmp_path+"/test.0000000030.xml").c_str());
         }
 
     // fifth test: the bond array
@@ -432,6 +432,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</bond>");
         f.close();
+        unlink((tmp_path+"/test.0000000040.xml").c_str());
         }
 
     // sixth test: the angle array
@@ -465,6 +466,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</angle>");
         f.close();
+        unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
 
     // seventh test: test image
@@ -506,6 +508,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</image>");
         f.close();
+        unlink((tmp_path+"/test.0000000060.xml").c_str());
         }
 
     // eighth test: test mass
@@ -547,6 +550,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</mass>");
         f.close();
+        unlink((tmp_path+"/test.0000000070.xml").c_str());
         }
 
     // nineth test: test diameter
@@ -588,6 +592,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</diameter>");
         f.close();
+        unlink((tmp_path+"/test.0000000080.xml").c_str());
         }
 
     // tenth test: the dihedral array
@@ -617,6 +622,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</dihedral>");
         f.close();
+        unlink((tmp_path+"/test.0000000090.xml").c_str());
         }
 
 
@@ -647,6 +653,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</improper>");
         f.close();
+        unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
 
     // twelfth test: the body array
@@ -688,6 +695,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</body>");
         f.close();
+        unlink((tmp_path+"/test.0000000110.xml").c_str());
         }
 
     // thirteenth test: the moment_inertia array
@@ -729,6 +737,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</moment_inertia>");
         f.close();
+        unlink((tmp_path+"/test.0000000120.xml").c_str());
         }
 
         // fourteenth test: the angmom array
@@ -770,6 +779,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</angmom>");
         f.close();
+        unlink((tmp_path+"/test.0000000130.xml").c_str());
         }
 
     // constraint array
@@ -803,19 +813,18 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</constraint>");
         f.close();
+        unlink((tmp_path+"/test.0000000140.xml").c_str());
         }
 
 
-    remove_all(ph);
+    rmdir(tmp_path.c_str());
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     {
-    // temporary directory for files (avoid race conditions in multiple test invocations)
-    path ph = unique_path();
-    create_directories(ph);
-    std::string tmp_path = ph.string();
+    // temporary directory for files
+    std::string tmp_path = "test_hoomd_xml_data";
 
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
@@ -876,7 +885,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         writer->analyze(100);
 
         // make sure the file was created
-        BOOST_REQUIRE(exists(tmp_path+"/test.0000000100.xml"));
+        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000100.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000100.xml").c_str());
@@ -1035,17 +1044,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
         BOOST_REQUIRE(!f.bad());
         f.close();
+        unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
-    remove_all(ph);
+    rmdir(tmp_path.c_str());
     }
 
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     {
-    // temporary directory for files (avoid race conditions in multiple test invocations)
-    path ph = unique_path();
-    create_directories(ph);
-    std::string tmp_path = ph.string();
+    // temporary directory for files
+    std::string tmp_path = "test_hoomd_xml_data";
 
     // create a test input file
     ofstream f((tmp_path+"/test_input.xml").c_str());
@@ -1389,5 +1397,6 @@ im_b 5 4 3 2\n\
 
 
     // clean up after ourselves
-    remove_all(ph);
+    unlink((tmp_path+"/test_input.xml").c_str());
+    rmdir(tmp_path.c_str());
     }
