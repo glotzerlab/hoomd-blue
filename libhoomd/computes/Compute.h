@@ -54,7 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
-#include <boost/thread.hpp>
 #include <string>
 #include <vector>
 

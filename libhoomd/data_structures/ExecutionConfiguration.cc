@@ -63,8 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include <boost/thread.hpp>
-
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
