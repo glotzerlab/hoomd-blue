@@ -17,6 +17,15 @@
 * Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
   notebook output blocks.
 * `analyze.log` can now register python callback functions as sources for logged quantities.
+* The GSD file format (http://gsd.readthedocs.org/en/latest/) is fully implemented in hoomd
+    * `dump.gsd` writes GSD trajectories and restart files (use `truncate=true` for restarts).
+    * `init.read_gsd` reads GSD file and initializes the system, and can start the simulation
+       from any frame in the GSD file.
+    * `data.gsd_snapshot` reads a GSD file into a snapshot which can be modified before system
+      initialization with `init.read_snapshot`.
+    * The GSD file format is capable of storing all particle and topology data fields in hoomd,
+      either static at frame 0, or varying over the course of the trajectory. The number of
+      particles, types, bonds, etc. can also vary over the trajectory.
 
 *Changes that require job script modifications*
 
