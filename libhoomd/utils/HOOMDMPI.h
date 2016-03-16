@@ -72,8 +72,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
-#include <boost/iostreams/stream.hpp>
-#include <boost/iostreams/device/back_inserter.hpp>
 
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/vector.hpp>
@@ -160,9 +158,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     int recv_count;
     if (rank == (int)root)
         {
-        std::string str;
-        boost::iostreams::back_insert_device <std::string> inserter(str);
-        boost::iostreams::stream<boost::iostreams::back_insert_device< std::string> > s(inserter);
+        std::stringstream s(std::ios_base::out | std::ios_base::binary);
         boost::archive::binary_oarchive ar(s);
 
         // serialize object
@@ -172,6 +168,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
         s.flush();
 
         // copy string to send buffer
+        std::string str = s.str();
         recv_count = str.size();
         buf = new char[recv_count];
         str.copy(buf, recv_count);
@@ -186,9 +183,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     if (rank != (int)root)
         {
         // de-serialize
-        std::string str(buf,recv_count);
-        boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
-        boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+        std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
         boost::archive::binary_iarchive ar(s);
 
         ar >> val;
@@ -219,18 +214,18 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
         displs = new int[size];
         // construct a vector of serialized objects
         typename std::vector<T>::const_iterator it;
-        std::vector<std::string> str(size);
+        std::vector<std::string> str;
         unsigned int len = 0;
         for (it = in_values.begin(); it!= in_values.end(); ++it)
             {
             unsigned int idx = it - in_values.begin();
-            boost::iostreams::back_insert_device <std::string> inserter(str[idx]);
-            boost::iostreams::stream<boost::iostreams::back_insert_device< std::string> > s(inserter);
+            std::stringstream s(std::ios_base::out | std::ios_base::binary);
             boost::archive::binary_oarchive ar(s);
 
             // serialize object
             ar << *it;
             s.flush();
+            str.push_back(s.str());
 
             displs[idx] = (idx > 0) ? displs[idx-1]+send_counts[idx-1] : 0;
             send_counts[idx] = str[idx].length();
@@ -253,9 +248,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
     MPI_Scatterv(sbuf, send_counts, displs, MPI_BYTE, rbuf, recv_count, MPI_BYTE, root, mpi_comm);
 
     // de-serialize data
-    std::string str(rbuf, recv_count);
-    boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
-    boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+    std::stringstream s(std::string(rbuf, recv_count), std::ios_base::in | std::ios_base::binary);
     boost::archive::binary_iarchive ar(s);
 
     ar >> out_value;
@@ -279,18 +272,15 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
     MPI_Comm_size(mpi_comm, &size);
 
     // serialize in_value
-    std::string str;
-    boost::iostreams::back_insert_device <std::string> inserter(str);
-    boost::iostreams::stream<boost::iostreams::back_insert_device< std::string> > s(inserter);
+    std::stringstream s(std::ios_base::out | std::ios_base::binary);
     boost::archive::binary_oarchive ar(s);
 
     ar << in_value;
     s.flush();
 
     // copy into send buffer
+    std::string str = s.str();
     unsigned int send_count = str.length();
-    char *sbuf = new char[send_count];
-    str.copy(sbuf, send_count);
 
     int *recv_counts = NULL;
     int *displs = NULL;
@@ -317,16 +307,14 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         }
 
     // now gather actual objects
-    MPI_Gatherv(sbuf, send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
+    MPI_Gatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
 
     // on root processor, de-serialize data
     if (rank == (int) root)
         {
         for (unsigned int i = 0; i < out_values.size(); i++)
             {
-            std::string str(rbuf + displs[i], recv_counts[i]);
-            boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
-            boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+            std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
             boost::archive::binary_iarchive ar(s);
 
             ar >> out_values[i];
@@ -336,8 +324,6 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         delete[] recv_counts;
         delete[] rbuf;
         }
-
-    delete[] sbuf;
     }
 
 //! Wrapper around MPI_Allgatherv
@@ -350,18 +336,15 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     MPI_Comm_size(mpi_comm, &size);
 
     // serialize in_value
-    std::string str;
-    boost::iostreams::back_insert_device <std::string> inserter(str);
-    boost::iostreams::stream<boost::iostreams::back_insert_device< std::string> > s(inserter);
+    std::stringstream s(std::ios_base::out | std::ios_base::binary);
     boost::archive::binary_oarchive ar(s);
 
     ar << in_value;
     s.flush();
 
     // copy into send buffer
+    std::string str = s.str();
     unsigned int send_count = str.length();
-    char *sbuf = new char[send_count];
-    str.copy(sbuf, send_count);
 
     // allocate memory for buffer lengths
     out_values.resize(size);
@@ -381,14 +364,12 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     char *rbuf = new char[len];
 
     // now gather actual objects
-    MPI_Allgatherv(sbuf, send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
+    MPI_Allgatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
 
     // de-serialize data
     for (unsigned int i = 0; i < out_values.size(); i++)
         {
-        std::string str(rbuf + displs[i], recv_counts[i]);
-        boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
-        boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+        std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
         boost::archive::binary_iarchive ar(s);
 
         ar >> out_values[i];
@@ -397,7 +378,6 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     delete[] displs;
     delete[] recv_counts;
     delete[] rbuf;
-    delete[] sbuf;
     }
 
 #endif // ENABLE_MPI

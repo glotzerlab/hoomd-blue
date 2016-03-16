@@ -57,14 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <sstream>
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/iostreams/stream.hpp>
-#include <boost/iostreams/categories.hpp>
 #include <boost/python.hpp>
 
 #ifdef NVCC
@@ -82,81 +79,6 @@ struct nullstream: std::ostream
     //! Construct a null stream
     nullstream(): std::ios(0), std::ostream(0) {}
     };
-
-//! A boost::iostreams sink that writes to sys.stdout in python
-class pysys_stdout_sink
-    {
-    public:
-        typedef char char_type;
-        typedef boost::iostreams::sink_tag category;
-
-        std::streamsize write( const char* s, std::streamsize n )
-            {
-            // PySys_WriteStdout truncates to 1000 chars
-            std::streamsize written = std::min( n, std::streamsize(1000) );
-            std::ostringstream oss;
-            oss << "%." << written << "s";
-
-            PyGILState_STATE gilstate = PyGILState_Ensure();
-            PySys_WriteStdout(oss.str().c_str(), s);
-            PyGILState_Release(gilstate);
-
-            return written;
-            }
-    };
-
-//! A boost::iostreams sink that writes to sys.stderr in python
-class pysys_stderr_sink
-    {
-    public:
-        typedef char char_type;
-        typedef boost::iostreams::sink_tag category;
-
-        std::streamsize write( const char* s, std::streamsize n )
-            {
-            // PySys_WriteStdout truncates to 1000 chars
-            std::streamsize written = std::min( n, std::streamsize(1000) );
-            std::ostringstream oss;
-            oss << "%." << written << "s";
-
-            PyGILState_STATE gilstate = PyGILState_Ensure();
-            PySys_WriteStderr(oss.str().c_str(), s);
-            PyGILState_Release(gilstate);
-
-            return written;
-            }
-    };
-
-#ifdef ENABLE_MPI
-//! Class that supports writing to a shared log file using MPI-IO
-class mpi_io
-    {
-    public:
-        typedef boost::iostreams::sink_tag category;  //!< Define this iostream as a sink
-        typedef char         char_type;               //!< This is a character-type sink
-
-        //! Constructor
-        mpi_io(const MPI_Comm& mpi_comm, const std::string& filename);
-        virtual ~mpi_io() { };
-
-        //! Close the log file
-        void close();
-
-        //! \return true if file is open
-        bool is_open()
-            {
-            return m_file_open;
-            }
-
-        //! Write a sequence of characters
-        std::streamsize write ( const char * s, std::streamsize n );
-
-    private:
-        MPI_Comm m_mpi_comm;        //!< The MPI communciator
-        MPI_File m_file;            //!< The file handle
-        bool m_file_open;           //!< Whether the file is open
-    };
-#endif
 
 //! Utility class for controlling message printing
 /*! Large code projects need something more inteligent than just cout's for warning and
@@ -462,6 +384,8 @@ class Messenger
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
 
+        boost::shared_ptr<std::streambuf> m_streambuf_out;   //!< streambuf (stdout)
+        boost::shared_ptr<std::streambuf> m_streambuf_err;   //!< streambuf (if err different from out)
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
         boost::shared_ptr<std::ostream>  m_file_out;     //!< File stream (stdout)
         boost::shared_ptr<std::ostream>  m_file_err;     //!< File stream (stderr)
