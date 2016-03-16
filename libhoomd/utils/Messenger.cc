@@ -60,10 +60,72 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #endif
 
+#include <sstream>
 #include <assert.h>
 using namespace std;
 
 using namespace boost::python;
+
+//! A streambuf sink that writes to sys.stdout in python
+class pysys_stdout_streambuf : public std::streambuf
+    {
+    public:
+        virtual int overflow( int ch )
+            {
+            char c = ch;
+            PyGILState_STATE gilstate = PyGILState_Ensure();
+            PySys_WriteStdout("%.1s", &c);
+            PyGILState_Release(gilstate);
+
+            return 0;
+            }
+    };
+
+//! A streambuf sink that writes to sys.stderr in python
+class pysys_stderr_streambuf : public std::streambuf
+    {
+    public:
+        virtual int overflow( int ch )
+            {
+            char c = ch;
+            PyGILState_STATE gilstate = PyGILState_Ensure();
+            PySys_WriteStderr("%.1s", &c);
+            PyGILState_Release(gilstate);
+
+            return 0;
+            }
+    };
+
+#ifdef ENABLE_MPI
+//! Class that supports writing to a shared log file using MPI-IO
+class mpi_io : public std::streambuf
+    {
+    public:
+        //! Constructor
+        mpi_io(const MPI_Comm& mpi_comm, const std::string& filename);
+        virtual ~mpi_io()
+            {
+            close();
+            };
+
+        //! Close the log file
+        void close();
+
+        //! \return true if file is open
+        bool is_open()
+            {
+            return m_file_open;
+            }
+
+        //! Write a character
+        virtual int overflow( int ch );
+
+    private:
+        MPI_Comm m_mpi_comm;        //!< The MPI communciator
+        MPI_File m_file;            //!< The file handle
+        bool m_file_open;           //!< Whether the file is open
+    };
+#endif
 
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
@@ -75,6 +137,7 @@ Messenger::Messenger()
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
+
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
     m_notice_level = 2;
     m_err_prefix     = "**ERROR**";
@@ -103,6 +166,8 @@ Messenger::Messenger(const Messenger& msg)
     m_err_stream = msg.m_err_stream;
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
+    m_streambuf_out = msg.m_streambuf_out;
+    m_streambuf_err = msg.m_streambuf_err;
     m_nullstream = msg.m_nullstream;
     m_file_out = msg.m_file_out;
     m_file_err = msg.m_file_err;
@@ -133,6 +198,8 @@ Messenger& Messenger::operator=(Messenger& msg)
     m_err_stream = msg.m_err_stream;
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
+    m_streambuf_out = msg.m_streambuf_out;
+    m_streambuf_err = msg.m_streambuf_err;
     m_nullstream = msg.m_nullstream;
     m_file_out = msg.m_file_out;
     m_file_err = msg.m_file_err;
@@ -336,12 +403,13 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openPython()
     {
-    boost::iostreams::stream<pysys_stdout_sink> *stdout_ios = new boost::iostreams::stream<pysys_stdout_sink>();
-    boost::iostreams::stream<pysys_stderr_sink> *stderr_ios = new boost::iostreams::stream<pysys_stderr_sink>();
+    m_streambuf_out = boost::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
+    m_streambuf_err = boost::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(stdout_ios);
-    m_file_err = boost::shared_ptr<std::ostream>(stderr_ios);
+    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
+    m_file_err = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_err.get()));
+
     m_err_stream = m_file_err.get();
     m_warning_stream = m_file_err.get();
     m_notice_stream = m_file_out.get();
@@ -357,10 +425,10 @@ void Messenger::openSharedFile()
     {
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
-    boost::iostreams::stream<mpi_io> *mpi_ios = new boost::iostreams::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
+    m_streambuf_out = boost::shared_ptr< std::streambuf >(new mpi_io((const MPI_Comm&) m_mpi_comm, oss.str()));
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(mpi_ios);
+    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
     m_file_err = boost::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
@@ -388,32 +456,26 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     {
     assert(m_mpi_comm);
 
-    unsigned int len = filename.size();
-    char cfilename[len+1];
-    filename.copy(cfilename,len);
-    cfilename[len] = '\0';
-
     // overwrite old file
-    MPI_File_delete(cfilename, MPI_INFO_NULL);
+    MPI_File_delete(filename.c_str(), MPI_INFO_NULL);
 
     // open the log file
-    int ret = MPI_File_open(m_mpi_comm, cfilename,  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
+    int ret = MPI_File_open(m_mpi_comm, filename.c_str(),  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
 
     if (ret == 0)
         m_file_open = true;
     }
 
-std::streamsize mpi_io::write(const char *s,  std::streamsize n)
+int mpi_io::overflow( int ch )
     {
     assert(m_file_open);
 
-    char out_data[n];
-    strncpy(out_data, s, n);
+    char out_data = char(ch);
 
     // write value to log file using MPI-IO
     MPI_Status status;
-    MPI_File_write_shared(m_file, out_data, n, MPI_CHAR, &status);
-    return n;
+    MPI_File_write_shared(m_file, &out_data, 1, MPI_CHAR, &status);
+    return 0;
     }
 
 void mpi_io::close()
