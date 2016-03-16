@@ -31,6 +31,7 @@
 * CMake minimum version is now 2.8
 * Convert particle type names to `str` to allow unicode type name input
 * `__version__` is now available in the top level package
+* `boost::iostreams` is no longer a build dependency
 
 *Removed*
 
