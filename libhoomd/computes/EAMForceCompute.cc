@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 
 #include <boost/python.hpp>
-#include <boost/dynamic_bitset.hpp>
+#include <vector>
 using namespace std;
 using namespace boost;
 using namespace boost::python;
@@ -130,7 +130,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         throw runtime_error("Error loading file");
         }
     // temporary array to count used types
-    boost::dynamic_bitset<> types_set(m_pdata->getNTypes());
+    std::vector<bool> types_set(m_pdata->getNTypes(), false);
     //Load names of types.
     for(i = 0; i < m_ntypes; i++)
         {
@@ -144,7 +144,13 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         }
 
     //Check that all types of atopms in xml file have description in potential file
-    if(m_pdata->getNTypes() != types_set.count())
+    int count_types_set = 0;
+    for (i = 0; i < m_pdata->getNTypes(); i++)
+        {
+        if (types_set[i])
+            count_types_set++;
+        }
+    if(m_pdata->getNTypes() != count_types_set)
         {
         m_exec_conf->msg->error() << "pair.eam: not all atom types are defined in EAM potential file!!!" << endl;
         throw runtime_error("Error loading file");
