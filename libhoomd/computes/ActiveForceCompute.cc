@@ -156,6 +156,9 @@ void ActiveForceCompute::setForces()
     assert(h_actMag.data != NULL);
     assert(h_orientation.data != NULL);
 
+    // zero forces so we don't leave any forces set for indices that are no longer part of our group
+    memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int tag = m_group->getMemberTag(i);

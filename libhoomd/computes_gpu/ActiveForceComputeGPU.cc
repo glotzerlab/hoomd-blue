@@ -88,6 +88,8 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
         }
 
+    unsigned int N = m_pdata->getNGlobal();
+    unsigned int group_size = m_group->getNumMembersGlobal();
     GPUArray<Scalar3> tmp_activeVec(N, m_exec_conf);
     GPUArray<Scalar> tmp_activeMag(N, m_exec_conf);
     GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);

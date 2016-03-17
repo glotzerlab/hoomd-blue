@@ -25,7 +25,7 @@ http://codeblue.umich.edu/hoomd-blue/citations.html
 
 * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
 http://codeblue.umich.edu/hoomd-blue/
- 
+
 * Apart from the above required attributions, neither the name of the copyright
 holder nor the names of HOOMD-blue's contributors may be used to endorse or
 promote products derived from this software without specific prior written
@@ -59,8 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
 */
 
-extern "C" __global__
-
 //! Kernel for setting active force vectors on the GPU
 /*! \param group_size number of particles
     \param d_rtag convert global tag to global index
@@ -88,18 +86,18 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar rz,
                                                     bool orientationLink,
                                                     const unsigned int N)
-{
+    {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
         return;
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
-    
+
     Scalar3 f;
     // rotate force according to particle orientation only if orientation is linked to active force vector
     if (orientationLink == true)
-    {
+        {
         vec3<Scalar> fi;
         f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
                         d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
@@ -108,15 +106,16 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
         d_force[idx].x = fi.x;
         d_force[idx].y = fi.y;
         d_force[idx].z = fi.z;
-    } else // no orientation link
-    {
+        }
+    else // no orientation link
+        {
         f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
                         d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
         d_force[idx].x = f.x;
         d_force[idx].y = f.y;
         d_force[idx].z = f.z;
+        }
     }
-}
 
 //! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
 /*! \param group_size number of particles
@@ -138,17 +137,17 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
                                                    Scalar rx,
                                                    Scalar ry,
                                                    Scalar rz)
-{
+    {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
         return;
-    
+
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
-    
+
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
-                
+
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
     vec3<Scalar> norm;
     norm = vec3<Scalar>(norm_scalar3);
@@ -158,14 +157,14 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     d_actVec[tag].y -= norm.y * dot_prod;
     d_actVec[tag].z -= norm.z * dot_prod;
 
-    Scalar new_norm = sqrt(d_actVec[tag].x * d_actVec[tag].x
-                        + d_actVec[tag].y * d_actVec[tag].y
-                        + d_actVec[tag].z * d_actVec[tag].z);
+    Scalar new_norm = slow::sqrt(d_actVec[tag].x * d_actVec[tag].x
+                                 + d_actVec[tag].y * d_actVec[tag].y
+                                 + d_actVec[tag].z * d_actVec[tag].z);
 
     d_actVec[tag].x /= new_norm;
     d_actVec[tag].y /= new_norm;
     d_actVec[tag].z /= new_norm;
-}
+    }
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU
 /*! \param group_size number of particles
@@ -194,16 +193,16 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    const Scalar rotationDiff,
                                                    const unsigned int timestep,
                                                    const int seed)
-{
+    {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
         return;
-    
+
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
 
     if (is2D) // 2D
-    {
+        {
         SaruGPU saru(idx, timestep, seed);
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
@@ -212,22 +211,22 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         theta += delta_theta;
         d_actVec[tag].x = cos(theta);
         d_actVec[tag].y = sin(theta);
-
-    } else // 3D: Following Stenhammar, Soft Matter, 2014
-    {
-        if (rx == 0) // if no constraint
+        }
+    else // 3D: Following Stenhammar, Soft Matter, 2014
         {
+        if (rx == 0) // if no constraint
+            {
             SaruGPU saru(idx, timestep, seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
             Scalar phi = acos(2.0 * v - 1.0);
-            
+
             vec3<Scalar> rand_vec;
             rand_vec.x = sin(phi) * cos(theta);
             rand_vec.y = sin(phi) * sin(theta);
             rand_vec.z = cos(phi);
-            
+
             vec3<Scalar> aux_vec;
             aux_vec.x = d_actVec[tag].y * rand_vec.z - d_actVec[tag].z * rand_vec.y;
             aux_vec.y = d_actVec[tag].z * rand_vec.x - d_actVec[tag].x * rand_vec.z;
@@ -236,24 +235,23 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             aux_vec.x /= aux_vec_mag;
             aux_vec.y /= aux_vec_mag;
             aux_vec.z /= aux_vec_mag;
-            
+
             vec3<Scalar> current_vec;
             current_vec.x = d_actVec[tag].x;
             current_vec.y = d_actVec[tag].y;
             current_vec.z = d_actVec[tag].z;
-            
+
             Scalar delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
             d_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             d_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
             d_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
-            
-
-        } else // if constraint
-        {
+            }
+        else // if constraint
+            {
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
             SaruGPU saru(idx, timestep, seed);
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
-            
+
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
             vec3<Scalar> norm;
             norm = vec3<Scalar> (norm_scalar3);
@@ -270,9 +268,9 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             d_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
             d_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
             d_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+            }
         }
     }
-}
 
 
 cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
@@ -289,7 +287,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            bool orientationLink,
                                            const unsigned int N,
                                            unsigned int block_size)
-{
+    {
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -310,7 +308,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     orientationLink,
                                                                     N);
     return cudaSuccess;
-}
+    }
 
 cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_rtag,
@@ -323,7 +321,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    Scalar ry,
                                                    Scalar rz,
                                                    unsigned int block_size)
-{
+    {
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -339,7 +337,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                                     ry,
                                                                     rz);
     return cudaSuccess;
-}
+    }
 
 cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
                                                        unsigned int *d_rtag,
@@ -356,7 +354,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        const unsigned int timestep,
                                                        const int seed,
                                                        unsigned int block_size)
-{
+    {
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -376,7 +374,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                                     timestep,
                                                                     seed);
     return cudaSuccess;
-}
+    }
 
 
 
