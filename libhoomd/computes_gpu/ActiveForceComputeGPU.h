@@ -51,7 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ActiveForceCompute.h"
 
-
 /*! \file ActiveForceComputeGPU.h
     \brief Declares a class for computing active forces on the GPU
 */
@@ -67,8 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup computes
 */
 class ActiveForceComputeGPU : public ActiveForceCompute
-{
-    
+    {
     public:
         //! Constructs the compute
         ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
@@ -82,10 +80,7 @@ class ActiveForceComputeGPU : public ActiveForceCompute
 
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-        
+
         //! Set forces for particles
         virtual void setForces();
 
@@ -94,11 +89,10 @@ class ActiveForceComputeGPU : public ActiveForceCompute
 
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();
-        
+
         GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
-};
+    };
 
 //! Exports the ActiveForceComputeGPU Class to python
 void export_ActiveForceComputeGPU();
-// debug flag
 #endif
