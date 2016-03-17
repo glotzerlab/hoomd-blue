@@ -187,10 +187,32 @@ class pair_group_tests (unittest.TestCase):
         tags = [(x.tag) for x in diffBall]
         self.assertEqual(tags, [0, 3, 4, 6, 7])
 
+    def test_cuboid_update(self):
+        g = group.cuboid(name='test', xmin=0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [1,2,5])
+
+        # move one particle out and another in
+        self.s.particles[5].position = (-2,0,0);
+        self.s.particles[9].position = (1,-2,0);
+        g.force_update();
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [1,2,9])
+
+    def test_type_update(self):
+        B = group.type(type='B')
+        tags = [(x.tag) for x in B]
+        self.assertEqual(tags, [1, 2, 5, 8, 9, 10])
+
+        self.s.particles[5].type = 'A';
+        self.s.particles[6].type = 'B';
+        B.force_update();
+        tags = [(x.tag) for x in B]
+        self.assertEqual(tags, [1, 2, 6, 8, 9, 10])
+
     def tearDown(self):
         del self.s
         context.initialize();
-
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

@@ -26,6 +26,9 @@
     * The GSD file format is capable of storing all particle and topology data fields in hoomd,
       either static at frame 0, or varying over the course of the trajectory. The number of
       particles, types, bonds, etc. can also vary over the trajectory.
+* Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
+  to the original selection criteria. For example, this can be used to periodically update a cuboid
+  group to include particles only in the specified region.
 
 *Changes that require job script modifications*
 
