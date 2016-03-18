@@ -25,8 +25,8 @@ class force_active_tests (unittest.TestCase):
         activity = [ tuple(((np.random.rand(3) - 0.5) * 2.0)) for i in range(100)] # random forces
         force.active(seed=2, f_lst=activity, rotation_diff=1.0, orientation_link=False)
         force.active(seed=2, f_lst=activity, rotation_diff=0.0, orientation_link=True)
-        ellipsoid = update.constraint_ellipsoid(P=(0,0,0), rx=3, ry=3, rz=3)
-        force.active(seed=2, f_lst=activity, constraint=ellipsoid)
+        # ellipsoid = update.constraint_ellipsoid(P=(0,0,0), rx=3, ry=3, rz=3)
+        # force.active(seed=2, f_lst=activity, constraint=ellipsoid)
 
     # test the initialization checks
     def test_init_checks(self):

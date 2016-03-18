@@ -195,6 +195,10 @@ James Proctor, University of Michigan
  - Refactor external potential framework
  - Wall potentials
 
+Isass Bruss, Chengyu Dai, University of Michigan
+ - force.active
+ - update.constraint_ellipsoid
+
 <hr>
 <h1>Source code</h1>
 <hr>

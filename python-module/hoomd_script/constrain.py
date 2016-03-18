@@ -54,7 +54,7 @@
 #
 # Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
 # or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
-# ellipsoid with constrain.ellipsoid.
+# sphere with constrain.sphere.
 #
 # As with other force commands in hoomd_script, multiple constrain commands can be issued to specify multiple
 # constraints, which are additively applied. Note, however, that not all constraints specified in this manner will

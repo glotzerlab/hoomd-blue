@@ -101,7 +101,7 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
 
     // apply the constraint
     d_pos[idx] = make_scalar4(C.x, C.y, C.z, Scalar(0.0));
-}
+    }
 
 
 /*! \param d_group_members List of members in the group

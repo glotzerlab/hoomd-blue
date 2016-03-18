@@ -79,19 +79,19 @@ ConstraintEllipsoidGPU::ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinitio
                                    Scalar ry,
                                    Scalar rz)
         : ConstraintEllipsoid(sysdef, group, P, rx, ry, rz), m_block_size(256)
-{
-    if (!m_exec_conf->isCUDAEnabled())
     {
+    if (!m_exec_conf->isCUDAEnabled())
+        {
         m_exec_conf->msg->error() << "Creating a ConstraintEllipsoidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ConstraintEllipsoidGPU");
+        }
     }
-}
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
 void ConstraintEllipsoidGPU::update(unsigned int timestep)
-{
+    {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
@@ -121,11 +121,11 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(m_exec_conf);    
-}
+        m_prof->pop(m_exec_conf);
+    }
 
 void export_ConstraintEllipsoidGPU()
-{
+    {
     class_< ConstraintEllipsoidGPU, boost::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
     ("ConstraintEllipsoidGPU", init< boost::shared_ptr<SystemDefinition>,
                                                  boost::shared_ptr<ParticleGroup>,
@@ -134,4 +134,4 @@ void export_ConstraintEllipsoidGPU()
                                                  Scalar,
                                                  Scalar >())
     ;
-}
+    }

@@ -97,7 +97,7 @@ class EvaluatorConstraintEllipsoid
         DEVICE Scalar3 evalClosest(const Scalar3& U)
         {
             if (rx==ry && ry==rz) // if ellipsoid is actually a sphere, use easier method
-            {
+                {
                 // compute the vector pointing from P to V
                 Scalar3 V;
                 V.x = U.x - P.x;
@@ -105,7 +105,7 @@ class EvaluatorConstraintEllipsoid
                 V.z = U.z - P.z;
 
                 // compute 1/magnitude of V
-                Scalar magVinv = fast::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
+                Scalar magVinv = slow::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
 
                 // compute Vhat, the unit vector pointing in the direction of V
                 Scalar3 Vhat;
@@ -120,10 +120,9 @@ class EvaluatorConstraintEllipsoid
                 C.z = P.z + Vhat.z * rx;
 
                 return C;
-            }
-
+                }
             else // else use iterative method
-            {
+                {
                 Scalar xsign, ysign, zsign; // sign of point's position
                 Scalar y0, y1, y2;
                 if (U.x < 0) { xsign = -1; } else { xsign = 1; }
@@ -138,7 +137,7 @@ class EvaluatorConstraintEllipsoid
                 Scalar z2 = y2 / rz;
                 Scalar g = z0*z0 + z1*z1 + z2*z2 - 1;
                 if (g != 0) // point does not lay on ellipsoid
-                {
+                    {
                     Scalar r0 = (rx/rz) * (rx/rz);
                     Scalar r1 = (ry/rz) * (ry/rz);
 
@@ -147,12 +146,12 @@ class EvaluatorConstraintEllipsoid
                     Scalar n1 = r1 * z1;
                     Scalar s0 = z1 - 1;
                     Scalar s1 = 0;
-                    if (g > 0) { s1 = sqrt(n0*n0 + n1*n1 + z2*z2) - 1; }
+                    if (g > 0) { s1 = slow::sqrt(n0*n0 + n1*n1 + z2*z2) - 1; }
                     Scalar sbar;
                     Scalar ratio0, ratio1, ratio2;
                     int i, imax = 10000; // When tested, on average takes ~30 steps to complete, and never more than 150.
                     for (i = 0; i < imax; i++)
-                    {
+                        {
                         sbar = (s0 + s1) / 2.0;
                         if (sbar == s0 || sbar == s1) { break; }
                         ratio0 = n0 / (sbar + r0);
@@ -160,7 +159,7 @@ class EvaluatorConstraintEllipsoid
                         ratio2 = z2 / (sbar + 1);
                         g = ratio0*ratio0 + ratio1*ratio1 + ratio2*ratio2 - 1;
                         if (g > 0) { s0 = sbar; } else if (g < 0) { s1 = sbar; } else { break; }
-                    }
+                        }
                     // if (i == imax)
                     // {
                     //     throw runtime_error("constrain.ellipsoid: Not enough iteration steps to find closest point on ellipsoid.\n");
@@ -173,33 +172,33 @@ class EvaluatorConstraintEllipsoid
                     C.z = zsign * y2 / (sbar + 1);
 
                     return C;
-                }
+                    }
                 else // trivial case of point laying on ellipsoid
-                {
-                    return U; 
+                    {
+                    return U;
+                    }
                 }
             }
-        }
 
         //! Evaluate the normal unit vector for point on the ellipsoid.
         /*! \param U point on ellipsoid
             \return normal unit vector for  point on the ellipsoid
         */
         DEVICE Scalar3 evalNormal(const Scalar3& U)
-        {
+            {
             Scalar3 N;
             N.x = U.x / (rx*rx);
             N.y = U.y / (ry*ry);
             N.z = U.z / (rz*rz);
 
             Scalar nNorm;
-            nNorm = sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
+            nNorm = slow::sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
             N.x /= nNorm;
             N.y /= nNorm;
             N.z /= nNorm;
 
             return N;
-        }
+            }
 
     protected:
         Scalar3 P;      //!< Position of the ellipsoid
