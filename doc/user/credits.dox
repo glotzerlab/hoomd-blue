@@ -131,6 +131,7 @@ Jens Glaser, University of Michigan
  - metadata output
  - anisotropic particle integrators
  - Gay-Berne pair potential
+ - pair.reaction_field
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials

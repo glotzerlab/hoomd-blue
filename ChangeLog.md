@@ -10,6 +10,7 @@
 * `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
 * `update.constrain_ellipsoid` constrains particles to an ellipsoid
 * `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
+* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
 
 *Bug fixes*
 
