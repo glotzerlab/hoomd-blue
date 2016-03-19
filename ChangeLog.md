@@ -30,6 +30,9 @@
 * `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
 * `update.constrain_ellipsoid` constrains particles to an ellipsoid
 * `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
+* Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
+  to the original selection criteria. For example, this can be used to periodically update a cuboid
+  group to include particles only in the specified region.
 
 *Changes that require job script modifications*
 

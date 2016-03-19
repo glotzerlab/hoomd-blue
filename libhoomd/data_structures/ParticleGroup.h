@@ -61,7 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <boost/dynamic_bitset.hpp>
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__

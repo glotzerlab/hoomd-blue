@@ -159,6 +159,17 @@ class group(meta._metadata):
         meta._metadata.__init__(self)
         self.metadata_fields = ['name']
 
+    ## Force an update of the group
+    #
+    # Re-evaluate all particles against the original group selection criterion and build a new
+    # member list based on the current state of the system. For example, call force_update()
+    # set set a cuboid group's membership to particles that are currently in the defined region.
+    #
+    # Groups made by a combination (union, intersection, difference) of other groups will not
+    # update their membership, they are static.
+    def force_update(self):
+        self.cpp_group.updateMemberTags(True);
+
     ## \internal
     # \brief Get a particle_proxy reference to the i'th particle in the group
     # \param i Index of the particle in the group to get
@@ -259,13 +270,20 @@ def all():
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
-# \note Membership in group.cuboid() is defined at time of group creation. Once created, the group
-# is not updated when particles are added or removed.
+# \note Membership in group.cuboid() is defined at time of group creation. Once created,
+# any particles added to the system will not be added to the group. Any particles that move
+# into the cuboid region will not be added, and any that move out will not be removed.
+#
+# Between runs, you can force a group to update its membership with the particles currently
+# in the orignally defined region using group.force_update().
 #
 # \b Examples:
 # \code
 # slab = group.cuboid(name="slab", ymin=-3, ymax=3)
 # cube = group.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+# run(100)
+# # Remove particles that left the region and add particles that entered the region.
+# cube.force_update()
 # \endcode
 def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
     util.print_status_line();
@@ -481,6 +499,13 @@ def tag_list(name, tags):
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
+# \note Membership in group.type() is defined at time of group creation. Once created,
+# any particles added to the system will be added to the group if update is set to True.
+# However, if you change a particle type it will not be added to or removed from this group.
+#
+# Between runs, you can force a group to update its membership with the particles currently
+# in the originally  specified type using group.force_update().
+#
 # \b Examples:
 # \code
 # groupA = group.type(name='a-particles', type='A')
@@ -575,7 +600,8 @@ def charged(name='charged'):
 # The set difference of *a* and *b* is defined to be the set of particles that are in *a* and not in *b*.
 # This can be useful for inverting the sense of a group (see below).
 #
-# A new group called *name* is created.
+# A new group called *name* is created. It is static and will not update if particles are added to
+# or removed from the system.
 #
 # \b Examples:
 # \code
@@ -598,6 +624,9 @@ def difference(name, a, b):
 # A new group is created that contains all particles of *a* that are also in *b*, and is given the name
 # *name*.
 #
+# The group is static and will not update if particles are added to
+# or removed from the system.
+#
 # \b Examples:
 # \code
 # groupA = group.type(name='groupA', type='A')
@@ -618,6 +647,9 @@ def intersection(name, a, b):
 #
 # A new group is created that contains all particles present in either group *a* or *b*, and is given the
 # name *name*.
+#
+# The group is static and will not update if particles are added to
+# or removed from the system.
 #
 # \b Examples:
 # \code

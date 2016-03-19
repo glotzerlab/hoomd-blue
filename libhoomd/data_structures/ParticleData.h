@@ -75,7 +75,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals2.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
-#include <boost/dynamic_bitset.hpp>
 #include <boost/python.hpp>
 
 #ifdef ENABLE_MPI
