@@ -138,8 +138,7 @@ void ActiveForceComputeGPU::setForces()
     assert(d_orientation.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
-
-    bool orientationLink = (m_orientationLink == true && m_sysdef->getRigidData()->getNumBodies() > 0);
+    bool orientationLink = (m_orientationLink == true);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 

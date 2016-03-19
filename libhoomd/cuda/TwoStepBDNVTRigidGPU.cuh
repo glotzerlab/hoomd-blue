@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "TwoStepLangevinGPU.cuh"
+#include "RigidData.cuh"
 
 #ifndef __TWO_STEP_BDNVT_RIGID_GPU_CUH__
 #define __TWO_STEP_BDNVT_RIGID_GPU_CUH__
@@ -71,5 +72,13 @@ cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
                             Scalar deltaT,
                             Scalar D);
 
+cudaError_t gpu_bdnvt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   const BoxDim& box,
+                                   Scalar deltaT, 
+                                   Scalar gamma_r,
+                                   Scalar D);
 
 #endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__

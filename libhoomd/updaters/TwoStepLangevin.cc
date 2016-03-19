@@ -26,7 +26,7 @@ http://codeblue.umich.edu/hoomd-blue/citations.html
 * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
 http://codeblue.umich.edu/hoomd-blue/
 
-* Apart from the above required attributions, neither the name of the copyright
+* Apart from the above required  attributions, neither the name of the copyright
 holder nor the names of HOOMD-blue's contributors may be used to endorse or
 promote products derived from this software without specific prior written
 permission.
@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepLangevin.h"
 #include "saruprng.h"
+#include "VectorMath.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -70,7 +71,10 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
+    \param noiseless_t If set true, there will be no translational noise (random force)
+    \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param suffix Suffix to attach to the end of log quantity names
+    
 */
 TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
@@ -78,8 +82,11 @@ TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
+                           bool noiseless_t,
+                           bool noiseless_r,
                            const std::string& suffix)
-    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
+    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
+      m_tally(false), m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
 
@@ -134,6 +141,10 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    
     const BoxDim& box = m_pdata->getBox();
 
     // perform the first half step of velocity verlet
@@ -156,6 +167,112 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
+        }
+        
+    if (m_aniso)
+        {
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+            // using Trotter factorization of rotation Liouvillian
+            p += m_deltaT*q*t;
+
+            quat<Scalar> p1, p2, p3; // permutated quaternions
+            quat<Scalar> q1, q2, q3;
+            Scalar phi1, cphi1, sphi1;
+            Scalar phi2, cphi2, sphi2;
+            Scalar phi3, cphi3, sphi3;
+
+            if (!z_zero)
+                {
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            if (!y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+
+            if (!x_zero)
+                {
+                p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
+                q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+                phi1 = Scalar(1./4.)/I.x*dot(p,q1);
+                cphi1 = slow::cos(m_deltaT*phi1);
+                sphi1 = slow::sin(m_deltaT*phi1);
+
+                p=cphi1*p+sphi1*p1;
+                q=cphi1*q+sphi1*q1;
+                }
+
+            if (! y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+
+            if (! z_zero)
+                {
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            // renormalize (improves stability)
+            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+
+            h_orientation.data[j] = quat_to_scalar4(q);
+            h_angmom.data[j] = quat_to_scalar4(p);
+            }
         }
 
     // done profiling
@@ -189,6 +306,12 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
@@ -209,7 +332,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         // Generate three random numbers
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz =  saru.s<Scalar>(-1,1);
+        Scalar rz = saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -222,6 +345,8 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
         // compute the bd force
         Scalar coeff = fast::sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
+        if (m_noiseless_t) 
+            coeff = Scalar(0.0);
         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
@@ -239,10 +364,101 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
-
+        
         // tally the energy transfer from the bd thermal reservor to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
+
+        // rotational updates
+        if (m_aniso)
+            {
+            unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
+            Scalar gamma_r = h_gamma_r.data[type_r];
+            // get body frame ang_mom
+            quat<Scalar> p(h_angmom.data[j]);
+            quat<Scalar> q(h_orientation.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // s is the pure imaginary quaternion with im. part equal to true angular velocity
+            vec3<Scalar> s;
+            s = (Scalar(1./2.) * conj(q) * p).v;
+            
+            if (gamma_r > 0)
+                {
+                // first calculate in the body frame random and damping torque imposed by the dynamics
+                vec3<Scalar> bf_torque;
+
+                // original Gaussian random torque
+                // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
+                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+                if (m_noiseless_r) sigma_r = Scalar(0.0);
+                
+                Scalar rand_x = gaussian_rng(saru, sigma_r);
+                Scalar rand_y = gaussian_rng(saru, sigma_r);
+                Scalar rand_z = gaussian_rng(saru, sigma_r);
+                
+                // check for degenerate moment of inertia
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+                          
+                bf_torque.x = rand_x * sigma_r - gamma_r * (s.x / I.x);
+                bf_torque.y = rand_y * sigma_r - gamma_r * (s.y / I.y);
+                bf_torque.z = rand_z * sigma_r - gamma_r * (s.z / I.z);
+                
+                // ignore torque component along an axis for which the moment of inertia zero
+                if (x_zero) bf_torque.x = 0;
+                if (y_zero) bf_torque.y = 0;
+                if (z_zero) bf_torque.z = 0;
+                
+                // change to lab frame and update the net torque
+                bf_torque = rotate(q, bf_torque);
+                h_net_torque.data[j].x += bf_torque.x;
+                h_net_torque.data[j].y += bf_torque.y;
+                h_net_torque.data[j].z += bf_torque.z;
+                
+                if (D < 3) h_net_torque.data[j].x = 0;
+                if (D < 3) h_net_torque.data[j].y = 0;
+                }
+            }
         }
+        
+        
+    // then, update the angular velocity
+    if (m_aniso)
+        {
+        // angular degrees of freedom
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // advance p(t+deltaT/2)->p(t+deltaT)
+            p += m_deltaT*q*t;
+            h_angmom.data[j] = quat_to_scalar4(p);
+            }
+        }
+    
 
     // update energy reservoir
     if (m_tally)
@@ -271,8 +487,9 @@ void export_TwoStepLangevin()
                             unsigned int,
                             bool,
                             Scalar,
-                            const std::string&
-                            >())
+                            bool,
+                            bool,
+                            const std::string&>())
         .def("setTally", &TwoStepLangevin::setTally)
         ;
     }

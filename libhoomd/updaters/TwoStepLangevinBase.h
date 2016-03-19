@@ -91,6 +91,8 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
 
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
+        
+        void setGamma_r(unsigned int typ, Scalar gamma_r);
 
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
@@ -99,7 +101,8 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
         Scalar m_lambda;                  //!< Scale factor to apply to diameter to get gamma
         bool m_warned_aniso;              //!< true if we've already warned that we don't support aniso
 
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
+        GPUVector<Scalar> m_gamma;        //!< List of per type gammas to use
+        GPUVector<Scalar> m_gamma_r;      //!< List of per type gamma_r (for 2D-only rotational noise) to use
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
