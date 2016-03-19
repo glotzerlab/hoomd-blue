@@ -1056,7 +1056,7 @@ class langevin(_integration_method):
                                    seed,
                                    use_lambda,
                                    float(dscale),
-                                   noiseless_t, 
+                                   noiseless_t,
                                    noiseless_r,
                                    suffix);
 
@@ -1127,7 +1127,7 @@ class langevin(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-                
+
     ## Set gamma_r for a particle type
     # \param a Particle type name
     # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
@@ -1141,12 +1141,12 @@ class langevin(_integration_method):
     # \code
     # bd.set_gamma_r('A', gamma_r=2.0)
     # \endcode
-    # 
+    #
     def set_gamma_r(self, a, gamma_r):
-        
+
         if (gamma_r < 0):
             raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-        
+
         util.print_status_line();
         self.check_initialization();
 
@@ -1158,7 +1158,7 @@ class langevin(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);   
+                self.cpp_method.setGamma_r(i,gamma_r);
 
 ## Brownian dynamics
 #
@@ -1242,7 +1242,7 @@ class brownian(_integration_method):
                                    seed,
                                    use_lambda,
                                    float(dscale),
-                                   noiseless_t, 
+                                   noiseless_t,
                                    noiseless_r);
 
         self.cpp_method.validateGroup()
@@ -1303,8 +1303,8 @@ class brownian(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-                
-                
+
+
     ## Set gamma_r for a particle type
     # \param a Particle type name
     # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
@@ -1323,10 +1323,10 @@ class brownian(_integration_method):
     # \endcode
     #
     def set_gamma_r(self, a, gamma_r):
-        
+
         if (gamma_r < 0):
             raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
-        
+
         util.print_status_line();
         self.check_initialization();
 
@@ -1338,8 +1338,8 @@ class brownian(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);                
-                
+                self.cpp_method.setGamma_r(i,gamma_r);
+
 
 
 
@@ -1598,7 +1598,7 @@ class bdnvt_rigid(_integration_method):
         self.metadata_fields = ['group','T','seed']
         self.noiseless_t = noiseless_t
         self.noiseless_r = noiseless_r
-        
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     #
@@ -1657,12 +1657,12 @@ class bdnvt_rigid(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-                
-                
+
+
     def set_gamma_r(self, gamma_r):
         util.print_status_line();
         self.check_initialization();
-        
+
         self.cpp_method.setGamma_r(gamma_r);
 
 

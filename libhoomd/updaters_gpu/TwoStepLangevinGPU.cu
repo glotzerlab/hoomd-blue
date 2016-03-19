@@ -165,9 +165,9 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
         Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        if (noiseless_t) 
+        if (noiseless_t)
             coeff = Scalar(0.0);
-        
+
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
 
@@ -203,7 +203,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
-        
+
         }
 
     if (tally)
@@ -272,10 +272,10 @@ extern "C" __global__
     if (threadIdx.x == 0)
         *d_sum = sum;
     }
-    
-    
+
+
 //! NO_SQUISH angular part of the second half step
-/*! 
+/*!
     \param d_pos array of particle positions (4th dimension is particle type)
     \param d_orientation array of particle orientations
     \param d_angmom array of particle conjugate quaternions
@@ -292,7 +292,7 @@ extern "C" __global__
     \param deltaT integration time step size
     \param D dimensionality of the system
 */
-    
+
 __global__ void gpu_langevin_angular_step_two_kernel(
                              const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
@@ -310,17 +310,17 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              bool noiseless_r,
                              Scalar deltaT,
                              unsigned int D,
-                             Scalar scale 
+                             Scalar scale
                             )
-    {   
+    {
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_types)
             s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
         }
-    __syncthreads(); 
-    
+    __syncthreads();
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -332,17 +332,17 @@ __global__ void gpu_langevin_angular_step_two_kernel(
         // torque update with rotational drag and noise
         unsigned int type_r = __scalar_as_int(d_pos[idx].w);
         Scalar gamma_r = s_gammas_r[type_r];
-        
+
         if (gamma_r > 0)
             {
             quat<Scalar> q(d_orientation[idx]);
             quat<Scalar> p(d_angmom[idx]);
             vec3<Scalar> t(d_net_torque[idx]);
-            vec3<Scalar> I(d_inertia[idx]);  
-            
+            vec3<Scalar> I(d_inertia[idx]);
+
             vec3<Scalar> s;
             s = (Scalar(1./2.) * conj(q) * p).v;
-                
+
             // first calculate in the body frame random and damping torque imposed by the dynamics
             vec3<Scalar> bf_torque;
 
@@ -355,31 +355,31 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             Scalar rand_x = gaussian_rng(saru, sigma_r);
             Scalar rand_y = gaussian_rng(saru, sigma_r);
             Scalar rand_z = gaussian_rng(saru, sigma_r);
-            
+
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
             x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
-                      
+
             bf_torque.x = rand_x - gamma_r * (s.x / I.x);
             bf_torque.y = rand_y - gamma_r * (s.y / I.y);
             bf_torque.z = rand_z - gamma_r * (s.z / I.z);
-            
+
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero) bf_torque.x = 0;
             if (y_zero) bf_torque.y = 0;
             if (z_zero) bf_torque.z = 0;
-            
+
             // change to lab frame and update the net torque
             bf_torque = rotate(q, bf_torque);
             d_net_torque[idx].x += bf_torque.x;
             d_net_torque[idx].y += bf_torque.y;
             d_net_torque[idx].z += bf_torque.z;
-            
+
             // with the wishful mind that compiler may use conditional move to avoid branching
             if (D < 3) d_net_torque[idx].x = 0;
             if (D < 3) d_net_torque[idx].y = 0;
             }
-        
+
         //////////////////////////////
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
         quat<Scalar> q(d_orientation[idx]);
@@ -421,7 +421,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
     \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()
     \param deltaT timestep
     \param D dimensionality of the system
-    
+
     This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
 
 */
@@ -449,20 +449,20 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                                                                 (unsigned int)(langevin_args.block_size*sizeof(Scalar))
                                                               ) >>>
                                        (d_pos,
-                                        d_orientation, 
-                                        d_angmom, 
-                                        d_inertia, 
-                                        d_net_torque, 
+                                        d_orientation,
+                                        d_angmom,
+                                        d_inertia,
+                                        d_net_torque,
                                         d_group_members,
                                         d_gamma_r,
-                                        d_tag, 
+                                        d_tag,
                                         langevin_args.n_types,
-                                        group_size, 
+                                        group_size,
                                         langevin_args.timestep,
                                         langevin_args.seed,
                                         langevin_args.T,
                                         langevin_args.noiseless_r,
-                                        deltaT, 
+                                        deltaT,
                                         D,
                                         scale
                                         );
@@ -505,7 +505,7 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_langevin_step_two_kernel<<< grid, 
+    gpu_langevin_step_two_kernel<<< grid,
                                  threads,
                                  max((unsigned int)(sizeof(Scalar)*langevin_args.n_types),
                                      (unsigned int)(langevin_args.block_size*sizeof(Scalar)))
@@ -543,5 +543,5 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     return cudaSuccess;
     }
-    
+
 
