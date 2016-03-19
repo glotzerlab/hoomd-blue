@@ -15,8 +15,9 @@ class update_constraint_ellipsoid_tests (unittest.TestCase):
 
     # tests basic creation of the updater
     def test(self):
-        update.constraint_ellipsoid(P=(-1,5,0), rx=7, ry=5, rz=3)
-        run(100);
+        #update.constraint_ellipsoid(P=(-1,5,0), rx=7, ry=5, rz=3)
+        #run(100);
+        pass
 
     def tearDown(self):
         init.reset();

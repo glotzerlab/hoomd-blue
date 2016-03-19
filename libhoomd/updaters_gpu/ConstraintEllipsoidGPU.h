@@ -78,7 +78,7 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
 
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
     };

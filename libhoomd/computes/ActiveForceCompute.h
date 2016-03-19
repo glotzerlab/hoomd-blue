@@ -74,8 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup computes
 */
 class ActiveForceCompute : public ForceCompute
-{
-    
+    {
     public:
         //! Constructs the compute
         ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
@@ -93,30 +92,30 @@ class ActiveForceCompute : public ForceCompute
     protected:
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
-        
+
         //! Set forces for particles
-        void setForces(unsigned int i);
+        virtual void setForces();
 
         //! Orientational diffusion for spherical particles
-        void rotationalDiffusion(unsigned int timestep, unsigned int i);
+        virtual void rotationalDiffusion(unsigned int timestep);
 
         //! Set constraints if particles confined to a surface
-        void setConstraint(unsigned int i);
-        
+        virtual void setConstraint();
+
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
         Scalar m_rotationDiff;
+        Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid
         Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
-        int m_seed;
+        int m_seed;           //!< Random number seed
         GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
         GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
         unsigned int last_computed;
-};
+    };
 
 //! Exports the ActiveForceComputeClass to python
 void export_ActiveForceCompute();
-// debug flag
 #endif
