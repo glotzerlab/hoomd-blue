@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ActiveForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
@@ -127,6 +128,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ConstraintEllipsoid.h"
 #include "MolecularForceCompute.h"
 #include "ForceDistanceConstraint.h"
 #include "PotentialPairDPDThermo.h"
@@ -174,11 +176,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ConstraintEllipsoidGPU.h"
 #include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ActiveForceComputeGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
@@ -600,6 +604,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
+    export_ActiveForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
@@ -696,6 +701,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceDistanceConstraintGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
+    export_ActiveForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
@@ -745,6 +751,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNPTRigid();
     export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
+    export_ConstraintEllipsoid();
     export_FIREEnergyMinimizer();
     export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
@@ -764,6 +771,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
     export_FIREEnergyMinimizerRigidGPU();
+    export_ConstraintEllipsoidGPU();
 #endif
 
 #ifdef ENABLE_MPI

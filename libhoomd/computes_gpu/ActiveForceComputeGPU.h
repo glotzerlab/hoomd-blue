@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,53 +49,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepLangevin.h"
+#include "ActiveForceCompute.h"
 
-#ifndef __TWO_STEP_LANGEVIN_GPU_H__
-#define __TWO_STEP_LANGEVIN_GPU_H__
-
-/*! \file TwoStepLangevinGPU.h
-    \brief Declares the TwoStepLangevinGPU class
+/*! \file ActiveForceComputeGPU.h
+    \brief Declares a class for computing active forces on the GPU
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-//! Implements Langevin dynamics on the GPU
-/*! GPU accelerated version of TwoStepLangevin
+#ifndef __ACTIVEFORCECOMPUTE_GPU_H__
+#define __ACTIVEFORCECOMPUTE_GPU_H__
 
-    \ingroup updaters
+//! Adds an active force to a number of particles on the GPU
+/*! \ingroup computes
 */
-class TwoStepLangevinGPU : public TwoStepLangevin
+class ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r,
-                           const std::string& suffix = std::string(""));
-        virtual ~TwoStepLangevinGPU() {};
-
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        //! Constructs the compute
+        ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                             boost::shared_ptr<ParticleGroup> group,
+                             int seed, boost::python::list f_lst,
+                             bool orientation_link, Scalar rotation_diff,
+                             Scalar3 P,
+                             Scalar rx,
+                             Scalar ry,
+                             Scalar rz);
 
     protected:
-        unsigned int m_block_size;               //!< block size for partial sum memory
-        unsigned int m_num_blocks;               //!< number of memory blocks reserved for partial sum memory
-        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
+        unsigned int m_block_size;  //!< block size to execute on the GPU
+
+        //! Set forces for particles
+        virtual void setForces();
+
+        //! Orientational diffusion for spherical particles
+        virtual void rotationalDiffusion(unsigned int timestep);
+
+        //! Set constraints if particles confined to a surface
+        virtual void setConstraint();
+
+        GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
     };
 
-//! Exports the TwoStepLangevinGPU class to python
-void export_TwoStepLangevinGPU();
-
-#endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__
+//! Exports the ActiveForceComputeGPU Class to python
+void export_ActiveForceComputeGPU();
+#endif

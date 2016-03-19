@@ -76,7 +76,9 @@ class TwoStepBDGPU : public TwoStepBD
                      boost::shared_ptr<Variant> T,
                      unsigned int seed,
                      bool use_lambda,
-                     Scalar lambda);
+                     Scalar lambda,
+                     bool noiseless_t,
+                     bool noiseless_r);
 
         virtual ~TwoStepBDGPU() {};
 

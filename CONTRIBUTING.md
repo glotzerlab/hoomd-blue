@@ -94,3 +94,7 @@ The master command index needs a reference to new script commands so they are ea
 
 Developers need to be credited for their work. Update the credits documentation to reference what each developer
 contributed to the code.
+
+## Update ChangeLog.md
+
+Add a short concise entry describing the change to the ChangeLog.md.
