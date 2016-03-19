@@ -34,11 +34,11 @@ class integrate_brownian_script_tests (unittest.TestCase):
         bd.disable();
         bd = integrate.brownian(all, T=1.2, seed=1, dscale=1.0, noiseless_r=True);
         run(100);
-        bd.disable();        
+        bd.disable();
         bd = integrate.brownian(all, T=1.2, seed=1, dscale=1.0, noiseless_t=True, noiseless_r=True);
         run(100);
         bd.disable();
-        
+
     # test set_params
     def test_set_params(self):
         all = group.all();
@@ -51,17 +51,17 @@ class integrate_brownian_script_tests (unittest.TestCase):
         bd = integrate.brownian(all, T=1.2, seed=1);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
-    
+
         # test set_gamma
     def test_set_gamma_r(self):
         all = group.all();
         bd = integrate.brownian(all, T=1.2, seed=1);
         bd.set_gamma_r('A', 0.5);
         bd.set_gamma_r('B', 1.0);
-        
+
     def tearDown(self):
         init.reset();
-        
+
 
 # validate brownian diffusion
 class integrate_brownian_diffusion (unittest.TestCase):
@@ -96,7 +96,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
 
             # check for a very crude overlap - we are not doing much averaging here to keep the test short
             self.assert_(almost_equal(D, T/gamma, 0.1))
-            
+
     def test_noiseless_t(self):
         # Setup an ideal gas with a gamma and T and validate the MSD
         T=1.8
@@ -119,8 +119,8 @@ class integrate_brownian_diffusion (unittest.TestCase):
             D = msd / (6*dt*steps);
 
             # check for a very crude overlap - we are not doing much averaging here to keep the test short
-            self.assert_(almost_equal(D, 0, 0.1))
-            
+            self.assert_(math.fabs(D) < 0.1)
+
     def test_gamma(self):
         # Setup an ideal gas with a gamma and T and validate the MSD
         T=1.8
@@ -143,8 +143,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
             D = msd / (6*dt*steps);
 
             # check for a very crude overlap - we are not doing much averaging here to keep the test short
-            self.assert_(almost_equal(D, 0))
-
+            self.assert_(math.fabs(D) < 0.1)
 
     def test_dscale(self):
         # Setup an ideal gas with a gamma and T and validate the MSD
