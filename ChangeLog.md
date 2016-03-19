@@ -7,6 +7,8 @@
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+* `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
+* `update.constrain_ellipsoid` constrains particles to an ellipsoid
 
 *Bug fixes*
 
