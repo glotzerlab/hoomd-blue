@@ -2782,3 +2782,131 @@ class dipole(ai_pair):
         params = hoomd.make_scalar3(mu, A, kappa)
 
         return params
+
+## Onsager reaction field %pair %force
+#
+# The command pair.reaction_field specifies that a reaction field %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# Reaction field electrostatics is an approximation to the screened electrostatic interaction,
+# which assumes that the medium can be treated as an electrostatic continuum of dielectric
+# constant \f$ \epsilon_{RF} \f$ outside the cutoff sphere of radius \f$ r_{\mathrm{cut}} \f$.
+#
+#    \f[ V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
+#        \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]\f]
+#
+#    The reaction field potential does not require charge or diameter to be set. Two parameters,
+#    \f$ \varepsilon \f$ and \f$ \epsilon_{RF} \f$ are needed.
+#
+# [1] J. a. Barker and R. O. Watts, "Monte Carlo studies of the dielectric properties of water-like
+#     models," Mol. Phys., vol. 26, no. June 2015, pp. 789-792, 1973.
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+#
+# If \f$ epsilon_{RF} \f$ is specified as zero, it will represent infinity.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon (in units of energy*distance)
+# - \f$ \epsilon_{RF} \f$ - \c eps_rf (dimensionless)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in units of distance)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.reaction_field is a standard %pair potential and supports a number of energy shift / smoothing modes.
+# See hoomd_script.pair.pair for a full
+# description of the various options.
+#
+# \b Example:
+# \code
+# reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
+# reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
+# reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for
+# all %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair.
+# The cutoff distances used for the neighbor list will by dynamically determined from the maximum of all
+# \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
+#
+# \MPI_SUPPORTED
+class reaction_field(pair):
+    ## Specify the Onsager reaction field %pair %force
+    #
+    # \param r_cut Default cutoff radius (in units of distance)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # reaction_field = pair.reaction_field(r_cut=3.0)
+    # reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
+    # reaction_field.pair_coeff.set('A', 'B', epsilon=2.0, eps_rf=0, r_cut=3.0, r_on=2.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, nlist=None, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairReactionField(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairReactionField;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairReactionFieldGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairReactionFieldGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'eps_rf'];
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        eps_rf = coeff['eps_rf'];
+
+        return hoomd.make_scalar2(epsilon, eps_rf);
+
+    ## Set parameters controlling the way forces are computed
+    #
+    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
+    #
+    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
+    #  - \b none - No shifting is performed and potentials are abruptly cut off
+    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the
+    #               cutoff when ron < rcut, and shifts the potential to 0 ar the cutoff when ron >= rcut.
+    # (see pair above for formulas and more information)
+    #
+    # \b Examples:
+    # \code
+    # mypair.set_params(mode="shift")
+    # mypair.set_params(mode="no_shift")
+    # mypair.set_params(mode="xplor")
+    # \endcode
+    #
+    def set_params(self, mode=None):
+        util.print_status_line();
+
+        if mode is not None:
+            if mode == "no_shift":
+                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
+            elif mode == "shift":
+                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
+            elif mode == "xplor":
+                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
+            else:
+                globals.msg.error("Invalid mode\n");
+                raise RuntimeError("Error changing parameters in pair force");
