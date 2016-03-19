@@ -4,6 +4,40 @@
 
 ## Upcoming release
 
+*New features*
+
+* Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+* `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
+* `update.constrain_ellipsoid` constrains particles to an ellipsoid
+* `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
+
+*Bug fixes*
+
+* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+
+## v1.3.3
+
+Released 2016/03/06
+
+*Bug fixes*
+
+* Fix problem incluing `hoomd.h` in plugins
+* Fix random memory errors when using walls
+
+## v1.3.2
+
+Released 2016/02/08
+
+*Bug fixes*
+
+* Fix wrong access to system.box
+* Fix kinetic energy logging in MPI
+* Fix particle out of box error if particles are initialized on the boundary in MPI
+* Add integrate.brownian to the documentation index
+* Fix misc doc typos
+* Fix runtime errors with boost 1.60.0
+* Fix corrupt metadata dumps in MPI runs
+
 ## v1.3.1
 
 Released 2016/1/14

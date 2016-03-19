@@ -127,7 +127,7 @@ def reset():
 
     # note: the check should be against 2, getrefcount counts the temporary reference
     # passed to it in the argument
-    expected_count = 6
+    expected_count = 7
     if count != expected_count:
         globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
         globals.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");

@@ -47,6 +47,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// this include is necessary to get MPI included before anything else to support intel MPI
+#include "ExecutionConfiguration.h"
+
 //! Name the unit test module
 #define BOOST_TEST_MODULE vec3
 #include "boost_utf_configure.h"

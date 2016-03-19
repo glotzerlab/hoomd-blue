@@ -75,8 +75,10 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
                                         boost::shared_ptr<ParticleGroup> group,
                                         boost::shared_ptr<Variant> T,
                                         unsigned int seed,
-                                        bool gamma_diam)
-    : TwoStepBDNVTRigid(sysdef, group, T, seed, gamma_diam)
+                                        bool gamma_diam,
+                                        bool noiseless_t,
+                                        bool noiseless_r)
+    : TwoStepBDNVTRigid(sysdef, group, T, seed, gamma_diam, noiseless_t, noiseless_r)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -163,13 +165,17 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
+    Scalar D = Scalar(m_sysdef->getNDimensions());
+
     // perform the update on the GPU
-    gpu_nve_rigid_step_one(d_rdata,
+    gpu_bdnvt_rigid_step_one(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            box,
-                           m_deltaT);
+                           m_deltaT, 
+                           m_gamma_r,
+                           D);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -317,6 +323,8 @@ void export_TwoStepBDNVTRigidGPU()
             boost::shared_ptr<ParticleGroup>,
             boost::shared_ptr<Variant>,
             unsigned int,
+            bool,
+            bool,
             bool >())
         ;
     }

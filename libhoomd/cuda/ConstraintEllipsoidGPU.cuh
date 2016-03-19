@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,24 +47,27 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*!
-\page page_compile_guide_linux_centos Compiling HOOMD-blue in RHEL/CentOS
+// Maintainer: joaander
 
-This documentation was written and tested in **RHEL/CentOS 6.5**. It may not work for other
-versions.
+#include "HOOMDMath.h"
+#include "ParticleData.cuh"
 
-\section software_req_install_centos_dev Development environment
-
-1. Follow [NVIDIA's instructions](http://docs.nvidia.com/cuda/cuda-getting-started-guide-for-linux/index.html#package-manager-installation) to install the NVIDIA CUDA rpm repository.
-
-2. Follow [Fedora's instructions](http://fedoraproject.org/wiki/EPEL) to install the EPEL repository.
-
-3. Install g++, boost, python headers, zlib headers, git, cmake, openmpi, and CUDA.
-~~~~.bash
-$ sudo yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake openmpi openmpi-devel cuda
-~~~~
-
-\section  software_req_install_centos_build Compile hoomd
-
-See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
+/*! \file ConstraintEllipsoidGPU.cuh
+    \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintEllipsoidGPU.
 */
+
+#ifndef __CONSTRAINT_ELLIPSOID_GPU_CUH__
+#define __CONSTRAINT_ELLIPSOID_GPU_CUH__
+
+//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
+cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
+                                                 unsigned int group_size,
+                                                 const unsigned int N,
+                                                 Scalar4 *d_pos,
+                                                 const Scalar3 P,
+                                                 Scalar rx,
+                                                 Scalar ry,
+                                                 Scalar rz,
+                                                 unsigned int block_size);
+
+#endif

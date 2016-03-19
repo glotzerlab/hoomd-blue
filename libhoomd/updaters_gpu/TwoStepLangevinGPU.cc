@@ -82,8 +82,10 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysde
                                        unsigned int seed,
                                        bool use_lambda,
                                        Scalar lambda,
+                                       bool noiseless_t,
+                                       bool noiseless_r,
                                        const std::string& suffix)
-    : TwoStepLangevin(sysdef, group, T, seed, use_lambda, lambda, suffix)
+    : TwoStepLangevin(sysdef, group, T, seed, use_lambda, lambda, noiseless_t, noiseless_r, suffix)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -142,6 +144,27 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    if (m_aniso)
+        {
+        // first part of angular update
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        gpu_nve_angular_step_one(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 1.0);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    }
+    
     // done profiling
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -163,6 +186,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {
@@ -190,6 +214,8 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
         args.num_blocks = m_num_blocks;
+        args.noiseless_t = m_noiseless_t;
+        args.noiseless_r = m_noiseless_r;
         args.tally = m_tally;
 
         gpu_langevin_step_two(d_pos.data,
@@ -206,7 +232,38 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        
+        if (m_aniso)
+            {
+            // second part of angular update
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+            unsigned int group_size = m_group->getNumMembers();
+            gpu_langevin_angular_step_two(d_pos.data,
+                                     d_orientation.data,
+                                     d_angmom.data,
+                                     d_inertia.data,
+                                     d_net_torque.data,
+                                     d_index_array.data,
+                                     d_gamma_r.data,
+                                     d_tag.data,
+                                     group_size,
+                                     args, 
+                                     m_deltaT,
+                                     D,
+                                     1.0
+                                     );
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        
         }
+        
+
 
     if (m_tally)
         {
@@ -234,6 +291,8 @@ void export_TwoStepLangevinGPU()
                                unsigned int,
                                bool,
                                Scalar,
+                               bool,
+                               bool,
                                const std::string&
                                >())
         ;

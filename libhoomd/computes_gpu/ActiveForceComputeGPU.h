@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,28 +47,52 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
 
-/*!
-\page page_compile_guide_linux_fedora Compiling HOOMD-blue in Fedora
+#include "ActiveForceCompute.h"
 
-This documentation was written and tested in **Fedora 18**. It may not work for other
-versions.
-
-\section software_req_install_fedora_dev Development environment
-
-1. Follow [NVIDIA's instructions](http://docs.nvidia.com/cuda/cuda-getting-started-guide-for-linux/index.html#package-manager-installation) to install the NVIDIA CUDA rpm repository.
-
-3. Install g++, boost, python headers, zlib headers, git, cmake, openmpi, and CUDA.
-~~~~.bash
-$ sudo yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake openmpi openmpi-devel cuda
-~~~~
-
-\section  software_req_install_fedora_build Compile hoomd
-
-See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
-
+/*! \file ActiveForceComputeGPU.h
+    \brief Declares a class for computing active forces on the GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
+#ifndef __ACTIVEFORCECOMPUTE_GPU_H__
+#define __ACTIVEFORCECOMPUTE_GPU_H__
 
+//! Adds an active force to a number of particles on the GPU
+/*! \ingroup computes
+*/
+class ActiveForceComputeGPU : public ActiveForceCompute
+    {
+    public:
+        //! Constructs the compute
+        ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                             boost::shared_ptr<ParticleGroup> group,
+                             int seed, boost::python::list f_lst,
+                             bool orientation_link, Scalar rotation_diff,
+                             Scalar3 P,
+                             Scalar rx,
+                             Scalar ry,
+                             Scalar rz);
 
+    protected:
+        unsigned int m_block_size;  //!< block size to execute on the GPU
+
+        //! Set forces for particles
+        virtual void setForces();
+
+        //! Orientational diffusion for spherical particles
+        virtual void rotationalDiffusion(unsigned int timestep);
+
+        //! Set constraints if particles confined to a surface
+        virtual void setConstraint();
+
+        GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
+    };
+
+//! Exports the ActiveForceComputeGPU Class to python
+void export_ActiveForceComputeGPU();
+#endif

@@ -65,7 +65,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              const BoxDim& box,
-                             Scalar deltaT);
+                             const Scalar deltaT);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,

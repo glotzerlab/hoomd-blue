@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,22 +47,56 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*!
-\page page_compile_guide_linux_opensuse Compiling HOOMD-blue in OpenSUSE
+// Maintainer: joaander
 
-This documentation was written and tested in **OpenSUSE 12.2**. It may not work for other
-versions.
+#include "ParticleGroup.h"
+#include "Updater.h"
+#include <boost/shared_ptr.hpp>
 
-\section software_req_install_opensuse_dev Development environment
-
-1. Follow [NVIDIA's instructions](http://docs.nvidia.com/cuda/cuda-getting-started-guide-for-linux/index.html#package-manager-installation) to install the NVIDIA CUDA rpm repository.
-
-3. Install g++, boost headers, python headers, zlib headers, git, cmake, openmpi, and CUDA.
-~~~~.bash
-$ sudo zypper install gcc-c++ boost-devel python-devel zlib-devel git cmake openmpi openmpi-devel cuda
-~~~~
-
-\section  software_req_install_opensuse_build Compile hoomd
-
-See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
+/*! \file ConstraintEllipsoid.h
+    \brief Declares a class for computing ellipsoid constraint forces
 */
+
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+#ifndef __CONSTRAINT_Ellipsoid_H__
+#define __CONSTRAINT_Ellipsoid_H__
+
+//! Applys a constraint force to keep a group of particles on a Ellipsoid
+/*! \ingroup computes
+*/
+class ConstraintEllipsoid : public Updater
+    {
+    public:
+        //! Constructs the compute
+        ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<ParticleGroup> group,
+                         Scalar3 P,
+                         Scalar rx,
+                         Scalar ry,
+                         Scalar rz);
+
+        //! Destructor
+        virtual ~ConstraintEllipsoid();
+
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+
+    protected:
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        Scalar3 m_P;          //!< Position of the Ellipsoid
+        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
+        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
+        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
+
+    private:
+        //! Validate that the ellipsoid is in the box and all particles are very near the constraint
+        void validate();
+    };
+
+//! Exports the ConstraintEllipsoid class to python
+void export_ConstraintEllipsoid();
+
+#endif

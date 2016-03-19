@@ -34,6 +34,7 @@ For more detailed instructions, [see the documentationn](https://codeblue.umich.
 
  * Required:
      * Python >= 2.6
+     * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.6.2
      * C++ Compiler (tested with gcc, clang, intel)
@@ -77,16 +78,4 @@ See [ChangeLog.md](ChangeLog.md).
 
 # Contributing to HOOMD-blue.
 
-Contributions are welcomed via pull requests on Bitbucket.
-
-0. First contact the HOOMD-blue developers prior to beginning your work to ensure that your plans mesh well with the
-planned development direction and standards set for the project. Then implement your code.
-1. Submit a pull request on bitbucket. Multiple developers and/or users will review requested changes and make comments.
-    * Bug fixes should be based on `maint`
-    * New features should be based on `master`
-2. The lead developer will merge your work into next to trigger continuous integration tests. These will compile and build your code in all supported configurations. Jenkins will e-mail you if your commits cause tests to fail. The Jenkins server is: https://petry.engin.umich.edu/.
-3. The lead developer will merge into the mainline after the review is complete and approved.
-
-* All contributors must agree to the Contributor Agreement ([ContributorAgreement.md](ContributorAgreement.md)) before their pull request can be merged.
-* All contributions must follow the source code style conventions ([SourceConventions.md](SourceConventions.md)).
-* The branch review checklist ([BranchReviewChecklist.md](BranchReviewChecklist.md))is a guide for reviewers to follow when reviewing a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md)

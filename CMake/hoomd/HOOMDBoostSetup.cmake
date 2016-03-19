@@ -48,6 +48,11 @@ if (Boost_MINOR_VERSION GREATER 34)
 list(APPEND REQUIRED_BOOST_COMPONENTS "system")
 endif ()
 
+# if we get boost 1.60 or greator, we need to get the timer library too
+if (Boost_MINOR_VERSION GREATER 59)
+list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono")
+endif ()
+
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories

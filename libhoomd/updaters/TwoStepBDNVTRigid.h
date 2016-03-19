@@ -78,13 +78,18 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
                           boost::shared_ptr<ParticleGroup> group,
                           boost::shared_ptr<Variant> T,
                           unsigned int seed,
-                          bool gamma_diam);
+                          bool gamma_diam,                                     
+                          bool noiseless_t,
+                          bool noiseless_r);
         virtual ~TwoStepBDNVTRigid();
 
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
+        void setGamma_r(Scalar gamma_r);
+        
 
         //! Performs the second step
+        virtual void integrateStepOne(unsigned int timestep);
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
@@ -92,7 +97,10 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
 
         GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
-
+        Scalar m_gamma_r;         //!< List of per type gammas to use
+        bool m_noiseless_r;         //!< If set true, there will be no random torque in rotational DOF
+        bool m_noiseless_t;         //!< If set true, there will be no random force in translational DOF
+        
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
