@@ -979,6 +979,8 @@ class langevin(_integration_method):
     # \param tally (optional) If true, the energy exchange between the thermal reservoir and the particles is
     #                         tracked. Total energy conservation can then be monitored by adding
     #                         \b langevin_reservoir_energy_<i>groupname</i> to the logged quantities.
+    # \param noiseless_t If set true, there will be no translational noise (random force)
+    # \param noiseless_r If set true, there will be no rotational noise (random torque)
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -994,7 +996,7 @@ class langevin(_integration_method):
     # typeA = group.type('A');
     # integrator = integrate.langevin(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
-    def __init__(self, group, T, seed, dscale=False, tally=False):
+    def __init__(self, group, T, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # initialize base class
@@ -1025,7 +1027,10 @@ class langevin(_integration_method):
                                    T.cpp_variant,
                                    seed,
                                    use_lambda,
-                                   float(dscale), suffix);
+                                   float(dscale),
+                                   noiseless_t,
+                                   noiseless_r,
+                                   suffix);
 
         self.cpp_method.setTally(tally);
 
@@ -1036,7 +1041,9 @@ class langevin(_integration_method):
         self.T = T
         self.seed = seed
         self.dscale = dscale
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale']
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
+        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
 
     ## Change langevin integrator parameters
     # \param T New temperature (if set) (in energy units)
@@ -1094,6 +1101,38 @@ class langevin(_integration_method):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
 
+    ## Set gamma_r for a particle type
+    # \param a Particle type name
+    # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
+    #
+    # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
+    # by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
+    # zero, it will have no rotational damping or random torque, but still with updates from normal net torque.
+    #
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma_r('A', gamma_r=2.0)
+    # \endcode
+    #
+    def set_gamma_r(self, a, gamma_r):
+
+        if (gamma_r < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
+
+        util.print_status_line();
+        self.check_initialization();
+
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+
+        # change the parameters
+        for i in range(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma_r(i,gamma_r);
+
 ## Brownian dynamics
 #
 # integrate.brownian integrates particles forward in time according to the overdamped Langevin equations of motion,
@@ -1130,6 +1169,8 @@ class brownian(_integration_method):
     # \param T Temperature of the simulation (in energy units).
     # \param seed Random seed to use for generating \f$ \vec{F}_\mathrm{R} \f$.
     # \param dscale Control \f$ \lambda \f$ options. If 0 or False, use \f$ \gamma \f$ values set per type. If non-zero, \f$ \gamma = \lambda d_i \f$.
+    # \param noiseless_t If set true, there will be no translational noise (random force)
+    # \param noiseless_r If set true, there will be no rotational noise (random torque)
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -1145,7 +1186,7 @@ class brownian(_integration_method):
     # typeA = group.type('A');
     # integrator = integrate.brownian(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
-    def __init__(self, group, T, seed, dscale=False):
+    def __init__(self, group, T, seed, dscale=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # initialize base class
@@ -1173,7 +1214,9 @@ class brownian(_integration_method):
                                    T.cpp_variant,
                                    seed,
                                    use_lambda,
-                                   float(dscale));
+                                   float(dscale),
+                                   noiseless_t,
+                                   noiseless_r);
 
         self.cpp_method.validateGroup()
 
@@ -1182,7 +1225,9 @@ class brownian(_integration_method):
         self.T = T
         self.seed = seed
         self.dscale = dscale
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale']
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
+        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
 
     ## Change brownian integrator parameters
     # \param T New temperature (if set) (in energy units)
@@ -1232,6 +1277,44 @@ class brownian(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+
+    ## Set gamma_r for a particle type
+    # \param a Particle type name
+    # \param gamma_r \f$ \gamma_r \f$ for particle type \a (in units of force/velocity)
+    #
+    # set_gamma_r() sets the coefficient \f$ \gamma_r \f$ for a single particle type, identified
+    # by name. The default is 1.0 if not specified for a type. The gamma_r must be positive or zero,
+    # if set zero, it will ignore any rotational updates (due to singularity).
+    #
+    # It is not an error to specify gammas for particle types that do not exist in the simulation.
+    # This can be useful in defining a single simulation script for many different types of particles
+    # even when some simulations only include a subset.
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma_r('A', gamma_r=2.0)
+    # \endcode
+    #
+    def set_gamma_r(self, a, gamma_r):
+
+        if (gamma_r < 0):
+            raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
+
+        util.print_status_line();
+        self.check_initialization();
+
+        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+
+        # change the parameters
+        for i in range(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma_r(i,gamma_r);
+
+
 
 
 ## NVE Integration for rigid bodies
@@ -1445,7 +1528,7 @@ class bdnvt_rigid(_integration_method):
     # integrator = integrate.bdnvt_rigid(group=all, T=1.0, seed=100)
     # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=True)
     # \endcode
-    def __init__(self, group, T, seed=0, gamma_diam=False):
+    def __init__(self, group, T, seed=0, gamma_diam=False, noiseless_t=False, noiseless_r=False):
         util.print_status_line();
 
         # register the citation
@@ -1476,9 +1559,9 @@ class bdnvt_rigid(_integration_method):
 
         # initialize the reflected c++ class
         if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepBDNVTRigid(hoomd_script.context.current.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTRigid(hoomd_script.context.current.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, noiseless_t, noiseless_r);
         else:
-            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(hoomd_script.context.current.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(hoomd_script.context.current.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, noiseless_t, noiseless_r);
 
         self.cpp_method.validateGroup()
 
@@ -1487,6 +1570,8 @@ class bdnvt_rigid(_integration_method):
         self.T = T
         self.seed = seed
         self.metadata_fields = ['group','T','seed']
+        self.noiseless_t = noiseless_t
+        self.noiseless_r = noiseless_r
 
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
@@ -1547,6 +1632,14 @@ class bdnvt_rigid(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+
+    def set_gamma_r(self, gamma_r):
+        util.print_status_line();
+        self.check_initialization();
+
+        self.cpp_method.setGamma_r(gamma_r);
+
 
 ## NPT Integration for rigid bodies
 #

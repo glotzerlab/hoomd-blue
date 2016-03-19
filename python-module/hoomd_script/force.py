@@ -55,6 +55,7 @@ from hoomd_script import util;
 from hoomd_script import data;
 from hoomd_script import init;
 from hoomd_script import meta;
+from hoomd_script import context;
 import hoomd_script;
 
 ## \package hoomd_script.force
@@ -329,6 +330,88 @@ class constant(_force):
         self.fz = fz
 
     # there are no coeffs to update in the constant force compute
+    def update_coeffs(self):
+        pass
+
+## Active %force
+#
+# The command force.active specifies that an %active %force should be added to all particles.
+# Obeys \f$\delta {\bf r}_i = \delta t v_0 \hat{p}_i\f$, where \f$ v_0 \f$ is the active velocity. In 2D
+# \f$\hat{p}_i = (\cos \theta_i, \sin \theta_i)\f$ is the active force vector for particle \f$i\f$; and the
+# diffusion of the active force vector follows \f$\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma\f$,
+# where \f$D_r\f$ is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
+# whose components are uncorrelated in time, space, and between particles.
+# In 3D, \f$\hat{p}_i\f$ is a unit vector in 3D space, and diffusion follows
+# \f$\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)\f$, where
+# \f$\hat{p}_r\f$ is an uncorrelated random unit vector. The persistence length of an active particle's path is
+# \f$ v_0 / D_r\f$.
+#
+# NO MPI
+class active(_force):
+    ## Specify the %active %force
+    #
+    # \param seed required user-specified seed number for random number generator.
+    # \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
+    # \param group Group for which the force will be set
+    # \param orientation_link if True then particle orientation is coupled to the active force vector. Only
+    # relevant for non-point-like anisotropic particles.
+    # \param rotation_diff rotational diffusion constant, \f$D_r\f$, for all particles in the group.
+    # \param constraint specifies a constraint surface, to which particles are confined,
+    # such as update.constraint_ellipsoid.
+    #
+    # \b Examples:
+    # \code
+    # force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
+    #
+    # ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
+    # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
+    # \endcode
+    def __init__(self, seed, f_lst, group, orientation_link=True, rotation_diff=0, constraint=None):
+        util.print_status_line();
+
+        # initialize the base class
+        _force.__init__(self);
+
+        # input check
+        if (f_lst is not None):
+            for element in f_lst:
+                if type(element) != tuple or len(element) != 3:
+                    raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+
+        # assign constraints
+        if (constraint is not None):
+            if (constraint.__class__.__name__ is "constraint_ellipsoid"):
+                P = constraint.P
+                rx = constraint.rx
+                ry = constraint.ry
+                rz = constraint.rz
+            else:
+                raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
+        else:
+            P = hoomd.make_scalar3(0, 0, 0)
+            rx = 0
+            ry = 0
+            rz = 0
+
+        # create the c++ mirror class
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.ActiveForceCompute(context.current.system_definition, group.cpp_group, seed, f_lst,
+                                                      orientation_link, rotation_diff, P, rx, ry, rz);
+        else:
+            self.cpp_force = hoomd.ActiveForceComputeGPU(context.current.system_definition, group.cpp_group, seed, f_lst,
+                                                         orientation_link, rotation_diff, P, rx, ry, rz);
+
+        # store metadata
+        self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.group = group
+        self.seed = seed
+        self.orientation_link = orientation_link
+        self.rotation_diff = rotation_diff
+        self.constraint = constraint
+
+        context.current.system.addCompute(self.cpp_force, self.force_name);
+
+    # there are no coeffs to update in the active force compute
     def update_coeffs(self):
         pass
 

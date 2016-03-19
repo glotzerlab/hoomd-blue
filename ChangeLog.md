@@ -7,6 +7,7 @@
 *Bug fixes*
 
 * Angles, dihedrals, and impropers no longer initialize with one default type.
+* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
 
 *New features*
 
@@ -26,6 +27,9 @@
     * The GSD file format is capable of storing all particle and topology data fields in hoomd,
       either static at frame 0, or varying over the course of the trajectory. The number of
       particles, types, bonds, etc. can also vary over the trajectory.
+* `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
+* `update.constrain_ellipsoid` constrains particles to an ellipsoid
+* `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
 
 *Changes that require job script modifications*
 
@@ -46,12 +50,6 @@
 
 * Removed `integrate.bdnvt`: use `integrate.langevin`
 * Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
-
-## Upcoming release
-
-*Bug fixes*
-
-* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
 
 ## v1.3.3
 

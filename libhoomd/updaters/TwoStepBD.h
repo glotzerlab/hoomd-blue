@@ -75,11 +75,15 @@ class TwoStepBD : public TwoStepLangevinBase
     public:
         //! Constructs the integration method and associates it with the system
         TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<ParticleGroup> group,
-                     boost::shared_ptr<Variant> T,
-                     unsigned int seed,
-                     bool use_lambda,
-                     Scalar lambda);
+                    boost::shared_ptr<ParticleGroup> group,
+                    boost::shared_ptr<Variant> T,
+                    unsigned int seed,
+                    bool use_lambda,
+                    Scalar lambda,
+                    bool noiseless_t,
+                    bool noiseless_r
+                    );
+        
         virtual ~TwoStepBD();
 
         //! Performs the second step of the integration
@@ -87,6 +91,10 @@ class TwoStepBD : public TwoStepLangevinBase
 
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
+        
+    protected:
+        bool m_noiseless_t;
+        bool m_noiseless_r;
     };
 
 //! Exports the TwoStepLangevin class to python

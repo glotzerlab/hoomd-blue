@@ -114,7 +114,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
     boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0));
+    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0, false, false));
     boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
@@ -142,6 +142,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
         }
     }
 
+    
 //! ConstraintSphere factory for the unit tests
 boost::shared_ptr<ConstraintSphere> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group,
