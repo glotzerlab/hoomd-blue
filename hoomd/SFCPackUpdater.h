@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "Updater.h"
-#include "NeighborList.h"
 #include "GPUVector.h"
 
 #include <boost/shared_ptr.hpp>

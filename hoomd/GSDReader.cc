@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GSDReader.h"
 #include "SnapshotSystemData.h"
 #include "ExecutionConfiguration.h"
-#include <gsd.h>
+#include "hoomd/extern/gsd.h"
 #include <string.h>
 
 #include <stdexcept>

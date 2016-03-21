@@ -73,8 +73,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
 // files which define the vector types (float4, etc...)
-#include "cudacpu_vector_types.h"
-#include "cudacpu_vector_functions.h"
+#include "hoomd/extern/cudacpu_vector_types.h"
+#include "hoomd/extern/cudacpu_vector_functions.h"
 
 //! Define complex type
 typedef float2 cufftComplex;

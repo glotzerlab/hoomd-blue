@@ -67,8 +67,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 using namespace boost;
 
-#include "vmdsock.h"
-#include "imd.h"
+#include "hoomd/extern/vmdsock.h"
+#include "hoomd/extern/imd.h"
 
 #include <stdexcept>
 

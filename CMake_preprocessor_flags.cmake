@@ -1,9 +1,5 @@
 # Maintainer: joaander
-# This sets the preprocessor definitinos after all build options have been set appropriately
-
-if (ENABLE_STATIC)
-    add_definitions(-DENABLE_STATIC)
-endif(ENABLE_STATIC)
+# This sets the preprocessor definitions after all build options have been set appropriately
 
 if (SINGLE_PRECISION)
     add_definitions (-DSINGLE_PRECISION)

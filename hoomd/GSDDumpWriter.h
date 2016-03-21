@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <gsd.h>
+#include "hoomd/extern/gsd.h"
 
 /*! \file GSDDumpWriter.h
     \brief Declares the GSDDumpWriter class

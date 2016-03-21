@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include <string>
-#include <gsd.h>
+#include "hoomd/extern/gsd.h"
 
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__

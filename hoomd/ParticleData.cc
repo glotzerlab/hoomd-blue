@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CachedAllocator.h"
 #endif
 
-#include "num_util.h"
+#include "hoomd/extern/num_util.h"
 
 #include <iostream>
 #include <cassert>

@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "Index1D.h"
 
-#include "num_util.h"
+#include "hoomd/extern/num_util.h"
 
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"

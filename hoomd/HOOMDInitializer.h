@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "BondedGroupData.h"
-#include "xmlParser.h"
+#include "hoomd/extern/xmlParser.h"
 #include "BondedGroupData.h"
 
 #include <string>
