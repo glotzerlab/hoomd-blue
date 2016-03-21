@@ -208,6 +208,7 @@ Table of contents:
  - \link hoomd_script.pair.moliere pair.moliere\endlink - <i>Moliere %pair %force</i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>Morse %pair %force </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>Tabulated %pair %force </i>
+ - \link hoomd_script.pair.reaction_field pair.reaction_field\endlink - <i>Reaction field %pair %force </i>
  - \link hoomd_script.pair.slj pair.slj\endlink - <i>Shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>Yukawa %pair %force </i>
  - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force</i>
@@ -261,7 +262,7 @@ Table of contents:
 
  \section sec_index_other Other forces
  - \link hoomd_script.force.constant force.constant\endlink - <i>Constant %force </i>
-
+ - \link hoomd_script.force.active force.active\endlink - <i>Active %force </i>
 
 <h2>Helpers</h2>
 

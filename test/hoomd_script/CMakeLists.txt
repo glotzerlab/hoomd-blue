@@ -124,6 +124,8 @@ SET(EXCLUDE_FROM_MPI
     test_walls
     test_communication
     test_constrain_distance
+    test_force_active
+    test_update_ellipsoid
     )
 
 if (ENABLE_MPI)

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,53 +49,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepLangevin.h"
+#include "HOOMDMath.h"
+#include "ParticleData.cuh"
 
-#ifndef __TWO_STEP_LANGEVIN_GPU_H__
-#define __TWO_STEP_LANGEVIN_GPU_H__
-
-/*! \file TwoStepLangevinGPU.h
-    \brief Declares the TwoStepLangevinGPU class
+/*! \file ConstraintEllipsoidGPU.cuh
+    \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintEllipsoidGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
+#ifndef __CONSTRAINT_ELLIPSOID_GPU_CUH__
+#define __CONSTRAINT_ELLIPSOID_GPU_CUH__
+
+//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
+cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
+                                                 unsigned int group_size,
+                                                 const unsigned int N,
+                                                 Scalar4 *d_pos,
+                                                 const Scalar3 P,
+                                                 Scalar rx,
+                                                 Scalar ry,
+                                                 Scalar rz,
+                                                 unsigned int block_size);
+
 #endif
-
-//! Implements Langevin dynamics on the GPU
-/*! GPU accelerated version of TwoStepLangevin
-
-    \ingroup updaters
-*/
-class TwoStepLangevinGPU : public TwoStepLangevin
-    {
-    public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r,
-                           const std::string& suffix = std::string(""));
-        virtual ~TwoStepLangevinGPU() {};
-
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
-
-    protected:
-        unsigned int m_block_size;               //!< block size for partial sum memory
-        unsigned int m_num_blocks;               //!< number of memory blocks reserved for partial sum memory
-        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
-    };
-
-//! Exports the TwoStepLangevinGPU class to python
-void export_TwoStepLangevinGPU();
-
-#endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__

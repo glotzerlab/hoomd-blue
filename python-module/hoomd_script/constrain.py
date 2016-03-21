@@ -246,11 +246,11 @@ class _constraint_force(meta._metadata):
 # set default counter
 _constraint_force.cur_id = 0;
 
-
 ## Constrain particles to the surface of a sphere
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
-# them to a sphere.
+# them to a sphere. Currently does not work with Brownian or Langevin dynamics (integrate.brownian and
+# integrate.langevin).
 # \MPI_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force

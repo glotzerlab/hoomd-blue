@@ -570,7 +570,7 @@ inline HOSTDEVICE double acos(double x)
 }
 
 template<class Real, class RNG>
-inline Real DEVICE gaussian_rng(RNG rng, Real sigma)
+inline Real DEVICE gaussian_rng(RNG &rng, const Real sigma)
     {
     // use Box-Muller transformation to get a gaussian random number
     float x1, x2, w, y1;

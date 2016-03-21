@@ -131,6 +131,7 @@ Jens Glaser, University of Michigan
  - metadata output
  - anisotropic particle integrators
  - Gay-Berne pair potential
+ - pair.reaction_field
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials
@@ -194,6 +195,14 @@ Matthew Spellings, Univeristy of Michigan
 James Proctor, University of Michigan
  - Refactor external potential framework
  - Wall potentials
+
+Chengyu Dai, University of Michigan
+ - Rewrite integrate.brownian with 3D rotational updates
+ - Rewrite integrate.langevin with 3D rotational updates
+
+Isass Bruss, Chengyu Dai, University of Michigan
+ - force.active
+ - update.constraint_ellipsoid
 
 <hr>
 <h1>Source code</h1>

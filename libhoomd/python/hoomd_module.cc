@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ActiveForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
@@ -119,6 +120,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ConstraintEllipsoid.h"
 #include "MolecularForceCompute.h"
 #include "ForceDistanceConstraint.h"
 #include "ForceComposite.h"
@@ -162,11 +164,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ConstraintEllipsoidGPU.h"
 #include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ActiveForceComputeGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
@@ -589,6 +593,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
+    export_ActiveForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
@@ -611,6 +616,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
+    export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
@@ -655,6 +661,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>("PotentialPairReactionFieldGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
@@ -685,6 +692,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceDistanceConstraintGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
+    export_ActiveForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
@@ -728,6 +736,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNPTMTK();
     export_Berendsen();
     export_Enforce2DUpdater();
+    export_ConstraintEllipsoid();
     export_FIREEnergyMinimizer();
 #ifdef ENABLE_CUDA
     export_SFCPackUpdaterGPU();
@@ -740,6 +749,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BerendsenGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
+    export_ConstraintEllipsoidGPU();
 #endif
 
 #ifdef ENABLE_MPI
