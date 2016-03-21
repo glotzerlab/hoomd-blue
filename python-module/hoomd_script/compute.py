@@ -252,7 +252,7 @@ class thermo(_compute):
 # compute.thermo
 def _get_unique_thermo(group):
 
-    # first check the globals for an existing compute.thermo
+    # first check the context for an existing compute.thermo
     for t in hoomd_script.context.current.thermos:
         # if we find a match, return it
         if t.group is group:

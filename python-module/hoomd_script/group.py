@@ -224,7 +224,7 @@ def all():
 
     name = 'all';
 
-    # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
+    # the all group is special: when the first one is created, it is cached in the context and future calls to group.all()
     # return the cached version
     if hoomd_script.context.current.group_all is not None:
         expected_N = hoomd_script.context.current.system_definition.getParticleData().getNGlobal();
@@ -347,18 +347,18 @@ def rigid_center():
 
     # check if initialization has occurred
     if not init.is_initialized():
-        globals.msg.error("Cannot create a group before initialization\n");
+        hoomd_script.context.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
     name = 'rigid_center';
-    selector = hoomd.ParticleSelectorRigidCenter(globals.system_definition);
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, True);
+    selector = hoomd.ParticleSelectorRigidCenter(hoomd_script.context.current.system_definition);
+    cpp_group = hoomd.ParticleGroup(hoomd_script.context.current.system_definition, selector, True);
 
     # notify the user of the created group
-    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd_script.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
     if cpp_group.getNumMembersGlobal() == 0:
-        globals.msg.notice(2, 'It is OK if there are zero particles in this group. The group will be updated after run().\n');
+        hoomd_script.context.msg.notice(2, 'It is OK if there are zero particles in this group. The group will be updated after run().\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);

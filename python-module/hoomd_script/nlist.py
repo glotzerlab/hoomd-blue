@@ -645,7 +645,7 @@ class cell(_nlist):
 
         hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
-        # register this neighbor list with the globals
+        # register this neighbor list with the context
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
@@ -806,7 +806,7 @@ class stencil(_nlist):
 
         hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
-        # register this neighbor list with the globals
+        # register this neighbor list with the context
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
@@ -1037,7 +1037,7 @@ class tree(_nlist):
 
         hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
 
-        # register this neighbor list with the globals
+        # register this neighbor list with the context
         hoomd_script.context.current.neighbor_lists += [self]
 
         # save the user defined parameters

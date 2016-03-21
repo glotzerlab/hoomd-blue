@@ -129,7 +129,7 @@ class init_take_restore_snapshot (unittest.TestCase):
 
     # test what happens when no bond snapshot is requested
     def test_no_bonds(self):
-        snap = self.s.take_snapshot(particles=False, bonds=False, rigid_bodies=False, integrators=False);
+        snap = self.s.take_snapshot(particles=False, bonds=False, integrators=False);
         self.assertEqual(len(snap.particles.types), 0);
         self.assertEqual(len(snap.bonds.types), 0);
         self.assertEqual(len(snap.impropers.types), 0);

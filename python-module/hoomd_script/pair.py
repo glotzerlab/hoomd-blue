@@ -2863,15 +2863,15 @@ class reaction_field(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialPairReactionField(globals.system_definition, self.nlist.cpp_nlist, self.name);
+        if not hoomd_script.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairReactionField(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairReactionField;
         else:
             self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairReactionFieldGPU(globals.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_force = hoomd.PotentialPairReactionFieldGPU(hoomd_script.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairReactionFieldGPU;
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'eps_rf'];
@@ -2911,5 +2911,5 @@ class reaction_field(pair):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                globals.msg.error("Invalid mode\n");
+                hoomd_script.context.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");

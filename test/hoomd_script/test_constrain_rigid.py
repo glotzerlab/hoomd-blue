@@ -132,7 +132,7 @@ class test_constrain_rigid(unittest.TestCase):
 
     def tearDown(self):
         del self.system
-        init.reset();
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
