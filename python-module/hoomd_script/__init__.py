@@ -47,6 +47,24 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- end license --
 
+""" HOOMD-blue python API
+
+:py:mod:`hoomd_script` provides a high level user interface for executing
+simulations using HOOMD. This python module is designed to be imported
+into python with ``from hoomd_script import *``.
+
+.. ipython:: python
+
+    import hoomd_script as hoomd
+    hoomd.context.initialize("")
+    hoomd.init.create_random(N=100, phi_p=0.1)
+    lj = hoomd.pair.lj(r_cut=2.5)
+    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    hoomd.integrate.mode_standard(dt=0.005)
+    hoomd.integrate.nvt(group=hoomd.group.all(), T=1.2, tau=0.5)
+    hoomd.run(100)
+"""
+
 # Maintainer: joaander
 import sys;
 import ctypes;
@@ -95,13 +113,6 @@ from hoomd_script import context;
 
 from hoomd import WalltimeLimitReached;
 
-## \package hoomd_script
-# \brief Base module for the user-level scripting API
-#
-# hoomd_script provides a very high level user interface for executing
-# simulations using HOOMD. This python module is designed to be imported
-# into python with "from hoomd_script import *"
-
 # output the version info on import
 context.msg.notice(1, hoomd.output_version_info())
 
@@ -120,88 +131,89 @@ def _hoomd_sys_excepthook(type, value, traceback):
 
 __version__ = "{0}.{1}.{2}".format(*hoomd.__version__)
 
-## \brief Runs the simulation for a given number of time steps
-#
-# \param tsteps Number of time steps to advance the simulation
-# \param profile Set to True to enable detailed profiling
-# \param limit_hours  (if set) Limit the run to a given number of hours.
-# \param limit_multiple When stopping the run() due to walltime limits, only stop when the time step is a multiple of
-#                       \a limit_multiple .
-# \param callback     (if set) Sets a Python function to be called regularly during a run.
-# \param callback_period Sets the period, in time steps, between calls made to \a callback
-# \param quiet Set to True to eliminate the status information printed to the screen by the run
-#
-# \b Examples:
-# \code
-# run(1000)
-# run(10e6, limit_multiple=100000)
-# run(10000, profile=True)
-# run(1e9, limit_hours=11)
-#
-# def py_cb(cur_tstep):
-#     print "callback called at step: ", str(cur_tstep)
-#
-# run(10000, callback_period=100, callback=py_cb)
-# \endcode
-#
-# \b Overview
-#
-# Execute the run() command to advance the simulation forward in time.
-# During the run, all previously specified \ref analyze "analyzers",
-# \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
-# are executed at the specified regular periods.
-#
-# After run() completes, you may change parameters of the simulation
-# and continue the simulation by executing run() again. Time steps are added
-# cumulatively, so calling run(1000) and then run(2000) would run the simulation
-# up to time step 3000.
-#
-# run() cannot be executed before the system is \ref init "initialized". In most
-# cases, run() should only be called after after pair forces, bond forces,
-# and an \ref integrate "integrator" are specified.
-#
-# When \a profile is \em True, a detailed breakdown of how much time was spent in each
-# portion of the calculation is printed at the end of the run. Collecting this timing information
-# can slow the simulation significantly.
-#
-# <b>Wallclock limited runs</b>
-#
-# There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
-# queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
-#
-# Force run() to end only on time steps that are a multiple of \a limit_mulitple. Set this to the period at which you
-# dump restart files so that you always end a run() cleanly at a point where you can restart from. Use
-# \a phase=0 on logs, file dumps, and other periodic tasks. With phase=0, these tasks will continue on the same
-# sequence regardless of the restart period.
-#
-# Set the environment variable `HOOMD_WALLTIME_STOP` prior to executing `hoomd` to stop the run() at a given wall
-# clock time. run() monitors performance and tries to ensure that it will end *before* `HOOMD_WALLTIME_STOP`. This
-# environment variable works even with multiple stages of runs in a script (use run_upto()). Set the variable to
-# a unix epoch time. For example in a job script that should run 12 hours, set `HOOMD_WALLTIME_STOP` to 12 hours from
-# now, minus 10 minutes to allow for job cleanup.
-# ~~~
-# export HOOMD_WALLTIME_STOP=$((`date +%s` + 12 * 3600 - 10 * 60))
-# ~~~
-#
-# When using `HOOMD_WALLTIME_STOP`, run() will throw the exception `WalltimeLimitReached` if it exits due to the walltime
-# limit. For more information on using this exception, see (TODO: page to be written).#
-#
-# \a limit_hours is another way to limit the length of a run(). Set it to a number of hours (use fractional values for
-# minutes) to limit this particular run() to that length of time. This is less useful than `HOOMD_WALLTIME_STOP` in a
-# job queuing environment.
-#
-# \b Callbacks
-#
-# If \a callback is set to a Python function then this function will be called regularly
-# at \a callback_period intervals. The callback function must receive one integer as argument
-# and can return an integer. The argument passed to the callback is the current time step number.
-# If the callback function returns a negative number, the run is immediately aborted.
-#
-# If \a callback_period is set to 0 (the default) then the callback is only called
-# once at the end of the run. Otherwise the callback is executed whenever the current
-# time step number is a multiple of \a callback_period.
-#
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
+    """ Runs the simulation for a given number of time steps.
+
+        \param tsteps Number of time steps to advance the simulation
+        \param profile Set to True to enable detailed profiling
+        \param limit_hours  (if set) Limit the run to a given number of hours.
+        \param limit_multiple When stopping the run() due to walltime limits, only stop when the time step is a multiple of
+                              \a limit_multiple .
+        \param callback     (if set) Sets a Python function to be called regularly during a run.
+        \param callback_period Sets the period, in time steps, between calls made to \a callback
+        \param quiet Set to True to eliminate the status information printed to the screen by the run
+
+        \b Examples:
+        \code
+        run(1000)
+        run(10e6, limit_multiple=100000)
+        run(10000, profile=True)
+        run(1e9, limit_hours=11)
+
+        def py_cb(cur_tstep):
+            print "callback called at step: ", str(cur_tstep)
+
+        run(10000, callback_period=100, callback=py_cb)
+        \endcode
+
+        \b Overview
+
+        Execute the run() command to advance the simulation forward in time.
+        During the run, all previously specified \ref analyze "analyzers",
+        \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
+        are executed at the specified regular periods.
+
+        After run() completes, you may change parameters of the simulation
+        and continue the simulation by executing run() again. Time steps are added
+        cumulatively, so calling run(1000) and then run(2000) would run the simulation
+        up to time step 3000.
+
+        run() cannot be executed before the system is \ref init "initialized". In most
+        cases, run() should only be called after after pair forces, bond forces,
+        and an \ref integrate "integrator" are specified.
+
+        When \a profile is \em True, a detailed breakdown of how much time was spent in each
+        portion of the calculation is printed at the end of the run. Collecting this timing information
+        can slow the simulation significantly.
+
+        <b>Wallclock limited runs</b>
+
+        There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
+        queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
+
+        Force run() to end only on time steps that are a multiple of \a limit_mulitple. Set this to the period at which you
+        dump restart files so that you always end a run() cleanly at a point where you can restart from. Use
+        \a phase=0 on logs, file dumps, and other periodic tasks. With phase=0, these tasks will continue on the same
+        sequence regardless of the restart period.
+
+        Set the environment variable `HOOMD_WALLTIME_STOP` prior to executing `hoomd` to stop the run() at a given wall
+        clock time. run() monitors performance and tries to ensure that it will end *before* `HOOMD_WALLTIME_STOP`. This
+        environment variable works even with multiple stages of runs in a script (use run_upto()). Set the variable to
+        a unix epoch time. For example in a job script that should run 12 hours, set `HOOMD_WALLTIME_STOP` to 12 hours from
+        now, minus 10 minutes to allow for job cleanup.
+        ~~~
+        export HOOMD_WALLTIME_STOP=$((`date +%s` + 12 * 3600 - 10 * 60))
+        ~~~
+
+        When using `HOOMD_WALLTIME_STOP`, run() will throw the exception `WalltimeLimitReached` if it exits due to the walltime
+        limit. For more information on using this exception, see (TODO: page to be written).#
+
+        \a limit_hours is another way to limit the length of a run(). Set it to a number of hours (use fractional values for
+        minutes) to limit this particular run() to that length of time. This is less useful than `HOOMD_WALLTIME_STOP` in a
+        job queuing environment.
+
+        \b Callbacks
+
+        If \a callback is set to a Python function then this function will be called regularly
+        at \a callback_period intervals. The callback function must receive one integer as argument
+        and can return an integer. The argument passed to the callback is the current time step number.
+        If the callback function returns a negative number, the run is immediately aborted.
+
+        If \a callback_period is set to 0 (the default) then the callback is only called
+        once at the end of the run. Otherwise the callback is executed whenever the current
+        time step number is a multiple of \a callback_period.
+    """
+
     if not quiet:
         _util.print_status_line();
     # check if initialization has occured
@@ -246,24 +258,24 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if not quiet:
         context.msg.notice(1, "** run complete **\n");
 
-## \brief Runs the simulation up to a given time step number
-#
-# \param step Final time step of the simulation which to run
-# \param keywords (see below) Catch for all keyword arguments to pass on to run()
-#
-# run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already
-# reached the specified step, a message is printed and no simulation steps are run.
-#
-# It accepts all keyword options that run() does.
-#
-# \b Examples:
-# \code
-# run_upto(1000)
-# run_upto(10000, profile=True)
-# run_upto(1e9, limit_hours=11)
-# \endcode
-#
 def run_upto(step, **keywords):
+    """## Runs the simulation up to a given time step number.
+
+        \param step Final time step of the simulation which to run
+        \param keywords (see below) Catch for all keyword arguments to pass on to run()
+
+        run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already
+        reached the specified step, a message is printed and no simulation steps are run.
+
+        It accepts all keyword options that run() does.
+
+        \b Examples:
+        \code
+        run_upto(1000)
+        run_upto(10000, profile=True)
+        run_upto(1e9, limit_hours=11)
+        \endcode
+    """
     if 'quiet' in keywords and not keywords['quiet']:
         _util.print_status_line();
     # check if initialization has occured
@@ -285,10 +297,15 @@ def run_upto(step, **keywords):
     run(n_steps, **keywords);
     _util.unquiet_status();
 
-## Get the current simulation time step
-#
-# \returns current simulation time step
 def get_step():
+    """ Get the current simulation time step.
+
+    Returns:
+        The current simulation time step.
+
+    TODO: add example.
+    """
+
     # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot get step before initialization\n");
@@ -296,29 +313,34 @@ def get_step():
 
     return context.current.system.getCurrentTimeStep();
 
-## Start CUDA profiling
-#
-# When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
-# startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
-# application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
-# you want nvvp to start collecting information.
-#
-# Example:
-# ~~~~~
-# from hoomd_script import *
-# init.read_xml("init.xml");
-# # setup....
-# run(30000);  # warm up and auto-tune kernel block sizes
-# option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
-# cuda_profile_start();
-# run(100);
-# ~~~~~
 def cuda_profile_start():
+    """ Start CUDA profiling.
+
+    When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
+    startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
+    application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
+    you want nvvp to start collecting information.
+
+    Example:
+    ~~~~~
+    from hoomd_script import *
+    init.read_xml("init.xml");
+    # setup....
+    run(30000);  # warm up and auto-tune kernel block sizes
+    option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
+    cuda_profile_start();
+    run(100);
+    ~~~~~
+    """
     hoomd.cuda_profile_start();
 
-## Stop CUDA profiling
-# \sa cuda_profile_start();
 def cuda_profile_stop():
+    """ Stop CUDA profiling.
+
+        See:
+            :py:func:`cuda_profile_start()`.
+    """
+
     hoomd.cuda_profile_stop();
 
 # Check to see if we are built without MPI support and the user used mpirun
