@@ -119,9 +119,6 @@ SET(EXCLUDE_FROM_MPI
     test_charge_pppm
     test_dump_mol2
     test_dump_pdb
-    test_integrate_bdnvt_rigid
-    test_integrate_nvt_rigid
-    test_integrate_nve_rigid
     test_pair_cgcmm
     test_update_rescale_temp
     test_walls

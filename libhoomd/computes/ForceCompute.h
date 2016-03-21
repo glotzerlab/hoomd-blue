@@ -174,16 +174,6 @@ class ForceCompute : public Compute
             return false;
             }
 
-        //! Request communication of additional ghost particles
-        /*! \param plans Plans of already marked ghost particles
-
-            See documentation for Communicator for meaning of the plan bitflags
-         */
-        virtual void addGhostParticles(const GPUArray<unsigned int>& plans)
-            {
-            // base class implementation does nothing
-            }
-
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
 

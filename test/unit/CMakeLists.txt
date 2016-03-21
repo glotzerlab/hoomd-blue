@@ -106,7 +106,6 @@ if (NOT HOOMD_SKIP_LONG_TESTS)
     # put the longest tests last
 set(TEST_LIST ${TEST_LIST}
     test_dpd_integrator
-    test_bd_rigid_updater
     test_npt_mtk_integrator
     test_nvt_mtk_integrator
     test_nve_integrator)

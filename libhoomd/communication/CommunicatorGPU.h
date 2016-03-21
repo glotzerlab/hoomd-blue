@@ -260,6 +260,9 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar> m_diameter_ghost_sendbuf;    //!< Buffer for sending ghost charges
         GPUVector<Scalar> m_diameter_ghost_recvbuf;    //!< Buffer for sending ghost charges
 
+        GPUVector<unsigned int> m_body_ghost_sendbuf;      //!< Buffer for sending ghost bodys
+        GPUVector<unsigned int> m_body_ghost_recvbuf;      //!< Buffer for sending ghost bodys
+
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
@@ -278,11 +281,20 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar> m_diameter_ghost_sendbuf_alt;    //!< Buffer for sending ghost charges (standby)
         GPUVector<Scalar> m_diameter_ghost_recvbuf_alt;    //!< Buffer for sending ghost charges (standby)
 
+        GPUVector<unsigned int> m_body_ghost_sendbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+        GPUVector<unsigned int> m_body_ghost_recvbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+
         GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
         GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)
 
         GPUVector<Scalar4> m_netforce_ghost_sendbuf;    //!< Send buffer for netforce
         GPUVector<Scalar4> m_netforce_ghost_recvbuf;    //!< Recv buffer for netforce
+
+        GPUVector<Scalar4> m_nettorque_ghost_sendbuf;    //!< Send buffer for nettorque
+        GPUVector<Scalar4> m_nettorque_ghost_recvbuf;    //!< Recv buffer for nettorque
+
+        GPUVector<Scalar> m_netvirial_ghost_sendbuf;    //!< Send buffer for netvirial
+        GPUVector<Scalar> m_netvirial_ghost_recvbuf;    //!< Recv buffer for netvirial
 
         GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf_alt
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf_alt

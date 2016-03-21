@@ -111,25 +111,6 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             }
         }
 
-    // add up the linear momentum of all bodies
-    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-    unsigned int n_bodies = rigid_data->getNumBodies();
-    if (n_bodies > 0)
-        {
-        ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
-
-        for (unsigned int body = 0; body < n_bodies; body++)
-            {
-            Scalar mass = h_body_mass.data[body];
-            Scalar4 vel = h_body_vel.data[body];
-            sum_px += mass * vel.x;
-            sum_py += mass * vel.y;
-            sum_pz += mass * vel.z;
-            n++;
-            }
-        }
-
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
@@ -156,25 +137,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             h_vel.data[i].z -= avg_pz/mass;
             }
         }
-
-    // subtract this momentum from every rigid body
-    if (n_bodies > 0)
-        {
-        ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
-
-        for (unsigned int body = 0; body < n_bodies; body++)
-            {
-            Scalar mass = h_body_mass.data[body];
-            h_body_vel.data[body].x -= avg_px/mass;
-            h_body_vel.data[body].y -= avg_py/mass;
-            h_body_vel.data[body].z -= avg_pz/mass;
-            }
-        }
     } // end GPUArray scope
-
-    // update the body particle velocities to reflect the new body velocities
-    m_sysdef->getRigidData()->setRV(false);
 
     if (m_prof) m_prof->pop();
     }

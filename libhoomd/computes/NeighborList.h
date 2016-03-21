@@ -369,12 +369,15 @@ class NeighborList : public Compute
         //! Enable/disable body filtering
         virtual void setFilterBody(bool filter_body)
             {
-            // only set the body exclusions if there are bodies in the rigid data, otherwise it just wastes time
-            if (m_sysdef->getRigidData()->getNumBodies() > 0)
+            // detect if there are any rigid bodies in the system
+            bool has_bodies = m_pdata->hasRigidBodies();
+            if (has_bodies || !filter_body)
                 {
+                // only activate body filtering if bodies are present,
+                // otherwise it is waste of cycles
                 m_filter_body = filter_body;
-                forceUpdate();
                 }
+            forceUpdate();
             }
 
         //! Test if body filtering is set
@@ -382,7 +385,7 @@ class NeighborList : public Compute
             {
             return m_filter_body;
             }
-        
+
         //! Enable/disable diameter shifting
         /*!
          * If diameter shifting is enabled, a value (d_i + d_j)/2.0 - 1.0 is added to r_cut(i,j) for

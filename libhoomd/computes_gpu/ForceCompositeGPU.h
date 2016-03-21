@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -47,38 +47,70 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: jglaser
 
-/*! \file TwoStepNPHRigidGPU.cuh
-    \brief Declares GPU kernel code for NPH rigid body integration on the GPU. Used by TwoStepNPHRigidGPU.
+#include "ForceComposite.h"
+#include "NeighborList.h"
+#include "Autotuner.h"
+
+/*! \file ForceCompositeGPU.h
+    \brief Implementation of a rigid body force compute, GPU version
 */
 
-#include "TwoStepNPTRigidGPU.cuh"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TWO_STEP_NPH_RIGID_CUH__
-#define __TWO_STEP_NPH_RIGID_CUH__
+#ifndef __ForceCompositeGPU_H__
+#define __ForceCompositeGPU_H__
 
-//! Kernel driver for the first part of the NPH update called by TwoStepNPHRigidGPU
-cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
-                                   unsigned int *d_group_members,
-                                   unsigned int group_size,
-                                   Scalar4 *d_net_force,
-                                   const BoxDim& box,
-                                   const gpu_npt_rigid_data &npt_rdata,
-                                   Scalar deltaT);
+class ForceCompositeGPU : public ForceComposite
+    {
+    public:
+        //! Constructs the compute
+        ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 
-//! Kernel driver for the second part of the NPH update called by TwoStepNPHRigidGPU
-cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
-                                   unsigned int *d_group_members,
-                                   unsigned int group_size,
-                                   Scalar4 *d_net_force,
-                                   Scalar *d_net_virial,
-                                   const BoxDim& box,
-                                   const gpu_npt_rigid_data &npt_rdata,
-                                   Scalar deltaT);
+        //! Destructor
+        virtual ~ForceCompositeGPU();
 
-//! Kernel driver for the Ksum reduction final pass called by TwoStepNPHRigidGPU
-cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
+        //! Update the constituent particles of a composite particle
+        /*  Using the position, velocity and orientation of the central particle
+         * \param remote If true, consider remote bodies, otherwise bodies
+         *        with a local central particle
+         */
+        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
 
-#endif // __TWO_STEP_NPH_RIGID_CUH__
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
 
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            ForceComposite::setAutotunerParams(enable, period);
+
+            m_tuner_force->setPeriod(period);
+            m_tuner_force->setEnabled(enable);
+
+            m_tuner_virial->setPeriod(period);
+            m_tuner_virial->setEnabled(enable);
+
+            m_tuner_update->setPeriod(period);
+            m_tuner_update->setEnabled(enable);
+            }
+
+
+    protected:
+        //! Compute the forces and torques on the central particle
+        virtual void computeForces(unsigned int timestep);
+
+        boost::scoped_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
+        boost::scoped_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
+        boost::scoped_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+    };
+
+//! Exports the ForceCompositeGPU to python
+void export_ForceCompositeGPU();
+
+#endif

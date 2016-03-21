@@ -110,7 +110,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 
         // scale the free particle velocities
         assert(m_pdata);
-        {
+            {
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
@@ -123,35 +123,8 @@ void TempRescaleUpdater::update(unsigned int timestep)
                     h_vel.data[i].z *= fraction;
                     }
                 }
-        }
-
-        // scale all the rigid body com velocities and angular momenta
-        boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-        unsigned int n_bodies = rigid_data->getNumBodies();
-        if (n_bodies > 0)
-            {
-            ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_body_angmom(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_body_angvel(rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-
-            for (unsigned int body = 0; body < n_bodies; body++)
-                {
-                h_body_vel.data[body].x *= fraction;
-                h_body_vel.data[body].y *= fraction;
-                h_body_vel.data[body].z *= fraction;
-
-                h_body_angmom.data[body].x *= fraction;
-                h_body_angmom.data[body].y *= fraction;
-                h_body_angmom.data[body].z *= fraction;
-
-                h_body_angvel.data[body].x *= fraction;
-                h_body_angvel.data[body].y *= fraction;
-                h_body_angvel.data[body].z *= fraction;
-                }
             }
 
-        // ensure that the particle velocities are up to date
-        rigid_data->setRV(false);
         }
 
     if (m_prof) m_prof->pop();

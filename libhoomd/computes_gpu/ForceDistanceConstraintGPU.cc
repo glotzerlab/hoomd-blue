@@ -65,9 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist)
-       : ForceDistanceConstraint(sysdef, nlist)
+ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef)
+       : ForceDistanceConstraint(sysdef)
 #ifdef CUSOLVER_AVAILABLE
         , m_cusolver_rf_initialized(false),
         m_nnz_L_tot(0), m_nnz_U_tot(0),
@@ -662,6 +661,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 void export_ForceDistanceConstraintGPU()
     {
     class_< ForceDistanceConstraintGPU, boost::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint>, boost::noncopyable >
-    ("ForceDistanceConstraintGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+    ("ForceDistanceConstraintGPU", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
