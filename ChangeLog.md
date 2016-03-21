@@ -33,6 +33,7 @@
 * Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
   to the original selection criteria. For example, this can be used to periodically update a cuboid
   group to include particles only in the specified region.
+* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
 
 *Changes that require job script modifications*
 

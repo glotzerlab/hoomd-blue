@@ -648,15 +648,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             }
         }
 
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // migrate particles back into their domains
-        m_comm->migrateParticles();
-        m_comm->exchangeGhosts();
-        }
-    #endif
-
     // generate a final status line
     generateStatusLine();
     m_last_status_tstep = m_cur_tstep;

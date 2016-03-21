@@ -219,10 +219,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     # update autotuner parameters
     context.current.system.setAutotunerParams(context.options.autotuner_enable, int(context.options.autotuner_period));
 
-    # if rigid bodies, setxv
-    if len(data.system_data(context.current.system_definition).bodies) > 0:
-        data.system_data(context.current.system_definition).bodies.updateRV()
-
     for logger in context.current.loggers:
         logger.update_quantities();
     context.current.system.enableProfiler(profile);

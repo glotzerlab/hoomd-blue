@@ -111,7 +111,10 @@ struct comm_flag
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
         orientation, //! Bit id in CommFlags for particle orientation
-        net_force    //! Communicate net force
+        body,        //! Bit id in CommFlags for particle body id
+        net_force,   //! Communicate net force
+        net_torque,  //! Communicate net torque
+        net_virial   //! Communicate net virial
         };
     };
 
@@ -197,6 +200,37 @@ struct ghost_layer_max
         return return_value;
         }
     };
+
+//! Perform a sum reduction on the return values of several signals
+struct ghost_layer_add
+    {
+    //! This is needed by boost::signals2
+    typedef Scalar result_type;
+
+    //! Max-reduce return values
+    /*! \param first First return value
+        \param last Last return value
+     */
+    template<typename InputIterator>
+    Scalar operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last)
+            {
+            return Scalar(0.0);
+            }
+
+        Scalar return_value = *first++;
+        while (first != last)
+            {
+            assert(*first >= Scalar(0.0));
+            return_value += *first;
+            first++;
+            }
+
+        return return_value;
+        }
+    };
+
 
 //! A compact storage for rank information
 template<typename ranks_t>
@@ -612,11 +646,15 @@ class Communicator
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+        GPUVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
         GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
         GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
         GPUVector<Scalar4> m_netforce_copybuf;    //!< Buffer for net force
+        GPUVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
+        GPUVector<Scalar> m_netvirial_copybuf;   //!< Buffer for net virial
+        GPUVector<Scalar> m_netvirial_recvbuf;   //!< Buffer for net virial (receive)
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
@@ -625,6 +663,9 @@ class Communicator
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+
+        unsigned int m_ghosts_added;             //!< Number of ghosts added
+
         //! Update the ghost width array
         void updateGhostWidth();
 

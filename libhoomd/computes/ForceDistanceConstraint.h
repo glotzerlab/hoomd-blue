@@ -80,8 +80,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist);
+        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -131,6 +130,8 @@ class ForceDistanceConstraint : public MolecularForceCompute
         bool m_constraint_reorder;         //!< True if groups have changed
         bool m_constraints_added_removed;  //!< True if global constraint topology has changed
 
+        Scalar m_d_max;                    //!< Maximum constraint extension
+
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
 
@@ -158,14 +159,37 @@ class ForceDistanceConstraint : public MolecularForceCompute
             m_constraints_added_removed = true;
             }
 
+        //! Returns the requested ghost layer width for all types
+        /*! \param type the type for which we are requesting info
+         */
+        virtual Scalar askGhostLayerWidth(unsigned int type);
 
         //! Fill the molecule list
         virtual void initMolecules();
 
+        #ifdef ENABLE_MPI
+        //! Set the communicator object
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            // call base class method to set m_comm
+            MolecularForceCompute::setCommunicator(comm);
+
+            if (!m_comm_ghost_layer_connection.connected())
+                {
+                // register this class with the communciator
+                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
+                    boost::bind(&ForceDistanceConstraint::askGhostLayerWidth, this, _1));
+                }
+           }
+        #endif
+
     private:
         //! Helper function to perform a depth-first search
-        bool dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
-            unsigned int *label, std::vector<ConstraintData::members_t>& groups);
+        Scalar dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+            unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length);
+
+        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+
     };
 
 //! Exports the ForceDistanceConstraint to python

@@ -167,7 +167,7 @@ class _nlist:
             for j in range(i,ntypes):
                 a = type_list[i];
                 b = type_list[j];
-                self.cpp_nlist.setRCutPair(i,j, self.r_cut.values[(a,b)]);
+                self.cpp_nlist.setRCutPair(i,j, self.r_cut.get_pair(a,b));
 
     ## \internal
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden

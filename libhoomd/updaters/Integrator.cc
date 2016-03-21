@@ -88,8 +88,6 @@ Integrator::~Integrator()
         m_request_flags_connection.disconnect();
     if (m_callback_connection.connected())
         m_callback_connection.disconnect();
-    if (m_comm_callback_connection.connected())
-        m_comm_callback_connection.disconnect();
     #endif
     }
 
@@ -456,8 +454,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
         unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
@@ -470,8 +470,10 @@ void Integrator::computeNetForce(unsigned int timestep)
             //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
             GPUArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
+            GPUArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
+            ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
             unsigned int virial_pitch = h_virial_array.getPitch();
 
 
@@ -481,6 +483,12 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_force.data[j].y += h_force.data[j].y;
                 h_net_force.data[j].z += h_force.data[j].z;
                 h_net_force.data[j].w += h_force.data[j].w;
+
+                h_net_torque.data[j].x += h_torque.data[j].x;
+                h_net_torque.data[j].y += h_torque.data[j].y;
+                h_net_torque.data[j].z += h_torque.data[j].z;
+                h_net_torque.data[j].w += h_torque.data[j].w;
+
                 for (unsigned int k = 0; k < 6; k++)
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
@@ -890,9 +898,6 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
 
     if (! m_callback_connection.connected() && m_comm)
         m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
-
-    if (! m_comm_callback_connection.connected() && m_comm)
-        m_comm_callback_connection = comm->addCommunicationCallback(bind(&Integrator::ghostCommunicationCallback, this, _1));
     }
 
 void Integrator::computeCallback(unsigned int timestep)
@@ -902,19 +907,6 @@ void Integrator::computeCallback(unsigned int timestep)
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
-    }
-
-void Integrator::ghostCommunicationCallback(const GPUArray<unsigned int>& plans)
-    {
-    // identify additonal ghost particles
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->addGhostParticles(plans);
-
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->addGhostParticles(plans);
     }
 #endif
 

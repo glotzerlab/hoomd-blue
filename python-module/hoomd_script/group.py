@@ -327,6 +327,43 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     # return it in the wrapper class
     return group(name, cpp_group);
 
+## Groups particles that are center particles of rigid bodies
+#
+# Creates a particle group from particles. \b All particles that are central particles of rigid bodies be added to the group.
+# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should
+# be operated on.
+#
+# The group is always named 'rigid_center'.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+#
+# \b Examples:
+# \code
+# rigid = group.rigid_center()
+# \endcode
+def rigid_center():
+    util.print_status_line();
+
+    # check if initialization has occurred
+    if not init.is_initialized():
+        globals.msg.error("Cannot create a group before initialization\n");
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'rigid_center';
+    selector = hoomd.ParticleSelectorRigidCenter(globals.system_definition);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, True);
+
+    # notify the user of the created group
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    if cpp_group.getNumMembersGlobal() == 0:
+        globals.msg.notice(2, 'It is OK if there are zero particles in this group. The group will be updated after run().\n');
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+
 ## Groups particles that do not belong to rigid bodies
 #
 # Creates a particle group from particles. \b All particles that <b>do not</b> belong to a rigid body will be added to

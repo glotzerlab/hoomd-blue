@@ -413,29 +413,6 @@ import hoomd_script
 # \endcode
 #
 # <hr>
-# <h3>Rigid Body Data</h3>
-# Rigid Body data can be accessed via the body_data_proxy.  Here are examples
-#
-#\code
-#
-# >>> b = system.bodies[0]
-# >>> print(b)
-#num_particles    : 5
-#mass             : 5.0
-# COM              : (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
-# velocity         : (0.0, 0.0, 0.0)
-# orientation      : (0.9244732856750488, -0.3788720965385437, -0.029276784509420395, 0.0307924821972847)
-# angular_momentum (space frame) : (0.0, 0.0, 0.0)
-# moment_inertia: (10.000000953674316, 10.0, 0.0)
-# particle_tags    : [0, 1, 2, 3, 4]
-# particle_disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
-# >>> print(b.COM)
-# (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
-# >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
-#
-#\endcode
-#
-# <hr>
 # <h3>Bond Data</h3>
 # Bonds may be added at any time in the job script.
 # \code
@@ -806,7 +783,6 @@ class system_data(meta._metadata):
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.constraints = constraint_data(sysdef.getConstraintData());
-        self.bodies = body_data(sysdef.getRigidData());
 
         # base class constructor
         meta._metadata.__init__(self)
@@ -820,7 +796,6 @@ class system_data(meta._metadata):
     #
     # \param particles If true, particle data is included in the snapshot
     # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
-    # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
@@ -837,7 +812,6 @@ class system_data(meta._metadata):
     def take_snapshot(self,
                       particles=True,
                       bonds=False,
-                      rigid_bodies=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
@@ -846,14 +820,13 @@ class system_data(meta._metadata):
         if all is True:
                 particles=True
                 bonds=True
-                rigid_bodies=True
                 integrators=True
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,integrators)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,rigid_bodies,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,integrators)
         else:
             raise ValueError("dtype must be float or double");
 
@@ -878,8 +851,6 @@ class system_data(meta._metadata):
     # system = init.read_xml("some_file.xml")
     # system.replicate(nx=2,ny=2,nz=2)
     # \endcode
-    #
-    # \note Replication of rigid bodies is currently not supported.
     #
     # \note It is a limitation that in MPI simulations the dimensions of the processor grid
     # are not updated upon replication. For example, if an initially cubic box is replicated along only one
@@ -967,7 +938,6 @@ class system_data(meta._metadata):
         data['dihedrals'] = self.dihedrals
         data['impropers'] = self.impropers
         data['constraints'] = self.constraints
-        data['bodies'] = self.bodies
 
         data['timestep'] = hoomd_script.context.current.system.getCurrentTimeStep()
         return data
@@ -2241,6 +2211,7 @@ class dihedral_data_proxy(object):
         return self.ddata.getNameByType(typeid);
 
 ## \internal
+<<<<<<< HEAD
 # \brief Access body data
 #
 # body_data provides access to the per-body data of all bodies in the system.

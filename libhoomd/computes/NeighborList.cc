@@ -639,7 +639,8 @@ void NeighborList::countExclusions()
     else
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: no" << endl;
 
-    if (!m_filter_body && m_sysdef->getRigidData()->getNumBodies() > 0)
+    bool has_bodies = m_pdata->hasRigidBodies();
+    if (!m_filter_body && has_bodies)
         {
         m_exec_conf->msg->warning() << "Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
              << "            unless inter-body pair forces are very small." << endl;

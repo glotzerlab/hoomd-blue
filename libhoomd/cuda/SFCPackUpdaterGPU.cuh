@@ -75,6 +75,7 @@ void gpu_generate_sorted_order(unsigned int N,
 //! Reorder particle data (GPU driver function)
 void gpu_apply_sorted_order(
         unsigned int N,
+        unsigned int n_ghost,
         const unsigned int *d_sorted_order,
         const Scalar4 *d_pos,
         Scalar4 *d_pos_alt,

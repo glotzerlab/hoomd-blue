@@ -109,9 +109,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of Profiler
 class Profiler;
 
-// Forward declaration of RigidData
-class RigidData;
-
 // Forward declaration of IntegratorData
 class IntegratorData;
 
@@ -180,6 +177,9 @@ struct SnapshotParticleData {
     /*! \param N number of particles in snapshot
      */
     void resize(unsigned int N);
+
+    //! Insert n elements at position i
+    void insert(unsigned int i, unsigned int n);
 
     //! Validate the snapshot
     /*! \returns true if the number of elements is consistent
@@ -350,7 +350,7 @@ struct pdata_element
     Similarly, a net torque is computed and stored for each particle. The design decision made is to not
     duplicate efforts already made to enable composite bodies of anisotropic particles. So the particle orientation
     is a read only quantity when used by most of HOOMD. To integrate this degree of freedom forward, the particle
-    must be part of a composite body (stored and handled by RigidData) (there can be single-particle bodies,
+    must be part of a composite body (there can be single-particle bodies,
     of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
     body and then set the constrained position, velocity, and orientation of the constituent particles.
 
@@ -501,6 +501,34 @@ class ParticleData : boost::noncopyable
                 }
             #endif
             return maxdiam;
+            }
+
+        /*! Returns true if there are rigid bodies in the system
+         */
+        bool hasRigidBodies() const
+            {
+            unsigned int has_bodies = 0;
+            ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);
+            for (unsigned int i = 0; i < getN(); ++i)
+                {
+                if (h_body.data[i] != NO_BODY)
+                    {
+                    has_bodies = 1;
+                    break;
+                    }
+                }
+            #ifdef ENABLE_MPI
+            if (m_decomposition)
+                {
+                MPI_Allreduce(MPI_IN_PLACE,
+                    &has_bodies,
+                    1,
+                    MPI_UNSIGNED,
+                    MPI_MAX,
+                    m_exec_conf->getMPICommunicator());
+                }
+            #endif
+            return has_bodies;
             }
 
         //! Return positions and types
@@ -658,7 +686,7 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the local maximum particle number changes
         boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
-        //! Connects a function to be called every time the ghost particles are reinitialized
+        //! Connects a function to be called every time the ghost particles become invalid
         boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
 
         #ifdef ENABLE_MPI
@@ -855,7 +883,7 @@ class ParticleData : boost::noncopyable
 
         //! Initialize from a snapshot
         template <class Real>
-        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot);
+        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot, bool ignore_bodies=false);
 
         //! Take a snapshot
         template <class Real>
@@ -867,8 +895,10 @@ class ParticleData : boost::noncopyable
         //! Remove all ghost particles from system
         void removeAllGhostParticles()
             {
-            notifyGhostParticlesRemoved();
+            // reset ghost particle number
             m_nghosts = 0;
+
+            notifyGhostParticlesRemoved();
             }
 
 #ifdef ENABLE_MPI

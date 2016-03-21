@@ -44,13 +44,11 @@ class dmp_dcd_tests (unittest.TestCase):
             os.remove(self.tmp_file)
 
     # tests unwrap_rigid option
-    def test_unwrap_rigid(self):
-        # only supported in single-processor mode
-        if comm.get_num_ranks()==1:
-            dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
-            run(100)
-            if (comm.get_rank() == 0):
-                os.remove(self.tmp_file)
+    #def test_unwrap_rigid(self):
+    #    dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
+    #    run(100)
+    #    if (comm.get_rank() == 0):
+    #        os.remove(self.tmp_file)
 
     # tests group option
     def test_group(self):

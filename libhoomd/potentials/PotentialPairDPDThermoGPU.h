@@ -118,25 +118,9 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
             m_tuner->setEnabled(enable);
             }
 
-        #ifdef ENABLE_MPI
-        /*! Precompute the pair force without rebuilding the neighbor list
-         *
-         * \param timestep The time step
-         */
-        virtual void preCompute(unsigned int timestep)
-            {
-            m_precompute = true;
-            this->forceCompute(timestep);
-            m_precompute = false;
-            m_has_been_precomputed = true;
-            }
-        #endif
-
     protected:
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_param;                 //!< Kernel tuning parameter
-        bool m_precompute;                    //!< True if we are pre-computing the force
-        bool m_has_been_precomputed;          //!< True if the forces have been precomputed
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -175,22 +159,13 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boos
     // synchronize autotuner results across ranks
     m_tuner->setSync(bool(this->m_pdata->getDomainDecomposition()));
     #endif
-
-    m_precompute = false;
-    m_has_been_precomputed = false;
     }
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
     {
-    if (!m_precompute)
-        this->m_nlist->compute(timestep);
-
-    // if we have already computed and the neighbor list remains current do not recompute
-    if (!m_precompute && m_has_been_precomputed && !this->m_nlist->hasBeenUpdated(timestep)) return;
-
-    m_has_been_precomputed = false;
+    this->m_nlist->compute(timestep);
 
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
