@@ -52,6 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Integrator.h"
 #include "IntegrationMethodTwoStep.h"
 
+#include "ForceComposite.h"
+
 #ifndef __INTEGRATOR_TWO_STEP_H__
 #define __INTEGRATOR_TWO_STEP_H__
 
@@ -75,6 +77,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     To ensure that the user does not make a mistake and specify more than one method operating on a single particle,
     the particle groups are checked for intersections whenever a new method is added in addIntegrationMethod()
+
+    There is a special registration mechanism for ForceComposites which run after the integration steps
+    one and two, and which can use the updated particle positions and velocities to update any slaved degrees
+    of freedom (rigid bodies).
 
     \ingroup updaters
 */
@@ -130,6 +136,12 @@ class IntegratorTwoStep : public Integrator
         //! Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
 
+        //! Add a ForceComposite to the list
+        virtual void addForceComposite(boost::shared_ptr<ForceComposite> fc);
+
+        //! Removes all ForceComputes from the list
+        virtual void removeForceComputes();
+
 #ifdef ENABLE_MPI
         //! Set the communicator to use
         /*! \param comm The Communicator
@@ -150,6 +162,7 @@ class IntegratorTwoStep : public Integrator
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
 
+        std::vector< boost::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
     };
 
 //! Exports the IntegratorTwoStep class to python

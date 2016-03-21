@@ -83,6 +83,10 @@ class POSDumpWriter : public Analyzer
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
         void setUnwrapRigid(bool enable)
             {
+            if (enable)
+                {
+                throw std::runtime_error("POSDumpWriter: unwrap_rigid unsupported.\n");
+                }
             m_unwrap_rigid = enable;
             }
 
@@ -98,7 +102,6 @@ class POSDumpWriter : public Analyzer
 
         std::vector< std::string > m_defs;  //!< Shape defs
 
-        boost::shared_ptr<RigidData> m_rigid_data; //!< For accessing rigid body data
         bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
         bool m_write_info; //!< If true, there is additional info to write
         boost::python::object m_add_info; // method that returns additional information 

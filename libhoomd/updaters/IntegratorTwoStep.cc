@@ -155,12 +155,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
-    // Update the rigid body particle positions and velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->setRV(true);
-
     if (m_prof)
         m_prof->pop();
+
+    // slave any constituents of local composite particles
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeParticles(timestep+1, false);
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -169,6 +170,10 @@ void IntegratorTwoStep::update(unsigned int timestep)
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
         m_comm->communicate(timestep+1);
+
+        // update local constituents of remote composite particles
+        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            (*force_composite)->updateCompositeParticles(timestep+1, true);
         }
 #endif
 
@@ -183,22 +188,18 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->push("Integrate");
 
-    // if the virial needs to be computed and there are rigid bodies, perform the virial correction
-    PDataFlags flags = m_pdata->getFlags();
-    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->computeVirialCorrectionStart();
-
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
 
-    // Update the rigid body particle velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() > 0)
-       m_sysdef->getRigidData()->setRV(false);
+    /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
+       in the second step.
 
-    // if the virial needs to be computed and there are rigid bodies, perform the virial correction
-    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
-        m_sysdef->getRigidData()->computeVirialCorrectionEnd(m_deltaT/2.0);
+       Otherwise we would have to update ghost positions for central particles
+       here in order to update the constituent particles.
+
+       TODO: check this assumptions holds for all integrators
+     */
 
     if (m_prof)
         m_prof->pop();
@@ -257,6 +258,26 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
     m_methods.clear();
     m_gave_warning = false;
     }
+
+/*! \param fc ForceComposite to add
+*/
+void IntegratorTwoStep::addForceComposite(boost::shared_ptr<ForceComposite> fc)
+    {
+    assert(fc);
+    m_composite_forces.push_back(fc);
+    }
+
+/*! Call removeForceComputes() to completely wipe out the list of force computes
+    that the integrator uses to sum forces.
+*/
+void IntegratorTwoStep::removeForceComputes()
+    {
+    Integrator::removeForceComputes();
+
+    // Remove ForceComposite objects
+    m_composite_forces.clear();
+    }
+
 
 /*! \returns true If all added integration methods have valid restart information
 */
@@ -357,6 +378,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_first_step = false;
         m_prepared = true;
 
+        // ensure that any rigid bodies are correctly initialized
+        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            (*force_composite)->updateCompositeParticles(timestep, false);
+
 #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -365,21 +391,19 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
             // perform communication
             m_comm->communicate(timestep);
+
+            // update local constituents of remote composite particles
+            for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+                (*force_composite)->updateCompositeParticles(timestep+1, true);
             }
 #endif
 
-        // net force is always needed (ticket #393)
+        // net force is always needed
         computeNetForce(timestep);
 
         // but the accelerations only need to be calculated if the restart is not valid
         if (!isValidRestart())
             computeAccelerations(timestep);
-
-        // for the moment, isotropic_virial is invalid on the first step if there are any rigid bodies
-        // a future update to the restart data format (that saves net_force and net_virial) will make it
-        // valid when there is a valid restart
-        if (m_sysdef->getRigidData()->getNumBodies() > 0)
-            m_pdata->removeFlag(pdata_flag::isotropic_virial);
         }
     }
 
@@ -432,6 +456,8 @@ void export_IntegratorTwoStep()
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
+        .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
+        .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
         ;
 
     enum_<IntegratorTwoStep::AnisotropicMode>("IntegratorAnisotropicMode")

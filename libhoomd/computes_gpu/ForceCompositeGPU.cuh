@@ -47,56 +47,67 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+#include <HOOMDMath.h>
 
-#include "TwoStepNHRigid.h"
-#include "Variant.h"
-#include "ComputeThermo.h"
+// Maintainer: jglaser
 
-#ifndef __TWO_STEP_NPH_RIGID_H__
-#define __TWO_STEP_NPH_RIGID_H__
-
-/*! \file TwoStepNPHRigid.h
-    \brief Declares the TwoStepNPHRigid class
+/*! \file ForceComposite.cuh
+    \brief Defines GPU driver functions for the composite particle integration on the GPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+cudaError_t gpu_rigid_force(Scalar4* d_force,
+                 Scalar4* d_torque,
+                 const unsigned int *d_molecule_len,
+                 const unsigned int *d_molecule_list,
+                 const unsigned int *d_tag,
+                 const unsigned int *d_rtag,
+                 Index2D molecule_indexer,
+                 const Scalar4 *d_postype,
+                 const Scalar4* d_orientation,
+                 Index2D body_indexer,
+                 Scalar3* d_body_pos,
+                 Scalar4* d_body_orientation,
+                 const Scalar4* d_net_force,
+                 const Scalar4* d_net_torque,
+                 unsigned int n_mol,
+                 unsigned int N,
+                 unsigned int n_bodies_per_block,
+                 unsigned int block_size,
+                 const cudaDeviceProp& dev_prop);
 
-//! Integrates part of the system forward in two steps in the NPH ensemble
-/*! Implements Nose-Hoover NPH integration through the IntegrationMethodTwoStep interface
+cudaError_t gpu_rigid_virial(Scalar* d_virial,
+                 const unsigned int *d_molecule_len,
+                 const unsigned int *d_molecule_list,
+                 const unsigned int *d_tag,
+                 const unsigned int *d_rtag,
+                 Index2D molecule_indexer,
+                 const Scalar4 *d_postype,
+                 const Scalar4* d_orientation,
+                 Index2D body_indexer,
+                 Scalar3* d_body_pos,
+                 Scalar4* d_body_orientation,
+                 const Scalar4* d_net_force,
+                 const Scalar *d_net_virial,
+                 unsigned int n_mol,
+                 unsigned int N,
+                 unsigned int n_bodies_per_block,
+                 unsigned int net_virial_pitch,
+                 unsigned int virial_pitch,
+                 unsigned int block_size,
+                 const cudaDeviceProp& dev_prop);
 
-    \ingroup updaters
-*/
-class TwoStepNPHRigid : public TwoStepNHRigid
-    {
-    public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepNPHRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<ComputeThermo> thermo_group,
-                        boost::shared_ptr<ComputeThermo> thermo_all,
-                        const std::string& suffix,
-                        Scalar tauP,
-                        boost::shared_ptr<Variant> P,
-                        couplingMode couple,
-                        unsigned int flags,
-                        unsigned int pchain,
-                        unsigned int iter);
-        virtual ~TwoStepNPHRigid();
 
-        //! Computes initial forces and torques and initializes thermostats/barostats
-        virtual void setup();
-
-        //! Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
-
-    protected:
-    };
-
-//! Exports the TwoStepNPHRigid class to python
-void export_TwoStepNPHRigid();
-
-#endif // #ifndef __TWO_STEP_NPH_RIGID_H__
-
+void gpu_update_composite(unsigned int N,
+    unsigned int n_ghost,
+    const unsigned int *d_body,
+    const unsigned int *d_rtag,
+    const unsigned int *d_tag,
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    Index2D body_indexer,
+    const Scalar3 *d_body_pos,
+    const Scalar4 *d_body_orientation,
+    int3 *d_image,
+    const BoxDim box,
+    bool remote,
+    unsigned int block_size);

@@ -14,7 +14,7 @@ context.initialize()
 class constrain_distance_tests (unittest.TestCase):
     def setUp(self):
         print
-        snap = data.make_snapshot(N=4,box=data.boxdim(L=20),particle_types=['A'])
+        snap = data.make_snapshot(N=4,box=data.boxdim(L=25),particle_types=['A'])
         self.system = init.read_snapshot(snap)
 
         self.system.particles[0].position = (0,0,0)

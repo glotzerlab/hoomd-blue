@@ -161,6 +161,12 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
 */
 void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
     {
+    if (m_group->getNumMembersGlobal() == 0)
+        {
+        m_exec_conf->msg->error() << "integrate.nvt(): Integration group empty." << std::endl;
+        throw std::runtime_error("Error during NVT integration.");
+        }
+
     unsigned int group_size = m_group->getNumMembers();
 
     // profile this step

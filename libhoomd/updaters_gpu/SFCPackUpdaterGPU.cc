@@ -231,6 +231,7 @@ void SFCPackUpdaterGPU::applySortOrder()
 
         // apply sorted order and re-build rtags
         gpu_apply_sorted_order(m_pdata->getN(),
+            m_pdata->getNGhosts(),
             d_gpu_sort_order.data,
             d_pos.data,
             d_pos_alt.data,

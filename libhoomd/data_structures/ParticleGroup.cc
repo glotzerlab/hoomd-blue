@@ -223,6 +223,41 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     }
 
 //////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorRigidCenter
+
+ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(boost::shared_ptr<SystemDefinition> sysdef)
+    :ParticleSelector(sysdef)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag is a center particle of a rigid body
+*/
+bool ParticleSelectorRigidCenter::isSelected(unsigned int tag) const
+    {
+    assert(tag <= m_pdata->getMaximumTag());
+
+    // access array directly instead of going through the getBody() interface
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    unsigned int body = h_body.data[idx];
+
+    // see if it matches the criteria
+    return (body == tag);
+    }
+
+
+//////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
 
 ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
@@ -549,26 +584,31 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
 
     if (a != b)
         {
+        unsigned int n_a = a->getNumMembersGlobal();
+        unsigned int n_b = b->getNumMembersGlobal();
+
         // make the union
         ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_union(h_members_a.data,
-                  h_members_a.data + a->getNumMembersGlobal(),
+                  h_members_a.data + n_a,
                   h_members_b.data,
-                  h_members_b.data + b->getNumMembersGlobal(),
+                  h_members_b.data + n_b,
                   ii);
         }
     else
         {
+        unsigned int n_a = a->getNumMembersGlobal();
+
         // If the two arguments are the same, just return a copy of the whole group (we cannot
         // acquire the member_tags array twice)
         ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
-                  h_members_a.data + a->getNumMembersGlobal(),
+                  h_members_a.data + n_a,
                   ii);
         }
 
@@ -595,26 +635,30 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
 
     if (a != b)
         {
+        unsigned int n_a = a->getNumMembersGlobal();
+        unsigned int n_b = b->getNumMembersGlobal();
+
         // make the intersection
         ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_intersection(h_members_a.data,
-                         h_members_a.data + a->getNumMembersGlobal(),
+                         h_members_a.data + n_a,
                          h_members_b.data,
-                         h_members_b.data + b->getNumMembersGlobal(),
+                         h_members_b.data + n_b,
                          ii);
         }
     else
         {
+        unsigned int n_a = a->getNumMembersGlobal();
         // If the two arguments are the same, just return a copy of the whole group (we cannot
         // acquire the member_tags array twice)
         ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
-                  h_members_a.data + a->getNumMembersGlobal(),
+                  h_members_a.data + n_a,
                   ii);
         }
 
@@ -639,15 +683,17 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 
     if (a != b)
         {
+        unsigned int n_a = a->getNumMembersGlobal();
+        unsigned int n_b = b->getNumMembersGlobal();
         // make the difference
         ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_difference(h_members_a.data,
-                  h_members_a.data + a->getNumMembersGlobal(),
+                  h_members_a.data + n_a,
                   h_members_b.data,
-                  h_members_b.data + b->getNumMembersGlobal(),
+                  h_members_b.data + n_b,
                   ii);
         }
     else
@@ -798,5 +844,9 @@ void export_ParticleGroup()
 
     class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
+        ;
+
+    class_<ParticleSelectorRigidCenter, boost::shared_ptr<ParticleSelectorRigidCenter>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorRigidCenter", init< boost::shared_ptr<SystemDefinition> >())
         ;
     }

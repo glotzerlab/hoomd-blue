@@ -172,18 +172,21 @@ void gpu_exchange_ghosts_pack(
     const Scalar4 *d_vel,
     const Scalar *d_charge,
     const Scalar *d_diameter,
+    const unsigned int *d_body,
     const Scalar4 *d_orientation,
     unsigned int *d_tag_sendbuf,
     Scalar4 *d_pos_sendbuf,
     Scalar4 *d_vel_sendbuf,
     Scalar *d_charge_sendbuf,
     Scalar *d_diameter_sendbuf,
+    unsigned int *d_body_sendbuf,
     Scalar4 *d_orientation_sendbuf,
     bool send_tag,
     bool send_pos,
     bool send_vel,
     bool send_charge,
     bool send_diameter,
+    bool send_body,
     bool send_orientation,
     const Index3D& di,
     uint3 my_pos,
@@ -201,18 +204,21 @@ void gpu_exchange_ghosts_copy_buf(
     const Scalar4 *d_vel_recvbuf,
     const Scalar *d_charge_recvbuf,
     const Scalar *d_diameter_recvbuf,
+    const unsigned int *d_body_recvbuf,
     const Scalar4 *d_orientation_recvbuf,
     unsigned int *d_tag,
     Scalar4 *d_pos,
     Scalar4 *d_vel,
     Scalar *d_charge,
     Scalar *d_diameter,
+    unsigned int *d_body,
     Scalar4 *d_orientation,
     bool send_tag,
     bool send_pos,
     bool send_vel,
     bool send_charge,
     bool send_diameter,
+    bool send_body,
     bool send_orientation);
 
 //! Compute ghost rtags
@@ -374,4 +380,16 @@ void gpu_exchange_ghosts_copy_netforce_buf(
     const Scalar4 *d_netforce_recvbuf,
     Scalar4 *d_netforce);
 
+void gpu_exchange_ghosts_pack_netvirial(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar *d_netvirial,
+    Scalar *d_netvirial_sendbuf,
+    unsigned int pitch_in);
+
+void gpu_exchange_ghosts_copy_netvirial_buf(
+    unsigned int n_recv,
+    const Scalar *d_netvirial_recvbuf,
+    Scalar *d_netvirial,
+    unsigned int pitch_out);
 #endif // ENABLE_MPI

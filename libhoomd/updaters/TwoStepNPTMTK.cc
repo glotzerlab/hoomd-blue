@@ -145,6 +145,12 @@ TwoStepNPTMTK::~TwoStepNPTMTK()
 */
 void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     {
+    if (m_group->getNumMembersGlobal() == 0)
+        {
+        m_exec_conf->msg->error() << "integrate.npt(): Integration group empty." << std::endl;
+        throw std::runtime_error("Error during NPT integration.");
+        }
+
     unsigned int group_size = m_group->getNumMembers();
 
     // profile this step
