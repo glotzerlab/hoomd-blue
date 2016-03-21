@@ -56,7 +56,6 @@ endif(ENABLE_STATIC)
 ################################
 ## Process subdirectories
 add_subdirectory (libhoomd)
-add_subdirectory (share)
 add_subdirectory (python-module)
 add_subdirectory (python-runner)
 
