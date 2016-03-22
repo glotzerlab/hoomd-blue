@@ -158,3 +158,8 @@ foreach(file ${files})
 endforeach()
 
 add_custom_target(copy_hoomd ALL DEPENDS ${files})
+
+option(BUILD_MD "Build the md module" on)
+if (BUILD_MD)
+    add_subdirectory(md)
+endif()
