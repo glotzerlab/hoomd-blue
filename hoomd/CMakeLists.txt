@@ -14,6 +14,7 @@ set(_hoomd_sources Analyzer.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
+                   ComputeThermo.cc
                    ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
@@ -30,6 +31,7 @@ set(_hoomd_sources Analyzer.cc
                    Initializers.cc
                    Integrator.cc
                    IntegratorData.cc
+                   LoadBalancer.cc
                    Logger.cc
                    Messenger.cc
                    MOL2DumpWriter.cc
@@ -67,7 +69,7 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_hoomd SHARED ${_hoomd_sources} ${_CUDA_GENERATED_FILES} module.cc)
+add_library (_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
 target_link_libraries(_hoomd ${HOOMD_COMMON_LIBS})

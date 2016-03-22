@@ -1474,10 +1474,6 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 
 void export_NeighborList()
     {
-    class_< std::vector<unsigned int> >("std_vector_uint")
-    .def(vector_indexing_suite<std::vector<unsigned int> >())
-    ;
-
     scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
                      ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)

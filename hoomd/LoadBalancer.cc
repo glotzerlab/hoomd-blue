@@ -56,8 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LoadBalancer.h"
 #include "Communicator.h"
 
-#include "BVLSSolver.h"
-#include "Eigen/Dense"
+#include "hoomd/extern/BVLSSolver.h"
+#include "hoomd/extern/Eigen/Dense"
 
 #include <boost/python.hpp>
 using namespace boost::python;

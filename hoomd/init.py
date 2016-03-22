@@ -673,17 +673,13 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
 # be done here. For example, setting up communication, registering the
 # SFCPackUpdater, initializing the log writer, etc...
 def _perform_common_init_tasks():
-    from hoomd_script import update;
-    from hoomd_script import group;
-    from hoomd_script import compute;
-
     # create the sorter
-    hoomd.context.current.sorter = update.sort();
+    hoomd.context.current.sorter = hoomd.update.sort();
 
     # create the default compute.thermo on the all group
     hoomd.util.quiet_status();
-    all = group.all();
-    compute._get_unique_thermo(group=all);
+    all = hoomd.group.all();
+    hoomd.compute._get_unique_thermo(group=all);
     hoomd.util.unquiet_status();
 
     # set up Communicator, and register it with the System

@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GSDReader.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
+#include "ComputeThermo.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
@@ -89,6 +90,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include <cuda.h>
 #include "CellListGPU.h"
+#include "ComputeThermoGPU.h"
 #include "SFCPackUpdaterGPU.h"
 
 #include <cuda_profiler_api.h>
@@ -354,6 +356,10 @@ BOOST_PYTHON_MODULE(_hoomd)
     def("cuda_profile_start", &cuda_profile_start);
     def("cuda_profile_stop", &cuda_profile_stop);
 
+    class_< std::vector<unsigned int> >("std_vector_uint")
+    .def(vector_indexing_suite<std::vector<unsigned int> >())
+    ;
+
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
@@ -393,6 +399,7 @@ BOOST_PYTHON_MODULE(_hoomd)
 
     // computes
     export_Compute();
+    export_ComputeThermo();
     export_CellList();
     export_CellListStencil();
     export_ForceCompute();
@@ -401,6 +408,7 @@ BOOST_PYTHON_MODULE(_hoomd)
 
 #ifdef ENABLE_CUDA
     export_CellListGPU();
+    export_ComputeThermoGPU();
 #endif
 
     // analyzers
@@ -421,6 +429,7 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_Updater();
     export_Integrator();
     export_BoxResizeUpdater();
+    export_SFCPackUpdater();
 #ifdef ENABLE_CUDA
     export_SFCPackUpdaterGPU();
 #endif
