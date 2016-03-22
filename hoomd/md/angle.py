@@ -49,17 +49,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import force;
-import hoomd;
-from hoomd_script import util;
-from hoomd_script import tune;
-from hoomd_script import init;
-from hoomd_script import meta;
-import hoomd_script;
+from hoomd.md import _md
+from hoomd.md import force
 
 import math;
 import sys;
-
 
 ## Defines %angle coefficients
 # \brief Defines angle potential coefficients
@@ -139,7 +133,7 @@ class coeff:
     # parameters as they were previously set.
     #
     def set(self, type, **coeffs):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # listify the input
         if isinstance(type, str):
@@ -159,7 +153,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd_script.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -178,15 +172,15 @@ class coeff:
     # This can only be run after the system has been initialized
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot verify angle coefficients before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot verify angle coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getAngleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getAngleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getAngleData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -194,7 +188,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                hoomd_script.context.msg.error("Angle type " +str(type) + " not found in angle coeff\n");
+                hoomd.context.msg.error("Angle type " +str(type) + " not found in angle coeff\n");
                 valid = False;
                 continue;
 
@@ -202,13 +196,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd_script.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
                           ", but is not used by the angle force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd_script.context.msg.error("Angle type " + str(type) + " is missing required coefficients\n");
+                hoomd.context.msg.error("Angle type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -220,7 +214,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            hoomd_script.context.msg.error("Bug detected in force.coeff. Please report\n");
+            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting angle coeff");
 
         return self.values[type][coeff_name];
@@ -230,7 +224,7 @@ class coeff:
     def get_metadata(self):
         return self.values
 
-## \package hoomd_script.angle
+## \package hoomd.angle
 # \brief Commands that specify %angle forces
 #
 # Angles add forces between specified triplets of particles and are typically used to
@@ -272,10 +266,10 @@ class harmonic(force._force):
     # harmonic = angle.harmonic()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that some angles are defined
-        if hoomd_script.context.current.system_definition.getAngleData().getNGlobal() == 0:
-            hoomd_script.context.msg.error("No angles are defined.\n");
+        if hoomd.context.current.system_definition.getAngleData().getNGlobal() == 0:
+            hoomd.context.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating angle forces");
 
         # initialize the base class
@@ -285,12 +279,12 @@ class harmonic(force._force):
         self.angle_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.HarmonicAngleForceCompute(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.HarmonicAngleForceCompute(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.HarmonicAngleForceComputeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.required_coeffs = ['k', 't0'];
 
@@ -300,14 +294,14 @@ class harmonic(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.angle_coeff.verify(coeff_list):
-           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getAngleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getAngleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getAngleData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
@@ -376,22 +370,22 @@ class cgcmm(force._force):
     # cgcmmAngle = angle.cgcmm()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that some angles are defined
-        if hoomd_script.context.current.system_definition.getAngleData().getNGlobal() == 0:
-            hoomd_script.context.msg.error("No angles are defined.\n");
+        if hoomd.context.current.system_definition.getAngleData().getNGlobal() == 0:
+            hoomd.context.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating CGCMM angle forces");
 
         # initialize the base class
         force._force.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.CGCMMAngleForceCompute(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.CGCMMAngleForceCompute(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.CGCMMAngleForceComputeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # variable for tracking which angle type coefficients have been set
         self.angle_types_set = [];
@@ -421,14 +415,14 @@ class cgcmm(force._force):
     # The coefficients for every CG-CMM angle type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, angle_type, k, t0, exponents, epsilon, sigma):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         cg_type=0
 
         # set the parameters for the appropriate type
         if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
             cg_type=2;
 
-            self.cpp_force.setParams(hoomd_script.context.current.system_definition.getAngleData().getTypeByName(angle_type),
+            self.cpp_force.setParams(hoomd.context.current.system_definition.getAngleData().getTypeByName(angle_type),
                                      k,
                                      t0,
                                      cg_type,
@@ -438,7 +432,7 @@ class cgcmm(force._force):
         elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
             cg_type=1;
 
-            self.cpp_force.setParams(hoomd_script.context.current.system_definition.getAngleData().getTypeByName(angle_type),
+            self.cpp_force.setParams(hoomd.context.current.system_definition.getAngleData().getTypeByName(angle_type),
                                      k,
                                      t0,
                                      cg_type,
@@ -448,7 +442,7 @@ class cgcmm(force._force):
         elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
             cg_type=3;
 
-            self.cpp_force.setParams(hoomd_script.context.current.system_definition.getAngleData().getTypeByName(angle_type),
+            self.cpp_force.setParams(hoomd.context.current.system_definition.getAngleData().getTypeByName(angle_type),
                                      k,
                                      t0,
                                      cg_type,
@@ -463,15 +457,15 @@ class cgcmm(force._force):
 
     def update_coeffs(self):
         # get a list of all angle types in the simulation
-        ntypes = hoomd_script.context.current.system_definition.getAngleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getAngleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getAngleData().getNameByType(i));
 
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
-                hoomd_script.context.msg.error(str(cur_type) + " coefficients missing in angle.cgcmm\n");
+                hoomd.context.msg.error(str(cur_type) + " coefficients missing in angle.cgcmm\n");
                 raise RuntimeError("Error updating coefficients");
 
 
@@ -561,19 +555,19 @@ class table(force._force):
     # \note %Pair coefficients for all type angles in the simulation must be
     # set before it can be started with run()
     def __init__(self, width, name=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
 
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.TableAngleForceCompute(hoomd_script.context.current.system_definition, int(width), self.name);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.TableAngleForceCompute(hoomd.context.current.system_definition, int(width), self.name);
         else:
-            self.cpp_force = hoomd.TableAngleForceComputeGPU(hoomd_script.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableAngleForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent matrix
         self.angle_coeff = coeff();
@@ -583,8 +577,8 @@ class table(force._force):
 
     def update_angle_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_scalar();
-        Ttable = hoomd.std_vector_scalar();
+        Vtable = _md.std_vector_scalar();
+        Ttable = _md.std_vector_scalar();
 
         # calculate dth
         dth = math.pi / float(self.width-1);
@@ -605,14 +599,14 @@ class table(force._force):
     def update_coeffs(self):
         # check that the angle coefficents are valid
         if not self.angle_coeff.verify(["func", "coeff"]):
-            hoomd_script.context.msg.error("Not all angle coefficients are set for angle.table\n");
+            hoomd.context.msg.error("Not all angle coefficients are set for angle.table\n");
             raise RuntimeError("Error updating angle coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getAngleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getAngleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getAngleData().getNameByType(i));
 
 
         # loop through all of the unique type angles and evaluate the table
@@ -640,7 +634,7 @@ class table(force._force):
     # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
     #
     def set_from_file(self, anglename, filename):
-          util.print_status_line();
+          hoomd.util.print_status_line();
 
           # open the file
           f = open(filename);
@@ -663,7 +657,7 @@ class table(force._force):
 
               # validate the input
               if len(values) != 3:
-                  hoomd_script.context.msg.error("angle.table: file must have exactly 3 columns\n");
+                  hoomd.context.msg.error("angle.table: file must have exactly 3 columns\n");
                   raise RuntimeError("Error reading table file");
 
               # append to the tables
@@ -673,7 +667,7 @@ class table(force._force):
 
           # validate input
           if self.width != len(theta_table):
-              hoomd_script.context.msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
+              hoomd.context.msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
               raise RuntimeError("Error reading table file");
 
 
@@ -682,12 +676,12 @@ class table(force._force):
           for i in range(0,self.width):
               theta =  dth * i;
               if math.fabs(theta - theta_table[i]) > 1e-3:
-                  hoomd_script.context.msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
+                  hoomd.context.msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
                   raise RuntimeError("Error reading table file");
 
-          util.quiet_status();
+          hoomd.util.quiet_status();
           self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-          util.unquiet_status();
+          hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata

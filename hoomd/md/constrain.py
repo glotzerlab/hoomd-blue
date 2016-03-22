@@ -49,7 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd_script.constrain
+## \package hoomd.constrain
 # \brief Commands that create constraint forces on particles
 #
 # Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
@@ -64,14 +64,10 @@
 # temperature for thermostatting and logging.
 #
 
-from hoomd_script import force;
+from hoomd import _hoomd
+from hoomd.md import _md
+from hoomd.md import force;
 import hoomd;
-from hoomd_script import util;
-from hoomd_script import init;
-from hoomd_script import data;
-from hoomd_script import meta;
-from hoomd_script import nlist;
-import hoomd_script;
 
 ## \internal
 # \brief Base class for constraint forces
@@ -81,7 +77,7 @@ import hoomd_script;
 # writers. 1) The instance of the c++ constraint force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
-class _constraint_force(meta._metadata):
+class _constraint_force(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -92,8 +88,8 @@ class _constraint_force(meta._metadata):
     # Assigns a name to the force in force_name;
     def __init__(self):
         # check if initialization has occured
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create force before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
 
         self.cpp_force = None;
@@ -106,13 +102,13 @@ class _constraint_force(meta._metadata):
         self.enabled = True;
 
         self.composite = False;
-        hoomd_script.context.current.constraint_forces.append(self);
+        hoomd.context.current.constraint_forces.append(self);
 
         # create force data iterator
-        self.forces = data.force_data(self);
+        self.forces = hoomd.data.force_data(self);
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -135,7 +131,7 @@ class _constraint_force(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
 
@@ -159,18 +155,18 @@ class _constraint_force(meta._metadata):
     # force.disable()
     # \endcode
     def disable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
 
         # remove the compute from the system
-        hoomd_script.context.current.system.removeCompute(self.force_name);
+        hoomd.context.current.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -215,16 +211,16 @@ class _constraint_force(meta._metadata):
     #
     # See disable() for a detailed description.
     def enable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.enabled = True;
 
@@ -265,19 +261,19 @@ class sphere(_constraint_force):
     # constrain.sphere(group=groupA, P=(0,10,2), r=10)
     # \endcode
     def __init__(self, group, P, r):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
 
         # create the c++ mirror class
-        P = hoomd.make_scalar3(P[0], P[1], P[2]);
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ConstraintSphere(hoomd_script.context.current.system_definition, group.cpp_group, P, r);
+        P = _hoomd.make_scalar3(P[0], P[1], P[2]);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.ConstraintSphere(hoomd.context.current.system_definition, group.cpp_group, P, r);
         else:
-            self.cpp_force = hoomd.ConstraintSphereGPU(hoomd_script.context.current.system_definition, group.cpp_group, P, r);
+            self.cpp_force = _md.ConstraintSphereGPU(hoomd.context.current.system_definition, group.cpp_group, P, r);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # store metadata
         self.group = group
@@ -306,7 +302,7 @@ class sphere(_constraint_force):
 #
 # \warning constrain.distance() does not currently interoperate with integrate.brownian() or integrate.langevin()
 #
-# \sa hoomd_script.data.system_data
+# \sa hoomd.data.system_data
 #
 # \MPI_SUPPORTED
 class distance(_constraint_force):
@@ -317,18 +313,18 @@ class distance(_constraint_force):
     # constrain.distance()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ForceDistanceConstraint(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.ForceDistanceConstraint(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.ForceDistanceConstraintGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.ForceDistanceConstraintGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     ## Set parameters for constraint computation
     #
@@ -352,7 +348,7 @@ class rigid(_constraint_force):
     # constrain.distance()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
@@ -360,67 +356,67 @@ class rigid(_constraint_force):
         self.composite = True
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ForceComposite(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.ForceComposite(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.ForceCompositeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.ForceCompositeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     ## Set constituent particle types and coordinates for a rigid body
     #
     # Note: a mirror data structure for bodies in python would be nice OR as a proxy
     def set_param(self,type_name, types, positions, orientations=None):
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         if type_name not in type_list:
-            hoomd_script.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
+            hoomd.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
             raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
         type_id = type_list.index(type_name)
 
         if not isinstance(types, list):
-            hoomd_script.context.msg.error('Expecting list of particle types.\n')
+            hoomd.context.msg.error('Expecting list of particle types.\n')
             raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
-        type_vec = hoomd.std_vector_uint()
+        type_vec = _hoomd.std_vector_uint()
         for t in types:
             if t not in type_list:
-                hoomd_script.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
+                hoomd.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
             constituent_type_id = type_list.index(t)
 
             type_vec.append(constituent_type_id)
 
         if not isinstance(positions, list):
-            hoomd_script.context.msg.error('Expecting list of particle positions.\n')
+            hoomd.context.msg.error('Expecting list of particle positions.\n')
             raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
-        pos_vec = hoomd.std_vector_scalar3()
+        pos_vec = _hoomd.std_vector_scalar3()
         for p in positions:
             if not isinstance(p, tuple) or len(p) != 3:
-                hoomd_script.context.msg.error('Particle position is not a coordinate triple.\n')
+                hoomd.context.msg.error('Particle position is not a coordinate triple.\n')
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
-            pos_vec.append(hoomd.make_scalar3(p[0],p[1],p[2]))
+            pos_vec.append(_hoomd.make_scalar3(p[0],p[1],p[2]))
 
-        orientation_vec = hoomd.std_vector_scalar4()
+        orientation_vec = _hoomd.std_vector_scalar4()
         if orientations is not None:
             if not isinstance(orientations, list):
-                hoomd_script.context.msg.error('Expecting list of particle orientations.\n')
+                hoomd.context.msg.error('Expecting list of particle orientations.\n')
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
             for o in orientations:
                 if not isinstance(o, tuple()) or len(o) != 4:
-                    hoomd_script.context.msg.error('Particle orientation is not a 4-tuple.\n')
+                    hoomd.context.msg.error('Particle orientation is not a 4-tuple.\n')
                     raise RuntimeError('Error setting up parameters for constrain.rigid()')
-                orientation_vec.append(hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
+                orientation_vec.append(_hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
         else:
             for p in positions:
-                orientation_vec.append(hoomd.make_scalar4(1,0,0,0))
+                orientation_vec.append(_hoomd.make_scalar4(1,0,0,0))
 
         # set parameters in C++ force
         self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec)

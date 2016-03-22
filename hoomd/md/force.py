@@ -49,16 +49,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd.md import _md;
 import sys;
 import hoomd;
-from hoomd_script import util;
-from hoomd_script import data;
-from hoomd_script import init;
-from hoomd_script import meta;
-from hoomd_script import context;
-import hoomd_script;
 
-## \package hoomd_script.force
+## \package hoomd.force
 # \brief Other types of forces
 #
 # This package contains various forces that don't belong in any of the other categories
@@ -71,7 +66,7 @@ import hoomd_script;
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
-class _force(meta._metadata):
+class _force(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the force
     #
@@ -82,8 +77,8 @@ class _force(meta._metadata):
     # Assigns a name to the force in force_name;
     def __init__(self, name=None):
         # check if initialization has occured
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create force before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
 
         # Allow force to store a name.  Used for discombobulation in the logger
@@ -101,10 +96,10 @@ class _force(meta._metadata):
         self.force_name = "force%d" % (id);
         self.enabled = True;
         self.log =True;
-        hoomd_script.context.current.forces.append(self);
+        hoomd.context.current.forces.append(self);
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -123,7 +118,7 @@ class _force(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
 
@@ -156,12 +151,12 @@ class _force(meta._metadata):
     # force.disable(log=True)
     # \endcode
     def disable(self, log=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -169,7 +164,7 @@ class _force(meta._metadata):
 
         # remove the compute from the system if it is not going to be logged
         if not log:
-            hoomd_script.context.current.system.removeCompute(self.force_name);
+            hoomd.context.current.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -214,17 +209,17 @@ class _force(meta._metadata):
     #
     # See disable() for a detailed description.
     def enable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system if it was removed
         if not self.log:
-            hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+            hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.enabled = True;
         self.log = True;
@@ -240,14 +235,14 @@ class _force(meta._metadata):
     # \brief Returns the force data
     #
     def __forces(self):
-        return data.force_data(self);
+        return hoomd.data.force_data(self);
 
     forces = property(__forces);
 
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         data['log'] = self.log
         if self.name is not "":
@@ -279,16 +274,16 @@ class constant(_force):
     # const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
     # \endcode
     def __init__(self, fx, fy, fz, group=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _force.__init__(self);
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = hoomd.ConstForceCompute(hoomd_script.context.current.system_definition, group.cpp_group, fx, fy, fz);
+            self.cpp_force = _md.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
         else:
-            self.cpp_force = hoomd.ConstForceCompute(hoomd_script.context.current.system_definition, hoomd_script.context.current.group_all.cpp_group, fx, fy, fz);
+            self.cpp_force = _md.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
 
         # store metadata
         self.metadata_fields = ['fx','fy','fz']
@@ -299,7 +294,7 @@ class constant(_force):
             self.metadata_fields.append('group')
             self.group = group
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     ## Change the value of the force
     #
@@ -367,7 +362,7 @@ class active(_force):
     # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     # \endcode
     def __init__(self, seed, f_lst, group, orientation_link=True, rotation_diff=0, constraint=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _force.__init__(self);
@@ -388,17 +383,17 @@ class active(_force):
             else:
                 raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
         else:
-            P = hoomd.make_scalar3(0, 0, 0)
+            P = _md.make_scalar3(0, 0, 0)
             rx = 0
             ry = 0
             rz = 0
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ActiveForceCompute(context.current.system_definition, group.cpp_group, seed, f_lst,
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.ActiveForceCompute(context.current.system_definition, group.cpp_group, seed, f_lst,
                                                       orientation_link, rotation_diff, P, rx, ry, rz);
         else:
-            self.cpp_force = hoomd.ActiveForceComputeGPU(context.current.system_definition, group.cpp_group, seed, f_lst,
+            self.cpp_force = _md.ActiveForceComputeGPU(context.current.system_definition, group.cpp_group, seed, f_lst,
                                                          orientation_link, rotation_diff, P, rx, ry, rz);
 
         # store metadata
@@ -428,15 +423,15 @@ class const_external_field_dipole(_force):
     # const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
     # \endcode
     def __init__(self, field_x,field_y,field_z,p):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         # initialize the base class
         _force.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(hoomd_script.context.current.system_definition, field_x, field_y, field_z, p)
+        self.cpp_force = _md.ConstExternalFieldDipoleForceCompute(hoomd.context.current.system_definition, field_x, field_y, field_z, p)
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name)
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # store metadata
         self.metdata_fields = ['field_x', 'field_y', 'field_z']

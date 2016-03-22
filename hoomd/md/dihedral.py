@@ -49,13 +49,10 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import force;
+from hoomd import _hoomd
+from hoomd.md import _md
+from hoomd.md import force
 import hoomd;
-from hoomd_script import util;
-from hoomd_script import tune;
-from hoomd_script import init;
-from hoomd_script import meta;
-import hoomd_script;
 
 import math;
 import sys;
@@ -138,7 +135,7 @@ class coeff:
     # parameters as they were previously set.
     #
     def set(self, type, **coeffs):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # listify the input
         if isinstance(type, str):
@@ -158,7 +155,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd_script.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -177,15 +174,15 @@ class coeff:
     # This can only be run after the system has been initialized
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot verify dihedral coefficients before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot verify dihedral coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getDihedralData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -193,7 +190,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                hoomd_script.context.msg.error("Dihedral type " +str(type) + " not found in dihedral coeff\n");
+                hoomd.context.msg.error("Dihedral type " +str(type) + " not found in dihedral coeff\n");
                 valid = False;
                 continue;
 
@@ -201,13 +198,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd_script.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
                           ", but is not used by the dihedral force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd_script.context.msg.error("Dihedral type " + str(type) + " is missing required coefficients\n");
+                hoomd.context.msg.error("Dihedral type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -219,7 +216,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            hoomd_script.context.msg.error("Bug detected in force.coeff. Please report\n");
+            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting dihedral coeff");
 
         return self.values[type][coeff_name];
@@ -229,7 +226,7 @@ class coeff:
     def get_metadata(self):
         return self.values
 
-## \package hoomd_script.dihedral
+## \package hoomd.dihedral
 # \brief Commands that specify %dihedral forces
 #
 # Dihedrals add forces between specified quadruplets of particles and are typically used to
@@ -271,10 +268,10 @@ class harmonic(force._force):
     # harmonic = dihedral.harmonic()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that some dihedrals are defined
-        if hoomd_script.context.current.system_definition.getDihedralData().getNGlobal() == 0:
-            hoomd_script.context.msg.error("No dihedrals are defined.\n");
+        if hoomd.context.current.system_definition.getDihedralData().getNGlobal() == 0:
+            hoomd.context.msg.error("No dihedrals are defined.\n");
             raise RuntimeError("Error creating dihedral forces");
 
         # initialize the base class
@@ -283,12 +280,12 @@ class harmonic(force._force):
         self.dihedral_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.HarmonicDihedralForceCompute(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.HarmonicDihedralForceCompute(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.HarmonicDihedralForceComputeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.HarmonicDihedralForceComputeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.required_coeffs = ['k', 'd', 'n'];
 
@@ -298,14 +295,14 @@ class harmonic(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.dihedral_coeff.verify(coeff_list):
-           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getDihedralData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
@@ -396,19 +393,19 @@ class table(force._force):
     # \note coefficients for all type dihedrals in the simulation must be
     # set before it can be started with run()
     def __init__(self, width, name=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
 
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.TableDihedralForceCompute(hoomd_script.context.current.system_definition, int(width), self.name);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.TableDihedralForceCompute(hoomd.context.current.system_definition, int(width), self.name);
         else:
-            self.cpp_force = hoomd.TableDihedralForceComputeGPU(hoomd_script.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableDihedralForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent matrix
         self.dihedral_coeff = coeff();
@@ -418,8 +415,8 @@ class table(force._force):
 
     def update_dihedral_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_scalar();
-        Ttable = hoomd.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar();
+        Ttable = _hoomd.std_vector_scalar();
 
         # calculate dth
         dth = 2.0*math.pi / float(self.width-1);
@@ -440,14 +437,14 @@ class table(force._force):
     def update_coeffs(self):
         # check that the dihedral coefficents are valid
         if not self.dihedral_coeff.verify(["func", "coeff"]):
-            hoomd_script.context.msg.error("Not all dihedral coefficients are set for dihedral.table\n");
+            hoomd.context.msg.error("Not all dihedral coefficients are set for dihedral.table\n");
             raise RuntimeError("Error updating dihedral coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getDihedralData().getNameByType(i));
 
 
         # loop through all of the unique type dihedrals and evaluate the table
@@ -477,7 +474,7 @@ class table(force._force):
     # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
     #
     def set_from_file(self, dihedralname, filename):
-          util.print_status_line();
+          hoomd.util.print_status_line();
 
           # open the file
           f = open(filename);
@@ -500,7 +497,7 @@ class table(force._force):
 
               # validate the input
               if len(values) != 3:
-                  hoomd_script.context.msg.error("dihedral.table: file must have exactly 3 columns\n");
+                  hoomd.context.msg.error("dihedral.table: file must have exactly 3 columns\n");
                   raise RuntimeError("Error reading table file");
 
               # append to the tables
@@ -510,7 +507,7 @@ class table(force._force):
 
           # validate input
           if self.width != len(r_table):
-              hoomd_script.context.msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
+              hoomd.context.msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
               raise RuntimeError("Error reading table file");
 
 
@@ -519,12 +516,12 @@ class table(force._force):
           for i in range(0,self.width):
               theta =  -math.pi+dnth * i;
               if math.fabs(theta - theta_table[i]) > 1e-3:
-                  hoomd_script.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
+                  hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
                   raise RuntimeError("Error reading table file");
 
-          util.quiet_status();
+          hoomd.util.quiet_status();
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-          util.unquiet_status();
+          hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata
@@ -564,10 +561,10 @@ class opls(force._force):
     # opls_di = dihedral.opls()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that some dihedrals are defined
-        if hoomd_script.context.current.system_definition.getDihedralData().getNGlobal() == 0:
-            hoomd_script.context.msg.error("No dihedrals are defined.\n");
+        if hoomd.context.current.system_definition.getDihedralData().getNGlobal() == 0:
+            hoomd.context.msg.error("No dihedrals are defined.\n");
             raise RuntimeError("Error creating opls dihedrals");
 
         # initialize the base class
@@ -576,12 +573,12 @@ class opls(force._force):
         self.dihedral_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.OPLSDihedralForceCompute(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.OPLSDihedralForceCompute(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.OPLSDihedralForceComputeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.OPLSDihedralForceComputeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.required_coeffs = ['k1', 'k2', 'k3', 'k4'];
 
@@ -591,14 +588,14 @@ class opls(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.dihedral_coeff.verify(coeff_list):
-           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getDihedralData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getDihedralData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getDihedralData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff

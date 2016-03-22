@@ -49,16 +49,14 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import force;
+from hoomd.md import _md
+from hoomd.md import force;
 import hoomd;
-from hoomd_script import util;
-from hoomd_script import tune;
-import hoomd_script;
 
 import math;
 import sys;
 
-## \package hoomd_script.improper
+## \package hoomd.improper
 # \brief Commands that specify %improper forces
 #
 # Impropers add forces between specified quadruplets of particles and are typically used to
@@ -150,7 +148,7 @@ class coeff:
     # parameters as they were previously set.
     #
     def set(self, type, **coeffs):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # listify the input
         if isinstance(type, str):
@@ -170,7 +168,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd_script.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -189,15 +187,15 @@ class coeff:
     # This can only be run after the system has been initialized
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
-        if not hoomd_script.init.is_initialized():
-            hoomd_script.context.msg.error("Cannot verify improper coefficients before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot verify improper coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getImproperData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getImproperData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getImproperData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getImproperData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -205,7 +203,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                hoomd_script.context.msg.error("Improper type " +str(type) + " not found in improper coeff\n");
+                hoomd.context.msg.error("Improper type " +str(type) + " not found in improper coeff\n");
                 valid = False;
                 continue;
 
@@ -213,13 +211,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd_script.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
                           ", but is not used by the improper force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd_script.context.msg.error("Improper type " + str(type) + " is missing required coefficients\n");
+                hoomd.context.msg.error("Improper type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -231,7 +229,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            hoomd_script.context.msg.error("Bug detected in force.coeff. Please report\n");
+            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting improper coeff");
 
         return self.values[type][coeff_name];
@@ -272,10 +270,10 @@ class harmonic(force._force):
     # harmonic = improper.harmonic()
     # \endcode
     def __init__(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that some impropers are defined
-        if hoomd_script.context.current.system_definition.getImproperData().getNGlobal() == 0:
-            hoomd_script.context.msg.error("No impropers are defined.\n");
+        if hoomd.context.current.system_definition.getImproperData().getNGlobal() == 0:
+            hoomd.context.msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
 
         # initialize the base class
@@ -284,12 +282,12 @@ class harmonic(force._force):
         self.improper_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.HarmonicImproperForceCompute(hoomd_script.context.current.system_definition);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.HarmonicImproperForceCompute(hoomd.context.current.system_definition);
         else:
-            self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(hoomd_script.context.current.system_definition);
+            self.cpp_force = _md.HarmonicImproperForceComputeGPU(hoomd.context.current.system_definition);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         self.required_coeffs = ['k', 'chi'];
 
@@ -299,14 +297,14 @@ class harmonic(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.improper_coeff.verify(coeff_list):
-           hoomd_script.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = hoomd_script.context.current.system_definition.getImproperData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getImproperData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getImproperData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getImproperData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff

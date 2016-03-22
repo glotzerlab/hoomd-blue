@@ -273,7 +273,6 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
     export_EAMForceCompute();
-    export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();
     export_NeighborListStencil();
@@ -408,7 +407,6 @@ BOOST_PYTHON_MODULE(_md)
     register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< NeighborList > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListTree > >();
-    register_ptr_to_python< boost::shared_ptr< ComputeThermo > >();
     register_ptr_to_python< boost::shared_ptr< ForceConstraint > >();
     register_ptr_to_python< boost::shared_ptr< BondTablePotential > >();
     register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceCompute > >();
@@ -495,7 +493,6 @@ BOOST_PYTHON_MODULE(_md)
     register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< CGCMMForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< ComputeThermoGPU > >();
     register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();

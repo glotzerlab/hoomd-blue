@@ -160,28 +160,22 @@ MACRO(copy_file file)
     )
 ENDMACRO(copy_file)
 
-set(files analyze.py
-          benchmark.py
-          cite.py
-          comm.py
-          compute.py
-          context.py
-          data.py
-          dump.py
-          group.py
-          __init__.py
-          init.py
-          integrate.py
-          meta.py
-          option.py
-          sorter.py
-          update.py
-          util.py
-          variant.py
+set(files __init__.py
+          angle.py
+          bond.py
+          charge.py
+          constrain.py
+          dihedral.py
+          external.py
+          force.py
+          improper.py
+          nlist.py
+          pair.py
+          wall.py
     )
 
-#foreach(file ${files})
-#    copy_file(${file})
-#endforeach()
+foreach(file ${files})
+    copy_file(${file})
+endforeach()
 
-#add_custom_target(copy_md ALL DEPENDS ${files})
+add_custom_target(copy_md ALL DEPENDS ${files})

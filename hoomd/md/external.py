@@ -49,21 +49,17 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd_script.external
+## \package hoomd.external
 # \brief Commands that create external forces on particles
 #
 # Apply an %external force to all particles in the simulation. This module organizes all external forces.
 # As an example, a force derived from a %periodic potential can be used to induce a concentration modulation
 # in the system.
 
-from hoomd_script import force;
+from hoomd import _hoomd
+from hoomd.md import _md
+from hoomd.md import force;
 import hoomd;
-from hoomd_script import util;
-from hoomd_script import init;
-from hoomd_script import data;
-from hoomd_script import tune;
-from hoomd_script import meta;
-import hoomd_script;
 
 import sys;
 import math;
@@ -146,7 +142,7 @@ class coeff:
     # were previously set.
     #
     def set(self, type, **coeffs):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # listify the input
         if isinstance(type, str):
@@ -166,7 +162,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd_script.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -185,15 +181,15 @@ class coeff:
     # This can only be run after the system has been initialized
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot verify force coefficients before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot verify force coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
@@ -201,20 +197,20 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys() and len(required_coeffs):
-                hoomd_script.context.msg.error("Particle type " + type + " is missing required coefficients\n");
+                hoomd.context.msg.error("Particle type " + type + " is missing required coefficients\n");
                 return False
 
             # verify that all required values are set by counting the matches
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd_script.context.msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
+                    hoomd.context.msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
                           ", but is not used by the external force");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd_script.context.msg.error("Particle type " + type + " is missing required coefficients\n");
+                hoomd.context.msg.error("Particle type " + type + " is missing required coefficients\n");
                 valid = False;
         return valid;
 
@@ -225,7 +221,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values:
-            hoomd_script.context.msg.error("Bug detected in external.coeff. Please report\n");
+            hoomd.context.msg.error("Bug detected in external.coeff. Please report\n");
             raise RuntimeError("Error setting external coeff");
 
         return self.values[type][coeff_name];
@@ -267,7 +263,7 @@ class _external_force(force._force):
         self.enabled = True;
 
         # create force data iterator
-        self.external_forces = data.force_data(self);
+        self.external_forces = hoomd.data.force_data(self);
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs;
@@ -279,14 +275,14 @@ class _external_force(force._force):
         if self.required_coeffs is not None:
             # check that the force coefficients are valid
             if not self.force_coeff.verify(coeff_list):
-               hoomd_script.context.msg.error("Not all force coefficients are set\n");
+               hoomd.context.msg.error("Not all force coefficients are set\n");
                raise RuntimeError("Error updating force coefficients");
 
             # set all the params
-            ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
             type_list = [];
             for i in range(0,ntypes):
-                type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+                type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
             for i in range(0,ntypes):
                 # build a dict of the coeffs to pass to proces_coeff
@@ -342,18 +338,18 @@ class periodic(_external_force):
     # \endcode
 
     def __init__(self, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _external_force.__init__(self, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalPeriodic(hoomd_script.context.current.system_definition,self.name);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialExternalPeriodic(hoomd.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(hoomd_script.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalPeriodicGPU(hoomd.context.current.system_definition,self.name);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = ['A','i','w','p'];
@@ -364,7 +360,7 @@ class periodic(_external_force):
         w = coeff['w'];
         p = coeff['p'];
 
-        return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
+        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w, _hoomd.int_as_scalar(p));
 
 ## Electric field
 #
@@ -390,18 +386,18 @@ class e_field(_external_force):
     # \endcode
 
     def __init__(self, field, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize the base class
         _external_force.__init__(self, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalElectricField(hoomd_script.context.current.system_definition,self.name);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialExternalElectricField(hoomd.context.current.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalElectricFieldGPU(hoomd_script.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalElectricFieldGPU(hoomd.context.current.system_definition,self.name);
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs = None;
@@ -412,7 +408,7 @@ class e_field(_external_force):
         pass;
 
     def process_field_coeff(self, field):
-        return hoomd.make_scalar3(field[0],field[1],field[2])
+        return _hoomd.make_scalar3(field[0],field[1],field[2])
 
 #
 # See wall.py for wall potentials which are based on _external_force

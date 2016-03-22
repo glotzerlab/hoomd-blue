@@ -49,12 +49,11 @@
 
 # Maintainer: joaander
 
-from hoomd_script import init
-from hoomd_script import util;
+from hoomd import _hoomd
+from hoomd.md import _md
 import hoomd;
-import hoomd_script;
 
-## \package hoomd_script.nlist
+## \package hoomd.nlist
 # \brief Commands that create neighbor lists
 #
 # Neighbor lists accelerate %pair force calculation by maintaining a list of particles within a cutoff radius.
@@ -83,13 +82,13 @@ import hoomd_script;
 #
 # In previous versions of HOOMD-blue, %pair forces automatically created and subscribed to a single global neighbor
 # list that was automatically created. Backwards compatibility is maintained to this behavior if a neighbor list is
-# not specified by a %pair force. This package also maintains a thin wrapper around hoomd_script.context.current.neighbor_list for
+# not specified by a %pair force. This package also maintains a thin wrapper around hoomd.context.current.neighbor_list for
 # for interfacing with this object. It takes the place of the old model for making the global neighbor list available
 # as "nlist" in the __main__ namespace. Moving it into the hoomd_script namespace is backwards compatible as long as
 # the user does "from hoomd_script import *" - but it also makes it much easier to reference the nlist from modules
 # other than __main__. Backwards compatibility is only ensured if the script only uses the public python facing API.
-# Bypassing this to get at the C++ interface should be done through hoomd_script.context.current.neighbor_list . These wrappers are
-# (re-)documented below, but should \b only be used to interface with hoomd_script.context.current.neighbor_list. Otherwise, the methods
+# Bypassing this to get at the C++ interface should be done through hoomd.context.current.neighbor_list . These wrappers are
+# (re-)documented below, but should \b only be used to interface with hoomd.context.current.neighbor_list. Otherwise, the methods
 # should be called directly on the neighbor list objects themselves. These global wrappers may be deprecated in a
 # future release.
 #
@@ -118,8 +117,8 @@ class _nlist:
     # \param self Python required instance variable
     def __init__(self):
         # check if initialization has occured
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create neighbor list before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
 
         # default exclusions
@@ -157,10 +156,10 @@ class _nlist:
         self.r_cut = r_cut_max;
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # loop over all possible pairs and require that a dictionary key exists for them
         for i in range(0,ntypes):
@@ -173,14 +172,14 @@ class _nlist:
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
     def update_exclusions_defaults(self):
         if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
-            util.quiet_status();
+            hoomd.util.quiet_status();
             # update exclusions using stored values
             self.reset_exclusions(exclusions=self.exclusions)
-            util.unquiet_status();
+            hoomd.util.unquiet_status();
         elif not self.is_exclusion_overridden:
-            util.quiet_status();
+            hoomd.util.quiet_status();
             self.reset_exclusions(exclusions=['body', 'bond','constraint']);
-            util.unquiet_status();
+            hoomd.util.unquiet_status();
 
 
     ## Change neighbor list parameters
@@ -230,10 +229,10 @@ class _nlist:
     # nl.set_params(d_max = 3.0)
     # \endcode
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -286,11 +285,11 @@ class _nlist:
     # \endcode
     #
     def reset_exclusions(self, exclusions = None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.is_exclusion_overridden = True;
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # clear all of the existing exclusions
@@ -341,7 +340,7 @@ class _nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            hoomd_script.context.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
+            hoomd.context.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -371,7 +370,7 @@ class _nlist:
     def benchmark(self, n):
         # check that we have been initialized properly
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error benchmarking neighbor list');
 
         # run the benchmark
@@ -389,7 +388,7 @@ class _nlist:
     #
     def query_update_period(self):
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -419,18 +418,18 @@ class _nlist:
     # \MPI_SUPPORTED
     def tune(self, warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
         # check if initialization has occurred
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         # start off at a check_period of 1
         self.set_params(check_period=1)
 
         # make the warmup run
-        hoomd_script.run(warmup);
+        hoomd.run(warmup);
 
         # initialize scan variables
         dr = (r_max - r_min) / (jumps - 1);
@@ -445,12 +444,12 @@ class _nlist:
 
             # run the benchmark 3 times
             tps = [];
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
 
             # record the median tps of the 3
             tps.sort();
@@ -463,13 +462,13 @@ class _nlist:
 
         # set the fastest and rerun the warmup steps to identify the max check period
         self.set_params(r_buff=fastest_r_buff);
-        hoomd_script.run(warmup);
+        hoomd.run(warmup);
 
         # notify the user of the benchmark results
-        hoomd_script.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
-        hoomd_script.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd_script.context.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
-        hoomd_script.context.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
+        hoomd.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+        hoomd.context.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
 
         # set the found max check period
         if set_max_check_period:
@@ -509,7 +508,7 @@ class rcut:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            hoomd_script.context.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
+            hoomd.context.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
             raise RuntimeError("Error fetching rcut(i,j) pair");
 
         return cur_pair;
@@ -566,15 +565,15 @@ class rcut:
     # This can only be run after the system has been initialized
     def fill(self):
         # first, check that the system has been initialized
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot fill rcut(i,j) before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot fill rcut(i,j) before initialization\n");
             raise RuntimeError('Error filling nlist rcut(i,j)');
 
         # get a list of types from the particle data
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # loop over all possible pairs and require that a dictionary key exists for them
         for i in range(0,ntypes):
@@ -616,7 +615,7 @@ class cell(_nlist):
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         _nlist.__init__(self)
 
@@ -632,26 +631,26 @@ class cell(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_cl = hoomd.CellList(hoomd_script.context.current.system_definition)
-            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListBinned(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
+            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = _md.NeighborListBinned(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
         else:
-            self.cpp_cl  = hoomd.CellListGPU(hoomd_script.context.current.system_definition)
-            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUBinned(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            self.cpp_cl  = _hoomd.CellListGPU(hoomd.context.current.system_definition)
+            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = _md.NeighborListGPUBinned(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
-        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
+        hoomd.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the context
-        hoomd_script.context.current.neighbor_lists += [self]
+        hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util.quiet_status()
+        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        util.unquiet_status()
+        hoomd.util.unquiet_status()
 
     ## Change neighbor list parameters
     #
@@ -710,10 +709,10 @@ class cell(_nlist):
     # option.set_autotuner_params(enable=False)
     # \endcode
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -773,7 +772,7 @@ class stencil(_nlist):
     # is the only %pair potential requiring this shifting, and setting \a d_max for other potentials may lead to
     # significantly degraded performance or incorrect results.
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         _nlist.__init__(self)
 
@@ -789,30 +788,30 @@ class stencil(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_cl = hoomd.CellList(hoomd_script.context.current.system_definition)
-            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = hoomd.CellListStencil(hoomd_script.context.current.system_definition, self.cpp_cl)
-            hoomd_script.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListStencil(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
+            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
+            hoomd.context.current.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = _md.NeighborListStencil(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
         else:
-            self.cpp_cl  = hoomd.CellListGPU(hoomd_script.context.current.system_definition)
-            hoomd_script.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = hoomd.CellListStencil(hoomd_script.context.current.system_definition, self.cpp_cl)
-            hoomd_script.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = hoomd.NeighborListGPUStencil(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_cl  = _hoomd.CellListGPU(hoomd.context.current.system_definition)
+            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
+            cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
+            hoomd.context.current.system.addCompute(cls, self.name + "_cls")
+            self.cpp_nlist = _md.NeighborListGPUStencil(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
-        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
+        hoomd.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the context
-        hoomd_script.context.current.neighbor_lists += [self]
+        hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util.quiet_status()
+        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
-        util.unquiet_status()
+        hoomd.util.unquiet_status()
 
     ## Change neighbor list parameters
     #
@@ -872,10 +871,10 @@ class stencil(_nlist):
     # option.set_autotuner_params(enable=False)
     # \endcode
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, cell_width=None, deterministic=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -914,14 +913,14 @@ class stencil(_nlist):
     #
     # \MPI_SUPPORTED
     def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         # check if initialization has occurred
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         min_cell_width = min_width
@@ -932,7 +931,7 @@ class stencil(_nlist):
             max_cell_width = self.cpp_nlist.getMaxRList()
 
         # make the warmup run
-        hoomd_script.run(warmup);
+        hoomd.run(warmup);
 
         # initialize scan variables
         dr = (max_cell_width - min_cell_width) / (jumps - 1);
@@ -947,12 +946,12 @@ class stencil(_nlist):
 
             # run the benchmark 3 times
             tps = [];
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
-            hoomd_script.run(steps);
-            tps.append(hoomd_script.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
+            hoomd.run(steps);
+            tps.append(hoomd.context.current.system.getLastTPS())
 
             # record the median tps of the 3
             tps.sort();
@@ -967,9 +966,9 @@ class stencil(_nlist):
         self.set_params(cell_width=fastest_width);
 
         # notify the user of the benchmark results
-        hoomd_script.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
-        hoomd_script.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd_script.context.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+        hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
+        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
 
         # return the results to the script
         return fastest_width
@@ -1012,7 +1011,7 @@ class tree(_nlist):
     # \warning BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
     #
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         _nlist.__init__(self)
 
@@ -1022,10 +1021,10 @@ class tree(_nlist):
         default_r_buff = 0.4
 
         # create the C++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_nlist = hoomd.NeighborListTree(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff)
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_nlist = _md.NeighborListTree(hoomd.context.current.system_definition, default_r_cut, default_r_buff)
         else:
-            self.cpp_nlist = hoomd.NeighborListGPUTree(hoomd_script.context.current.system_definition, default_r_cut, default_r_buff)
+            self.cpp_nlist = _md.NeighborListGPUTree(hoomd.context.current.system_definition, default_r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
@@ -1035,15 +1034,15 @@ class tree(_nlist):
         else:
             self.name = name
 
-        hoomd_script.context.current.system.addCompute(self.cpp_nlist, self.name)
+        hoomd.context.current.system.addCompute(self.cpp_nlist, self.name)
 
         # register this neighbor list with the context
-        hoomd_script.context.current.neighbor_lists += [self]
+        hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        util.quiet_status()
+        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        util.unquiet_status()
+        hoomd.util.unquiet_status()
 tree.cur_id = 0
 
 ## \internal
@@ -1053,14 +1052,14 @@ tree.cur_id = 0
 # If no neighbor list has been created, create one. If there is one, subscribe the new potential and update the rcut
 def _subscribe_global_nlist(cb):
     # create a global neighbor list if it doesn't exist
-    if hoomd_script.context.current.neighbor_list is None:
-        hoomd_script.context.current.neighbor_list = cell();
+    if hoomd.context.current.neighbor_list is None:
+        hoomd.context.current.neighbor_list = cell();
 
     # subscribe and force an update
-    hoomd_script.context.current.neighbor_list.subscribe(cb);
-    hoomd_script.context.current.neighbor_list.update_rcut();
+    hoomd.context.current.neighbor_list.subscribe(cb);
+    hoomd.context.current.neighbor_list.update_rcut();
 
-    return hoomd_script.context.current.neighbor_list;
+    return hoomd.context.current.neighbor_list;
 
 ## Thin wrapper for changing parameters for the global neighbor list
 #
@@ -1119,14 +1118,14 @@ def _subscribe_global_nlist(cb):
 # option.set_autotuner_params(enable=False)
 # \endcode
 def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=True):
-    util.print_status_line();
-    if hoomd_script.context.current.neighbor_list is None:
-        hoomd_script.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
+    hoomd.util.print_status_line();
+    if hoomd.context.current.neighbor_list is None:
+        hoomd.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util.quiet_status();
-    hoomd_script.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
-    util.unquiet_status();
+    hoomd.util.quiet_status();
+    hoomd.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
+    hoomd.util.unquiet_status();
 
 ## Thin wrapper for resetting exclusion for global neighbor list
 #
@@ -1164,14 +1163,14 @@ def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, dete
 # \endcode
 #
 def reset_exclusions(exclusions = None):
-    util.print_status_line();
-    if hoomd_script.context.current.neighbor_list is None:
-        hoomd_script.context.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
+    hoomd.util.print_status_line();
+    if hoomd.context.current.neighbor_list is None:
+        hoomd.context.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util.quiet_status();
-    hoomd_script.context.current.neighbor_list.reset_exclusions(exclusions);
-    util.unquiet_status();
+    hoomd.util.quiet_status();
+    hoomd.context.current.neighbor_list.reset_exclusions(exclusions);
+    hoomd.util.unquiet_status();
 
 ## Thin wrapper for benchmarking the global neighbor list
 #
@@ -1196,14 +1195,14 @@ def reset_exclusions(exclusions = None):
 # one time step is performed. Executing run(1) before the benchmark will solve this problem.
 #
 def benchmark(n):
-    util.print_status_line();
-    if hoomd_script.context.current.neighbor_list is None:
-        hoomd_script.context.msg.error('Cannot benchmark global neighbor list without creating it first\n');
+    hoomd.util.print_status_line();
+    if hoomd.context.current.neighbor_list is None:
+        hoomd.context.msg.error('Cannot benchmark global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util.quiet_status();
-    hoomd_script.context.current.neighbor_list.benchmark(n);
-    util.unquiet_status();
+    hoomd.util.quiet_status();
+    hoomd.context.current.neighbor_list.benchmark(n);
+    hoomd.util.unquiet_status();
 
 ## Thin wrapper for querying the update period for the global neighbor list
 #
@@ -1217,11 +1216,11 @@ def benchmark(n):
 # warm up run, subtract an additional 1 from this when you set check_period for additional safety.
 #
 def query_update_period():
-    util.print_status_line();
-    if hoomd_script.context.current.neighbor_list is None:
-        hoomd_script.context.msg.error('Cannot query global neighbor list without creating it first\n');
+    hoomd.util.print_status_line();
+    if hoomd.context.current.neighbor_list is None:
+        hoomd.context.msg.error('Cannot query global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
-    util.quiet_status();
-    hoomd_script.context.current.neighbor_list.query_update_period(*args, **kwargs);
-    util.unquiet_status();
+    hoomd.util.quiet_status();
+    hoomd.context.current.neighbor_list.query_update_period(*args, **kwargs);
+    hoomd.util.unquiet_status();

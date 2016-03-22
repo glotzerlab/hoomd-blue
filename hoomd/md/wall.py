@@ -49,7 +49,7 @@
 
 # Maintainer: jproc
 
-## \package hoomd_script.wall
+## \package hoomd.wall
 # \brief Commands that specify %wall geometry and forces.
 #
 # The following geometries are currently supported by wall potentials:\n \link
@@ -81,11 +81,9 @@
 # applied between the wall and the particle. See wall.wallpotential
 # for more details of implementing a force.
 
-from hoomd_script import external;
-from hoomd_script import force;
-from hoomd_script import util;
-from hoomd_script import meta;
-import hoomd_script
+from hoomd import _hoomd
+from hoomd.md import _md
+from hoomd.md import external
 import hoomd;
 import math;
 
@@ -116,16 +114,16 @@ import math;
 #
 # \note \par
 # The entire structure can easily be viewed by printing the wall.group object.
-# This can be seen in the example in \link hoomd_script.wall.sphere
+# This can be seen in the example in \link hoomd.wall.sphere
 # sphere\endlink.
 # \note \par
 # While all x,y,z coordinates can be given as a list or tuple, only origin
 # parameters are points in x,y,z space. Normal and axis parameters are vectors and
 # must have a nonzero magnitude. The examples in \link
-# hoomd_script.wall.sphere sphere\endlink demonstrates this in the
+# hoomd.wall.sphere sphere\endlink demonstrates this in the
 # default parameters.
 # \note \par
-# Wall structure modifications between \link hoomd_script.run() run()\endlink
+# Wall structure modifications between \link hoomd.run() run()\endlink
 # calls will be implemented in the next run. However, modifications must be done
 # carefully since moving the wall can result in particles moving to a relative
 # position which causes exceptionally high forces resulting in particles moving
@@ -218,9 +216,9 @@ class group(object):
 
     ## Generic wall add for wall objects.
     # Generic convenience function to add any wall object to the group.
-    # Accepts \link hoomd_script.wall.sphere sphere\endlink, \link
-    # hoomd_script.wall.cylinder cylinder\endlink, \link
-    # hoomd_script.wall.plane plane\endlink, and lists of any
+    # Accepts \link hoomd.wall.sphere sphere\endlink, \link
+    # hoomd.wall.cylinder cylinder\endlink, \link
+    # hoomd.wall.plane plane\endlink, and lists of any
     # combination of these.
     def add(self,wall,index=False):
         if (isinstance(wall, sphere)):
@@ -280,7 +278,7 @@ class group(object):
                 try:
                     del(self.spheres[i]);
                 except IndexValueError:
-                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_sphere failed")
 
     ## Deletes the cylinder or cylinders in index.
@@ -296,7 +294,7 @@ class group(object):
                 try:
                     del(self.cylinders[i]);
                 except IndexValueError:
-                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_cylinder failed")
 
     ## Deletes the plane or planes in index.
@@ -312,13 +310,13 @@ class group(object):
                 try:
                     del(self.planes[i]);
                 except IndexValueError:
-                    hoomd_script.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_plane failed")
 
     ## \internal
     # \brief Return metadata for this wall structure
     def get_metadata(self):
-        data = meta._metadata_from_dict(eval(str(self.__dict__)));
+        data = hoomd.meta._metadata_from_dict(eval(str(self.__dict__)));
         return data;
 
     ## \internal
@@ -393,7 +391,7 @@ class sphere(object):
     # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r;
-        self._origin = hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin);
         self.inside = inside;
 
     @property
@@ -401,7 +399,7 @@ class sphere(object):
         return (self._origin.x, self._origin.y, self._origin.z);
     @origin.setter
     def origin(self, origin):
-        self._origin = hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin);
 
     def __str__(self):
         return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
@@ -417,7 +415,7 @@ class sphere(object):
 #
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
-# For an example see \link hoomd_script.wall.sphere sphere\endlink.
+# For an example see \link hoomd.wall.sphere sphere\endlink.
 class cylinder(object):
     ## Creates a cylinder wall definition.
     # \param r Cylinder radius (in distance units)\n <i>Default : 0.0</i>
@@ -426,8 +424,8 @@ class cylinder(object):
     # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
         self.r = r;
-        self._origin = hoomd.make_scalar3(*origin);
-        self._axis = hoomd.make_scalar3(*axis);
+        self._origin = _hoomd.make_scalar3(*origin);
+        self._axis = _hoomd.make_scalar3(*axis);
         self.inside = inside;
 
     @property
@@ -435,14 +433,14 @@ class cylinder(object):
         return (self._origin.x, self._origin.y, self._origin.z);
     @origin.setter
     def origin(self, origin):
-        self._origin = hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin);
 
     @property
     def axis(self):
         return (self._axis.x, self._axis.y, self._axis.z);
     @axis.setter
     def axis(self, axis):
-        self._axis = hoomd.make_scalar3(*axis);
+        self._axis = _hoomd.make_scalar3(*axis);
 
     def __str__(self):
         return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
@@ -458,15 +456,15 @@ class cylinder(object):
 #
 # Can be used in function calls or by reference in the creation or modification of wall groups.
 #
-# For an example see \link hoomd_script.wall.sphere sphere\endlink.
+# For an example see \link hoomd.wall.sphere sphere\endlink.
 class plane(object):
     ## Creates a plane wall definition.
     # \param origin Plane origin (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 0.0)</i>
     # \param normal Plane normal vector (in x,y,z coordinates)\n <i>Default : (0.0, 0.0, 1.0)</i>
     # \param inside Selects the half-space to be used (bool)\n <i>Default : True</i>
     def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0), inside=True):
-        self._origin = hoomd.make_scalar3(*origin);
-        self._normal = hoomd.make_scalar3(*normal);
+        self._origin = _hoomd.make_scalar3(*origin);
+        self._normal = _hoomd.make_scalar3(*normal);
         self.inside = inside;
 
     @property
@@ -474,14 +472,14 @@ class plane(object):
         return (self._origin.x, self._origin.y, self._origin.z);
     @origin.setter
     def origin(self, origin):
-        self._origin = hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin);
 
     @property
     def normal(self):
         return (self._normal.x, self._normal.y, self._normal.z);
     @normal.setter
     def normal(self, normal):
-        self._normal = hoomd.make_scalar3(*normal);
+        self._normal = _hoomd.make_scalar3(*normal);
 
     def __str__(self):
         return "Origin=%s\tNormal=%s\tInside=%s" % (str(self.origin), str(self.normal), str(self.inside));
@@ -615,7 +613,7 @@ class wallpotential(external._external_force):
     ## \internal
     # \brief passes the wall field
     def process_field_coeff(self, coeff):
-        return hoomd.make_wall_field_params(coeff, hoomd_script.context.exec_conf);
+        return _hoomd.make_wall_field_params(coeff, hoomd.context.exec_conf);
 
     ## \internal
     # \brief Return metadata for this wall potential
@@ -627,9 +625,9 @@ class wallpotential(external._external_force):
     ## \internal
     # \brief Fixes negative values to zero before squaring
     def update_coeffs(self):
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
-            type=hoomd_script.context.current.system_definition.getParticleData().getNameByType(i);
+            type=hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if self.force_coeff.values[str(type)]['r_cut']<=0:
                 self.force_coeff.values[str(type)]['r_cut']=0;
         external._external_force.update_coeffs(self);
@@ -666,7 +664,7 @@ class lj(wallpotential):
     ## Creates a lj wall force using the inputs
     # See wall.wallpotential and pair.lj for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -674,15 +672,15 @@ class lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialLJ(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialLJ;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialLJ(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialLJGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialLJGPU;
+            self.cpp_force = _md.WallsPotentialLJGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialLJGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -695,7 +693,7 @@ class lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_wall_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Gaussian %wall %force
 # Wall force evaluated using the Gaussian potential.
@@ -716,22 +714,22 @@ class gauss(wallpotential):
     ## Creates a gauss wall force using the inputs
     # See wall.wallpotential and pair.gauss for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
         wallpotential.__init__(self, walls, r_cut, name);
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialGauss(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialGauss;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialGauss(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialGauss;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialGaussGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialGaussGPU;
+            self.cpp_force = _md.WallsPotentialGaussGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialGaussGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma'];
@@ -739,7 +737,7 @@ class gauss(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
-        return hoomd.make_wall_gauss_params(hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_gauss_params(_hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Shifted Lennard-Jones potential.
@@ -764,7 +762,7 @@ class slj(wallpotential):
     ## Creates a slj wall force using the inputs
     # See wall.wallpotential and pair.slj for more details.
     def __init__(self, walls, r_cut=False, d_max=None, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -773,20 +771,20 @@ class slj(wallpotential):
 
         # update the neighbor list
         if d_max is None :
-            sysdef = hoomd_script.context.current.system_definition;
+            sysdef = hoomd.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd_script.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialSLJ(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialSLJ;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialSLJ(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialSLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialSLJGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialSLJGPU;
+            self.cpp_force = _md.WallsPotentialSLJGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialSLJGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficient options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -799,7 +797,7 @@ class slj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_wall_slj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_slj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Yukawa %wall %force
 # Wall force evaluated using the Yukawa potential.
@@ -820,7 +818,7 @@ class yukawa(wallpotential):
     ## Creates a yukawa wall force using the inputs
     # See wall.wallpotential and pair.yukawa for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -828,14 +826,14 @@ class yukawa(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialYukawa(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialYukawa;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialYukawa(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialYukawa;
         else:
-            self.cpp_force = hoomd.WallsPotentialYukawaGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialYukawaGPU;
+            self.cpp_force = _md.WallsPotentialYukawaGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialYukawaGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'kappa'];
@@ -843,7 +841,7 @@ class yukawa(wallpotential):
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         kappa = coeff['kappa'];
-        return hoomd.make_wall_yukawa_params(hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_yukawa_params(_hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Morse %wall %force
 # Wall force evaluated using the Morse potential.
@@ -864,7 +862,7 @@ class morse(wallpotential):
     ## Creates a morse wall force using the inputs
     # See wall.wallpotential and pair.morse for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -872,15 +870,15 @@ class morse(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialMorse(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMorse;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialMorse(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialMorse;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialMorseGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMorseGPU;
+            self.cpp_force = _md.WallsPotentialMorseGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialMorseGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['D0', 'alpha', 'r0'];
@@ -890,7 +888,7 @@ class morse(wallpotential):
         alpha = coeff['alpha'];
         r0 = coeff['r0']
 
-        return hoomd.make_wall_morse_params(hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_morse_params(_hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Force-shifted Lennard-Jones %wall %force
 # Wall force evaluated using the Force-shifted Lennard-Jones potential.
@@ -910,7 +908,7 @@ class force_shifted_lj(wallpotential):
     ## Creates a force_shifted_lj wall force using the inputs
     # See wall.wallpotential and pair.force_shifted_lj for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -918,15 +916,15 @@ class force_shifted_lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialForceShiftedLJ(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialForceShiftedLJ;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialForceShiftedLJ(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialForceShiftedLJ;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialForceShiftedLJGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialForceShiftedLJGPU;
+            self.cpp_force = _md.WallsPotentialForceShiftedLJGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialForceShiftedLJGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
@@ -939,7 +937,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return hoomd.make_wall_force_shifted_lj_params(hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_force_shifted_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 ## Mie potential %wall %force
 # Wall force evaluated using the Mie potential.
@@ -960,7 +958,7 @@ class mie(wallpotential):
     ## Creates a mie wall force using the inputs
     # See wall.wallpotential and pair.mie for more details.
     def __init__(self, walls, r_cut=False, name=""):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -968,15 +966,15 @@ class mie(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.WallsPotentialMie(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMie;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.WallsPotentialMie(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialMie;
         else:
 
-            self.cpp_force = hoomd.WallsPotentialMieGPU(hoomd_script.context.current.system_definition, self.name);
-            self.cpp_class = hoomd.WallsPotentialMieGPU;
+            self.cpp_force = _md.WallsPotentialMieGPU(hoomd.context.current.system_definition, self.name);
+            self.cpp_class = _md.WallsPotentialMieGPU;
 
-        hoomd_script.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
         self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];
@@ -991,4 +989,4 @@ class mie(wallpotential):
         mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
         mie3 = n
         mie4 = m
-        return hoomd.make_wall_mie_params(hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _hoomd.make_wall_mie_params(_hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
