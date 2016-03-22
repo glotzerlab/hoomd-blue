@@ -51,8 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CellListGPU.cuh"
 
-#include "util/mgpucontext.h"
-#include "kernels/localitysort.cuh"
+#include "hoomd/extern/util/mgpucontext.h"
+#include "hoomd/extern/kernels/localitysort.cuh"
 
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU

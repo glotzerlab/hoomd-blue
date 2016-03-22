@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "SFCPackUpdaterGPU.cuh"
-#include "kernels/mergesort.cuh"
+#include "hoomd/extern/kernels/mergesort.cuh"
 
 //! Kernel to bin particles
 template<bool twod>

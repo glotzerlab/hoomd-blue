@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 
 #include "LoadBalancerGPU.cuh"
-#include "cub/cub.cuh"
+#include "hoomd/extern/cub/cub.cuh"
 
 //! Mark the particles that are off rank
 /*!
@@ -82,7 +82,7 @@ __global__ void gpu_load_balance_mark_rank_kernel(unsigned int *d_ranks,
     {
     // particle index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     // one thread per particle
     if (idx >= N)
         return;
@@ -116,7 +116,7 @@ __global__ void gpu_load_balance_mark_rank_kernel(unsigned int *d_ranks,
         grid_pos.z += di.getD();
 
     const unsigned int cur_rank = d_cart_ranks[di(grid_pos.x,grid_pos.y,grid_pos.z)];
-    
+
     d_ranks[idx] = cur_rank;
     }
 
@@ -161,7 +161,7 @@ struct NotEqual
 
     __host__ __device__ __forceinline__
     NotEqual(unsigned int _not_eq_val) : not_eq_val(_not_eq_val) {}
-    
+
     __host__ __device__ __forceinline__
     bool operator()(const unsigned int &a) const
         {

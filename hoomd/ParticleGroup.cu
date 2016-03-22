@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 
-#include "kernels/scan.cuh"
+#include "hoomd/extern/kernels/scan.cuh"
 
 /*! \file ParticleGroup.cu
     \brief Contains GPU kernel code used by ParticleGroup

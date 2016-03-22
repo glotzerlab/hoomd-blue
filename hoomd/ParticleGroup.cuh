@@ -49,62 +49,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifndef __SFC_PACK_UPDATER_GPU_CUH__
-#define __SFC_PACK_UPDATER_GPU_CUH__
+#include <assert.h>
 
-#include "HOOMDMath.h"
-#include "BoxDim.h"
+#include "hoomd/extern/util/mgpucontext.h"
 
-#include "util/mgpucontext.h"
-
-/*! \file SFCPackUpdaterGPU.cuh
-    \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
+/*! \file ParticleGroup.cuh
+    \brief Contains GPU kernel code used by ParticleGroup
 */
+#ifndef __PARTICLE_GROUP_CUH__
+#define __PARTICLE_GROUP_CUH__
 
-//! Generate sorted order on GPU
-void gpu_generate_sorted_order(unsigned int N,
-        const Scalar4 *d_pos,
-        unsigned int *d_particle_bins,
-        unsigned int *d_traversal_order,
-        unsigned int n_grid,
-        unsigned int *d_sorted_order,
-        const BoxDim& box,
-        bool twod,
-        mgpu::ContextPtr mgpu_context);
-
-//! Reorder particle data (GPU driver function)
-void gpu_apply_sorted_order(
-        unsigned int N,
-        unsigned int n_ghost,
-        const unsigned int *d_sorted_order,
-        const Scalar4 *d_pos,
-        Scalar4 *d_pos_alt,
-        const Scalar4 *d_vel,
-        Scalar4 *d_vel_alt,
-        const Scalar3 *d_accel,
-        Scalar3 *d_accel_alt,
-        const Scalar *d_charge,
-        Scalar *d_charge_alt,
-        const Scalar *d_diameter,
-        Scalar *d_diameter_alt,
-        const int3 *d_image,
-        int3 *d_image_alt,
-        const unsigned int *d_body,
-        unsigned int *d_body_alt,
-        const unsigned int *d_tag,
-        unsigned int *d_tag_alt,
-        const Scalar4 *d_orientation,
-        Scalar4 *d_orientation_alt,
-        const Scalar4 *d_angmom,
-        Scalar4 *d_angmom_alt,
-        const Scalar3 *d_inertia,
-        Scalar3 *d_inertia_alt,
-        const Scalar *d_net_virial,
-        Scalar *d_net_virial_alt,
-        const Scalar4 *d_net_force,
-        Scalar4 *d_net_force_alt,
-        const Scalar4 *d_net_torque,
-        Scalar4 *d_net_torque_alt,
-        unsigned int *d_rtag);
-
-#endif // __SFC_PACK_UPDATER_GPU_CUH__
+//! GPU method for rebuilding the index list of a ParticleGroup
+cudaError_t gpu_rebuild_index_list(unsigned int N,
+                                   unsigned char *d_is_member_tag,
+                                   unsigned char *d_is_member,
+                                   unsigned int *d_member_idx,
+                                   unsigned int *d_tag,
+                                   unsigned int &num_local_members,
+                                   unsigned int *d_tmp,
+                                   mgpu::ContextPtr mgpu_context);
+#endif

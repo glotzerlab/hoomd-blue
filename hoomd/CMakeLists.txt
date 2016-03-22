@@ -60,7 +60,25 @@ set(_hoomd_sources Analyzer.cc
                    extern/xmlParser.cc
                    )
 
-set(_hoomd_cu_sources "")
+if (ENABLE_CUDA)
+list(APPEND _hoomd_sources CellListGPU.cc
+                           CommunicatorGPU.cc
+                           ComputeThermoGPU.cc
+                           LoadBalancerGPU.cc
+                           SFCPackUpdaterGPU.cc
+                           )
+endif()
+
+set(_hoomd_cu_sources BondedGroupData.cu
+                      CellListGPU.cu
+                      CommunicatorGPU.cu
+                      ComputeThermoGPU.cu
+                      Integrator.cu
+                      LoadBalancerGPU.cu
+                      ParticleData.cu
+                      ParticleGroup.cu
+                      SFCPackUpdaterGPU.cu
+                      extern/mgpucontext.cu)
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hoomd_sources} ${_hoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)

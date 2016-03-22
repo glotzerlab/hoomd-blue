@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
-#include "kernels/scan.cuh"
+#include "hoomd/extern/kernels/scan.cuh"
 
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(

@@ -52,9 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
-#include "kernels/scan.cuh"
-#include "kernels/mergesort.cuh"
-#include "kernels/intervalmove.cuh"
+#include "hoomd/extern/kernels/scan.cuh"
+#include "hoomd/extern/kernels/mergesort.cuh"
+#include "hoomd/extern/kernels/intervalmove.cuh"
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
