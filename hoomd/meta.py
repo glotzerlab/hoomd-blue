@@ -49,7 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd_script.meta
+## \package hoomd.meta
 # \brief Write out simulation and environment context metadata
 #
 # Metadata is stored in form of key-value pairs in a JSON file and used
@@ -65,7 +65,6 @@
 # \endcode
 
 import hoomd;
-import hoomd_script;
 import json, collections;
 import time
 import datetime
@@ -120,10 +119,10 @@ class _metadata_from_dict:
 #
 # \returns metadata as a dictionary
 def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
-    hoomd_script.util.print_status_line();
+    hoomd.util.print_status_line();
 
-    if not hoomd_script.init.is_initialized():
-        hoomd_script.context.msg.error("Need to initialize system first.\n")
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
     metadata = []
@@ -131,7 +130,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
 
     if user is not None:
         if not isinstance(user, collections.Mapping):
-            hoomd_script.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
+            hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             obj['user'] = _metadata_from_dict(user);
 
@@ -139,7 +138,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
         try:
             with open(filename) as f:
                 metadata = json.load(f)
-                hoomd_script.context.msg.notice(2,"Appending to file {1}." % filename)
+                hoomd.context.msg.notice(2,"Appending to file {1}." % filename)
         except Exception:
             pass
 
@@ -147,23 +146,23 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     obj['timestamp'] = st
-    obj['context'] = hoomd_script.context.ExecutionContext()
-    obj['hoomd'] = hoomd_script.context.HOOMDContext()
+    obj['context'] = hoomd.context.ExecutionContext()
+    obj['hoomd'] = hoomd.context.HOOMDContext()
 
-    global_objs = [hoomd_script.data.system_data(hoomd_script.context.current.system_definition)];
-    global_objs += hoomd_script.context.current.forces;
-    global_objs += hoomd_script.context.current.constraint_forces;
-    global_objs += [hoomd_script.context.current.integrator];
-    global_objs += hoomd_script.context.current.integration_methods;
-    global_objs += hoomd_script.context.current.forces
-    global_objs += hoomd_script.context.current.analyzers;
-    global_objs += hoomd_script.context.current.updaters;
+    global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
+    global_objs += hoomd.context.current.forces;
+    global_objs += hoomd.context.current.constraint_forces;
+    global_objs += [hoomd.context.current.integrator];
+    global_objs += hoomd.context.current.integration_methods;
+    global_objs += hoomd.context.current.forces
+    global_objs += hoomd.context.current.analyzers;
+    global_objs += hoomd.context.current.updaters;
 
     # add list of objects to JSON
     for o in global_objs:
         if o is not None:
             name = o.__module__+'.'+o.__class__.__name__;
-            if len(name) > 13 and name[:13] == 'hoomd_script.':
+            if len(name) > 13 and name[:13] == 'hoomd.':
                 name = name[13:];
             obj[name] = o
 
@@ -180,7 +179,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     meta_str = json.dumps(metadata,default=default_handler,indent=indent)
 
     # only write files on rank 0
-    if filename is not None and hoomd_script.comm.get_rank() == 0:
+    if filename is not None and hoomd.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             file.write(meta_str)
     return json.loads(meta_str)

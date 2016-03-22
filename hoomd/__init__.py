@@ -75,46 +75,33 @@ if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     flags = sys.getdlopenflags();
     sys.setdlopenflags(flags | ctypes.RTLD_GLOBAL);
 
-import hoomd;
+from hoomd import _hoomd;
 
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
-from hoomd_script import util as _util;
-from hoomd_script import init;
-from hoomd_script import analyze;
-from hoomd_script import bond;
-from hoomd_script import benchmark;
-from hoomd_script import angle;
-from hoomd_script import dihedral;
-from hoomd_script import improper;
-from hoomd_script import dump;
-from hoomd_script import force;
-from hoomd_script import external;
-from hoomd_script import constrain;
-from hoomd_script import group;
-from hoomd_script import integrate;
-from hoomd_script import option;
-from hoomd_script import nlist;
-from hoomd_script import pair;
-from hoomd_script import sorter;
-from hoomd_script import update;
-from hoomd_script import wall;
-from hoomd_script import variant;
-from hoomd_script import tune;
-from hoomd_script import hoomd;
-from hoomd_script import compute;
-from hoomd_script import charge;
-from hoomd_script import comm;
-from hoomd_script import meta;
-from hoomd_script import cite;
-from hoomd_script import data;
-from hoomd_script import context;
+from hoomd import meta
+from hoomd import context
+from hoomd import cite
+# from hoomd import analyze
+# from hoomd import benchmark
+# from hoomd import comm
+# from hoomd import compute
+# from hoomd import data
+# from hoomd import dump
+# from hoomd import group
+# from hoomd import init
+# from hoomd import integrate
+# from hoomd import option
+# from hoomd import sorter
+# from hoomd import update
+# from hoomd import util
+# from hoomd import variant
 
-from hoomd import WalltimeLimitReached;
+from hoomd._hoomd import WalltimeLimitReached;
 
 # output the version info on import
-context.msg.notice(1, hoomd.output_version_info())
+context.msg.notice(1, _hoomd.output_version_info())
 
 # ensure creation of global bibliography to print HOOMD base citations
 cite._ensure_global_bib()
@@ -127,9 +114,9 @@ def _hoomd_sys_excepthook(type, value, traceback):
     _default_excepthook(type, value, traceback);
     sys.stderr.flush();
     if context.exec_conf is not None:
-        hoomd.abort_mpi(context.exec_conf);
+        _hoomd.abort_mpi(context.exec_conf);
 
-__version__ = "{0}.{1}.{2}".format(*hoomd.__version__)
+__version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
 
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
     """ Runs the simulation for a given number of time steps.
@@ -215,7 +202,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     """
 
     if not quiet:
-        _util.print_status_line();
+        util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
@@ -277,7 +264,7 @@ def run_upto(step, **keywords):
         \endcode
     """
     if 'quiet' in keywords and not keywords['quiet']:
-        _util.print_status_line();
+        util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
@@ -293,9 +280,9 @@ def run_upto(step, **keywords):
 
     n_steps = step - cur_step;
 
-    _util.quiet_status();
+    util.quiet_status();
     run(n_steps, **keywords);
-    _util.unquiet_status();
+    util.unquiet_status();
 
 def get_step():
     """ Get the current simulation time step.
@@ -332,7 +319,7 @@ def cuda_profile_start():
     run(100);
     ~~~~~
     """
-    hoomd.cuda_profile_start();
+    _hoomd.cuda_profile_start();
 
 def cuda_profile_stop():
     """ Stop CUDA profiling.
@@ -341,10 +328,10 @@ def cuda_profile_stop():
             :py:func:`cuda_profile_start()`.
     """
 
-    hoomd.cuda_profile_stop();
+    _hoomd.cuda_profile_stop();
 
 # Check to see if we are built without MPI support and the user used mpirun
-if (not hoomd.is_MPI_available()) and ('OMPI_COMM_WORLD_RANK' in os.environ or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ):
+if (not _hoomd.is_MPI_available()) and ('OMPI_COMM_WORLD_RANK' in os.environ or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ):
     print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
     print('exiting now to prevent many sequential jobs from starting');
     raise RuntimeError('Error launching hoomd')

@@ -47,6 +47,15 @@ set(_hoomd_sources Analyzer.cc
                    SystemDefinition.cc
                    Updater.cc
                    Variant.cc
+                   extern/BVLSSolver.cc
+                   extern/gsd.c
+                   extern/imd.cc
+                   extern/kiss_fft.cc
+                   extern/kiss_fftnd.cc
+                   extern/mgpuutil.cc
+                   extern/num_util.cc
+                   extern/vmdsock.cc
+                   extern/xmlParser.cc
                    )
 
 set(_hoomd_cu_sources "")
@@ -58,7 +67,7 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_hoomd ${_hoomd_sources} ${_CUDA_GENERATED_FILES} module.cc)
+add_library (_hoomd SHARED ${_hoomd_sources} ${_CUDA_GENERATED_FILES} module.cc)
 
 # link the library to its dependencies
 target_link_libraries(_hoomd ${HOOMD_COMMON_LIBS})
@@ -86,7 +95,46 @@ endif(APPLE)
 fix_cudart_rpath(_hoomd)
 
 # install the library
-install(TARGETS _hoomd
-        LIBRARY DESTINATION ${_hoomd_so_install_dir}
-        ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
-        )
+# install(TARGETS _hoomd
+#        LIBRARY DESTINATION ${_hoomd_so_install_dir}
+#        ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
+#        )
+
+################ Python only modules
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_file file)
+    add_custom_command (
+        OUTPUT ${file}
+        DEPENDS ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
+        COMMENT    "Copy hoomd/${file}"
+    )
+ENDMACRO(copy_file)
+
+set(files analyze.py
+          benchmark.py
+          cite.py
+          comm.py
+          compute.py
+          context.py
+          data.py
+          dump.py
+          group.py
+          __init__.py
+          init.py
+          integrate.py
+          meta.py
+          option.py
+          sorter.py
+          update.py
+          util.py
+          variant.py
+    )
+
+foreach(file ${files})
+    copy_file(${file})
+endforeach()
+
+add_custom_target(copy_hoomd ALL DEPENDS ${files})

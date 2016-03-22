@@ -49,14 +49,14 @@
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
 
-## \package hoomd_script.context
+## \package hoomd.context
 # \brief Gather information about the execution context
 #
 # As much data from the environment is gathered as possible.
 
 import os
-import hoomd;
-import hoomd_script
+import hoomd
+from hoomd import _hoomd
 import socket
 import getpass
 import platform
@@ -69,7 +69,7 @@ CLOCK_START = time.clock()
 ## Global Messenger
 # \note This is initialized to a default messenger on load so that python code may have a unified path for sending
 # messages
-msg = hoomd.Messenger();
+msg = _hoomd.Messenger();
 msg.openPython();
 
 ## Global bibliography
@@ -226,8 +226,8 @@ def initialize(args=None):
         current = SimulationContext();
         return current
 
-    options = hoomd_script.option.options();
-    hoomd_script.option._parse_command_line(args);
+    options = hoomd.option.options();
+    hoomd.option._parse_command_line(args);
 
     _create_exec_conf();
 
@@ -244,8 +244,8 @@ def initialize(args=None):
 # \returns String name for the current processor
 # \internal
 def _get_proc_name():
-    if hoomd.is_MPI_available():
-        return hoomd.get_mpi_proc_name()
+    if _hoomd.is_MPI_available():
+        return _hoomd.get_mpi_proc_name()
     else:
         return platform.node()
 
@@ -259,7 +259,7 @@ def _create_exec_conf():
     if exec_conf is not None:
         return exec_conf
 
-    mpi_available = hoomd.is_MPI_available();
+    mpi_available = _hoomd.is_MPI_available();
 
     # error out on nyx/flux if the auto mode is set
     if options.mode == 'auto':
@@ -267,11 +267,11 @@ def _create_exec_conf():
         if "flux" in host or "nyx" in host:
             msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
             raise RuntimeError("Error initializing");
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
+        exec_mode = _hoomd.ExecutionConfiguration.executionMode.AUTO;
     elif options.mode == "cpu":
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
+        exec_mode = _hoomd.ExecutionConfiguration.executionMode.CPU;
     elif options.mode == "gpu":
-        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
+        exec_mode = _hoomd.ExecutionConfiguration.executionMode.GPU;
     else:
         raise RuntimeError("Invalid mode");
 
@@ -287,7 +287,7 @@ def _create_exec_conf():
         nrank = int(options.nrank);
 
     # create the specified configuration
-    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
+    exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
 
     # if gpu_error_checking is set, enable it on the GPU
     if options.gpu_error_checking:
@@ -308,11 +308,11 @@ def _verify_init():
 
 ## \internal
 # \brief Gather context from the environment
-class ExecutionContext(hoomd_script.meta._metadata):
+class ExecutionContext(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        hoomd_script.meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
@@ -349,7 +349,7 @@ class ExecutionContext(hoomd_script.meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
-        return hoomd_script.comm.get_num_ranks()
+        return hoomd.comm.get_num_ranks()
 
     # \brief Return the username.
     @property
@@ -389,11 +389,11 @@ class ExecutionContext(hoomd_script.meta._metadata):
 
 ## \internal
 # \brief Gather context about HOOMD
-class HOOMDContext(hoomd_script.meta._metadata):
+class HOOMDContext(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        hoomd_script.meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'hoomd_compile_flags', 'cuda_version', 'compiler_version',
@@ -402,29 +402,29 @@ class HOOMDContext(hoomd_script.meta._metadata):
     # \brief Return the hoomd version.
     @property
     def hoomd_version(self):
-        return hoomd.__version__
+        return _hoomd.__version__
 
     # \brief Return the hoomd git hash
     @property
     def hoomd_git_sha1(self):
-        return hoomd.__git_sha1__
+        return _hoomd.__git_sha1__
 
     # \brief Return the hoomd git refspec
     @property
     def hoomd_git_refspec(self):
-        return hoomd.__git_refspec__
+        return _hoomd.__git_refspec__
 
     # \brief Return the hoomd compile flags
     @property
     def hoomd_compile_flags(self):
-        return hoomd.hoomd_compile_flags();
+        return _hoomd.hoomd_compile_flags();
 
     # \brief Return the cuda version
     @property
     def cuda_version(self):
-        return hoomd.__cuda_version__
+        return _hoomd.__cuda_version__
 
     # \brief Return the compiler version
     @property
     def compiler_version(self):
-        return hoomd.__compiler_version__
+        return _hoomd.__compiler_version__
