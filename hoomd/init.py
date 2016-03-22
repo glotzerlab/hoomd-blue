@@ -49,6 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd import _hoomd
 import hoomd;
 
 import math;
@@ -58,11 +59,7 @@ import os;
 import re;
 import platform;
 
-from hoomd_script import util;
-from hoomd_script import comm;
-import hoomd_script
-
-## \package hoomd_script.init
+## \package hoomd.init
 # \brief Data initialization commands
 #
 # Commands in the init package initialize the particle system. Initialization via
@@ -76,7 +73,7 @@ import hoomd_script
 # Returns True if a previous init.create* or init.read* command has completed successfully and initialized the system.
 # Returns False otherwise.
 def is_initialized():
-    if hoomd_script.context.current.system is None:
+    if hoomd.context.current.system is None:
         return False;
     else:
         return True;
@@ -99,7 +96,7 @@ def is_initialized():
 # \endcode
 #
 # After init.create_empty returns, the requested number of particles will have been created with
-# <b> <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
+# <b> <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd.data
 # for full details on how such initialization can be performed.
 #
 # Specifically, all created particles will be:
@@ -122,66 +119,66 @@ def is_initialized():
 # \warning create_empty() is deprecated. Use data.make_snapshot() and init.read_snapshot() instead. create_empty will be
 #          removed in the next release of HOOMD-blue.
 #
-# \sa hoomd_script.data
+# \sa hoomd.data
 def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
-    hoomd_script.context.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
+    hoomd.context.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # create the empty system
-    if not isinstance(box, hoomd_script.data.boxdim):
-        hoomd_script.context.msg.error('box must be a data.boxdim object');
+    if not isinstance(box, hoomd.data.boxdim):
+        hoomd.context.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
     boxdim = box._getBoxDim();
 
     my_domain_decomposition = _create_domain_decomposition(boxdim);
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(N,
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(N,
                                                            boxdim,
                                                            len(particle_types),
                                                            len(bond_types),
                                                            len(angle_types),
                                                            len(dihedral_types),
                                                            len(improper_types),
-                                                           hoomd_script.context.exec_conf,
+                                                           hoomd.context.exec_conf,
                                                            my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(N,
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(N,
                                                            boxdim,
                                                            len(particle_types),
                                                            len(bond_types),
                                                            len(angle_types),
                                                            len(dihedral_types),
                                                            len(improper_types),
-                                                           hoomd_script.context.exec_conf)
+                                                           hoomd.context.exec_conf)
 
-    hoomd_script.context.current.system_definition.setNDimensions(box.dimensions);
+    hoomd.context.current.system_definition.setNDimensions(box.dimensions);
 
     # transfer names to C++
     for i,name in enumerate(particle_types):
-        hoomd_script.context.current.system_definition.getParticleData().setTypeName(i,name);
+        hoomd.context.current.system_definition.getParticleData().setTypeName(i,name);
     for i,name in enumerate(bond_types):
-        hoomd_script.context.current.system_definition.getBondData().setTypeName(i,name);
+        hoomd.context.current.system_definition.getBondData().setTypeName(i,name);
     for i,name in enumerate(angle_types):
-        hoomd_script.context.current.system_definition.getAngleData().setTypeName(i,name);
+        hoomd.context.current.system_definition.getAngleData().setTypeName(i,name);
     for i,name in enumerate(dihedral_types):
-        hoomd_script.context.current.system_definition.getDihedralData().setTypeName(i,name);
+        hoomd.context.current.system_definition.getDihedralData().setTypeName(i,name);
     for i,name in enumerate(improper_types):
-        hoomd_script.context.current.system_definition.getImproperData().setTypeName(i,name);
+        hoomd.context.current.system_definition.getImproperData().setTypeName(i,name);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+    hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Reads initial system state from an XML file
 #
@@ -218,17 +215,17 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 # coordinates will result in an error.
 #
 # The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd_script.data for more information.
+# later in the script. See hoomd.data for more information.
 #
 # \sa dump.xml
 def read_xml(filename, restart = None, time_step = None, wrap_coordinates = False):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error reading XML file");
 
     filename_to_read = filename;
@@ -237,23 +234,23 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
             filename_to_read = restart;
 
     # read in the data
-    initializer = hoomd.HOOMDInitializer(hoomd_script.context.exec_conf,filename_to_read,wrap_coordinates);
+    initializer = _hoomd.HOOMDInitializer(hoomd.context.exec_conf,filename_to_read,wrap_coordinates);
     snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
 
     # initialize the system
     if time_step is None:
-        hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, initializer.getTimeStep());
+        hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, initializer.getTimeStep());
     else:
-        hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, time_step);
+        hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Generates N randomly positioned particles of the same type
 #
@@ -283,16 +280,16 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
 # All particles are created with the same type, given by \a name.
 #
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd_script.data for more information.
+# later in the script. See hoomd.data for more information.
 #
 def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     # abuse the polymer generator to generate single particles
@@ -300,28 +297,28 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     if phi_p is not None:
         # calculate the box size
         L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-        box = hoomd_script.data.boxdim(L=L);
+        box = hoomd.data.boxdim(L=L);
 
     if box is None:
         raise RuntimeError('box or phi_p must be specified');
 
-    if not isinstance(box, hoomd_script.data.boxdim):
-        hoomd_script.context.msg.error('box must be a data.boxdim object');
+    if not isinstance(box, hoomd.data.boxdim):
+        hoomd.context.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(hoomd_script.context.exec_conf, box._getBoxDim(), seed, box.dimensions);
+    generator = _hoomd.RandomGenerator(hoomd.context.exec_conf, box._getBoxDim(), seed, box.dimensions);
 
     # build type list
-    type_vector = hoomd.std_vector_string();
+    type_vector = _hoomd.std_vector_string();
     type_vector.append(name);
 
     # empty bond lists for single particles
-    bond_ab = hoomd.std_vector_uint();
-    bond_type = hoomd.std_vector_string();
+    bond_ab = _hoomd.std_vector_uint();
+    bond_type = _hoomd.std_vector_string();
 
     # create the generator
-    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(hoomd_script.context.exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
+    generator.addGenerator(int(N), _hoomd.PolymerParticleGenerator(hoomd.context.exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
 
     # set the separation radius
     generator.setSeparationRadius(name, min_dist/2.0);
@@ -334,15 +331,15 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+    hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
@@ -445,32 +442,32 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
 # attempts to be as general as possible, but unfortunately cannot work in every possible case.
 #
 # The result of init.create_random_polymers can be saved in a variable and later used to read and/or change particle
-# properties later in the script. See hoomd_script.data for more information.
+# properties later in the script. See hoomd.data for more information.
 #
 def create_random_polymers(box, polymers, separation, seed=1):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
     if len(polymers) == 0:
-        hoomd_script.context.msg.error("Polymers list cannot be empty.\n");
+        hoomd.context.msg.error("Polymers list cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
     if len(separation) == 0:
-        hoomd_script.context.msg.error("Separation dict cannot be empty.\n");
+        hoomd.context.msg.error("Separation dict cannot be empty.\n");
         raise RuntimeError("Error creating random polymers");
 
-    if not isinstance(box, hoomd_script.data.boxdim):
-        hoomd_script.context.msg.error('Box must be a data.boxdim object\n');
+    if not isinstance(box, hoomd.data.boxdim):
+        hoomd.context.msg.error('Box must be a data.boxdim object\n');
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(hoomd_script.context.exec_conf,box._getBoxDim(), seed, box.dimensions);
+    generator = _hoomd.RandomGenerator(hoomd.context.exec_conf,box._getBoxDim(), seed, box.dimensions);
 
     # make a list of types used for an eventual check vs the types in separation for completeness
     types_used = [];
@@ -483,7 +480,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         type_list = [];
         # check that all fields are specified
         if not 'bond_len' in poly:
-            hoomd_script.context.msg.error('Polymer specification missing bond_len\n');
+            hoomd.context.msg.error('Polymer specification missing bond_len\n');
             raise RuntimeError("Error creating random polymers");
 
         if min_bond_len is None:
@@ -492,26 +489,26 @@ def create_random_polymers(box, polymers, separation, seed=1):
             min_bond_len = min(min_bond_len, poly['bond_len']);
 
         if not 'type' in poly:
-            hoomd_script.context.msg.error('Polymer specification missing type\n');
+            hoomd.context.msg.error('Polymer specification missing type\n');
             raise RuntimeError("Error creating random polymers");
         if not 'count' in poly:
-            hoomd_script.context.msg.error('Polymer specification missing count\n');
+            hoomd.context.msg.error('Polymer specification missing count\n');
             raise RuntimeError("Error creating random polymers");
         if not 'bond' in poly:
-            hoomd_script.context.msg.error('Polymer specification missing bond\n');
+            hoomd.context.msg.error('Polymer specification missing bond\n');
             raise RuntimeError("Error creating random polymers");
 
         # build type list
-        type_vector = hoomd.std_vector_string();
+        type_vector = _hoomd.std_vector_string();
         for t in poly['type']:
             type_vector.append(t);
             if not t in types_used:
                 types_used.append(t);
 
         # build bond list
-        bond_a = hoomd.std_vector_uint();
-        bond_b = hoomd.std_vector_uint();
-        bond_name = hoomd.std_vector_string();
+        bond_a = _hoomd.std_vector_uint();
+        bond_b = _hoomd.std_vector_uint();
+        bond_name = _hoomd.std_vector_string();
 
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
@@ -530,31 +527,31 @@ def create_random_polymers(box, polymers, separation, seed=1):
                 elif len(t) == 3:
                     a,b,name = t;
                 else:
-                    hoomd_script.context.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
+                    hoomd.context.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
                     raise RuntimeError("Error creating random polymers");
 
                 bond_a.append(a);
                 bond_b.append(b);
                 bond_name.append(name);
         else:
-            hoomd_script.context.msg.error('Unexpected argument value for polymer bond\n');
+            hoomd.context.msg.error('Unexpected argument value for polymer bond\n');
             raise RuntimeError("Error creating random polymers");
 
         # create the generator
-        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(hoomd_script.context.exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
+        generator.addGenerator(int(poly['count']), _hoomd.PolymerParticleGenerator(hoomd.context.exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
 
 
     # check that all used types are in the separation list
     for t in types_used:
         if not t in separation:
-            hoomd_script.context.msg.error("No separation radius specified for type " + str(t) + "\n");
+            hoomd.context.msg.error("No separation radius specified for type " + str(t) + "\n");
             raise RuntimeError("Error creating random polymers");
 
     # set the separation radii, checking that it is within the minimum bond length
     for t,r in separation.items():
         generator.setSeparationRadius(t, r);
         if 2*r >= min_bond_len:
-            hoomd_script.context.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
+            hoomd.context.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
             raise RuntimeError("Error creating random polymers");
 
     # generate the particles
@@ -565,15 +562,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+    hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Initializes the system from a snapshot
 #
@@ -591,31 +588,31 @@ def create_random_polymers(box, polymers, separation, seed=1):
 # system = init.read_snapshot(snapshot)
 # \endcode
 #
-# \sa hoomd_script.data
+# \sa hoomd.data
 def read_snapshot(snapshot):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd_script.context.exec_conf);
+    snapshot._broadcast(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, 0);
+    hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, 0);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Reads initial system state from an GSD file
 #
@@ -635,39 +632,39 @@ def read_snapshot(snapshot):
 # step of the simulation instead of the one read from the GSD file.
 #
 # The result of init.read_gsd can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd_script.data for more information.
+# later in the script. See hoomd.data for more information.
 #
 # \sa dump.gsd
 def read_gsd(filename, restart = None, frame = 0, time_step = None):
-    util.print_status_line();
+    hoomd.util.print_status_line();
 
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd_script.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
 
-    reader = hoomd.GSDReader(hoomd_script.context.exec_conf, filename, frame);
+    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
     snapshot = reader.getSnapshot();
     if time_step is None:
         time_step = reader.getTimeStep();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd_script.context.exec_conf);
+    snapshot._broadcast(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
-        hoomd_script.context.current.system_definition = hoomd.SystemDefinition(snapshot, hoomd_script.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
 
     # initialize the system
-    hoomd_script.context.current.system = hoomd.System(hoomd_script.context.current.system_definition, time_step);
+    hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
-    return hoomd_script.data.system_data(hoomd_script.context.current.system_definition);
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 ## Performs common initialization tasks
 #
@@ -681,44 +678,44 @@ def _perform_common_init_tasks():
     from hoomd_script import compute;
 
     # create the sorter
-    hoomd_script.context.current.sorter = update.sort();
+    hoomd.context.current.sorter = update.sort();
 
     # create the default compute.thermo on the all group
-    util.quiet_status();
+    hoomd.util.quiet_status();
     all = group.all();
     compute._get_unique_thermo(group=all);
-    util.unquiet_status();
+    hoomd.util.unquiet_status();
 
     # set up Communicator, and register it with the System
-    if hoomd.is_MPI_available():
-        cpp_decomposition = hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition();
+    if _hoomd.is_MPI_available():
+        cpp_decomposition = hoomd.context.current.system_definition.getParticleData().getDomainDecomposition();
         if cpp_decomposition is not None:
             # create the c++ Communicator
-            if not hoomd_script.context.exec_conf.isCUDAEnabled():
-                cpp_communicator = hoomd.Communicator(hoomd_script.context.current.system_definition, cpp_decomposition)
+            if not hoomd.context.exec_conf.isCUDAEnabled():
+                cpp_communicator = _hoomd.Communicator(hoomd.context.current.system_definition, cpp_decomposition)
             else:
-                cpp_communicator = hoomd.CommunicatorGPU(hoomd_script.context.current.system_definition, cpp_decomposition)
+                cpp_communicator = _hoomd.CommunicatorGPU(hoomd.context.current.system_definition, cpp_decomposition)
 
             # set Communicator in C++ System
-            hoomd_script.context.current.system.setCommunicator(cpp_communicator)
+            hoomd.context.current.system.setCommunicator(cpp_communicator)
 
 ## Create a DomainDecomposition object
 # \internal
 def _create_domain_decomposition(box):
-    if not hoomd.is_MPI_available():
+    if not _hoomd.is_MPI_available():
         return None
 
     # if we are only running on one processor, we use optimized code paths
     # for single-GPU execution
-    if hoomd_script.context.exec_conf.getNRanks() == 1:
+    if hoomd.context.exec_conf.getNRanks() == 1:
         return None
 
     # okay, we want a decomposition but one isn't set, so make a default one
-    if hoomd_script.context.current.decomposition is None:
+    if hoomd.context.current.decomposition is None:
         # this is happening transparently to the user, so hush this up
-        util.quiet_status()
-        hoomd_script.context.current.decomposition = comm.decomposition()
-        util.unquiet_status()
+        hoomd.util.quiet_status()
+        hoomd.context.current.decomposition = hoomd.comm.decomposition()
+        hoomd.util.unquiet_status()
 
-    return hoomd_script.context.current.decomposition._make_cpp_decomposition(box)
+    return hoomd.context.current.decomposition._make_cpp_decomposition(box)
 

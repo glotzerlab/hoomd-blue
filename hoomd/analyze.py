@@ -49,14 +49,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd import _hoomd;
 import hoomd;
 import sys;
-from hoomd_script import util;
-from hoomd_script import init;
-from hoomd_script import meta;
-import hoomd_script;
 
-## \package hoomd_script.analyze
+## \package hoomd.analyze
 # \brief Commands that %analyze the system and provide some output
 #
 # An analyzer examines the system state in some way every \a period time steps and generates
@@ -121,7 +118,7 @@ import hoomd_script;
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the analyzer and changing the
 # period which the system calls it
-class _analyzer(meta._metadata):
+class _analyzer(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the analyzer
     #
@@ -129,8 +126,8 @@ class _analyzer(meta._metadata):
     # Assigns a name to the analyzer in analyzer_name;
     def __init__(self):
         # check if initialization has occurred
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create analyzer before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create analyzer before initialization\n");
             raise RuntimeError('Error creating analyzer');
 
         self.cpp_analyzer = None;
@@ -143,10 +140,10 @@ class _analyzer(meta._metadata):
         self.enabled = True;
 
         # Store a reference in global simulation variables
-        hoomd_script.context.current.analyzers.append(self)
+        hoomd.context.current.analyzers.append(self)
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Helper function to setup analyzer period
@@ -162,14 +159,14 @@ class _analyzer(meta._metadata):
         self.phase = phase;
 
         if type(period) == type(1.0):
-            hoomd_script.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period), phase);
+            hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period), phase);
         elif type(period) == type(1):
-            hoomd_script.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period, phase);
+            hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period, phase);
         elif type(period) == type(lambda n: n*2):
-            hoomd_script.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
-            hoomd_script.context.current.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
+            hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
+            hoomd.context.current.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
-            hoomd_script.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
+            hoomd.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
             raise RuntimeError('Error creating analyzer');
 
     ## \var enabled
@@ -193,7 +190,7 @@ class _analyzer(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_analyzer is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
             raise RuntimeError();
 
     ## Disables the analyzer
@@ -216,16 +213,16 @@ class _analyzer(meta._metadata):
     # analyzer.disable()
     # \endcode
     def disable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
+            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
             return;
 
-        self.prev_period = hoomd_script.context.current.system.getAnalyzerPeriod(self.analyzer_name);
-        hoomd_script.context.current.system.removeAnalyzer(self.analyzer_name);
+        self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
+        hoomd.context.current.system.removeAnalyzer(self.analyzer_name);
         self.enabled = False;
 
     ## Enables the analyzer
@@ -237,15 +234,15 @@ class _analyzer(meta._metadata):
     #
     # See disable() for a detailed description.
     def enable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
+            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
 
-        hoomd_script.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
+        hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
         self.enabled = True;
 
     ## Changes the period between analyzer executions
@@ -270,23 +267,23 @@ class _analyzer(meta._metadata):
     # analyzer.set_period(10)
     # \endcode
     def set_period(self, period):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.period = period;
 
         if type(period) == type(1):
             if self.enabled:
-                hoomd_script.context.current.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
+                hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            hoomd_script.context.msg.warning("A period cannot be changed to a variable one");
+            hoomd.context.msg.warning("A period cannot be changed to a variable one");
         else:
-            hoomd_script.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+            hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data
 
@@ -329,7 +326,7 @@ class imd(_analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=-1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -341,7 +338,7 @@ class imd(_analyzer):
             cpp_force = None;
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.IMDInterface(hoomd_script.context.current.system_definition, port, pause, rate, cpp_force);
+        self.cpp_analyzer = _hoomd.IMDInterface(hoomd.context.current.system_definition, port, pause, rate, cpp_force);
         self.setupAnalyzer(period, phase);
 
 
@@ -502,7 +499,7 @@ class log(_analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=-1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -512,17 +509,17 @@ class log(_analyzer):
             period = 1;
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.Logger(hoomd_script.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.Logger(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities
-        quantity_list = hoomd.std_vector_string();
+        quantity_list = _hoomd.std_vector_string();
         for item in quantities:
             quantity_list.append(str(item));
         self.cpp_analyzer.setLoggedQuantities(quantity_list);
 
         # add the logger to the list of loggers
-        hoomd_script.context.current.loggers.append(self);
+        hoomd.context.current.loggers.append(self);
 
         # store metadata
         self.metadata_fields = ['filename','period']
@@ -549,11 +546,11 @@ class log(_analyzer):
     # logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
     # \endcode
     def set_params(self, quantities=None, delimiter=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if quantities is not None:
             # set the logged quantities
-            quantity_list = hoomd.std_vector_string();
+            quantity_list = _hoomd.std_vector_string();
             for item in quantities:
                 quantity_list.append(str(item));
             self.cpp_analyzer.setLoggedQuantities(quantity_list);
@@ -588,7 +585,7 @@ class log(_analyzer):
         if self.filename == "":
             use_cache = False;
 
-        return self.cpp_analyzer.getQuantity(quantity, hoomd_script.context.current.system.getCurrentTimeStep(), use_cache);
+        return self.cpp_analyzer.getQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
 
     ## Register a callback to produce a logged quantity
     # \param name Name of the quantity
@@ -615,7 +612,7 @@ class log(_analyzer):
         self.cpp_analyzer.removeAll();
 
         # re-register all computes and updater
-        hoomd_script.context.current.system.registerLogger(self.cpp_analyzer);
+        hoomd.context.current.system.registerLogger(self.cpp_analyzer);
 
 
 ## Calculates the mean-squared displacement of groups of particles and logs the values to a file
@@ -676,18 +673,18 @@ class msd(_analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=-1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.MSDAnalyzer(hoomd_script.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.MSDAnalyzer(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # it is an error to specify no groups
         if len(groups) == 0:
-            hoomd_script.context.msg.error('At least one group must be specified to analyze.msd\n');
+            hoomd.context.msg.error('At least one group must be specified to analyze.msd\n');
             raise RuntimeError('Error creating analyzer');
 
         # set the group columns
@@ -712,7 +709,7 @@ class msd(_analyzer):
     # msd.set_params(delimiter=',');
     # \endcode
     def set_params(self, delimiter=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
@@ -736,11 +733,11 @@ class callback(_analyzer):
     # analyze.callback(callback = my_callback, period = 100)
     # \endcode
     def __init__(self, callback, period, phase=-1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.CallbackAnalyzer(hoomd_script.context.current.system_definition, callback)
+        self.cpp_analyzer = _hoomd.CallbackAnalyzer(hoomd.context.current.system_definition, callback)
         self.setupAnalyzer(period, phase);

@@ -49,8 +49,6 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from hoomd_script import init
-import hoomd_script
 import hoomd
 
 try:
@@ -59,7 +57,7 @@ except ImportError:
     numpy = None;
 
 ##
-# \package hoomd_script.benchmark
+# \package hoomd.benchmark
 # \brief Commands for benchmarking the performance of HOOMD
 
 
@@ -75,16 +73,16 @@ except ImportError:
 # \MPI_SUPPORTED
 def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     # check if initialization has occurred
-    if not init.is_initialized():
-        hoomd_script.context.msg.error("Cannot tune r_buff before initialization\n");
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
 
     if warmup > 0:
-        hoomd_script.run(warmup);
+        hoomd.run(warmup);
 
     for i in range(0,repeat):
-        hoomd_script.run(steps, limit_hours=limit_hours);
-        tps_list.append(hoomd_script.context.current.system.getLastTPS());
+        hoomd.run(steps, limit_hours=limit_hours);
+        tps_list.append(hoomd.context.current.system.getLastTPS());
 
     return tps_list;

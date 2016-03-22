@@ -49,7 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd_script.integrate
+## \package hoomd.integrate
 # \brief Commands that integrate the equations of motion
 #
 # To integrate the system forward in time, an integration mode must be set. Only one integration mode can be active at
@@ -92,17 +92,10 @@
 # \endcode
 # This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
 
+from hoomd import _hoomd;
 import hoomd;
 import copy;
-from hoomd_script import compute;
 import sys;
-from hoomd_script import util;
-from hoomd_script import variant;
-from hoomd_script import init;
-from hoomd_script import comm;
-from hoomd_script import meta;
-from hoomd_script import cite;
-import hoomd_script;
 
 ## \internal
 # \brief Base class for integrators
@@ -112,15 +105,15 @@ import hoomd_script;
 # writers. 1) The instance of the c++ integrator itself is tracked 2) All
 # forces created so far in the simulation are updated in the cpp_integrator
 # whenever run() is called.
-class _integrator(meta._metadata):
+class _integrator(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the integrator
     #
     # This doesn't really do much bet set some member variables to None
     def __init__(self):
         # check if initialization has occured
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create integrator before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
 
         # by default, integrators do not support methods
@@ -128,10 +121,10 @@ class _integrator(meta._metadata):
         self.supports_methods = False;
 
         # save ourselves in the global variable
-        hoomd_script.context.current.integrator = self;
+        hoomd.context.current.integrator = self;
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \var cpp_integrator
     # \internal
@@ -148,7 +141,7 @@ class _integrator(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_integrator is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_integrator not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_integrator not set, please report\n');
             raise RuntimeError();
 
     ## \internal
@@ -158,9 +151,9 @@ class _integrator(meta._metadata):
 
         # set the forces
         self.cpp_integrator.removeForceComputes();
-        for f in hoomd_script.context.current.forces:
+        for f in hoomd.context.current.forces:
             if f.cpp_force is None:
-                hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+                hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.log or f.enabled:
@@ -170,9 +163,9 @@ class _integrator(meta._metadata):
                 self.cpp_integrator.addForceCompute(f.cpp_force);
 
         # set the constraint forces
-        for f in hoomd_script.context.current.constraint_forces:
+        for f in hoomd.context.current.constraint_forces:
             if f.cpp_force is None:
-                hoomd_script.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+                hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.enabled:
@@ -194,26 +187,26 @@ class _integrator(meta._metadata):
         if self.supports_methods:
             self.cpp_integrator.removeAllIntegrationMethods();
 
-            if len(hoomd_script.context.current.integration_methods) == 0:
-                hoomd_script.context.msg.error('This integrator requires that one or more integration methods be specified.\n');
+            if len(hoomd.context.current.integration_methods) == 0:
+                hoomd.context.msg.error('This integrator requires that one or more integration methods be specified.\n');
                 raise RuntimeError('Error initializing integrator methods');
 
-            for m in hoomd_script.context.current.integration_methods:
+            for m in hoomd.context.current.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
 
         else:
-            if len(hoomd_script.context.current.integration_methods) > 0:
-                hoomd_script.context.msg.error("This integrator does not support the use of integration methods,\n");
-                hoomd_script.context.msg.error("but some have been specified in the script. Remove them or use\n");
-                hoomd_script.context.msg.error("a different integrator.\n");
+            if len(hoomd.context.current.integration_methods) > 0:
+                hoomd.context.msg.error("This integrator does not support the use of integration methods,\n");
+                hoomd.context.msg.error("but some have been specified in the script. Remove them or use\n");
+                hoomd.context.msg.error("a different integrator.\n");
                 raise RuntimeError('Error initializing integrator methods');
 
     ## \internal
-    # \brief Counts the number of degrees of freedom and updates each compute.thermo specified
+    # \brief Counts the number of degrees of freedom and updates each hoomd.compute.thermo specified
     def update_thermos(self):
         self.check_initialization();
 
-        for t in hoomd_script.context.current.thermos:
+        for t in hoomd.context.current.thermos:
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
 
@@ -230,24 +223,24 @@ class _integrator(meta._metadata):
 # being active for the next run()
 #
 # The design of integration_method exactly mirrors that of _force for consistency
-class _integration_method(meta._metadata):
+class _integration_method(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the integration_method
     #
     # Initializes the cpp_method to None.
     def __init__(self):
         # check if initialization has occured
-        if not init.is_initialized():
-            hoomd_script.context.msg.error("Cannot create an integration method before initialization\n");
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');
 
         self.cpp_method = None;
 
         self.enabled = True;
-        hoomd_script.context.current.integration_methods.append(self);
+        hoomd.context.current.integration_methods.append(self);
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -262,7 +255,7 @@ class _integration_method(meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_method is None:
-            hoomd_script.context.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
             raise RuntimeError();
 
     ## Disables the integration method
@@ -284,16 +277,16 @@ class _integration_method(meta._metadata):
     # method.disable()
     # \endcode
     def disable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization()
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to disable an integration method that is already disabled");
+            hoomd.context.msg.warning("Ignoring command to disable an integration method that is already disabled");
             return;
 
         self.enabled = False;
-        hoomd_script.context.current.integration_methods.remove(self);
+        hoomd.context.current.integration_methods.remove(self);
 
     ## Enables the integration method
     #
@@ -304,21 +297,21 @@ class _integration_method(meta._metadata):
     #
     # See disable() for a detailed description.
     def enable(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd_script.context.msg.warning("Ignoring command to enable an integration method that is already enabled");
+            hoomd.context.msg.warning("Ignoring command to enable an integration method that is already enabled");
             return;
 
         self.enabled = True;
-        hoomd_script.context.current.integration_methods.append(self);
+        hoomd.context.current.integration_methods.append(self);
 
     ## \internal
     # \brief Override get_metadata() to add 'enabled' field
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data
 
@@ -355,7 +348,7 @@ class mode_standard(_integrator):
     # integrator_mode = integrate.mode_standard(dt=0.001)
     # \endcode
     def __init__(self, dt, aniso=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _integrator.__init__(self);
@@ -366,22 +359,23 @@ class mode_standard(_integrator):
         self.metadata_fields = ['dt', 'aniso']
 
         # initialize the reflected c++ class
-        self.cpp_integrator = hoomd.IntegratorTwoStep(hoomd_script.context.current.system_definition, dt);
+        self.cpp_integrator = _hoomd.IntegratorTwoStep(hoomd.context.current.system_definition, dt);
         self.supports_methods = True;
 
-        hoomd_script.context.current.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
-        util.quiet_status();
+        hoomd.util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        util.unquiet_status();
+        hoomd.util.unquiet_status();
 
     ## \internal
     #  \brief Cached set of anisotropic mode enums for ease of access
-    _aniso_modes = {
-        None: hoomd.IntegratorAnisotropicMode.Automatic,
-        True: hoomd.IntegratorAnisotropicMode.Anisotropic,
-        False: hoomd.IntegratorAnisotropicMode.Isotropic}
+    #_aniso_modes = {
+    #    None: _hoomd.IntegratorAnisotropicMode.Automatic,
+    #    True: _hoomd.IntegratorAnisotropicMode.Anisotropic,
+    #    False: _hoomd.IntegratorAnisotropicMode.Isotropic}
+    # TODO: Uncomment these lines of code when they are moved to the md subpackage
 
     ## Changes parameters of an existing integration mode
     # \param dt New time step delta (if set) (in time units)
@@ -399,7 +393,7 @@ class mode_standard(_integrator):
     # integrator_mode.set_params(dt=0.005, aniso=False)
     # \endcode
     def set_params(self, dt=None, aniso=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -411,7 +405,7 @@ class mode_standard(_integrator):
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd_script.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                hoomd.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
                 raise RuntimeError("Error setting anisotropic integration mode.");
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
@@ -441,7 +435,7 @@ class nvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
-    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    # Internally, a hoomd.compute.thermo is automatically specified and associated with \a group.
     #
     # \b Examples:
     # \code
@@ -449,28 +443,28 @@ class nvt(_integration_method):
     # integrate.nvt(group=all, T=1.0, tau=0.5)
     # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
     # typeA = group.type('A')
-    # integrator = integrate.nvt(group=typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+    # integrator = integrate.nvt(group=typeA, tau=1.0, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
     def __init__(self, group, T, tau):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
+        T = hoomd.variant._setup_variant_input(T);
 
         # create the compute thermo
         # the NVT integrator uses the ComputeThermo in such a way that ComputeThermo stores half-time step
         # values. By assigning a separate ComputeThermo to the integrator, we are still able to log full time step values
-        if group is hoomd_script.context.current.group_all:
+        if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
-            util.quiet_status();
-            thermo = compute.thermo(group_copy);
-            util.unquiet_status();
+            hoomd.util.quiet_status();
+            thermo = hoomd.compute.thermo(group_copy);
+            hoomd.util.unquiet_status();
         else:
-            thermo = compute._get_unique_thermo(group=group);
+            thermo = hoomd.compute._get_unique_thermo(group=group);
 
         # store metadata
         self.group = group
@@ -481,10 +475,10 @@ class nvt(_integration_method):
         # setup suffix
         suffix = '_' + group.name;
 
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVTMTK(hoomd_script.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_method = _hoomd.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
-            self.cpp_method = hoomd.TwoStepNVTMTKGPU(hoomd_script.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            self.cpp_method = _hoomd.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
 
         self.cpp_method.validateGroup()
 
@@ -504,13 +498,13 @@ class nvt(_integration_method):
     # integrator.set_params(tau=0.7, T=2.0)
     # \endcode
     def set_params(self, T=None, tau=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
         if T is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
+            T = hoomd.variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
             self.T = T
 
@@ -607,7 +601,7 @@ class npt(_integration_method):
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
     # and \f$ k_B T_0 \f$ is the set point (\a T above).
     #
-    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    # Internally, a hoomd.compute.thermo is automatically specified and associated with \a group.
     #
     # \b Examples:
     # \code
@@ -621,12 +615,12 @@ class npt(_integration_method):
     # integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
     def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None, rescale_all=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # check the input
         if (T is None or tau is None):
             if nph is False:
-                hoomd_script.context.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
+                hoomd.context.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
                 raise RuntimeError("Error setting up NPT integration.");
             else:
                 # use dummy values
@@ -634,85 +628,85 @@ class npt(_integration_method):
                 tau=1.0
 
         if len(group) == 0:
-            hoomd_script.context.msg.error("integrate.npt: Need a non-empty group.\n");
+            hoomd.context.msg.error("integrate.npt: Need a non-empty group.\n");
             raise RuntimeError("Error setting up NPT integration.");
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        P = variant._setup_variant_input(P);
+        T = hoomd.variant._setup_variant_input(T);
+        P = hoomd.variant._setup_variant_input(P);
 
         # create the compute thermo for half time steps
-        if group is hoomd_script.context.current.group_all:
+        if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__npt_all";
-            util.quiet_status();
-            thermo_group = compute.thermo(group_copy);
-            util.unquiet_status();
+            hoomd.util.quiet_status();
+            thermo_group = hoomd.compute.thermo(group_copy);
+            hoomd.util.unquiet_status();
         else:
-            thermo_group = compute._get_unique_thermo(group=group);
+            thermo_group = hoomd.compute._get_unique_thermo(group=group);
 
         # create the compute thermo for full time step
-        thermo_group_t = compute._get_unique_thermo(group=group);
+        thermo_group_t = hoomd.compute._get_unique_thermo(group=group);
 
         # need to know if we are running 2D simulations
-        twod = (hoomd_script.context.current.system_definition.getNDimensions() == 2);
+        twod = (hoomd.context.current.system_definition.getNDimensions() == 2);
         if twod:
-            hoomd_script.context.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
+            hoomd.context.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
 
         # initialize the reflected c++ class
         if twod:
             # silently ignore any couplings that involve z
             if couple == "none":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_none
             elif couple == "xy":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_xy
             elif couple == "xz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_none
             elif couple == "yz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_none
             elif couple == "xyz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_xy
             else:
-                hoomd_script.context.msg.error("Invalid coupling mode\n");
+                hoomd.context.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
         else:
             if couple == "none":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_none
             elif couple == "xy":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_xy
             elif couple == "xz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_xz
             elif couple == "yz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_yz
             elif couple == "xyz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
+                cpp_couple = _hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
             else:
-                hoomd_script.context.msg.error("Invalid coupling mode\n");
+                hoomd.context.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
         # set degrees of freedom flags
         # silently ignore z related degrees of freedom when running in 2d
         flags = 0;
         if x or all:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_x
         if y or all:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_y
         if (z or all) and not twod:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_z
         if xy or all:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_xy
         if (xz or all) and not twod:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_xz
         if (yz or all) and not twod:
-            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
+            flags |= _hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPTMTK(hoomd_script.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_method = _hoomd.TwoStepNPTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
         else:
-            self.cpp_method = hoomd.TwoStepNPTMTKGPU(hoomd_script.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = _hoomd.TwoStepNPTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
@@ -755,13 +749,13 @@ class npt(_integration_method):
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
     def set_params(self, T=None, tau=None, P=None, tauP=None, rescale_all=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
         if T is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
+            T = hoomd.variant._setup_variant_input(T);
             self.T = T
             self.cpp_method.setT(T.cpp_variant);
         if tau is not None:
@@ -769,7 +763,7 @@ class npt(_integration_method):
             self.tau = tau
         if P is not None:
             # setup the variant inputs
-            P = variant._setup_variant_input(P);
+            P = hoomd.variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
             self.P = P
         if tauP is not None:
@@ -845,12 +839,12 @@ class nph(npt):
     # nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
     # \endcode
     def __init__(self, **params):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
-        util.quiet_status();
+        hoomd.util.quiet_status();
         npt.__init__(self, nph=True, T=1.0, **params);
-        util.unquiet_status();
+        hoomd.util.unquiet_status();
 
 ## NVE Integration via Velocity-Verlet
 #
@@ -880,7 +874,7 @@ class nve(_integration_method):
     # \param zero_force When set to true, particles in the \a group are integrated forward in time with constant
     #                   velocity and any net force on them is ignored.
     #
-    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    # Internally, a hoomd.compute.thermo is automatically specified and associated with \a group.
     #
     # \b Examples:
     # \code
@@ -892,19 +886,19 @@ class nve(_integration_method):
     # integrate.nve(group=typeA, zero_force=True)
     # \endcode
     def __init__(self, group, limit=None, zero_force=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # create the compute thermo
-        compute._get_unique_thermo(group=group);
+        hoomd.compute._get_unique_thermo(group=group);
 
         # initialize the reflected c++ class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVE(hoomd_script.context.current.system_definition, group.cpp_group, False);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_method = _hoomd.TwoStepNVE(hoomd.context.current.system_definition, group.cpp_group, False);
         else:
-            self.cpp_method = hoomd.TwoStepNVEGPU(hoomd_script.context.current.system_definition, group.cpp_group);
+            self.cpp_method = _hoomd.TwoStepNVEGPU(hoomd.context.current.system_definition, group.cpp_group);
 
         # set the limit
         if limit is not None:
@@ -935,7 +929,7 @@ class nve(_integration_method):
     # integrator.set_params(limit=False)
     # \endcode
     def set_params(self, limit=None, zero_force=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -987,7 +981,7 @@ class langevin(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
-    # A compute.thermo is automatically created and associated with \a group.
+    # A hoomd.compute.thermo is automatically created and associated with \a group.
     #
     # \warning When restarting a simulation, the energy of the reservoir will be reset to zero.
     #
@@ -997,19 +991,19 @@ class langevin(_integration_method):
     # integrator = integrate.langevin(group=all, T=1.0, seed=5)
     # integrator = integrate.langevin(group=all, T=1.0, dscale=1.5, tally=True)
     # typeA = group.type('A');
-    # integrator = integrate.langevin(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+    # integrator = integrate.langevin(group=typeA, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
     def __init__(self, group, T, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
+        T = hoomd.variant._setup_variant_input(T);
 
         # create the compute thermo
-        compute._get_unique_thermo(group=group);
+        hoomd.compute._get_unique_thermo(group=group);
 
         # setup suffix
         suffix = '_' + group.name;
@@ -1020,12 +1014,12 @@ class langevin(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            my_class = hoomd.TwoStepLangevin;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            my_class = _hoomd.TwoStepLangevin;
         else:
-            my_class = hoomd.TwoStepLangevinGPU;
+            my_class = _hoomd.TwoStepLangevinGPU;
 
-        self.cpp_method = my_class(hoomd_script.context.current.system_definition,
+        self.cpp_method = my_class(hoomd.context.current.system_definition,
                                    group.cpp_group,
                                    T.cpp_variant,
                                    seed,
@@ -1060,13 +1054,13 @@ class langevin(_integration_method):
     # integrator.set_params(tally=False)
     # \endcode
     def set_params(self, T=None, tally=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
         if T is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
+            T = hoomd.variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
             self.T = T
 
@@ -1090,14 +1084,14 @@ class langevin(_integration_method):
     # \endcode
     #
     def set_gamma(self, a, gamma):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # change the parameters
         for i in range(0,ntypes):
@@ -1123,13 +1117,13 @@ class langevin(_integration_method):
         if (gamma_r < 0):
             raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
 
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # change the parameters
         for i in range(0,ntypes):
@@ -1154,7 +1148,7 @@ class langevin(_integration_method):
 #
 # In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
 # integrate.brownian draws a new velocity distribution consistent with the current set temperature so that
-# compute.thermo will report appropriate temperatures if logged or needed by other commands.
+# hoomd.compute.thermo will report appropriate temperatures if logged or needed by other commands.
 #
 # Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
 # overdamped: \f$ \frac{m}{\gamma} \ll \delta t \f$. Use integrate.langevin if your system is not overdamped.
@@ -1177,7 +1171,7 @@ class brownian(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
-    # A compute.thermo is automatically created and associated with \a group.
+    # A hoomd.compute.thermo is automatically created and associated with \a group.
     #
     # \warning When restarting a simulation, the energy of the reservoir will be reset to zero.
     #
@@ -1187,19 +1181,19 @@ class brownian(_integration_method):
     # integrator = integrate.brownian(group=all, T=1.0, seed=5)
     # integrator = integrate.brownian(group=all, T=1.0, dscale=1.5)
     # typeA = group.type('A');
-    # integrator = integrate.brownian(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+    # integrator = integrate.brownian(group=typeA, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
     # \endcode
     def __init__(self, group, T, seed, dscale=False, noiseless_t=False, noiseless_r=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
+        T = hoomd.variant._setup_variant_input(T);
 
         # create the compute thermo
-        compute._get_unique_thermo(group=group);
+        hoomd.compute._get_unique_thermo(group=group);
 
         if dscale is False or dscale == 0:
             use_lambda = False;
@@ -1207,12 +1201,12 @@ class brownian(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            my_class = hoomd.TwoStepBD;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            my_class = _hoomd.TwoStepBD;
         else:
-            my_class = hoomd.TwoStepBDGPU;
+            my_class = _hoomd.TwoStepBDGPU;
 
-        self.cpp_method = my_class(hoomd_script.context.current.system_definition,
+        self.cpp_method = my_class(hoomd.context.current.system_definition,
                                    group.cpp_group,
                                    T.cpp_variant,
                                    seed,
@@ -1240,13 +1234,13 @@ class brownian(_integration_method):
     # integrator.set_params(T=2.0)
     # \endcode
     def set_params(self, T=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
         if T is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
+            T = hoomd.variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
             self.T = T
 
@@ -1267,14 +1261,14 @@ class brownian(_integration_method):
     # \endcode
     #
     def set_gamma(self, a, gamma):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # change the parameters
         for i in range(0,ntypes):
@@ -1303,13 +1297,13 @@ class brownian(_integration_method):
         if (gamma_r < 0):
             raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
 
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
-        ntypes = hoomd_script.context.current.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(hoomd_script.context.current.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # change the parameters
         for i in range(0,ntypes):
@@ -1375,26 +1369,26 @@ class mode_minimize_fire(_integrator):
     # \param min_steps A minimum number of attempts before convergence criteria are considered
     #   - <i>optional</i>: defaults to 10
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, Etol= None, min_steps=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd_script.context.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
+        if (_hoomd.is_MPI_available()):
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration mode.")
 
         # initialize base class
         _integrator.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_integrator = hoomd.FIREEnergyMinimizer(hoomd_script.context.current.system_definition, group.cpp_group, dt);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_integrator = _hoomd.FIREEnergyMinimizer(hoomd.context.current.system_definition, group.cpp_group, dt);
         else:
-            self.cpp_integrator = hoomd.FIREEnergyMinimizerGPU(hoomd_script.context.current.system_definition, group.cpp_group, dt);
+            self.cpp_integrator = _hoomd.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, group.cpp_group, dt);
 
         self.supports_methods = False;
 
-        hoomd_script.context.current.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         # change the set parameters if not None
         self.dt = dt
@@ -1454,32 +1448,32 @@ class berendsen(_integration_method):
     # \param tau Time constant of thermostat. (in time units)
     #
     def __init__(self, group, T, tau):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if hoomd_script.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd_script.context.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
+        if (_hoomd.is_MPI_available()):
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
+        T = hoomd.variant._setup_variant_input(T);
 
         # create the compute thermo
-        thermo = compute._get_unique_thermo(group = group);
+        thermo = hoomd.compute._get_unique_thermo(group = group);
 
         # initialize the reflected c++ class
-        if not hoomd_script.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepBerendsen(hoomd_script.context.current.system_definition,
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_method = _hoomd.TwoStepBerendsen(hoomd.context.current.system_definition,
                                                      group.cpp_group,
                                                      thermo.cpp_compute,
                                                      tau,
                                                      T.cpp_variant);
         else:
-            self.cpp_method = hoomd.TwoStepBerendsenGPU(hoomd_script.context.current.system_definition,
+            self.cpp_method = _hoomd.TwoStepBerendsenGPU(hoomd.context.current.system_definition,
                                                         group.cpp_group,
                                                         thermo.cpp_compute,
                                                         tau,

@@ -49,12 +49,10 @@
 
 # Maintainer: joaander
 
+from hoomd import _hoomd
 import hoomd
-from hoomd_script import util
-from hoomd_script import meta
-import hoomd_script
 
-## \package hoomd_script.data
+## \package hoomd.data
 # \brief Access particles, bonds, and other state information inside scripts
 #
 # Code in the data package provides high-level access to all of the particle, bond and other %data that define the
@@ -526,7 +524,7 @@ import hoomd_script
 # <hr>
 # <h3>Proxy references</h3>
 #
-# For advanced code using the particle data access from python, it is important to understand that the hoomd_script
+# For advanced code using the particle data access from python, it is important to understand that the hoomd
 # particles, forces, bonds, et cetera, are accessed as proxies. This means that after
 # \code
 # p = system.particles[i]
@@ -603,7 +601,7 @@ import hoomd_script
 # system = init.read_xml('init.xml')
 # system.box = system.box.scale(s=2)
 # ~~~
-class boxdim(meta._metadata):
+class boxdim(hoomd.meta._metadata):
     ## Initialize a boxdim object
     #
     # \param Lx box extent in the x direction (distance units)
@@ -638,7 +636,7 @@ class boxdim(meta._metadata):
             self.set_volume(volume);
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## Scale box dimensions
     #
@@ -705,9 +703,9 @@ class boxdim(meta._metadata):
     # \returns the wrapped vector and the image flags
     #
     def wrap(self,v, img=(0,0,0)):
-        u = hoomd.make_scalar3(v[0],v[1],v[2])
-        i = hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
-        c = hoomd.make_char3(0,0,0)
+        u = _hoomd.make_scalar3(v[0],v[1],v[2])
+        i = _hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
+        c = _hoomd.make_char3(0,0,0)
         self._getBoxDim().wrap(u,i,c)
         img = (i.x,i.y,i.z)
         return (u.x, u.y, u.z),img
@@ -719,7 +717,7 @@ class boxdim(meta._metadata):
     # \returns the minimum image
     #
     def min_image(self,v):
-        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        u = _hoomd.make_scalar3(v[0],v[1],v[2])
         u = self._getBoxDim().minImage(u)
         return (u.x, u.y, u.z)
 
@@ -732,8 +730,8 @@ class boxdim(meta._metadata):
     #
     # \returns the scaled vector
     def make_fraction(self,v):
-        u = hoomd.make_scalar3(v[0],v[1],v[2])
-        w = hoomd.make_scalar3(0,0,0)
+        u = _hoomd.make_scalar3(v[0],v[1],v[2])
+        w = _hoomd.make_scalar3(0,0,0)
 
         u = self._getBoxDim().makeFraction(u,w)
         return (u.x, u.y, u.z)
@@ -741,7 +739,7 @@ class boxdim(meta._metadata):
     ## \internal
     # \brief Get a C++ boxdim
     def _getBoxDim(self):
-        b = hoomd.BoxDim(self.Lx, self.Ly, self.Lz);
+        b = _hoomd.BoxDim(self.Lx, self.Ly, self.Lz);
         b.setTiltFactors(self.xy, self.xz, self.yz);
         return b
 
@@ -752,7 +750,7 @@ class boxdim(meta._metadata):
     ## \internal
     # \brief Get a dictionary representation of the box dimensions
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['d'] = self.dimensions
         data['Lx'] = self.Lx
         data['Ly'] = self.Ly
@@ -767,10 +765,10 @@ class boxdim(meta._metadata):
 # \brief Access system data
 #
 # system_data provides access to the different data structures that define the current state of the simulation.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # system_data, documented by example.
 #
-class system_data(meta._metadata):
+class system_data(hoomd.meta._metadata):
     ## \internal
     # \brief create a system_data
     #
@@ -785,7 +783,7 @@ class system_data(meta._metadata):
         self.constraints = constraint_data(sysdef.getConstraintData());
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## Take a snapshot of the current system data
     #
@@ -815,7 +813,7 @@ class system_data(meta._metadata):
                       integrators=False,
                       all=False,
                       dtype='float'):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if all is True:
                 particles=True
@@ -859,33 +857,33 @@ class system_data(meta._metadata):
     #
     # \MPI_SUPPORTED
     def replicate(self, nx=1, ny=1, nz=1):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         nx = int(nx)
         ny = int(ny)
         nz = int(nz)
 
         if nx == ny == nz == 1:
-            hoomd_script.context.msg.warning("All replication factors == 1. Not replicating system.\n")
+            hoomd.context.msg.warning("All replication factors == 1. Not replicating system.\n")
             return
 
         if nx <= 0 or ny <= 0 or nz <= 0:
-            hoomd_script.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            hoomd.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
-        util.quiet_status()
+        hoomd.util.quiet_status()
         cpp_snapshot = self.take_snapshot(all=True)
-        util.unquiet_status()
+        hoomd.util.unquiet_status()
 
-        if hoomd_script.comm.get_rank() == 0:
+        if hoomd.comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
         # restore from snapshot
-        util.quiet_status()
+        hoomd.util.quiet_status()
         self.restore_snapshot(cpp_snapshot)
-        util.unquiet_status()
+        hoomd.util.unquiet_status()
 
     ## Re-initializes the system from a snapshot
     #
@@ -914,10 +912,10 @@ class system_data(meta._metadata):
     #          during a run(). You can restore a snapshot during a run only if the snapshot is of a previous state of the currently running system.
     #          Otherwise, you need to use restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
     #
-    # \sa hoomd_script.data
+    # \sa hoomd.data
     # \MPI_SUPPORTED
     def restore_snapshot(self, snapshot):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         self.sysdef.initializeFromSnapshot(snapshot);
 
@@ -928,7 +926,7 @@ class system_data(meta._metadata):
     ## \internal
     # \brief Get particle metadata
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['box'] = self.box
         data['particles'] = self.particles
         data['number_density'] = len(self.particles)/self.box.get_volume()
@@ -939,7 +937,7 @@ class system_data(meta._metadata):
         data['impropers'] = self.impropers
         data['constraints'] = self.constraints
 
-        data['timestep'] = hoomd_script.context.current.system.getCurrentTimeStep()
+        data['timestep'] = hoomd.context.current.system.getCurrentTimeStep()
         return data
 
     ## Get the system box
@@ -962,7 +960,7 @@ class system_data(meta._metadata):
 # \brief Access the list of types
 #
 # pdata_types_proxy provides access to the type names and the possibility to add types to the simulation
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # particle_data, documented by example.
 #
 class pdata_types_proxy(object):
@@ -1048,7 +1046,7 @@ class pdata_types_proxy(object):
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                hoomd_script.context.msg.warning("Type '"+name+"' already defined.\n");
+                hoomd.context.msg.warning("Type '"+name+"' already defined.\n");
                 return i
 
         typeid = self.pdata.addType(name);
@@ -1059,10 +1057,10 @@ class pdata_types_proxy(object):
 # \brief Access particle data
 #
 # particle_data provides access to the per-particle data of all particles in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # particle_data, documented by example.
 #
-class particle_data(meta._metadata):
+class particle_data(hoomd.meta._metadata):
     ## \internal
     # \brief particle_data iterator
     class particle_data_iterator:
@@ -1089,10 +1087,10 @@ class particle_data(meta._metadata):
     def __init__(self, pdata):
         self.pdata = pdata;
 
-        self.types = pdata_types_proxy(hoomd_script.context.current.system_definition.getParticleData())
+        self.types = pdata_types_proxy(hoomd.context.current.system_definition.getParticleData())
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \var pdata
     # \internal
@@ -1164,7 +1162,7 @@ class particle_data(meta._metadata):
     ## \internal
     # \brief Return metadata for this particle_data instance
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['types'] = list(self.types);
         return data
@@ -1172,7 +1170,7 @@ class particle_data(meta._metadata):
 ## Access a single particle via a proxy
 #
 # particle_data_proxy provides access to all of the properties of a single particle in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # particle_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -1234,7 +1232,7 @@ class particle_data_proxy(object):
 
     @position.setter
     def position(self, value):
-        v = hoomd.Scalar3();
+        v = _hoomd.Scalar3();
         v.x = float(value[0]);
         v.y = float(value[1]);
         v.z = float(value[2]);
@@ -1247,7 +1245,7 @@ class particle_data_proxy(object):
 
     @velocity.setter
     def velocity(self, value):
-        v = hoomd.Scalar3();
+        v = _hoomd.Scalar3();
         v.x = float(value[0]);
         v.y = float(value[1]);
         v.z = float(value[2]);
@@ -1265,7 +1263,7 @@ class particle_data_proxy(object):
 
     @image.setter
     def image(self, value):
-        v = hoomd.int3();
+        v = _hoomd.int3();
         v.x = int(value[0]);
         v.y = int(value[1]);
         v.z = int(value[2]);
@@ -1324,7 +1322,7 @@ class particle_data_proxy(object):
 
     @orientation.setter
     def orientation(self, value):
-        o = hoomd.Scalar4();
+        o = _hoomd.Scalar4();
         o.x = float(value[0]);
         o.y = float(value[1]);
         o.z = float(value[2]);
@@ -1338,7 +1336,7 @@ class particle_data_proxy(object):
 
     @angular_momentum.setter
     def angular_momentum(self, value):
-        a = hoomd.Scalar4();
+        a = _hoomd.Scalar4();
         a.x = float(value[0]);
         a.y = float(value[1]);
         a.z = float(value[2]);
@@ -1352,7 +1350,7 @@ class particle_data_proxy(object):
 
     @moment_inertia.setter
     def moment_inertia(self, value):
-        m = hoomd.Scalar3();
+        m = _hoomd.Scalar3();
         m.x = float(value[0]);
         m.y = float(value[1]);
         m.z = float(value[2]);
@@ -1377,7 +1375,7 @@ class particle_data_proxy(object):
 # Access force data
 #
 # force_data provides access to the per-particle data of all forces in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # force_data, documented by example.
 #
 class force_data(object):
@@ -1429,7 +1427,7 @@ class force_data(object):
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return hoomd_script.context.current.system_definition.getParticleData().getNGlobal();
+        return hoomd.context.current.system_definition.getParticleData().getNGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1447,7 +1445,7 @@ class force_data(object):
 # force_data_proxy provides access to the current %force, virial, and energy of a single particle due to a single
 # %force computations.
 #
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # force_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -1506,10 +1504,10 @@ class force_data_proxy(object):
 # \brief Access bond data
 #
 # bond_data provides access to the bonds in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # bond_data, documented by example.
 #
-class bond_data(meta._metadata):
+class bond_data(hoomd.meta._metadata):
     ## \internal
     # \brief bond_data iterator
     class bond_data_iterator:
@@ -1537,7 +1535,7 @@ class bond_data(meta._metadata):
         self.bdata = bdata;
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new bond
@@ -1547,7 +1545,7 @@ class bond_data(meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b):
         typeid = self.bdata.getTypeByName(type);
-        return self.bdata.addBondedGroup(hoomd.Bond(typeid, a, b));
+        return self.bdata.addBondedGroup(_hoomd.Bond(typeid, a, b));
 
     ## \internal
     # \brief Remove a bond by tag
@@ -1611,7 +1609,7 @@ class bond_data(meta._metadata):
     ## \internal
     # \brief Return metadata for this bond_data instance
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['types'] = [self.bdata.getNameByType(i) for i in range(self.bdata.getNTypes())];
         return data
@@ -1619,7 +1617,7 @@ class bond_data(meta._metadata):
 ## Access a single bond via a proxy
 #
 # bond_data_proxy provides access to all of the properties of a single bond in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # bond_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -1678,10 +1676,10 @@ class bond_data_proxy(object):
 # \brief Access constraint data
 #
 # constraint_data provides access to the constraints in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # bond_data, documented by example.
 #
-class constraint_data(meta._metadata):
+class constraint_data(hoomd.meta._metadata):
     ## \internal
     # \brief bond_data iterator
     class constraint_data_iterator:
@@ -1709,7 +1707,7 @@ class constraint_data(meta._metadata):
         self.cdata = cdata;
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new distance constraint
@@ -1718,7 +1716,7 @@ class constraint_data(meta._metadata):
     # \param d Distance of the constraint to add
     # \returns Unique tag identifying this bond
     def add(self, a, b, d):
-        return self.cdata.addBondedGroup(hoomd.Constraint(float(d), a, b));
+        return self.cdata.addBondedGroup(_hoomd.Constraint(float(d), a, b));
 
     ## \internal
     # \brief Remove a bond by tag
@@ -1782,14 +1780,14 @@ class constraint_data(meta._metadata):
     ## \internal
     # \brief Return metadata for this bond_data instance
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['N'] = len(self)
         return data
 
 ## Access a single constraint via a proxy
 #
 # constraint_data_proxy provides access to all of the properties of a single constraint in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # constraint_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -1841,10 +1839,10 @@ class constraint_data_proxy(object):
 # \brief Access angle data
 #
 # angle_data provides access to the angles in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # angle_data, documented by example.
 #
-class angle_data(meta._metadata):
+class angle_data(hoomd.meta._metadata):
     ## \internal
     # \brief angle_data iterator
     class angle_data_iterator:
@@ -1872,7 +1870,7 @@ class angle_data(meta._metadata):
         self.adata = adata;
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new angle
@@ -1883,7 +1881,7 @@ class angle_data(meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c):
         typeid = self.adata.getTypeByName(type);
-        return self.adata.addBondedGroup(hoomd.Angle(typeid, a, b, c));
+        return self.adata.addBondedGroup(_hoomd.Angle(typeid, a, b, c));
 
     ## \internal
     # \brief Remove an angle by tag
@@ -1949,7 +1947,7 @@ class angle_data(meta._metadata):
     ## \internal
     # \brief Return metadata for this angle_data instance
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['types'] = [self.adata.getNameByType(i) for i in range(self.adata.getNTypes())];
         return data
@@ -1957,7 +1955,7 @@ class angle_data(meta._metadata):
 ## Access a single angle via a proxy
 #
 # angle_data_proxy provides access to all of the properties of a single angle in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # angle_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -2024,10 +2022,10 @@ class angle_data_proxy(object):
 # \brief Access dihedral data
 #
 # dihedral_data provides access to the dihedrals in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # dihedral_data, documented by example.
 #
-class dihedral_data(meta._metadata):
+class dihedral_data(hoomd.meta._metadata):
     ## \internal
     # \brief dihedral_data iterator
     class dihedral_data_iterator:
@@ -2055,7 +2053,7 @@ class dihedral_data(meta._metadata):
         self.ddata = ddata;
 
         # base class constructor
-        meta._metadata.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new dihedral
@@ -2067,7 +2065,7 @@ class dihedral_data(meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c, d):
         typeid = self.ddata.getTypeByName(type);
-        return self.ddata.addBondedGroup(hoomd.Dihedral(typeid, a, b, c, d));
+        return self.ddata.addBondedGroup(_hoomd.Dihedral(typeid, a, b, c, d));
 
     ## \internal
     # \brief Remove an dihedral by tag
@@ -2133,7 +2131,7 @@ class dihedral_data(meta._metadata):
     ## \internal
     # \brief Return metadata for this dihedral_data instance
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['types'] = [self.ddata.getNameByType(i) for i in range(self.ddata.getNTypes())];
         return data
@@ -2141,7 +2139,7 @@ class dihedral_data(meta._metadata):
 ## Access a single dihedral via a proxy
 #
 # dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
-# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # dihedral_data_proxy, documented by example.
 #
 # The following attributes are read only:
@@ -2224,8 +2222,8 @@ def set_snapshot_box(snapshot, box):
     snapshot._dimensions = box.dimensions;
 
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
-hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
-hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
+_hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
+_hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
 
 ## Make an empty snapshot
 #
@@ -2263,17 +2261,17 @@ hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_bo
 # make_snapshot() creates the particle, bond, angle, dihedral, and improper types with the names specified. Use these
 # type names later in the job script to refer to particles (i.e. in lj.set_params).
 #
-# \sa hoomd_script.init.read_snapshot()
+# \sa hoomd.init.read_snapshot()
 def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], dtype='float'):
     if dtype == 'float':
-        snapshot = hoomd.SnapshotSystemData_float();
+        snapshot = _hoomd.SnapshotSystemData_float();
     elif dtype == 'double':
-        snapshot = hoomd.SnapshotSystemData_double();
+        snapshot = _hoomd.SnapshotSystemData_double();
     else:
         raise ValueError("dtype must be either float or double");
 
     snapshot.box = box;
-    if hoomd_script.comm.get_rank() == 0:
+    if hoomd.comm.get_rank() == 0:
         snapshot.particles.resize(N);
 
     snapshot.particles.types = particle_types;
@@ -2292,7 +2290,7 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
 # gsd_snapshot() opens the given GSD file and reads a snapshot from it.
 #
 def gsd_snapshot(filename, frame=0):
-    reader = hoomd.GSDReader(hoomd_script.context.exec_conf, filename, frame);
+    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
     return reader.getSnapshot();
 
 ## \class SnapshotParticleData

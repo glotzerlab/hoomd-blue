@@ -49,49 +49,48 @@
 
 # Maintainer: joaander
 
-from hoomd_script import util;
-import hoomd_script;
+import hoomd
 
-## \package hoomd_script.sorter
+## \package hoomd.sorter
 # \brief Wrapper for "global" sorter commands
 #
-# This package is a thin wrapper around hoomd_script.context.current.sorter. It takes the place of the old model for making the
-# global sorter available as "sorter" in the __main__ namespace. Moving it into the hoomd_script namespace
-# is backwards compatible as long as the user does "from hoomd_script import *" - but it also makes it much easier
+# This package is a thin wrapper around hoomd.context.current.sorter. It takes the place of the old model for making the
+# global sorter available as "sorter" in the __main__ namespace. Moving it into the hoomd namespace
+# is backwards compatible as long as the user does "from hoomd import *" - but it also makes it much easier
 # to reference the sorter from modules other than __main__.
 #
 # Backwards compatibility is only ensured if the script only uses the public python facing API. Bypassing this to get
-# at the C++ interface should be done through hoomd_script.context.current.sorter
+# at the C++ interface should be done through hoomd.context.current.sorter
 #
 
 ## \internal
 # \brief Thin wrapper for set_params
 def set_params(*args, **kwargs):
-    util.print_status_line();
-    util.quiet_status();
-    hoomd_script.context.current.sorter.set_params(*args, **kwargs);
-    util.unquiet_status();
+    hoomd.util.print_status_line();
+    hoomd.util.quiet_status();
+    hoomd.context.current.sorter.set_params(*args, **kwargs);
+    hoomd.util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for disable
 def disable(*args, **kwargs):
-    util.print_status_line();
-    util.quiet_status();
-    hoomd_script.context.current.sorter.disable(*args, **kwargs);
-    util.unquiet_status();
+    hoomd.util.print_status_line();
+    hoomd.util.quiet_status();
+    hoomd.context.current.sorter.disable(*args, **kwargs);
+    hoomd.util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for enable
 def enable(*args, **kwargs):
-    util.print_status_line();
-    util.quiet_status();
-    hoomd_script.context.current.sorter.enable(*args, **kwargs);
-    util.unquiet_status();
+    hoomd.util.print_status_line();
+    hoomd.util.quiet_status();
+    hoomd.context.current.sorter.enable(*args, **kwargs);
+    hoomd.util.unquiet_status();
 
 ## \internal
 # \brief Thin wrapper for set_period
 def set_period(*args, **kwargs):
-    util.print_status_line();
-    util.quiet_status();
-    hoomd_script.context.current.sorter.set_period(*args, **kwargs);
-    util.unquiet_status();
+    hoomd.util.print_status_line();
+    hoomd.util.quiet_status();
+    hoomd.context.current.sorter.set_period(*args, **kwargs);
+    hoomd.util.unquiet_status();

@@ -54,10 +54,10 @@ import traceback;
 import os.path;
 import linecache;
 import re;
-import hoomd_script;
+import hoomd;
 
 ## Utility methods
-# \package hoomd_script.util
+# \package hoomd.util
 #
 # Generic utilities that don't fit anywhere else
 
@@ -90,7 +90,7 @@ def print_status_line():
     # get the traceback info first
     stack = traceback.extract_stack();
     if len(stack) < 3:
-        hoomd_script.context.msg.notice(2, "hoomd_script executing unknown command\n");
+        hoomd.context.msg.notice(2, "hoomd_script executing unknown command\n");
 
     if sys.version_info[:3] != (3, 5, 0):
         frame = -3
@@ -109,7 +109,7 @@ def print_status_line():
     # piped input from stdin doesn't provide a code line, handle the situation
     if not code:
         message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
-        hoomd_script.context.msg.notice(1, message + '\n');
+        hoomd.context.msg.notice(1, message + '\n');
     else:
         # build and print the message line
         # Go upwards in the source until you match the closing paren
@@ -124,5 +124,5 @@ def print_status_line():
             line = line - 1
 
         message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
-        hoomd_script.context.msg.notice(1, ''.join(message).rstrip('\n') + '\n');
+        hoomd.context.msg.notice(1, ''.join(message).rstrip('\n') + '\n');
         linecache.clearcache()

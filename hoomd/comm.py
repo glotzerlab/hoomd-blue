@@ -49,12 +49,11 @@
 
 # Maintainer: jglaser / All Developers are free to add commands for new features
 
-## \package hoomd_script.comm
+## \package hoomd.comm
 # \brief Commands to support MPI communication
 
+from hoomd import _hoomd
 import hoomd;
-from hoomd_script import util;
-import hoomd_script;
 
 import sys;
 
@@ -63,9 +62,9 @@ import sys;
 # context.initialize() must be called before get_num_ranks()
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
-    hoomd_script.context._verify_init();
-    if hoomd.is_MPI_available():
-        return hoomd_script.context.exec_conf.getNRanks();
+    hoomd.context._verify_init();
+    if _hoomd.is_MPI_available():
+        return hoomd.context.exec_conf.getNRanks();
     else:
         return 1;
 
@@ -73,10 +72,10 @@ def get_num_ranks():
 # context.initialize() must be called before get_rank()
 # \note Always returns 0 in non-mpi builds
 def get_rank():
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
-    if hoomd.is_MPI_available():
-        return hoomd_script.context.exec_conf.getRank()
+    if _hoomd.is_MPI_available():
+        return hoomd.context.exec_conf.getRank()
     else:
         return 0;
 
@@ -84,27 +83,27 @@ def get_rank():
 # context.initialize() must be called before get_partition()
 # \note Always returns 0 in non-mpi builds
 def get_partition():
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
-    if hoomd.is_MPI_available():
-        return hoomd_script.context.exec_conf.getPartition()
+    if _hoomd.is_MPI_available():
+        return hoomd.context.exec_conf.getPartition()
     else:
         return 0;
 
 ## Perform a MPI barrier synchronization inside a partition
 # \note does nothing in in non-MPI builds
 def barrier_all():
-    if hoomd.is_MPI_available():
-        hoomd.mpi_barrier_world();
+    if _hoomd.is_MPI_available():
+        _hoomd.mpi_barrier_world();
 
 ## Perform a MPI barrier synchronization inside a partition
 # context.initialize() must be called before barrier()
 # \note does nothing in in non-MPI builds
 def barrier():
-    hoomd_script.context._verify_init();
+    hoomd.context._verify_init();
 
-    if hoomd.is_MPI_available():
-        hoomd_script.context.exec_conf.barrier()
+    if _hoomd.is_MPI_available():
+        hoomd.context.exec_conf.barrier()
 
 ## Balances the domain %decomposition
 #
@@ -162,21 +161,21 @@ class decomposition():
     # \warning Both fractional widths and the number of processors cannot be set simultaneously, and an error will be
     #          raised if both are set.
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         # check that system is not initialized
-        if hoomd_script.context.current.system is not None:
-            hoomd_script.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
+        if hoomd.context.current.system is not None:
+            hoomd.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
         # check that the context has been initialized though
-        if hoomd_script.context.exec_conf is None:
-            hoomd_script.context.msg.error("comm.decomposition: call context.initialize() before decomposition can be set\n")
+        if hoomd.context.exec_conf is None:
+            hoomd.context.msg.error("comm.decomposition: call context.initialize() before decomposition can be set\n")
             raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that there are ranks available for decomposition
         if get_num_ranks() == 1:
-            hoomd_script.context.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
+            hoomd.context.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
             return
         else:
             self.x = []
@@ -189,30 +188,30 @@ class decomposition():
             self.uniform_y = True
             self.uniform_z = True
 
-            util.quiet_status()
+            hoomd.util.quiet_status()
             self.set_params(x,y,z,nx,ny,nz)
-            util.unquiet_status()
+            hoomd.util.unquiet_status()
 
             # do a one time update of the cuts to the global values if a global is set
-            if not self.x and self.nx == 0 and hoomd_script.context.options.nx is not None:
-                self.nx = hoomd_script.context.options.nx
+            if not self.x and self.nx == 0 and hoomd.context.options.nx is not None:
+                self.nx = hoomd.context.options.nx
                 self.uniform_x = True
-            if not self.y and self.ny == 0 and hoomd_script.context.options.ny is not None:
-                self.ny = hoomd_script.context.options.ny
+            if not self.y and self.ny == 0 and hoomd.context.options.ny is not None:
+                self.ny = hoomd.context.options.ny
                 self.uniform_y = True
             if not self.z and self.nz == 0:
-                if hoomd_script.context.options.linear is True:
-                    self.nz = hoomd_script.context.exec_conf.getNRanks()
+                if hoomd.context.options.linear is True:
+                    self.nz = hoomd.context.exec_conf.getNRanks()
                     self.uniform_z = True
-                elif hoomd_script.context.options.nz is not None:
-                    self.nz = hoomd_script.context.options.nz
+                elif hoomd.context.options.nz is not None:
+                    self.nz = hoomd.context.options.nz
                     self.uniform_z = True
 
             # set the global decomposition to this class
-            if hoomd_script.context.current.decomposition is not None:
-                hoomd_script.context.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
+            if hoomd.context.current.decomposition is not None:
+                hoomd.context.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
 
-            hoomd_script.context.current.decomposition = self
+            hoomd.context.current.decomposition = self
 
     ## Set parameters for the decomposition before initialization.
     # \param x First nx-1 fractional domain widths (if \a nx is None)
@@ -228,10 +227,10 @@ class decomposition():
     # decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
     # \endcode
     def set_params(self,x=None,y=None,z=None,nx=None,ny=None,nz=None):
-        util.print_status_line()
+        hoomd.util.print_status_line()
 
         if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
-            hoomd_script.context.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
+            hoomd.context.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
             raise RuntimeError("Cannot set fractions and number of processors simultaneously")
 
         # if x is set, use it. otherwise, if nx is set, compute x and set it
@@ -274,14 +273,14 @@ class decomposition():
     def _make_cpp_decomposition(self, box):
         # if the box is uniform in all directions, just use these values
         if self.uniform_x and self.uniform_y and self.uniform_z:
-            self.cpp_dd = hoomd.DomainDecomposition(hoomd_script.context.exec_conf, box.getL(), self.nx, self.ny, self.nz, not hoomd_script.context.options.onelevel)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.exec_conf, box.getL(), self.nx, self.ny, self.nz, not hoomd.context.options.onelevel)
             return self.cpp_dd
 
         # otherwise, make the fractional decomposition
         try:
-            fxs = hoomd.std_vector_scalar()
-            fys = hoomd.std_vector_scalar()
-            fzs = hoomd.std_vector_scalar()
+            fxs = _hoomd.std_vector_scalar()
+            fys = _hoomd.std_vector_scalar()
+            fzs = _hoomd.std_vector_scalar()
 
             # if uniform, correct the fractions to be uniform as well
             if self.uniform_x and self.nx > 0:
@@ -295,37 +294,37 @@ class decomposition():
             tol = 1.0e-5
             for i in self.x:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fxs.append(i)
                 sum_x += i
             if sum_x >= 1.0 - tol or sum_x <= -tol:
-                hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in x must lie between 0.0 and 1.0")
 
             for i in self.y:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fys.append(i)
                 sum_y += i
             if sum_y >= 1.0 - tol or sum_y <= -tol:
-                hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in y must lie between 0.0 and 1.0")
 
             for i in self.z:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fzs.append(i)
                 sum_z += i
             if sum_z >= 1.0 - tol or sum_z <= -tol:
-                hoomd_script.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in z must lie between 0.0 and 1.0")
 
-            self.cpp_dd = hoomd.DomainDecomposition(hoomd_script.context.exec_conf, box.getL(), fxs, fys, fzs)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
         except TypeError as te:
-            hoomd_script.context.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
+            hoomd.context.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
