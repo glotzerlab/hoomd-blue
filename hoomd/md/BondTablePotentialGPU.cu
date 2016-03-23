@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "BondTablePotentialGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 
 #include <assert.h>

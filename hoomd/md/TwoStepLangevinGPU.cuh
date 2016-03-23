@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
 #ifndef __TWO_STEP_LANGEVIN_GPU_CUH__

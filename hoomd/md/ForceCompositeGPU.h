@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ForceComposite.h"
 #include "NeighborList.h"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file ForceCompositeGPU.h
     \brief Implementation of a rigid body force compute, GPU version

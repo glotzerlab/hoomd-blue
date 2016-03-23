@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborListGPUBinned.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 /*! \file NeighborListGPUBinned.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
@@ -149,7 +149,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
 
     // shared data for per type pair parameters
     extern __shared__ unsigned char s_data[];
-    
+
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
     unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(Scalar)*num_typ_parameters]);
@@ -192,7 +192,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
     unsigned int my_head = d_head_list[my_pidx];
-    
+
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
     // find the bin each particle belongs in
@@ -263,7 +263,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             cur_offset += threads_per_particle;
 
             unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
-            
+
             // Only do the hard work if the particle should be included by r_cut(i,j)
             Scalar r_list = s_r_list[typpair_idx(my_type,neigh_type)];
             if (r_list > Scalar(0.0))

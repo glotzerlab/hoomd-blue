@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ENFORCE2DUPDATER_CUH__
 #define __ENFORCE2DUPDATER_CUH__
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
 //! Kernel driver for the enforce 2D update called by Enforce2DUpdaterGPU

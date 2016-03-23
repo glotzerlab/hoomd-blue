@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
 #ifndef __TWO_STEP_NVE_GPU_CUH__

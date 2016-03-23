@@ -53,8 +53,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating the table bond forces. Used by TableDihedralForceGPU.
 */
 
-#include "ParticleData.cuh"
-#include "BondedGroupData.cuh"
+#include "hoomd/ParticleData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/HOOMDMath.h"
 

@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
 // include fixed width integer types uint32_t and uint64_t

@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ActiveForceComputeGPU.cuh"
-#include "saruprngCUDA.h"
+#include "hoomd/extern/saruprngCUDA.h"
 #include "EvaluatorConstraintEllipsoid.h"
 
 #include <assert.h>

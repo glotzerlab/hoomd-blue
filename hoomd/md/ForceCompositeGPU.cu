@@ -47,9 +47,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <VectorMath.h>
+#include "hoomd/VectorMath.h"
 #include "hoomd/Index1D.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 
 // Maintainer: jglaser
 

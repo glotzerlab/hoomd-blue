@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/HOOMDMath.h"
 

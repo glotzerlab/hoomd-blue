@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "hoomd/HOOMDMath.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 
 /*! \file ConstraintSphereGPU.cuh
     \brief Declares GPU kernel code for calculating sphere constraint forces on the GPU. Used by ConstraintSphereGPU.

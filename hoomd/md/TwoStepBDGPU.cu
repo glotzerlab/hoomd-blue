@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBDGPU.cuh"
-#include "saruprngCUDA.h"
+#include "hoomd/extern/saruprngCUDA.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMath.h"
 

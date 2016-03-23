@@ -50,9 +50,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer:  jglaser
 
 #include "hoomd/HOOMDMath.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>

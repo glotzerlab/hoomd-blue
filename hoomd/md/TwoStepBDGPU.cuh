@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for Brownian dynamics on the GPU. Used by TwoStepBDGPU.
 */
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "TwoStepLangevinGPU.cuh"
 #include "hoomd/HOOMDMath.h"
 

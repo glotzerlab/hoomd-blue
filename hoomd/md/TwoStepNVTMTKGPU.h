@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU

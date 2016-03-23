@@ -58,7 +58,7 @@ Moscow group.
 #include "EAMForceCompute.h"
 #include "NeighborList.h"
 #include "EAMForceGPU.cuh"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 

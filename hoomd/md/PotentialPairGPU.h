@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPair.h"
 #include "PotentialPairGPU.cuh"
 
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file PotentialPairGPU.h
     \brief Defines the template class for standard pair potentials on the GPU

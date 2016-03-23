@@ -63,7 +63,7 @@ using namespace boost::python;
 #include "hoomd/Communicator.h"
 #endif
 
-#include "CachedAllocator.h"
+#include "hoomd/CachedAllocator.h"
 
 #include <iostream>
 using namespace std;

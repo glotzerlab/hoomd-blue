@@ -48,8 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "hoomd/HOOMDMath.h"
-#include "TextureTools.h"
-#include "ParticleData.cuh"
+#include "hoomd/TextureTools.h"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
 #include <assert.h>

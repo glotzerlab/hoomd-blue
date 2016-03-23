@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ForceDistanceConstraint.h"
 
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
 #include <boost/signals2.hpp>

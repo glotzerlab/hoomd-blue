@@ -49,8 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#include "BondedGroupData.cuh"
-#include "ParticleData.cuh"
+#include "hoomd/BondedGroupData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
 /*! \file CGCMMAngleForceGPU.cuh

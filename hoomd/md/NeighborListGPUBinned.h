@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListGPU.h"
 #include "hoomd/CellList.h"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPUBinned.h
     \brief Declares the NeighborListGPUBinned class

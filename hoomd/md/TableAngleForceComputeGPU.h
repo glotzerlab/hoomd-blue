@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TableAngleForceCompute.h"
 #include "TableAngleForceGPU.cuh"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file TableAngleForceComputeGPU.h
     \brief Declares the TableAngleForceComputeGPU class

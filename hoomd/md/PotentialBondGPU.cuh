@@ -50,11 +50,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "hoomd/HOOMDMath.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
-#include "BondedGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 
 #include <assert.h>
 

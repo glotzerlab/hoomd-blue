@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
 cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,

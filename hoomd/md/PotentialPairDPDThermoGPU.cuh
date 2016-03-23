@@ -56,8 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
-#include "TextureTools.h"
-#include "ParticleData.cuh"
+#include "hoomd/TextureTools.h"
+#include "hoomd/ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
 #include <cassert>

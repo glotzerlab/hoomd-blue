@@ -53,10 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating the table bond forces. Used by BONDTablePotentialGPU.
 */
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/HOOMDMath.h"
-#include "BondedGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 
 #ifndef __BONDTABLEPOTENTIALGPU_CUH__
 #define __BONDTABLEPOTENTIALGPU_CUH__

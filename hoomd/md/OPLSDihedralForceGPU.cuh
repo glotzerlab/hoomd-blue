@@ -49,9 +49,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ksil
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
-#include "BondedGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 
 /*! \file OPLSDihedralForceGPU.cuh
     \brief Declares GPU kernel code for calculating the OPLS dihedral forces. Used by OPLSDihedralForceComputeGPU.

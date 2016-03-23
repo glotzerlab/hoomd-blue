@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 #include "TableDihedralForceGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 #include "hoomd/VectorMath.h"
 

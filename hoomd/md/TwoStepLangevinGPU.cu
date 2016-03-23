@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepLangevinGPU.cuh"
 
-#include "saruprngCUDA.h"
+#include "hoomd/extern/saruprngCUDA.h"
 
 #include <assert.h>
 

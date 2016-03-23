@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
 /*! \file TwoStepNPTMTKGPU.cuh

@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 #include "AnisoPotentialPair.h"
 #include "AnisoPotentialPairGPU.cuh"
 

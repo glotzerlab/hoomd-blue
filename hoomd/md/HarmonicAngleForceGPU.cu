@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: dnlebard
 
 #include "HarmonicAngleForceGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 #include <assert.h>
 

@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: sbarr
 
 #include "PPPMForceGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 #include <iostream>
     using namespace std;
 

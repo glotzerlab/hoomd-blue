@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: jglaser
 
 #include "hoomd/HOOMDMath.h"
-#include "BondedGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
 

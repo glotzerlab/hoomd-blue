@@ -52,7 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPU.h"
 #include "hoomd/CellList.h"
 #include "hoomd/CellListStencil.h"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPUStencil.h
     \brief Declares the NeighborListGPUStencil class

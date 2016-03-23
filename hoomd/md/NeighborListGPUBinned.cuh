@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 
 /*! \file NeighborListGPUBinned.cuh
     \brief Declares GPU kernel code for neighbor list generation on the GPU

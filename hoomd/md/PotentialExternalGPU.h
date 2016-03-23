@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file PotentialExternalGPU.h
     \brief Declares a class for computing an external potential field on the GPU

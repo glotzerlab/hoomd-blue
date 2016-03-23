@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cufft.h>
 #include "hoomd/HOOMDMath.h"
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
 /*! \file PPPMForceGPU.cuh

@@ -49,9 +49,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
-#include "BondedGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 
 /*! \file HarmonicDihedralForceGPU.cuh
     \brief Declares GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.

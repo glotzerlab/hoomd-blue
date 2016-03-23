@@ -56,7 +56,7 @@ Moscow group.
 */
 
 #include "EAMForceGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 #include <assert.h>
 

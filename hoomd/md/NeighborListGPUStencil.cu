@@ -50,8 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: mphoward
 
 #include "NeighborListGPUStencil.cuh"
-#include "TextureTools.h"
-#include "cub/cub.cuh"
+#include "hoomd/TextureTools.h"
+#include "hoomd/extern/cub/cub.cuh"
 
 /*! \file NeighborListGPUStencil.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils
@@ -160,7 +160,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
 
     // shared data for per type pair parameters
     extern __shared__ unsigned char s_data[];
-    
+
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
     unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(Scalar)*num_typ_parameters]);
@@ -206,7 +206,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
     unsigned int my_head = d_head_list[my_pidx];
-    
+
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
     // find the bin each particle belongs in

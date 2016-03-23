@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "OPLSDihedralForceCompute.h"
 #include "OPLSDihedralForceGPU.cuh"
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file OPLSDihedralForceComputeGPU.h
     \brief Declares the OPLSDihedralForceComputeGPU class

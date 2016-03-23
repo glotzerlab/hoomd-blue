@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/HOOMDMath.h"
 
 #ifdef NVCC
-#include "saruprngCUDA.h"
+#include "hoomd/extern/saruprngCUDA.h"
 #else
 #include "hoomd/extern/saruprng.h"
 #endif
