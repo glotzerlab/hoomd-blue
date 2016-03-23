@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 /*! \file particle_group_test.cc
     \brief Unit tests for ParticleGroup
@@ -58,9 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-#include "ParticleData.h"
-#include "Initializers.h"
-#include "ParticleGroup.h"
+#include "hoomd/ParticleData.h"
+#include "hoomd/Initializers.h"
+#include "hoomd/ParticleGroup.h"
 
 using namespace std;
 using namespace boost;

@@ -55,16 +55,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // this has to be included after naming the test module
 #include "boost_utf_configure.h"
 
-#include "System.h"
+#include "hoomd/System.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
-#include "ExecutionConfiguration.h"
-#include "Communicator.h"
-#include "LoadBalancer.h"
+#include "hoomd/ExecutionConfiguration.h"
+#include "hoomd/Communicator.h"
+#include "hoomd/LoadBalancer.h"
 #ifdef ENABLE_CUDA
-#include "LoadBalancerGPU.h"
+#include "hoomd/LoadBalancerGPU.h"
 #endif
 
 #define TO_TRICLINIC(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
@@ -123,10 +123,10 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
     boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
     lb->setMaxIterations(2);
-    
+
     // migrate atoms
     comm->migrateParticles();
-    const Index3D& di = decomposition->getDomainIndexer();   
+    const Index3D& di = decomposition->getDomainIndexer();
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(1,0,1));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(1,0,1));
@@ -152,7 +152,7 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(1,1,1));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,0));
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
-    
+
     // flip the particle signs and see if the domains can realign correctly
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.25,0.25,-0.25)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-0.25,0.25,-0.75)),false);

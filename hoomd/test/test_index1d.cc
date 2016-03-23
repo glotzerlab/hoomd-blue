@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_TEST_MODULE Index1D tests
 #include "boost_utf_configure.h"
 
-#include "Index1D.h"
+#include "hoomd/Index1D.h"
 
 using namespace std;
 using namespace boost;

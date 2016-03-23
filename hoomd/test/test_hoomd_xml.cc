@@ -48,13 +48,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <math.h>
-#include "HOOMDDumpWriter.h"
-#include "HOOMDInitializer.h"
-#include "BondedGroupData.h"
-#include "Filesystem.h"
+#include "hoomd/HOOMDDumpWriter.h"
+#include "hoomd/HOOMDInitializer.h"
+#include "hoomd/BondedGroupData.h"
+#include "hoomd/Filesystem.h"
 
 #include <iostream>
 #include <sstream>

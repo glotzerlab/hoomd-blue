@@ -47,12 +47,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "CellList.h"
-#include "CellListStencil.h"
-#include "Initializers.h"
+#include "hoomd/CellList.h"
+#include "hoomd/CellListStencil.h"
+#include "hoomd/Initializers.h"
 
 #ifdef ENABLE_CUDA
-#include "CellListGPU.h"
+#include "hoomd/CellListGPU.h"
 #endif
 
 #include <vector>

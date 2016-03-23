@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 #include <algorithm>
@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListBinned.h"
 #include "NeighborListStencil.h"
 #include "NeighborListTree.h"
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 
 #ifdef ENABLE_CUDA
 #include "NeighborListGPU.h"

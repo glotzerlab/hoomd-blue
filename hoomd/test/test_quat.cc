@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 //! Name the unit test module
 #define BOOST_TEST_MODULE vec3
@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "VectorMath.h"
+#include "hoomd/VectorMath.h"
 
 BOOST_AUTO_TEST_CASE( construction )
     {

@@ -48,16 +48,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 //! label the boost test module
 #define BOOST_TEST_MODULE GridshiftCorrectionTests
 #include "boost_utf_configure.h"
 
-#include "HOOMDMath.h"
-#include "VectorMath.h"
-#include "System.h"
-#include "ParticleData.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/System.h"
+#include "hoomd/ParticleData.h"
 
 #include <math.h>
 #include <boost/shared_ptr.hpp>

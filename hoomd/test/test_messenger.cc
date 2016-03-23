@@ -48,14 +48,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
-#include "Filesystem.h"
+#include "hoomd/ExecutionConfiguration.h"
+#include "hoomd/Filesystem.h"
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
-#include "Messenger.h"
+#include "hoomd/Messenger.h"
 
 using namespace std;
 using namespace boost;

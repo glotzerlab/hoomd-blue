@@ -55,13 +55,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // this has to be included after naming the test module
 #include "boost_utf_configure.h"
 
-#include "System.h"
+#include "hoomd/System.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
-#include "ExecutionConfiguration.h"
-#include "Communicator.h"
+#include "hoomd/ExecutionConfiguration.h"
+#include "hoomd/Communicator.h"
 
 #include "ConstForceCompute.h"
 #include "TwoStepNVE.h"
@@ -294,7 +294,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     MY_BOOST_CHECK_SMALL(cum_frac_y[0], tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_y[1], 0.35, tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_y[2], 1.0, tol);
-    
+
     std::vector<Scalar> cum_frac_z = decomposition->getCumulativeFractions(2);
     MY_BOOST_CHECK_SMALL(cum_frac_z[0], tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_z[1], 0.8, tol);
@@ -758,7 +758,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
     BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
     BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
-    
+
     // migrate atoms
     comm->migrateParticles();
 
@@ -3229,7 +3229,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
     BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.1, tol);
-    
+
     // check that when using two types, only one gets updated
     two_type_ghost_layer g(Scalar(0.05), Scalar(0.2));
     comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
@@ -3240,7 +3240,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
         BOOST_CHECK_CLOSE(h_r_ghost.data[0], 0.1, tol);
         BOOST_CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
         }
-    
+
     // now update the other type
     two_type_ghost_layer g2(Scalar(0.3), Scalar(0.2));
     comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g2,_1));
@@ -3311,7 +3311,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     // 12: A, same rank as 4, inside -z
     pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.5, -0.5, 0.05)),false);
     pdata->setType(12, 0);
-    
+
     // 13: B, same rank as 4, outside -z
     pdata->setPosition(13, TO_TRICLINIC(make_scalar3(-0.5, -0.5, 0.25)),false);
     pdata->setType(13, 1);
@@ -3323,7 +3323,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
-    
+
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
@@ -3467,7 +3467,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     BoxDim box(2.0);
-        
+
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
     std::vector<Scalar> fxs(2), fys(2), fzs(3);
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
@@ -3475,7 +3475,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
-    
+
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf);
     }
@@ -3590,7 +3590,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
         {
         BoxDim box(2.0);
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3611,7 +3611,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
         {
         BoxDim box(2.0);
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3659,7 +3659,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     BoxDim box(2.0);
-        
+
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
     std::vector<Scalar> fxs(2), fys(2), fzs(3);
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
@@ -3667,7 +3667,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
-    
+
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf);
     }
@@ -3782,7 +3782,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
         {
         BoxDim box(2.0);
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3803,7 +3803,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
         {
         BoxDim box(2.0);
         boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));        
+        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3846,7 +3846,7 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
 
         boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        
+
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
@@ -3860,7 +3860,7 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
 
         boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        
+
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
@@ -3874,7 +3874,7 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
 
         boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        
+
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);

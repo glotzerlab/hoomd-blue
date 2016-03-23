@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>
@@ -57,11 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "CellList.h"
-#include "Initializers.h"
+#include "hoomd/CellList.h"
+#include "hoomd/Initializers.h"
 
 #ifdef ENABLE_CUDA
-#include "CellListGPU.h"
+#include "hoomd/CellListGPU.h"
 #endif
 
 #include <math.h>

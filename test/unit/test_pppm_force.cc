@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NeighborListTree.h"
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 
 #include <math.h>
 

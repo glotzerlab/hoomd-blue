@@ -54,16 +54,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 
 #include <iostream>
 
 #include <boost/bind.hpp>
 
-#include "ParticleData.h"
-#include "Initializers.h"
-#include "SnapshotSystemData.h"
+#include "hoomd/ParticleData.h"
+#include "hoomd/Initializers.h"
+#include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;

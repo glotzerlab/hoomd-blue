@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NeighborListTree.h"
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 #include "IntegratorTwoStep.h"
 
 

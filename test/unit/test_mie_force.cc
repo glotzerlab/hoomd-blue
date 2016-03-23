@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>
@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 
 #include "NeighborListTree.h"
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 
 #include <math.h>
 
@@ -245,7 +245,7 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
     Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4)))); 
+    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
 
     // specify the force parameters
     fc1->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));

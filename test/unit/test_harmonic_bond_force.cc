@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
@@ -57,9 +57,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllBondPotentials.h"
 #include "ConstForceCompute.h"
-#include "SnapshotSystemData.h"
+#include "hoomd/SnapshotSystemData.h"
 
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 
 using namespace std;
 using namespace boost;

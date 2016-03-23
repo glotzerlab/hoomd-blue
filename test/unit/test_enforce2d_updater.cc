@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Enforce2DUpdater.h"
 #include "AllPairPotentials.h"
-#include "HOOMDInitializer.h"
+#include "hoomd/HOOMDInitializer.h"
 #include "NeighborListBinned.h"
 #include "TwoStepNVTMTK.h"
 #include "ComputeThermo.h"
@@ -69,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegratorTwoStep.h"
 
-#include "HOOMDDumpWriter.h"
+#include "hoomd/HOOMDDumpWriter.h"
 #include "saruprng.h"
 
 #include <math.h>

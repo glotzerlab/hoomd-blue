@@ -47,6 +47,15 @@ include (CMake_src_setup.cmake)
 include (CMake_preprocessor_flags.cmake)
 
 ################################
+# set up unit tests
+include(CTest)
+mark_as_advanced(DART_TESTING_TIMEOUT)
+if (BUILD_TESTING)
+     # add test_all to the ALL target
+     add_custom_target(test_all ALL)
+endif (BUILD_TESTING)
+
+################################
 ## Process subdirectories
 add_subdirectory (hoomd)
 
@@ -56,15 +65,3 @@ if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
 
-################################
-# set up unit tests
-# include(CTest)
-# mark_as_advanced(DART_TESTING_TIMEOUT)
-# if (BUILD_TESTING)
-#     # add test_all to the ALL target
-#     add_custom_target(test_all ALL)
-#     add_dependencies(test_all hoomd)
-#     add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-#     add_dependencies(check test_all)
-#     add_subdirectory (test)
-# endif (BUILD_TESTING)

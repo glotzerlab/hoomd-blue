@@ -159,6 +159,10 @@ endforeach()
 
 add_custom_target(copy_hoomd ALL DEPENDS ${files})
 
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()
+
 option(BUILD_MD "Build the md module" on)
 if (BUILD_MD)
     add_subdirectory(md)

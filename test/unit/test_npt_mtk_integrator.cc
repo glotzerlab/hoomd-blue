@@ -63,17 +63,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "IntegratorTwoStep.h"
 
-#include "CellList.h"
+#include "hoomd/CellList.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 #include "RandomGenerator.h"
 #include "AllPairPotentials.h"
 #include "AllAnisoPairPotentials.h"
 
 #ifdef ENABLE_CUDA
 #include "NeighborListGPUBinned.h"
-#include "CellListGPU.h"
+#include "hoomd/CellListGPU.h"
 #endif
 
 #include "saruprng.h"

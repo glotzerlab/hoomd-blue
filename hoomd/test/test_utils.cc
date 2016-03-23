@@ -48,14 +48,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
 #include <math.h>
-#include "ClockSource.h"
-#include "Profiler.h"
-#include "Variant.h"
+#include "hoomd/ClockSource.h"
+#include "hoomd/Profiler.h"
+#include "hoomd/Variant.h"
 
 //! Name the unit test module
 #define BOOST_TEST_MODULE UtilityClassesTests

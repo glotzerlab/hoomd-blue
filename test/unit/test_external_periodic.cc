@@ -48,7 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // this include is necessary to get MPI included before anything else to support intel MPI
-#include "ExecutionConfiguration.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>
@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllExternalPotentials.h"
 
-#include "Initializers.h"
+#include "hoomd/Initializers.h"
 
 #include <math.h>
 
