@@ -104,7 +104,7 @@ class xml(hoomd.analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         hoomd.analyze._analyzer.__init__(self);
@@ -116,18 +116,18 @@ class xml(hoomd.analyze._analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, restart);
-        _util.quiet_status();
+        hoomd.util.quiet_status();
         self.set_params(**params);
-        _util.unquiet_status();
+        hoomd.util.unquiet_status();
 
         if period is not None:
             self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            _util.quiet_status();
+            hoomd.util.quiet_status();
             self.write(filename, time_step);
-            _util.unquiet_status();
+            hoomd.util.unquiet_status();
         else:
             self.enabled = False;
 
@@ -194,7 +194,7 @@ class xml(hoomd.analyze._analyzer):
                    angmom=None,
                    inertia=None,
                    vizsigma=None):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         if all:
@@ -280,7 +280,7 @@ class xml(hoomd.analyze._analyzer):
     # xml.write(filename="start.xml", time_step=0)
     # \endcode
     def write(self, filename, time_step = None):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         if time_step is None:
@@ -293,7 +293,7 @@ class xml(hoomd.analyze._analyzer):
     # This only works when dump.xml() is in **restart** mode. write_restart() writes out a restart file at the current
     # time step. Put it at the end of a script to ensure that the system state is written out before exiting.
     def write_restart(self):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         if not self.restart:
             raise ValueError("Cannot write_restart() when restart=False");
@@ -335,7 +335,7 @@ class mol2(hoomd.analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, phase=-1):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
@@ -354,9 +354,9 @@ class mol2(hoomd.analyze._analyzer):
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            _util.quiet_status();
+            hoomd.util.quiet_status();
             self.write(filename);
-            _util.unquiet_status();
+            hoomd.util.unquiet_status();
         else:
             self.enabled = False;
 
@@ -382,7 +382,7 @@ class mol2(hoomd.analyze._analyzer):
     # mol2.write(filename="start.mol2")
     # \endcode
     def write(self, filename):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
@@ -436,7 +436,7 @@ class dcd(hoomd.analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         hoomd.analyze._analyzer.__init__(self);
@@ -449,9 +449,9 @@ class dcd(hoomd.analyze._analyzer):
             reported_period = 1;
 
         if group is None:
-            _util.quiet_status();
+            hoomd.util.quiet_status();
             group = hoomd.group.all();
-            _util.unquiet_status();
+            hoomd.util.unquiet_status();
 
         self.cpp_analyzer = _hoomd.DCDDumpWriter(hoomd.context.current.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
@@ -466,14 +466,14 @@ class dcd(hoomd.analyze._analyzer):
         self.metadata_fields = ['filename','period','group']
 
     def enable(self):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         if self.enabled == False:
             hoomd.context.msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
 
     def set_period(self, period):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         hoomd.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
@@ -568,7 +568,7 @@ class gsd(hoomd.analyze._analyzer):
                  phase=-1,
                  time_step=None,
                  static=['attribute', 'momentum', 'topology']):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         for v in static:
             if v not in ['attribute', 'property', 'momentum', 'topology']:
@@ -632,7 +632,7 @@ class pdb(hoomd.analyze._analyzer):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, phase=-1):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
@@ -652,9 +652,9 @@ class pdb(hoomd.analyze._analyzer):
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
-            _util.quiet_status();
+            hoomd.util.quiet_status();
             self.write(filename);
-            _util.unquiet_status();
+            hoomd.util.unquiet_status();
         else:
             self.enabled = False;
 
@@ -672,7 +672,7 @@ class pdb(hoomd.analyze._analyzer):
     # pdb.set_params(bond=True)
     # \endcode
     def set_params(self, bond=None):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         if bond is not None:
@@ -695,7 +695,7 @@ class pdb(hoomd.analyze._analyzer):
     # pdb.write(filename="start.pdb")
     # \endcode
     def write(self, filename):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
@@ -732,7 +732,7 @@ class pos(hoomd.analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     #
     def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
-        _util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         hoomd.analyze._analyzer.__init__(self);

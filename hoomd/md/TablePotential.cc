@@ -399,8 +399,4 @@ void export_TablePotential()
     ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;
-
-    class_<std::vector<Scalar> >("std_vector_scalar")
-    .def(vector_indexing_suite<std::vector<Scalar> >())
-    ;
     }

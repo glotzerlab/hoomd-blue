@@ -356,6 +356,10 @@ BOOST_PYTHON_MODULE(_hoomd)
     def("cuda_profile_start", &cuda_profile_start);
     def("cuda_profile_stop", &cuda_profile_stop);
 
+    class_<std::vector<Scalar> >("std_vector_scalar")
+    .def(vector_indexing_suite<std::vector<Scalar> >())
+    ;
+
     class_< std::vector<unsigned int> >("std_vector_uint")
     .def(vector_indexing_suite<std::vector<unsigned int> >())
     ;

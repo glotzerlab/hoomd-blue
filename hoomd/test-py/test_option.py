@@ -1,9 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: joaander
 
-from hoomd_script import *
-import hoomd_script;
-import hoomd_script
+from hoomd import *
+import hoomd;
 context.initialize()
 import unittest
 import os
@@ -16,10 +15,10 @@ class init_create_random_tests (unittest.TestCase):
     # tests that mode settings work properly
     def test_notice_level(self):
         option.set_notice_level(1);
-        self.assert_(hoomd_script.context.options.notice_level == 1);
+        self.assert_(hoomd.context.options.notice_level == 1);
 
         option.set_notice_level(10);
-        self.assert_(hoomd_script.context.options.notice_level == 10);
+        self.assert_(hoomd.context.options.notice_level == 10);
 
         self.assertRaises(RuntimeError, option.set_notice_level, 'foo');
 

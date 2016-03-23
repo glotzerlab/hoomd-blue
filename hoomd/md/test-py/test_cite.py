@@ -1,10 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: mphoward
 
-from hoomd_script import *
-import hoomd_script;
-import hoomd_script
-context.initialize()
+from hoomd import *
+import hoomd
+context.initialize();
 import unittest
 import os
 import tempfile
@@ -30,29 +29,29 @@ class cite_tests (unittest.TestCase):
     ## Test global bibliography exists and gets filled correctly with default values
     def test_global_bib(self):
         # global bibliography should exist after initialization
-        self.assertIsInstance(hoomd_script.context.bib, cite.bibliography)
+        self.assertIsInstance(hoomd.context.bib, cite.bibliography)
 
         # check that it has two entries, the default HOOMD citations, and that the keys match what they should be
-        print(hoomd_script.context.bib.entries)
-        self.assertEqual(len(hoomd_script.context.bib.entries), 3)
-        self.assertIn('anderson2008', hoomd_script.context.bib.entries)
-        self.assertIn('hoomdweb', hoomd_script.context.bib.entries)
-        self.assertIn('glaser2015', hoomd_script.context.bib.entries)
+        print(hoomd.context.bib.entries)
+        self.assertEqual(len(hoomd.context.bib.entries), 3)
+        self.assertIn('anderson2008', hoomd.context.bib.entries)
+        self.assertIn('hoomdweb', hoomd.context.bib.entries)
+        self.assertIn('glaser2015', hoomd.context.bib.entries)
 
         # stringify the global bibliography (basically, save the pointer)
-        s1 = str(hoomd_script.context.bib)
+        s1 = str(hoomd.context.bib)
 
         # add another element to the bibliography
         c = cite.misc(cite_key='test')
         cite._ensure_global_bib().add(c)
 
         # check that the global bibliography is unchanged
-        self.assertEqual(str(hoomd_script.context.bib), s1)
+        self.assertEqual(str(hoomd.context.bib), s1)
 
         # wipeout the global bibliography and create it again
-        hoomd_script.context.bib = None
+        hoomd.context.bib = None
         cite._ensure_global_bib()
-        self.assertIsInstance(hoomd_script.context.bib, cite.bibliography)
+        self.assertIsInstance(hoomd.context.bib, cite.bibliography)
 
     ## Test groups of authors get names formatted properly
     def test_format_authors(self):
@@ -125,7 +124,7 @@ class cite_tests (unittest.TestCase):
 
     def tearDown(self):
         context.initialize();
-        hoomd_script.context.bib = None;
+        hoomd.context.bib = None;
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);
 

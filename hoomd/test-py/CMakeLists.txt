@@ -114,9 +114,6 @@ if (ENABLE_MPI)
 
     # communication test needs to be run on 8 procs
     add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_communication.py 8)
-
-    # run constraint test on 8 procs
-    add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_constrain_distance.py 8)
 endif(ENABLE_MPI)
 
 if (ENABLE_CUDA)

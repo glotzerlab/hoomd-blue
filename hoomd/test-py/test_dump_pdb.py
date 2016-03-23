@@ -1,8 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: joaander
 
-from hoomd_script import *
-import hoomd_script;
+from hoomd import *
 context.initialize()
 import unittest
 import os

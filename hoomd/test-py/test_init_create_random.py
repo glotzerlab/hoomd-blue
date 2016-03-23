@@ -1,8 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: joaander
 
-from hoomd_script import *
-import hoomd_script;
+from hoomd import *
+import hoomd;
 context.initialize()
 import unittest
 import os
@@ -15,20 +15,20 @@ class init_create_random_tests (unittest.TestCase):
     # tests basic creation of the random initializer
     def test(self):
         init.create_random(N=100, phi_p=0.05);
-        self.assert_(hoomd_script.context.current.system_definition);
-        self.assert_(hoomd_script.context.current.system);
+        self.assert_(hoomd.context.current.system_definition);
+        self.assert_(hoomd.context.current.system);
 
     # tests creation with a few more arguments specified
     def test_moreargs(self):
         init.create_random(name="B", min_dist=0.1, N=100, phi_p=0.05);
-        self.assert_(hoomd_script.context.current.system_definition);
-        self.assert_(hoomd_script.context.current.system);
+        self.assert_(hoomd.context.current.system_definition);
+        self.assert_(hoomd.context.current.system);
 
     # tests creation with a specified box
     def test_box(self):
         init.create_random(name="B", min_dist=0.1, N=100, box=data.boxdim(L=100));
-        self.assert_(hoomd_script.context.current.system_definition);
-        self.assert_(hoomd_script.context.current.system);
+        self.assert_(hoomd.context.current.system_definition);
+        self.assert_(hoomd.context.current.system);
 
     # checks for an error if initialized twice
     def test_inittwice(self):
