@@ -161,6 +161,7 @@ add_custom_target(copy_hoomd ALL DEPENDS ${files})
 
 if (BUILD_TESTING)
     add_subdirectory(test)
+    add_subdirectory(test-py)
 endif()
 
 option(BUILD_MD "Build the md module" on)

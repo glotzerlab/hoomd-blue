@@ -638,7 +638,7 @@ class lj(pair):
             self.cpp_force = _md.PotentialPairLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJ;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJGPU;
 
