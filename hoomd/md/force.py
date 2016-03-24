@@ -49,6 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd import _hoomd
 from hoomd.md import _md;
 import sys;
 import hoomd;
@@ -281,9 +282,9 @@ class constant(_force):
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = _md.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
         else:
-            self.cpp_force = _md.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
 
         # store metadata
         self.metadata_fields = ['fx','fy','fz']
@@ -383,17 +384,17 @@ class active(_force):
             else:
                 raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
         else:
-            P = _md.make_scalar3(0, 0, 0)
+            P = _hoomd.make_scalar3(0, 0, 0)
             rx = 0
             ry = 0
             rz = 0
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ActiveForceCompute(context.current.system_definition, group.cpp_group, seed, f_lst,
+            self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
                                                       orientation_link, rotation_diff, P, rx, ry, rz);
         else:
-            self.cpp_force = _md.ActiveForceComputeGPU(context.current.system_definition, group.cpp_group, seed, f_lst,
+            self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
                                                          orientation_link, rotation_diff, P, rx, ry, rz);
 
         # store metadata
@@ -404,7 +405,7 @@ class active(_force):
         self.rotation_diff = rotation_diff
         self.constraint = constraint
 
-        context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     # there are no coeffs to update in the active force compute
     def update_coeffs(self):

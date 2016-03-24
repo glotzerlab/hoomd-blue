@@ -5,17 +5,11 @@ include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
 ################################
 ## Define common libraries used by every target in HOOMD
 set(BOOST_LIBS
-        ${Boost_FILESYSTEM_LIBRARY}
         ${Boost_SIGNALS_LIBRARY}
         )
 
 string(TOUPPER ${BOOST_PYTHON_COMPONENT} UPPER_BOOST_PYTHON_COMPONENT )
 set(BOOST_LIBS ${BOOST_LIBS} ${Boost_${UPPER_BOOST_PYTHON_COMPONENT}_LIBRARY})
-
-if (Boost_SYSTEM_LIBRARY)
-    set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
-endif (Boost_SYSTEM_LIBRARY)
-
 
 # these libraries are needed for MPI
 if(ENABLE_MPI)
@@ -37,7 +31,6 @@ endif (UNIX AND NOT APPLE)
 set(HOOMD_COMMON_LIBS
         ${HOOMD_PYTHON_LIBRARY}
         ${BOOST_LIBS}
-        ${ZLIB_LIBRARIES}
         ${ADDITIONAL_LIBS}
         )
 

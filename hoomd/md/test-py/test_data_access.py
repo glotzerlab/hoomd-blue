@@ -1,8 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: joaander
 
-from hoomd_script import *
-import hoomd_script;
+from hoomd import *
+from hoomd import md
 context.initialize()
 import unittest
 import os
@@ -407,7 +407,7 @@ class bond_data_access_tests (unittest.TestCase):
         del self.s
         context.initialize();
 
-# pair.lj
+# md.pair.lj
 class pair_access_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -417,7 +417,7 @@ class pair_access_tests (unittest.TestCase):
 
     # basic test of creation
     def test(self):
-        lj = pair.lj(r_cut=3.0);
+        lj = md.pair.lj(r_cut=3.0);
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
         lj.update_coeffs();
         for p in lj.forces:

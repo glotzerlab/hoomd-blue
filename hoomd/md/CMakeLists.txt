@@ -169,8 +169,10 @@ set(files __init__.py
           external.py
           force.py
           improper.py
+          integrate.py
           nlist.py
           pair.py
+          update.py
           wall.py
     )
 
@@ -181,6 +183,6 @@ endforeach()
 add_custom_target(copy_md ALL DEPENDS ${files})
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
+    add_subdirectory(test-py)
     add_subdirectory(test)
 endif()

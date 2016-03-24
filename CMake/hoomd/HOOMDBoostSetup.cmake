@@ -22,7 +22,7 @@ endif()
 # try python-X.Y lib naming (gentoo style) first
 set(BOOST_PYTHON_COMPONENT "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
-set(REQUIRED_BOOST_COMPONENTS filesystem ${BOOST_PYTHON_COMPONENT} signals unit_test_framework serialization)
+set(REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT} signals unit_test_framework serialization)
 
 message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
@@ -41,19 +41,15 @@ else()
 endif()
 
 list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
+find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 endif()
-
-# if we get boost 1.35 or greator, we need to get the system library too
-if (Boost_MINOR_VERSION GREATER 34)
-list(APPEND REQUIRED_BOOST_COMPONENTS "system")
-endif ()
 
 # if we get boost 1.60 or greator, we need to get the timer library too
 if (Boost_MINOR_VERSION GREATER 59)
 list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono")
-endif ()
 
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
+endif ()
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})

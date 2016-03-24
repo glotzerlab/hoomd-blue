@@ -727,7 +727,7 @@ class gauss(pair):
             self.cpp_force = _md.PotentialPairGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairGauss;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairGaussGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairGaussGPU;
 
@@ -840,7 +840,7 @@ class slj(pair):
             self.cpp_force = _md.PotentialPairSLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairSLJ;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairSLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairSLJGPU;
 
@@ -953,7 +953,7 @@ class yukawa(pair):
             self.cpp_force = _md.PotentialPairYukawa(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairYukawa;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairYukawaGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairYukawaGPU;
 
@@ -1034,7 +1034,7 @@ class ewald(pair):
             self.cpp_force = _md.PotentialPairEwald(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairEwald;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairEwaldGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairEwaldGPU;
 
@@ -1143,7 +1143,7 @@ class cgcmm(force._force):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.CGCMMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.CGCMMForceComputeGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
             self.cpp_force.setBlockSize(128);
 
@@ -1312,7 +1312,7 @@ class table(force._force):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.TablePotential(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.TablePotentialGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
@@ -1322,8 +1322,8 @@ class table(force._force):
 
     def update_pair_table(self, typei, typej, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = _md.std_vector_scalar();
-        Ftable = _md.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar();
+        Ftable = _hoomd.std_vector_scalar();
 
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);
@@ -1547,7 +1547,7 @@ class morse(pair):
             self.cpp_force = _md.PotentialPairMorse(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMorse;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairMorseGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMorseGPU;
 
@@ -1671,7 +1671,7 @@ class dpd(pair):
             self.cpp_force = _md.PotentialPairDPDThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDThermoDPD;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairDPDThermoDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDThermoDPDGPU;
 
@@ -1801,7 +1801,7 @@ class dpd_conservative(pair):
             self.cpp_force = _md.PotentialPairDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPD;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDGPU;
 
@@ -1895,7 +1895,7 @@ class eam(force._force):
         #Load neighbor list to compute.
         self.cpp_force.set_neighbor_list(self.nlist);
         if hoomd.context.exec_conf.isCUDAEnabled():
-            self.nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         hoomd.context.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
@@ -2029,7 +2029,7 @@ class dpdlj(pair):
             self.cpp_force = _md.PotentialPairDPDLJThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDLJThermoDPD;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairDPDLJThermoDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDLJThermoDPDGPU;
 
@@ -2167,7 +2167,7 @@ class force_shifted_lj(pair):
             self.cpp_force = _md.PotentialPairForceShiftedLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairForceShiftedLJ;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairForceShiftedLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairForceShiftedLJGPU;
 
@@ -2236,7 +2236,7 @@ class moliere(pair):
             self.cpp_force = _md.PotentialPairMoliere(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMoliere;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairMoliereGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMoliereGPU;
 
@@ -2310,7 +2310,7 @@ class zbl(pair):
             self.cpp_force = _md.PotentialPairZBL(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairZBL;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairZBLGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairZBLGPU;
 
@@ -2365,7 +2365,7 @@ class tersoff(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # this potential cannot handle a half neighbor list
-        self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -2493,7 +2493,7 @@ class mie(pair):
             self.cpp_force = _md.PotentialPairMie(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMie;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairMieGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMieGPU;
 
@@ -2688,7 +2688,7 @@ class gb(ai_pair):
             self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGB;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            neighbor_list.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.AnisoPotentialPairGBGPU(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGBGPU;
 
@@ -2762,7 +2762,7 @@ class dipole(ai_pair):
             self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipole;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            neighbor_list.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.AnisoPotentialPairDipoleGPU(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipoleGPU;
 
@@ -2863,7 +2863,7 @@ class reaction_field(pair):
             self.cpp_force = _md.PotentialPairReactionField(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairReactionField;
         else:
-            self.nlist.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
             self.cpp_force = _md.PotentialPairReactionFieldGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairReactionFieldGPU;
 

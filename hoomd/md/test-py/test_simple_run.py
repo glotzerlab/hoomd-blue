@@ -1,5 +1,5 @@
 # -*- coding: iso-8859-1 -*-
-# Maintainer: joaander
+# Maintainer: jglaser
 
 from hoomd import *
 from hoomd import md;
@@ -7,7 +7,7 @@ context.initialize()
 import unittest
 import os
 
-# unit tests for init.create_random
+# unit test to run a simple polymer system with pair and bond potentials
 class replicate(unittest.TestCase):
     def setUp(self):
         self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
@@ -15,7 +15,7 @@ class replicate(unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.42, B=0.42)
-        self.s = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         self.assert_(context.current.system_definition);
         self.assert_(context.current.system);
         self.harmonic = md.bond.harmonic();
@@ -25,21 +25,14 @@ class replicate(unittest.TestCase):
         self.pair.pair_coeff.set('A','B',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('B','B',epsilon=1.0, sigma=1.0)
 
-    def test_replicate(self):
-        self.s.replicate(nx=2,ny=2,nz=2)
+    def test_run(self):
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(group.all());
         run(100)
-        self.assertEqual(len(self.s.particles),8*(19*100+4*10))
-        self.assertEqual(len(self.s.bonds),8*(18*100+3*10))
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(2), 8*(17*100+2*10))
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(1), 8*(2*100+2*10))
-        run(100);
 
     def tearDown(self):
         del self.harmonic
         del self.pair
-        del self.s
         context.initialize();
 
 if __name__ == '__main__':

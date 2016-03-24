@@ -2,13 +2,13 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import md;
+from hoomd import md
 context.initialize()
 import unittest
 import os
 
 # unit tests for init.create_random
-class replicate(unittest.TestCase):
+class determinstic(unittest.TestCase):
     def setUp(self):
         self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
         self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
@@ -24,17 +24,26 @@ class replicate(unittest.TestCase):
         self.pair.pair_coeff.set('A','A',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('A','B',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('B','B',epsilon=1.0, sigma=1.0)
+        md.nlist.set_params(deterministic=True)
+        option.set_autotuner_params(enable=False)
 
-    def test_replicate(self):
-        self.s.replicate(nx=2,ny=2,nz=2)
+    def test_run1(self):
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(group.all());
-        run(100)
-        self.assertEqual(len(self.s.particles),8*(19*100+4*10))
-        self.assertEqual(len(self.s.bonds),8*(18*100+3*10))
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(2), 8*(17*100+2*10))
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(1), 8*(2*100+2*10))
-        run(100);
+        run(1000)
+        self.force_first_run = self.s.particles[0].net_force
+        self.energy_first_run = self.s.particles[0].net_energy
+
+        self.tearDown()
+        self.setUp()
+        md.integrate.mode_standard(dt=0.005);
+        md.integrate.nve(group.all());
+        run(1000)
+        self.force_second_run = self.s.particles[0].net_force
+        self.energy_second_run = self.s.particles[0].net_energy
+
+        self.assertEqual(self.force_first_run, self.force_second_run)
+        self.assertEqual(self.energy_first_run, self.energy_second_run)
 
     def tearDown(self):
         del self.harmonic

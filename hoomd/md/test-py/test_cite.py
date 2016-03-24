@@ -3,6 +3,7 @@
 
 from hoomd import *
 import hoomd
+from hoomd import md
 context.initialize();
 import unittest
 import os
@@ -100,8 +101,8 @@ class cite_tests (unittest.TestCase):
     ## Test that the bibliography is automatically (or forcibly) generated as requested by the user
     def test_autosave(self):
         all = group.all()
-        integrate.mode_standard(dt=0.005)
-        integrate.nve(group=all)
+        md.integrate.mode_standard(dt=0.005)
+        md.integrate.nve(group=all)
 
         if comm.get_rank() == 0:
             # at first, nothing should be in the file

@@ -49,8 +49,10 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
+import hoomd
 
 import math;
 import sys;
@@ -577,8 +579,8 @@ class table(force._force):
 
     def update_angle_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = _md.std_vector_scalar();
-        Ttable = _md.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar();
+        Ttable = _hoomd.std_vector_scalar();
 
         # calculate dth
         dth = math.pi / float(self.width-1);

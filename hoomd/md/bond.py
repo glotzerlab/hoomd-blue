@@ -49,6 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force;
 import hoomd;
@@ -348,7 +349,7 @@ class harmonic(_bond):
         r0 = coeff['r0'];
 
         # set the parameters for the appropriate type
-        return _md.make_scalar2(k, r0);
+        return _hoomd.make_scalar2(k, r0);
 
 
 ## FENE %bond force
@@ -411,7 +412,7 @@ class fene(_bond):
         r0 = coeff['r0'];
         lj1 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 12.0);
         lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
-        return _md.make_scalar4(k, r0, lj1, lj2);
+        return _hoomd.make_scalar4(k, r0, lj1, lj2);
 
 
 
@@ -539,8 +540,8 @@ class table(force._force):
 
     def update_bond_table(self, btype, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = _md.std_vector_scalar();
-        Ftable = _md.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar();
+        Ftable = _hoomd.std_vector_scalar();
 
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);
