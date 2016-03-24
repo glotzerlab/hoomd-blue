@@ -48,8 +48,7 @@ include (CMake_preprocessor_flags.cmake)
 
 ################################
 # set up unit tests
-include(CTest)
-mark_as_advanced(DART_TESTING_TIMEOUT)
+enable_testing()
 if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
