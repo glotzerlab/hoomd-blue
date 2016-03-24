@@ -63,12 +63,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
 
-#include "ConstForceCompute.h"
-#include "TwoStepNVE.h"
-#include "IntegratorTwoStep.h"
+#include "hoomd/ConstForceCompute.h"
+#include "hoomd/md/TwoStepNVE.h"
+#include "hoomd/md/IntegratorTwoStep.h"
 
 #ifdef ENABLE_CUDA
-#include "CommunicatorGPU.h"
+#include "hoomd/CommunicatorGPU.h"
 #endif
 
 #include <algorithm>

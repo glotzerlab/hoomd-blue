@@ -179,3 +179,8 @@ foreach(file ${files})
 endforeach()
 
 add_custom_target(copy_md ALL DEPENDS ${files})
+
+if (BUILD_TESTING)
+    # add_subdirectory(test-py)
+    add_subdirectory(test)
+endif()

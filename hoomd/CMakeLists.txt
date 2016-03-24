@@ -164,7 +164,7 @@ if (BUILD_TESTING)
     add_subdirectory(test)
 endif()
 
-option(BUILD_MD "Build the md module" on)
+option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
     add_subdirectory(md)
 endif()
