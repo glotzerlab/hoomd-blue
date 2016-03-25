@@ -42,6 +42,7 @@
 * Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
 * bonds, angles, dihedrals, and impropers no longer use the `set_coeff` syntax. Use `bond_coeff.set`, `angle_coeff.set`,
   `dihedral_coeff.set`, and `improper_coeff.set` instead.
+* `hoomd_script` no longer exists, python commands are now spread across `hoomd`, `hoomd.md`, and other sub packages.
 
 *Other changes*
 
@@ -49,6 +50,7 @@
 * Convert particle type names to `str` to allow unicode type name input
 * `__version__` is now available in the top level package
 * `boost::iostreams` is no longer a build dependency
+* `boost::filesystem` is no longer a build dependency
 
 *Removed*
 

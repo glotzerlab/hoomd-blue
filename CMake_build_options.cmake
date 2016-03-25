@@ -48,13 +48,3 @@ if (ENABLE_DOXYGEN)
         endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
     endif ()
 endif ()
-
-###############################
-## install python code into the system site dir, if a system python installation is desired
-SET(PYTHON_SITEDIR "" CACHE STRING "System python site-packages directory to install python module code to. If unspecified, install to lib/hoomd/python-module")
-if (PYTHON_SITEDIR)
-    set(HOOMD_PYTHON_MODULE_DIR ${PYTHON_SITEDIR})
-else (PYTHON_SITEDIR)
-    set(HOOMD_PYTHON_MODULE_DIR ${LIB_INSTALL_DIR}/python-module)
-endif (PYTHON_SITEDIR)
-mark_as_advanced(PYTHON_SITEDIR)

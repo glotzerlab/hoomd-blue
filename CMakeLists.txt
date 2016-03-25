@@ -46,19 +46,18 @@ include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
 
-# setup the library compile mode
-if(ENABLE_STATIC)
-    set(BUILD_SHARED_LIBS OFF)
-else(ENABLE_STATIC)
-    set(BUILD_SHARED_LIBS ON)
-endif(ENABLE_STATIC)
+################################
+# set up unit tests
+enable_testing()
+option(BUILD_TESTING "Build unit tests" ON)
+if (BUILD_TESTING)
+     # add test_all to the ALL target
+     add_custom_target(test_all ALL)
+endif (BUILD_TESTING)
 
 ################################
 ## Process subdirectories
-add_subdirectory (libhoomd)
-add_subdirectory (share)
-add_subdirectory (python-module)
-add_subdirectory (python-runner)
+add_subdirectory (hoomd)
 
 ###############################
 ## include documentation directories
@@ -66,15 +65,3 @@ if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
 
-################################
-# set up unit tests
-include(CTest)
-mark_as_advanced(DART_TESTING_TIMEOUT)
-if (BUILD_TESTING)
-    # add test_all to the ALL target
-    add_custom_target(test_all ALL)
-    add_dependencies(test_all hoomd)
-    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-    add_dependencies(check test_all)
-    add_subdirectory (test)
-endif (BUILD_TESTING)
