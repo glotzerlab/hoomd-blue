@@ -1,6 +1,7 @@
 # Maintainer: joaander
 
-set(_md_sources ActiveForceCompute.cc
+set(_md_sources module-md.cc
+                   ActiveForceCompute.cc
                    BondTablePotential.cc
                    CGCMMAngleForceCompute.cc
                    CGCMMForceCompute.cc
@@ -114,7 +115,7 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_md SHARED module-md.cc ${_md_sources} ${_CUDA_GENERATED_FILES})
+add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
 target_link_libraries(_md ${HOOMD_COMMON_LIBS})

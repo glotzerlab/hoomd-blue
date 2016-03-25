@@ -49,6 +49,7 @@ include (CMake_preprocessor_flags.cmake)
 ################################
 # set up unit tests
 enable_testing()
+option(BUILD_TESTING "Build unit tests" ON)
 if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
