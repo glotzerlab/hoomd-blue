@@ -39,9 +39,9 @@ list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 endif()
 
-# if we get boost 1.60 or greater, we need to get the timer library too
+# if we get boost 1.60 or greater, we need to get the timer, chrono, and system libraries too
 if (Boost_MINOR_VERSION GREATER 59)
-list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono")
+list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono" "system")
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 endif ()
 

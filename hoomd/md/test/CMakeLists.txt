@@ -10,7 +10,7 @@ set(ADDITIONAL_LIBS _hoomd
 
 # boost 1.60.0 requires the boost timer and chrono be linked to unit tests
 if (Boost_MINOR_VERSION GREATER 59)
-list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY})
+list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 endif ()
 
 # then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
