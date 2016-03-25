@@ -9,7 +9,7 @@ mark_as_advanced(ENABLE_STATIC)
 
 #################################
 ## Optional single/double precision build
-option(SINGLE_PRECISION "Use single precision math" ON)
+option(SINGLE_PRECISION "Use single precision math" OFF)
 
 #####################3
 ## CUDA related options

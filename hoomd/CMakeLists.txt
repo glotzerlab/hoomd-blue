@@ -172,7 +172,12 @@ if (BUILD_MD)
     add_subdirectory(md)
 endif()
 
+if (NOT SINGLE_PRECISION)
 option(BUILD_HPMC "Build the hpmc package" on)
-if (BUILD_HPMC)
+else ()
+option(BUILD_HPMC "Build the hpmc package" off)
+endif()
+
+if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()

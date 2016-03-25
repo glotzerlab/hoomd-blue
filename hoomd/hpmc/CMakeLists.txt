@@ -103,7 +103,7 @@ endforeach()
 
 add_custom_target(copy_hpmc ALL DEPENDS ${files})
 
-# if (BUILD_TESTING)
-#     add_subdirectory(test-py)
-#     add_subdirectory(test)
-# endif()
+if (BUILD_TESTING)
+#    add_subdirectory(test-py)
+    add_subdirectory(test)
+endif()

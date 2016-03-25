@@ -9,8 +9,7 @@
 
 #include "hoomd/Analyzer.h"
 #include <boost/python.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
+#include "hoomd/Filesystem.h"
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_MPI
@@ -248,7 +247,7 @@ void AnalyzerSDF<Shape>::openOutputFile()
             return;
 #endif
     // open the file
-    if (boost::filesystem::exists(m_filename) && m_appending)
+    if (filesystem::exists(m_filename) && m_appending)
         {
         m_exec_conf->msg->notice(3) << "analyze.sdf: Appending to existing data file \"" << m_filename << "\"" << std::endl;
         m_file.open(m_filename.c_str(), std::ios_base::in | std::ios_base::out | std::ios_base::ate);
