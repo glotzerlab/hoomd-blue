@@ -171,3 +171,8 @@ option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
     add_subdirectory(md)
 endif()
+
+option(BUILD_HPMC "Build the hpmc package" on)
+if (BUILD_HPMC)
+    add_subdirectory(hpmc)
+endif()
