@@ -3,12 +3,10 @@
 
 from __future__ import print_function
 
-from . import _hpmc
-from . import integrate
-
-import hoomd_plugins.hpmc
-from hoomd_script.compute import _compute
-from hoomd_script import util, globals, init, data
+from hoomd import _hoomd
+from hoomd.hpmc import _hpmc
+from hoomd.hpmc import integrate
+from hoomd.compute import _compute
 import hoomd
 
 ## Compute the free volume available to a test particle by stoachstic integration
@@ -37,17 +35,17 @@ class free_volume(_compute):
     # log = analyze.log(quantities=['hpmc_free_volume'], period=100, filename='log.dat', overwrite=True)
     # ~~~~~~~~~~~~~
     def __init__(self, mc, seed, suffix='', test_type=None, nsample=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _compute.__init__(self);
 
         # create the c++ mirror class
-        cl = hoomd.CellList(globals.system_definition);
-        globals.system.addCompute(cl, "auto_cl3")
+        cl = _hoomd.CellList(hoomd.context.current.system_definition);
+        hoomd.context.current.system.addCompute(cl, "auto_cl3")
 
         cls = None;
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ComputeFreeVolumeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -71,7 +69,7 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.sphere_union):
                 cls =_hpmc.ComputeFreeVolumeSphereUnion;
             else:
-                globals.msg.error("compute.free_volume: Unsupported integrator.\n");
+                hoomd.context.msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
         else:
             if isinstance(mc, integrate.sphere):
@@ -97,25 +95,25 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.sphere_union):
                 cls =_hpmc.ComputeFreeVolumeGPUSphereUnion;
             else:
-                globals.msg.error("compute.free_volume: Unsupported integrator.\n");
+                hoomd.context.msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
 
         if suffix is not '':
             suffix = '_' + suffix
 
-        self.cpp_compute = cls(globals.system_definition,
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
                                 mc.cpp_integrator,
                                 cl,
                                 seed,
                                 suffix)
 
         if test_type is not None:
-            itype = globals.system_definition.getParticleData().getTypeByName(test_type)
+            itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(test_type)
             self.cpp_compute.setTestParticleType(itype)
         if nsample is not None:
             self.cpp_compute.setNumSamples(int(nsample))
 
-        globals.system.addCompute(self.cpp_compute, self.compute_name)
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
         self.enabled = True
 
 ## \internal
@@ -181,10 +179,10 @@ class lattice_field(_external):
     # \param setup if true pass the object created to the integrator.
     def __init__(self, mc, position = [], orientation = [], k = 0.0, q = 0.0, symmetry = [], setup=True):
         import numpy
-        util.print_status_line();
+        hoomd.util.print_status_line();
         _external.__init__(self);
         cls = None;
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldLatticeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -208,10 +206,10 @@ class lattice_field(_external):
             elif isinstance(mc, integrate.sphere_union):
                 cls =_hpmc.ExternalFieldLatticeSphereUnion;
             else:
-                globals.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
+                hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
         else:
-            globals.msg.error("GPU not supported yet")
+            hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
         if type(position) == numpy.ndarray:
@@ -225,8 +223,8 @@ class lattice_field(_external):
             orientation = list(orientation);
 
         self.compute_name = "lattice_field"
-        self.cpp_compute = cls(globals.system_definition, position, k, orientation, q, symmetry);
-        globals.system.addCompute(self.cpp_compute, self.compute_name)
+        self.cpp_compute = cls(hoomd.context.current.system_definition, position, k, orientation, q, symmetry);
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
         if setup :
             mc.set_external(self);
 
@@ -242,7 +240,7 @@ class lattice_field(_external):
     # \endcode
     def set_references(self, position = [], orientation = []):
         import numpy
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if type(position) == numpy.ndarray:
             position = position.tolist();
         else:
@@ -269,7 +267,7 @@ class lattice_field(_external):
     #   run(1000)
     # \endcode
     def set_params(self, k, q):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.setParams(float(k), float(q));
 
     ## Reset the statistics counters
@@ -287,9 +285,9 @@ class lattice_field(_external):
     #   run(1000)
     # \endcode
     def reset(self, timestep = None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if timestep == None:
-            timestep = globals.system.getCurrentTimeStep();
+            timestep = hoomd.context.current.system.getCurrentTimeStep();
         self.cpp_compute.reset(timestep);
 
 
@@ -318,7 +316,7 @@ class external_field_composite(_external):
     def __init__(self, mc, setup=True, fields = None):
         _external.__init__(self);
         cls = None;
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldCompositeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -342,15 +340,15 @@ class external_field_composite(_external):
             elif isinstance(mc, integrate.sphere_union):
                 cls =_hpmc.ExternalFieldCompositeSphereUnion;
             else:
-                globals.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
+                hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
         else:
-            globals.msg.error("GPU not supported yet")
+            hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
         self.compute_name = "composite_field"
-        self.cpp_compute = cls(globals.system_definition);
-        globals.system.addCompute(self.cpp_compute, self.compute_name);
+        self.cpp_compute = cls(hoomd.context.current.system_definition);
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
         if setup:
             mc.set_external(self);
 
@@ -406,26 +404,26 @@ class wall(_external):
     # \param setup if setup is true then the object created will be added to the integrator
     index=0;
     def __init__(self, mc, setup=True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         _external.__init__(self);
         # create the c++ mirror class
         cls = None;
         self.compute_name = "wall-"+str(wall.index)
         wall.index+=1
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
                 cls = integrate._get_sized_entry('WallConvexPolyhedron', mc.max_verts);
             else:
-                globals.msg.error("compute.wall: Unsupported integrator.\n");
+                hoomd.context.msg.error("compute.wall: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.wall");
         else:
-            globals.msg.error("GPU not supported yet")
+            hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.wall");
 
-        self.cpp_compute = cls(globals.system_definition, mc.cpp_integrator);
-        globals.system.addCompute(self.cpp_compute, self.compute_name);
+        self.cpp_compute = cls(hoomd.context.current.system_definition, mc.cpp_integrator);
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
 
         if setup:
             mc.set_external(self);
@@ -444,8 +442,8 @@ class wall(_external):
     # num_overlaps = ext_wall.count_overlaps();
     # ~~~~~~~~~~~~
     def count_overlaps(self, exit_early=False):
-        util.print_status_line();
-        return self.cpp_compute.countOverlaps(globals.system.getCurrentTimeStep(), exit_early);
+        hoomd.util.print_status_line();
+        return self.cpp_compute.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), exit_early);
 
     ## Add a spherical wall to the simulation
     #
@@ -462,7 +460,7 @@ class wall(_external):
     # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
     # ~~~~~~~~~~~~
     def add_sphere_wall(self, radius, origin, inside = True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.AddSphereWall(_hpmc.make_sphere_wall(radius, origin, inside));
 
     ## Change the parameters associated with a particular sphere wall
@@ -482,7 +480,7 @@ class wall(_external):
     # ext_wall.set_sphere_wall(index = 0, radius = 3.0, origin = [0, 0, 0], inside = True);
     # ~~~~~~~~~~~~
     def set_sphere_wall(self, index, radius, origin, inside = True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.SetSphereWallParameter(index, _hpmc.make_sphere_wall(radius, origin, inside));
 
     ## Access a parameter associated with a particular sphere wall
@@ -499,7 +497,7 @@ class wall(_external):
     # rsq = ext_wall.get_sphere_wall_param(index = 0, param = "rsq");
     # ~~~~~~~~~~~~
     def get_sphere_wall_param(self, index, param):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         t = self.cpp_compute.GetSphereWallParametersPy(index);
         if param == "rsq":
             return t[0];
@@ -508,7 +506,7 @@ class wall(_external):
         elif param == "inside":
             return t[2];
         else:
-            globals.msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
+            hoomd.context.msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
             raise RuntimeError("Error: compute.wall");
 
     ## Remove a particular sphere wall from the simulation
@@ -524,7 +522,7 @@ class wall(_external):
     # ext_wall.remove_sphere_wall(index = 0);
     # ~~~~~~~~~~~~
     def remove_sphere_wall(self, index):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.RemoveSphereWall(index);
 
     ## Get the current number of sphere walls in the simulation
@@ -539,7 +537,7 @@ class wall(_external):
     # num_sph_walls = ext_wall.get_num_sphere_walls();
     # ~~~~~~~~~~~~
     def get_num_sphere_walls(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_compute.getNumSphereWalls();
 
     ## Add a cylindrical wall to the simulation
@@ -558,7 +556,7 @@ class wall(_external):
     # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
     # ~~~~~~~~~~~~
     def add_cylinder_wall(self, radius, origin, orientation, inside = True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside);
         self.cpp_compute.AddCylinderWall(param);
 
@@ -580,7 +578,7 @@ class wall(_external):
     # ext_wall.set_cylinder_wall(index = 0, radius = 3.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
     # ~~~~~~~~~~~~
     def set_cylinder_wall(self, index, radius, origin, orientation, inside = True):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside)
         self.cpp_compute.SetCylinderWallParameter(index, param);
 
@@ -599,7 +597,7 @@ class wall(_external):
     # rsq = ext_wall.get_cylinder_wall_param(index = 0, param = "rsq");
     # ~~~~~~~~~~~~
     def get_cylinder_wall_param(self, index, param):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         t = self.cpp_compute.GetCylinderWallParametersPy(index);
         if param == "rsq":
             return t[0];
@@ -610,7 +608,7 @@ class wall(_external):
         elif param == "inside":
             return t[3];
         else:
-            globals.msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
+            hoomd.context.msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
             raise RuntimeError("Error: compute.wall");
 
     ## Remove a particular cylinder wall from the simulation
@@ -626,7 +624,7 @@ class wall(_external):
     # ext_wall.remove_cylinder_wall(index = 0);
     # ~~~~~~~~~~~~
     def remove_cylinder_wall(self, index):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.RemoveCylinderWall(index);
 
     ## Get the current number of cylinder walls in the simulation
@@ -641,7 +639,7 @@ class wall(_external):
     # num_cyl_walls = ext_wall.get_num_cylinder_walls();
     # ~~~~~~~~~~~~
     def get_num_cylinder_walls(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_compute.getNumCylinderWalls();
 
     ## Add a plane wall to the simulation
@@ -658,7 +656,7 @@ class wall(_external):
     # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
     # ~~~~~~~~~~~~
     def add_plane_wall(self, normal, origin):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.AddPlaneWall(_hpmc.make_plane_wall(normal, origin, True));
 
     ## Change the parameters associated with a particular plane wall
@@ -676,7 +674,7 @@ class wall(_external):
     # ext_wall.set_plane_wall(index = 0, normal = [0, 0, 1], origin = [0, 0, 1]);
     # ~~~~~~~~~~~~
     def set_plane_wall(self, index, normal, origin):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.SetPlaneWallParameter(index, _hpmc.make_plane_wall(normal, origin, True));
 
     ## Access a parameter associated with a particular plane wall
@@ -693,14 +691,14 @@ class wall(_external):
     # n = ext_wall.get_plane_wall_param(index = 0, param = "normal");
     # ~~~~~~~~~~~~
     def get_plane_wall_param(self, index, param):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         t = self.cpp_compute.GetPlaneWallParametersPy(index);
         if param == "normal":
             return t[0];
         elif param == "origin":
             return t[1];
         else:
-            globals.msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
+            hoomd.context.msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
             raise RuntimeError("Error: compute.wall");
 
     ## Remove a particular plane wall from the simulation
@@ -716,7 +714,7 @@ class wall(_external):
     # ext_wall.remove_plane_wall(index = 0);
     # ~~~~~~~~~~~~
     def remove_plane_wall(self, index):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.RemovePlaneWall(index);
 
     ## Get the current number of plane walls in the simulation
@@ -731,7 +729,7 @@ class wall(_external):
     # num_plane_walls = ext_wall.get_num_plane_walls();
     # ~~~~~~~~~~~~
     def get_num_plane_walls(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_compute.getNumPlaneWalls();
 
     ## Set the volume associated with the intersection of all walls in the system. This number will subsequently change when the box is resized and walls are scaled appropriately.
@@ -746,7 +744,7 @@ class wall(_external):
     # ext_wall.set_volume(4./3.*np.pi);
     # ~~~~~~~~~~~~
     def set_volume(self, volume):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_compute.setVolume(volume);
 
     ## Get the current volume associated with the intersection of all walls in the system. If this quantity has not previously been set by the user, this returns a meaningless value.
@@ -763,7 +761,7 @@ class wall(_external):
     # curr_vol = ext_wall.get_volume();
     # ~~~~~~~~~~~~
     def get_volume(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_compute.getVolume();
 
     ## Get the simulation box that the wall class is currently storing
@@ -780,7 +778,7 @@ class wall(_external):
     # curr_box = ext_wall.get_curr_box();
     # ~~~~~~~~~~~~
     def get_curr_box(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
                            Ly=self.cpp_compute.GetCurrBoxLy(),
                            Lz=self.cpp_compute.GetCurrBoxLz(),
@@ -811,9 +809,9 @@ class wall(_external):
     # ~~~~~~~~~~~~
     def set_curr_box(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None):
         # much of this is from hoomd's update.py box_resize class
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
-            globals.msg.warning("compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n")
+            hoomd.context.msg.warning("compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n")
             return
 
         # setup arguments
@@ -864,7 +862,7 @@ class frenkel_ladd_energy(_compute):
                 ):
         import math
         import numpy
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # initialize base class
         _compute.__init__(self);
 
@@ -889,7 +887,7 @@ class frenkel_ladd_energy(_compute):
                                         k = self.trans_spring_const,
                                         q = self.rotat_spring_const,
                                         symmetry=symmetry);
-        self.remove_drift = hoomd_plugins.hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
+        self.remove_drift = hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
 
     ## Reset the statistics counters
     #
@@ -904,7 +902,7 @@ class frenkel_ladd_energy(_compute):
     #   run(1000)
     # \endcode
     def reset_statistics(self):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.lattice.reset(0);
 
     ## Set the Frenkel-Ladd parameters
@@ -924,7 +922,7 @@ class frenkel_ladd_energy(_compute):
     # \endcode
     def set_params(self, ln_gamma = None, q_factor = None):
         import math
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if not q_factor is None:
             self.q_factor = q_factor;
         if not ln_gamma is None:

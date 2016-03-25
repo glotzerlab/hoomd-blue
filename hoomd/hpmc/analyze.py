@@ -4,8 +4,7 @@
 from . import _hpmc
 from . import integrate
 
-from hoomd_script.analyze import _analyzer
-from hoomd_script import util, globals, init
+from hoomd.analyze import _analyzer
 import hoomd
 
 ## Compute the scale distribution function
@@ -71,7 +70,7 @@ class sdf(_analyzer):
     # analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
     # ~~~~~~~~~~~~~
     def __init__(self, mc, filename, xmax, dx, navg, period, overwrite=False, phase=-1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -93,10 +92,10 @@ class sdf(_analyzer):
         elif isinstance(mc, integrate.convex_spheropolygon):
             cls =_hpmc.AnalyzerSDFSpheropolygon;
         else:
-            globals.msg.error("analyze.sdf: Unsupported integrator.\n");
+            hoomd.context.msg.error("analyze.sdf: Unsupported integrator.\n");
             raise runtime_error("Error initializing analyze.sdf");
 
-        self.cpp_analyzer = cls(globals.system_definition,
+        self.cpp_analyzer = cls(hoomd.context.current.system_definition,
                                 mc.cpp_integrator,
                                 xmax,
                                 dx,

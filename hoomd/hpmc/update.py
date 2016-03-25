@@ -4,11 +4,11 @@
 from . import _hpmc
 from . import integrate
 from . import compute
+from hoomd import _hoomd
 
 import math
 
-from hoomd_script.update import _updater
-from hoomd_script import util, globals, variant, get_step
+from hoomd.update import _updater
 import hoomd
 
 ## Apply box updates to sample the NPT ensemble
@@ -48,18 +48,18 @@ class npt(_updater):
     # npt = hpmc.update.npt(mc, P=1.0, dLx=0.1, dLy=0.1, dxy=0.1)
     # ~~~~~~~~~~~~~
     def __init__(self, mc, P, seed, dLx=0.0, dLy=0.0, dLz=0.0, dxy=0.0, dxz=0.0, dyz=0.0, move_ratio=0.5, reduce=0.0, isotropic=False, period=1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
         if not isinstance(mc, integrate._mode_hpmc):
-            globals.msg.warning("update.npt: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.msg.warning("update.npt: Must have a handle to an HPMC integrator.\n");
             return;
         if dLx == 0.0 and dLy == 0.0 and dLz == 0.0 and dxy == 0.0 and dxz == 0.0 and dyz == 0.0:
-            globals.msg.warning("update.npt: All move size parameters are 0\n");
+            hoomd.context.msg.warning("update.npt: All move size parameters are 0\n");
 
-        self.P = variant._setup_variant_input(P);
+        self.P = hoomd.variant._setup_variant_input(P);
         self.dLx = float(dLx);
         self.dLy = float(dLy);
         self.dLz = float(dLz);
@@ -71,7 +71,7 @@ class npt(_updater):
         self.move_ratio = float(move_ratio);
 
         # create the c++ mirror class
-        self.cpp_updater = _hpmc.UpdaterBoxNPT(globals.system_definition,
+        self.cpp_updater = _hpmc.UpdaterBoxNPT(hoomd.context.current.system_definition,
                                                mc.cpp_integrator,
                                                self.P.cpp_variant,
                                                self.dLx,
@@ -87,7 +87,7 @@ class npt(_updater):
                                                );
 
         if period is None:
-            self.cpp_updater.update(globals.system.getCurrentTimeStep());
+            self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
         else:
             self.setupUpdater(period);
 
@@ -116,13 +116,13 @@ class npt(_updater):
     # \returns None. Returns early if sanity check fails
     #
     def set_params(self, P=None, dLx=None, dLy = None, dLz = None, dxy=None, dxz=None, dyz=None, move_ratio=None, reduce=None, isotropic=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         noop = True;
 
         if P is not None:
-            self.P = variant._setup_variant_input(P)
+            self.P = hoomd.variant._setup_variant_input(P)
             noop = False;
         if dLx is not None:
             self.dLx = float(dLx)
@@ -152,7 +152,7 @@ class npt(_updater):
             self.isotropic = bool(isotropic)
             noop = False;
         if noop:
-            globals.msg.warning("update.npt: No parameters changed\n");
+            hoomd.context.msg.warning("update.npt: No parameters changed\n");
             return;
 
         self.cpp_updater.setParams( self.P.cpp_variant,
@@ -177,7 +177,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
     # run(100)
     # params = box_update.get_params(1000)
@@ -222,7 +222,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
     # run(100)
     # P_now = box_update.get_P()
@@ -243,7 +243,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
     # run(100)
     # dLx_now = box_update.get_dLx()
@@ -261,7 +261,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLy = 0.01, period = 10)
     # run(100)
     # dLy_now = box_update.get_dLy()
@@ -279,7 +279,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLz = 0.01, period = 10)
     # run(100)
     # dLz_now = box_update.get_dLz()
@@ -297,7 +297,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dxy=0.01 period = 10)
     # run(100)
     # dxy_now = box_update.get_dxy()
@@ -315,7 +315,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dxz=0.01 period = 10)
     # run(100)
     # dxz_now = box_update.get_dxz()
@@ -333,7 +333,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dyz=0.01 period = 10)
     # run(100)
     # dyz_now = box_update.get_dyz()
@@ -351,7 +351,7 @@ class npt(_updater):
     # ~~~~~~~~~~~~
     # mc = hpmc.integrate.shape(..);
     # mc.shape_param[name].set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+    # P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
     # box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
     # run(100)
     # ratio_now = box_update.get_move_ratio()
@@ -453,7 +453,7 @@ class wall(_updater):
     # wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_ratio = 0.5, seed = 27, period = 50);
     # \endcode
     def __init__(self, mc, walls, py_updater, move_ratio, seed, period=1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -464,10 +464,10 @@ class wall(_updater):
         elif isinstance(mc, integrate.convex_polyhedron):
             cls = integrate._get_sized_entry('UpdaterExternalFieldWallConvexPolyhedron', mc.max_verts);
         else:
-            globals.msg.error("update.wall: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
 
-        self.cpp_updater = cls(globals.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed);
         self.setupUpdater(period);
 
     ## Get the number of accepted wall update moves
@@ -541,10 +541,10 @@ class muvt(_updater):
     # update.muvt(mc=mc, period)
     # ~~~~~~~~~~~~~
     def __init__(self, mc, period=1, transfer_types=None,seed=48123,ngibbs=1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate._mode_hpmc):
-            globals.msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
         self.mc = mc
@@ -558,10 +558,10 @@ class muvt(_updater):
             self.gibbs = False;
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # by default, transfer all types
         if transfer_types is None:
@@ -590,7 +590,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
-                globals.msg.error("update.muvt: Unsupported integrator.\n");
+                hoomd.context.msg.error("update.muvt: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.muvt");
         else:
             if isinstance(mc, integrate.sphere):
@@ -614,16 +614,16 @@ class muvt(_updater):
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
-                globals.msg.error("update.muvt: Unsupported integrator.\n");
+                hoomd.context.msg.error("update.muvt: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.muvt");
 
         if self.mc.implicit:
-            self.cpp_updater = cls(globals.system_definition,
+            self.cpp_updater = cls(hoomd.context.current.system_definition,
                                    mc.cpp_integrator,
                                    int(seed),
                                    ngibbs);
         else:
-            self.cpp_updater = cls(globals.system_definition,
+            self.cpp_updater = cls(hoomd.context.current.system_definition,
                                    mc.cpp_integrator,
                                    int(seed),
                                    ngibbs);
@@ -633,18 +633,18 @@ class muvt(_updater):
 
         # set the list of transfered types
         if not isinstance(transfer_types,list):
-            globals.msg.error("update.muvt: Need list of types to transfer.\n");
+            hoomd.context.msg.error("update.muvt: Need list of types to transfer.\n");
             raise RuntimeError("Error initializing update.muvt");
 
-        cpp_transfer_types = hoomd.std_vector_uint();
+        cpp_transfer_types = _hoomd.std_vector_uint();
         for t in transfer_types:
             if t not in type_list:
-                globals.msg.error("Trying to transfer unknown type " + str(t) + "\n");
+                hoomd.context.msg.error("Trying to transfer unknown type " + str(t) + "\n");
                 raise RuntimeError("Error setting muVT parameters");
             else:
-                type_id = globals.system_definition.getParticleData().getTypeByName(t);
+                type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(t);
 
-            cpp_transfer_types.push_back(type_id)
+            cpp_transfer_types.append(type_id)
 
         self.cpp_updater.setTransferTypes(cpp_transfer_types)
 
@@ -657,32 +657,32 @@ class muvt(_updater):
     # \code
     # muvt = hpmc.update.muvt(mc, period = 10)
     # muvt.set_fugacity(type='A',fugacity=1.23)
-    # variant = variant.linear_interp(points= [(0,1e1), (1e5, 4.56)])
+    # variant = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 4.56)])
     # muvt.set_fugacity(type='A', fugacity=variant)
     # \endcode
     #
     # \returns None. Returns early if sanity check fails
     #
     def set_fugacity(self, type, fugacity):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         if self.gibbs:
             raise RuntimeError("Gibbs ensemble does not support setting the fugacity.\n");
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         if type not in type_list:
-            globals.msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
+            hoomd.context.msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
             raise RuntimeError("Error setting muVT parameters");
         else:
-            type_id = globals.system_definition.getParticleData().getTypeByName(type);
+            type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
 
-        fugacity_variant = variant._setup_variant_input(fugacity);
+        fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
         self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
 
     ## Set muVT parameters
@@ -700,17 +700,17 @@ class muvt(_updater):
     # \endcode
     #
     def set_params(self, dV=None, move_ratio=None, transfer_ratio=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.check_initialization();
 
         if move_ratio is not None:
             if not self.gibbs:
-                globals.msg.warning("Move ratio only used in Gibbs ensemble.\n");
+                hoomd.context.msg.warning("Move ratio only used in Gibbs ensemble.\n");
             self.cpp_updater.setMoveRatio(float(move_ratio))
 
         if dV is not None:
             if not self.gibbs:
-                globals.msg.warning("Parameter dV only available for Gibbs ensemble.\n");
+                hoomd.context.msg.warning("Parameter dV only available for Gibbs ensemble.\n");
             self.cpp_updater.setMaxVolumeRescale(float(dV))
         if transfer_ratio is not None:
             self.cpp_updater.setTransferRatio(float(transfer_ratio))
@@ -732,11 +732,11 @@ class remove_drift(_updater):
     # remove_drift = update.remove_drift(mc=mc, external_lattice=lattice, period=1000);
     # \endcode
     def __init__(self, mc, external_lattice, period=1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         #initiliaze base class
         _updater.__init__(self);
         cls = None;
-        if not globals.exec_conf.isCUDAEnabled():
+        if not context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.RemoveDriftUpdaterSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -760,7 +760,7 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphere_union):
                 cls =_hpmc.RemoveDriftUpdaterSphereUnion;
             else:
-                globals.msg.error("update.remove_drift: Unsupported integrator.\n");
+                hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
@@ -787,8 +787,8 @@ class remove_drift(_updater):
             # elif isinstance(mc, integrate.sphere_union):
             #     cls =_hpmc.RemoveDriftUpdaterGPUSphereUnion;
             # else:
-            #     globals.msg.error("update.remove_drift: Unsupported integrator.\n");
+            #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
             #     raise RuntimeError("Error initializing update.remove_drift");
 
-        self.cpp_updater = cls(globals.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);

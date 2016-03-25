@@ -5,8 +5,8 @@
 # \brief HPMC
 
 # need to import all submodules defined in this directory
-from . import integrate
-from . import update
-from . import analyze
-from . import compute
-from . import util
+from hoomd.hpmc import integrate
+from hoomd.hpmc import update
+from hoomd.hpmc import analyze
+from hoomd.hpmc import compute
+from hoomd.hpmc import util

@@ -1,10 +1,10 @@
 ## \package hpmc.integrate
 # \brief HPMC integration modes
 
-from . import _hpmc
-from . import data
-from hoomd_script.integrate import _integrator
-from hoomd_script import pair, util, globals, init, meta
+from hoomd import _hoomd
+from hoomd.hpmc import _hpmc
+from hoomd.hpmc import data
+from hoomd.integrate import _integrator
 import hoomd
 import sys
 
@@ -86,20 +86,20 @@ class _mode_hpmc(_integrator):
     def update_forces(self):
         self.check_initialization();
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_names = [];
         for i in range(0,ntypes):
-            type_names.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_names.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
         # make sure all params have been set at least once.
         for name in type_names:
             # build a dict of the params to pass to proces_param
             if not self.shape_param[name].is_set:
-                globals.msg.error("Particle type {} has not been set!\n".format(name));
+                hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
-           globals.msg.error("Particle orientations are not normalized\n");
+           hoomd.context.msg.error("Particle orientations are not normalized\n");
            raise RuntimeError("Error running integrator");
 
         #make sure all the required FL parameters have been supplied
@@ -136,14 +136,14 @@ class _mode_hpmc(_integrator):
         # param_list = self.required_params;
         # # check that the force parameters are valid
         # if not self.shape_param.verify(param_list):
-        #    globals.msg.error("Not all shape parameters are set\n");
+        #    hoomd.context.msg.error("Not all shape parameters are set\n");
         #    raise RuntimeError("Error setting up pos writer");
 
         # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
             # build a dict of the params to pass to proces_param
@@ -165,9 +165,9 @@ class _mode_hpmc(_integrator):
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
         # setup the coefficient options
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
-            type_name = globals.system_definition.getParticleData().getNameByType(i);
+            type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if not type_name in self.shape_param.keys(): # only add new keys
                 self.shape_param.update({ type_name: shape_param_type(self, i) });
 
@@ -203,27 +203,27 @@ class _mode_hpmc(_integrator):
                    nR=None,
                    depletant_type=None,
                    ntrial=None):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_integrator == None:
-            globals.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
+            hoomd.context.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters
         if d is not None:
             if isinstance(d, dict):
                 for t,t_d in d.items():
-                    self.cpp_integrator.setD(t_d,globals.system_definition.getParticleData().getTypeByName(t))
+                    self.cpp_integrator.setD(t_d,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
             else:
-                for i in range(globals.system_definition.getParticleData().getNTypes()):
+                for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
                     self.cpp_integrator.setD(d,i);
 
         if a is not None:
             if isinstance(a, dict):
                 for t,t_a in a.items():
-                    self.cpp_integrator.setA(t_a,globals.system_definition.getParticleData().getTypeByName(t))
+                    self.cpp_integrator.setA(t_a,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
             else:
-                for i in range(globals.system_definition.getParticleData().getNTypes()):
+                for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
                     self.cpp_integrator.setA(a,i);
 
         if move_ratio is not None:
@@ -252,8 +252,8 @@ class _mode_hpmc(_integrator):
             raise RuntimeError("FL integration parameters specified for non-FL integrator")
 
         if use_bvh is not None:
-            globals.msg.warning("use_bvh is no longer needed, HPMC always run in BVH mode.")
-            globals.msg.warning("use_bvh may be removed in a future version.")
+            hoomd.context.msg.warning("use_bvh is no longer needed, HPMC always run in BVH mode.")
+            hoomd.context.msg.warning("use_bvh may be removed in a future version.")
             # TODO: remove use_bvh some day - this message was added 8/4/2014
 
         if self.implicit:
@@ -262,13 +262,13 @@ class _mode_hpmc(_integrator):
                 self.cpp_integrator.setDepletantDensity(nR)
             if depletant_type is not None:
                 self.implicit_params.append('depletant_type')
-                itype = globals.system_definition.getParticleData().getTypeByName(depletant_type)
+                itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type)
                 self.cpp_integrator.setDepletantType(itype)
             if ntrial is not None:
                 self.implicit_params.append('ntrial')
                 self.cpp_integrator.setNTrial(ntrial)
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
-            globals.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
+            hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
     ## Count the number of overlaps
     #
@@ -285,7 +285,7 @@ class _mode_hpmc(_integrator):
     def count_overlaps(self):
         self.update_forces()
         self.cpp_integrator.communicate(True);
-        return self.cpp_integrator.countOverlaps(globals.system.getCurrentTimeStep(), False);
+        return self.cpp_integrator.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False);
 
     ## Get the average acceptance ratio for translate moves
     #
@@ -360,7 +360,7 @@ class _mode_hpmc(_integrator):
         if type is None:
             return self.cpp_integrator.getD(0);
         else:
-            return self.cpp_integrator.getD(globals.system_definition.getParticleData().getTypeByName(type));
+            return self.cpp_integrator.getD(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
 
     ## Get the maximum trial rotation
     # \param type Type name to query
@@ -371,7 +371,7 @@ class _mode_hpmc(_integrator):
         if type is None:
             return self.cpp_integrator.getA(0);
         else:
-            return self.cpp_integrator.getA(globals.system_definition.getParticleData().getTypeByName(type));
+            return self.cpp_integrator.getA(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
 
     ## Get the current probability of attempting translation moves (versus rotation moves)
     #
@@ -393,7 +393,7 @@ class _mode_hpmc(_integrator):
     #
     def get_ntrial(self):
         if not self.implicit:
-            globals.msg.warning("ntrial only available in simulations with non-interacting depletants. Returning 0.\n")
+            hoomd.context.msg.warning("ntrial only available in simulations with non-interacting depletants. Returning 0.\n")
             return 0;
 
         return self.cpp_integrator.getNTrial();
@@ -414,7 +414,7 @@ class _mode_hpmc(_integrator):
     #
     def get_configurational_bias_ratio(self):
         if not self.implicit:
-            globals.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
+            hoomd.context.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
             return 0;
 
         counters = self.cpp_integrator.getImplicitCounters(1);
@@ -428,9 +428,9 @@ class _mode_hpmc(_integrator):
     #
     def reset_state(self):
         if self.fl_flag:
-            self.cpp_integrator.resetState(globals.system.getCurrentTimeStep())
+            self.cpp_integrator.resetState(hoomd.context.current.system.getCurrentTimeStep())
         else:
-            globals.msg.warning("This integrator does not maintain state. Are you using the integrator you think you are?\n");
+            hoomd.context.msg.warning("This integrator does not maintain state. Are you using the integrator you think you are?\n");
 
     ## Check the the required FL parameters have been supplied
     # \returns Nothing
@@ -452,17 +452,17 @@ class _mode_hpmc(_integrator):
 def setD(cpp_integrator,d):
     if isinstance(d, dict):
         for t,t_d in d.items():
-            cpp_integrator.setD(t_d,globals.system_definition.getParticleData().getTypeByName(t))
+            cpp_integrator.setD(t_d,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
     else:
-        for i in range(globals.system_definition.getParticleData().getNTypes()):
+        for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
             cpp_integrator.setD(d,i);
 
 def setA(cpp_integrator,a):
     if isinstance(a, dict):
         for t,t_a in a.items():
-            cpp_integrator.setA(t_a,globals.system_definition.getParticleData().getTypeByName(t))
+            cpp_integrator.setA(t_a,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
     else:
-        for i in range(globals.system_definition.getParticleData().getNTypes()):
+        for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
             cpp_integrator.setA(a,i);
 
 ## HPMC integration for spheres (2D/3D)
@@ -515,28 +515,28 @@ class sphere(_mode_hpmc):
     # mc.shape_param.set('A', diameter=1.0)
     # mc.shape_param.set('B', diameter=.1)
     def __init__(self, seed, d=0.1, nselect=None, fl_flag=False, implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if (fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphere(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphere(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphere(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
 
         # set the default parameters
         setD(self.cpp_integrator,d);
@@ -544,14 +544,14 @@ class sphere(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
 
         if fl_flag:
           self.fl_required_params=['r0','ln_gamma']
           self.cpp_integrator.setQFactor(0)
-          self.cpp_integrator.setQ0(globals.system_definition.getParticleData().getN()*[(1.0,0.0,0.0,0.0)])
+          self.cpp_integrator.setQ0(hoomd.context.current.system_definition.getParticleData().getN()*[(1.0,0.0,0.0,0.0)])
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -570,22 +570,22 @@ class sphere(_mode_hpmc):
 class spherocylinder(_mode_hpmc):
     ## Specifies the hpmc integration mode
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,fl_flag=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag);
 
         # initialize the reflected c++ class
-        #if not globals.exec_conf.isCUDAEnabled():
-        #    self.cpp_integrator = _hpmc.IntegratorHPMCSphere(globals.system_definition, neighbor_list.cpp_nlist, seed);
+        #if not hoomd.context.exec_conf.isCUDAEnabled():
+        #    self.cpp_integrator = _hpmc.IntegratorHPMCSphere(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
         #else:
-        #    self.cpp_integrator = _hpmc.IntegratorHPMCGPUSphere(globals.system_definition, neighbor_list.cpp_nlist, seed);
+        #    self.cpp_integrator = _hpmc.IntegratorHPMCGPUSphere(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
 
         #No GPU implementation yet...
         if (fl_flag):
-          self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpherocylinder(globals.system_definition, neighbor_list.cpp_nlist, seed);
+          self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpherocylinder(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
         else:
-          self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpherocylinder(globals.system_definition, neighbor_list.cpp_nlist, seed);
+          self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpherocylinder(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
 
         # Set the appropriate neighbor list range
         neighbor_list.subscribe(lambda: self.cpp_integrator.getMaxDiameter()+2*self.d);
@@ -594,7 +594,7 @@ class spherocylinder(_mode_hpmc):
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
 ## HPMC integration for convex polygons (2D)
 #
@@ -656,28 +656,28 @@ class convex_polygon(_mode_hpmc):
     #
     # \note Implicit depletants are not yet supported for this 2D shape
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False, implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag, implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLConvexPolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLConvexPolygon(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolygon(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolygon(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -686,7 +686,7 @@ class convex_polygon(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
 
@@ -773,28 +773,28 @@ class convex_spheropolygon(_mode_hpmc):
     #
     # \note Implicit depletants are not yet supported for this 2D shape
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpheropolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpheropolygon(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolygon(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolygon(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -803,7 +803,7 @@ class convex_spheropolygon(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -894,28 +894,28 @@ class simple_polygon(_mode_hpmc):
     #
     # \note Implicit depletants are not yet supported for this 2D shape
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSimplePolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSimplePolygon(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSimplyPolygon(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSimplyPolygon(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSimplePolygon(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set parameters
         setD(self.cpp_integrator,d);
@@ -924,7 +924,7 @@ class simple_polygon(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -1010,28 +1010,28 @@ class polyhedron(_mode_hpmc):
     # mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
     #     (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False, implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLPolyhedron(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLPolyhedron(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUPolyhedron(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1040,7 +1040,7 @@ class polyhedron(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -1126,28 +1126,28 @@ class convex_polyhedron(_mode_hpmc):
     # mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
     # mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=64):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLConvexPolyhedron', max_verts)(globals.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedron', max_verts)(globals.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedron', max_verts)(globals.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU.");
             if implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedron', max_verts)(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUConvexPolyhedron', max_verts)(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1156,7 +1156,7 @@ class convex_polyhedron(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.max_verts = max_verts;
         self.initialize_shape_params();
 
@@ -1243,28 +1243,28 @@ class faceted_sphere(_mode_hpmc):
     # mc.shape_param.set('B', normals=[],diameter=0.1);
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLFacetedSphere(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLFacetedSphere(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedSphere(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1273,7 +1273,7 @@ class faceted_sphere(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -1348,28 +1348,28 @@ class sphinx(_mode_hpmc):
     # mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
     # mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphinx(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphinx(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphinx(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1378,7 +1378,7 @@ class sphinx(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -1470,28 +1470,28 @@ class convex_spheropolyhedron(_mode_hpmc):
     # mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
     # mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=64):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLSpheropolyhedron', max_verts)(globals.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSpheropolyhedron', max_verts)(globals.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSpheropolyhedron', max_verts)(globals.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSpheropolyhedron', max_verts)(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSpheropolyhedron', max_verts)(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1500,7 +1500,7 @@ class convex_spheropolyhedron(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.max_verts = max_verts
         self.initialize_shape_params();
 
@@ -1585,28 +1585,28 @@ class ellipsoid(_mode_hpmc):
     # mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
     # mc.shape_param.set('B', a=0.5, b=0.25, c=0.125);
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLEllipsoid(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLEllipsoid(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUEllipsoid(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1616,7 +1616,7 @@ class ellipsoid(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:
@@ -1682,28 +1682,28 @@ class sphere_union(_mode_hpmc):
     # mc.shape_param.set('B', diameters=[1.0], centers=[(0.0, 0.0, 0.0)]);
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
-        util.print_status_line();
+        hoomd.util.print_status_line();
 
         # initialize base class
         _mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphereUnion(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphereUnion(hoomd.context.current.system_definition, seed);
             elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(globals.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(globals.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed);
         else:
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-            cl_c = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(globals.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1712,7 +1712,7 @@ class sphere_union(_mode_hpmc):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        globals.system.setIntegrator(self.cpp_integrator);
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
         if fl_flag:

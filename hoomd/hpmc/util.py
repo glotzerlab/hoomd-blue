@@ -70,7 +70,7 @@ def matFromBox(box):
 # \param a3 third lattice vector
 # \returns (box, q) tuple of boxdim object and rotation quaternion
 def latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
-    from hoomd_script.data import boxdim
+    from hoomd.data import boxdim
 
     a1 = np.array(a1)
     a2 = np.array(a2)
@@ -125,7 +125,7 @@ def latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
 # \param ndim number of dimensions (default 3) for boxdim object
 # \returns dict with keys positions,orientations,types,param_dict,box,q
 def read_pos(fname, ndim=3):
-    from hoomd_script.data import boxdim
+    from hoomd.data import boxdim
     Lx=0; Ly=0; Lz=0; xy=0; xz=0; yz=0;
 
     f_in = open(fname)
@@ -268,7 +268,7 @@ class compress:
                  relax=int(1e4),
                  quiet=True,
                  ):
-        import hoomd_script
+        import hoomd
 
         # Gather and check arguments
         self.mc = mc
@@ -303,7 +303,7 @@ class compress:
         self.quiet = bool(quiet)
 
         # Gather additional necessary data
-        system = hoomd_script.data.system_data(hoomd_script.globals.system_definition)
+        system = hoomd.data.system_data(hoomd.context.current.system_definition)
         self.dim = system.sysdef.getNDimensions()
         self.tot_pvol = np.dot(self.pnums, self.pvolumes)
         self.eta_list = list()
@@ -361,25 +361,25 @@ class compress:
                     'hpmc_npt_dxy',
                     'hpmc_npt_shear_acceptance',
                     ]
-        self.mclog = hoomd_script.analyze.log(filename=self.log_file, quantities=log_values , period=self.tuner_period, header_prefix='#', overwrite=True)
+        self.mclog = hoomd.analyze.log(filename=self.log_file, quantities=log_values , period=self.tuner_period, header_prefix='#', overwrite=True)
         self.mclog.disable() # will be enabled and disabled by call to run()
 
     ## Run one or more compression cycles
     # \param num_comp_cycles number of compression cycles to run (default 1)
     # \returns tuple of lists of packing fractions and corresponding snapshot objects.
     def run(self, num_comp_cycles=1):
-        import hoomd_script
+        import hoomd
         ## construct exponentially growing pressure variant
         # \param num_comp_steps number of steps in pressure variant
         # \param pmin minimum pressure
         # \param pmax maximum pressure
         # \returns P pressure variant for use in NPT updater
         def makePvariant(num_comp_steps, pmin, pmax):
-            import hoomd_script
+            import hoomd
             num_points = 101 # number of points defining the curve
             interval = num_comp_steps / num_points
             pressures=np.logspace(np.log10(pmin), np.log10(pmax), num_points)
-            P = hoomd_script.variant.linear_interp(points = [(i*interval, prs) for i,prs in enumerate(pressures)])
+            P = hoomd.variant.linear_interp(points = [(i*interval, prs) for i,prs in enumerate(pressures)])
             return P
 
         num_comp_cycles = int(num_comp_cycles)
@@ -402,7 +402,7 @@ class compress:
         self.mclog.enable()
         # Since a logger will output on the current step and then every period steps, we need to take one step
         # to get the logger in sync with our for loop.
-        hoomd_script.run(1, quiet=True)
+        hoomd.run(1, quiet=True)
 
         #
         # set up NPT npt_updater
@@ -421,39 +421,39 @@ class compress:
         #calculate initial packing fraction
         volume = Lx*Ly if dim==2 else Lx*Ly*Lz
         last_eta = tot_pvol / volume
-        hoomd_script.globals.msg.notice(5,'Starting eta = {}'.format(last_eta))
-        hoomd_script.globals.msg.notice(5,'Starting volume = {}'.format(volume))
-        hoomd_script.globals.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
+        hoomd.context.msg.notice(5,'Starting eta = {}'.format(last_eta))
+        hoomd.context.msg.notice(5,'Starting volume = {}'.format(volume))
+        hoomd.context.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
 
         for i in range(num_comp_cycles):
-            hoomd_script.globals.msg.notice(5,'Sweep {}'.format(i))
+            hoomd.context.msg.notice(5,'Sweep {}'.format(i))
 
             # if not first sweep, relax the system
             if i != 0:
                 # set box volume to original
-                hoomd_script.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
+                hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                 # reset tunables
                 self.npt_updater.set_params(P=pmin, dLx=Lscale, dLy=Lscale, dLz=Lscale, dxy=Ascale, dxz=A3scale, dyz=A3scale, move_ratio=move_ratio)
                 self.mc.set_params(d=0.1, a=0.01)
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                status_lines = hoomd_script.util._disable_status_lines
-                hoomd_script.util._disable_status_lines = True
-                hoomd_script.globals.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
+                status_lines = hoomd.util._disable_status_lines
+                hoomd.util._disable_status_lines = True
+                hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
-                    hoomd_script.globals.msg.notice(5,"{} overlaps at step {}".format(noverlaps, hoomd_script.get_step()))
+                    hoomd.context.msg.notice(5,"{} overlaps at step {}".format(noverlaps, hoomd.get_step()))
                     Lx *= 1.0+Lscale
                     Ly *= 1.0+Lscale
                     Lz *= 1.0+Lscale
-                    hoomd_script.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
+                    hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
-                hoomd_script.util._disable_status_lines = status_lines
+                hoomd.util._disable_status_lines = status_lines
 
             #randomize the intial configuration
             #intial box, no shear
             pretuning_steps = relax
-            hoomd_script.run(pretuning_steps, quiet=quiet)
+            hoomd.run(pretuning_steps, quiet=quiet)
 
             # update pressure variant
             P = makePvariant(num_comp_steps, pmin, pmax)
@@ -469,43 +469,43 @@ class compress:
             # run short loops with tuners until pressure is maxed out
             for j in range(num_iterations):
                 for tuner in self.tuners:
-                    hoomd_script.run(tuner_period, quiet=quiet)
+                    hoomd.run(tuner_period, quiet=quiet)
                     tuner.update()
 
             #calculate packing fraction for zeroth iteration
-            hoomd_script.globals.msg.notice(5,"Checking eta at step {0}".format(hoomd_script.get_step()))
-            L = hoomd_script.globals.system_definition.getParticleData().getGlobalBox().getL()
+            hoomd.context.msg.notice(5,"Checking eta at step {0}".format(hoomd.get_step()))
+            L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
             volume = L.x * L.y if dim==2 else L.x*L.y*L.z
             eta = tot_pvol / volume
-            hoomd_script.globals.msg.notice(5,'eta = {}'.format(eta))
-            hoomd_script.globals.msg.notice(5,"volume: {0}".format(volume))
+            hoomd.context.msg.notice(5,'eta = {}'.format(eta))
+            hoomd.context.msg.notice(5,"volume: {0}".format(volume))
 
-            step = hoomd_script.get_step()
+            step = hoomd.get_step()
             last_step = step
             j = 0
             max_eta_checks = 100
             # If packing has not converged, iterate until it does. Run at least one iteration
             last_eta = 0.0
             while (eta - last_eta) > pf_tol:
-                hoomd_script.run(refine_steps, quiet=quiet)
+                hoomd.run(refine_steps, quiet=quiet)
                 # check eta
-                hoomd_script.globals.msg.notice(5,"Checking eta at step {0}".format(hoomd_script.get_step()))
+                hoomd.context.msg.notice(5,"Checking eta at step {0}".format(hoomd.get_step()))
                 #calculate the new packing fraction
-                L = hoomd_script.globals.system_definition.getParticleData().getGlobalBox().getL()
+                L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
                 volume = L.x * L.y if dim==2 else L.x*L.y*L.z
                 last_eta = eta
                 eta = tot_pvol / volume
-                hoomd_script.globals.msg.notice(5,"eta: {0}".format(eta))
-                hoomd_script.globals.msg.notice(5,"volume: {0}".format(volume))
+                hoomd.context.msg.notice(5,"eta: {0}".format(eta))
+                hoomd.context.msg.notice(5,"volume: {0}".format(volume))
                 last_step = step
-                step = hoomd_script.get_step()
+                step = hoomd.get_step()
                 # Check if we've gone too far
                 if j == max_eta_checks:
-                    hoomd_script.globals.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.".format(max_eta_checks))
+                    hoomd.context.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.".format(max_eta_checks))
                 j += 1
 
-            hoomd_script.globals.msg.notice(5,"Step: {step}, Packing fraction: {eta}".format(step=last_step, eta=last_eta))
-            hoomd_script.globals.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
+            hoomd.context.msg.notice(5,"Step: {step}, Packing fraction: {eta}".format(step=last_step, eta=last_eta))
+            hoomd.context.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
             self.eta_list.append(last_eta)
 
             #take a snapshot of the system
@@ -536,8 +536,8 @@ class compress:
 class snapshot:
     ## constructor
     def __init__(self):
-        import hoomd_script
-        system = hoomd_script.data.system_data(hoomd_script.globals.system_definition)
+        import hoomd
+        system = hoomd.data.system_data(hoomd.context.current.system_definition)
         box = system.sysdef.getParticleData().getGlobalBox()
         L = box.getL()
         xy = box.getTiltFactorXY()
@@ -636,8 +636,8 @@ class tune(object):
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
             raise ValueError("If provided, max_val must be same length as tunables.")
-        #from hoomd_script import analyze
-        import hoomd_script
+        #from hoomd import analyze
+        import hoomd
         self.type=type
         #initialize tunable map
 
@@ -645,7 +645,7 @@ class tune(object):
         if (tunable_map is None):
             self.tunable_map = dict()
             if type is None:
-                t = hoomd_script.globals.system_definition.getParticleData().getNameByType(0)
+                t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
                 self.tunable_map.update({'d'.format(t): (
                                                      lambda obj: getattr(obj, 'get_d')(t),
                                                      lambda obj: getattr(obj, 'get_translate_acceptance')(),
@@ -657,7 +657,7 @@ class tune(object):
                                                      0.5
                                                       )})
             else:
-                type_names = [hoomd_script.globals.system_definition.getParticleData().getNameByType(i) for i in range(hoomd_script.globals.system_definition.getParticleData().getNTypes())]
+                type_names = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())]
                 map_dict = dict()
                 for t in type_names:
                      self.tunable_map.update({'d'.format(t): (
@@ -710,7 +710,7 @@ class tune(object):
 
     ## Calculate and set tunable parameters using statistics from the run just completed
     def update(self):
-        import hoomd_script
+        import hoomd
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
         # For each of the acceptance rates we are watching...
@@ -733,7 +733,7 @@ class tune(object):
                 oldval = getVal(self.obj)
                 if (oldval == 0):
                     newval = 1e-5
-                    hoomd_script.globals.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
+                    hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
                 else:
                     newval = float(scale * oldval)
                     # perform sanity checking on newval
@@ -746,9 +746,9 @@ class tune(object):
                     newquantities[param_name] = float(newval)
                 else:
                     newquantities[param_name] = {self.type:float(newval)}
-        hoomd_script.util._disable_status_lines = True;
+        hoomd.util._disable_status_lines = True;
         self.obj.set_params(**newquantities)
-        hoomd_script.util._disable_status_lines = False;
+        hoomd.util._disable_status_lines = False;
 
 ## Tune the HPMC NPT Updater
 # Note that a bigger gamma is necessary because there are multiple parameters affecting each acceptance rate

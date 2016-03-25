@@ -1,9 +1,9 @@
-## \package hpmc.data
+## \package hoomd.hpmc.data
 # \brief HPMC data structures
 
-from . import _hpmc
-from hoomd_script import globals
-import hoomd_plugins.hpmc
+import hoomd
+import hoomd.hpmc
+from hoomd.hpmc import _hpmc
 import numpy
 
 ## Manages shape parameters
@@ -17,8 +17,8 @@ class param_dict(dict):
         self.mc = mc;
 
     def __getitem__(self, key):
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_names = [ globals.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not key in type_names:
             raise RuntimeError("{} is not a known particle type".format(key));
         elif not key in self.keys():
@@ -55,7 +55,7 @@ class param_dict(dict):
     # then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
     #
     def set(self, types, **params):
-        # util.print_status_line();
+        # hoomd.util.print_status_line();
 
         # listify the input
         if isinstance(types, str):
@@ -165,7 +165,7 @@ class convex_polyhedron_params(_param):
         self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later becuase of the size template.
         _param.__init__(self, mc, index);
         self._keys += ['vertices'];
-        self.make_fn = hoomd_plugins.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
+        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
 
     def __str__(self):
         # should we put this in the c++ side?
@@ -174,7 +174,7 @@ class convex_polyhedron_params(_param):
 
     @classmethod
     def get_sized_class(cls, max_verts):
-        sized_class = hoomd_plugins.hpmc.integrate._get_sized_entry("convex_polyhedron_param_proxy", max_verts);
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_polyhedron_param_proxy", max_verts);
         return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
 
     def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
@@ -190,7 +190,7 @@ class convex_spheropolyhedron_params(_param):
         self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later becuase of the size template.
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'sweep_radius'];
-        self.make_fn = hoomd_plugins.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
+        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
 
     def __str__(self):
         # should we put this in the c++ side?
@@ -199,7 +199,7 @@ class convex_spheropolyhedron_params(_param):
 
     @classmethod
     def get_sized_class(cls, max_verts):
-        sized_class = hoomd_plugins.hpmc.integrate._get_sized_entry("convex_spheropolyhedron_param_proxy", max_verts);
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_spheropolyhedron_param_proxy", max_verts);
         return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
 
     def make_param(self, vertices, sweep_radius = 0.0, ignore_overlaps=False, ignore_statistics=False):
