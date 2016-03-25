@@ -115,10 +115,9 @@ endif(APPLE)
 fix_cudart_rpath(_hoomd)
 
 # install the library
-# install(TARGETS _hoomd
-#        LIBRARY DESTINATION ${_hoomd_so_install_dir}
-#        ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
-#        )
+install(TARGETS _hoomd
+        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        )
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
@@ -152,6 +151,10 @@ set(files analyze.py
           util.py
           variant.py
     )
+
+install(FILES ${files}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}
+       )
 
 foreach(file ${files})
     copy_file(${file})

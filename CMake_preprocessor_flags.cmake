@@ -30,9 +30,6 @@ endif(ENABLE_MPI)
 # define Eigen should be MPL 2 only
 add_definitions(-DEIGEN_MPL2_ONLY)
 
-# define this as a main hoomd build (as opposed to a plugin build)
-add_definitions(-DBUILDING_HOOMD)
-
 # export cusolver availability
 if (CUSOLVER_AVAILABLE)
     add_definitions(-DCUSOLVER_AVAILABLE)

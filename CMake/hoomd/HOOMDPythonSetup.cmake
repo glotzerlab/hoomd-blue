@@ -15,11 +15,6 @@ if(PY_ERR)
 endif(PY_ERR)
 endmacro(run_python)
 
-# find the python interpreter, first
-if (NOT PYTHON_SITEDIR)
-    find_program(PYTHON_EXECUTABLE NAMES python3 python)
-endif()
-
 find_package(PythonInterp REQUIRED)
 
 # get the python installation prefix and version
@@ -47,6 +42,8 @@ else()
     run_python("from distutils import sysconfig\; print sysconfig.get_config_var('LDLIBRARY')" _python_dynamic_lib_name)
 endif()
 
+run_python("from distutils import sysconfig\; print(sysconfig.get_python_lib( plat_specific=True))" PYTHON_SYSTEM_SITE)
+
 # always link the dynamic python library
 get_filename_component(_python_lib_first ${_python_dynamic_lib_name} NAME)
 
@@ -72,4 +69,4 @@ MARK_AS_ADVANCED(
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG HOOMD_PYTHON_LIBRARY HOOMD_PYTHON_INCLUDE_DIR)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG HOOMD_PYTHON_LIBRARY HOOMD_PYTHON_INCLUDE_DIR PYTHON_SYSTEM_SITE)

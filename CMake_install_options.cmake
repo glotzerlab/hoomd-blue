@@ -3,7 +3,9 @@
 option(ENABLE_EMBED_CUDA "Enable embedding of the CUDA libraries into lib/hoomd" OFF)
 mark_as_advanced(ENABLE_EMBED_CUDA)
 
-set(LIB_INSTALL_DIR "lib${LIB_SUFFIX}/hoomd")
-set(LIB_BASE_INSTALL_DIR "lib${LIB_SUFFIX}")
-set(BIN_INSTALL_DIR "bin")
-set(INC_INSTALL_DIR "include/hoomd")
+if (INSTALL_SITE)
+    SET(CMAKE_INSTALL_PREFIX ${PYTHON_SYSTEM_SITE} CACHE PATH "Python site installation directory" FORCE)
+    message(STATUS "Setting installation site dir: ${CMAKE_INSTALL_PREFIX}")
+ENDIF()
+
+set(PYTHON_MODULE_BASE_DIR "hoomd")
