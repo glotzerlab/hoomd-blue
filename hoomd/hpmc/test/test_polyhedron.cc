@@ -1,5 +1,3 @@
-
-
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapePolyhedron.h"
@@ -38,48 +36,36 @@ void set_radius(poly3d_data& data)
         }
 
     // set the diameter
-    data.verts.diameter = 2*sqrt(radius_sq);
+    data.verts.diameter = 2*(sqrt(radius_sq)+data.verts.sweep_radius);
     }
 
 hpmc::detail::GPUTree build_tree(poly3d_data &data)
     {
-    hpmc::detail::AABBTree tree;
-    hpmc::detail::AABB *aabbs;
-    int retval = posix_memalign((void**)&aabbs, 32, sizeof(hpmc::detail::AABB)*data.n_faces);
+    hpmc::detail::OBBTree tree;
+    hpmc::detail::OBB *obbs;
+    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.n_faces);
     if (retval != 0)
         {
-        throw std::runtime_error("Error allocating aligned AABB memory.");
+        throw std::runtime_error("Error allocating aligned OBB memory.");
         }
 
+    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
     // construct bounding box tree
     for (unsigned int i = 0; i < data.n_faces; ++i)
         {
-        vec3<OverlapReal> cm(0,0,0);
-        unsigned int l = data.face_offs[i+1] - data.face_offs[i];
-        for (unsigned int j = data.face_offs[i]; j < data.face_offs[i+1]; ++j)
-            {
-            vec3<OverlapReal> v(data.verts.x[data.face_verts[j]], data.verts.y[data.face_verts[j]], data.verts.z[data.face_verts[j]]);
-            cm += v;
-            }
-        cm = cm*OverlapReal(1.0/l);
-        vec3<OverlapReal> lo = cm;
-        vec3<OverlapReal> hi = cm;
-        for (unsigned int j = data.face_offs[i]; j < data.face_offs[i+1]; ++j)
-            {
-            vec3<OverlapReal> v(data.verts.x[data.face_verts[j]], data.verts.y[data.face_verts[j]], data.verts.z[data.face_verts[j]]);
-            if (v.x < lo.x) lo.x = v.x;
-            if (v.y < lo.y) lo.y = v.y;
-            if (v.z < lo.z) lo.z = v.z;
+        std::vector< vec3<OverlapReal> > face_vec;
 
-            if (v.x > hi.x) hi.x = v.x;
-            if (v.y > hi.y) hi.y = v.y;
-            if (v.z > hi.z) hi.z = v.z;
+        for (unsigned int j = data.face_offs[i]; j < data.face_offs[i+1]; ++j)
+            {
+            vec3<OverlapReal> v(data.verts.x[data.face_verts[j]], data.verts.y[data.face_verts[j]], data.verts.z[data.face_verts[j]]);
+            face_vec.push_back(v);
             }
-        aabbs[i] = hpmc::detail::AABB(vec3<Scalar>(lo.x,lo.y,lo.z),vec3<Scalar>(hi.x,hi.y,hi.z));
+        obbs[i] = hpmc::detail::compute_obb(face_vec, data.verts.sweep_radius);
+        internal_coordinates.push_back(face_vec);
         }
-    tree.buildTree(aabbs, data.n_faces);
-    GPUTree gpu_tree(tree,aabbs);
-    free(aabbs);
+    tree.buildTree(obbs, internal_coordinates, data.verts.sweep_radius, data.n_faces);
+    GPUTree gpu_tree(tree);
+    free(obbs);
     return gpu_tree;
     }
 
@@ -88,17 +74,13 @@ BOOST_AUTO_TEST_CASE( construction )
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
     poly3d_data data;
+    data.verts.sweep_radius=0.0f;
     data.verts.N = 4;
-    data.n_edges = 4;
     data.n_faces = 1;
     data.verts.x[0] = 0; data.verts.y[0] = 0; data.verts.z[0] = 0;
     data.verts.x[1] = 1; data.verts.y[1] = 0; data.verts.z[1] = 0;
     data.verts.x[2] = 0; data.verts.y[2] = 1.25; data.verts.z[2] = 0;
     data.verts.x[3] = 0; data.verts.y[3] = 0; data.verts.z[3] = 1.1;
-    data.edges[0] = 0; data.edges[1] = 1;
-    data.edges[2] = 1; data.edges[3] = 2;
-    data.edges[4] = 2; data.edges[5] = 3;
-    data.edges[5] = 3; data.edges[6] = 0;
     data.face_verts[0] = 0;
     data.face_verts[1] = 1;
     data.face_verts[2] = 2;
@@ -126,13 +108,6 @@ BOOST_AUTO_TEST_CASE( construction )
         MY_BOOST_CHECK_CLOSE(a.data.verts.z[i], data.verts.z[i], tol);
         }
 
-    BOOST_REQUIRE_EQUAL(a.data.n_edges, data.n_edges);
-    for (unsigned int i = 0; i < data.n_edges; i++)
-        {
-        BOOST_CHECK_EQUAL(a.data.edges[2*i], data.edges[2*i]);
-        BOOST_CHECK_EQUAL(a.data.edges[2*i+1], data.edges[2*i+1]);
-        }
-
     BOOST_REQUIRE_EQUAL(a.data.n_faces, data.n_faces);
     for (unsigned int i = 0; i < data.n_faces; i++)
         {
@@ -157,12 +132,11 @@ BOOST_AUTO_TEST_CASE( overlap_octahedron_no_rot )
 
     // build an octahedron
     poly3d_data data;
+    data.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 6);
     data.verts.N = 6;
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 8);
     data.n_faces = 8;
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data.n_edges = 12;
 
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
@@ -170,18 +144,6 @@ BOOST_AUTO_TEST_CASE( overlap_octahedron_no_rot )
     data.verts.x[3] = -0.5; data.verts.y[3] = 0.5; data.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
     data.verts.x[4] = 0; data.verts.y[4] = 0; data.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
     data.verts.x[5] = 0; data.verts.y[5] = 0; data.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
-    data.edges[2*0] = 0; data.edges[2*0+1] = 1;
-    data.edges[2*1] = 1; data.edges[2*1+1] = 2;
-    data.edges[2*2] = 2; data.edges[2*2+1] = 3;
-    data.edges[2*3] = 3; data.edges[2*3+1] = 0;
-    data.edges[2*4] = 0; data.edges[2*4+1] = 4;
-    data.edges[2*5] = 1; data.edges[2*5+1] = 4;
-    data.edges[2*6] = 2; data.edges[2*6+1] = 4;
-    data.edges[2*7] = 3; data.edges[2*7+1] = 4;
-    data.edges[2*8] = 0; data.edges[2*8+1] = 5;
-    data.edges[2*9] = 1; data.edges[2*9+1] = 5;
-    data.edges[2*10] = 2; data.edges[2*10+1] = 5;
-    data.edges[2*11] = 3; data.edges[2*11+1] = 5;
     BOOST_REQUIRE(MAX_POLY3D_FACE_VERTS >= 3);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
@@ -273,6 +235,7 @@ BOOST_AUTO_TEST_CASE( overlap_octahedron_no_rot )
 
     // torture test, overlap along most of a line
     r_ij =  vec3<Scalar>(1.0,0.2,0);
+
     BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
     BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
     }
@@ -286,6 +249,7 @@ BOOST_AUTO_TEST_CASE( overlap_cube_no_rot )
 
     // build a cube
     poly3d_data data;
+    data.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 8);
     data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
@@ -296,21 +260,6 @@ BOOST_AUTO_TEST_CASE( overlap_cube_no_rot )
     data.verts.x[5] = 0.5; data.verts.y[5] = -0.5; data.verts.z[5] = 0.5;  //vec3<OverlapReal>(0.5,-0.5,0.5);
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
-
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data.n_edges = 12;
-    data.edges[2*0] = 0; data.edges[2*0+1] = 1;
-    data.edges[2*1] = 1; data.edges[2*1+1] = 2;
-    data.edges[2*2] = 2; data.edges[2*2+1] = 3;
-    data.edges[2*3] = 3; data.edges[2*3+1] = 0;
-    data.edges[2*4] = 0; data.edges[2*4+1] = 4;
-    data.edges[2*5] = 1; data.edges[2*5+1] = 5;
-    data.edges[2*6] = 2; data.edges[2*6+1] = 6;
-    data.edges[2*7] = 3; data.edges[2*7+1] = 7;
-    data.edges[2*8] = 4; data.edges[2*8+1] = 5;
-    data.edges[2*9] = 5; data.edges[2*9+1] = 6;
-    data.edges[2*10] = 6; data.edges[2*10+1] = 7;
-    data.edges[2*11] = 7; data.edges[2*11+1] = 4;
 
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 6);
     data.n_faces = 6;
@@ -431,6 +380,7 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot1 )
 
     // build a cube
     poly3d_data data;
+    data.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 8);
     data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
@@ -441,21 +391,6 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot1 )
     data.verts.x[5] = 0.5; data.verts.y[5] = -0.5; data.verts.z[5] = 0.5;  //vec3<OverlapReal>(0.5,-0.5,0.5);
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
-
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data.n_edges = 12;
-    data.edges[2*0] = 0; data.edges[2*0+1] = 1;
-    data.edges[2*1] = 1; data.edges[2*1+1] = 2;
-    data.edges[2*2] = 2; data.edges[2*2+1] = 3;
-    data.edges[2*3] = 3; data.edges[2*3+1] = 0;
-    data.edges[2*4] = 0; data.edges[2*4+1] = 4;
-    data.edges[2*5] = 1; data.edges[2*5+1] = 5;
-    data.edges[2*6] = 2; data.edges[2*6+1] = 6;
-    data.edges[2*7] = 3; data.edges[2*7+1] = 7;
-    data.edges[2*8] = 4; data.edges[2*8+1] = 5;
-    data.edges[2*9] = 5; data.edges[2*9+1] = 6;
-    data.edges[2*10] = 6; data.edges[2*10+1] = 7;
-    data.edges[2*11] = 7; data.edges[2*11+1] = 4;
 
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 6);
     data.n_faces = 6;
@@ -553,6 +488,7 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot2 )
 
     // build a cube
     poly3d_data data;
+    data.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 8);
     data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
@@ -563,21 +499,6 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot2 )
     data.verts.x[5] = 0.5; data.verts.y[5] = -0.5; data.verts.z[5] = 0.5;  //vec3<OverlapReal>(0.5,-0.5,0.5);
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
-
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data.n_edges = 12;
-    data.edges[2*0] = 0; data.edges[2*0+1] = 1;
-    data.edges[2*1] = 1; data.edges[2*1+1] = 2;
-    data.edges[2*2] = 2; data.edges[2*2+1] = 3;
-    data.edges[2*3] = 3; data.edges[2*3+1] = 0;
-    data.edges[2*4] = 0; data.edges[2*4+1] = 4;
-    data.edges[2*5] = 1; data.edges[2*5+1] = 5;
-    data.edges[2*6] = 2; data.edges[2*6+1] = 6;
-    data.edges[2*7] = 3; data.edges[2*7+1] = 7;
-    data.edges[2*8] = 4; data.edges[2*8+1] = 5;
-    data.edges[2*9] = 5; data.edges[2*9+1] = 6;
-    data.edges[2*10] = 6; data.edges[2*10+1] = 7;
-    data.edges[2*11] = 7; data.edges[2*11+1] = 4;
 
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 6);
     data.n_faces = 6;
@@ -678,6 +599,7 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot3 )
 
     // build a cube
     poly3d_data data;
+    data.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 8);
     data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
@@ -688,21 +610,6 @@ BOOST_AUTO_TEST_CASE( overlap_cube_rot3 )
     data.verts.x[5] = 0.5; data.verts.y[5] = -0.5; data.verts.z[5] = 0.5;  //vec3<OverlapReal>(0.5,-0.5,0.5);
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
-
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data.n_edges = 12;
-    data.edges[2*0] = 0; data.edges[2*0+1] = 1;
-    data.edges[2*1] = 1; data.edges[2*1+1] = 2;
-    data.edges[2*2] = 2; data.edges[2*2+1] = 3;
-    data.edges[2*3] = 3; data.edges[2*3+1] = 0;
-    data.edges[2*4] = 0; data.edges[2*4+1] = 4;
-    data.edges[2*5] = 1; data.edges[2*5+1] = 5;
-    data.edges[2*6] = 2; data.edges[2*6+1] = 6;
-    data.edges[2*7] = 3; data.edges[2*7+1] = 7;
-    data.edges[2*8] = 4; data.edges[2*8+1] = 5;
-    data.edges[2*9] = 5; data.edges[2*9+1] = 6;
-    data.edges[2*10] = 6; data.edges[2*10+1] = 7;
-    data.edges[2*11] = 7; data.edges[2*11+1] = 4;
 
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 6);
     data.n_faces = 6;
@@ -827,6 +734,7 @@ BOOST_AUTO_TEST_CASE( cubes_contained )
 
     // build a cube
     poly3d_data data_a;
+    data_a.verts.sweep_radius = 0.0f;
     BOOST_REQUIRE(MAX_POLY3D_VERTS >= 8);
     data_a.verts.N = 8;
     data_a.verts.x[0] = -0.5; data_a.verts.y[0] = -0.5; data_a.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
@@ -837,21 +745,6 @@ BOOST_AUTO_TEST_CASE( cubes_contained )
     data_a.verts.x[5] = 0.5; data_a.verts.y[5] = -0.5; data_a.verts.z[5] = 0.5;  //vec3<OverlapReal>(0.5,-0.5,0.5);
     data_a.verts.x[6] = 0.5; data_a.verts.y[6] = 0.5; data_a.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data_a.verts.x[7] = -0.5; data_a.verts.y[7] = 0.5; data_a.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
-
-    BOOST_REQUIRE(MAX_POLY3D_EDGES >= 12);
-    data_a.n_edges = 12;
-    data_a.edges[2*0] = 0; data_a.edges[2*0+1] = 1;
-    data_a.edges[2*1] = 1; data_a.edges[2*1+1] = 2;
-    data_a.edges[2*2] = 2; data_a.edges[2*2+1] = 3;
-    data_a.edges[2*3] = 3; data_a.edges[2*3+1] = 0;
-    data_a.edges[2*4] = 0; data_a.edges[2*4+1] = 4;
-    data_a.edges[2*5] = 1; data_a.edges[2*5+1] = 5;
-    data_a.edges[2*6] = 2; data_a.edges[2*6+1] = 6;
-    data_a.edges[2*7] = 3; data_a.edges[2*7+1] = 7;
-    data_a.edges[2*8] = 4; data_a.edges[2*8+1] = 5;
-    data_a.edges[2*9] = 5; data_a.edges[2*9+1] = 6;
-    data_a.edges[2*10] = 6; data_a.edges[2*10+1] = 7;
-    data_a.edges[2*11] = 7; data_a.edges[2*11+1] = 4;
 
     BOOST_REQUIRE(MAX_POLY3D_FACES >= 6);
     data_a.n_faces = 6;
@@ -988,6 +881,227 @@ BOOST_AUTO_TEST_CASE( cubes_contained )
     BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0.0,0.0,-0.1);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_sphero_octahedron_no_rot )
+    {
+    // first set of simple overlap checks is two octahedra at unit orientation
+    vec3<Scalar> r_ij;
+    quat<Scalar> o;
+    BoxDim box(100);
+
+    // build an octahedron
+    poly3d_data data;
+    data.verts.sweep_radius = 0.1f;
+    BOOST_REQUIRE(MAX_POLY3D_VERTS >= 6);
+    data.verts.N = 6;
+    BOOST_REQUIRE(MAX_POLY3D_FACES >= 8);
+    data.n_faces = 8;
+
+    data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
+    data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
+    data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = 0; //vec3<OverlapReal>(0.5,0.5,0);
+    data.verts.x[3] = -0.5; data.verts.y[3] = 0.5; data.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
+    data.verts.x[4] = 0; data.verts.y[4] = 0; data.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
+    data.verts.x[5] = 0; data.verts.y[5] = 0; data.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
+    BOOST_REQUIRE(MAX_POLY3D_FACE_VERTS >= 3);
+    data.face_offs[0] = 0;
+    data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
+    data.face_offs[1] = 3;
+    data.face_verts[3] = 1; data.face_verts[4] = 4; data.face_verts[5] = 2;
+    data.face_offs[2] = 6;
+    data.face_verts[6] = 2; data.face_verts[7] = 4; data.face_verts[8] = 3;
+    data.face_offs[3] = 9;
+    data.face_verts[9] = 3; data.face_verts[10] = 4; data.face_verts[11] = 0;
+    data.face_offs[4] = 12;
+    data.face_verts[12] = 0; data.face_verts[13] = 5; data.face_verts[14] = 1;
+    data.face_offs[5] = 15;
+    data.face_verts[15] = 1; data.face_verts[16] = 5; data.face_verts[17] = 2;
+    data.face_offs[6] = 18;
+    data.face_verts[18] = 2; data.face_verts[19] = 5; data.face_verts[20] = 3;
+    data.face_offs[7] = 21;
+    data.face_verts[21] = 3; data.face_verts[22] = 5; data.face_verts[23] = 0;
+    data.face_offs[8] = 24;
+    data.ignore = 0;
+    set_radius(data);
+
+    ShapePolyhedron::param_type p;
+    p.data = data;
+    p.tree = build_tree(data);
+
+    ShapePolyhedron a(o, p);
+    ShapePolyhedron b(o, p);
+
+    // zeroth test: exactly overlapping shapes
+    r_ij =  vec3<Scalar>(0.0, 0.0, 0.0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    // first test, separate octahedrons by a large distance
+    r_ij =  vec3<Scalar>(10,0,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    // next test, set them close, but not overlapping - from all four sides of base
+    r_ij =  vec3<Scalar>(1.3,0,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-1.3,0,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(0,1.3,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(0,-1.3,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    // now test them close, but slightly offset and not overlapping - from all four sides
+    r_ij =  vec3<Scalar>(1.3,0.2,0.1);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-1.3,0.2,0.1);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-0.2,1.3,0.1);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-0.2,-1.3,0.1);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    // and finally, make them overlap slightly in each direction
+    r_ij =  vec3<Scalar>(1.1,0.2,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-1.1,0.2,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-1.1,0.9,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(-1.1,-0.9,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    // torture test, overlap along most of a line
+    r_ij =  vec3<Scalar>(1.1999,0.2,0);
+
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(1.20001,0.2,0);
+
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    }
+
+
+BOOST_AUTO_TEST_CASE( overlap_octahedron_sphere )
+    {
+    // a cube and a sphere
+    vec3<Scalar> r_ij;
+    quat<Scalar> o;
+    BoxDim box(100);
+
+    // build an octahedron
+    poly3d_data data_a;
+    data_a.verts.sweep_radius = 0.0f;
+    BOOST_REQUIRE(MAX_POLY3D_VERTS >= 6);
+    data_a.verts.N = 6;
+    BOOST_REQUIRE(MAX_POLY3D_FACES >= 8);
+    data_a.n_faces = 8;
+
+    data_a.verts.x[0] = -0.5; data_a.verts.y[0] = -0.5; data_a.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
+    data_a.verts.x[1] = 0.5; data_a.verts.y[1] = -0.5; data_a.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
+    data_a.verts.x[2] = 0.5; data_a.verts.y[2] = 0.5; data_a.verts.z[2] = 0; //vec3<OverlapReal>(0.5,0.5,0);
+    data_a.verts.x[3] = -0.5; data_a.verts.y[3] = 0.5; data_a.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
+    data_a.verts.x[4] = 0; data_a.verts.y[4] = 0; data_a.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
+    data_a.verts.x[5] = 0; data_a.verts.y[5] = 0; data_a.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
+    BOOST_REQUIRE(MAX_POLY3D_FACE_VERTS >= 3);
+    data_a.face_offs[0] = 0;
+    data_a.face_verts[0] = 0; data_a.face_verts[1] = 4; data_a.face_verts[2] = 1;
+    data_a.face_offs[1] = 3;
+    data_a.face_verts[3] = 1; data_a.face_verts[4] = 4; data_a.face_verts[5] = 2;
+    data_a.face_offs[2] = 6;
+    data_a.face_verts[6] = 2; data_a.face_verts[7] = 4; data_a.face_verts[8] = 3;
+    data_a.face_offs[3] = 9;
+    data_a.face_verts[9] = 3; data_a.face_verts[10] = 4; data_a.face_verts[11] = 0;
+    data_a.face_offs[4] = 12;
+    data_a.face_verts[12] = 0; data_a.face_verts[13] = 5; data_a.face_verts[14] = 1;
+    data_a.face_offs[5] = 15;
+    data_a.face_verts[15] = 1; data_a.face_verts[16] = 5; data_a.face_verts[17] = 2;
+    data_a.face_offs[6] = 18;
+    data_a.face_verts[18] = 2; data_a.face_verts[19] = 5; data_a.face_verts[20] = 3;
+    data_a.face_offs[7] = 21;
+    data_a.face_verts[21] = 3; data_a.face_verts[22] = 5; data_a.face_verts[23] = 0;
+    data_a.face_offs[8] = 24;
+    data_a.ignore = 0;
+    set_radius(data_a);
+
+    poly3d_data data_b;
+    data_b.verts.sweep_radius = 0.5;
+    data_b.verts.N = 1;
+    data_b.verts.x[0] = data_b.verts.y[0] = data_b.verts.z[0] = 0;
+    data_b.n_faces = 1;
+    data_b.face_offs[0] = 0;
+    data_b.face_verts[0] = 0;
+    data_b.face_offs[1] = 1;
+    data_b.ignore = 0;
+    set_radius(data_b);
+
+    ShapePolyhedron::param_type cube_p;
+    cube_p.data = data_a;
+    cube_p.tree = build_tree(data_a);
+    ShapePolyhedron a(o, cube_p);
+
+    ShapePolyhedron::param_type sphere_p;
+    sphere_p.data = data_b;
+    sphere_p.tree = build_tree(data_b);
+    ShapePolyhedron b(o, sphere_p);
+
+    // not overlapping
+    r_ij =  vec3<Scalar>(2.0,0,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    // not touching
+    r_ij =  vec3<Scalar>(1.0001,0,0);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    // touching
+    r_ij =  vec3<Scalar>(0.9999,0,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    // partially overlapping
+    r_ij =  vec3<Scalar>(0.5,0,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    // contained
+    r_ij =  vec3<Scalar>(0,0,0);
+    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+
+    // sphere below octahedron
+    r_ij =  vec3<Scalar>(0.0,0.0,-1.0/sqrt(2)-0.5-0.0001);
+    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+
+    r_ij =  vec3<Scalar>(0.0,0.0,-1.0/sqrt(2)-0.5+0.0001);
     BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
     BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
     }

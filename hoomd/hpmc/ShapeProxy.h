@@ -5,8 +5,6 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
-
-
 #include "IntegratorHPMCMono.h"
 
 #include "ShapeSphere.h"
@@ -149,110 +147,85 @@ poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radi
     }
 
 //! Helper function to build poly3d_data from python
-ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts, boost::python::list faces, bool ignore_stats, bool ignore_ovrlps)
+inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,boost::python::list face_verts,
+                             boost::python::list face_offs, OverlapReal R, bool ignore_stats, bool ignore_ovrlps)
     {
-    if (boost::python::len(verts) > MAX_POLY3D_VERTS)
+    if (len(verts) > MAX_POLY3D_VERTS)
         throw std::runtime_error("Too many polyhedron vertices");
 
-    if (boost::python::len(faces) > MAX_POLY3D_FACES + 1)
+    if (len(face_verts) > MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES)
+        throw std::runtime_error("Too many polyhedron face vertices");
+
+    if (len(face_offs) > MAX_POLY3D_FACES + 1)
         throw std::runtime_error("Too many polyhedron faces");
+
+    // rounding radius
 
     ShapePolyhedron::param_type result;
     result.data.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
-    result.data.verts.N = boost::python::len(verts);
-    result.data.n_faces = boost::python::len(faces);
+    result.data.verts.N = len(verts);
+    result.data.verts.sweep_radius = R;
+    result.data.n_faces = len(face_offs)-1;
+
+    for (unsigned int i = 0; i < len(face_offs); i++)
+        {
+        unsigned int offs = extract<unsigned int>(face_offs[i]);
+        result.data.face_offs[i] = offs;
+        }
 
     // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
-    for (unsigned int i = 0; i < boost::python::len(verts); i++)
+    for (unsigned int i = 0; i < len(verts); i++)
         {
+        boost::python::list v = extract<boost::python::list>(verts[i]);
         vec3<OverlapReal> vert;
-        vert.x = extract<OverlapReal>(verts[i][0]);
-        vert.y = extract<OverlapReal>(verts[i][1]);
-        vert.z = extract<OverlapReal>(verts[i][2]);
+        vert.x = extract<OverlapReal>(v[0]);
+        vert.y = extract<OverlapReal>(v[1]);
+        vert.z = extract<OverlapReal>(v[2]);
         result.data.verts.x[i] = vert.x;
         result.data.verts.y[i] = vert.y;
         result.data.verts.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = result.data.verts.N; i < MAX_POLY3D_VERTS; i++)
+    for (unsigned int i = len(verts); i < MAX_POLY3D_VERTS; i++)
         {
         result.data.verts.x[i] = 0;
         result.data.verts.y[i] = 0;
         result.data.verts.z[i] = 0;
         }
 
-    // compute start offset of every face in vertex list and construct set of (non-directed) edges
-    typedef std::set<unsigned int> edge_t;
-    std::set<edge_t> edges;
-    unsigned int f = 0;
-    unsigned int offset = 0;
-    for (unsigned int i = 0; i < result.data.n_faces; i++)
+    for (unsigned int i = 0; i < len(face_verts); i++)
         {
-        unsigned int nverts = boost::python::len(faces[i]);
-        if (nverts == 0)
-            {
-            throw std::runtime_error("A face with zero vertices doesn't make any sense.");
-            }
-        else if (nverts > MAX_POLY3D_FACE_VERTS)
+        unsigned int j = extract<unsigned int>(face_verts[i]);
+        if (j >= result.data.verts.N)
             {
             std::ostringstream oss;
-            oss << "Too many face vertices " << nverts << " > " << MAX_POLY3D_FACE_VERTS << std::endl;
+            oss << "Invalid vertex index " << j << " specified" << std::endl;
             throw std::runtime_error(oss.str());
             }
-
-        for(unsigned int k = 0; k < nverts; k++)
-            {
-            unsigned int j = extract<unsigned int>(faces[i][k]);
-            unsigned int m = extract<unsigned int>(faces[i][(k+1)%nverts]);
-            edge_t edge;
-            edge.insert(j);
-            edge.insert(m);
-            edges.insert(edge);
-            if (f >= MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES) // could remove this and then add a validate shape that can be called before run().
-                {
-                throw std::runtime_error("Too many polyhedron faces and/or vertices");
-                }
-            result.data.face_verts[f++] = j;
-            }
-        result.data.face_offs[i] = offset;
-        offset += nverts;
-        }
-    result.data.face_offs[result.data.n_faces] = offset;
-    // check number of edges
-    if (edges.size() > MAX_POLY3D_EDGES)
-        throw std::runtime_error("Too many polyhedron edges");
-    result.data.n_edges = edges.size();
-    unsigned int n = 0;
-    for (std::set<edge_t>::iterator it = edges.begin(); it != edges.end(); ++it)
-        {
-        edge_t edge = *it;
-        edge_t::iterator it_edge = it->begin();
-        unsigned int vert_a = *it_edge;
-        unsigned int vert_b = *(++it_edge);
-        result.data.edges[n++] = vert_a;
-        result.data.edges[n++] = vert_b;
+        result.data.face_verts[i] = j;
         }
 
-    hpmc::detail::AABB *aabbs;
-    int retval = posix_memalign((void**)&aabbs, 32, sizeof(hpmc::detail::AABB)*(result.data.n_faces+1));
+    hpmc::detail::OBB *obbs;
+    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*len(face_offs));
     if (retval != 0)
         {
-        throw std::runtime_error("Error allocating aligned AABB memory.");
+        throw std::runtime_error("Error allocating aligned OBB memory.");
         }
 
-    hpmc::detail::AABB *leaf_aabb;
-    retval = posix_memalign((void**)&leaf_aabb, 32, sizeof(hpmc::detail::AABB)*(result.data.n_faces+1));
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned AABB memory.");
-        }
+    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
     // construct bounding box tree
-    for (unsigned int i = 0; i < result.data.n_faces; ++i)
+    for (unsigned int i = 0; i < len(face_offs)-1; ++i)
         {
-        vec3<OverlapReal> lo(FLT_MAX,FLT_MAX,FLT_MAX);
-        vec3<OverlapReal> hi(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+        std::vector<vec3<OverlapReal> > face_vec;
+
+        unsigned int nverts = result.data.face_offs[i+1] - result.data.face_offs[i];
+        if (nverts > 3 && R != OverlapReal(0.0))
+            {
+            throw std::runtime_error("With finite rounding radii, only faces with <= 3 vertices are supported.\n");
+            }
+
         for (unsigned int j = result.data.face_offs[i]; j < result.data.face_offs[i+1]; ++j)
             {
             vec3<OverlapReal> v;
@@ -260,29 +233,22 @@ ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts, boost::p
             v.y = result.data.verts.y[result.data.face_verts[j]];
             v.z = result.data.verts.z[result.data.face_verts[j]];
 
-            if (v.x < lo.x) lo.x = v.x;
-            if (v.y < lo.y) lo.y = v.y;
-            if (v.z < lo.z) lo.z = v.z;
-
-            if (v.x > hi.x) hi.x = v.x;
-            if (v.y > hi.y) hi.y = v.y;
-            if (v.z > hi.z) hi.z = v.z;
+            face_vec.push_back(v);
             }
-        aabbs[i] = leaf_aabb[i] =(hpmc::detail::AABB(vec3<Scalar>(lo.x,lo.y,lo.z),vec3<Scalar>(hi.x,hi.y,hi.z)));
+        obbs[i] = hpmc::detail::compute_obb(face_vec, result.data.verts.sweep_radius);
+        internal_coordinates.push_back(face_vec);
         }
 
-    AABBTree tree;
-    tree.buildTree(aabbs, result.data.n_faces);
-    result.tree = GPUTree(tree, leaf_aabb);
-    free(aabbs);
-    free(leaf_aabb);
+    OBBTree tree;
+    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
+    result.tree = GPUTree(tree);
+    free(obbs);
 
     // set the diameter
-    result.data.verts.diameter = 2*sqrt(radius_sq);
+    result.data.verts.diameter = 2*(sqrt(radius_sq)+result.data.verts.sweep_radius);
 
     return result;
     }
-
 
 //! Helper function to build poly3d_verts from python
 template<unsigned int max_verts>
@@ -652,23 +618,6 @@ public:
     typedef poly3d_data access_type;
     polyhedron_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
-    boost::python::list getEdges()
-        {
-        boost::python::list edges;
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        // populate edges.
-        size_t n = 0;
-        for(size_t i = 0; i < param.n_edges; i++)
-            {
-            boost::python::list edge;
-            edge.append(param.edges[n++]);
-            edge.append(param.edges[n++]);
-            edges.append(edge);
-            }
-        return edges;
-        }
-
     boost::python::list getVerts()
         {
         ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
@@ -691,6 +640,12 @@ public:
             faces.append(face);
             }
         return faces;
+        }
+
+    OverlapReal getSweepRadius() const
+        {
+        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+        return m_access(h_params.data[m_typeid]).verts.sweep_radius;
         }
 };
 
@@ -1004,7 +959,7 @@ void export_polyhedron_proxy(std::string class_name)
         )
     .add_property("vertices", &proxy_class::getVerts)
     .add_property("faces", &proxy_class::getFaces)
-    .add_property("edges", &proxy_class::getEdges)
+    .add_property("R", &proxy_class::getSweepRadius)
     ;
     }
 
