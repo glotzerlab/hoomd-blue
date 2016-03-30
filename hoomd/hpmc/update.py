@@ -792,3 +792,143 @@ class remove_drift(_updater):
 
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
+
+
+## Perform cluster moves
+#
+# Clusters are defined by a simple distane cut-off criterium. Two particles belong to the same cluster if
+# their depletant-particle excluded volumes overlap. Clusters are randomly translated and rotated.
+# Moves that change the cluster size, i.e., when two clusters come together such that the resulting
+# configuration would have a bigger cluster, are rejected.
+#
+# \note This updater requires an implicit depletant integrator to work with
+#
+class cluster(_updater):
+    ## Specifies the cluster move updater
+    # \param mc MC integrator (implicit depletants integrator required)
+    # \param period Number of timesteps between cluster moves
+    # \param seed The seed of the pseudo-randon number generator
+    #
+    # \par Quick Examples:
+    # ~~~~~~~~~~~~
+    # mc = hpmc.integrate.sphere(seed=1234,implicit=True)
+    # mc.set_params(depletant_type='B',nR=0)
+    # update.cluster(mc)
+    # ~~~~~~~~~~~~
+    #
+    # \par Example with auto-tuning of the cluster step size
+    # ~~~~~~~~~~~~
+    # mc = hpmc.integrate.sphere(seed=1234,implicit=True)
+    # mc.set_params(depletant_type='B',nR=0)
+    # cluster=update.cluster(mc,period=10)
+    # tuner = hpmc.util.tune(cluster, tunables=['d', 'a'], target=0.2, gamma=0.5)
+    # for i in range(10):
+    #     run(1e4)
+    #     tuner.update()
+    # ~~~~~~~~~~~~
+    def __init__(self, mc, period=1, seed=18293):
+        hoomd.util.print_status_line();
+
+        if not isinstance(mc, integrate._mode_hpmc):
+            hoomd.context.msg.warning("update.cluster: Must have a handle to an HPMC integrator.\n");
+            return
+
+        # initialize base class
+        _updater.__init__(self);
+
+        if not mc.implicit:
+            hoomd.context.msg.error("update.cluster() requires an integrator with implicit depletants.\n")
+            raise RuntimeError('Error setting up update.cluster()\n')
+
+        if isinstance(mc, integrate.sphere):
+           cls = _hpmc.UpdaterClustersSphere;
+        elif isinstance(mc, integrate.convex_polygon):
+            cls = _hpmc.UpdaterClustersConvexPolygon;
+        elif isinstance(mc, integrate.simple_polygon):
+            cls = _hpmc.UpdaterClustersSimplePolygon;
+        elif isinstance(mc, integrate.convex_polyhedron):
+            cls = integrate._get_sized_entry('UpdaterClustersConvexPolyhedron', mc.max_verts);
+        elif isinstance(mc, integrate.convex_spheropolyhedron):
+            cls = integrate._get_sized_entry('UpdaterClustersSpheropolyhedron', mc.max_verts);
+        elif isinstance(mc, integrate.ellipsoid):
+            cls = _hpmc.UpdaterClustersEllipsoid;
+        elif isinstance(mc, integrate.convex_spheropolygon):
+            cls =_hpmc.UpdaterClustersSpheropolygon;
+        elif isinstance(mc, integrate.faceted_sphere):
+            cls =_hpmc.UpdaterClustersFacetedSphere;
+        elif isinstance(mc, integrate.sphere_union):
+            cls =_hpmc.UpdaterClustersSphereUnion;
+        elif isinstance(mc, integrate.polyhedron):
+            cls =_hpmc.UpdaterClustersPolyhedron;
+        else:
+            raise RuntimeError("Unsupported integrator.\n");
+
+        self.cpp_updater = cls(globals.system_definition, mc.cpp_integrator, int(seed))
+
+        # register the clusters updater
+        self.setupUpdater(period)
+
+    ## Update parameters
+    # \param d (If set) Update cluster translation move size
+    #
+    # \par Quick Example
+    # ~~~~~~~~~~~~
+    # cluster = hpmc.cluster.update(mc = mc)
+    # cluster.set_param(d=1.0)
+    # ~~~~~~~~~~~~
+    #
+    def set_params(self, d = None, a = None):
+        util.print_status_line();
+
+        if d is not None:
+            self.cpp_updater.setClusterD(float(d))
+        if a is not None:
+            self.cpp_updater.setClusterA(float(a))
+
+    ## Get the average acceptance ratio for translate moves
+    #
+    # \returns The average translate accept ratio during the last run()
+    #
+    # \par Quick Example
+    # ~~~~~~~~~~~~
+    # mc = hpmc.integrate.shape(..);
+    # mc.shape_param.set(....);
+    # run(100)
+    # cluster = hpmc.update.cluster(mc=mc);
+    # t_accept = cluster.get_translate_acceptance();
+    # ~~~~~~~~~~~~
+    #
+    def get_translate_acceptance(self):
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getTranslateAcceptance();
+
+    ## Get the average acceptance ratio for rotate moves
+    #
+    # \returns The average rotate accept ratio during the last run()
+    #
+    # \par Quick Example
+    # ~~~~~~~~~~~~
+    # mc = hpmc.integrate.shape(..);
+    # mc.shape_param.set(....);
+    # run(100)
+    # cluster = hpmc.update.cluster(mc=mc);
+    # r_accept = cluster.get_rotate_acceptance();
+    # ~~~~~~~~~~~~
+    #
+    def get_rotate_acceptance(self):
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getRotateAcceptance();
+
+    ## Get the maximum trial displacement
+    #
+    # \returns The current value of the 'd' parameter of the updater
+    #
+    def get_d(self,type=None):
+        return self.cpp_updater.getClusterD();
+
+    ## Get the maximum trial rotation
+    #
+    # \returns The current value of the 'a' parameter of the updater
+    #
+    def get_a(self,type=None):
+        return self.cpp_updater.getClusterA();

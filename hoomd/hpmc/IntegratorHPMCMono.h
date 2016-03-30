@@ -224,6 +224,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #endif
             }
 
+        //! Return true if anisotropic particles are present
+        virtual bool hasOrientation() { return m_hasOrientation; }
+
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
 
