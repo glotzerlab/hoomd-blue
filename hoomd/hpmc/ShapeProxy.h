@@ -959,7 +959,7 @@ void export_polyhedron_proxy(std::string class_name)
         )
     .add_property("vertices", &proxy_class::getVerts)
     .add_property("faces", &proxy_class::getFaces)
-    .add_property("R", &proxy_class::getSweepRadius)
+    .add_property("sweep_radius", &proxy_class::getSweepRadius)
     ;
     }
 
