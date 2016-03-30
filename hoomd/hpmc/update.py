@@ -863,7 +863,7 @@ class cluster(_updater):
         else:
             raise RuntimeError("Unsupported integrator.\n");
 
-        self.cpp_updater = cls(globals.system_definition, mc.cpp_integrator, int(seed))
+        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, int(seed))
 
         # register the clusters updater
         self.setupUpdater(period)

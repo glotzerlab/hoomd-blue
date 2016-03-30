@@ -11,6 +11,7 @@ void export_sdf();
 void export_free_volume();
 void export_external_fields();
 void export_muvt();
+void export_clusters();
 }
 
 #endif // __MODULES__

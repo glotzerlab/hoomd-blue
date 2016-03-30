@@ -69,6 +69,7 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_external_fields();
     export_free_volume();
     export_shape_params();
+    export_clusters();
     export_muvt();
 
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
