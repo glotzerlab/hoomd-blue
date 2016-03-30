@@ -215,15 +215,15 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','R'];
+        self._keys += ['vertices', 'faces','sweep_radius'];
         self.make_fn = _hpmc.make_poly3d_data;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, R= {})".format(self.vertices, self.faces,self.R);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {})".format(self.vertices, self.faces,self.sweep_radius);
         return string;
 
-    def make_param(self, vertices, faces, R=0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_overlaps=False, ignore_statistics=False):
         face_offs = []
         face_verts = []
         offs = 0
@@ -236,13 +236,13 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         # end offset
         face_offs.append(offs)
 
-        if R < 0.0:
+        if sweep_radius < 0.0:
             globals.msg.warning("A rounding radius < 0 does not make sense.\n")
 
         return self.make_fn(self.ensure_list(vertices),
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
-                            float(R),
+                            float(sweep_radius),
                             ignore_statistics,
                             ignore_overlaps);
 

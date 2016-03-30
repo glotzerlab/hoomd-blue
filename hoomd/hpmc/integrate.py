@@ -963,7 +963,7 @@ class simple_polygon(_mode_hpmc):
 #       don't put the origin right next to an edge).
 #     - The enclosing circle of the largest polyhedron should be diameter 1 for optimal performance.
 # - *faces* - a list of vertex indices for every face
-# - *R* - (**optional**) rounding radius applied to polyhedron (Default: 0)
+# - *sweep_radius* - (**optional**) rounding radius applied to polyhedron (Default: 0)
 # - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
 # - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
 #
