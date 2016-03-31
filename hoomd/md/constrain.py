@@ -363,6 +363,8 @@ class rigid(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
+        self.create_rigid_bodies = False
+
     ## Set constituent particle types and coordinates for a rigid body
     #
     # Note: a mirror data structure for bodies in python would be nice OR as a proxy
@@ -421,8 +423,13 @@ class rigid(_constraint_force):
         # set parameters in C++ force
         self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec)
 
+    ## Set a flag whether to automatically create copies of rigid bodies
+    # \param create If true, constituent particles will be created next time run() is called
+    def set_auto_create(self,create):
+        self.create_rigid_bodies = bool(create)
+
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):
-        # create copies of rigid bodies
-        self.cpp_force.createRigidBodies()
+        # validate copies of rigid bodies
+        self.cpp_force.validateRigidBodies(self.create_rigid_bodies)

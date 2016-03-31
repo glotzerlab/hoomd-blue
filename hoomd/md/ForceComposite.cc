@@ -279,7 +279,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
     return m_d_max[type];
     }
 
-void ForceComposite::createRigidBodies()
+void ForceComposite::validateRigidBodies(bool create)
     {
     if (m_bodies_changed || m_ptls_added_removed)
         {
@@ -320,6 +320,7 @@ void ForceComposite::createRigidBodies()
             {
             // access body data
             ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
 
             // count number of constituent particls to add
             for (unsigned i = 0; i < snap.size; ++i)
@@ -328,22 +329,65 @@ void ForceComposite::createRigidBodies()
 
                 bool is_central_ptl = h_body_len.data[snap.type[i]] != 0;
 
-                if (snap.body[i] != NO_BODY)
+                if (create)
                     {
-                    if (!is_central_ptl)
+                    if (snap.body[i] != NO_BODY)
                         {
-                        need_remove_bodies = true;
+                        if (!is_central_ptl)
+                            {
+                            need_remove_bodies = true;
+                            }
+                        else
+                            {
+                            // wipe out body flag
+                            assert(snap.body[i] == i);
+                            snap.body[i] = NO_BODY;
+                            }
                         }
-                    else
+
+                    // for each particle of a body type, add a copy of the constituent particles
+                    n_add_ptls += h_body_len.data[snap.type[i]];
+                    }
+                else
+                    {
+                    // validate constituent particle
+                    if (is_central_ptl)
                         {
-                        // wipe out body flag
-                        assert(snap.body[i] == i);
-                        snap.body[i] = NO_BODY;
+                        if (snap.body[i] != i)
+                            {
+                            m_exec_conf->msg->error() << "constrain.rigid(): Central particles must have a body tag identical to their contiguous tag." << std::endl;
+                            throw std::runtime_error("Error validating rigid bodies\n");
+                            }
+                        }
+                    if (snap.body[i] != NO_BODY)
+                        {
+                        // check if ptl body tag correctly points to the central particle
+                        if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
+                            {
+                            m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle body tags must point to the center particle." << std::endl;
+                            throw std::runtime_error("Error validating rigid bodies\n");
+                            }
+
+                        if (! is_central_ptl)
+                            {
+                            unsigned int central_ptl = snap.body[i];
+                            unsigned int body_type = snap.type[central_ptl];
+
+                            if (i - central_ptl >= h_body_len.data[body_type] + 1)
+                                {
+                                m_exec_conf->msg->error() << "constrain.rigid(): Number of constituent particles for body " << snap.body[i] << " exceeds definition"
+                                     << std::endl;
+                                throw std::runtime_error("Error validating rigid bodies\n");
+                                }
+
+                            if (h_body_type.data[m_body_idx(body_type, i - central_ptl - 1)] != snap.type[i])
+                                {
+                                m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle types must be consistent with rigid body parametrs." << std::endl;
+                                throw std::runtime_error("Error validating rigid bodies\n");
+                                }
+                            }
                         }
                     }
-
-                // for each particle of a body type, add a copy of the constituent particles
-                n_add_ptls += h_body_len.data[snap.type[i]];
                 }
             }
 
@@ -373,104 +417,134 @@ void ForceComposite::createRigidBodies()
         // number of bodies in system
         unsigned int nbodies = 0;
 
-        const BoxDim& global_box = m_pdata->getGlobalBox();
-
-        SnapshotParticleData<Scalar> snap_out = snap;
-
-        if (m_exec_conf->getRank() == 0)
+        if (create)
             {
-            unsigned int old_size = snap.size;
+            const BoxDim& global_box = m_pdata->getGlobalBox();
 
-            // resize and reset global molecule table
-            molecule_tag.resize(old_size+n_add_ptls, NO_MOLECULE);
+            SnapshotParticleData<Scalar> snap_out = snap;
 
-            // acces body data
-            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-
-            unsigned int snap_idx_out = 0;
-
-            // create copies
-            for (unsigned i = 0; i < old_size; ++i)
+            if (m_exec_conf->getRank() == 0)
                 {
-                assert(snap.type[i] < ntypes);
+                unsigned int old_size = snap.size;
 
-                bool is_central_ptl = h_body_len.data[snap.type[i]] != 0;
+                // resize and reset global molecule table
+                molecule_tag.resize(old_size+n_add_ptls, NO_MOLECULE);
 
-                assert(snap.body[i] == NO_BODY);
+                // acces body data
+                ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+                ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+                ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
-                if (is_central_ptl)
+                unsigned int snap_idx_out = 0;
+
+                // create copies
+                for (unsigned i = 0; i < old_size; ++i)
                     {
-                    unsigned int body_type = snap.type[i];
+                    assert(snap.type[i] < ntypes);
 
-                    unsigned body_tag = snap_idx_out;
+                    bool is_central_ptl = h_body_len.data[snap.type[i]] != 0;
 
-                    // set body id to tag of central ptl
-                    snap_out.body[snap_idx_out] = body_tag;
+                    assert(snap.body[i] == NO_BODY);
 
-                    // set contiguous molecule tag
-                    molecule_tag[snap_idx_out] = nbodies;
-
-                    vec3<Scalar> central_pos(snap.pos[i]);
-                    quat<Scalar> central_orientation(snap.orientation[i]);
-                    int3 central_img = snap.image[i];
-
-                    snap_idx_out++;
-
-                    // insert elements into snapshot
-                    unsigned int n= h_body_len.data[body_type];
-                    snap_out.insert(snap_idx_out, n);
-
-                    for (unsigned int j = 0; j < n; ++j)
+                    if (is_central_ptl)
                         {
-                        // position and orientation will be overwritten during integration, no need to set here
+                        unsigned int body_type = snap.type[i];
 
-                        // set type
-                        snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
+                        unsigned body_tag = snap_idx_out;
 
-                        // set body index on constituent particle
+                        // set body id to tag of central ptl
                         snap_out.body[snap_idx_out] = body_tag;
 
-                        // use contiguous molecule tag
+                        // set contiguous molecule tag
                         molecule_tag[snap_idx_out] = nbodies;
 
-                        // update position and orientation to ensure particles end up in correct domain
-                        vec3<Scalar> pos(central_pos);
-
-                        pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
-                        quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
-
-                        // wrap into box
-                        int3 img = central_img;
-                        global_box.wrap(pos, img);
-
-                        snap_out.pos[snap_idx_out] = pos;
-                        snap_out.image[snap_idx_out] = img;
-                        snap_out.orientation[snap_idx_out] = orientation;
+                        vec3<Scalar> central_pos(snap.pos[i]);
+                        quat<Scalar> central_orientation(snap.orientation[i]);
+                        int3 central_img = snap.image[i];
 
                         snap_idx_out++;
+
+                        // insert elements into snapshot
+                        unsigned int n= h_body_len.data[body_type];
+                        snap_out.insert(snap_idx_out, n);
+
+                        for (unsigned int j = 0; j < n; ++j)
+                            {
+                            // position and orientation will be overwritten during integration, no need to set here
+
+                            // set type
+                            snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
+
+                            // set body index on constituent particle
+                            snap_out.body[snap_idx_out] = body_tag;
+
+                            // use contiguous molecule tag
+                            molecule_tag[snap_idx_out] = nbodies;
+
+                            // update position and orientation to ensure particles end up in correct domain
+                            vec3<Scalar> pos(central_pos);
+
+                            pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
+                            quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
+
+                            // wrap into box
+                            int3 img = central_img;
+                            global_box.wrap(pos, img);
+
+                            snap_out.pos[snap_idx_out] = pos;
+                            snap_out.image[snap_idx_out] = img;
+                            snap_out.orientation[snap_idx_out] = orientation;
+
+                            snap_idx_out++;
+                            }
+
+                        nbodies++;
                         }
 
-                    nbodies++;
                     }
+                }
 
+            m_exec_conf->msg->notice(2) << "constrain.rigid(): Creating " << nbodies << " rigid bodies (adding "
+                << n_add_ptls << " particles)" << std::endl;
+
+            // re-initialize, keeping particles with body != NO_BODY at this time
+            m_pdata->initializeFromSnapshot(snap_out, false);
+
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition())
+                {
+                bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+                }
+            #endif
+            }
+        else
+            {
+            if (m_exec_conf->getRank() == 0)
+                {
+                molecule_tag.resize(snap.size, NO_MOLECULE);
+
+                // access body data
+                ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+
+                // count number of molecules and assign contiguous molecule tags
+                for (unsigned i = 0; i < snap.size; ++i)
+                    {
+                    assert(snap.type[i] < ntypes);
+
+                    if (snap.body[i] != NO_BODY)
+                        {
+                        molecule_tag[i] = nbodies;
+
+                        unsigned int body_type = snap.type[snap.body[i]];
+                        if (i - snap.body[i] == h_body_len.data[body_type])
+                            {
+                            nbodies++;
+                            }
+                        }
+                    }
                 }
             }
-
-        m_exec_conf->msg->notice(2) << "constrain.rigid(): Creating " << nbodies << " rigid bodies (adding "
-            << n_add_ptls << " particles)" << std::endl;
-
-        // re-initialize, keeping particles with body != NO_BODY at this time
-        m_pdata->initializeFromSnapshot(snap_out, false);
-
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
-            }
-        #endif
 
         // resize GPU table
         m_molecule_tag.resize(molecule_tag.size());
@@ -780,6 +854,6 @@ void export_ForceComposite()
     class_< ForceComposite, boost::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
     ("ForceComposite", init< boost::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
-        .def("createRigidBodies", &ForceComposite::createRigidBodies)
+        .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;
     }

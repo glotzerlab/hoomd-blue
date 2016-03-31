@@ -45,6 +45,7 @@ class test_constrain_rigid(unittest.TestCase):
         lj.set_params(mode="xplor")
 
         rigid = md.constrain.rigid()
+        rigid.set_auto_create(True)
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
 
@@ -98,6 +99,7 @@ class test_constrain_rigid(unittest.TestCase):
         lj.set_params(mode="xplor")
 
         rigid = md.constrain.rigid()
+        rigid.set_auto_create(True)
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
 
@@ -129,6 +131,50 @@ class test_constrain_rigid(unittest.TestCase):
         del lj
         del log
         del npt
+
+    def test_reinit(self):
+        # create rigid spherocylinders out of two particles (not including the central particle)
+        len_cyl = .5
+
+        # create constituent particle types
+        self.system.particles.types.add('A_const')
+        self.system.particles.types.add('B_const')
+
+        md.integrate.mode_standard(dt=0.001)
+
+        lj = md.pair.lj(r_cut=False)
+
+        # central particles
+        lj.pair_coeff.set(['A','B'], self.system.particles.types, epsilon=1.0, sigma=1.0, r_cut=2.5)
+
+        # constituent particle coefficients
+        lj.pair_coeff.set('A_const','A_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+        lj.pair_coeff.set('B_const','B_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+        lj.pair_coeff.set('A_const','B_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+        lj.set_params(mode="xplor")
+
+        rigid = md.constrain.rigid()
+        rigid.set_auto_create(True)
+        rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+
+        center = group.rigid_center()
+
+        nve = md.integrate.nve(group=center)
+
+        # create rigid bodies
+        run(1)
+
+        snap = self.system.take_snapshot()
+        rigid.set_auto_create(False)
+        self.system.restore_snapshot(snap)
+
+        # validate rigid bodies
+        run(1)
+
+        del rigid
+        del lj
+        del nve
 
 
     def tearDown(self):
