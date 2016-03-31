@@ -82,6 +82,9 @@ ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
     GPUArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
     m_body_len.swap(body_len);
 
+    m_body_charge.resize(m_pdata->getNTypes());
+    m_body_diameter.resize(m_pdata->getNTypes());
+
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
     }
 
@@ -100,11 +103,15 @@ ForceComposite::~ForceComposite()
 void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<unsigned int>& type,
     std::vector<Scalar3>& pos,
-    std::vector<Scalar4>& orientation)
+    std::vector<Scalar4>& orientation,
+    std::vector<Scalar>& charge,
+    std::vector<Scalar>& diameter)
     {
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
+    assert(m_body_charge.size() >= m_pdata->getNTypes());
+    assert(m_body_diameter.size() >= m_pdata->getNTypes());
 
     if (body_typeid >= m_pdata->getNTypes())
         {
@@ -178,12 +185,18 @@ void ForceComposite::setParam(unsigned int body_typeid,
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
 
+        m_body_charge[body_typeid].resize(m_pdata->getNTypes());
+        m_body_diameter[body_typeid].resize(m_pdata->getNTypes());
+
         // store body data in GPUArray
         for (unsigned int i = 0; i < type.size(); ++i)
             {
             h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
             h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
             h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+
+            m_body_charge[body_typeid][i] = charge[i];
+            m_body_diameter[body_typeid][i] = diameter[i];
             }
 
         m_bodies_changed = true;
@@ -209,6 +222,9 @@ void ForceComposite::slotNumTypesChange()
     m_body_types.resize(new_ntypes, height);
     m_body_pos.resize(new_ntypes, height);
     m_body_orientation.resize(new_ntypes, height);
+
+    m_body_charge.resize(new_ntypes);
+    m_body_diameter.resize(new_ntypes);
 
     m_body_idx = Index2D(m_body_pos.getPitch(), height);
 
@@ -496,6 +512,9 @@ void ForceComposite::validateRigidBodies(bool create)
                             snap_out.image[snap_idx_out] = img;
                             snap_out.orientation[snap_idx_out] = orientation;
 
+                            // set charge and diameter
+                            snap_out.charge[snap_idx_out] = m_body_charge[body_type][j];
+                            snap_out.diameter[snap_idx_out] = m_body_diameter[body_type][j];
                             snap_idx_out++;
                             }
 

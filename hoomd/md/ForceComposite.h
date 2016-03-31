@@ -89,7 +89,9 @@ class ForceComposite : public MolecularForceCompute
         virtual void setParam(unsigned int body_typeid,
             std::vector<unsigned int>& type,
             std::vector<Scalar3>& pos,
-            std::vector<Scalar4>& orientation);
+            std::vector<Scalar4>& orientation,
+            std::vector<Scalar>& charge,
+            std::vector<Scalar>& diameter);
 
         //! Returns true because we compute the torque on the central particle
         virtual bool isAnisotropic()
@@ -123,6 +125,8 @@ class ForceComposite : public MolecularForceCompute
         GPUArray<Scalar4> m_body_orientation;   //!< Constituent ptl orientations per type id (2D)
         GPUArray<unsigned int> m_body_len;      //!< Length of body per type id
 
+        std::vector<std::vector<Scalar> > m_body_charge;      //!< Constituent ptl charges
+        std::vector<std::vector<Scalar> > m_body_diameter;    //!< Constituent ptl diameters0
         Index2D m_body_idx;                     //!< Indexer for body parameters
 
         std::vector<Scalar> m_d_max;                              //!< Maximum body diameter per type

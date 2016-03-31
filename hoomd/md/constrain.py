@@ -363,12 +363,12 @@ class rigid(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        self.create_rigid_bodies = False
+        self.create_rigid_bodies = True
 
     ## Set constituent particle types and coordinates for a rigid body
     #
     # Note: a mirror data structure for bodies in python would be nice OR as a proxy
-    def set_param(self,type_name, types, positions, orientations=None):
+    def set_param(self,type_name, types, positions, orientations=None, charges=None, diameters=None):
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -420,8 +420,32 @@ class rigid(_constraint_force):
             for p in positions:
                 orientation_vec.append(_hoomd.make_scalar4(1,0,0,0))
 
+        charge_vec = _hoomd.std_vector_scalar()
+        if charges is not None:
+            if not isinstance(charges, list):
+                hoomd.context.msg.error('Expecting list of particle charges.\n')
+                raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+            for c in charges:
+                charge_vec.append(float(c))
+        else:
+            for p in positions:
+                charge_vec.append(0.0)
+
+        diameter_vec = _hoomd.std_vector_scalar()
+        if diameters is not None:
+            if not isinstance(charges, list):
+                hoomd.context.msg.error('Expecting list of particle diameters.\n')
+                raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+            for d in diameters:
+                diameter_vec.append(float(d))
+        else:
+            for p in positions:
+                diameter_vec.append(1.0)
+
         # set parameters in C++ force
-        self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec)
+        self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec, charge_vec, diameter_vec)
 
     ## Set a flag whether to automatically create copies of rigid bodies
     # \param create If true, constituent particles will be created next time run() is called
