@@ -99,7 +99,6 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_use_lambda;                //!< flag to enable gamma to be a scaled version of the diameter
         Scalar m_lambda;                  //!< Scale factor to apply to diameter to get gamma
-        bool m_warned_aniso;              //!< true if we've already warned that we don't support aniso
 
         GPUVector<Scalar> m_gamma;        //!< List of per type gammas to use
         GPUVector<Scalar> m_gamma_r;      //!< List of per type gamma_r (for 2D-only rotational noise) to use
