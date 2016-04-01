@@ -91,6 +91,20 @@ supercomputers. Each code block also specifies a recommended install location ${
 be loaded on the compute nodes with minimal file system impact. On many clusters, administrators will block your account
 without warning if you launch hoomd from $HOME.
 
+\b NCSA \b Blue waters:
+```
+module unload boost
+module swap cmake/2.8.10.2
+module load bwpy
+export SOFTWARE_ROOT=${HOME}
+```
+
+For unknown reasons, you need to add `add_definitions("-I${Boost_INCLUDE_DIR}")` to the end of
+CMake/hoomd/HOOMDBoostSetup.cmake. This will be worked around in the future.
+
+Note: Blue waters does not set BOOST_ROOT. To build with these modules loaded against python3, run:
+`cmake ~/hoomd -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR}`
+
 \b OLCF \b Titan:
 ```
 module unload PrgEnv-pgi
