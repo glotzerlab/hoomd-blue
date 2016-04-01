@@ -190,6 +190,20 @@ class test_constrain_rigid(unittest.TestCase):
         del lj
         del nve
 
+    def test_box_resize(self):
+        # create rigid spherocylinders out of two particles (not including the central particle)
+        len_cyl = .5
+
+        # create constituent particle types
+        self.system.particles.types.add('A_const')
+        self.system.particles.types.add('B_const')
+
+        rigid = md.constrain.rigid()
+        rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+
+        update.box_resize(L = variant.linear_interp([(0, 50), (100, 100)]))
+        run(100)
 
     def tearDown(self):
         del self.system
