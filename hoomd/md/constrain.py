@@ -341,11 +341,11 @@ class distance(_constraint_force):
 #
 # \MPI_SUPPORTED
 class rigid(_constraint_force):
-    ## Specify the pairwise %distance constraint %force
+    ## Specify rigid body constraints
     #
     # \b Examples:
     # \code
-    # constrain.distance()
+    # constrain.rigid()
     # \endcode
     def __init__(self):
         hoomd.util.print_status_line();
@@ -367,7 +367,13 @@ class rigid(_constraint_force):
 
     ## Set constituent particle types and coordinates for a rigid body
     #
-    # Note: a mirror data structure for bodies in python would be nice OR as a proxy
+    # \param type_name The type of the central particle
+    # \param types List of types of constituent particles
+    # \param positions List of relative positions of constituent particles
+    # \param orientations List of orientations of constituent particles (**optional**)
+    # \param charge List of charges of constituent particles (**optional**)
+    # \param diameters List of diameters of constituent particles (**optional**)
+    #
     def set_param(self,type_name, types, positions, orientations=None, charges=None, diameters=None):
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
