@@ -74,7 +74,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sys
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_lambda(use_lambda), m_lambda(lambda), m_warned_aniso(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_lambda(use_lambda), m_lambda(lambda)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
 
