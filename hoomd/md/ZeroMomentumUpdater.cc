@@ -90,7 +90,8 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 
     {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // temp variables for holding the sums
     Scalar sum_px = 0.0;
@@ -98,10 +99,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar sum_pz = 0.0;
     unsigned int n = 0;
 
-    // add up the momentum of every free particle
+    // add up the momentum of every free particle and every central particle of a rigid body
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] == NO_BODY)
+        if (h_body.data[i] == NO_BODY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             sum_px += mass*h_vel.data[i].x;
@@ -129,7 +130,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     // subtract this momentum from every free partcile
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] == NO_BODY)
+        if (h_body.data[i] == NO_BODY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             h_vel.data[i].x -= avg_px/mass;
