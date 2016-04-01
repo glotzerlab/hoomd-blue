@@ -287,13 +287,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_aniso && !m_warned_aniso)
-        {
-        m_exec_conf->msg->warning() << "integrate.langevin: this thermostat "
-            "does not operate on rotational degrees of freedom" << endl;
-        m_warned_aniso = true;
-        }
-
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
@@ -401,9 +394,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                bf_torque.x = rand_x * sigma_r - gamma_r * (s.x / I.x);
-                bf_torque.y = rand_y * sigma_r - gamma_r * (s.y / I.y);
-                bf_torque.z = rand_z * sigma_r - gamma_r * (s.z / I.z);
+                bf_torque.x = rand_x - gamma_r * (s.x / I.x);
+                bf_torque.y = rand_y - gamma_r * (s.y / I.y);
+                bf_torque.z = rand_z - gamma_r * (s.z / I.z);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero) bf_torque.x = 0;

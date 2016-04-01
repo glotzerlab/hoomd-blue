@@ -234,6 +234,11 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
     m_exec_conf->msg->notice(7) << "data.gsd_snapshot: reading chunk " << name << endl;
 
     std::vector<std::string> type_mapping;
+
+    // set the default particle type mapping per the GSD HOOMD Schema
+    if (str(name) == "particles/types")
+        type_mapping.push_back("A");
+
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
     if (entry == NULL && frame != 0)
         entry = gsd_find_chunk(&m_handle, 0, name);
@@ -267,6 +272,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
             throw runtime_error("Error reading GSD file");
             }
 
+        type_mapping.clear();
         for (unsigned int i = 0; i < entry->N; i++)
             {
             size_t l = strnlen(&data[i*entry->M], entry->M);

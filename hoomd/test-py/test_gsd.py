@@ -280,5 +280,48 @@ class gsd_read_tests (unittest.TestCase):
         comm.barrier_all();
         context.initialize();
 
+# unit tests for dump.gsd with default type
+class gsd_default_type (unittest.TestCase):
+    def setUp(self):
+        print
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.position[0] = [0,1,2];
+            self.snapshot.particles.position[1] = [1,2,3];
+            self.snapshot.particles.position[2] = [0,-1,-2];
+            self.snapshot.particles.position[3] = [-1, -2, -3];
+            self.snapshot.particles.velocity[0] = [10, 11, 12];
+            self.snapshot.particles.velocity[1] = [11, 12, 13];
+            self.snapshot.particles.velocity[2] = [12, 13, 14];
+            self.snapshot.particles.velocity[3] = [13, 14, 15];
+            self.snapshot.particles.types = ['A'];
+
+        self.s = init.read_snapshot(self.snapshot);
+        sorter.set_params(grid=8)
+
+    # tests data.gsd_snapshot
+    def test_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
+
+        snap = data.gsd_snapshot('test.gsd', frame=0);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            self.assertEqual(snap.particles.types, self.snapshot.particles.types);
+
+    # tests init.read_gsd
+    def test_read_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
+        context.initialize();
+
+        init.read_gsd(filename='test.gsd');
+
+    def tearDown(self):
+        if comm.get_rank() == 0:
+            os.remove('test.gsd');
+        comm.barrier_all();
+        context.initialize();
+
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
