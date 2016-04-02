@@ -400,25 +400,21 @@ class rigid(_constraint_force):
 
             type_vec.append(constituent_type_id)
 
-        if not isinstance(positions, list):
-            hoomd.context.msg.error('Expecting list of particle positions.\n')
-            raise RuntimeError('Error setting up parameters for constrain.rigid()')
-
         pos_vec = _hoomd.std_vector_scalar3()
-        for p in positions:
-            if not isinstance(p, tuple) or len(p) != 3:
+        positions_list = list(positions)
+        for p in positions_list:
+            p = tuple(p)
+            if len(p) != 3:
                 hoomd.context.msg.error('Particle position is not a coordinate triple.\n')
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
             pos_vec.append(_hoomd.make_scalar3(p[0],p[1],p[2]))
 
         orientation_vec = _hoomd.std_vector_scalar4()
         if orientations is not None:
-            if not isinstance(orientations, list):
-                hoomd.context.msg.error('Expecting list of particle orientations.\n')
-                raise RuntimeError('Error setting up parameters for constrain.rigid()')
-
-            for o in orientations:
-                if not isinstance(o, tuple()) or len(o) != 4:
+            orientations_list = list(orientations)
+            for o in orientations_list:
+                o = tuple(o)
+                if len(o) != 4:
                     hoomd.context.msg.error('Particle orientation is not a 4-tuple.\n')
                     raise RuntimeError('Error setting up parameters for constrain.rigid()')
                 orientation_vec.append(_hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
@@ -428,11 +424,8 @@ class rigid(_constraint_force):
 
         charge_vec = _hoomd.std_vector_scalar()
         if charges is not None:
-            if not isinstance(charges, list):
-                hoomd.context.msg.error('Expecting list of particle charges.\n')
-                raise RuntimeError('Error setting up parameters for constrain.rigid()')
-
-            for c in charges:
+            charges_list = list(charges)
+            for c in charges_list:
                 charge_vec.append(float(c))
         else:
             for p in positions:
@@ -440,11 +433,8 @@ class rigid(_constraint_force):
 
         diameter_vec = _hoomd.std_vector_scalar()
         if diameters is not None:
-            if not isinstance(charges, list):
-                hoomd.context.msg.error('Expecting list of particle diameters.\n')
-                raise RuntimeError('Error setting up parameters for constrain.rigid()')
-
-            for d in diameters:
+            diameters_list = list(diameters)
+            for d in diameters_list:
                 diameter_vec.append(float(d))
         else:
             for p in positions:

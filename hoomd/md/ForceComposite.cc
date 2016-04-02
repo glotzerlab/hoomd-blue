@@ -185,8 +185,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
 
-        m_body_charge[body_typeid].resize(m_pdata->getNTypes());
-        m_body_diameter[body_typeid].resize(m_pdata->getNTypes());
+        m_body_charge[body_typeid].resize(type.size());
+        m_body_diameter[body_typeid].resize(type.size());
 
         // store body data in GPUArray
         for (unsigned int i = 0; i < type.size(); ++i)
