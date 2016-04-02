@@ -68,7 +68,7 @@ fix_cudart_rpath(_hpmc)
 
 # install the library
 install(TARGETS _hpmc
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
         )
 
 ################ Python only modules
