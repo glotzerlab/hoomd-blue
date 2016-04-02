@@ -73,7 +73,7 @@ from collections import OrderedDict
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
-class _metadata:
+class _metadata(object):
     def __init__(self):
         # No metadata provided per default
         self.metadata_fields = []
