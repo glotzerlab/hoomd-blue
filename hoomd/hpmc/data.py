@@ -239,7 +239,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         if sweep_radius < 0.0:
             globals.msg.warning("A rounding radius < 0 does not make sense.\n")
 
-        return self.make_fn(self.ensure_list(vertices),
+        return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
                             float(sweep_radius),
