@@ -310,7 +310,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['diameters', 'centers', 'orientations', 'diameter', 'colors'];
+        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
         self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
@@ -320,7 +320,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         members = self.members;
         for m in members:
             end = "\n" if ct < (len(members)-1) else "";
-            string+="sphere-{}(r = {}){}".format(ct, m.radius, end)
+            string+="sphere-{}(d = {}){}".format(ct, m.diameter, end)
             ct+=1
         return string;
 
@@ -328,7 +328,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         data = {}
         for key in self._keys:
             if key == 'diameters':
-                val = [ 2.0*m.radius for m in self.members ];
+                val = [ m.diameter for m in self.members ];
             else:
                 val = getattr(self, key);
             data[key] = val;

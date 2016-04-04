@@ -1725,8 +1725,9 @@ class sphere_union(_mode_hpmc):
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
         # build up shape_def string in a loop
-        diameters = [member.radius*2.0 for member in param.members];
-        centers = param.centers;
+        diameters = [m.diameter for m in param.members]
+        centers = param.centers
+        colors = param.colors
         N = len(diameters);
         shape_def = 'sphere_union {0} '.format(N);
         if param.colors is None:

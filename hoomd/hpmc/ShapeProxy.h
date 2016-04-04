@@ -802,7 +802,7 @@ public:
     shape_union_param_proxy(boost::shared_ptr< IntegratorHPMCMono< Shape > > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy< Shape, AccessType>(mc,typendx,acc)
         {}
-    boost::python::list getPosistions()
+    boost::python::list getPositions()
         {
         ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
         access_type& param = m_access(h_params.data[m_typeid]);
@@ -1042,7 +1042,7 @@ void export_shape_union_proxy(std::string class_name, ExportFunction& export_mem
         (   class_name.c_str(),
             boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("centers", &proxy_class::getPosistions)
+    .add_property("centers", &proxy_class::getPositions)
     .add_property("orientations", &proxy_class::getOrientations)
     .add_property("diameter", &proxy_class::getDiameter)
     .add_property("members", &proxy_class::getMembers)
