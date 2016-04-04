@@ -294,6 +294,14 @@ private:
 // Macro for easy checking of CUDA errors - enabled all the time
 #define CHECK_CUDA_ERROR() this->m_exec_conf->checkCUDAError(__FILE__, __LINE__);
 
+inline void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
+    {
+    cudaError_t err_sync = cudaGetLastError();
+    handleCUDAError(err_sync, file, line);
+    cudaError_t err_async = cudaDeviceSynchronize();
+    handleCUDAError(err_async, file, line);
+    }
+
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();
 
