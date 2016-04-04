@@ -81,7 +81,7 @@ namespace detail
     @{
 */
 
-const unsigned int OBB_NODE_CAPACITY = 4;          //!< Maximum number of particles in a node
+const unsigned int OBB_NODE_CAPACITY = 8;          //!< Maximum number of particles in a node
 const unsigned int OBB_INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
 #ifndef NVCC
