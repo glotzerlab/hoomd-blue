@@ -146,9 +146,12 @@ class OBBTree
                 free(m_nodes);
             }
 
-        //! Build a tree smartly from a list of OBBs
+        //! Build a tree smartly from a list of OBBs and internal coordinates
         inline void buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
             OverlapReal vertex_radius, unsigned int N);
+
+        //! Build a tree from a list of OBBs
+        inline void buildTree(OBB *obbs, unsigned int N);
 
         //! Find all particles that overlap with the query OBB
         inline unsigned int query(std::vector<unsigned int>& hits, const OBB& obb) const;
@@ -329,6 +332,8 @@ inline unsigned int OBBTree::height(unsigned int idx)
 
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
+    \param internal_coordinates List of lists of vertex contents of OBBs
+    \param vertex_radius Radius of every vertex
     \param N Number of OBBs in the list
 
     Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
@@ -346,6 +351,32 @@ inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapRe
     m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
     updateSkip(m_root);
     }
+
+/*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
+    \param N Number of OBBs in the list
+
+    Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
+    the construction process.
+*/
+inline void OBBTree::buildTree(OBB *obbs, unsigned int N)
+    {
+    init(N);
+
+    std::vector<unsigned int> idx;
+    for (unsigned int i = 0; i < N; i++)
+        idx.push_back(i);
+
+    // initialize internal coordinates from OBB corners
+    std::vector< std::vector<vec3<OverlapReal> > > internal_coordinates;
+    for (unsigned int i = 0; i < N; ++i)
+        {
+        internal_coordinates.push_back(obbs[i].getCorners());
+        }
+
+    m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
+    updateSkip(m_root);
+    }
+
 
 /*! \param obbs List of OBBs
     \param idx List of indices

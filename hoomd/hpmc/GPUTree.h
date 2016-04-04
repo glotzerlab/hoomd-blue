@@ -200,7 +200,48 @@ class GPUTree
         unsigned int m_num_nodes;                                    //!< Number of nodes in the tree
     };
 
+//! Test a subtree against a leaf node during a tandem traversal
+template<class Shape>
+DEVICE inline bool test_subtree(const vec3<OverlapReal>& r_ab,
+                                const Shape& s0,
+                                const Shape& s1,
+                                const GPUTree& tree_a,
+                                const GPUTree& tree_b,
+                                unsigned int leaf_node,
+                                unsigned int cur_node,
+                                unsigned int end_idx)
+    {
+    // get the obb of the leaf node
+    hpmc::detail::OBB obb = tree_a.getOBB(leaf_node);
+    obb.affineTransform(conj(quat<OverlapReal>(s1.orientation))*quat<OverlapReal>(s0.orientation),
+        rotate(conj(quat<OverlapReal>(s1.orientation)),-r_ab));
+
+    while (cur_node != end_idx)
+        {
+        hpmc::detail::OBB node_obb = tree_b.getOBB(cur_node);
+
+        bool skip = false;
+
+        if (detail::overlap(obb,node_obb))
+            {
+            if (tree_b.isLeaf(cur_node))
+                {
+                if (test_narrow_phase_overlap(r_ab, s0, s1, leaf_node, cur_node)) return true;
+                }
+            }
+        else
+            {
+            skip = true;
+            }
+        tree_b.advanceNode(cur_node, skip);
+        }
+    return false;
+    }
+
 //! Move up during a tandem traversal, alternating between trees a and b
+/*! Adapted from: "Stackless BVH Collision Detection for Physical Simulation" by
+    Jesper Damkjaer, damkjaer@diku.edu, http://image.diku.dk/projects/media/jesper.damkjaer.07.pdf
+ */
 DEVICE inline void moveUp(const GPUTree& tree_a, unsigned int& cur_node_a, const GPUTree& tree_b, unsigned int& cur_node_b)
     {
     unsigned int level_a = tree_a.getLevel(cur_node_a);

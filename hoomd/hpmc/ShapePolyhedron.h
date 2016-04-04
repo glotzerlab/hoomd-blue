@@ -883,40 +883,6 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     return false;
     }
 
-DEVICE inline bool test_subtree(const vec3<OverlapReal>& r_ab,
-                                const ShapePolyhedron& s0,
-                                const ShapePolyhedron& s1,
-                                unsigned int leaf_node,
-                                unsigned int cur_node,
-                                unsigned int end_idx)
-    {
-    // get the obb of the leaf node
-    hpmc::detail::OBB obb = s0.tree.getOBB(leaf_node);
-    obb.affineTransform(conj(quat<OverlapReal>(s1.orientation))*quat<OverlapReal>(s0.orientation),
-        rotate(conj(quat<OverlapReal>(s1.orientation)),-r_ab));
-
-    while (cur_node != end_idx)
-        {
-        hpmc::detail::OBB node_obb = s1.tree.getOBB(cur_node);
-
-        bool skip = false;
-
-        if (detail::overlap(obb,node_obb))
-            {
-            if (s1.tree.isLeaf(cur_node))
-                {
-                if (test_narrow_phase_overlap(r_ab, s0, s1, leaf_node, cur_node)) return true;
-                }
-            }
-        else
-            {
-            skip = true;
-            }
-        s1.tree.advanceNode(cur_node, skip);
-        }
-    return false;
-    }
-
 #ifdef DEBUG_OUTPUT
 inline void output_polys(const ShapePolyhedron& a, const ShapePolyhedron& b, quat<OverlapReal> q, const vec3<Scalar> dr)
     {
@@ -1093,7 +1059,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         {
                         unsigned int end_node = cur_node_b;
                         b.tree.advanceNode(end_node, true);
-                        if (test_subtree(dr, a, b, cur_node_a, cur_node_b+1, end_node)) return true;
+                        if (test_subtree(dr, a, b, a.tree, b.tree, cur_node_a, cur_node_b+1, end_node)) return true;
                         }
                     else
                         {
@@ -1108,7 +1074,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         {
                         unsigned int end_node = cur_node_a;
                         a.tree.advanceNode(end_node, true);
-                        if (test_subtree(-dr, b, a, cur_node_b, cur_node_a+1, end_node)) return true;
+                        if (test_subtree(-dr, b, a, b.tree, a.tree, cur_node_b, cur_node_a+1, end_node)) return true;
                         }
                     else
                         {

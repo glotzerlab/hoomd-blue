@@ -23,6 +23,29 @@ using namespace hpmc::detail;
 
 unsigned int err_count;
 
+template<class Shape>
+void build_tree(union_params<Shape>& data)
+    {
+    hpmc::detail::OBBTree tree;
+    hpmc::detail::OBB *obbs;
+    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.N);
+    if (retval != 0)
+        {
+        throw std::runtime_error("Error allocating aligned AABB memory.");
+        }
+
+    // construct bounding box tree
+    for (unsigned int i = 0; i < data.N; ++i)
+        {
+        Shape dummy(quat<Scalar>(data.morientation[i]), data.mparams[i]);
+        obbs[i] = OBB(dummy.getAABB(data.mpos[i]));
+        }
+
+    tree.buildTree(obbs, data.N);
+    free(obbs);
+    data.tree = GPUTree(tree);
+    }
+
 BOOST_AUTO_TEST_CASE( construction )
     {
     // parameters
@@ -51,6 +74,7 @@ BOOST_AUTO_TEST_CASE( construction )
     params.morientation[1] = o;
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
+    build_tree(params);
 
     // construct and check
     ShapeUnion<ShapeSphere> a(o, params);
@@ -104,6 +128,7 @@ BOOST_AUTO_TEST_CASE( non_overlap )
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
     params.ignore = 0;
+    build_tree(params);
 
     // create two identical dumbbells
     ShapeUnion<ShapeSphere> a(o_a, params);
@@ -176,6 +201,7 @@ BOOST_AUTO_TEST_CASE( overlapping_dumbbells )
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
     params.ignore = 0;
+    build_tree(params);
 
     // create two identical dumbbells
     ShapeUnion<ShapeSphere> a(o_a, params);

@@ -407,6 +407,15 @@ union_params<Shape> make_union_params(boost::python::list _members,
 
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
 
+    hpmc::detail::OBB *obbs;
+    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*result.N);
+    if (retval != 0)
+        {
+        throw std::runtime_error("Error allocating aligned OBB memory.");
+        }
+
+    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
+
     // extract member parameters, posistions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
     for (unsigned int i = 0; i < result.N; i++)
@@ -425,10 +434,18 @@ union_params<Shape> make_union_params(boost::python::list _members,
         Shape dummy(quat<Scalar>(), param);
         Scalar d = sqrt(dot(pos,pos));
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
+
+        obbs[i] = detail::OBB(dummy.getAABB(pos));
         }
 
     // set the diameter
     result.diameter = diameter;
+
+    // build tree and store GPU accessible version in parameter structure
+    OBBTree tree;
+    tree.buildTree(obbs, result.N);
+    free(obbs);
+    result.tree = GPUTree(tree);
 
     return result;
     }

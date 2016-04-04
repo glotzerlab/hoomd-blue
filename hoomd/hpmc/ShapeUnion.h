@@ -4,6 +4,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "ShapeSpheropolyhedron.h"
+#include "GPUTree.h"
 
 #ifndef __SHAPE_UNION_H__
 #define __SHAPE_UNION_H__
@@ -28,7 +29,7 @@ namespace detail
 {
 
 //! maximum number of constituent shapes
-const int MAX_MEMBERS=10;
+const int MAX_MEMBERS=128;
 
 //! Data structure for shape composed of a union of multiple shapes
 template<class Shape>
@@ -42,7 +43,7 @@ struct union_params : aligned_struct
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                              //   First bit is ignore overlaps, Second bit is ignore statistics
-
+    detail::GPUTree tree;                    //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
 } // end namespace detail
@@ -123,6 +124,46 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
+template<class Shape>
+DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
+                                             const ShapeUnion<Shape>& a,
+                                             const ShapeUnion<Shape>& b,
+                                             unsigned int cur_node_a,
+                                             unsigned int cur_node_b)
+    {
+    //! Param type of the member shapes
+    typedef typename Shape::param_type mparam_type;
+
+    // loop through shape of cur_node_a
+    for (unsigned int i= 0; i< hpmc::detail::OBB_NODE_CAPACITY; i++)
+        {
+        int ishape = a.members.tree.getParticle(cur_node_a, i);
+        if (ishape == -1) break;
+
+        const mparam_type& params_i = a.members.mparams[ishape];
+        const quat<Scalar> q_i = a.orientation * a.members.morientation[ishape];
+        Shape shape_i(q_i, params_i);
+
+        // loop through shapes of cur_node_b
+        for (unsigned int j= 0; j< hpmc::detail::OBB_NODE_CAPACITY; j++)
+            {
+            int jshape = b.members.tree.getParticle(cur_node_b, j);
+            if (jshape == -1) break;
+
+            const mparam_type& params_j = b.members.mparams[jshape];
+            const quat<Scalar> q_j = b.orientation * b.members.morientation[jshape];
+            vec3<Scalar> r_ij = vec3<Scalar>(dr) + rotate(b.orientation, b.members.mpos[jshape]) - rotate(a.orientation, a.members.mpos[ishape]);
+            Shape shape_j(q_j, params_j);
+            unsigned int err =0;
+            if (test_overlap(r_ij, shape_i, shape_j, err))
+                {
+                return true;
+                }
+            }
+        }
+    return false;
+    }
+
 //! ShapeUnion overlap test
 /*! \param r_ab vector from a to b: r_b - r_a
     \param a first shape
@@ -135,36 +176,88 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 
 template <class Shape >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                      const ShapeUnion<Shape>& a,
-                                      const ShapeUnion<Shape>& b,
-                                      unsigned int& err)
-    {
-    //! Param type of the member shapes
-    typedef typename Shape::param_type mparam_type;
-
+                                const ShapeUnion<Shape>& a,
+                                const ShapeUnion<Shape>& b,
+                                unsigned int& err)
+{
     vec3<Scalar> dr(r_ab);
 
-    bool result = false;
-    for (unsigned int i=0; i < a.members.N; i++)
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b =0;
+
+    unsigned int old_cur_node_a = UINT_MAX;
+    unsigned int old_cur_node_b = UINT_MAX;
+
+    unsigned int level_a = 0;
+    unsigned int level_b = 0;
+
+    hpmc::detail::OBB obb_a;
+    hpmc::detail::OBB obb_b;
+
+    while (cur_node_a < a.members.tree.getNumNodes() && cur_node_b < b.members.tree.getNumNodes())
         {
-        const mparam_type& params_i = a.members.mparams[i];
-        const quat<Scalar> q_i = a.orientation * a.members.morientation[i];
-        Shape shape_i(q_i, params_i);
-        for (unsigned int j=0; j < b.members.N; j++)
+        if (old_cur_node_a != cur_node_a)
             {
-            const mparam_type& params_j = b.members.mparams[j];
-            const quat<Scalar> q_j = b.orientation * b.members.morientation[j];
-            vec3<Scalar> r_ij = dr + rotate(b.orientation, b.members.mpos[j]) - rotate(a.orientation, a.members.mpos[i]);
-            Shape shape_j(q_j, params_j);
-            bool temp_result = test_overlap(r_ij, shape_i, shape_j, err);
-            if (temp_result == true)
-                {
-                result = true;
-                break;
-                }
+            obb_a = a.members.tree.getOBB(cur_node_a);
+            level_a = a.members.tree.getLevel(cur_node_a);
+
+            // rotate and translate a's obb into b's body frame
+            obb_a.affineTransform(conj(b.orientation)*a.orientation,
+                rotate(conj(b.orientation),-dr));
+            old_cur_node_a = cur_node_a;
             }
-        }
-    return result;
+        if (old_cur_node_b != cur_node_b)
+            {
+            obb_b = b.members.tree.getOBB(cur_node_b);
+            level_b = b.members.tree.getLevel(cur_node_b);
+            old_cur_node_b = cur_node_b;
+            }
+
+        if (detail::overlap(obb_a, obb_b))
+            {
+            if (a.members.tree.isLeaf(cur_node_a) && b.members.tree.isLeaf(cur_node_b))
+                {
+                if (test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b)) return true;
+                }
+            else
+                {
+                if (level_a < level_b)
+                    {
+                    if (a.members.tree.isLeaf(cur_node_a))
+                        {
+                        unsigned int end_node = cur_node_b;
+                        b.members.tree.advanceNode(end_node, true);
+                        if (test_subtree(dr, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b+1, end_node)) return true;
+                        }
+                    else
+                        {
+                        // descend into a's tree
+                        cur_node_a = a.members.tree.getLeftChild(cur_node_a);
+                        continue;
+                        }
+                    }
+                else
+                    {
+                    if (b.members.tree.isLeaf(cur_node_b))
+                        {
+                        unsigned int end_node = cur_node_a;
+                        a.members.tree.advanceNode(end_node, true);
+                        if (test_subtree(-dr, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a+1, end_node)) return true;
+                        }
+                    else
+                        {
+                        // descend into b's tree
+                        cur_node_b = b.members.tree.getLeftChild(cur_node_b);
+                        continue;
+                        }
+                    }
+                }
+            } // end if overlap
+
+        // move up in tandem fashion
+        detail::moveUp(a.members.tree, cur_node_a, b.members.tree, cur_node_b);
+        } // end while
+    return false;
     }
 
 } // end namespace hpmc

@@ -49,8 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include <hoomd/HOOMDMath.h>
-#include <hoomd/VectorMath.h>
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/AABB.h"
+
 #include <algorithm>
 
 #ifndef __OBB_H__
@@ -140,10 +142,34 @@ struct OBB
         center = _position;
         }
 
+    DEVICE OBB(const detail::AABB& aabb)
+        {
+        lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
+        center = aabb.getPosition();
+        }
+
+    //! Construct an OBB from an AABB
     //! Get the OBB's position
     DEVICE vec3<OverlapReal> getPosition() const
         {
         return center;
+        }
+
+    //! Get list of OBB corners
+    std::vector<vec3<OverlapReal> > getCorners() const
+        {
+        std::vector< vec3<OverlapReal> > corners(8);
+
+        rotmat3<OverlapReal> r(transpose(rotation));
+        corners[0] = center + r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
+        corners[1] = center - r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
+        corners[2] = center + r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
+        corners[3] = center - r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
+        corners[4] = center + r.row0*lengths.x + r.row1*lengths.y - r.row2*lengths.z;
+        corners[5] = center - r.row0*lengths.x + r.row1*lengths.y - r.row2*lengths.z;
+        corners[6] = center + r.row0*lengths.x - r.row1*lengths.y - r.row2*lengths.z;
+        corners[7] = center - r.row0*lengths.x - r.row1*lengths.y - r.row2*lengths.z;
+        return corners;
         }
 
     //! Rotate OBB, then translate the given vector
@@ -379,34 +405,6 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
     return res;
     }
-
-//! Merge two OBBs
-/*! \param obbs List of OBBs to merge
-    \returns A new OBB that encloses all OBBs
-*/
-DEVICE inline OBB merge(const std::vector<OBB>& obbs, OverlapReal vertex_radius)
-    {
-    unsigned int n = obbs.size();
-    std::vector<vec3<OverlapReal> > corners(8*n);
-
-    // construct OBB from corner points of the two OBBs
-    for (unsigned int i = 0; i < n; ++i)
-        {
-        const OBB& obb = obbs[i];
-        rotmat3<OverlapReal> r(transpose(obb.rotation));
-        corners[0+i*8] = obb.center + r.row0*obb.lengths.x + r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[1+i*8] = obb.center - r.row0*obb.lengths.x + r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[2+i*8] = obb.center + r.row0*obb.lengths.x - r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[3+i*8] = obb.center - r.row0*obb.lengths.x - r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[4+i*8] = obb.center + r.row0*obb.lengths.x + r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[5+i*8] = obb.center - r.row0*obb.lengths.x + r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[6+i*8] = obb.center + r.row0*obb.lengths.x - r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[7+i*8] = obb.center - r.row0*obb.lengths.x - r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        }
-
-    return compute_obb(corners, vertex_radius);
-    }
-
 #endif
 }; // end namespace detail
 
