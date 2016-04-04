@@ -200,6 +200,102 @@ class GPUTree
         unsigned int m_num_nodes;                                    //!< Number of nodes in the tree
     };
 
+//! Move up during a tandem traversal, alternating between trees a and b
+DEVICE inline void moveUp(const GPUTree& tree_a, unsigned int& cur_node_a, const GPUTree& tree_b, unsigned int& cur_node_b)
+    {
+    unsigned int level_a = tree_a.getLevel(cur_node_a);
+    unsigned int level_b = tree_b.getLevel(cur_node_b);
+
+    if (level_a == level_b)
+        {
+        bool a_is_left_child = tree_a.isLeftChild(cur_node_a);
+        bool b_is_left_child = tree_b.isLeftChild(cur_node_b);
+        if (a_is_left_child)
+            {
+            tree_a.advanceNode(cur_node_a, true);
+            return;
+            }
+        if (!a_is_left_child && b_is_left_child)
+            {
+            cur_node_a = tree_a.getParent(cur_node_a);
+            tree_b.advanceNode(cur_node_b, true);
+            return;
+            }
+        if (!a_is_left_child && !b_is_left_child)
+            {
+            unsigned int rcl_a = tree_a.getRCL(cur_node_a);
+            unsigned int rcl_b = tree_b.getRCL(cur_node_b);
+            if (rcl_a <= rcl_b)
+                {
+                tree_a.advanceNode(cur_node_a, true);
+                // LevelUp
+                while (rcl_a)
+                    {
+                    cur_node_b = tree_b.getParent(cur_node_b);
+                    rcl_a--;
+                    }
+                }
+            else
+                {
+                // LevelUp
+                rcl_b++;
+                while (rcl_b)
+                    {
+                    cur_node_a = tree_a.getParent(cur_node_a);
+                    rcl_b--;
+                    }
+                tree_b.advanceNode(cur_node_b, true);
+                }
+            return;
+            }
+        } // end if level_a == level_b
+    else
+        {
+        bool a_is_left_child = tree_a.isLeftChild(cur_node_a);
+        bool b_is_left_child = tree_b.isLeftChild(cur_node_b);
+
+        if (b_is_left_child)
+            {
+            tree_b.advanceNode(cur_node_b, true);
+            return;
+            }
+        if (a_is_left_child)
+            {
+            tree_a.advanceNode(cur_node_a, true);
+            cur_node_b = tree_b.getParent(cur_node_b);
+            return;
+            }
+        if (!a_is_left_child && !b_is_left_child)
+            {
+            unsigned int rcl_a = tree_a.getRCL(cur_node_a);
+            unsigned int rcl_b = tree_b.getRCL(cur_node_b);
+
+            if (rcl_a <= rcl_b-1)
+                {
+                tree_a.advanceNode(cur_node_a, true);
+                // LevelUp
+                rcl_a++;
+                while (rcl_a)
+                    {
+                    cur_node_b = tree_b.getParent(cur_node_b);
+                    rcl_a--;
+                    }
+                }
+            else
+                {
+                // LevelUp
+                while (rcl_b)
+                    {
+                    cur_node_a = tree_a.getParent(cur_node_a);
+                    rcl_b--;
+                    }
+                tree_b.advanceNode(cur_node_b, true);
+                }
+            return;
+            }
+        }
+    }
+
 }; // end namespace detail
 
 }; // end namespace hpmc

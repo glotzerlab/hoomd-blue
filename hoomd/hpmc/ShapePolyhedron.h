@@ -1097,6 +1097,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         }
                     else
                         {
+                        // descend into a's tree
                         cur_node_a = a.tree.getLeftChild(cur_node_a);
                         continue;
                         }
@@ -1111,6 +1112,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         }
                     else
                         {
+                        // descend into b's tree
                         cur_node_b = b.tree.getLeftChild(cur_node_b);
                         continue;
                         }
@@ -1126,94 +1128,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             }
         #endif
 
-        if (level_a == level_b)
-            {
-            bool a_is_left_child = a.tree.isLeftChild(cur_node_a);
-            bool b_is_left_child = b.tree.isLeftChild(cur_node_b);
-            if (a_is_left_child)
-                {
-                a.tree.advanceNode(cur_node_a, true);
-                continue;
-                }
-            if (!a_is_left_child && b_is_left_child)
-                {
-                cur_node_a = a.tree.getParent(cur_node_a);
-                b.tree.advanceNode(cur_node_b, true);
-                continue;
-                }
-            if (!a_is_left_child && !b_is_left_child)
-                {
-                unsigned int rcl_a = a.tree.getRCL(cur_node_a);
-                unsigned int rcl_b = b.tree.getRCL(cur_node_b);
-                if (rcl_a <= rcl_b)
-                    {
-                    a.tree.advanceNode(cur_node_a, true);
-                    // LevelUp
-                    while (rcl_a)
-                        {
-                        cur_node_b = b.tree.getParent(cur_node_b);
-                        rcl_a--;
-                        }
-                    }
-                else
-                    {
-                    // LevelUp
-                    rcl_b++;
-                    while (rcl_b)
-                        {
-                        cur_node_a = a.tree.getParent(cur_node_a);
-                        rcl_b--;
-                        }
-                    b.tree.advanceNode(cur_node_b, true);
-                    }
-                continue;
-                }
-            } // end if level_a == level_b
-        else
-            {
-            bool a_is_left_child = a.tree.isLeftChild(cur_node_a);
-            bool b_is_left_child = b.tree.isLeftChild(cur_node_b);
-
-            if (b_is_left_child)
-                {
-                b.tree.advanceNode(cur_node_b, true);
-                continue;
-                }
-            if (a_is_left_child)
-                {
-                a.tree.advanceNode(cur_node_a, true);
-                cur_node_b = b.tree.getParent(cur_node_b);
-                continue;
-                }
-            if (!a_is_left_child && !b_is_left_child)
-                {
-                unsigned int rcl_a = a.tree.getRCL(cur_node_a);
-                unsigned int rcl_b = b.tree.getRCL(cur_node_b);
-
-                if (rcl_a <= rcl_b-1)
-                    {
-                    a.tree.advanceNode(cur_node_a, true);
-                    // LevelUp
-                    rcl_a++;
-                    while (rcl_a)
-                        {
-                        cur_node_b = b.tree.getParent(cur_node_b);
-                        rcl_a--;
-                        }
-                    }
-                else
-                    {
-                    // LevelUp
-                    while (rcl_b)
-                        {
-                        cur_node_a = a.tree.getParent(cur_node_a);
-                        rcl_b--;
-                        }
-                    b.tree.advanceNode(cur_node_b, true);
-                    }
-                continue;
-                }
-            }
+        // move up in tandem
+        detail::moveUp(a.tree, cur_node_a, b.tree, cur_node_b);
         } // end while
 
     // no intersecting edge, check if one polyhedron is contained in the other
