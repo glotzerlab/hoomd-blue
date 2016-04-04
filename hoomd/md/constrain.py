@@ -448,8 +448,12 @@ class rigid(_constraint_force):
     def set_auto_create(self,create):
         self.create_rigid_bodies = bool(create)
 
+    ## Create copies of rigid bodies
+    def create_bodies(self,create=True):
+        self.cpp_force.validateRigidBodies(create)
+
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):
         # validate copies of rigid bodies
-        self.cpp_force.validateRigidBodies(self.create_rigid_bodies)
+        self.create_bodies(self.create_rigid_bodies)
