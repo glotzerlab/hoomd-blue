@@ -177,7 +177,7 @@ struct ExecutionConfiguration : boost::noncopyable
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
 
     //! Check for cuda errors
-    void checkCUDAError(const char *file, unsigned int line) const;
+    inline void checkCUDAError(const char *file, unsigned int line) const;
 #endif
 
     //! Return the rank of this processor in the partition
