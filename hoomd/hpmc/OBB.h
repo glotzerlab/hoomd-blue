@@ -87,30 +87,6 @@ namespace detail
     @{
 */
 
-//! Matrix vector multiplication
-/*! \param A matrix
-    \param B matrix
-    \returns A*b
-
-    Multiplication is matrix multiplication, where the vector is represented as a column vector.
-*/
-template < class Real >
-DEVICE inline rotmat3<Real> operator*(const rotmat3<Real>& A, const rotmat3<Real>& B)
-    {
-    rotmat3<OverlapReal> r;
-    rotmat3<OverlapReal> B_t = transpose(B);
-    r.row0.x = dot(A.row0,B_t.row0);
-    r.row0.y = dot(A.row0,B_t.row1);
-    r.row0.z = dot(A.row0,B_t.row2);
-    r.row1.x = dot(A.row1,B_t.row0);
-    r.row1.y = dot(A.row1,B_t.row1);
-    r.row1.z = dot(A.row1,B_t.row2);
-    r.row2.x = dot(A.row2,B_t.row0);
-    r.row2.y = dot(A.row2,B_t.row1);
-    r.row2.z = dot(A.row2,B_t.row2);
-    return r;
-    }
-
 //! Axis aligned bounding box
 /*! An OBB represents a bounding volume defined by an axis-aligned bounding box. It is stored as plain old data
     with a lower and upper bound. This is to make the most common operation of OBB overlap testing fast.
@@ -201,7 +177,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b)
     t = transpose(a.rotation)*t;
 
     // compute common subexpressions. Add in epsilon term to counteract
-    // arithmetic errors when two edges are parallel and teir cross prodcut is (near) null
+    // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
     const OverlapReal eps(1e-3); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
