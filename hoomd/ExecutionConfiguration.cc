@@ -394,7 +394,9 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
-    checkCUDAError(__FILE__, __LINE__);
+
+    cudaError_t err_sync = cudaGetLastError();
+    handleCUDAError(err_sync, __FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
