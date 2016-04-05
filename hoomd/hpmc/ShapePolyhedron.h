@@ -1067,7 +1067,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         {
                         unsigned int end_node = cur_node_b;
                         b.tree.advanceNode(end_node, true);
-                        if (test_subtree(dr, a, b, a.tree, b.tree, cur_node_a, cur_node_b+1, end_node)) return true;
+                        if (test_subtree(dr, a, b, a.tree, b.tree, cur_node_a, cur_node_b, end_node)) return true;
                         }
                     else
                         {
@@ -1082,7 +1082,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                         {
                         unsigned int end_node = cur_node_a;
                         a.tree.advanceNode(end_node, true);
-                        if (test_subtree(-dr, b, a, b.tree, a.tree, cur_node_b, cur_node_a+1, end_node)) return true;
+                        if (test_subtree(-dr, b, a, b.tree, a.tree, cur_node_b, cur_node_a, end_node)) return true;
                         }
                     else
                         {
