@@ -39,9 +39,9 @@ void set_radius(poly3d_data& data)
     data.verts.diameter = 2*(sqrt(radius_sq)+data.verts.sweep_radius);
     }
 
-hpmc::detail::GPUTree build_tree(poly3d_data &data)
+ShapePolyhedron::gpu_tree_type build_tree(poly3d_data &data)
     {
-    hpmc::detail::OBBTree tree;
+    ShapePolyhedron::gpu_tree_type::obb_tree_type tree;
     hpmc::detail::OBB *obbs;
     int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.n_faces);
     if (retval != 0)
@@ -64,7 +64,7 @@ hpmc::detail::GPUTree build_tree(poly3d_data &data)
         internal_coordinates.push_back(face_vec);
         }
     tree.buildTree(obbs, internal_coordinates, data.verts.sweep_radius, data.n_faces);
-    GPUTree gpu_tree(tree);
+    ShapePolyhedron::gpu_tree_type gpu_tree(tree);
     free(obbs);
     return gpu_tree;
     }

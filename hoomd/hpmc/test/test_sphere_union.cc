@@ -26,7 +26,7 @@ unsigned int err_count;
 template<class Shape>
 void build_tree(union_params<Shape>& data)
     {
-    hpmc::detail::OBBTree tree;
+    union_gpu_tree_type::obb_tree_type tree;
     hpmc::detail::OBB *obbs;
     int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.N);
     if (retval != 0)
@@ -43,7 +43,7 @@ void build_tree(union_params<Shape>& data)
 
     tree.buildTree(obbs, data.N);
     free(obbs);
-    data.tree = GPUTree(tree);
+    data.tree = union_gpu_tree_type(tree);
     }
 
 BOOST_AUTO_TEST_CASE( construction )

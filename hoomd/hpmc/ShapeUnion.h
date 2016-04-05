@@ -31,6 +31,14 @@ namespace detail
 //! maximum number of constituent shapes
 const int MAX_MEMBERS=128;
 
+//! Maximum number of nodes in OBB tree
+const unsigned int MAX_UNION_NODES=64;
+
+//! Maximum number of spheres per leaf node
+const unsigned int MAX_UNION_CAPACITY=8;
+
+typedef GPUTree<MAX_UNION_NODES,MAX_UNION_CAPACITY> union_gpu_tree_type;
+
 //! Data structure for shape composed of a union of multiple shapes
 template<class Shape>
 struct union_params : aligned_struct
@@ -43,7 +51,7 @@ struct union_params : aligned_struct
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                              //   First bit is ignore overlaps, Second bit is ignore statistics
-    detail::GPUTree tree;                    //!< OBB tree for constituent shapes
+    union_gpu_tree_type tree;                //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
 } // end namespace detail
@@ -135,7 +143,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     typedef typename Shape::param_type mparam_type;
 
     // loop through shape of cur_node_a
-    for (unsigned int i= 0; i< hpmc::detail::OBB_NODE_CAPACITY; i++)
+    for (unsigned int i= 0; i< detail::union_gpu_tree_type::capacity; i++)
         {
         int ishape = a.members.tree.getParticle(cur_node_a, i);
         if (ishape == -1) break;
@@ -145,7 +153,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         Shape shape_i(q_i, params_i);
 
         // loop through shapes of cur_node_b
-        for (unsigned int j= 0; j< hpmc::detail::OBB_NODE_CAPACITY; j++)
+        for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
             {
             int jshape = b.members.tree.getParticle(cur_node_b, j);
             if (jshape == -1) break;

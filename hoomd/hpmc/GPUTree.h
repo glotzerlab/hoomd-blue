@@ -3,9 +3,6 @@
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
 
-//! Max number of nodes that can be stored in this structure
-#define GPU_TREE_MAX_NODES 64
-
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
@@ -21,9 +18,16 @@ namespace detail
 {
 
 //! Adapter class to AABTree for query on the GPU
+template<unsigned int max_nodes, unsigned int node_capacity>
 class GPUTree
     {
     public:
+        #ifndef NVCC
+        typedef OBBTree<node_capacity> obb_tree_type;
+        #endif
+
+        enum { capacity = node_capacity } Enum;
+
         //! Empty constructor
         GPUTree()
             : m_num_nodes(0)
@@ -33,9 +37,9 @@ class GPUTree
         //! Constructor
         /*! \param tree OBBTree to construct from
          */
-        GPUTree(const OBBTree &tree)
+        GPUTree(const obb_tree_type &tree)
             {
-            if (tree.getNumNodes() >= GPU_TREE_MAX_NODES)
+            if (tree.getNumNodes() >= max_nodes)
                 {
                 throw std::runtime_error("GPUTree: Too many nodes.");
                 }
@@ -50,15 +54,15 @@ class GPUTree
                 m_rotation[i] = tree.getNodeOBB(i).rotation;
                 m_lengths[i] = tree.getNodeOBB(i).lengths;
 
-               for (unsigned int j = 0; j < OBB_NODE_CAPACITY; ++j)
+               for (unsigned int j = 0; j < capacity; ++j)
                     {
                     if (j < tree.getNodeNumParticles(i))
                         {
-                        m_particles[i*OBB_NODE_CAPACITY+j] = tree.getNodeParticle(i,j);
+                        m_particles[i*capacity+j] = tree.getNodeParticle(i,j);
                         }
                     else
                         {
-                        m_particles[i*OBB_NODE_CAPACITY+j] = -1;
+                        m_particles[i*capacity+j] = -1;
                         }
                     }
                 }
@@ -81,7 +85,7 @@ class GPUTree
          *
          * \param obb Query bounding box
          * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
-         * \param particles List of particles returned (array of at least OBB_NODE_CAPACITY length), -1 means no particle
+         * \param particles List of particles returned (array of at least capacity length), -1 means no particle
          * \returns true if the current node overlaps and is a leaf node
          */
         DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node, int *particles) const
@@ -94,8 +98,8 @@ class GPUTree
                 // is this node a leaf node?
                 if (m_left[cur_node] == INVALID_NODE)
                     {
-                    for (unsigned int i = 0; i < OBB_NODE_CAPACITY; i++)
-                        particles[i] = m_particles[cur_node*OBB_NODE_CAPACITY+i];
+                    for (unsigned int i = 0; i < capacity; i++)
+                        particles[i] = m_particles[cur_node*capacity+i];
                     leaf = true;
                     }
                 }
@@ -120,7 +124,7 @@ class GPUTree
 
         DEVICE inline int getParticle(unsigned int node, unsigned int i) const
             {
-            return m_particles[node*OBB_NODE_CAPACITY+i];
+            return m_particles[node*capacity+i];
             }
 
         DEVICE inline unsigned int getLevel(unsigned int node) const
@@ -165,7 +169,7 @@ class GPUTree
 
     protected:
         #ifndef NVCC
-        void updateRCL(unsigned int idx, const OBBTree& tree, unsigned int level, bool left,
+        void updateRCL(unsigned int idx, const obb_tree_type& tree, unsigned int level, bool left,
              unsigned int parent_idx, unsigned int rcl)
             {
             if (!isLeaf(idx))
@@ -184,29 +188,29 @@ class GPUTree
         #endif
 
     private:
-        vec3<OverlapReal> m_center[GPU_TREE_MAX_NODES];
-        vec3<OverlapReal> m_lengths[GPU_TREE_MAX_NODES];
-        rotmat3<OverlapReal> m_rotation[GPU_TREE_MAX_NODES];
+        vec3<OverlapReal> m_center[max_nodes];
+        vec3<OverlapReal> m_lengths[max_nodes];
+        rotmat3<OverlapReal> m_rotation[max_nodes];
 
-        unsigned int m_level[GPU_TREE_MAX_NODES];              //!< Depth
-        bool m_isleft[GPU_TREE_MAX_NODES];                     //!< True if this node is a left node
-        unsigned int m_parent[GPU_TREE_MAX_NODES];             //!< Pointer to parent
-        unsigned int m_rcl[GPU_TREE_MAX_NODES];                //!< Right child level
+        unsigned int m_level[max_nodes];              //!< Depth
+        bool m_isleft[max_nodes];                     //!< True if this node is a left node
+        unsigned int m_parent[max_nodes];             //!< Pointer to parent
+        unsigned int m_rcl[max_nodes];                //!< Right child level
 
-        int m_particles[GPU_TREE_MAX_NODES*OBB_NODE_CAPACITY];          //!< Stores the nodes' indices
+        int m_particles[max_nodes*node_capacity];     //!< Stores the nodes' indices
 
-        unsigned int m_left[GPU_TREE_MAX_NODES];                    //!< Left nodes
-        unsigned int m_skip[GPU_TREE_MAX_NODES];                    //!< Skip intervals
-        unsigned int m_num_nodes;                                    //!< Number of nodes in the tree
+        unsigned int m_left[max_nodes];               //!< Left nodes
+        unsigned int m_skip[max_nodes];               //!< Skip intervals
+        unsigned int m_num_nodes;                     //!< Number of nodes in the tree
     };
 
 //! Test a subtree against a leaf node during a tandem traversal
-template<class Shape>
+template<class Shape, class Tree>
 DEVICE inline bool test_subtree(const vec3<OverlapReal>& r_ab,
                                 const Shape& s0,
                                 const Shape& s1,
-                                const GPUTree& tree_a,
-                                const GPUTree& tree_b,
+                                const Tree& tree_a,
+                                const Tree& tree_b,
                                 unsigned int leaf_node,
                                 unsigned int cur_node,
                                 unsigned int end_idx)
@@ -242,7 +246,8 @@ DEVICE inline bool test_subtree(const vec3<OverlapReal>& r_ab,
 /*! Adapted from: "Stackless BVH Collision Detection for Physical Simulation" by
     Jesper Damkjaer, damkjaer@diku.edu, http://image.diku.dk/projects/media/jesper.damkjaer.07.pdf
  */
-DEVICE inline void moveUp(const GPUTree& tree_a, unsigned int& cur_node_a, const GPUTree& tree_b, unsigned int& cur_node_b)
+template<class Tree>
+DEVICE inline void moveUp(const Tree& tree_a, unsigned int& cur_node_a, const Tree& tree_b, unsigned int& cur_node_b)
     {
     unsigned int level_a = tree_a.getLevel(cur_node_a);
     unsigned int level_b = tree_b.getLevel(cur_node_b);

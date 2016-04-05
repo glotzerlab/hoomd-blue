@@ -239,9 +239,9 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
         internal_coordinates.push_back(face_vec);
         }
 
-    OBBTree tree;
+    ShapePolyhedron::gpu_tree_type::obb_tree_type tree;
     tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
-    result.tree = GPUTree(tree);
+    result.tree = ShapePolyhedron::gpu_tree_type(tree);
     free(obbs);
 
     // set the diameter
@@ -442,10 +442,10 @@ union_params<Shape> make_union_params(boost::python::list _members,
     result.diameter = diameter;
 
     // build tree and store GPU accessible version in parameter structure
-    OBBTree tree;
+    detail::union_gpu_tree_type::obb_tree_type tree;
     tree.buildTree(obbs, result.N);
     free(obbs);
-    result.tree = GPUTree(tree);
+    result.tree = detail::union_gpu_tree_type(tree);
 
     return result;
     }
