@@ -110,7 +110,7 @@ struct ShapeUnion
 
     quat<Scalar> orientation;    //!< Orientation of the particle
 
-    const param_type members;     //!< member data
+    const param_type& members;     //!< member data
     };
 
 //! Check if circumspheres overlap
