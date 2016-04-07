@@ -394,7 +394,7 @@ class rigid(_constraint_force):
         type_vec = _hoomd.std_vector_uint()
         for t in types:
             if t not in type_list:
-                hoomd.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
+                hoomd.context.msg.error('Type ''{}'' not found.\n'.format(t))
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
             constituent_type_id = type_list.index(t)
 
