@@ -118,7 +118,7 @@ endif (ENABLE_CUDA)
 add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

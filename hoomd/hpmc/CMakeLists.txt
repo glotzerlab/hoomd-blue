@@ -42,7 +42,7 @@ endif (ENABLE_CUDA)
 add_library (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_hpmc ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hpmc _hoomd ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -68,7 +68,7 @@ fix_cudart_rpath(_hpmc)
 
 # install the library
 install(TARGETS _hpmc
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
         )
 
 ################ Python only modules
