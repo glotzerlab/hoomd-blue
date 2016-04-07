@@ -334,13 +334,6 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
         }
     }
 
-void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
-    {
-    cudaThreadSynchronize();
-    cudaError_t err = cudaGetLastError();
-    handleCUDAError(err, file, line);
-    }
-
 /*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
     \param min_cpu If set to true, the cudaDeviceBlockingSync device flag is set
 
@@ -401,7 +394,9 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
-    checkCUDAError(__FILE__, __LINE__);
+
+    cudaError_t err_sync = cudaGetLastError();
+    handleCUDAError(err_sync, __FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
