@@ -205,6 +205,66 @@ Note: Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc an
 
 For more information, see: https://portal.tacc.utexas.edu/user-guides/stampede
 
+\b STFC \b DiRAC \b Cambridge \b Darwin and \b Wilkes:
+
+If you are running on Darwin and will not be using GPUs:
+~~~~
+. /etc/profile.d/modules.sh
+module purge
+module load default-impi
+module load cmake
+module load python/2.7.10
+module load boost/1.60/gcc-5.2.0-python-2.7.10
+
+export CC=`which gcc`
+export CXX=`which c++`
+export SOFTWARE_ROOT=/scratch/$USER/software
+~~~~
+
+To build, include the following additional `cmake` options.
+~~~~
+-DPYTHON_EXECUTABLE=`which python` \
+-DBOOST_ROOT=$BOOST_HOME \
+-DENABLE_MPI=ON \
+-DBOOST_LIBRARYDIR=${BOOST_HOME}/lib \
+-DBoost_REALPATH=ON \
+-DMPIEXEC=`which mpirun`
+~~~~
+
+If you are running on Wilkes, you will need to include CUDA support:
+
+~~~~
+. /etc/profile.d/modules.sh
+module purge
+module load default-impi
+module load cmake
+module load gcc/4.9.2
+module load python/2.7.5
+module load boost/1.55/boost_1.55.0-gcc-python_2.7.5
+module load cuda
+
+export CC=`which gcc`
+export CXX=`which c++`
+export SOFTWARE_ROOT=/scratch/$USER/software
+~~~~
+
+To build, include the following additional `cmake` options.
+
+~~~~
+-DPYTHON_EXECUTABLE=`which python` \
+-DHOOMD_PYTHON_LIBRARY=/usr/local/Cluster-Apps/python/2.7.5/lib64/libpython2.7.so \
+-DBOOST_ROOT=$BOOST_HOME \
+-DENABLE_MPI=ON \
+-DBOOST_LIBRARYDIR=${BOOST_HOME}/lib \
+-DBoost_REALPATH=ON \
+-DMPIEXEC=`which mpirun`
+~~~~
+
+Note that the Darwin and Wilkes clusters have the same software environment
+and shared filesystems, so you can build for Wilkes and use on Darwin.
+However, as of March 2016, module incompatibilities necessitate older modules
+and a quirk in the python installation requires explicitly setting the `libpython` location.
+
 \subsection sec_building_boost Building boost on clusters
 
 Not all clusters have a functioning boost::python library. On these systems, you will need to build your own boost
