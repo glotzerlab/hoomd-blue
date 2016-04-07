@@ -92,7 +92,7 @@ be loaded on the compute nodes with minimal file system impact. On many clusters
 without warning if you launch hoomd from $HOME.
 
 \b NCSA \b Blue waters:
-```
+~~~~
 module unload boost
 module unload cmake
 module load bwpy
@@ -100,7 +100,7 @@ export SOFTWARE_ROOT=${HOME}
 export CPATH="${BWPY_DIR}/usr/include"
 export LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
 export LD_LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
-```
+~~~~
 
 You must specify BOOST_ROOT manually on the cmake command line. You can select python2 or python3.
 ``cmake ~/hoomd -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=$HOME/hoomd-install``
@@ -108,7 +108,7 @@ You must specify BOOST_ROOT manually on the cmake command line. You can select p
 To run hoomd on blue waters, set PYTHONPATH=$PYTHONPATH:$HOME/hoomd-install/lib/hoomd/python-module, and run `ibrun <ibrun parameters> python3 script.py`.
 
 \b OLCF \b Titan:
-```
+~~~~
 module unload PrgEnv-pgi
 module load PrgEnv-gnu
 module load cmake/2.8.11.2
@@ -121,13 +121,13 @@ module load boost/1.60.0
 module unload gcc/4.9.0
 module load gcc/4.9.0
 export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/titan
-```
+~~~~
 
 For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/titan-user-guide/
 
 \b OLCF \b Eos:
 
-```
+~~~~
 module unload PrgEnv-intel
 module load PrgEnv-gnu
 module load cmake
@@ -142,7 +142,7 @@ module load gcc/4.9.0
 
 export CC="cc -dynamic"
 export CXX="CC -dynamic"
-```
+~~~~
 
 For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/eos-user-guide/
 
@@ -190,7 +190,7 @@ module load python/2.7.9
 
 export CC=`which icc`
 export CXX=`which icpc`
-export $SOFTWARE_ROOT=${WORK}/software
+export SOFTWARE_ROOT=${WORK}/software
 ~~~~~
 
 Stampede's boost module does not include boost::python, you need to build boost: see \ref sec_building_boost.
