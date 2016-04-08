@@ -13,14 +13,7 @@ if (Boost_MINOR_VERSION GREATER 59)
 list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 endif ()
 
-# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
-if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
 add_definitions(-DBOOST_TEST_DYN_LINK)
-endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-
-if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-add_definitions(-DBOOST_TEST_DYN_LINK)
-endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
 ####################################
 ## Setup valgrind options
