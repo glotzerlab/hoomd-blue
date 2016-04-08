@@ -615,6 +615,9 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     // request body ids
     flags[comm_flag::body] = 1;
 
+    // we need central particle images
+    flags[comm_flag::image] = 1;
+
     flags |= MolecularForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
