@@ -175,9 +175,6 @@ struct ExecutionConfiguration : boost::noncopyable
 
     //! Handle cuda error message
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
-
-    //! Check for cuda errors
-    void checkCUDAError(const char *file, unsigned int line) const;
 #endif
 
     //! Return the rank of this processor in the partition
@@ -292,15 +289,16 @@ private:
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
-#define CHECK_CUDA_ERROR() this->m_exec_conf->checkCUDAError(__FILE__, __LINE__);
-
-inline void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
-    {
-    cudaError_t err_sync = cudaGetLastError();
-    handleCUDAError(err_sync, file, line);
-    cudaError_t err_async = cudaDeviceSynchronize();
-    handleCUDAError(err_async, file, line);
+#ifdef ENABLE_CUDA
+#define CHECK_CUDA_ERROR() { \
+    cudaError_t err_sync = cudaGetLastError(); \
+    this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
+    cudaError_t err_async = cudaDeviceSynchronize(); \
+    this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
     }
+#else
+#define CHECK_CUDA_ERROR()
+#endif
 
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();

@@ -1,10 +1,5 @@
 # Maintainer: joaander
 
-option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-if (ENABLE_HPMC_MIXED_PRECISION)
-    add_definitions(-DENABLE_HPMC_MIXED_PRECISION)
-endif()
-
 option(ENABLE_HPMC_SPHINX_GPU "Enable sphinx on the GPU" OFF)
 if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
