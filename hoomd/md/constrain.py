@@ -339,13 +339,55 @@ class distance(_constraint_force):
 
 ## Constrain rigid bodies
 #
+# Combine particles into rigid bodies. Rigid bodies are defined by a single central particle, and a number of constituent
+# particles. The type of a particle determines whether it is a central particle or not. For central particle types,
+# the parameters passed to constrain.rigid() specify which constituent particle types and positions are associated with it.
+#
+# The system is initialized with the central particles only, and the constituent particles are created automatically
+# around every central particle at the first run() command. This behavior can be controlled by rigid.set_auto_create().
+#
+# Example for defining a cylindrical rigid body of two constituent particles of type 'const' and a central particle of
+# type 'central':
+#
+# \code
+# # create the constituent particle type
+# system.particles.types.add('const')
+# # define the rigid body type
+# rigid = md.constrain.rigid()
+# rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
+# # .. create pair.lj() ..
+# # create constituent particles and run
+# run(100)
+# \endcode
+#
+# In this example, only particles of type 'central' are assumed to exist already, whereas the constituent particles
+# will be created with the run() command. Multiple, subsequent run()'s are supported, and the particles won't be duplicated
+# once created.
+#
+# \note Automatic creation of constituent particles can change particle tags. If bonds have been defined between particles
+# in the startup file, or bonds connect to constituent particles, rigid bodies should be created manually.
+#
+# Example with manual initialization of constituent particles.
+# \code
+# # intialize system, including constituent particles and some bonds
+# system = init.read_xml('init.xml')
+# rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
+# rigid.set_auto_create(False)
+# run(100)
+# \endcode
+#
+# \note If you choose to create the constituent particles manually, a strict order of the central particles and the
+# constituent particles must be followed. The central particle has the lowest tag in the rigid body and a body index identical to its
+# particle tag. Constituent particles follow in the same order they are defined using rigid.set_param(), with monotically
+# increasing tags.
+#
 # \MPI_SUPPORTED
 class rigid(_constraint_force):
     ## Specify rigid body constraints
     #
     # \b Examples:
     # \code
-    # constrain.rigid()
+    # rigid = constrain.rigid()
     # \endcode
     def __init__(self):
         hoomd.util.print_status_line();
@@ -374,6 +416,17 @@ class rigid(_constraint_force):
     # \param charge List of charges of constituent particles (**optional**)
     # \param diameters List of diameters of constituent particles (**optional**)
     #
+    # \note The constituent particle type must be existant.
+    # If it does not exist, it can be created on the fly using
+    # \code system.particles.types.add('A_const') \endcode
+    # See also \link hoomd_script.data data access\endlink.
+    #
+    # Example:
+    # \code
+    # rigid = constrain.rigd()
+    # rigid.set_param('A', types = ['A_const', 'A_const'], positions = [(0,0,1),(0,0,-1)])
+    # rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
+    # \endcode
     def set_param(self,type_name, types, positions, orientations=None, charges=None, diameters=None):
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
