@@ -81,6 +81,9 @@ std::string hoomd_compile_flags()
     o << "SINGLE ";
     #else
     o << "DOUBLE ";
+    #ifdef ENABLE_HPMC_MIXED_PRECISION
+    o << "HPMC_MIXED ";
+    #endif
     #endif
 
     #ifdef ENABLE_MPI
