@@ -169,6 +169,7 @@ void gpu_exchange_ghosts_pack(
     const uint2 *d_ghost_idx_adj,
     const unsigned int *d_tag,
     const Scalar4 *d_pos,
+    const int3* d_img,
     const Scalar4 *d_vel,
     const Scalar *d_charge,
     const Scalar *d_diameter,
@@ -180,6 +181,7 @@ void gpu_exchange_ghosts_pack(
     Scalar *d_charge_sendbuf,
     Scalar *d_diameter_sendbuf,
     unsigned int *d_body_sendbuf,
+    int3 *d_img_sendbuf,
     Scalar4 *d_orientation_sendbuf,
     bool send_tag,
     bool send_pos,
@@ -205,6 +207,7 @@ void gpu_exchange_ghosts_copy_buf(
     const Scalar *d_charge_recvbuf,
     const Scalar *d_diameter_recvbuf,
     const unsigned int *d_body_recvbuf,
+    const int3 *d_image_recvbuf,
     const Scalar4 *d_orientation_recvbuf,
     unsigned int *d_tag,
     Scalar4 *d_pos,
@@ -212,6 +215,7 @@ void gpu_exchange_ghosts_copy_buf(
     Scalar *d_charge,
     Scalar *d_diameter,
     unsigned int *d_body,
+    int3 *d_image,
     Scalar4 *d_orientation,
     bool send_tag,
     bool send_pos,
@@ -219,6 +223,7 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_charge,
     bool send_diameter,
     bool send_body,
+    bool send_image,
     bool send_orientation);
 
 //! Compute ghost rtags
