@@ -189,6 +189,7 @@ void gpu_exchange_ghosts_pack(
     bool send_charge,
     bool send_diameter,
     bool send_body,
+    bool send_image,
     bool send_orientation,
     const Index3D& di,
     uint3 my_pos,

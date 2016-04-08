@@ -892,6 +892,7 @@ void gpu_exchange_ghosts_pack(
     bool send_charge,
     bool send_diameter,
     bool send_body,
+    bool send_image,
     bool send_orientation,
     const Index3D &di,
     uint3 my_pos,
@@ -900,7 +901,7 @@ void gpu_exchange_ghosts_pack(
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
     if (send_tag) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_tag, d_tag_sendbuf);
-    if (send_pos) gpu_pack_wrap_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_pos, d_img, d_pos_sendbuf, d_img_sendbuf, di, my_pos, box);
+    if (send_pos) gpu_pack_wrap_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_pos, send_image ? d_img : 0, d_pos_sendbuf, d_img_sendbuf, di, my_pos, box);
     if (send_vel) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_vel, d_vel_sendbuf);
     if (send_charge) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_charge, d_charge_sendbuf);
     if (send_diameter) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_diameter, d_diameter_sendbuf);
