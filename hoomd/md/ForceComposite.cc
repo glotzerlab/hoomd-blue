@@ -529,13 +529,6 @@ void ForceComposite::validateRigidBodies(bool create)
 
             // re-initialize, keeping particles with body != NO_BODY at this time
             m_pdata->initializeFromSnapshot(snap_out, false);
-
-            #ifdef ENABLE_MPI
-            if (m_pdata->getDomainDecomposition())
-                {
-                bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
-                }
-            #endif
             }
         else
             {
@@ -564,6 +557,13 @@ void ForceComposite::validateRigidBodies(bool create)
                     }
                 }
             }
+
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+            }
+        #endif
 
         // resize GPU table
         m_molecule_tag.resize(molecule_tag.size());
