@@ -112,6 +112,7 @@ struct comm_flag
         velocity,    //! Bit id in CommFlags for particle velocity
         orientation, //! Bit id in CommFlags for particle orientation
         body,        //! Bit id in CommFlags for particle body id
+        image,       //! Bit id in CommFlags for particle image
         net_force,   //! Communicate net force
         net_torque,  //! Communicate net torque
         net_virial   //! Communicate net virial
@@ -647,6 +648,7 @@ class Communicator
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
         GPUVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied
+        GPUVector<int3> m_image_copybuf;          //!< Buffer for particle body ids to be copied
         GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
         GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans

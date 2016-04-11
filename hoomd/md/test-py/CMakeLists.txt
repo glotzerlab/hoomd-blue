@@ -103,7 +103,6 @@ SET(EXCLUDE_FROM_MPI
     test_constrain_distance
     test_force_active
     test_update_ellipsoid
-    test_update_rescale_temp
     )
 
 if (ENABLE_MPI)

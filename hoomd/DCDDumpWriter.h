@@ -116,10 +116,6 @@ class DCDDumpWriter : public Analyzer
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
         void setUnwrapRigid(bool enable)
             {
-            if (enable)
-                {
-                throw std::runtime_error("DCDDumpWriter: unwrap_rigid unsupported.\n");
-                }
             m_unwrap_rigid = enable;
             }
 

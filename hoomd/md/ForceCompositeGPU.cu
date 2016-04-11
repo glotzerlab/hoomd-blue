@@ -613,23 +613,24 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     vec3<Scalar> pos(postype);
     quat<Scalar> orientation(d_orientation[central_idx]);
 
-    unsigned int type = __scalar_as_int(postype.w);
+    unsigned int body_type = __scalar_as_int(postype.w);
 
     int3 img = d_image[central_idx];
     unsigned int tag = d_tag[idx];
 
-    vec3<Scalar> local_pos(d_body_pos[body_indexer(type, tag - central_tag - 1)]);
+    vec3<Scalar> local_pos(d_body_pos[body_indexer(body_type, tag - central_tag - 1)]);
     vec3<Scalar> dr_space = rotate(orientation, local_pos);
 
     vec3<Scalar> updated_pos(pos);
     updated_pos += dr_space;
 
-    quat<Scalar> local_orientation(d_body_orientation[body_indexer(type, tag - central_tag - 1)]);
+    quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, tag - central_tag - 1)]);
     quat<Scalar> updated_orientation = orientation*local_orientation;
 
     int3 imgi = img;
     box.wrap(updated_pos, imgi);
-    d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, postype.w);
+    unsigned int type = __scalar_as_int(d_postype[idx].w);
+    d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
     d_image[idx] = imgi;
     }
 

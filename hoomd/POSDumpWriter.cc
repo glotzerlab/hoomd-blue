@@ -179,6 +179,21 @@ void POSDumpWriter::analyze(unsigned int timestep)
 
         vec3<Scalar> tmp_pos = pos;
 
+        if (m_unwrap_rigid && snap.body[j] != NO_BODY)
+            {
+            unsigned int central_ptl_tag = snap.body[j];
+            assert(central_ptl_tag < snap.size());
+            int body_ix = snap.image[central_ptl_tag].x;
+            int body_iy = snap.image[central_ptl_tag].y;
+            int body_iz = snap.image[central_ptl_tag].z;
+            int3 particle_img = snap.image[j];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+
+            tmp_pos = box.shift(tmp_pos, img_diff);
+            }
+
         // get the type by name
         unsigned int type_id = snap.type[j];
         string type_name = snap.type_mapping[type_id];
