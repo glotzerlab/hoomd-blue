@@ -64,6 +64,7 @@ void export_hpmc_gpu()
     #endif
 
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >("IntegratorHPMCMonoImplicitGPUSphere");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitGPUConvexPolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSimplePolygon >("IntegratorHPMCMonoImplicitGPUSimplePolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >("IntegratorHPMCMonoImplicitGPUPolyhedron");

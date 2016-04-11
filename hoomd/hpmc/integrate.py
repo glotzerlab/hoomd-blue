@@ -963,6 +963,7 @@ class simple_polygon(_mode_hpmc):
 #       don't put the origin right next to an edge).
 #     - The enclosing circle of the largest polyhedron should be diameter 1 for optimal performance.
 # - *faces* - a list of vertex indices for every face
+# - *sweep_radius* - (**optional**) rounding radius applied to polyhedron (Default: 0)
 # - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
 # - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
 #
@@ -1724,8 +1725,9 @@ class sphere_union(_mode_hpmc):
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
         # build up shape_def string in a loop
-        diameters = [member.radius*2.0 for member in param.members];
-        centers = param.centers;
+        diameters = [m.diameter for m in param.members]
+        centers = param.centers
+        colors = param.colors
         N = len(diameters);
         shape_def = 'sphere_union {0} '.format(N);
         if param.colors is None:
