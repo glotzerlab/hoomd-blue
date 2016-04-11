@@ -49,19 +49,19 @@
 
 """ HOOMD-blue python API
 
-:py:mod:`hoomd_script` provides a high level user interface for executing
-simulations using HOOMD. This python module is designed to be imported
-into python with ``from hoomd_script import *``.
+:py:mod:`hoomd` provides a high level user interface for executing
+simulations using HOOMD.
 
 .. ipython:: python
 
-    import hoomd_script as hoomd
+    import hoomd
+    from hoomd import md
     hoomd.context.initialize("")
     hoomd.init.create_random(N=100, phi_p=0.1)
-    lj = hoomd.pair.lj(r_cut=2.5)
+    lj = md.pair.lj(r_cut=2.5)
     lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    hoomd.integrate.mode_standard(dt=0.005)
-    hoomd.integrate.nvt(group=hoomd.group.all(), T=1.2, tau=0.5)
+    hoomd.md.integrate.mode_standard(dt=0.005)
+    hoomd.md.integrate.nvt(group=hoomd.group.all(), T=1.2, tau=0.5)
     hoomd.run(100)
 """
 
@@ -121,27 +121,26 @@ __version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
     """ Runs the simulation for a given number of time steps.
 
-        \param tsteps Number of time steps to advance the simulation
-        \param profile Set to True to enable detailed profiling
-        \param limit_hours  (if set) Limit the run to a given number of hours.
-        \param limit_multiple When stopping the run() due to walltime limits, only stop when the time step is a multiple of
-                              \a limit_multiple .
-        \param callback     (if set) Sets a Python function to be called regularly during a run.
-        \param callback_period Sets the period, in time steps, between calls made to \a callback
-        \param quiet Set to True to eliminate the status information printed to the screen by the run
+    Args:
 
-        \b Examples:
-        \code
-        run(1000)
-        run(10e6, limit_multiple=100000)
-        run(10000, profile=True)
-        run(1e9, limit_hours=11)
+        tsteps (int): Number of time steps to advance the simulation.
+        profile (bool): Set to True to enable high level profiling output at the end of the run.
+        profile limit_hours (float): If not None, limit this run to a given number of hours.
+        limit_multiple (int): When stopping the run due to walltime limits, only stop when the time step is a
+                              multiple of limit_multiple.
+        callback (python callable): Sets a Python function to be called regularly during a run.
+        callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
+        quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
-        def py_cb(cur_tstep):
-            print "callback called at step: ", str(cur_tstep)
+    Example:
 
-        run(10000, callback_period=100, callback=py_cb)
-        \endcode
+        .. ipython:: python
+
+            hoomd.run(10)
+            hoomd.run(10e6, limit_hours=1.0/3600.0, limit_multiple=10)
+            hoomd.run(10, profile=True)
+            hoomd.run(10, quiet=True)
+            hoomd.run(10, callback_period=2, callback=lambda step: print(step))
 
         \b Overview
 

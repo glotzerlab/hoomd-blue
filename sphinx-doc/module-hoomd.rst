@@ -1,6 +1,6 @@
 Python module
 =============
 
-.. automodule:: hoomd_script
+.. automodule:: hoomd
     :synopsis: HOOMD-blue main module.
     :members:
