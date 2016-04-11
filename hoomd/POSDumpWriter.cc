@@ -121,6 +121,13 @@ void POSDumpWriter::analyze(unsigned int timestep)
     if (m_prof)
         m_prof->push("Dump pos");
 
+    string info;
+    // if there is a string to be written due to the python method addInfo, write it.
+    if (m_write_info)
+        {
+        info = boost::python::extract<string> (m_add_info(timestep));
+        }
+
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
     // obtain particle data
