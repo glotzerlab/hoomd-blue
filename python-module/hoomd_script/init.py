@@ -320,6 +320,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
 # \param min_dist Minimum distance particles will be separated by (in distance units)
 # \param box Simulation box dimensions (data.boxdim object)
 # \param seed Random seed
+# \param dimensions The number of dimensions in the simulation (2 or 3(default))
 #
 # Either \a phi_p or \a box must be specified. If \a phi_p is provided, it overrides the value of \a box.
 #
@@ -335,14 +336,14 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
 # When phi_p is set, the
 # dimensions of the created box are such that the packing fraction
 # of particles in the box is \a phi_p. The number density \e n
-# is related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$
-# assuming the particles have a radius of 0.5.
+# is related to the packing fraction by \f$n = 2d/\pi \cdot \phi_P\f$,
+# where d is the dimension, and assuming the particles have a radius of 0.5.
 # All particles are created with the same type, given by \a name.
 #
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
+def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1, dimensions=3):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
@@ -353,12 +354,16 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
+    # check that dimensions are appropriate
+    if dimensions not in (2,3):
+        raise ValueError('dimensions must be 2 or 3')
+
     # abuse the polymer generator to generate single particles
 
     if phi_p is not None:
         # calculate the box size
-        L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-        box = hoomd_script.data.boxdim(L=L);
+        L = math.pow(math.pi/(2.0*dimensions)*N / phi_p, 1.0/dimensions);
+        box = hoomd_script.data.boxdim(L=L, dimensions=dimensions);
 
     if box is None:
         raise RuntimeError('box or phi_p must be specified');
