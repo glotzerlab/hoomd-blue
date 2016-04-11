@@ -373,6 +373,19 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
             }
+        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+            {
+            unsigned int central_ptl_tag = snapshot.body[i];
+            int body_ix = snapshot.image[central_ptl_tag].x;
+            int body_iy = snapshot.image[central_ptl_tag].y;
+            int body_iz = snapshot.image[central_ptl_tag].z;
+            int3 particle_img = snapshot.image[i];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+
+            tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
+            }
         }
 
     // prepare x coords for writing, looping in tag order

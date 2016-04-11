@@ -399,6 +399,10 @@ class imd(_analyzer):
 #   - **bond_fene_energy** (bond.fene) - Total fene bond potential energy (in energy units)
 #   - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
 #   - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
+# - Angle potentials
+#   - **angle_harmonic_energy** (angle.harmonic) - Total harmonic angle potential energy (in energy units)
+# - Dihedral potentials
+#   - **dihedral_harmonic_energy** (dihedral.harmonic) - Total harmonic dihedral potential energy (in energy units)
 # - External potentials
 #   - **external_periodic_energy** (external.periodic) - Total periodic potential energy (in energy units)
 #   - **external_e_field_energy** (external.e_field) - Total e_field potential energy (in energy units)

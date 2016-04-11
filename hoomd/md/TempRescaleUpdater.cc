@@ -101,7 +101,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 
     if (cur_temp < 1e-3)
         {
-        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
+        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 translational temperature to anything but 0, skipping this step" << endl;
         }
     else
         {
@@ -112,19 +112,44 @@ void TempRescaleUpdater::update(unsigned int timestep)
         assert(m_pdata);
             {
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                    if (h_body.data[i] == NO_BODY)
-                    {
-                    h_vel.data[i].x *= fraction;
-                    h_vel.data[i].y *= fraction;
-                    h_vel.data[i].z *= fraction;
-                    }
+                h_vel.data[i].x *= fraction;
+                h_vel.data[i].y *= fraction;
+                h_vel.data[i].z *= fraction;
                 }
             }
 
+        }
+
+    cur_temp = m_thermo->getRotationalTemperature();
+    if (! std::isnan(cur_temp))
+        {
+        // only rescale if we have rotational degrees of freedom
+        if (cur_temp < 1e-3)
+            {
+            m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 rotational temperature to anything but 0, skipping this step" << endl;
+            }
+        else
+            {
+            // calculate a fraction to scale the momenta by
+            Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+
+            // scale the free particle velocities
+            assert(m_pdata);
+                {
+                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+
+                for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                    {
+                    h_angmom.data[i].x *= fraction;
+                    h_angmom.data[i].y *= fraction;
+                    h_angmom.data[i].z *= fraction;
+                    }
+                }
+
+            }
         }
 
     if (m_prof) m_prof->pop();

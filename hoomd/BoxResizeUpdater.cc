@@ -173,10 +173,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
-                // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
-                // failing the check)
-
                 // need to update the image if we move particles from one side of the box to the other
                 local_box.wrap(h_pos.data[i], h_image.data[i]);
                 }

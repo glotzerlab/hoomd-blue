@@ -409,10 +409,6 @@ class npt(_integration_method):
                 T=1.0
                 tau=1.0
 
-        if len(group) == 0:
-            hoomd.context.msg.error("integrate.npt: Need a non-empty group.\n");
-            raise RuntimeError("Error setting up NPT integration.");
-
         # initialize base class
         _integration_method.__init__(self);
 

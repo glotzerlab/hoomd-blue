@@ -121,6 +121,13 @@ void POSDumpWriter::analyze(unsigned int timestep)
     if (m_prof)
         m_prof->push("Dump pos");
 
+    string info;
+    // if there is a string to be written due to the python method addInfo, write it.
+    if (m_write_info)
+        {
+        info = boost::python::extract<string> (m_add_info(timestep));
+        }
+
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
     // obtain particle data
@@ -178,6 +185,21 @@ void POSDumpWriter::analyze(unsigned int timestep)
         quat<Scalar> orientation = snap.orientation[j];
 
         vec3<Scalar> tmp_pos = pos;
+
+        if (m_unwrap_rigid && snap.body[j] != NO_BODY)
+            {
+            unsigned int central_ptl_tag = snap.body[j];
+            assert(central_ptl_tag < snap.size());
+            int body_ix = snap.image[central_ptl_tag].x;
+            int body_iy = snap.image[central_ptl_tag].y;
+            int body_iz = snap.image[central_ptl_tag].z;
+            int3 particle_img = snap.image[j];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+
+            tmp_pos = box.shift(tmp_pos, img_diff);
+            }
 
         // get the type by name
         unsigned int type_id = snap.type[j];

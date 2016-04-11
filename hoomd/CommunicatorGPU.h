@@ -263,6 +263,9 @@ class CommunicatorGPU : public Communicator
         GPUVector<unsigned int> m_body_ghost_sendbuf;      //!< Buffer for sending ghost bodys
         GPUVector<unsigned int> m_body_ghost_recvbuf;      //!< Buffer for sending ghost bodys
 
+        GPUVector<int3> m_image_ghost_sendbuf;      //!< Buffer for sending ghost images
+        GPUVector<int3> m_image_ghost_recvbuf;      //!< Buffer for sending ghost images
+
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
@@ -283,6 +286,9 @@ class CommunicatorGPU : public Communicator
 
         GPUVector<unsigned int> m_body_ghost_sendbuf_alt;      //!< Buffer for sending ghost bodies (standby)
         GPUVector<unsigned int> m_body_ghost_recvbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+
+        GPUVector<int3> m_image_ghost_sendbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+        GPUVector<int3> m_image_ghost_recvbuf_alt;      //!< Buffer for sending ghost bodies (standby)
 
         GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
         GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)

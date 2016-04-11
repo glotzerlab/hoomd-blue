@@ -215,17 +215,34 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces', 'edges'];
+        self._keys += ['vertices', 'faces','sweep_radius'];
         self.make_fn = _hpmc.make_poly3d_data;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, edges = {})".format(self.vertices, self.faces, self.edges);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {})".format(self.vertices, self.faces,self.sweep_radius);
         return string;
 
-    def make_param(self, vertices, faces, ignore_overlaps=False, ignore_statistics=False):
-        return self.make_fn(self.ensure_list(vertices),
-                            self.ensure_list(faces),
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_overlaps=False, ignore_statistics=False):
+        face_offs = []
+        face_verts = []
+        offs = 0
+        for face in faces:
+            face_offs.append(offs)
+            for face_idx in face:
+                face_verts.append(int(face_idx))
+            offs += len(face)
+
+        # end offset
+        face_offs.append(offs)
+
+        if sweep_radius < 0.0:
+            globals.msg.warning("A rounding radius < 0 does not make sense.\n")
+
+        return self.make_fn([self.ensure_list(v) for v in vertices],
+                            self.ensure_list(face_verts),
+                            self.ensure_list(face_offs),
+                            float(sweep_radius),
                             ignore_statistics,
                             ignore_overlaps);
 
@@ -293,7 +310,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['diameters', 'centers', 'orientations', 'diameter', 'colors'];
+        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
         self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
@@ -303,7 +320,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         members = self.members;
         for m in members:
             end = "\n" if ct < (len(members)-1) else "";
-            string+="sphere-{}(r = {}){}".format(ct, m.radius, end)
+            string+="sphere-{}(d = {}){}".format(ct, m.diameter, end)
             ct+=1
         return string;
 
@@ -311,7 +328,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         data = {}
         for key in self._keys:
             if key == 'diameters':
-                val = [ 2.0*m.radius for m in self.members ];
+                val = [ m.diameter for m in self.members ];
             else:
                 val = getattr(self, key);
             data[key] = val;

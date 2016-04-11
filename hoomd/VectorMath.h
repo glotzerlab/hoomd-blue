@@ -1239,6 +1239,28 @@ DEVICE inline vec3<Real> operator*(const rotmat3<Real>& A, const vec3<Real>& b)
                       dot(A.row2, b));
     }
 
+//! Matrix matrix multiplication
+/*! \param A matrix
+    \param B matrix
+    \returns A*b
+*/
+template < class Real >
+DEVICE inline rotmat3<Real> operator*(const rotmat3<Real>& A, const rotmat3<Real>& B)
+    {
+    rotmat3<Real> r;
+    rotmat3<Real> B_t = transpose(B);
+    r.row0.x = dot(A.row0,B_t.row0);
+    r.row0.y = dot(A.row0,B_t.row1);
+    r.row0.z = dot(A.row0,B_t.row2);
+    r.row1.x = dot(A.row1,B_t.row0);
+    r.row1.y = dot(A.row1,B_t.row1);
+    r.row1.z = dot(A.row1,B_t.row2);
+    r.row2.x = dot(A.row2,B_t.row0);
+    r.row2.y = dot(A.row2,B_t.row1);
+    r.row2.z = dot(A.row2,B_t.row2);
+    return r;
+    }
+
 //! Transpose a rotmat3
 /*! \param A matrix
     \returns the transpose of A
