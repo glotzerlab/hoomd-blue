@@ -131,7 +131,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
-#include "TwoStepBDNVTGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h"
 #include "TwoStepNVTRigidGPU.h"
