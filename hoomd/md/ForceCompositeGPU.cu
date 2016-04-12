@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
-extern __shared__ Scalar3 sum[];
+extern __shared__ char sum[];
 extern __shared__ Scalar sum_virial[];
 
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
@@ -95,21 +95,22 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Index2D body_indexer,
                                                  Scalar3* d_body_pos,
                                                  Scalar4* d_body_orientation,
-                                                 const Scalar4* d_net_force,
-                                                 const Scalar4* d_net_torque,
+                                                 Scalar4* d_net_force,
+                                                 Scalar4* d_net_torque,
                                                  unsigned int n_mol,
                                                  unsigned int N,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
-                                                 unsigned int n_bodies_per_block)
+                                                 unsigned int n_bodies_per_block,
+                                                 bool zero_force)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
     unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
 
     // body_force and body_torque are each shared memory arrays with 1 element per threads
-    Scalar3 *body_force = sum;
-    Scalar3 *body_torque = &sum[blockDim.x];
+    Scalar4 *body_force = (Scalar4 *)sum;
+    Scalar3 *body_torque = (Scalar3 *) (body_force + blockDim.x);
 
     // store body type, orientation and the index in molecule list in shared memory. Up to 16 bodies per block can
     // be handled.
@@ -119,7 +120,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
     __shared__ unsigned int central_idx[16];
 
     // each thread makes partial sums of force and torque of all the particles that this thread loops over
-    Scalar3 sum_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar4 sum_force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0),Scalar(0.0));
     Scalar3 sum_torque = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // thread_mask is a bitmask that masks out the high bits in threadIdx.x.
@@ -186,6 +187,17 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                     sum_force.y += fi.y;
                     sum_force.z += fi.z;
 
+                    // sum up energy
+                    sum_force.w += fi.w;
+
+                    // zero force only if we don't need it later
+                    if (zero_force)
+                        {
+                        // zero net energy on constituent ptls to avoid double counting
+                        // also zero net force for consistency
+                        d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
+                        }
+
                     vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
 
                     // torque = r x f
@@ -195,6 +207,9 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                     sum_torque.x += ti.x+del_torque.x;
                     sum_torque.y += ti.y+del_torque.y;
                     sum_torque.z += ti.z+del_torque.z;
+
+                    // zero net torque on constituent particles
+                    d_net_torque[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
                     }
                 }
             }
@@ -218,6 +233,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
             body_force[threadIdx.x].x += body_force[threadIdx.x + offset].x;
             body_force[threadIdx.x].y += body_force[threadIdx.x + offset].y;
             body_force[threadIdx.x].z += body_force[threadIdx.x + offset].z;
+            body_force[threadIdx.x].w += body_force[threadIdx.x + offset].w;
 
             body_torque[threadIdx.x].x += body_torque[threadIdx.x + offset].x;
             body_torque[threadIdx.x].y += body_torque[threadIdx.x + offset].y;
@@ -232,7 +248,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
     // thread 0 within this body writes out the total force and torque for the body
     if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY)
         {
-        d_force[central_idx[m]] = make_scalar4(body_force[threadIdx.x].x, body_force[threadIdx.x].y, body_force[threadIdx.x].z, 0.0f);
+        d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
         }
     }
@@ -248,8 +264,8 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 Index2D body_indexer,
                                                 Scalar3* d_body_pos,
                                                 Scalar4* d_body_orientation,
-                                                const Scalar4* d_net_force,
-                                                const Scalar* d_net_virial,
+                                                Scalar4* d_net_force,
+                                                Scalar* d_net_virial,
                                                 unsigned int n_mol,
                                                 unsigned int N,
                                                 unsigned int net_virial_pitch,
@@ -357,6 +373,15 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                     sum_virial_yy += virialyy - fi.y*ri.y;
                     sum_virial_yz += virialyz - fi.y*ri.z;
                     sum_virial_zz += virialzz - fi.z*ri.z;
+
+                    // zero force and virial on constituent particles
+                    d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
+                    d_net_virial[0*net_virial_pitch+pidx] = Scalar(0.0);
+                    d_net_virial[1*net_virial_pitch+pidx] = Scalar(0.0);
+                    d_net_virial[2*net_virial_pitch+pidx] = Scalar(0.0);
+                    d_net_virial[3*net_virial_pitch+pidx] = Scalar(0.0);
+                    d_net_virial[4*net_virial_pitch+pidx] = Scalar(0.0);
+                    d_net_virial[5*net_virial_pitch+pidx] = Scalar(0.0);
                     }
                 }
             }
@@ -421,13 +446,14 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Index2D body_indexer,
                  Scalar3* d_body_pos,
                  Scalar4* d_body_orientation,
-                 const Scalar4* d_net_force,
-                 const Scalar4* d_net_torque,
+                 Scalar4* d_net_force,
+                 Scalar4* d_net_torque,
                  unsigned int n_mol,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop)
+                 const cudaDeviceProp& dev_prop,
+                 bool zero_force)
     {
     // reset force and torque
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
@@ -453,14 +479,14 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
     unsigned int window_size = run_block_size / n_bodies_per_block;
     unsigned int thread_mask = window_size - 1;
 
-    unsigned int shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+    unsigned int shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
 
     while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
         {
         // block size is power of two
         run_block_size /= 2;
 
-        shared_bytes = 2 * run_block_size * sizeof(Scalar3);
+        shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
 
         window_size = run_block_size / n_bodies_per_block;
         thread_mask = window_size - 1;
@@ -485,7 +511,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         N,
         window_size,
         thread_mask,
-        n_bodies_per_block);
+        n_bodies_per_block,
+        zero_force);
 
     return cudaSuccess;
     }
@@ -501,8 +528,8 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  Index2D body_indexer,
                  Scalar3* d_body_pos,
                  Scalar4* d_body_orientation,
-                 const Scalar4* d_net_force,
-                 const Scalar* d_net_virial,
+                 Scalar4* d_net_force,
+                 Scalar* d_net_virial,
                  unsigned int n_mol,
                  unsigned int N,
                  unsigned int n_bodies_per_block,

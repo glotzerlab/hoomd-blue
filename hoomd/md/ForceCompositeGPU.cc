@@ -124,9 +124,9 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
     // access net force and torque acting on constituent particles
-    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
 
     // access the force and torque array for the central ptl
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -147,6 +147,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     unsigned int block_size = param % 10000;
     unsigned int n_bodies_per_block = param/10000;
 
+    PDataFlags flags = m_pdata->getFlags();
+    bool compute_virial = false;
+    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+        {
+        compute_virial = true;
+        }
+
     // launch GPU kernel
     gpu_rigid_force(d_force.data,
                     d_torque.data,
@@ -166,19 +173,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                     m_pdata->getN(),
                     n_bodies_per_block,
                     block_size,
-                    m_exec_conf->dev_prop);
+                    m_exec_conf->dev_prop,
+                    !compute_virial);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
-
-    PDataFlags flags = m_pdata->getFlags();
-    bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
-        {
-        compute_virial = true;
-        }
 
     if (compute_virial)
         {

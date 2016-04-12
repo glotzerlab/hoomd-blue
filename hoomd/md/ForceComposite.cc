@@ -555,6 +555,8 @@ void ForceComposite::validateRigidBodies(bool create)
                             }
                         }
                     }
+
+                // TODO: need to set rigid body pos for constituent particles here
                 }
             }
 
@@ -643,9 +645,9 @@ void ForceComposite::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
     // access net force and torque acting on constituent particles
-    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
 
     // access the force and torque array for the central ptl
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
@@ -727,6 +729,13 @@ void ForceComposite::computeForces(unsigned int timestep)
             h_force.data[central_idx].y += f.y;
             h_force.data[central_idx].z += f.z;
 
+            // sum up energy
+            h_force.data[central_idx].w += h_net_force.data[idxj].w;
+
+            // zero net energy on constituent ptls to avoid double counting
+            // also zero net force for consistency
+            h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
+
             unsigned int tagj = h_tag.data[idxj];
             assert(tagj <= m_pdata->getMaximumTag());
 
@@ -751,6 +760,9 @@ void ForceComposite::computeForces(unsigned int timestep)
             h_torque.data[central_idx].y += net_torque.y;
             h_torque.data[central_idx].z += net_torque.z;
 
+            // zero net torqe on constituent particle
+            h_net_torque.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
+
             if (compute_virial)
                 {
                 // sum up virial
@@ -760,6 +772,14 @@ void ForceComposite::computeForces(unsigned int timestep)
                 Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
                 Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
                 Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+
+                // zero net virial
+                h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
+                h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
+                h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
+                h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
+                h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
+                h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
 
                 // subtract intra-body virial prt
                 h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
