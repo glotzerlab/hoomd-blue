@@ -120,20 +120,6 @@ void SFCPackUpdater::update(unsigned int timestep)
     {
     m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
 
-    #ifdef ENABLE_MPI
-    /* migrate particles to their respective domains
-       this has two consequences:
-       1. we do not need to pad the particle bins for particles that are outside the domain
-       2. we migrate only, so all ghost particles are cleared, and we can reorder the particle data
-          without having to account for ghosts
-     */
-    if (m_pdata->getDomainDecomposition())
-        {
-        assert(m_comm);
-        m_comm->migrateParticles();
-        }
-    #endif
-
     if (m_prof) m_prof->push(m_exec_conf, "SFCPack");
 
     // figure out the sort order we need to apply
@@ -148,18 +134,6 @@ void SFCPackUpdater::update(unsigned int timestep)
     m_pdata->notifyParticleSort();
 
     if (m_prof) m_prof->pop(m_exec_conf);
-
-    #ifdef ENABLE_MPI
-    /* since we migrated, also run exchange ghosts to reestablish ghost particles before some unsuspecting code runs
-       after us and assumes that ghosts exist.
-    */
-    if (m_pdata->getDomainDecomposition())
-        {
-        assert(m_comm);
-        m_comm->exchangeGhosts();
-        }
-    #endif
-
     }
 
 void SFCPackUpdater::applySortOrder()
@@ -513,8 +487,15 @@ void SFCPackUpdater::getSortedOrder2D()
         // find the bin each particle belongs in
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
         Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
-        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
-        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
+        int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        int jb = (unsigned int)(f.y * m_grid) % m_grid;
+
+        // if the particle is slightly outside, move back into grid
+        if (ib < 0) ib = 0;
+        if (ib >= (int)m_grid) ib = m_grid - 1;
+
+        if (jb < 0) jb = 0;
+        if (jb >= (int)m_grid) jb = m_grid - 1;
 
         // record its bin
         unsigned int bin = ib*m_grid + jb;
@@ -598,9 +579,19 @@ void SFCPackUpdater::getSortedOrder3D()
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
         Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
-        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
-        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
-        unsigned int kb = (unsigned int)(f.z * m_grid) % m_grid;
+        int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        int jb = (unsigned int)(f.y * m_grid) % m_grid;
+        int kb = (unsigned int)(f.z * m_grid) % m_grid;
+
+        // if the particle is slightly outside, move back into grid
+        if (ib < 0) ib = 0;
+        if (ib >= (int)m_grid) ib = m_grid - 1;
+
+        if (jb < 0) jb = 0;
+        if (jb >= (int)m_grid) jb = m_grid - 1;
+
+        if (kb < 0) kb = 0;
+        if (kb >= (int)m_grid) kb = m_grid - 1;
 
         // record its bin
         unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;

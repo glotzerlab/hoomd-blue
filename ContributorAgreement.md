@@ -1,4 +1,4 @@
-OMD-blue Contributor Agreement
+HOOMD-blue Contributor Agreement
 
 These terms apply to your contribution to the HOOMD-blue Open Source Project ("Project") owned or managed by the Regents of the University of Michigan ("Michigan"), and set out the intellectual property rights you grant to Michigan in the contributed materials. If this contribution is on behalf of a company, the term "you" will also mean the company you identify below. If you agree to be bound by these terms, fill in the information requested below and provide your signature.
 
@@ -24,6 +24,6 @@ you are authorized to sign this contract on behalf of your company (if identifie
 ![by-sa.png](https://licensebuttons.net/l/by-sa/3.0/88x31.png)
 
 Based on the Sun Contributor Agreement - version 1.5.
-This document is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License 
+This document is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License
 http://creativecommons.org/licenses/by-sa/3.0/
 

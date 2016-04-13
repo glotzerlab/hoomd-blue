@@ -78,13 +78,13 @@ const unsigned int MAX_N_CWALLS=20;
 const unsigned int MAX_N_PWALLS=60;
 
 struct wall_type{
+    unsigned int     numSpheres; // these data types come first, since the structs are aligned already
+    unsigned int     numCylinders;
+    unsigned int     numPlanes;
     SphereWall       Spheres[MAX_N_SWALLS];
     CylinderWall     Cylinders[MAX_N_CWALLS];
     PlaneWall        Planes[MAX_N_PWALLS];
-    unsigned int     numSpheres;
-    unsigned int     numCylinders;
-    unsigned int     numPlanes;
-} __attribute__((aligned(8)));   // align on a 8 byte boundary so the GPU kernel can load it in 4 bytes at a time
+} __attribute__((aligned(4))); // align according to first member size
 
 //! Applys a wall force from all walls in the field parameter
 /*! \ingroup computes
@@ -160,9 +160,19 @@ class EvaluatorWalls
 
             if (evaluated)
                 {
+                // correctly result in a 0 force in this case
+                #ifdef NVCC
+                if (!isfinite(force_divr))
+                #else
+                if (!std::isfinite(force_divr))
+                #endif
+                    {
+                        force_divr = Scalar(0.0);
+                        pair_eng = Scalar(0.0);
+                    }
                 // add the force and potential energy to the particle i
                 F += dr*force_divr;
-                energy = pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 }
             }
 
@@ -184,9 +194,21 @@ class EvaluatorWalls
             if (evaluated)
                 {
                 // add the force and potential energy to the particle i
-                energy = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
+                pair_eng = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
-                F += dr * force_divr;
+                // correctly result in a 0 force in this case
+                #ifdef NVCC
+                if (!isfinite(force_divr))
+                #else
+                if (!std::isfinite(force_divr))
+                #endif
+                    {
+                        force_divr = Scalar(0.0);
+                        pair_eng = Scalar(0.0);
+                    }
+                // add the force and potential energy to the particle i
+                F += dr*force_divr;
+                energy += pair_eng; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 }
             }
 
@@ -331,7 +353,7 @@ class EvaluatorWalls
         */
         static std::string getName()
             {
-            return std::string("walls_") + evaluator::getName();
+            return std::string("wall_") + evaluator::getName();
             }
         #endif
 

@@ -779,9 +779,6 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     pdata_6->notifyParticleSort();
     }
 
-    // this test uses rigid bodies, initialize them
-    sysdef_6->getRigidData()->initializeData();
-
     boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setRCutPair(0,0,3.0);
     nlist_6->setFilterBody(true);

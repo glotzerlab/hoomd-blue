@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
-#include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
@@ -68,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ActiveForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
@@ -110,16 +110,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBD.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
-#include "TwoStepNHRigid.h"
-#include "TwoStepNVERigid.h"
-#include "TwoStepNVTRigid.h"
-#include "TwoStepNPTRigid.h"
-#include "TwoStepNPHRigid.h"
-#include "TwoStepBDNVTRigid.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "FIREEnergyMinimizer.h"
-#include "FIREEnergyMinimizerRigid.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
@@ -127,8 +120,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
+#include "ConstraintEllipsoid.h"
 #include "MolecularForceCompute.h"
 #include "ForceDistanceConstraint.h"
+#include "ForceComposite.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
@@ -148,15 +143,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
-#include "TwoStepNVERigidGPU.h"
-#include "TwoStepNVTRigidGPU.h"
-#include "TwoStepNPHRigidGPU.h"
-#include "TwoStepNPTRigidGPU.h"
-#include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
+#include "ForceCompositeGPU.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "BondTablePotentialGPU.h"
@@ -169,16 +160,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
-#include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "ConstraintEllipsoidGPU.h"
 #include "ForceDistanceConstraintGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ActiveForceComputeGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
@@ -565,6 +557,9 @@ BOOST_PYTHON_MODULE(hoomd)
     class_<std::vector<Scalar3> >("std_vector_scalar3")
     .def(vector_indexing_suite<std::vector<Scalar3> >());
 
+    class_<std::vector<Scalar4> >("std_vector_scalar4")
+    .def(vector_indexing_suite<std::vector<Scalar4> >());
+
     InstallSIGINTHandler();
 
     // utils
@@ -576,8 +571,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxDim();
     export_ParticleData();
     export_SnapshotParticleData();
-    export_RigidData();
-    export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_SystemDefinition();
     export_SnapshotSystemData();
@@ -600,6 +593,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
+    export_ActiveForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
@@ -622,6 +616,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
+    export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
@@ -640,6 +635,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphere();
     export_MolecularForceCompute();
     export_ForceDistanceConstraint();
+    export_ForceComposite();
     export_PPPMForceCompute();
     class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
     def("make_wall_field_params", &make_wall_field_params);
@@ -660,10 +656,12 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListGPUStencil();
     export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
+    export_ForceCompositeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>("PotentialPairReactionFieldGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
@@ -694,6 +692,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceDistanceConstraintGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
+    export_ActiveForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
@@ -736,15 +735,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBD();
     export_TwoStepNPTMTK();
     export_Berendsen();
-    export_TwoStepNHRigid();
-    export_TwoStepNVERigid();
-    export_TwoStepNVTRigid();
-    export_TwoStepNPHRigid();
-    export_TwoStepNPTRigid();
-    export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
+    export_ConstraintEllipsoid();
     export_FIREEnergyMinimizer();
-    export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
     export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
@@ -754,14 +747,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDGPU();
     export_TwoStepNPTMTKGPU();
     export_BerendsenGPU();
-    export_TwoStepNVERigidGPU();
-    export_TwoStepNVTRigidGPU();
-    export_TwoStepNPHRigidGPU();
-    export_TwoStepNPTRigidGPU();
-    export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
-    export_FIREEnergyMinimizerRigidGPU();
+    export_ConstraintEllipsoidGPU();
 #endif
 
 #ifdef ENABLE_MPI
@@ -822,8 +810,6 @@ BOOST_PYTHON_MODULE(hoomd)
     // register_ptr_to_python< boost::shared_ptr< ForceComputeWrap > >();
     register_ptr_to_python< boost::shared_ptr< CGCMMForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< ExecutionConfiguration > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotRigidData > >();
-    register_ptr_to_python< boost::shared_ptr< RigidData > >();
     register_ptr_to_python< boost::shared_ptr< SystemDefinition > >();
     register_ptr_to_python< boost::shared_ptr< ParticleData > >();
     register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<float> > >();
@@ -843,29 +829,22 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<double> > >();
     register_ptr_to_python< boost::shared_ptr< wall_type > >();
     register_ptr_to_python< boost::shared_ptr< System > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVT > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBD > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigid > >();
     register_ptr_to_python< boost::shared_ptr< BoxResizeUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TempRescaleUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigid > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBerendsen > >();
     register_ptr_to_python< boost::shared_ptr< IntegratorTwoStep > >();
     // register_ptr_to_python< boost::shared_ptr< UpdaterWrap > >();
     register_ptr_to_python< boost::shared_ptr< Integrator > >();
     register_ptr_to_python< boost::shared_ptr< IntegrationMethodTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigid > >();
     register_ptr_to_python< boost::shared_ptr< ZeroMomentumUpdater > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigid > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNHRigid > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdater > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizer > >();
     register_ptr_to_python< boost::shared_ptr< double2 > >();
@@ -887,6 +866,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< Messenger > >();
     register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
+    register_ptr_to_python< boost::shared_ptr< ForceComposite > >();
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_MPI
@@ -904,6 +884,7 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
     register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
+    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >();
     register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< CellListGPU > >();
     register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();
@@ -912,8 +893,6 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceComputeGPU > >();
     register_ptr_to_python< boost::shared_ptr< ComputeThermoGPU > >();
     register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPHRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVTGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
@@ -922,12 +901,8 @@ BOOST_PYTHON_MODULE(hoomd)
     register_ptr_to_python< boost::shared_ptr< TwoStepBDGPU > >();
     register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
     register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDNVTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< SFCPackUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTRigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerRigidGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVERigidGPU > >();
     register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
     #endif
 

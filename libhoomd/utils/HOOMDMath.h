@@ -186,6 +186,16 @@ HOSTDEVICE inline bool operator== (const Scalar3 &a, const Scalar3 &b)
             a.z == b.z);
     }
 
+//! Comparison operator needed for export of std::vector<Scalar4>
+HOSTDEVICE inline bool operator== (const Scalar4 &a, const Scalar4 &b)
+    {
+    return (a.x == b.x &&
+            a.y == b.y &&
+            a.z == b.z &&
+            a.w == b.w);
+    }
+
+
 //! Vector addition
 HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
     {
@@ -560,7 +570,7 @@ inline HOSTDEVICE double acos(double x)
 }
 
 template<class Real, class RNG>
-inline Real DEVICE gaussian_rng(RNG rng, Real sigma)
+inline Real DEVICE gaussian_rng(RNG &rng, const Real sigma)
     {
     // use Box-Muller transformation to get a gaussian random number
     float x1, x2, w, y1;

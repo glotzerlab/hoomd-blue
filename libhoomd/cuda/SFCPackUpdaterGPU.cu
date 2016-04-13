@@ -75,9 +75,19 @@ __global__ void gpu_sfc_bin_particles_kernel(unsigned int N,
     Scalar3 p = make_scalar3(postype.x, postype.y, postype.z);
 
     Scalar3 f = box.makeFraction(p);
-    unsigned int ib = (unsigned int)(f.x * n_grid) % n_grid;
-    unsigned int jb = (unsigned int)(f.y * n_grid) % n_grid;
-    unsigned int kb = (unsigned int)(f.z * n_grid) % n_grid;
+    int ib = (unsigned int)(f.x * n_grid) % n_grid;
+    int jb = (unsigned int)(f.y * n_grid) % n_grid;
+    int kb = (unsigned int)(f.z * n_grid) % n_grid;
+
+    // if the particle is slightly outside, move back into grid
+    if (ib < 0) ib = 0;
+    if (ib >= n_grid) ib = n_grid - 1;
+
+    if (jb < 0) jb = 0;
+    if (jb >= n_grid) jb = n_grid - 1;
+
+    if (kb < 0) kb = 0;
+    if (kb >= n_grid) kb = n_grid - 1;
 
     // record its bin
     unsigned int bin;
@@ -133,6 +143,7 @@ void gpu_generate_sorted_order(unsigned int N,
 //! Kernel to apply sorted order
 __global__ void gpu_apply_sorted_order_kernel(
         unsigned int N,
+        unsigned int n_ghost,
         const unsigned int *d_sorted_order,
         const Scalar4 *d_pos,
         Scalar4 *d_pos_alt,
@@ -166,9 +177,10 @@ __global__ void gpu_apply_sorted_order_kernel(
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N) return;
+    if (idx >= N+n_ghost) return;
 
-    unsigned int old_idx = d_sorted_order[idx];
+    // apply sorted order only for local ptls
+    unsigned int old_idx = (idx < N ? d_sorted_order[idx] : idx);
 
     // permute and copy over particle data
     d_pos_alt[idx] = d_pos[old_idx];
@@ -187,12 +199,16 @@ __global__ void gpu_apply_sorted_order_kernel(
     d_net_force_alt[idx] = d_net_force[old_idx];
     d_net_torque_alt[idx] = d_net_torque[old_idx];
 
-    // update rtag to point to particle position in new arrays
-    d_rtag[tag] = idx;
+    if (idx < N)
+        {
+        // update rtag to point to particle position in new arrays
+        d_rtag[tag] = idx;
+        }
     }
 
 void gpu_apply_sorted_order(
         unsigned int N,
+        unsigned int n_ghost,
         const unsigned int *d_sorted_order,
         const Scalar4 *d_pos,
         Scalar4 *d_pos_alt,
@@ -226,9 +242,10 @@ void gpu_apply_sorted_order(
         )
     {
     unsigned int block_size = 512;
-    unsigned int n_blocks = N/block_size + 1;
+    unsigned int n_blocks = (N+n_ghost)/block_size + 1;
 
     gpu_apply_sorted_order_kernel<<<n_blocks, block_size>>>(N,
+        n_ghost,
         d_sorted_order,
         d_pos,
         d_pos_alt,

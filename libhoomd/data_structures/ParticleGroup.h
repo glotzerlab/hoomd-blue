@@ -173,6 +173,18 @@ class ParticleSelectorRigid : public ParticleSelector
         bool m_rigid;   //!< true if we should select rigid boides, false if we should select non-rigid particles
     };
 
+class ParticleSelectorRigidCenter : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorRigidCenter(boost::shared_ptr<SystemDefinition> sysdef);
+        virtual ~ParticleSelectorRigidCenter() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    };
+
+
 //! Describes a group of particles
 /*! \b Overview
 

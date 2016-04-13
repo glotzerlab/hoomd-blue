@@ -63,12 +63,12 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist)
-        : MolecularForceCompute(sysdef, nlist), m_cdata(m_sysdef->getConstraintData()),
+ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+        : MolecularForceCompute(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
-          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true), m_constraints_added_removed(true)
+          m_sparse_idxlookup(m_exec_conf), m_constraint_reorder(true), m_constraints_added_removed(true),
+          m_d_max(0.0)
     {
     m_constraint_violated.resetFlags(0);
 
@@ -89,6 +89,12 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
     m_constraint_reorder_connection.disconnect();
 
     m_group_num_change_connection.disconnect();
+
+    if (m_comm_ghost_layer_connection.connected())
+        {
+        // register this class with the communciator
+        m_comm_ghost_layer_connection.disconnect();
+        }
     }
 
 /*! Does nothing in the base class
@@ -512,14 +518,18 @@ CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
     // we need the velocity and the net force in addition to the position
     flags[comm_flag::velocity] = 1;
 
+    // request communication of particle forces
+    flags[comm_flag::net_force] = 1;
+
     flags |= MolecularForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
     }
 #endif
 
-bool ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
-    unsigned int *label, std::vector<ConstraintData::members_t>& groups)
+//! Return maximum extent of molecule
+Scalar ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
+    unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length)
     {
     assert(iconstraint < groups.size());
 
@@ -527,7 +537,7 @@ bool ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
     assert(visited.size() > iconstraint);
     if (visited[iconstraint])
         {
-        return false;
+        return Scalar(0.0);
         }
 
     // mark this constraint as visited
@@ -541,6 +551,8 @@ bool ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
     label[constraint.tag[1]] = molecule;
 
     // NOTE: this loop could be optimized with a reverse-lookup table ptl idx -> constraint
+    assert(iconstraint < length.size());
+    Scalar dmax = length[iconstraint];
 
     for (unsigned int jconstraint = 0; jconstraint < groups.size(); ++jconstraint)
         {
@@ -552,10 +564,23 @@ bool ForceDistanceConstraint::dfs(unsigned int iconstraint, unsigned int molecul
             tags_j.tag[0] == constraint.tag[1] || tags_j.tag[1] == constraint.tag[1])
             {
             // recursively mark connected constraint with current label
-            dfs(jconstraint, molecule, visited, label, groups);
+            dmax += dfs(jconstraint, molecule, visited, label, groups, length);
             }
         }
-    return true;
+
+    return dmax;
+    }
+
+Scalar ForceDistanceConstraint::askGhostLayerWidth(unsigned int type)
+    {
+    // only rebuild global tag list if necessary
+    if (m_constraints_added_removed)
+        {
+        assignMoleculeTags();
+        m_constraints_added_removed = false;
+        }
+
+    return m_d_max;
     }
 
 void ForceDistanceConstraint::initMolecules()
@@ -580,11 +605,13 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
     // broadcast constraint information
     std::vector<ConstraintData::members_t> groups = snap.groups;
+    std::vector<Scalar> length = snap.val;
 
     #ifdef ENABLE_MPI
     if (m_comm)
         {
         bcast(groups, 0, m_exec_conf->getMPICommunicator());
+        bcast(length, 0, m_exec_conf->getMPICommunicator());
         }
     #endif
 
@@ -607,6 +634,9 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
     int molecule = 0;
 
+    // maximum molecule diameter
+    m_d_max = Scalar(0.0);
+
         {
         // label ptls by connected component index
         for (unsigned int iconstraint = 0; iconstraint < nconstraint_global; ++iconstraint)
@@ -614,21 +644,23 @@ void ForceDistanceConstraint::assignMoleculeTags()
             if (! visited[iconstraint])
                 {
                 // depth first search
-                if (dfs(iconstraint, molecule, visited, h_molecule_tag.data, groups))
+                Scalar d = dfs(iconstraint, molecule++, visited, h_molecule_tag.data, groups, length);
+                if (d > m_d_max)
                     {
-                    molecule++;
+                    m_d_max = d;
                     }
                 }
             }
         }
 
+    m_exec_conf->msg->notice(6) << "Maximum constraint length: " << m_d_max << std::endl;
     m_n_molecules_global = molecule;
     }
 
 void export_ForceDistanceConstraint()
     {
     class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

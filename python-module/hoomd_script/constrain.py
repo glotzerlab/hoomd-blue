@@ -104,6 +104,7 @@ class _constraint_force(meta._metadata):
 
         self.force_name = "constraint_force%d" % (id);
         self.enabled = True;
+        self.composite = False;
         globals.constraint_forces.append(self);
 
         # create force data iterator
@@ -115,6 +116,10 @@ class _constraint_force(meta._metadata):
     ## \var enabled
     # \internal
     # \brief True if the force is enabled
+
+    ## \var composite
+    # \internal
+    # \brief True if this is a composite body force
 
     ## \var cpp_force
     # \internal
@@ -223,6 +228,13 @@ class _constraint_force(meta._metadata):
         self.enabled = True;
 
     ## \internal
+    # \brief updates force coefficients
+    def update_coeffs(self):
+        pass
+        # does nothing: this is for derived classes to implement
+
+
+    ## \internal
     # \brief Get metadata
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
@@ -234,11 +246,11 @@ class _constraint_force(meta._metadata):
 # set default counter
 _constraint_force.cur_id = 0;
 
-
 ## Constrain particles to the surface of a sphere
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
-# them to a sphere.
+# them to a sphere. Currently does not work with Brownian or Langevin dynamics (integrate.brownian and
+# integrate.langevin).
 # \MPI_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
@@ -309,21 +321,13 @@ class distance(_constraint_force):
         # initialize the base class
         _constraint_force.__init__(self);
 
-        self.nlist = nlist._subscribe_global_nlist(lambda: self.get_rcut())
-
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition, self.nlist.cpp_nlist);
+            self.cpp_force = hoomd.ForceDistanceConstraint(globals.system_definition);
         else:
-            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition, self.nlist.cpp_nlist);
+            self.cpp_force = hoomd.ForceDistanceConstraintGPU(globals.system_definition);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-
-    def get_rcut(self):
-        # do not update dictionary
-        r_cut_dict = nlist.rcut();
-
-        return r_cut_dict;
 
     ## Set parameters for constraint computation
     #
@@ -336,3 +340,92 @@ class distance(_constraint_force):
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
+## Constrain rigid bodies
+#
+# \MPI_SUPPORTED
+class rigid(_constraint_force):
+    ## Specify the pairwise %distance constraint %force
+    #
+    # \b Examples:
+    # \code
+    # constrain.distance()
+    # \endcode
+    def __init__(self):
+        util.print_status_line();
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        self.composite = True
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.ForceComposite(globals.system_definition);
+        else:
+            self.cpp_force = hoomd.ForceCompositeGPU(globals.system_definition);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+    ## Set constituent particle types and coordinates for a rigid body
+    #
+    # Note: a mirror data structure for bodies in python would be nice OR as a proxy
+    def set_param(self,type_name, types, positions, orientations=None):
+        # get a list of types from the particle data
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        if type_name not in type_list:
+            globals.msg.error('Type ''{}'' not found.\n'.format(type_name))
+            raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+        type_id = type_list.index(type_name)
+
+        if not isinstance(types, list):
+            globals.msg.error('Expecting list of particle types.\n')
+            raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+        type_vec = hoomd.std_vector_uint()
+        for t in types:
+            if t not in type_list:
+                globals.msg.error('Type ''{}'' not found.\n'.format(type_name))
+                raise RuntimeError('Error setting up parameters for constrain.rigid()')
+            constituent_type_id = type_list.index(t)
+
+            type_vec.append(constituent_type_id)
+
+        if not isinstance(positions, list):
+            globals.msg.error('Expecting list of particle positions.\n')
+            raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+        pos_vec = hoomd.std_vector_scalar3()
+        for p in positions:
+            if not isinstance(p, tuple) or len(p) != 3:
+                globals.msg.error('Particle position is not a coordinate triple.\n')
+                raise RuntimeError('Error setting up parameters for constrain.rigid()')
+            pos_vec.append(hoomd.make_scalar3(p[0],p[1],p[2]))
+
+        orientation_vec = hoomd.std_vector_scalar4()
+        if orientations is not None:
+            if not isinstance(orientations, list):
+                globals.msg.error('Expecting list of particle orientations.\n')
+                raise RuntimeError('Error setting up parameters for constrain.rigid()')
+
+            for o in orientations:
+                if not isinstance(o, tuple()) or len(o) != 4:
+                    globals.msg.error('Particle orientation is not a 4-tuple.\n')
+                    raise RuntimeError('Error setting up parameters for constrain.rigid()')
+                orientation_vec.append(hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
+        else:
+            for p in positions:
+                orientation_vec.append(hoomd.make_scalar4(1,0,0,0))
+
+        # set parameters in C++ force
+        self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec)
+
+    ## \internal
+    # \brief updates force coefficients
+    def update_coeffs(self):
+        # create copies of rigid bodies
+        self.cpp_force.createRigidBodies()

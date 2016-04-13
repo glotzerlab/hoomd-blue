@@ -50,7 +50,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBD.h"
+#include "VectorMath.h"
 #include "saruprng.h"
+#include "QuaternionMath.h"
+#include "HOOMDMath.h"
+
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -70,14 +74,20 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
+    \param noiseless_t If set true, there will be no translational noise (random force)
+    \param noiseless_r If set true, there will be no rotational noise (random torque)
 */
 TwoStepBD::TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
-                           Scalar lambda)
-    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda)
+                           Scalar lambda,
+                           bool noiseless_t,
+                           bool noiseless_r
+                           )
+  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), 
+    m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -113,6 +123,13 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -129,7 +146,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the random force
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz =  saru.s<Scalar>(-1,1);
+        Scalar rz = saru.s<Scalar>(-1,1);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -143,6 +160,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
         // it is not the dimensionality of the system
         Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*currentTemp/m_deltaT);
+        if (m_noiseless_t) 
+            coeff = Scalar(0.0);
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
@@ -167,12 +186,78 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
             h_vel.data[j].z = gaussian_rng(saru, sigma);
         else
             h_vel.data[j].z = 0;
+        
+        // rotational random force and orientation quaternion updates
+        if (m_aniso)
+            {
+            unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
+            Scalar gamma_r = h_gamma_r.data[type_r];
+            if (gamma_r > 0)
+                {
+                vec3<Scalar> p_vec;
+                quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> t(h_torque.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+                
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);  
+                                        
+                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+                if (m_noiseless_r) 
+                    sigma_r = Scalar(0.0);
+
+                // original Gaussian random torque
+                // Gaussian random distribution is preferred in terms of preserving the exact math
+                vec3<Scalar> bf_torque;
+                bf_torque.x = gaussian_rng(saru, sigma_r); 
+                bf_torque.y = gaussian_rng(saru, sigma_r); 
+                bf_torque.z = gaussian_rng(saru, sigma_r);
+                
+                if (x_zero) bf_torque.x = 0;
+                if (y_zero) bf_torque.y = 0;
+                if (z_zero) bf_torque.z = 0;
+                
+                // use the damping by gamma_r and rotate back to lab frame 
+                // Notes For the Future: take special care when have anisotropic gamma_r 
+                // if aniso gamma_r, first rotate the torque into particle frame and divide the different gamma_r
+                // and then rotate the "angular velocity" back to lab frame and integrate
+                bf_torque = rotate(q, bf_torque);
+                if (D < 3)
+                    {
+                    bf_torque.x = 0;
+                    bf_torque.y = 0;
+                    t.x = 0;
+                    t.y = 0;
+                    }
+
+                // do the integration for quaternion
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;               
+                q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
+                h_orientation.data[j] = quat_to_scalar4(q);
+                
+                // draw a new random ang_mom for particle j in body frame
+                p_vec.x = gaussian_rng(saru, fast::sqrt(currentTemp * I.x));
+                p_vec.y = gaussian_rng(saru, fast::sqrt(currentTemp * I.y));
+                p_vec.z = gaussian_rng(saru, fast::sqrt(currentTemp * I.z));
+                if (x_zero) p_vec.x = 0;
+                if (y_zero) p_vec.y = 0;
+                if (z_zero) p_vec.z = 0;
+                
+                // !! Note this isn't well-behaving in 2D, 
+                // !! because may have effective non-zero ang_mom in x,y
+                
+                // store ang_mom quaternion
+                quat<Scalar> p = Scalar(2.0) * q * p_vec;
+                h_angmom.data[j] = quat_to_scalar4(p);
+                }
+            }
         }
 
     // done profiling
     if (m_prof)
         m_prof->pop();
     }
+    
 
 /*! \param timestep Current time step
 */
@@ -189,7 +274,8 @@ void export_TwoStepBD()
                             boost::shared_ptr<Variant>,
                             unsigned int,
                             bool,
-                            Scalar
-                            >())
+                            Scalar,
+                            bool, 
+                            bool>())
         ;
     }

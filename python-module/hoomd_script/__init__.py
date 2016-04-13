@@ -240,10 +240,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     # update autotuner parameters
     globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
 
-    # if rigid bodies, setxv
-    if len(data.system_data(globals.system_definition).bodies) > 0:
-        data.system_data(globals.system_definition).bodies.updateRV()
-
     for logger in globals.loggers:
         logger.update_quantities();
     globals.system.enableProfiler(profile);

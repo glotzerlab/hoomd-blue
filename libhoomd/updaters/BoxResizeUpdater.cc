@@ -54,7 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "BoxResizeUpdater.h"
-#include "RigidData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -110,8 +109,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "Box resize update" << endl;
     if (m_prof) m_prof->push("BoxResize");
 
-    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-
     // first, compute what the current box size and tilt factors should be
     Scalar Lx = m_Lx->getValue(timestep);
     Scalar Ly = m_Ly->getValue(timestep);
@@ -164,26 +161,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 h_pos.data[i].y = scaled_pos.y;
                 h_pos.data[i].z = scaled_pos.z;
                 }
-
-            // also rescale rigid body COMs
-            unsigned int n_bodies = rigid_data->getNumBodies();
-            if (n_bodies > 0)
-                {
-                ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-
-                for (unsigned int body = 0; body < n_bodies; body++)
-                    {
-                    // obtain scaled coordinates in the old global box
-                    Scalar3 f = curBox.makeFraction(make_scalar3(com_handle.data[body].x,
-                                                                 com_handle.data[body].y,
-                                                                 com_handle.data[body].z));
-                    Scalar3 scaled_cm = newBox.makeCoordinates(f);
-                    com_handle.data[body].x = scaled_cm.x;
-                    com_handle.data[body].y = scaled_cm.y;
-                    com_handle.data[body].z = scaled_cm.z;
-                    }
-                }
-
             }
         else
             {
@@ -203,24 +180,8 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 // need to update the image if we move particles from one side of the box to the other
                 local_box.wrap(h_pos.data[i], h_image.data[i]);
                 }
-
-            // do the same for rigid body COMs
-            unsigned int n_bodies = rigid_data->getNumBodies();
-            if (n_bodies > 0)
-                {
-                ArrayHandle<Scalar4> h_body_com(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-                ArrayHandle<int3> h_body_image(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
-
-                for (unsigned int body = 0; body < n_bodies; body++)
-                    {
-                    // need to update the image if we move particles from one side of the box to the other
-                    local_box.wrap(h_body_com.data[body], h_body_image.data[body]);
-                    }
-                }
             }
 
-        // update the body particle positions to reflect the new rigid body positions
-        rigid_data->setRV(true);
         }
 
     if (m_prof) m_prof->pop();

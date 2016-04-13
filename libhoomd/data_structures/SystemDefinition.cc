@@ -99,9 +99,6 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
 
-    m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-    m_rigid_data->initializeData();
-
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
@@ -135,17 +132,6 @@ SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> >
 
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
 
-    m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-
-    // the follwing calls may cause confusion, but their tasks are completely different
-    // This makes sure that the rigid bodies are initialized correctly based on the particle data (body flags)
-    // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
-    m_rigid_data->initializeData();
-
-    // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images;
-    // otherwise, nothing is done here.
-    if (snapshot->rigid_data.size) m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
-
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
 
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
@@ -178,7 +164,6 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param dihedrals True if dihedral data should be saved
  *  \param impropers True if improper data should be saved
  *  \param constraints True if constraint data should be saved
- *  \param rigid True if rigid data should be saved
  *  \param integrators True if integrator data should be saved
  */
 template <class Real>
@@ -188,7 +173,6 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
                                                    bool dihedrals,
                                                    bool impropers,
                                                    bool constraints,
-                                                   bool rigid,
                                                    bool integrators)
     {
     boost::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
@@ -245,15 +229,6 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
     else
         snap->has_constraint_data = false;
 
-    if (rigid)
-        {
-        m_rigid_data->takeSnapshot(snap->rigid_data);
-        snap->has_rigid_data = true;
-        }
-    else
-        snap->has_rigid_data = false;
-
-
     if (integrators)
         {
         for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
@@ -300,9 +275,6 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     if (snapshot->has_constraint_data)
         m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
 
-    if (snapshot->has_rigid_data)
-        m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
-
     // it is an error to load variables for more integrators than are
     // currently registered
     if (snapshot->has_integrator_data)
@@ -332,7 +304,6 @@ template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSn
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool rigid,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot);
 
@@ -345,7 +316,6 @@ template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeS
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool rigid,
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr< SnapshotSystemData<double> > snapshot);
 
@@ -367,7 +337,6 @@ void export_SystemDefinition()
     .def("getImproperData", &SystemDefinition::getImproperData)
     .def("getConstraintData", &SystemDefinition::getConstraintData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
-    .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)
     .def("takeSnapshot_float", &SystemDefinition::takeSnapshot<float>)
     .def("takeSnapshot_double", &SystemDefinition::takeSnapshot<double>)
