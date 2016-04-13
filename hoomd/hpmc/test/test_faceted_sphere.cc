@@ -1,0 +1,588 @@
+
+#include "hoomd/ExecutionConfiguration.h"
+#include "hoomd/extern/saruprng.h"
+#include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
+
+//! Name the unit test module
+#define BOOST_TEST_MODULE ShapeFacetedSphere
+#include "boost_utf_configure.h"
+#include "hoomd/hpmc/ShapeFacetedSphere.h"
+
+#include <iostream>
+
+#include <boost/bind.hpp>
+#include <boost/python.hpp>
+#include <boost/test/unit_test.hpp>
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+
+using namespace hpmc;
+
+unsigned int err_count;
+
+BOOST_AUTO_TEST_CASE( construction )
+    {
+    // parameters
+    quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
+    o = o * (Scalar)(Scalar(1.0)/sqrt(norm2(o)));
+    Scalar radius = 1.25;
+
+    detail::faceted_sphere_params p;
+    p.N = 0;
+    p.diameter = 2.0*radius;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    // construct and check
+    ShapeFacetedSphere a(o, p);
+    MY_BOOST_CHECK_CLOSE(a.orientation.s, o.s, tol);
+    MY_BOOST_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
+    MY_BOOST_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
+    MY_BOOST_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
+
+    MY_BOOST_CHECK_CLOSE(a.params.diameter, 2.0*radius, tol);
+    BOOST_CHECK(a.params.insphere_radius==0);
+
+    BOOST_CHECK(!a.hasOrientation());
+
+    BOOST_CHECK(a.params.verts.N == 0);
+    BOOST_CHECK(a.params.additional_verts.N == 0);
+
+    MY_BOOST_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
+    }
+
+BOOST_AUTO_TEST_CASE( overlap )
+    {
+    // parameters
+    vec3<Scalar> r_i;
+    vec3<Scalar> r_j;
+    quat<Scalar> o;
+    BoxDim box(100);
+
+    // place test spheres
+    detail::faceted_sphere_params p;
+    p.N = 0;
+    p.diameter = 2.0*1.25;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    ShapeFacetedSphere a(o, p);
+    r_i = vec3<Scalar>(1,2,3);
+
+    detail::faceted_sphere_params p2;
+    p2.N = 0;
+    p2.diameter = 2*1.75;
+    p2.ignore = 0;
+    p2.insphere_radius = 0;
+    p2.verts.N = 0;
+    p2.additional_verts.N = 0;
+
+    ShapeFacetedSphere b(o, p2);
+    r_j = vec3<Scalar>(5,-2,-1);
+    BOOST_CHECK(!test_overlap(r_j - r_i, a,b,err_count));
+    BOOST_CHECK(!test_overlap(r_i - r_j, b,a,err_count));
+
+    ShapeFacetedSphere c(o, p2);
+    r_j = vec3<Scalar>(3.9,2,3);
+    BOOST_CHECK(test_overlap(r_j - r_i, a,c,err_count));
+    BOOST_CHECK(test_overlap(r_i - r_j, c,a,err_count));
+
+    ShapeFacetedSphere d(o, p2);
+    r_j = vec3<Scalar>(1,-0.8,3);
+    BOOST_CHECK(test_overlap(r_j - r_i, a,d,err_count));
+    BOOST_CHECK(test_overlap(r_i - r_j, d,a,err_count));
+
+    ShapeFacetedSphere e(o, p2);
+    r_j = vec3<Scalar>(1,2,0.1);
+    BOOST_CHECK(test_overlap(r_j - r_i, a,e,err_count));
+    BOOST_CHECK(test_overlap(r_i - r_j, e,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_boundaries )
+    {
+    // parameters
+    quat<Scalar> o;
+    BoxDim box(20);
+
+    // place test spheres
+    vec3<Scalar> pos_a(9,0,0);
+    vec3<Scalar> pos_b(-8,-2,-1);
+    vec3<Scalar> rij = pos_b - pos_a;
+    rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
+
+    detail::faceted_sphere_params p;
+    p.N = 0;
+    p.diameter = 2.0*1.00;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    ShapeFacetedSphere a(o, p);
+    ShapeFacetedSphere b(o, p);
+    BOOST_CHECK(!test_overlap(rij,a,b,err_count));
+    BOOST_CHECK(!test_overlap(-rij,b,a,err_count));
+
+    vec3<Scalar> pos_c(-9.1,0,0);
+    rij = pos_c - pos_a;
+    rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
+    ShapeFacetedSphere c(o, p);
+    BOOST_CHECK(test_overlap(rij,a,c,err_count));
+    BOOST_CHECK(test_overlap(-rij,c,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_faceted )
+    {
+    // parameters
+    vec3<Scalar> r_i;
+    vec3<Scalar> r_j;
+    quat<Scalar> o(1,vec3<Scalar>(0,0,0));
+    BoxDim box(100);
+
+    // place test spheres
+    detail::faceted_sphere_params p;
+    p.N = 1;
+    p.diameter = 1.0;
+    p.n[0] = vec3<OverlapReal>(1,0,0);
+    p.offset[0] = -.3;
+    p.ignore = 0;
+    p.insphere_radius = .3;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    ShapeFacetedSphere a(o, p);
+
+    detail::faceted_sphere_params p2;
+    p2.N = 0;
+    p2.diameter = 1.0;
+    p2.ignore = 0;
+    p2.insphere_radius = 0;
+    p2.offset[0] = 0;
+    p2.verts.N = 0;
+    p2.additional_verts.N = 0;
+
+
+    ShapeFacetedSphere b(o, p2);
+    vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.85,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.75,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    p2.N = 1;
+    p2.offset[0] = -.3;
+
+    // facet particle b, but place it so that b's circumsphere doesn't intersect a
+    for (unsigned int i = 0; i < 100; ++i)
+        {
+        // rotate b around z
+        Scalar phi = 2.0*M_PI/100.0*i;
+        p2.n[0].x = cos(phi);
+        p2.n[0].y = sin(phi);
+        p2.n[0].z = 0.0;
+        r_ij = vec3<Scalar>(0.81,0,0);
+        BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+        BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+        }
+
+    p2.n[0].x = -1;
+    p2.n[0].y = 0.0;
+    p2.n[0].z = 0.0;
+
+    // place b close to a along x, with facing facets, then translate in y-z plane
+    for (unsigned int i = 0; i < 100; ++i)
+        for (unsigned int j = 0; j < 100; ++j)
+            {
+            Scalar y = -5.0+0.1*i;
+            Scalar z = -5.0+0.1*j;
+            r_ij = vec3<Scalar>(.6001,y,z);
+            BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+            BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+            }
+
+    // place b close to a along x, with facing facets, then rotate slightly around z (1deg)
+    for (unsigned int i = 0; i < 10; ++i)
+        {
+        Scalar phi = -0.5/180.0*M_PI+1.0/180.0*M_PI/10.0*i;
+        p2.n[0].x = -cos(phi);
+        p2.n[0].y = -sin(phi);
+        p2.n[0].z = 0.0;
+        r_ij = vec3<Scalar>(.61,0,0);
+        BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+        BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+        }
+
+    // get a vertex on the intersection circle of sphere a
+    hpmc::detail::SupportFuncFacetedSphere S_a(p);
+    vec3<OverlapReal> v_or = S_a(vec3<OverlapReal>(1,-.3,0));
+    vec3<Scalar> v(v_or.x, v_or.y, v_or.z);
+
+    // place particle b along that axis, with patch normal to it,
+    // but barely not touching
+    r_ij = v+v*fast::rsqrt(dot(v,v))*Scalar(0.3001);
+    p2.n[0] = -v*fast::rsqrt(dot(v,v));
+    p2.offset[0] = -.3;
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    // place particle b along that axis, with patch normal to it,
+    // barely overlapping
+    r_ij = v+v*fast::rsqrt(dot(v,v))*Scalar(0.2999);
+    p2.n[0] = -v*fast::rsqrt(dot(v,v));
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_faceted_twofacets )
+    {
+    // parameters
+    vec3<Scalar> r_i;
+    vec3<Scalar> r_j;
+    quat<Scalar> o(1,vec3<Scalar>(0,0,0));
+    BoxDim box(100);
+
+    // place test spheres
+    detail::faceted_sphere_params p;
+    p.N = 2;
+    p.diameter = 1.0;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.verts.diameter = 1.0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
+        {
+        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
+        }
+
+    // this shape has two facets intersecting inside the sphere
+    p.n[0] = vec3<OverlapReal>(1/sqrt(2),1/sqrt(2),0);
+    p.offset[0] = -0.9*1/(2*sqrt(2));
+    p.n[1] = vec3<OverlapReal>(1/sqrt(2),-1/sqrt(2),0);
+    p.offset[1] = -0.9*1/(2*sqrt(2));
+    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere a(o, p);
+
+    detail::faceted_sphere_params p2;
+    p2.N = 0;
+    p2.diameter = 1.0;
+    p2.ignore = 0;
+    p2.insphere_radius = 0;
+    p2.verts.N = 0;
+    p2.additional_verts.N = 0;
+
+    ShapeFacetedSphere b(o, p2);
+    vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(1,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.5+0.905*0.5,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.5+0.895*0.5,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.5,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_faceted_threefacets )
+    {
+    // parameters
+    quat<Scalar> o(1,vec3<Scalar>(0,0,0));
+    BoxDim box(100);
+
+    // place test spheres
+    detail::faceted_sphere_params p;
+    p.N = 3;
+    p.diameter = 1.0;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    // this shape has three facets coming together in a corner inside the sphere
+    OverlapReal phi(2.0*M_PI/3.0);
+    OverlapReal theta(M_PI/4.0);
+    p.n[0] = vec3<OverlapReal>(sin(theta)*cos(0*phi),sin(theta)*sin(0*phi),cos(theta));
+    p.offset[0] = -0.9*cos(theta)/2;
+    p.n[1] = vec3<OverlapReal>(sin(theta)*cos(1*phi),sin(theta)*sin(1*phi),cos(theta));
+    p.offset[1] = -0.9*cos(theta)/2;
+    p.n[2] = vec3<OverlapReal>(sin(theta)*cos(2*phi),sin(theta)*sin(2*phi),cos(theta));
+    p.offset[2] = -0.9*cos(theta)/2;
+
+    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
+        {
+        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
+        }
+
+    p.verts.N = 1;
+    p.verts.diameter = 1.0;
+    p.verts.x[0] = 0;
+    p.verts.y[0] = 0;
+    p.verts.z[0] = 0.9/2;
+
+    ShapeFacetedSphere::initializeVertices(p);
+
+    ShapeFacetedSphere a(o, p);
+
+    detail::faceted_sphere_params p2;
+    p2.N = 0;
+    p2.diameter = 1.0;
+    p2.ignore = 0;
+    p2.insphere_radius = 0;
+    p2.verts.N = 0;
+    p2.additional_verts.N = 0;
+
+
+    ShapeFacetedSphere b(o, p2);
+    vec3<Scalar> r_ij = vec3<Scalar>(0,0,2);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,1);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,0.5+0.905*0.5);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,0.5+0.895*0.5);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,0.5);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,-.99);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0,0,-1.01);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_faceted_offset )
+    {
+    // parameters
+    quat<Scalar> o(1,vec3<Scalar>(0,0,0));
+    BoxDim box(100);
+
+    // place test spheres
+    detail::faceted_sphere_params p;
+    p.N = 1;
+    p.diameter = 1.0;
+    p.n[0] = vec3<OverlapReal>(1,0,0);
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+
+    ShapeFacetedSphere a(o, p);
+
+    detail::faceted_sphere_params p2;
+    p2.N = 0;
+    p2.diameter = 1.0;
+    p2.ignore = 0;
+    p2.insphere_radius = 0;
+    p2.verts.N = 0;
+    p2.additional_verts.N = 0;
+
+    p.offset[0] = -.25;
+
+    ShapeFacetedSphere b(o, p2);
+    vec3<Scalar> r_ij = vec3<Scalar>(.76,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.74,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    p.offset[0] = 0;
+
+    r_ij = vec3<Scalar>(.51,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(0.49,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+
+    p.offset[0] = .25;
+
+    r_ij = vec3<Scalar>(.26,0,0);
+    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+
+    r_ij = vec3<Scalar>(.24,0,0);
+    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    }
+
+#include "hoomd/extern/saruprng.h"
+BOOST_AUTO_TEST_CASE( random_support_test )
+    {
+    detail::faceted_sphere_params p;
+    p.diameter = 1.0;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
+        {
+        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
+        }
+
+    // this shape has three facets coming together in a corner inside the sphere
+    unsigned int n = 6;
+    //p.N = n + 1;
+    p.N = n;
+    OverlapReal phi(2.0*M_PI/n);
+    OverlapReal theta(M_PI/4.0);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        p.n[i] = vec3<OverlapReal>(sin(theta)*cos(i*phi),sin(theta)*sin(i*phi),cos(theta));
+        p.offset[i] = -1.1*cos(theta)/2;
+        }
+    //p.n[n] = vec3<OverlapReal>(0,0,1);
+    //p.offset[n] = -0.35;
+
+    ShapeFacetedSphere::initializeVertices(p);
+
+    Saru rng;
+
+    detail::SupportFuncFacetedSphere support(p);
+    for (unsigned int i = 0; i < 10000; ++i)
+        {
+        // draw a random vector in the excluded volume sphere of the colloid
+        OverlapReal theta = rng.s(OverlapReal(0.0),OverlapReal(2.0*M_PI));
+        OverlapReal z = rng.s(OverlapReal(-1.0),OverlapReal(1.0));
+
+        // random normalized vector
+        vec3<OverlapReal> n(fast::sqrt(OverlapReal(1.0)-z*z)*fast::cos(theta),fast::sqrt(OverlapReal(1.0)-z*z)*fast::sin(theta),z);
+
+        vec3<OverlapReal> s = support(n);
+        //printf("%f %f %f\n", s.x, s.y, s.z);
+        BOOST_CHECK(dot(s,s) <= 0.5);
+        }
+    }
+
+BOOST_AUTO_TEST_CASE( random_support_test_2 )
+    {
+    detail::faceted_sphere_params p;
+    p.diameter = 1.0;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
+        {
+        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
+        }
+
+    // this shape has three facets coming together in a corner inside the sphere
+    unsigned int n = 2;
+    p.N = n;
+    OverlapReal phi(M_PI*20.0/180.0);
+    OverlapReal theta(M_PI/2.0);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        p.n[i] = vec3<OverlapReal>(sin(theta)*cos(i*phi),sin(theta)*sin(i*phi),cos(theta));
+        p.offset[i] = 0;
+        }
+    //p.n[n] = vec3<OverlapReal>(0,0,1);
+    //p.offset[n] = -0.35;
+
+    ShapeFacetedSphere::initializeVertices(p);
+
+    Saru rng;
+
+    detail::SupportFuncFacetedSphere support(p);
+    for (unsigned int i = 0; i < 10000; ++i)
+        {
+        // draw a random vector in the excluded volume sphere of the colloid
+        OverlapReal theta = rng.s(OverlapReal(0.0),OverlapReal(2.0*M_PI));
+        OverlapReal z = rng.s(OverlapReal(-1.0),OverlapReal(1.0));
+
+        // random normalized vector
+        vec3<OverlapReal> n(fast::sqrt(OverlapReal(1.0)-z*z)*fast::cos(theta),fast::sqrt(OverlapReal(1.0)-z*z)*fast::sin(theta),z);
+
+        vec3<OverlapReal> s = support(n);
+        //printf("%f %f %f\n", s.x, s.y, s.z);
+        BOOST_CHECK(dot(s,s) <= 0.5);
+        }
+    }
+
+BOOST_AUTO_TEST_CASE( overlap_special_case )
+    {
+    // parameters
+    BoxDim box(100);
+
+    detail::faceted_sphere_params p;
+    p.diameter = 1.0;
+    p.ignore = 0;
+    p.insphere_radius = 0;
+    p.verts.N = 0;
+    p.additional_verts.N = 0;
+    p.origin = vec3<OverlapReal>(0,0,0);
+
+    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
+        {
+        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
+        }
+
+    unsigned int n = 2;
+    p.N = n;
+    OverlapReal phi(M_PI*20.0/180.0);
+    OverlapReal theta(M_PI/2.0);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        p.n[i] = vec3<OverlapReal>(sin(theta)*cos(i*phi),sin(theta)*sin(i*phi),cos(theta));
+        p.offset[i] = 0;
+        }
+
+    ShapeFacetedSphere::initializeVertices(p);
+
+    // place test spheres
+    ShapeFacetedSphere a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);
+    ShapeFacetedSphere b(quat<Scalar>(-0.225227072835,vec3<Scalar>(-0.3539296984673,-0.8667258024216,-0.269801825285)),p);
+
+    vec3<Scalar> r_a(-0.1410365402699,-0.3096362948418,-0.04636116325855);
+    vec3<Scalar> r_b(-0.7674461603165,-0.5918425917625,-0.3122854232788);
+    vec3<Scalar> r_ab = r_b-r_a;
+    BOOST_CHECK(test_overlap(r_ab, a,b,err_count));
+    BOOST_CHECK(test_overlap(-r_ab,a,b,err_count));
+    }

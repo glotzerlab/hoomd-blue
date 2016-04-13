@@ -2,20 +2,63 @@
 
 [TOC]
 
-## Upcoming release
+## v2.0.0
+
+*Bug fixes*
+
+* Angles, dihedrals, and impropers no longer initialize with one default type.
+* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
 
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+* Rigid body constraints `constrain.rigid` - rigid bodies now have central particles, and support MPI and replication
+* `context.initialize()` can now be called multiple times - useful in jupyter notebooks
+* Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
+* `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.
+* Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
+  notebook output blocks.
+* `analyze.log` can now register python callback functions as sources for logged quantities.
+* The GSD file format (http://gsd.readthedocs.org/en/latest/) is fully implemented in hoomd
+    * `dump.gsd` writes GSD trajectories and restart files (use `truncate=true` for restarts).
+    * `init.read_gsd` reads GSD file and initializes the system, and can start the simulation
+       from any frame in the GSD file.
+    * `data.gsd_snapshot` reads a GSD file into a snapshot which can be modified before system
+      initialization with `init.read_snapshot`.
+    * The GSD file format is capable of storing all particle and topology data fields in hoomd,
+      either static at frame 0, or varying over the course of the trajectory. The number of
+      particles, types, bonds, etc. can also vary over the trajectory.
 * `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
 * `update.constrain_ellipsoid` constrains particles to an ellipsoid
-* `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
+* `integrate.langevin` and `integrate.brownian` now apply rotational noise and damping to anisotropic particles
+* Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
+  to the original selection criteria. For example, this can be used to periodically update a cuboid
+  group to include particles only in the specified region.
 * `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
 
-*Bug fixes*
+*Changes that require job script modifications*
 
-* Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+* `context.initialize()` is now required before any other hoomd script command.
+* `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
+* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
+* bonds, angles, dihedrals, and impropers no longer use the `set_coeff` syntax. Use `bond_coeff.set`, `angle_coeff.set`,
+  `dihedral_coeff.set`, and `improper_coeff.set` instead.
+* `hoomd_script` no longer exists, python commands are now spread across `hoomd`, `hoomd.md`, and other sub packages.
+* `integrate.\*_rigid()` no longer exists. Use a standard integrator on `group.rigid_center()`, and define rigid bodies using `constrain.rigid()`
 
+*Other changes*
+
+* CMake minimum version is now 2.8
+* Convert particle type names to `str` to allow unicode type name input
+* `__version__` is now available in the top level package
+* `boost::iostreams` is no longer a build dependency
+* `boost::filesystem` is no longer a build dependency
+
+*Removed*
+
+* Removed `integrate.bdnvt`: use `integrate.langevin`
+* Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
+* Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
 ## v1.3.3
 
 Released 2016/03/06

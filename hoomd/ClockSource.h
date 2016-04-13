@@ -1,0 +1,114 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
+the University of Michigan All rights reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// Maintainer: joaander
+
+/*! \file ClockSource.h
+    \brief Declares the ClockSource class
+*/
+
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+#ifndef __CLOCK_SOURCE_H__
+#define __CLOCK_SOURCE_H__
+
+// The clock code uses 64 bit integers for big numbers of nanoseconds.
+#include <stdint.h>
+
+#include <string>
+
+#include <iostream>
+
+#include <sys/time.h>
+#include <unistd.h>
+
+//! Sleep for for a time
+/*! \param msec Number of milliseconds to sleep for
+    \ingroup utils
+*/
+inline void Sleep(int msec)
+    {
+    usleep(msec*1000);
+    }
+
+//! Source of time measurements
+/*! Access the operating system's timer and reports a time since construction in nanoseconds.
+    The resolution of the timer is system dependant, though typically around 10 microseconds
+    or better. Critical accessor methods are inlined for low overhead
+    \ingroup utils
+*/
+class ClockSource
+    {
+    public:
+        //! Construct a ClockSource
+        ClockSource();
+        //! Get the current time in nanoseconds
+        int64_t getTime() const;
+
+        //! Formats a given time value to HH:MM:SS
+        static std::string formatHMS(int64_t t);
+    private:
+        int64_t m_start_time; //!< Stores a base time to reference from
+    };
+
+//! Exports the ClockSource class to python
+void export_ClockSource();
+
+inline int64_t ClockSource::getTime() const
+    {
+    timeval t;
+    gettimeofday(&t, NULL);
+
+    int64_t nsec = int64_t(t.tv_sec) * int64_t(1000000000) + int64_t(t.tv_usec)*int64_t(1000);
+    return nsec - m_start_time;
+    }
+
+#endif

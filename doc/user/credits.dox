@@ -132,6 +132,7 @@ Jens Glaser, University of Michigan
  - anisotropic particle integrators
  - Gay-Berne pair potential
  - pair.reaction_field
+ - Rewrite of rigid body framework
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials

@@ -1,9 +1,5 @@
 # Maintainer: joaander
-# This sets the preprocessor definitinos after all build options have been set appropriately
-
-if (ENABLE_STATIC)
-    add_definitions(-DENABLE_STATIC)
-endif(ENABLE_STATIC)
+# This sets the preprocessor definitions after all build options have been set appropriately
 
 if (SINGLE_PRECISION)
     add_definitions (-DSINGLE_PRECISION)
@@ -33,9 +29,6 @@ endif(ENABLE_MPI)
 
 # define Eigen should be MPL 2 only
 add_definitions(-DEIGEN_MPL2_ONLY)
-
-# define this as a main hoomd build (as opposed to a plugin build)
-add_definitions(-DBUILDING_HOOMD)
 
 # export cusolver availability
 if (CUSOLVER_AVAILABLE)
