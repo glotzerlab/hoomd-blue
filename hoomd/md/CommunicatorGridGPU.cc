@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
+#ifdef ENABLE_MPI
+
 #include "CommunicatorGridGPU.h"
 
 #ifdef ENABLE_CUDA
@@ -215,3 +217,5 @@ template class CommunicatorGridGPU<Scalar>;
 template class CommunicatorGridGPU<unsigned int>;
 template class CommunicatorGridGPU<cufftComplex>;
 #endif //ENABLE_CUDA
+
+#endif // ENABLE_MPI

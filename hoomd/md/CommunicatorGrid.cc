@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
+#ifdef ENABLE_MPI
+
 #include "CommunicatorGrid.h"
 
 #include "hoomd/extern/kiss_fft.h"
@@ -305,3 +307,5 @@ inline cufftComplex operator + (cufftComplex& lhs, cufftComplex& rhs)
 
 template class CommunicatorGrid<cufftComplex>;
 #endif
+
+#endif //ENABLE_MPI

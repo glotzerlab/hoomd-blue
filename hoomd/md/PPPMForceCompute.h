@@ -6,7 +6,10 @@
 #include "hoomd/ParticleGroup.h"
 #include "CommunicatorGrid.h"
 
+#ifdef ENABLE_MPI
 #include "hoomd/extern/dfftlib/src/dfft_host.h"
+#endif
+
 #include "hoomd/extern/kiss_fftnd.h"
 
 #include <boost/signals2.hpp>
