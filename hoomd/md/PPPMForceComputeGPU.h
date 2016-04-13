@@ -5,6 +5,8 @@
 
 #ifdef ENABLE_CUDA
 
+#include <cufft.h>
+
 //#define USE_HOST_DFFT
 
 #include "hoomd/Autotuner.h"
