@@ -4,9 +4,9 @@
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
 #include "hoomd/ParticleGroup.h"
-#include "CommunicatorGrid.h"
 
 #ifdef ENABLE_MPI
+#include "CommunicatorGrid.h"
 #include "hoomd/extern/dfftlib/src/dfft_host.h"
 #endif
 

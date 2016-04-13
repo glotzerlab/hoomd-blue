@@ -7,11 +7,11 @@
 
 //#define USE_HOST_DFFT
 
-#include "CommunicatorGridGPU.h"
-
 #include "hoomd/Autotuner.h"
 
 #ifdef ENABLE_MPI
+#include "CommunicatorGridGPU.h"
+
 #ifndef USE_HOST_DFFT
 #include "hoomd/extern/dfftlib/src/dfft_cuda.h"
 #else
