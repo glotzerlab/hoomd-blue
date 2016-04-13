@@ -32,8 +32,8 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft)
         cufftDestroy(m_cufft_plan);
-    else
     #ifdef ENABLE_MPI
+    else
         {
         dfft_destroy_plan(m_dfft_plan_forward);
         dfft_destroy_plan(m_dfft_plan_inverse);

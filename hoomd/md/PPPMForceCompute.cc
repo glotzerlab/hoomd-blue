@@ -555,9 +555,9 @@ void PPPMForceCompute::computeInfluenceFunction()
     Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
     Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
 
+    #ifdef ENABLE_MPI
     bool local_fft = m_kiss_fft_initialized;
 
-    #ifdef ENABLE_MPI
     uint3 pdim=make_uint3(0,0,0);
     uint3 pidx=make_uint3(0,0,0);
     if (m_pdata->getDomainDecomposition())
