@@ -1,5 +1,5 @@
 #include "PPPMForceComputeGPU.cuh"
-#include "TextureTools.h"
+#include "hoomd/TextureTools.h"
 
 // __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
 #ifdef SINGLE_PRECISION

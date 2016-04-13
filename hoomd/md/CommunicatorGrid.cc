@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CommunicatorGrid.h"
 
-#include "kiss_fft.h"
+#include "hoomd/extern/kiss_fft.h"
 
 #include <map>
 

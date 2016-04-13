@@ -6,8 +6,8 @@
 #include "hoomd/ParticleGroup.h"
 #include "CommunicatorGrid.h"
 
-#include "dfft_host.h"
-#include "kiss_fftnd.h"
+#include "hoomd/extern/dfftlib/src/dfft_host.h"
+#include "hoomd/extern/kiss_fftnd.h"
 
 #include <boost/signals2.hpp>
 #include <boost/bind.hpp>
@@ -30,12 +30,6 @@ class PPPMForceCompute : public ForceCompute
         //! Set the parameters
         virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
             unsigned int order, Scalar kappa, Scalar rcut);
-
-        //! Set the update period
-        void setUpdatePeriod(unsigned int period)
-            {
-            m_period = period;
-            }
 
         void computeForces(unsigned int timestep);
 
@@ -166,9 +160,6 @@ class PPPMForceCompute : public ForceCompute
         std::vector<std::string> m_log_names;           //!< Name of the log quantity
 
         bool m_dfft_initialized;                   //! True if host dfft has been initialized
-
-        unsigned int m_period;                     //!< Update period for PPPM
-        bool m_force_compute;                      //!< True if we are forced to compute
 
         //! Compute virial on mesh
         void computeVirialMesh();

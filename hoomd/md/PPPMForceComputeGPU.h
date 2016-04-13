@@ -9,13 +9,13 @@
 
 #include "CommunicatorGridGPU.h"
 
-#include "Autotuner.h"
+#include "hoomd/Autotuner.h"
 
 #ifdef ENABLE_MPI
 #ifndef USE_HOST_DFFT
-#include "dfft_cuda.h"
+#include "hoomd/extern/dfftlib/src/dfft_cuda.h"
 #else
-#include "dfft_host.h"
+#include "hoomd/extern/dfftlib/src/dfft_host.h"
 #endif
 #endif
 

@@ -1,6 +1,6 @@
-#include "HOOMDMath.h"
-#include "Index1D.h"
-#include "BoxDim.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
+#include "hoomd/BoxDim.h"
 
 #include <cufft.h>
 

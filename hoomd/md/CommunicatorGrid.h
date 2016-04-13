@@ -52,8 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __COMMUNICATOR_GRID_H__
 #define __COMMUNICATOR_GRID_H__
 
-#include "GPUArray.h"
-#include "SystemDefinition.h"
+#include "hoomd/GPUArray.h"
+#include "hoomd/SystemDefinition.h"
 #include <boost/shared_ptr.hpp>
 
 #ifdef ENABLE_MPI

@@ -198,8 +198,8 @@ class pppm(force._force):
         # get sum of charges and of squared charges
         q = self.cpp_force.getQSum();
         q2 = self.cpp_force.getQ2Sum();
-        N = globals.system_definition.getParticleData().getNGlobal()
-        box = globals.system_definition.getParticleData().getGlobalBox()
+        N = hoomd.context.current.system_definition.getParticleData().getNGlobal()
+        box = hoomd.context.current.system_definition.getParticleData().getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z
@@ -253,9 +253,6 @@ class pppm(force._force):
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
-
-        # set the update period
-        self.cpp_force.setUpdatePeriod(period)
 
     def update_coeffs(self):
         if not self.params_set:

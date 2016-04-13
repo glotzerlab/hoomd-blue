@@ -248,7 +248,9 @@ void PPPMForceComputeGPU::assignParticles()
         unsigned int block_size = m_tuner_assign->getParam();
 
         /*
-        // NOTE: we also provide a determinstic code path which is currently not used
+           NOTE: we also provide a determinstic code path which is currently not used
+           it would further require making the binning of particles determinstic
+
         gpu_assign_binned_particles_to_mesh_deterministic(m_mesh_points,
                                             m_n_ghost_cells,
                                             m_grid_dim,

@@ -3,7 +3,6 @@
 
 from hoomd import *
 from hoomd import md
-context.initialize()
 import unittest
 import os
 
@@ -29,7 +28,6 @@ class charge_pppm_tests (unittest.TestCase):
         md.integrate.nve(all);
         run(100);
 
-<<<<<<< HEAD:test/hoomd_script/test_charge_pppm.py
         del all
         del c
 
@@ -53,7 +51,7 @@ class charge_pppm_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.s
-        init.reset();
+        context.initialize()
 
 # charge.pppm
 class charge_pppm_twoparticle_tests (unittest.TestCase):
@@ -73,13 +71,13 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
     # basic test of creation and param setting
     def test(self):
         all = group.all()
-        c = charge.pppm(all);
+        c = md.charge.pppm(all);
         c.set_params(Nx=128, Ny=128, Nz=128, order=3, rcut=2.0);
         log = analyze.log(quantities = ['pppm_energy','pressure_xx','pressure_xy','pressure_xz', 'pressure_yy','pressure_yz', 'pressure_zz'], period = 1, filename=None);
-        integrate.mode_standard(dt=0.0);
-        integrate.nve(all);
+        md.integrate.mode_standard(dt=0.0);
+        md.integrate.nve(all);
         # trick to allow larger decompositions
-        nlist.set_params(r_buff=0.1)
+        md.nlist.set_params(r_buff=0.1)
         run(1);
 
         self.assertAlmostEqual(c.forces[0].force[0], 0.00904953, 5)

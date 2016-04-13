@@ -5,6 +5,7 @@ set(_md_sources module-md.cc
                    BondTablePotential.cc
                    CGCMMAngleForceCompute.cc
                    CGCMMForceCompute.cc
+                   CommunicatorGrid.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
@@ -44,6 +45,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CGCMMAngleForceComputeGPU.cc
                            CGCMMForceComputeGPU.cc
+                           CommunicatorGridGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            EAMForceComputeGPU.cc
@@ -79,6 +81,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       BondTablePotentialGPU.cu
                       CGCMMAngleForceGPU.cu
                       CGCMMForceGPU.cu
+                      CommunicatorGridGPU.cu
                       ConstraintEllipsoidGPU.cu
                       ConstraintSphereGPU.cu
                       DriverTersoffGPU.cu
@@ -96,7 +99,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
                       PotentialExternalGPU.cu
-                      PPPMForceGPU.cu
+                      PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu

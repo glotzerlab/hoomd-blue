@@ -58,15 +58,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // this has to be included after naming the test module
 #include "MPITestSetup.h"
 
-#include "System.h"
+#include "hoomd/System.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
-#include "CommunicatorGrid.h"
+#include "hoomd/md/CommunicatorGrid.h"
 
 #ifdef ENABLE_CUDA
-#include "CommunicatorGridGPU.h"
+#include "hoomd/md/CommunicatorGridGPU.h"
 #endif
 
 #include <algorithm>

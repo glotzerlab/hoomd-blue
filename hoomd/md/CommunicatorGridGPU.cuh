@@ -1,4 +1,4 @@
-#include "HOOMDMath.h"
+#include "hoomd/HOOMDMath.h"
 
 template<typename T>
 void gpu_gridcomm_scatter_send_cells(
