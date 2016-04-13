@@ -87,8 +87,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Scalar4* d_torque,
                                                  const unsigned int *d_molecule_len,
                                                  const unsigned int *d_molecule_list,
-                                                 const unsigned int *d_tag,
-                                                 const unsigned int *d_rtag,
                                                  Index2D molecule_indexer,
                                                  const Scalar4 *d_postype,
                                                  const Scalar4* d_orientation,
@@ -159,24 +157,17 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
             // determine the index with this body that this particle should handle
             unsigned int k = start * window_size + (threadIdx.x & thread_mask);
 
-            unsigned int central_tag = d_tag[central_idx[m]];
-
             // if that index is in the body we are actually handling a real body
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
-                unsigned int tag = d_tag[pidx];
-
-                // indices are in tag order, and the first ptl is the central ptl
-                unsigned int local_idx = tag-central_tag - 1;
-
                 // if this particle is not the central particle
                 if (pidx != central_idx[m])
                     {
                     // calculate body force and torques
-                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
+                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
                     Scalar4 fi = d_net_force[pidx];
 
                     //will likely need to rotate these components too
@@ -256,8 +247,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 const unsigned int *d_molecule_len,
                                                 const unsigned int *d_molecule_list,
-                                                const unsigned int *d_tag,
-                                                const unsigned int *d_rtag,
                                                 Index2D molecule_indexer,
                                                 const Scalar4 *d_postype,
                                                 const Scalar4* d_orientation,
@@ -337,24 +326,17 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             // determine the index with this body that this particle should handle
             unsigned int k = start * window_size + (threadIdx.x & thread_mask);
 
-            unsigned int central_tag = d_tag[central_idx[m]];
-
             // if that index is in the body we are actually handling a real body
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
-                unsigned int tag = d_tag[pidx];
-
-                // indices are in tag order, and the first ptl is the central ptl
-                unsigned int local_idx = tag-central_tag - 1;
-
                 // if this particle is not the central particle
                 if (pidx != central_idx[m])
                     {
                     // calculate body force and torques
-                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], local_idx)]);
+                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
                     Scalar4 fi = d_net_force[pidx];
                     vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
 
@@ -438,8 +420,6 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_torque,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
-                 const unsigned int *d_tag,
-                 const unsigned int *d_rtag,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -497,8 +477,6 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         d_torque,
         d_molecule_len,
         d_molecule_list,
-        d_tag,
-        d_rtag,
         molecule_indexer,
         d_postype,
         d_orientation,
@@ -520,8 +498,6 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
 cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
-                 const unsigned int *d_tag,
-                 const unsigned int *d_rtag,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -578,8 +554,6 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
         d_virial,
         d_molecule_len,
         d_molecule_list,
-        d_tag,
-        d_rtag,
         molecule_indexer,
         d_postype,
         d_orientation,
@@ -604,12 +578,12 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int n_ghost,
     const unsigned int *d_body,
     const unsigned int *d_rtag,
-    const unsigned int *d_tag,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
+    const unsigned int *d_molecule_order,
     int3 *d_image,
     const BoxDim box,
     bool remote)
@@ -643,15 +617,16 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int body_type = __scalar_as_int(postype.w);
 
     int3 img = d_image[central_idx];
-    unsigned int tag = d_tag[idx];
 
-    vec3<Scalar> local_pos(d_body_pos[body_indexer(body_type, tag - central_tag - 1)]);
+    unsigned int idx_in_body = d_molecule_order[idx] - 1;
+
+    vec3<Scalar> local_pos(d_body_pos[body_indexer(body_type, idx_in_body)]);
     vec3<Scalar> dr_space = rotate(orientation, local_pos);
 
     vec3<Scalar> updated_pos(pos);
     updated_pos += dr_space;
 
-    quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, tag - central_tag - 1)]);
+    quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, idx_in_body)]);
     quat<Scalar> updated_orientation = orientation*local_orientation;
 
     int3 imgi = img;
@@ -665,12 +640,12 @@ void gpu_update_composite(unsigned int N,
     unsigned int n_ghost,
     const unsigned int *d_body,
     const unsigned int *d_rtag,
-    const unsigned int *d_tag,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
+    const unsigned int *d_molecule_order,
     int3 *d_image,
     const BoxDim box,
     bool remote,
@@ -696,12 +671,12 @@ void gpu_update_composite(unsigned int N,
         n_ghost,
         d_body,
         d_rtag,
-        d_tag,
         d_postype,
         d_orientation,
         body_indexer,
         d_body_pos,
         d_body_orientation,
+        d_molecule_order,
         d_image,
         box,
         remote);

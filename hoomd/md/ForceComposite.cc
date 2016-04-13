@@ -629,14 +629,6 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(unsigned int timestep)
     {
-    // at this point, all constituent particles of a local rigid body (i.e. one for which the central particle
-    // is local) need to be present to correctly compute forces
-    if (m_particles_sorted)
-        {
-        // initialize molecule table
-        initMolecules();
-        }
-
     // access particle data
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -655,11 +647,14 @@ void ForceComposite::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     // for each local body
-    unsigned int nmol = m_molecule_indexer.getW();
+    Index2D molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
 
-    ArrayHandle<unsigned int> h_molecule_length(m_molecule_length, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::read);
+    // access local molecule data
+    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
 
+    // access rigid body definition
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
@@ -684,7 +679,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         // get central ptl tag from first ptl in molecule
         assert(len>0);
-        unsigned int first_idx = h_molecule_list.data[m_molecule_indexer(ibody,0)];
+        unsigned int first_idx = h_molecule_list.data[molecule_indexer(ibody,0)];
 
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
         unsigned int central_tag = h_body.data[first_idx];
@@ -715,9 +710,10 @@ void ForceComposite::computeForces(unsigned int timestep)
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
-            unsigned int idxj = h_molecule_list.data[m_molecule_indexer(ibody, jptl)];
+            unsigned int idxj = h_molecule_list.data[molecule_indexer(ibody, jptl)];
             assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
 
+            assert(idxj == central_idx || jptl > 0);
             if (idxj == central_idx) continue;
 
             // force and torque on particle
@@ -736,12 +732,8 @@ void ForceComposite::computeForces(unsigned int timestep)
             // also zero net force for consistency
             h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
 
-            unsigned int tagj = h_tag.data[idxj];
-            assert(tagj <= m_pdata->getMaximumTag());
-
-            // we know that the tag of the constituent ptl relative to the central ptl indicates
-            // the position in the rigid body
-            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, tagj - central_tag - 1)]);
+            // fetch relative position from rigid body definition
+            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
 
             // rotate into space frame
             vec3<Scalar> dr_space = rotate(orientation, dr);
@@ -813,6 +805,9 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
+    // access molecule order
+    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
+
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
@@ -864,19 +859,16 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
         int3 img = h_image.data[central_idx];
 
-        unsigned int tag = h_tag.data[iptl];
+        // fetch relative index in body from molecule list
+        assert(h_molecule_order.data[iptl] > 0);
+        unsigned int idx_in_body = h_molecule_order.data[iptl] - 1;
 
-        vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, tag - central_tag - 1)]);
+        vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type,idx_in_body)]);
         vec3<Scalar> dr_space = rotate(orientation, local_pos);
-
-        assert(tag-central_tag >= 1);
 
         // update position and orientation
         vec3<Scalar> updated_pos(pos);
-
-        // we know that the tag of the constituent ptl relative to the central ptl indicates
-        // the position in the rigid body
-        quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, tag - central_tag - 1)]);
+        quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, idx_in_body)]);
 
         updated_pos += dr_space;
         quat<Scalar> updated_orientation = orientation*local_orientation;
