@@ -47,6 +47,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -100,6 +101,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -154,6 +156,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],diameters=[1,2],charges=[-1,1])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],diameters=[3,4],charges=[-2,2])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -180,7 +183,6 @@ class test_constrain_rigid(unittest.TestCase):
 
 
         snap = self.system.take_snapshot()
-        rigid.set_auto_create(False)
         self.system.restore_snapshot(snap)
 
         # validate rigid bodies
