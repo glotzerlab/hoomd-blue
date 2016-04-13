@@ -133,6 +133,7 @@ Jens Glaser, University of Michigan
  - Gay-Berne pair potential
  - pair.reaction_field
  - Rewrite of rigid body framework
+ - Multi-GPU electrostatics (PPPM)
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials
