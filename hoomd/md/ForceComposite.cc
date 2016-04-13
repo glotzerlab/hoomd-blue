@@ -451,6 +451,7 @@ void ForceComposite::validateRigidBodies(bool create)
             {
             m_exec_conf->msg->notice(2)
                 << "constrain.rigid(): Removing all particles part of rigid bodies (except central particles)."
+                << "Particle tags may change."
                 << std::endl;
 
             // re-initialize, removing rigid bodies
