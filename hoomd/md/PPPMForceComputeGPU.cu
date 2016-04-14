@@ -219,7 +219,18 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
     // allocate local memory for summing up neighbor contributions
     Scalar scratch_neighbors[scratch_size];
 
-    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int bin;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        bin = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        bin = blockDim.x * blockIdx.x + threadIdx.x;
+        }
+
 
     if (bin >= bin_idx.getW()) return;
 
@@ -379,7 +390,18 @@ __global__ void gpu_reduce_scratch_kernel(const uint3 grid_dim,
                                const Index2D scratch_idx,
                                cufftComplex *d_mesh)
     {
-    unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int cell_idx;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        cell_idx = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        cell_idx = blockDim.x * blockIdx.x + threadIdx.x;
+        }
+
 
     if (cell_idx >= grid_dim.x*grid_dim.y*grid_dim.z) return;
 
@@ -418,10 +440,12 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
         {
         static unsigned int max_block_size = UINT_MAX;
         static cudaFuncAttributes attr;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<1>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -433,8 +457,16 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
 
         unsigned int n_blocks = bin_idx.getW()/run_block_size;
         if (bin_idx.getW()%run_block_size) n_blocks +=1;
+        dim3 grid(n_blocks, 1, 1);
 
-        gpu_assign_binned_particles_to_scratch_kernel<1><<<n_blocks,run_block_size>>>(
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_assign_binned_particles_to_scratch_kernel<1><<<grid,run_block_size>>>(
               mesh_dim,
               n_ghost_bins,
               d_particle_bins,
@@ -449,10 +481,12 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
         {
         static unsigned int max_block_size = UINT_MAX;
         static cudaFuncAttributes attr;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<27>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -464,8 +498,16 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
 
         unsigned int n_blocks = bin_idx.getW()/run_block_size;
         if (bin_idx.getW()%run_block_size) n_blocks +=1;
+        dim3 grid(n_blocks, 1, 1);
 
-        gpu_assign_binned_particles_to_scratch_kernel<27><<<n_blocks,run_block_size>>>(
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_assign_binned_particles_to_scratch_kernel<27><<<grid,run_block_size>>>(
               mesh_dim,
               n_ghost_bins,
               d_particle_bins,
@@ -480,10 +522,12 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
         {
         static unsigned int max_block_size = UINT_MAX;
         static cudaFuncAttributes attr;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<125>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -495,8 +539,16 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
 
         unsigned int n_blocks = bin_idx.getW()/run_block_size;
         if (bin_idx.getW()%run_block_size) n_blocks +=1;
+        dim3 grid(n_blocks, 1, 1);
 
-        gpu_assign_binned_particles_to_scratch_kernel<125><<<n_blocks,run_block_size>>>(
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_assign_binned_particles_to_scratch_kernel<125><<<grid,run_block_size>>>(
               mesh_dim,
               n_ghost_bins,
               d_particle_bins,
@@ -511,10 +563,12 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
         {
         static unsigned int max_block_size = UINT_MAX;
         static cudaFuncAttributes attr;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<343>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -526,8 +580,16 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
 
         unsigned int n_blocks = bin_idx.getW()/run_block_size;
         if (bin_idx.getW()%run_block_size) n_blocks +=1;
+        dim3 grid(n_blocks, 1, 1);
 
-        gpu_assign_binned_particles_to_scratch_kernel<343><<<n_blocks,run_block_size>>>(
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_assign_binned_particles_to_scratch_kernel<343><<<grid,run_block_size>>>(
               mesh_dim,
               n_ghost_bins,
               d_particle_bins,
@@ -539,13 +601,30 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
               order);
         }
 
+    static int sm = -1;
+    if (sm == -1)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_reduce_scratch_kernel);
+        sm = attr.binaryVersion;
+        }
+
     block_size = 512;
     unsigned int n_blocks = (grid_dim.x*grid_dim.y*grid_dim.z)/block_size;
     if ((grid_dim.x*grid_dim.y*grid_dim.z)%block_size) n_blocks +=1;
-    gpu_reduce_scratch_kernel<<<n_blocks, block_size>>>(grid_dim,
-                                                        d_mesh_scratch,
-                                                        scratch_idx,
-                                                        d_mesh);
+    dim3 grid(n_blocks, 1, 1);
+
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    gpu_reduce_scratch_kernel<<<grid, block_size>>>(grid_dim,
+                                                    d_mesh_scratch,
+                                                    scratch_idx,
+                                                    d_mesh);
     }
 
 __global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
@@ -557,7 +636,17 @@ __global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
                                                            Scalar V_cell,
                                                            int order)
     {
-    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int bin;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        bin = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        bin = blockDim.x * blockIdx.x + threadIdx.x;
+        }
 
     if (bin >= bin_idx.getW()) return;
 
@@ -707,10 +796,12 @@ void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
 
     static unsigned int max_block_size = UINT_MAX;
     static cudaFuncAttributes attr;
+    static int sm = -1;
     if (max_block_size == UINT_MAX)
         {
         cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
+        sm = attr.binaryVersion;
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
@@ -722,8 +813,16 @@ void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
 
     unsigned int n_blocks = bin_idx.getW()/run_block_size;
     if (bin_idx.getW()%run_block_size) n_blocks +=1;
+    dim3 grid(n_blocks, 1, 1);
 
-    gpu_assign_binned_particles_kernel<<<n_blocks,run_block_size>>>(
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    gpu_assign_binned_particles_kernel<<<grid,run_block_size>>>(
           mesh_dim,
           n_ghost_bins,
           d_particle_bins,
@@ -743,7 +842,17 @@ __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors
                                          Scalar kappa
                                          )
     {
-    unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned int idx;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        idx = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        idx = blockDim.x * blockIdx.x + threadIdx.x;
+        }
 
     if (idx >= n_wave_vectors) return;
 
@@ -786,13 +895,30 @@ void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
     {
     const unsigned int block_size = 512;
 
-    gpu_compute_mesh_virial_kernel<<<n_wave_vectors/block_size+1, block_size>>>(n_wave_vectors,
-                                                                          d_fourier_mesh,
-                                                                          d_inf_f,
-                                                                          d_virial_mesh,
-                                                                          d_k,
-                                                                          exclude_dc,
-                                                                          kappa);
+    static int sm = -1;
+    if (sm == -1)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_mesh_virial_kernel);
+        sm = attr.binaryVersion;
+        }
+
+    dim3 grid(n_wave_vectors/block_size + 1, 1, 1);
+
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    gpu_compute_mesh_virial_kernel<<<grid, block_size>>>(n_wave_vectors,
+                                                          d_fourier_mesh,
+                                                          d_inf_f,
+                                                          d_virial_mesh,
+                                                          d_k,
+                                                          exclude_dc,
+                                                          kappa);
     }
 
 __global__ void gpu_update_meshes_kernel(const unsigned int n_wave_vectors,
@@ -804,7 +930,17 @@ __global__ void gpu_update_meshes_kernel(const unsigned int n_wave_vectors,
                                          const Scalar3 *d_k,
                                          unsigned int NNN)
     {
-    unsigned int k = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned int k;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        k = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        k = blockDim.x * blockIdx.x + threadIdx.x;
+        }
 
     if (k >= n_wave_vectors) return;
 
@@ -845,23 +981,33 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
 
     {
     static unsigned int max_block_size = UINT_MAX;
+    static int sm = -1;
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
         cudaFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
         max_block_size = attr.maxThreadsPerBlock;
+        sm = attr.binaryVersion;
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
+    dim3 grid(n_wave_vectors/run_block_size + 1, 1, 1);
 
-    gpu_update_meshes_kernel<<<n_wave_vectors/run_block_size+1, run_block_size>>>(n_wave_vectors,
-                                                                          d_fourier_mesh,
-                                                                          d_fourier_mesh_G_x,
-                                                                          d_fourier_mesh_G_y,
-                                                                          d_fourier_mesh_G_z,
-                                                                          d_inf_f,
-                                                                          d_k,
-                                                                          NNN);
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    gpu_update_meshes_kernel<<<grid, run_block_size>>>(n_wave_vectors,
+                                                      d_fourier_mesh,
+                                                      d_fourier_mesh_G_x,
+                                                      d_fourier_mesh_G_y,
+                                                      d_fourier_mesh_G_z,
+                                                      d_inf_f,
+                                                      d_k,
+                                                      NNN);
     }
 
 //! Texture for reading particle positions
@@ -1043,7 +1189,17 @@ __global__ void kernel_calculate_pe_partial(
 
     unsigned int tidx = threadIdx.x;
 
-    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int j;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        j = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        j = blockDim.x * blockIdx.x + threadIdx.x;
+        }
 
     Scalar mySum = Scalar(0.0);
 
@@ -1124,7 +1280,25 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
     unsigned int n_blocks = n_wave_vectors/block_size + 1;
 
     unsigned int shared_size = block_size * sizeof(Scalar);
-    kernel_calculate_pe_partial<<<n_blocks, block_size, shared_size>>>(
+
+    static int sm = -1;
+    if (sm == -1)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)kernel_final_reduce_pe);
+        sm = attr.binaryVersion;
+        }
+
+    dim3 grid(n_blocks, 1, 1);
+
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    kernel_calculate_pe_partial<<<grid, block_size, shared_size>>>(
                n_wave_vectors,
                d_sum_partial,
                d_fourier_mesh,
@@ -1146,7 +1320,18 @@ __global__ void kernel_calculate_virial_partial(
     {
     extern __shared__ Scalar sdata[];
 
-    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int j;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        j = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        j = blockDim.x * blockIdx.x + threadIdx.x;
+        }
+
     unsigned int tidx = threadIdx.x;
 
     Scalar mySum_xx = Scalar(0.0);
@@ -1283,7 +1468,25 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
     unsigned int n_blocks = n_wave_vectors/block_size + 1;
 
     unsigned int shared_size = 6* block_size * sizeof(Scalar);
-    kernel_calculate_virial_partial<<<n_blocks, block_size, shared_size>>>(
+
+    static int sm = -1;
+    if (sm == -1)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)kernel_calculate_virial_partial);
+        sm = attr.binaryVersion;
+        }
+
+    dim3 grid(n_blocks, 1, 1);
+
+    // hack to enable grids of more than 65k blocks
+    if (sm < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x / 65535 + 1;
+        grid.x = 65535;
+        }
+
+    kernel_calculate_virial_partial<<<grid, block_size, shared_size>>>(
                n_wave_vectors,
                d_sum_virial_partial,
                d_mesh_virial);
@@ -1314,7 +1517,17 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
                                           int order,
                                           Scalar kappa)
     {
-    unsigned int kidx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int kidx;
+
+    if (gridDim.y > 1)
+        {
+        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
+        kidx = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
+        }
+    else
+        {
+        kidx = blockDim.x * blockIdx.x + threadIdx.x;
+        }
 
     if (kidx >= n_wave_vectors) return;
 
@@ -1482,11 +1695,13 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
     if (local_fft)
         {
         static unsigned int max_block_size = UINT_MAX;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -1494,7 +1709,16 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
         unsigned int n_blocks = num_wave_vectors/run_block_size;
         if (num_wave_vectors % run_block_size) n_blocks += 1;
 
-        gpu_compute_influence_function_kernel<true><<<n_blocks, run_block_size>>>(mesh_dim,
+        dim3 grid(n_blocks, 1, 1);
+
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_compute_influence_function_kernel<true><<<grid, run_block_size>>>(mesh_dim,
                                                                               num_wave_vectors,
                                                                               global_dim,
                                                                               d_inf_f,
@@ -1515,11 +1739,13 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
     else
         {
         static unsigned int max_block_size = UINT_MAX;
+        static int sm = -1;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
             max_block_size = attr.maxThreadsPerBlock;
+            sm = attr.binaryVersion;
             }
 
         unsigned int run_block_size = min(max_block_size, block_size);
@@ -1527,7 +1753,16 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
         unsigned int n_blocks = num_wave_vectors/run_block_size;
         if (num_wave_vectors % run_block_size) n_blocks += 1;
 
-        gpu_compute_influence_function_kernel<false><<<n_blocks,run_block_size>>>(mesh_dim,
+        dim3 grid(n_blocks, 1, 1);
+
+        // hack to enable grids of more than 65k blocks
+        if (sm < 30 && grid.x > 65535)
+            {
+            grid.y = grid.x / 65535 + 1;
+            grid.x = 65535;
+            }
+
+        gpu_compute_influence_function_kernel<false><<<grid,run_block_size>>>(mesh_dim,
                                                                              num_wave_vectors,
                                                                              global_dim,
                                                                              d_inf_f,
