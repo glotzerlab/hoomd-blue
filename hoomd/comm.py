@@ -126,61 +126,66 @@ def barrier():
     if _hoomd.is_MPI_available():
         hoomd.context.exec_conf.barrier()
 
-## Balances the domain %decomposition
-#
-# A single domain %decomposition is defined for the simulation.
-# A standard domain %decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
-# the surface area between domains. This works well for systems where particles are uniformly distributed and
-# there is equal computational load for each domain, and is the default behavior in HOOMD-blue. If no %decomposition is
-# specified for an MPI run, a uniform %decomposition is automatically constructed on initialization.
-#
-# In simulations with density gradients, such as a vapor-liquid interface, there can be a considerable imbalance of
-# particles between different ranks. The simulation time then becomes limited by the slowest processor. It may then be
-# advantageous in certain systems to create domains of unequal volume, for example, by increasing the volume of less
-# dense regions of the simulation box in order to balance the number of particles.
-#
-# The %decomposition command allows the user to control the geometry and positions of the %decomposition.
-# The fractional width of the first \f$n_i - 1\f$ domains is specified along each dimension, where
-# \f$n_i\f$ is the number of ranks desired along dimension \f$i\f$. If no cut planes are specified, then a uniform
-# spacing is assumed. The number of domains with uniform spacing can also be specified. If the desired %decomposition
-# is not commensurate with the number of ranks available (for example, a 3x3x3 decomposition when only 8 ranks are
-# available), then a default uniform spacing is chosen. For the best control, the user should specify the number of
-# ranks in each dimension even if uniform spacing is desired.
-#
-# decomposition can only be called *before* the system is initialized, at which point the particles are decomposed.
-# An error is raised if the system is already initialized.
-#
-# The %decomposition can be adjusted dynamically if the best static decomposition is not known, or the system
-# composition is changing dynamically. For this associated command, see update.balance().
-#
-# \warning The %decomposition command will override specified command line options.
-#
-class decomposition():
-    ## Create a balanced domain decomposition
-    # \param x First nx-1 fractional domain widths (if \a nx is None)
-    # \param y First ny-1 fractional domain widths (if \a ny is None)
-    # \param z First nz-1 fractional domain widths (if \a nz is None)
-    # \param nx Number of processors to uniformly space in x dimension (if \a x is None)
-    # \param ny Number of processors to uniformly space in y dimension (if \a y is None)
-    # \param nz Number of processors to uniformly space in z dimension (if \a z is None)
-    #
-    # Priority is always given to specified arguments over the command line arguments. If one of these is not set but
-    # a command line option is, then the command line option is used. Otherwise, a default %decomposition is chosen.
-    #
-    # \b Examples:
-    # \code
-    # comm.decomposition(x=0.4, ny=2, nz=2)
-    # comm.decomposition(nx=2, y=0.8, z=[0.2,0.3])
-    # \endcode
-    #
-    # \warning This command must be invoked *before* the system is initialized because particles are decomposed at this time.
-    #
-    # \note The domain size cannot be chosen arbitrarily small. There are restrictions placed on the %decomposition by the
-    #       ghost layer width set by the %pair potentials. An error will be raised at run time if the ghost layer width
-    #       exceeds half the shortest domain size.
-    #
-    # \warning Both fractional widths and the number of processors cannot be set simultaneously, and an error will be
-    #          raised if both are set.
+class decomposition(object):
+    """ Set the domain decomposition.
+
+    Args:
+        x (list): First nx-1 fractional domain widths (if *nx* is None)
+        y (list): First ny-1 fractional domain widths (if *ny* is None)
+        z (list): First nz-1 fractional domain widths (if *nz* is None)
+        nx (int): Number of processors to uniformly space in x dimension (if *x* is None)
+        ny (int): Number of processors to uniformly space in y dimension (if *y* is None)
+        nz (int): Number of processors to uniformly space in z dimension (if *z* is None)
+
+    A single domain decomposition is defined for the simulation.
+    A standard domain decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
+    the surface area between domains. This works well for systems where particles are uniformly distributed and
+    there is equal computational load for each domain, and is the default behavior in HOOMD-blue. If no decomposition is
+    specified for an MPI run, a uniform decomposition is automatically constructed on initialization.
+
+    In simulations with density gradients, such as a vapor-liquid interface, there can be a considerable imbalance of
+    particles between different ranks. The simulation time then becomes limited by the slowest processor. It may then be
+    advantageous in certain systems to create domains of unequal volume, for example, by increasing the volume of less
+    dense regions of the simulation box in order to balance the number of particles.
+
+    The decomposition command allows the user to control the geometry and positions of the decomposition.
+    The fractional width of the first :math:`n_i - 1` domains is specified along each dimension, where
+    :math:`n_i` is the number of ranks desired along dimension :math:`i`. If no cut planes are specified, then a uniform
+    spacing is assumed. The number of domains with uniform spacing can also be specified. If the desired decomposition
+    is not commensurate with the number of ranks available (for example, a 3x3x3 decomposition when only 8 ranks are
+    available), then a default uniform spacing is chosen. For the best control, the user should specify the number of
+    ranks in each dimension even if uniform spacing is desired.
+
+    decomposition can only be called *before* the system is initialized, at which point the particles are decomposed.
+    An error is raised if the system is already initialized.
+
+    The decomposition can be adjusted dynamically if the best static decomposition is not known, or the system
+    composition is changing dynamically. For this associated command, see update.balance().
+
+    Priority is always given to specified arguments over the command line arguments. If one of these is not set but
+    a command line option is, then the command line option is used. Otherwise, a default decomposition is chosen.
+
+    Examples::
+
+        comm.decomposition(x=0.4, ny=2, nz=2)
+        comm.decomposition(nx=2, y=0.8, z=[0.2,0.3])
+
+    Warning:
+        The decomposition command will override specified command line options.
+
+    Warning:
+        This command must be invoked *before* the system is initialized because particles are decomposed at this time.
+
+    Note:
+        The domain size cannot be chosen arbitrarily small. There are restrictions placed on the decomposition by the
+        ghost layer width set by the pair potentials. An error will be raised at run time if the ghost layer width
+        exceeds half the shortest domain size.
+
+    Warning:
+        Both fractional widths and the number of processors cannot be set simultaneously, and an error will be
+        raised if both are set.
+    """
+
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
         hoomd.util.print_status_line()
 
@@ -234,20 +239,22 @@ class decomposition():
 
             hoomd.context.current.decomposition = self
 
-    ## Set parameters for the decomposition before initialization.
-    # \param x First nx-1 fractional domain widths (if \a nx is None)
-    # \param y First ny-1 fractional domain widths (if \a ny is None)
-    # \param z First nz-1 fractional domain widths (if \a nz is None)
-    # \param nx Number of processors to uniformly space in x dimension (if \a x is None)
-    # \param ny Number of processors to uniformly space in y dimension (if \a y is None)
-    # \param nz Number of processors to uniformly space in z dimension (if \a z is None)
-    #
-    # \b Examples:
-    # \code
-    # decomposition.set_params(x=[0.2])
-    # decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
-    # \endcode
     def set_params(self,x=None,y=None,z=None,nx=None,ny=None,nz=None):
+        """Set parameters for the decomposition before initialization.
+
+        Args:
+            x (list): First nx-1 fractional domain widths (if *nx* is None)
+            y (list): First ny-1 fractional domain widths (if *ny* is None)
+            z (list): First nz-1 fractional domain widths (if *nz* is None)
+            nx (int): Number of processors to uniformly space in x dimension (if *x* is None)
+            ny (int): Number of processors to uniformly space in y dimension (if *y* is None)
+            nz (int): Number of processors to uniformly space in z dimension (if *z* is None)
+
+        Examples::
+
+            decomposition.set_params(x=[0.2])
+            decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
+        """
         hoomd.util.print_status_line()
 
         if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
