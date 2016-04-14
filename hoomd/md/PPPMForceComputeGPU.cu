@@ -1285,7 +1285,7 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
     if (sm == -1)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel_final_reduce_pe);
+        cudaFuncGetAttributes(&attr, (const void*)kernel_calculate_pe_partial);
         sm = attr.binaryVersion;
         }
 
