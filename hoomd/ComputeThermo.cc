@@ -338,6 +338,8 @@ void ComputeThermo::computeProperties()
             unsigned int j = m_group->getMemberIndex(group_idx);
             pe_total += (double)h_net_force.data[j].w;
             }
+
+        pe_total += m_pdata->getExternalEnergy();
         }
 
     double W = 0.0;

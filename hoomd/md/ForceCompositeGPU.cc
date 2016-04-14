@@ -102,14 +102,6 @@ ForceCompositeGPU::~ForceCompositeGPU()
 //! Compute the forces and torques on the central particle
 void ForceCompositeGPU::computeForces(unsigned int timestep)
     {
-    // at this point, all constituent particles of a local rigid body (i.e. one for which the central particle
-    // is local) need to be present to correctly compute forces
-    if (m_particles_sorted)
-        {
-        // initialize molecule table
-        initMolecules();
-        }
-
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
 
@@ -118,15 +110,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
     // access net force and torque acting on constituent particles
-    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
 
     // access the force and torque array for the central ptl
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -134,11 +124,14 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
     // for each local body
-    unsigned int nmol = m_molecule_indexer.getW();
+    const Index2D& molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
 
-    ArrayHandle<unsigned int> d_molecule_length(m_molecule_length, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_list(m_molecule_list, access_location::device, access_mode::read);
+    // access local molecule data
+    ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_list(getMoleculeList(), access_location::device, access_mode::read);
 
+    // access rigid body definition
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
 
@@ -147,14 +140,19 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     unsigned int block_size = param % 10000;
     unsigned int n_bodies_per_block = param/10000;
 
+    PDataFlags flags = m_pdata->getFlags();
+    bool compute_virial = false;
+    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+        {
+        compute_virial = true;
+        }
+
     // launch GPU kernel
     gpu_rigid_force(d_force.data,
                     d_torque.data,
                     d_molecule_length.data,
                     d_molecule_list.data,
-                    d_tag.data,
-                    d_rtag.data,
-                    m_molecule_indexer,
+                    molecule_indexer,
                     d_postype.data,
                     d_orientation.data,
                     m_body_idx,
@@ -166,19 +164,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                     m_pdata->getN(),
                     n_bodies_per_block,
                     block_size,
-                    m_exec_conf->dev_prop);
+                    m_exec_conf->dev_prop,
+                    !compute_virial);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
-
-    PDataFlags flags = m_pdata->getFlags();
-    bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
-        {
-        compute_virial = true;
-        }
 
     if (compute_virial)
         {
@@ -191,9 +183,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         gpu_rigid_virial(d_virial.data,
                         d_molecule_length.data,
                         d_molecule_list.data,
-                        d_tag.data,
-                        d_rtag.data,
-                        m_molecule_indexer,
+                        molecule_indexer,
                         d_postype.data,
                         d_orientation.data,
                         m_body_idx,
@@ -235,11 +225,13 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
 
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
+
+    // access molecule order
+    ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
 
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
@@ -248,12 +240,12 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
         m_pdata->getNGhosts(),
         d_body.data,
         d_rtag.data,
-        d_tag.data,
         d_postype.data,
         d_orientation.data,
         m_body_idx,
         d_body_pos.data,
         d_body_orientation.data,
+        d_molecule_order.data,
         d_image.data,
         m_pdata->getBox(),
         remote,

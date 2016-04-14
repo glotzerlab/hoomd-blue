@@ -389,21 +389,20 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
             }
         }
     __syncthreads();
-    
-    
+
     // particle index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     // one thread per particle
     if (idx >= N)
         return;
 
     const Scalar4 postype_i = d_pos[idx];
     const unsigned int type_i = __scalar_as_int(postype_i.w);
-    const unsigned int Nmax_i = d_Nmax[type_i];
-    
+    const unsigned int Nmax_i = s_Nmax[type_i];
+
     d_head_list[idx] = Nmax_i;
-    
+
     // last thread presets its number of particles in the memory req as well
     if (idx == (N-1))
         {

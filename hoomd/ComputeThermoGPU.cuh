@@ -84,6 +84,7 @@ struct compute_thermo_args
     Scalar external_virial_yy;  //!< yy component of the external virial
     Scalar external_virial_yz;  //!< yz component of the external virial
     Scalar external_virial_zz;  //!< zz component of the external virial
+    Scalar external_energy;     //!< External potential energy
     };
 
 //! Computes the thermodynamic properties for ComputeThermo

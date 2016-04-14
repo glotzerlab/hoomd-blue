@@ -121,6 +121,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     int Nx = 10;
     int Ny = 15;
     int Nz = 24;
+
     int order = 5;
     Scalar kappa = 1.0;
     Scalar rcut = 1.0;
@@ -137,13 +138,18 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].w, -0.576491f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch]/volume, -0.000180413f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[1*pitch]/volume, -0.000180153f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[2*pitch]/volume, -0.000180394f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[3*pitch]/volume, -0.000211184f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[4*pitch]/volume, -0.000204873f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[5*pitch]/volume, -0.000219209f, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.576491f, tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0]
+                        +h_virial.data[3*pitch+0]
+                        +h_virial.data[5*pitch+0], tol_small);
+
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -0.000180413f, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -0.000180153f, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -0.000180394f, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -0.000211184f, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -0.000204873f, tol_small);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.000219209f, tol_small);
 
     MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
@@ -205,17 +211,25 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
     unsigned int pitch = fc_2->getVirialArray().getPitch();
 
     Scalar rough_tol = 0.02;
-    Scalar rough_tol_2 = 1.0;
+    Scalar rough_tol_2 = 10.0;
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.00904953, rough_tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.0101797, rough_tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.0124804, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].w, -0.2441, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch]/volume, -5.7313404e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[1*pitch]/volume, -4.5494677e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[2*pitch]/volume, -3.9889249e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[3*pitch]/volume, -7.8745142e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[4*pitch]/volume, -4.8501155e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[5*pitch]/volume, -0.00010732774, rough_tol_2);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].w, rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0], rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[1*pitch+0], rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[2*pitch+0], rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[3*pitch+0], rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[4*pitch+0], rough_tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[5*pitch+0], rough_tol);
+
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.2441, rough_tol);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -5.7313404e-05, rough_tol_2);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -4.5494677e-05, rough_tol_2);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -3.9889249e-05, rough_tol_2);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -7.8745142e-05, rough_tol_2);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -4.8501155e-05, rough_tol_2);
+    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.00010732774, rough_tol_2);
 
     MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.00904953, rough_tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.0101797, rough_tol);

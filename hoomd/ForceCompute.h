@@ -156,6 +156,12 @@ class ForceCompute : public Compute
             return m_external_virial[dir];
             }
 
+        //! Get the contribution to the external potential energy
+        Scalar getExternalEnergy()
+            {
+            return m_external_energy;
+            }
+
         #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
@@ -207,6 +213,7 @@ class ForceCompute : public Compute
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
+        Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
         //! Connection to the signal notifying when particles are resorted
         boost::signals2::connection m_sort_connection;

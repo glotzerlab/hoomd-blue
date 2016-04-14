@@ -170,6 +170,7 @@ void ComputeThermoGPU::computeProperties()
     args.external_virial_yy = m_pdata->getExternalVirial(3);
     args.external_virial_yz = m_pdata->getExternalVirial(4);
     args.external_virial_zz = m_pdata->getExternalVirial(5);
+    args.external_energy = m_pdata->getExternalEnergy();
 
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,

@@ -47,6 +47,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -100,6 +101,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -154,6 +156,7 @@ class test_constrain_rigid(unittest.TestCase):
         rigid = md.constrain.rigid()
         rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],diameters=[1,2],charges=[-1,1])
         rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],diameters=[3,4],charges=[-2,2])
+        rigid.create_bodies()
 
         center = group.rigid_center()
 
@@ -163,24 +166,23 @@ class test_constrain_rigid(unittest.TestCase):
         run(1)
 
         self.assertEqual(self.system.particles[0].type,'A')
-        self.assertEqual(self.system.particles[1].type,'A_const')
-        self.assertEqual(self.system.particles[2].type,'A_const')
-        self.assertEqual(self.system.particles[1].diameter,1.0)
-        self.assertEqual(self.system.particles[1].charge,-1.0)
-        self.assertEqual(self.system.particles[2].diameter,2)
-        self.assertEqual(self.system.particles[2].charge,1.0)
+        self.assertEqual(self.system.particles[4000].type,'A_const')
+        self.assertEqual(self.system.particles[4001].type,'A_const')
+        self.assertEqual(self.system.particles[4000].diameter,1.0)
+        self.assertEqual(self.system.particles[4000].charge,-1.0)
+        self.assertEqual(self.system.particles[4001].diameter,2)
+        self.assertEqual(self.system.particles[4001].charge,1.0)
 
-        self.assertEqual(self.system.particles[6000].type,'B')
-        self.assertEqual(self.system.particles[6001].type,'B_const')
-        self.assertEqual(self.system.particles[6002].type,'B_const')
-        self.assertEqual(self.system.particles[6001].diameter,3.0)
-        self.assertEqual(self.system.particles[6001].charge,-2.0)
-        self.assertEqual(self.system.particles[6002].diameter,4)
-        self.assertEqual(self.system.particles[6002].charge,2.0)
+        self.assertEqual(self.system.particles[2000].type,'B')
+        self.assertEqual(self.system.particles[8000].type,'B_const')
+        self.assertEqual(self.system.particles[8001].type,'B_const')
+        self.assertEqual(self.system.particles[8000].diameter,3.0)
+        self.assertEqual(self.system.particles[8000].charge,-2.0)
+        self.assertEqual(self.system.particles[8001].diameter,4)
+        self.assertEqual(self.system.particles[8001].charge,2.0)
 
 
         snap = self.system.take_snapshot()
-        rigid.set_auto_create(False)
         self.system.restore_snapshot(snap)
 
         # validate rigid bodies

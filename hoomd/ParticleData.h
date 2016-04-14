@@ -878,6 +878,18 @@ class ParticleData : boost::noncopyable
             return m_external_virial[i];
             }
 
+        //! Set the external contribution to the potential energy
+        void setExternalEnergy(Scalar e)
+            {
+            m_external_energy = e;
+            };
+
+        //! Get the external contribution to the virial
+        Scalar getExternalEnergy()
+            {
+            return m_external_energy;
+            }
+
         //! Remove the given flag
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
@@ -1076,6 +1088,7 @@ class ParticleData : boost::noncopyable
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
+        Scalar m_external_energy;                    //!< External potential energy
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
 

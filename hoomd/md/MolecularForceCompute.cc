@@ -64,9 +64,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_list(m_exec_conf),
-      m_molecule_length(m_exec_conf), m_molecule_tag(m_exec_conf),
-      m_molecule_idx(m_exec_conf), m_n_molecules_global(0)
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf)
     {
     }
 
@@ -94,11 +93,10 @@ void MolecularForceCompute::initMolecules()
 
     std::vector<unsigned int> local_molecule_idx(nptl_local, NO_MOLECULE);
 
-    // resize molecule lookup
-    m_molecule_idx.resize(m_n_molecules_global);
+    // resize molecule lookup to size of local particle data
+    m_molecule_order.resize(m_pdata->getMaxN());
 
     // identify local molecules and assign local indices to global molecule tags
-    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < nptl_local; ++i)
         {
         unsigned int tag = h_tag.data[i];
@@ -112,8 +110,6 @@ void MolecularForceCompute::initMolecules()
             {
             // insert element
             it = local_molecule_tags.insert(std::make_pair(mol_tag,n_local_molecules++)).first;
-            unsigned int mol_idx = it->second;
-            h_molecule_idx.data[mol_tag] = mol_idx;
             }
 
         local_molecule_idx[i] = it->second;
@@ -174,6 +170,10 @@ void MolecularForceCompute::initMolecules()
             }
         }
 
+    // reset molecule order
+    ArrayHandle<unsigned int> h_molecule_order(m_molecule_order, access_location::host, access_mode::overwrite);
+    memset(h_molecule_order.data, 0, m_pdata->getN() + m_pdata->getNGhosts());
+
     // fill molecule list
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -188,6 +188,7 @@ void MolecularForceCompute::initMolecules()
             unsigned int ptl_idx = h_rtag.data[*it_tag];
             assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
             h_molecule_list.data[m_molecule_indexer(i_mol, n)] = ptl_idx;
+            h_molecule_order.data[ptl_idx] = n;
             }
         i_mol ++;
         }

@@ -170,6 +170,11 @@ endif()
 option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
     add_subdirectory(md)
+
+    if (ENABLE_MPI)
+        # add the distributed FFT library
+        add_subdirectory(extern/dfftlib)
+    endif()
 endif()
 
 if (NOT SINGLE_PRECISION)

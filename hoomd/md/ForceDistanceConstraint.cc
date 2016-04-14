@@ -583,19 +583,6 @@ Scalar ForceDistanceConstraint::askGhostLayerWidth(unsigned int type)
     return m_d_max;
     }
 
-void ForceDistanceConstraint::initMolecules()
-    {
-    // only rebuild global tag list if necessary
-    if (m_constraints_added_removed)
-        {
-        assignMoleculeTags();
-        m_constraints_added_removed = false;
-        }
-
-    // call base-class method
-    MolecularForceCompute::initMolecules();
-    }
-
 void ForceDistanceConstraint::assignMoleculeTags()
     {
     ConstraintData::Snapshot snap;

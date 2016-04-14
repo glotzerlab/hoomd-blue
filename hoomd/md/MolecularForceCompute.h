@@ -108,20 +108,64 @@ class MolecularForceCompute : public ForceConstraint
             }
         #endif
 
-    protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< Pointer to neighbor list
+        //! Return molecule index
+        const Index2D& getMoleculeIndexer()
+            {
+            checkParticlesSorted();
 
+            return m_molecule_indexer;
+            }
+
+        //! Return molecule list
+        const GPUVector<unsigned int>& getMoleculeList()
+            {
+            checkParticlesSorted();
+
+            return m_molecule_list;
+            }
+
+        //! Return molecule lengths
+        const GPUVector<unsigned int>& getMoleculeLengths()
+            {
+            checkParticlesSorted();
+
+            return m_molecule_length;
+            }
+
+        //! Return molecule order
+        const GPUVector<unsigned int>& getMoleculeOrder()
+            {
+            checkParticlesSorted();
+
+            return m_molecule_order;
+            }
+
+    protected:
+        GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
+        unsigned int m_n_molecules_global;          //!< Global number of molecules
+
+    private:
         GPUVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
         GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
-        GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
-        GPUVector<unsigned int> m_molecule_idx;     //!< Local molecule idx per global molecule tag
-
-        unsigned int m_n_molecules_global;          //!< Global number of molecules
+        GPUVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 
         //! construct a list of local molecules
         virtual void initMolecules();
+
+        //! Helper function to check if particles have been sorted and rebuild indices if necessary
+        void checkParticlesSorted()
+            {
+            if (m_particles_sorted)
+                {
+                // rebuild molecule list
+                initMolecules();
+                m_particles_sorted = false;
+                }
+            }
+
+
     };
 
 //! Exports the MolecularForceCompute to python
