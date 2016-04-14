@@ -57,21 +57,32 @@ import hoomd;
 
 import sys;
 
-## Get the number of ranks
-# \returns the number of MPI ranks in this partition
-# context.initialize() must be called before get_num_ranks()
-# \note Returns 1 in non-mpi builds
 def get_num_ranks():
+    """ Get the number of ranks in this partition.
+
+    Returns:
+        The number of MPI ranks in this partition.
+
+    Note:
+        Returns 1 in non-mpi builds.
+    """
+
     hoomd.context._verify_init();
     if _hoomd.is_MPI_available():
         return hoomd.context.exec_conf.getNRanks();
     else:
         return 1;
 
-## Return the current rank
-# context.initialize() must be called before get_rank()
-# \note Always returns 0 in non-mpi builds
 def get_rank():
+    """ Get the current rank.
+
+    Returns:
+        Index of the current rank in this partition.
+
+    Note:
+        Always returns 0 in non-mpi builds.
+    """
+
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
@@ -79,10 +90,15 @@ def get_rank():
     else:
         return 0;
 
-## Return the current partition
-# context.initialize() must be called before get_partition()
-# \note Always returns 0 in non-mpi builds
 def get_partition():
+    """ Get the current partition index.
+
+    Returns:
+        Index of the current partition.
+
+    Note:
+        Always returns 0 in non-mpi builds.
+    """
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
@@ -90,16 +106,21 @@ def get_partition():
     else:
         return 0;
 
-## Perform a MPI barrier synchronization inside a partition
-# \note does nothing in in non-MPI builds
 def barrier_all():
+    """ Perform a MPI barrier synchronization across the whole MPI run.
+
+    Note:
+        Does nothing in in non-MPI builds.
+    """
     if _hoomd.is_MPI_available():
         _hoomd.mpi_barrier_world();
 
-## Perform a MPI barrier synchronization inside a partition
-# context.initialize() must be called before barrier()
-# \note does nothing in in non-MPI builds
 def barrier():
+    """ Perform a MPI barrier synchronization across all ranks in the partition.
+
+    Note:
+        Does nothing in in non-MPI builds.
+    """
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():

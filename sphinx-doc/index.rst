@@ -6,7 +6,7 @@ Welcome to the user documentation for HOOMD-blue!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    module-hoomd
 

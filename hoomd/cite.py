@@ -485,19 +485,22 @@ def _ensure_global_bib():
 
     return hoomd.context.bib
 
-## Saves the automatically generated %bibliography to a BibTeX file
-#
-# \param file File name for the saved %bibliography
-#
-# After save() is called for the first time, the %bibliography will (re-)generate each time that a new feature is added
-# to ensure that all citations have been included. If \a file already exists, it will be overwritten.
-#
-# \b Examples
-# \code
-# cite.save()
-# cite.save(file='cite.bib')
-# \endcode
 def save(file='hoomd.bib'):
+    """ Saves the automatically generated bibliography to a BibTeX file
+
+    Args:
+
+        file(str): File name for the saved bibliography
+
+    After :py:func:`save()` is called for the first time, the bibliography will (re-)generate each time that a new feature is added
+    to ensure that all citations have been included. If ``file`` already exists, it will be overwritten.
+
+    Examples::
+
+        cite.save()
+        cite.save(file='cite.bib')
+    """
+
     hoomd.util.print_status_line()
 
     # force a bibliography to exist
