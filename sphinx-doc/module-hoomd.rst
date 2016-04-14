@@ -6,6 +6,7 @@ hoomd python module
 .. toctree::
    :maxdepth: 3
 
+   module-hoomd-analyze
    module-hoomd-cite
    module-hoomd-comm
 

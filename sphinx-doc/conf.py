@@ -43,6 +43,7 @@ autosummary_generate = True
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 autodoc_docstring_signature = True;
+autodoc_default_flags = ['inherited-members'];
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

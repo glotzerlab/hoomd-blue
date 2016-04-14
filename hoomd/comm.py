@@ -49,8 +49,10 @@
 
 # Maintainer: jglaser / All Developers are free to add commands for new features
 
-## \package hoomd.comm
-# \brief Commands to support MPI communication
+""" MPI communication interface
+
+Use methods in this module to query the number of MPI ranks, the current rank, etc...
+"""
 
 from hoomd import _hoomd
 import hoomd;
