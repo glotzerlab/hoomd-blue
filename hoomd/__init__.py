@@ -171,7 +171,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     Set the environment variable ``HOOMD_WALLTIME_STOP`` prior to starting a hoomd script to stop the :py:func:`run()` at a given wall
     clock time. :py:func:`run()` monitors performance and tries to ensure that it will end *before* ``HOOMD_WALLTIME_STOP``. This
-    environment variable works even with multiple stages of runs in a script (use :py:fun:`run_upto()`. Set the variable to
+    environment variable works even with multiple stages of runs in a script (use :py:func:`run_upto()`. Set the variable to
     a unix epoch time. For example in a job script that should run 12 hours, set ``HOOMD_WALLTIME_STOP`` to 12 hours from
     now, minus 10 minutes to allow for job cleanup::
 

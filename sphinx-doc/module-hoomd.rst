@@ -7,8 +7,12 @@ hoomd python module
    :maxdepth: 3
 
    module-hoomd-analyze
+   module-hoomd-benchmark
    module-hoomd-cite
    module-hoomd-comm
+   module-hoomd-compute
+   module-hoomd-context
+   module-hoomd-dump
 
 .. rubric:: Overview
 

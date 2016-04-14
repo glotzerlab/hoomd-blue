@@ -49,7 +49,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-r""" Commands that analyze the system and provide some output.
+R""" Commands that analyze the system and provide some output.
 
 An analyzer examines the system state in some way every *period* time steps and generates
 some form of output based on the analysis. Check the documentation for individual analyzers
@@ -196,7 +196,7 @@ class _analyzer(hoomd.meta._metadata):
             raise RuntimeError();
 
     def disable(self):
-        r""" Disable the analyzer.
+        R""" Disable the analyzer.
 
         Examples::
 
@@ -221,7 +221,7 @@ class _analyzer(hoomd.meta._metadata):
         self.enabled = False;
 
     def enable(self):
-        r""" Enables the analyzer
+        R""" Enables the analyzer
 
         Examples::
 
@@ -241,7 +241,7 @@ class _analyzer(hoomd.meta._metadata):
         self.enabled = True;
 
     def set_period(self, period):
-        """ Changes the period between analyzer executions
+        R""" Changes the period between analyzer executions
 
         Args:
             period (int): New period to set (in time steps)
@@ -280,7 +280,7 @@ class _analyzer(hoomd.meta._metadata):
 _analyzer.cur_id = 0;
 
 class imd(_analyzer):
-    """ Send simulation snapshots to VMD in real-time.
+    R""" Send simulation snapshots to VMD in real-time.
 
     Args:
         port (int): TCP/IP port to listen on.
@@ -329,7 +329,7 @@ class imd(_analyzer):
 
 
 class log(_analyzer):
-    r""" Log a number of calculated quantities to a file.
+    R""" Log a number of calculated quantities to a file.
 
     Args:
         filename (str): File to write the log to, or *None* for no file output.
@@ -524,7 +524,7 @@ class log(_analyzer):
         self.period = period
 
     def set_params(self, quantities=None, delimiter=None):
-        r""" Change the parameters of the log.
+        R""" Change the parameters of the log.
 
         Args:
             quantities (list): New list of quantities to log (if specified)
@@ -550,7 +550,7 @@ class log(_analyzer):
             self.cpp_analyzer.setDelimiter(delimiter);
 
     def query(self, quantity):
-        r""" Get the current value of a logged quantity.
+        R""" Get the current value of a logged quantity.
 
         Args:
             quantity (str): Name of the quantity to return.
@@ -573,7 +573,7 @@ class log(_analyzer):
         return self.cpp_analyzer.getQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
 
     def register_callback(self, name, callback):
-        r""" Register a callback to produce a logged quantity.
+        R""" Register a callback to produce a logged quantity.
 
         Args:
             name (str): Name of the quantity
@@ -605,7 +605,7 @@ class log(_analyzer):
 
 
 class msd(_analyzer):
-    r""" Mean-squared displacement.
+    R""" Mean-squared displacement.
 
     Args:
         filename (str): File to write the data to.
@@ -685,7 +685,7 @@ class msd(_analyzer):
             self.cpp_analyzer.setR0(r0_file);
 
     def set_params(self, delimiter=None):
-        r""" Change the parameters of the msd analysis
+        R""" Change the parameters of the msd analysis
 
         Args:
             delimiter (str): New delimiter between columns in the output file (if specified).
@@ -700,7 +700,7 @@ class msd(_analyzer):
             self.cpp_analyzer.setDelimiter(delimiter);
 
 class callback(_analyzer):
-    r""" Callback analyzer.
+    R""" Callback analyzer.
 
     Args:
         callback (callable): The python callback object

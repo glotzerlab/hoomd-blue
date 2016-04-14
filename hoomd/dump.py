@@ -49,12 +49,12 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.dump
-# \brief Commands that %dump particles to files
-#
-# Commands in the dump package write the system state out to a file every
-# \a period time steps. Check the documentation for details on which file format
-# each command writes.
+R""" Write system configurations to files.
+
+Commands in the dump package write the system state out to a file every
+*period* time steps. Check the documentation for details on which file format
+each command writes.
+"""
 
 from hoomd import _hoomd
 import hoomd;
@@ -387,54 +387,50 @@ class mol2(hoomd.analyze._analyzer):
 
         self.cpp_analyzer.writeFile(filename);
 
-## Writes simulation snapshots in the DCD format
-#
-# Every \a period time steps a new simulation snapshot is written to the
-# specified file in the DCD file format. DCD only stores particle positions
-# but is decently space efficient and extremely fast to read and write. VMD
-# can load 100's of MiB of trajectory data in mere seconds.
-#
-# Particle positions are written directly in distance units, see \ref page_units for more information.
-#
-# Use in conjunction with dump.xml so that VMD has information on the
-# particle names and %bond topology.
-#
-# Due to constraints of the DCD file format, once you stop writing to
-# a file via disable(), you cannot continue writing to the same file,
-# nor can you change the period of the %dump at any time. Either of these tasks
-# can be performed by creating a new %dump file with the needed settings.
-#
-# \MPI_SUPPORTED
 class dcd(hoomd.analyze._analyzer):
-    ## Initialize the dcd writer
-    #
-    # \param filename File name to write
-    # \param period Number of time steps between file dumps
-    # \param group Particle group to output to the dcd file. If left as None, all particles will be written
-    # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
-    #        file \a filename will be overwritten.
-    # \param unwrap_full When False, (the default) particle coordinates are always written inside the simulation box.
-    #        When True, particles will be unwrapped into their current box image before writing to the dcd file.
-    # \param unwrap_rigid When False, (the default) individual particles are written inside the simulation box which
-    #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
-    #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
-    #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
-    # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # dump.dcd(filename="trajectory.dcd", period=1000)
-    # dcd = dump.dcd(filename"data/dump.dcd", period=1000)
-    # \endcode
-    #
-    # \warning
-    # When you use dump.dcd to append to an existing dcd file
-    # - The period must be the same or the time data in the file will not be consistent.
-    # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
-    #   consistent timeline
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
+    R""" Writes simulation snapshots in the DCD format
+
+    Args:
+        filename (str): File name to write.
+        period (int): Number of time steps between file dumps.
+        group (:py:mod:`hoomd.group`): Particle group to output to the dcd file. If left as None, all particles will be written.
+        overwrite (bool): When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
+                          file *filename* will be overwritten.
+        unwrap_full (bool): When False, (the default) particle coordinates are always written inside the simulation box.
+                            When True, particles will be unwrapped into their current box image before writing to the dcd file.
+        unwrap_rigid (bool): When False, (the default) individual particles are written inside the simulation box which
+               breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
+               unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
+               some particles may be written just outside it. *unwrap_rigid* is ignored when *unwrap_full* is True.
+        angle_z (bool): When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* time steps a new simulation snapshot is written to the
+    specified file in the DCD file format. DCD only stores particle positions
+    but is decently space efficient and fast to read and write.
+
+    Particle positions are written directly in distance units. TODO: reference units page.
+
+    Use in conjunction with dump.xml so that VMD has information on the
+    particle names and bond topology.
+
+    Due to constraints of the DCD file format, once you stop writing to
+    a file via :py:meth:`disable()`, you cannot continue writing to the same file,
+    nor can you change the period of the dump at any time. Either of these tasks
+    can be performed by creating a new dump file with the needed settings.
+
+    Examples::
+
+        dump.dcd(filename="trajectory.dcd", period=1000)
+        dcd = dump.dcd(filename"data/dump.dcd", period=1000)
+
+    Warning:
+        When you use dump.dcd to append to an existing dcd file:
+
+        * The period must be the same or the time data in the file will not be consistent.
+        * dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
+          consistent timeline
+    """
     def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
         hoomd.util.print_status_line();
 
