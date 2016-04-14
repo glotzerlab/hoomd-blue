@@ -93,19 +93,21 @@ without warning if you launch hoomd from $HOME.
 
 \b NCSA \b Blue waters:
 ~~~~
-module unload boost
-module unload cmake
+module switch PrgEnv-cray PrgEnv-gnu
+module load cudatoolkit
 module load bwpy
 export SOFTWARE_ROOT=${HOME}
 export CPATH="${BWPY_DIR}/usr/include"
 export LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
-export LD_LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
+export LD_LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64:${LD_LIBRARY_PATH}"
 ~~~~
 
-You must specify BOOST_ROOT manually on the cmake command line. You can select python2 or python3.
-``cmake ~/hoomd -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=$HOME/hoomd-install``
+Put these commands in your `~/.modules` file to have a working environment available every time you log in.
 
-To run hoomd on blue waters, set PYTHONPATH=$PYTHONPATH:$HOME/hoomd-install/lib/hoomd/python-module, and run `ibrun <ibrun parameters> python3 script.py`.
+You must specify BOOST_ROOT manually on the cmake command line. You can select python2 or python3.
+``cmake /path/to/hoomd/code -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=$HOME/hoomd-install``
+
+To run hoomd on blue waters, set PYTHONPATH=$PYTHONPATH:$HOME/hoomd-install/lib/hoomd/python-module, and run `aprun <aprun parameters> python3 script.py`.
 
 \b OLCF \b Titan:
 ~~~~
