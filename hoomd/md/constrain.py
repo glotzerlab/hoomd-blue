@@ -344,7 +344,7 @@ class distance(_constraint_force):
 # the parameters passed to constrain.rigid() specify which constituent particle types and positions are associated with it.
 #
 # The system is initialized with the central particles only, and the constituent particles are created automatically
-# around every central particle at the first run() command. This behavior can be controlled by rigid.set_auto_create().
+# around every central particle upon a call to rigid.create_bodies()
 #
 # Example for defining a cylindrical rigid body of two constituent particles of type 'const' and a central particle of
 # type 'central':
@@ -357,6 +357,7 @@ class distance(_constraint_force):
 # rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
 # # .. create pair.lj() ..
 # # create constituent particles and run
+# rigid.create_bodies()
 # run(100)
 # \endcode
 #
@@ -372,14 +373,13 @@ class distance(_constraint_force):
 # # intialize system, including constituent particles and some bonds
 # system = init.read_xml('init.xml')
 # rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
-# rigid.set_auto_create(False)
 # run(100)
 # \endcode
 #
-# \note If you choose to create the constituent particles manually, a strict order of the central particles and the
-# constituent particles must be followed. The central particle has the lowest tag in the rigid body and a body index identical to its
-# particle tag. Constituent particles follow in the same order they are defined using rigid.set_param(), with monotically
-# increasing tags.
+# \note If you create the constituent particles manually, the central particle of a rigid body must have a lower tag than
+# all of its constituent particles. Constituent particles follow in monotically increasing tag order, corresponding
+# to the order they were defined in the argument to rigid.set_param(). The order of central and contiguous particles need
+# **not** to be contiguous.
 #
 # \MPI_SUPPORTED
 class rigid(_constraint_force):
@@ -404,8 +404,6 @@ class rigid(_constraint_force):
             self.cpp_force = _md.ForceCompositeGPU(hoomd.context.current.system_definition);
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        self.create_rigid_bodies = True
 
     ## Set constituent particle types and coordinates for a rigid body
     #
@@ -496,17 +494,13 @@ class rigid(_constraint_force):
         # set parameters in C++ force
         self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec, charge_vec, diameter_vec)
 
-    ## Set a flag whether to automatically create copies of rigid bodies
-    # \param create If true, constituent particles will be created next time run() is called
-    def set_auto_create(self,create):
-        self.create_rigid_bodies = bool(create)
-
     ## Create copies of rigid bodies
-    def create_bodies(self,create=True):
+    # \param create If true, create rigid bodies, otherwise validate existing ones
+    def create_bodies(self, create=True):
         self.cpp_force.validateRigidBodies(create)
 
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):
         # validate copies of rigid bodies
-        self.create_bodies(self.create_rigid_bodies)
+        self.create_bodies(False)

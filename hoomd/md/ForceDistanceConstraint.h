@@ -164,9 +164,6 @@ class ForceDistanceConstraint : public MolecularForceCompute
          */
         virtual Scalar askGhostLayerWidth(unsigned int type);
 
-        //! Fill the molecule list
-        virtual void initMolecules();
-
         #ifdef ENABLE_MPI
         //! Set the communicator object
         virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
