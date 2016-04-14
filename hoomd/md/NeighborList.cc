@@ -263,13 +263,12 @@ void NeighborList::compute(unsigned int timestep)
 
     if (m_prof) m_prof->push("Neighbor");
 
-	// take care of some updates if things have changed since construction
+    // take care of some updates if things have changed since construction
     if (m_force_update)
         {
         // build the head list since some sort of change (like a particle sort) happened
         buildHeadList();
 
-		// update the exclusion data if this is a forced update
         if (m_exclusions_set)
             updateExListIdx();
         }

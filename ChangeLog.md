@@ -13,6 +13,7 @@
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
 * Rigid body constraints `constrain.rigid` - rigid bodies now have central particles, and support MPI and replication
+* Multi-GPU electrostatics `charge.pppm` - the long range electrostatic forces are now supported in MPI runs
 * `context.initialize()` can now be called multiple times - useful in jupyter notebooks
 * Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
 * `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.

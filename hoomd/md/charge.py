@@ -100,7 +100,10 @@ from math import sqrt
 #       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
 #       If you are going to add charged particles at a later point in the simulation with the data access API,
 #       ensure that this group includes those particles as well.
-# \MPI_NOT_SUPPORTED
+#
+# \note In MPI simulations, the number of grid point along every dimensions must be a power of two
+#
+# \MPI_SUPPORTED
 class pppm(force._force):
     ## Specify long-ranged electrostatic interactions between particles
     #
@@ -115,12 +118,6 @@ class pppm(force._force):
     # \endcode
     def __init__(self, group, nlist=None):
         hoomd.util.print_status_line();
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing PPPM.")
 
         # initialize the base class
         force._force.__init__(self);
@@ -173,11 +170,14 @@ class pppm(force._force):
     # \param Nz - Number of grid points in z direction
     # \param order - Number of grid points in each direction to assign charges to
     # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
+    # \param period - (Optional) Update period for the long-range part, in number of time steps
     #
     # Using set_params() requires that the specified PPPM force has been saved in a variable. i.e.
     # \code
     # pppm = charge.pppm()
     # \endcode
+    #
+    # \note Setting period to a value greater than 1 can degrade the accuracy of the PPPM calculation.
     #
     # \b Examples:
     # \code
@@ -194,12 +194,12 @@ class pppm(force._force):
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
-        q2 = 0
-        N = hoomd.context.current.system_definition.getParticleData().getN()
-        for i in range(0,N):
-            q = hoomd.context.current.system_definition.getParticleData().getCharge(i)
-            q2 += q*q
-        box = hoomd.context.current.system_definition.getParticleData().getBox()
+
+        # get sum of charges and of squared charges
+        q = self.cpp_force.getQSum();
+        q2 = self.cpp_force.getQ2Sum();
+        N = hoomd.context.current.system_definition.getParticleData().getNGlobal()
+        box = hoomd.context.current.system_definition.getParticleData().getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z

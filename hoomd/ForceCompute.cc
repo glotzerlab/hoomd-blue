@@ -102,6 +102,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     for (unsigned int i = 0; i < 6; ++i)
         m_external_virial[i] = Scalar(0.0);
 
+    m_external_energy = Scalar(0.0);
     }
 
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
