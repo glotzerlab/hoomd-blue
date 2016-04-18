@@ -225,6 +225,19 @@ class _force(hoomd.meta._metadata):
         self.enabled = True;
         self.log = True;
 
+    ## Get the energy of a particle group
+    #
+    # \param group The particle group to query the energy for
+    # \returns the last computed energy for the members in the group
+    #
+    # \b Examples:
+    # \code
+    # g = group.all()
+    # energy = force.get_energy(g)
+    # \endcode
+    def get_energy(self,group):
+        return self.cpp_force.calcEnergyGroup(group.cpp_group)
+
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):

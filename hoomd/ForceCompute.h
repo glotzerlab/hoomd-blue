@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 #include "Compute.h"
 #include "Index1D.h"
+#include "ParticleGroup.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -118,6 +119,9 @@ class ForceCompute : public Compute
 
         //! Total the potential energy
         Scalar calcEnergySum();
+
+        //! Sum the potential energy of a group
+        Scalar calcEnergyGroup(boost::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
