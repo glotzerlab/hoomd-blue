@@ -8,6 +8,7 @@ hoomd.dump
 
     hoomd.dump.dcd
     hoomd.dump.gsd
+    hoomd.dump.pos
 
 .. rubric:: Details
 

@@ -13,6 +13,7 @@ hoomd python module
    module-hoomd-compute
    module-hoomd-context
    module-hoomd-dump
+   module-hoomd-group
 
 .. rubric:: Overview
 

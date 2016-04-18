@@ -474,87 +474,91 @@ class dcd(hoomd.analyze._analyzer):
         hoomd.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
-## Writes simulation snapshots in the GSD format
-#
-# Write a simulation snapshot to the specified GSD file at regular intervals.
-# GSD is capable of storing all particle and bond data fields that hoomd stores,
-# in every frame of the trajectory. This allows GSD to store simulations where the
-# number of particles, number of particle types, particle types, diameter, mass,
-# charge, or anything is changing over time.
-#
-# To save on space, GSD does not write values that are all set at defaults. So if
-# all masses are left set at the default of 1.0, mass will not take up any space in
-# the file. To save even more on space, flag fields as static (the default) and
-# dump.gsd will only write them out to frame 0. When reading data from frame *i*,
-# any data field not present will be read from frame 0. This makes every single frame
-# of a GSD file fully specified and simulations initialized with init.read_gsd() can
-# select any frame of the file.
-#
-# The **static** option applies to groups of fields:
-#
-# * attribute
-#     * particles/N
-#     * particles/types
-#     * particles/typeid
-#     * particles/mass
-#     * particles/charge
-#     * particles/diameter
-#     * particles/body
-#     * particles/moment_inertia
-# * property
-#     * particles/position
-#     * particles/orientation
-# * momentum
-#     * particles/velocity
-#     * particles/angmom
-#     * particles/image
-# * topology
-#     * bonds/
-#     * angles/
-#     * dihedrals/
-#     * impropers/
-#     * constraints/
-#
-# See https://bitbucket.org/glotzer/gsd
-#
-# \MPI_SUPPORTED
 class gsd(hoomd.analyze._analyzer):
-    ## Initialize the gsd writer
-    #
-    # \param filename File name to write
-    # \param period Number of time steps between file dumps, or None to write a single file immediately.
-    # \param group Particle group to output to the dcd file.
-    # \param overwrite When False (the default), any existing GSD file will be appended to. When True, an existing DCD
-    #        file \a filename will be overwritten.
-    # \param truncate When False (the default), frames are appened to the GSD file. When True, truncate the file and
-    #        write a new frame 0 every time.
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param time_step Time step to write to the file (only used when period is None)
-    # \param static A list of quantity categories that are static.
-    #
-    # If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    # specifying a group to write out. dump.gsd will write out all of the particles in the group in ascending
-    # tag order. When the group is not group.all(), dump.gsd will not write the topology fields.
-    #
-    # To write restart files with gsd, set `truncate=True`. This will cause dump.gsd to write a new frame 0
-    # to the file every period steps.
-    #
-    # dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
-    # frames. Quantity categories *not* listed in static are dynamic. dump.gsd writes dynamic quantities to every frame.
-    # The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
-    # In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
-    # save that information in a trajectory for later access. Particle momentum are always changing, but the default is
-    # to not include these quantities to save on file space.
-    #
-    # \b Examples:
-    # \code
-    # dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
-    # dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
-    # dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
-    # dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
-    # \endcode
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
+    R""" Writes simulation snapshots in the GSD format
+
+    Args:
+        filename (str): File name to write
+        period (int): Number of time steps between file dumps, or None to write a single file immediately.
+        group (:py:mod:`hoomd.group`): Particle group to output to the gsd file.
+        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing DCD
+                          file *filename* will be overwritten.
+        truncate (bool): When False (the default), frames are appended to the GSD file. When True, truncate the file and
+                         write a new frame 0 every time.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        time_step (int): Time step to write to the file (only used when period is None)
+        static (list): A list of quantity categories that are static.
+
+    Write a simulation snapshot to the specified GSD file at regular intervals.
+    GSD is capable of storing all particle and bond data fields that hoomd stores,
+    in every frame of the trajectory. This allows GSD to store simulations where the
+    number of particles, number of particle types, particle types, diameter, mass,
+    charge, or anything is changing over time.
+
+    To save on space, GSD does not write values that are all set at defaults. So if
+    all masses are left set at the default of 1.0, mass will not take up any space in
+    the file. To save even more on space, flag fields as static (the default) and
+    dump.gsd will only write them out to frame 0. When reading data from frame *i*,
+    any data field not present will be read from frame 0. This makes every single frame
+    of a GSD file fully specified and simulations initialized with init.read_gsd() can
+    select any frame of the file.
+
+    The **static** option applies to groups of fields:
+
+    * ``attribute``
+
+        * particles/N
+        * particles/types
+        * particles/typeid
+        * particles/mass
+        * particles/charge
+        * particles/diameter
+        * particles/body
+        * particles/moment_inertia
+
+    * ``property``
+
+        * particles/position
+        * particles/orientation
+
+    * ``momentum``
+
+        * particles/velocity
+        * particles/angmom
+        * particles/image
+
+    * ``topology``
+
+        * bonds/
+        * angles/
+        * dihedrals/
+        * impropers/
+        * constraints/
+
+    See https://bitbucket.org/glotzer/gsd for more information on GSD files.
+
+    If you only need to store a subset of the system, you can save file size and time spent analyzing data by
+    specifying a group to write out. :py:class:`dump.gsd` will write out all of the particles in the group in ascending
+    tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.gsd` will not write the topology fields.
+
+    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`dump.gsd` to write a new frame 0
+    to the file every period steps.
+
+    dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
+    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`dump.gsd` writes dynamic quantities to every frame.
+    The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
+    In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
+    save that information in a trajectory for later access. Particle momentum are always changing, but the default is
+    to not include these quantities to save on file space.
+
+    Examples::
+
+        dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
+        dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
+        dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
+        dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
+
+    """
     def __init__(self,
                  filename,
                  period,
@@ -696,37 +700,32 @@ class pdb(hoomd.analyze._analyzer):
 
         self.cpp_analyzer.writeFile(filename);
 
-## Writes simulation snapshots in the POS format
-#
-# The file is opened on initialization and a new frame is appended every \a period steps.
-#
-# \warning dump.pos Is not restart compatible. It always overwrites the file on initialization.
-#
 class pos(hoomd.analyze._analyzer):
-    ## Initialize the pos writer
-    #
-    # \param filename File name to write
-    # \param period (optional) Number of time steps between file dumps
-    # \param unwrap_rigid When False, (the default) individual particles are written inside
-    #        the simulation box which breaks up rigid bodies near box boundaries. When True,
-    #        particles belonging to the same rigid body will be unwrapped so that the body
-    #        is continuous. The center of mass of the body remains in the simulation box, but
-    #        some particles may be written just outside it.
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This
-    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
-    #        may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
-    #
-    # \b Examples:
-    # \code
-    # dump.pos(filename="dump.pos", period=1000)
-    # pos = dump.pos(filename="particles.pos", period=1e5)
-    # \endcode
-    #
-    # dump.pos always overwrites the file when initializing.
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    #
+    R""" Writes simulation snapshots in the POS format
+
+    Args:
+        filename (str): File name to write
+        period (int): (optional) Number of time steps between file dumps
+        unwrap_rigid (bool): When False, (the default) individual particles are written inside
+                             the simulation box which breaks up rigid bodies near box boundaries. When True,
+                             particles belonging to the same rigid body will be unwrapped so that the body
+                             is continuous. The center of mass of the body remains in the simulation box, but
+                             some particles may be written just outside it.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        addInfo (callable): A user-defined python function that returns a string of additional information when it is called. This
+                            information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
+                            may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
+
+    The file is opened on initialization and a new frame is appended every \a period steps.
+
+    Warning:
+        :py:class:`dump.pos` is not restart compatible. It always overwrites the file on initialization.
+
+    Examples::
+
+        dump.pos(filename="dump.pos", period=1000)
+        pos = dump.pos(filename="particles.pos", period=1e5)
+    """
     def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
         hoomd.util.print_status_line();
 
