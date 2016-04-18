@@ -1545,7 +1545,7 @@ class bond_data(hoomd.meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b):
         typeid = self.bdata.getTypeByName(type);
-        return self.bdata.addBondedGroup(_hoomd.Bond(typeid, a, b));
+        return self.bdata.addBondedGroup(_hoomd.Bond(typeid, int(a), int(b)));
 
     ## \internal
     # \brief Remove a bond by tag
@@ -1716,7 +1716,7 @@ class constraint_data(hoomd.meta._metadata):
     # \param d Distance of the constraint to add
     # \returns Unique tag identifying this bond
     def add(self, a, b, d):
-        return self.cdata.addBondedGroup(_hoomd.Constraint(float(d), a, b));
+        return self.cdata.addBondedGroup(_hoomd.Constraint(float(d), int(a), int(b)));
 
     ## \internal
     # \brief Remove a bond by tag
@@ -1881,7 +1881,7 @@ class angle_data(hoomd.meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c):
         typeid = self.adata.getTypeByName(type);
-        return self.adata.addBondedGroup(_hoomd.Angle(typeid, a, b, c));
+        return self.adata.addBondedGroup(_hoomd.Angle(typeid, int(a), int(b), int(c)));
 
     ## \internal
     # \brief Remove an angle by tag
@@ -2065,7 +2065,7 @@ class dihedral_data(hoomd.meta._metadata):
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c, d):
         typeid = self.ddata.getTypeByName(type);
-        return self.ddata.addBondedGroup(_hoomd.Dihedral(typeid, a, b, c, d));
+        return self.ddata.addBondedGroup(_hoomd.Dihedral(typeid, int(a), int(b), int(c), int(d)));
 
     ## \internal
     # \brief Remove an dihedral by tag
