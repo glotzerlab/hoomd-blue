@@ -361,6 +361,17 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
       m_update_tags(false),
       m_warning_printed(false)
     {
+    // check input
+    unsigned int max_tag = m_pdata->getMaximumTag();
+    for (std::vector<unsigned int>::const_iterator it = member_tags.begin(); it != member_tags.end(); ++it)
+        {
+        if (*it > max_tag)
+            {
+            m_exec_conf->msg->error() << "group.*: Member " << *it << " does not exist in particle data." << std::endl;
+            throw std::runtime_error("Error creating ParticleGroup\n");
+            }
+        }
+
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
     sort(sorted_member_tags.begin(), sorted_member_tags.end());
