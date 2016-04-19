@@ -1,7 +1,8 @@
 # HOOMD-blue
 
-HOOMD-blue is a general purpose particle simulation toolkit. It performs molecular dynamics simulations of particles
-with a variety of pair, bond, angle, and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
+HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
+of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
+and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
 many nodes. For more information, see the [HOOMD-blue website](https://codeblue.umich.edu/hoomd-blue).
 
 # Installing HOOMD-blue
@@ -28,6 +29,12 @@ cmake ../
 make -j20
 ```
 
+To run out of the build directory, add the build directory to your `PYTHONPATH`:
+
+```bash
+export PYTHONPATH=`pwd`:$PYTHONPATH
+```
+
 For more detailed instructions, [see the documentationn](https://codeblue.umich.edu/hoomd-blue/doc/page_compile_guide.html).
 
 ## Prerequisites
@@ -37,9 +44,9 @@ For more detailed instructions, [see the documentationn](https://codeblue.umich.
      * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ Compiler (tested with gcc, clang, intel)
+     * C++ 11 capable compiler (tested with gcc >= 4.9, clang, intel)
  * Optional:
-     * NVIDIA CUDA Toolkit >= 5.0
+     * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH, impi)
 
 # Job scripts
@@ -50,23 +57,24 @@ or develop complex workflows all with python code in your job.
 Here is a simple example.
 
 ```python
-from hoomd_script import *
-context.initialize()
+import hoomd
+from hoomd import md
+hoomd.context.initialize()
 
 # create 100 random particles of name A
-init.create_random(N=100, phi_p=0.01, name='A')
+hoomd.init.create_random(N=100, phi_p=0.01, name='A')
 # specify Lennard-Jones interactions between particle pairs
-lj = pair.lj(r_cut=3.0)
+lj = md.pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
-all = group.all();
-integrate.mode_standard(dt=0.005)
-integrate.nvt(group=all, T=1.2, tau=0.5)
+all = hoomd.group.all();
+md.integrate.mode_standard(dt=0.005)
+md.integrate.nvt(group=all, T=1.2, tau=0.5)
 # run 10,000 time steps
-run(10e3)
+hoomd.run(10e3)
 ```
 
-Save this as `lj.py` and run with `hoomd lj.py`.
+Save this as `lj.py` and run with `python lj.py`.
 
 # Documentation
 
