@@ -606,7 +606,7 @@ void ForceComposite::validateRigidBodies(bool create)
                             snap_out.image[i] = img;
                             snap_out.orientation[i] = orientation;
 
-                            count_body_ptls.insert(std::make_pair(snap_out.body[i],j+1));
+                            it->second++;
                             }
                         }
                     }
