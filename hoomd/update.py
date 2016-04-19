@@ -174,7 +174,7 @@ class _updater(hoomd.meta._metadata):
 
             updater.enable()
 
-        See:
+        See Also:
             :py:meth:`disable()`
         """
 

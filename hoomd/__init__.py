@@ -325,7 +325,7 @@ def cuda_profile_start():
 def cuda_profile_stop():
     """ Stop CUDA profiling.
 
-        See:
+        See Also:
             :py:func:`cuda_profile_start()`.
     """
 

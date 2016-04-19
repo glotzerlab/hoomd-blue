@@ -12,6 +12,7 @@ hoomd python module
    module-hoomd-comm
    module-hoomd-compute
    module-hoomd-context
+   module-hoomd-data
    module-hoomd-dump
    module-hoomd-group
    module-hoomd-init

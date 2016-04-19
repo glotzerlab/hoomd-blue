@@ -288,7 +288,7 @@ class _integration_method(hoomd.meta._metadata):
 
             method.enable()
 
-        See:
+        See Also:
             :py:meth:`disable()`.
         """
         hoomd.util.print_status_line();

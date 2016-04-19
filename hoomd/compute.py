@@ -209,7 +209,8 @@ class thermo(_compute):
 
           P_{ij} = \left[  \sum_{k\in[0..N)} m_k v_{k,i} v_{k,j} +
                            \sum_{k\in[0..N)} \sum_{l > k} \frac{1}{2} \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j} \vec{F}_{kl, i} \right) \right]/V
-    See:
+
+    See Also:
         :py:class:`hoomd.analyze.log`.
 
     Examples::

@@ -590,7 +590,7 @@ def read_snapshot(snapshot):
         snapshot = my_system_create_routine(.. parameters ..)
         system = init.read_snapshot(snapshot)
 
-    See:
+    See Also:
         :py:mod:`hoomd.data`
     """
     hoomd.util.print_status_line();
@@ -639,7 +639,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     The result of :py:func:`hoomd.init.read_gsd` can be saved in a variable and later used to read and/or
     change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
 
-    See:
+    See Also:
         :py:class:`hoomd.dump.gsd`
     """
     hoomd.util.print_status_line();

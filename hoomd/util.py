@@ -78,7 +78,7 @@ def quiet_status():
 def unquiet_status():
     R""" Resume the status line output.
 
-    See:
+    See Also:
         :py:func:`hoomd.util.quiet_status()`
     """
     global _status_quiet_count;
