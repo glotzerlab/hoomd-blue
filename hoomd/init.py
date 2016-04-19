@@ -49,6 +49,12 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Data initialization commands
+
+Commands in the py:mod:`hoomd.init` package initialize the particle system.
+
+"""
+
 from hoomd import _hoomd
 import hoomd;
 
@@ -58,15 +64,6 @@ import gc;
 import os;
 import re;
 import platform;
-
-## \package hoomd.init
-# \brief Data initialization commands
-#
-# Commands in the init package initialize the particle system. Initialization via
-# any of the commands here must be done before any other command in hoomd_script can
-# be run.
-#
-# \sa \ref page_quick_start
 
 ## Tests if the system has been initialized
 #
@@ -252,38 +249,37 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     _perform_common_init_tasks();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
-## Generates N randomly positioned particles of the same type
-#
-# \param N Number of particles to create
-# \param phi_p Packing fraction of particles in the simulation box (unitless)
-# \param name Name of the particle type to create
-# \param min_dist Minimum distance particles will be separated by (in distance units)
-# \param box Simulation box dimensions (data.boxdim object)
-# \param seed Random seed
-# \param dimensions The number of dimensions in the simulation (2 or 3(default))
-#
-# Either \a phi_p or \a box must be specified. If \a phi_p is provided, it overrides the value of \a box.
-#
-# \b Examples:
-# \code
-# init.create_random(N=2400, phi_p=0.20)
-# init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
-# system = init.create_random(N=2400, box=data.boxdim(L=20))
-# \endcode
-#
-# \a N particles are randomly placed in the simulation box.
-#
-# When phi_p is set, the
-# dimensions of the created box are such that the packing fraction
-# of particles in the box is \a phi_p. The number density \e n
-# is related to the packing fraction by \f$n = 2d/\pi \cdot \phi_P\f$,
-# where d is the dimension, and assuming the particles have a radius of 0.5.
-# All particles are created with the same type, given by \a name.
-#
-# The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd.data for more information.
-#
 def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1, dimensions=3):
+    R""" Generates N randomly positioned particles of the same type.
+
+    Args:
+        N (int): Number of particles to create.
+        phi_p (float): Packing fraction of particles in the simulation box (unitless).
+        name (str): Name of the particle type to create.
+        min_dist (float): Minimum distance particles will be separated by (in distance units).
+        box (:py:class:`hoomd.data.boxdim`): Simulation box dimensions.
+        seed (int): Random seed.
+        dimensions (int): The number of dimensions in the simulation.
+
+    Either *phi_p* or *box* must be specified. If *phi_p* is provided, it overrides the value of *box*.
+
+    Examples::
+
+        init.create_random(N=2400, phi_p=0.20)
+        init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
+        system = init.create_random(N=2400, box=data.boxdim(L=20))
+
+    When *phi_p* is set, the
+    dimensions of the created box are such that the packing fraction
+    of particles in the box is *phi_p*. The number density \e n
+    is related to the packing fraction by :math:`n = 2d/\pi \cdot \phi_P`,
+    where *d* is the dimension, and assumes the particles have a radius of 0.5.
+    All particles are created with the same type, given by *name*.
+
+    The result of :py:func:`hoomd.init.create_random` can be saved in a variable and later used to read
+    and/or change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
+
+    """
     hoomd.util.print_status_line();
 
     hoomd.context._verify_init();
@@ -577,24 +573,26 @@ def create_random_polymers(box, polymers, separation, seed=1):
     _perform_common_init_tasks();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
-## Initializes the system from a snapshot
-#
-# \param snapshot The snapshot to initialize the system from
-#
-# Snapshots temporarily store system %data. Snapshots contain the complete simulation state in a
-# single object. They can be used to start or restart a simulation.
-#
-# Example use cases in which a simulation may be started from a snapshot include user code that generates initial
-# particle positions.
-#
-# **Example:**
-# \code
-# snapshot = my_system_create_routine(.. parameters ..)
-# system = init.read_snapshot(snapshot)
-# \endcode
-#
-# \sa hoomd.data
 def read_snapshot(snapshot):
+    R""" Initializes the system from a snapshot.
+
+    Args:
+        snapshot (:py:class:`hoomd.data.snapshot`): The snapshot to initialize the system.
+
+    Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
+    single object. They can be used to start or restart a simulation.
+
+    Example use cases in which a simulation may be started from a snapshot include user code that generates initial
+    particle positions.
+
+    Example::
+
+        snapshot = my_system_create_routine(.. parameters ..)
+        system = init.read_snapshot(snapshot)
+
+    See:
+        :py:mod:`hoomd.data`
+    """
     hoomd.util.print_status_line();
 
     hoomd.context._verify_init();
@@ -619,28 +617,31 @@ def read_snapshot(snapshot):
     _perform_common_init_tasks();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
-## Reads initial system state from an GSD file
-#
-# \param filename File to read
-# \param restart If it exists, read \a restart instead of \a filename
-# \param frame Index of the frame to read from the GSD file
-# \param time_step (if specified) Time step number to use instead of the one stored in the GSD file
-#
-# All particles, bonds, angles, dihedrals, impropers, constraints, and box information
-# are read from the given GSD file at the given frame index. To read and write GSD files
-# outside of hoomd, see http://gsd.readthedocs.org/. dump.gsd writes GSD files.
-#
-# For restartable jobs, specify the initial condition in \a filename and the restart file in \a restart.
-# init.read_gsd will read the restart file if it exists, otherwise it will read \a filename.
-##
-# If \a time_step is specified, its value will be used as the initial time
-# step of the simulation instead of the one read from the GSD file.
-#
-# The result of init.read_gsd can be saved in a variable and later used to read and/or change particle properties
-# later in the script. See hoomd.data for more information.
-#
-# \sa dump.gsd
 def read_gsd(filename, restart = None, frame = 0, time_step = None):
+    R""" Read initial system state from an GSD file.
+
+    Args:
+        filename (str): File to read.
+        restart (str): If it exists, read the file *restart* instead of *filename*.
+        frame (int): Index of the frame to read from the GSD file.
+        time_step (int): (if specified) Time step number to initialize instead of the one stored in the GSD file.
+
+    All particles, bonds, angles, dihedrals, impropers, constraints, and box information
+    are read from the given GSD file at the given frame index. To read and write GSD files
+    outside of hoomd, see http://gsd.readthedocs.org/. :py:class:`hoomd.dump.gsd` writes GSD files.
+
+    For restartable jobs, specify the initial condition in *filename* and the restart file in *restart*.
+    :py:func:`hoomd.init.read_gsd` will read the restart file if it exists, otherwise it will read *filename*.
+
+    If *time_step* is specified, its value will be used as the initial time
+    step of the simulation instead of the one read from the GSD file.
+
+    The result of :py:func:`hoomd.init.read_gsd` can be saved in a variable and later used to read and/or
+    change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
+
+    See:
+        :py:class:`hoomd.dump.gsd`
+    """
     hoomd.util.print_status_line();
 
     hoomd.context._verify_init();

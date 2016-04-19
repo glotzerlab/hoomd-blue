@@ -258,25 +258,18 @@ class _integration_method(hoomd.meta._metadata):
             hoomd.context.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
             raise RuntimeError();
 
-    ## Disables the integration method
-    #
-    # \b Examples:
-    # \code
-    # method.disable()
-    # \endcode
-    #
-    # Executing the disable command will remove the integration method from the simulation.Any run() command executed
-    # after disabling an integration method will not apply the integration method to the particles during the
-    # simulation. A disabled integration method can be re-enabled with enable()
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # method = integrate.some_method()
-    # # ... later in the script
-    # method.disable()
-    # \endcode
     def disable(self):
+        R""" Disables the integration method.
+
+        Examples::
+
+            method.disable()
+
+        Executing the disable command will remove the integration method from the simulation.
+        Any :py:func:`hoomd.run()` command executed after disabling an integration method will
+        not apply the integration method to the particles during the
+        simulation. A disabled integration method can be re-enabled with :py:meth:`enable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization()
 
@@ -288,15 +281,16 @@ class _integration_method(hoomd.meta._metadata):
         self.enabled = False;
         hoomd.context.current.integration_methods.remove(self);
 
-    ## Enables the integration method
-    #
-    # \b Examples:
-    # \code
-    # method.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
     def enable(self):
+        R""" Enables the integration method.
+
+        Examples::
+
+            method.enable()
+
+        See:
+            :py:meth:`disable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 

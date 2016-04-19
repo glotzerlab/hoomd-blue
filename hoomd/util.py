@@ -49,6 +49,9 @@
 
 # Maintainer: joaander
 
+R""" Utilities.
+"""
+
 import sys;
 import traceback;
 import os.path;
@@ -56,28 +59,28 @@ import linecache;
 import re;
 import hoomd;
 
-## Utility methods
-# \package hoomd.util
-#
-# Generic utilities that don't fit anywhere else
-
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted
 _status_quiet_count = 0;
 
-## Quiet the status line output
-#
-# After calling quiet_status(), hoomd will no longer print out the line of code that executes each hoomd script command.
-# Call unquiet_status() to enable the status messages again. These two methods work on a push/pop mechanism,
-# messages are only enabled after a number of unquiet_status() calls equal to the number of prior quiet_status() calls.
 def quiet_status():
+    R""" Quiet the status line output.
+
+    After calling :py:func:`hoomd.util.quiet_status()`, hoomd will no longer print out the line of
+    code that executes each hoomd script command. Call :py:func:`hoomd.util.unquiet_status()` to
+    enable the status messages again. Messages are only enabled after a number of
+    :py:func:`hoomd.util.unquiet_status()` calls equal to the number of prior
+    :py:func:`hoomd.quiet_status()` calls.
+    """
     global _status_quiet_count;
     _status_quiet_count = _status_quiet_count+1;
 
-## Resume the status line output
-#
-# See quiet_status()
 def unquiet_status():
+    R""" Resume the status line output.
+
+    See:
+        :py:func:`hoomd.util.quiet_status()`
+    """
     global _status_quiet_count;
     _status_quiet_count = max(0, _status_quiet_count-1);
 

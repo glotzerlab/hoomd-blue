@@ -14,6 +14,12 @@ hoomd python module
    module-hoomd-context
    module-hoomd-dump
    module-hoomd-group
+   module-hoomd-init
+   module-hoomd-meta
+   module-hoomd-option
+   module-hoomd-update
+   module-hoomd-util
+   module-hoomd-variant
 
 .. rubric:: Overview
 
