@@ -149,6 +149,32 @@ Scalar ForceCompute::calcEnergySum()
     return Scalar(pe_total);
     }
 
+/*! Sums the potential energy of a particle group calculated by the last call to compute() and returns it.
+*/
+Scalar ForceCompute::calcEnergyGroup(boost::shared_ptr<ParticleGroup> group)
+    {
+    unsigned int group_size = group->getNumMembers();
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
+
+    double pe_total = 0.0;
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = group->getMemberIndex(group_idx);
+
+        pe_total += (double)h_force.data[j].w;
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce potential energy on all processors
+        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    return Scalar(pe_total);
+    }
+
+
 /*! Performs the force computation.
     \param timestep Current Timestep
     \note If compute() has previously been called with a value of timestep equal to
@@ -319,5 +345,6 @@ void export_ForceCompute()
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
+    .def("calcEnergyGroup", &ForceCompute::calcEnergyGroup)
     ;
     }

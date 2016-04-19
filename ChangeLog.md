@@ -36,6 +36,7 @@
   to the original selection criteria. For example, this can be used to periodically update a cuboid
   group to include particles only in the specified region.
 * `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
+* 'force.get_energy' allows querying the potential energy of a particle group for a specific force
 
 *Changes that require job script modifications*
 
