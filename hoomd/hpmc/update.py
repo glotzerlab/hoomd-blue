@@ -53,7 +53,7 @@ class npt(_updater):
         # initialize base class
         _updater.__init__(self);
 
-        if not isinstance(mc, integrate._mode_hpmc):
+        if not isinstance(mc, integrate.mode_hpmc):
             hoomd.context.msg.warning("update.npt: Must have a handle to an HPMC integrator.\n");
             return;
         if dLx == 0.0 and dLy == 0.0 and dLz == 0.0 and dxy == 0.0 and dxz == 0.0 and dyz == 0.0:
@@ -543,7 +543,7 @@ class muvt(_updater):
     def __init__(self, mc, period=1, transfer_types=None,seed=48123,ngibbs=1):
         hoomd.util.print_status_line();
 
-        if not isinstance(mc, integrate._mode_hpmc):
+        if not isinstance(mc, integrate.mode_hpmc):
             hoomd.context.msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 

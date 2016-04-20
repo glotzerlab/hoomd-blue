@@ -1,5 +1,5 @@
-hoomd python module
-===================
+hoomd
+=====
 
 .. rubric:: Modules
 
@@ -36,5 +36,5 @@ hoomd python module
 .. rubric:: Details
 
 .. automodule:: hoomd
-    :synopsis: HOOMD-blue main module.
+    :synopsis: HOOMD-blue main package.
     :members:

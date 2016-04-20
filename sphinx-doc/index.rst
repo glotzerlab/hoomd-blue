@@ -3,17 +3,16 @@ HOOMD-blue
 
 Welcome to the user documentation for HOOMD-blue!
 
-Contents:
+.. toctree::
+   :maxdepth: 3
+   :caption: Python Modules
+
+   module-hoomd
+   package-hpmc
 
 .. toctree::
    :maxdepth: 3
+   :caption: Reference
 
-   module-hoomd
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   indices
 

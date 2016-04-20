@@ -37,11 +37,14 @@ def _get_sized_entry(base, max_n):
 
     return _hpmc.__dict__["{0}{1}".format(base, size)];
 
-## Base class hpmc integrator
-#
-# _mode_hpmc is the base class for all HPMC integrators. It provides common interface elements. Users should not
-# instantiate this class directly. Methods documented here are available to all hpmc integrators.
-class _mode_hpmc(_integrator):
+class mode_hpmc(_integrator):
+    R""" Base class HPMC integrator.
+
+    :py:class:`mode_hpmc` is the base class for all HPMC integrators. It provides common interface elements.
+    Users should not instantiate this class directly. Methods documented here are available to all hpmc
+    integrators.
+    """
+
     ## \internal
     # \brief Initialize an empty integrator
     #
@@ -68,7 +71,7 @@ class _mode_hpmc(_integrator):
         self.cpp_integrator.setExternalField(ext.cpp_compute);
 
     def get_metadata(self):
-        data = super(_mode_hpmc, self).get_metadata()
+        data = super(mode_hpmc, self).get_metadata()
         data['d'] = self.get_d()
         data['a'] = self.get_a()
         data['move_ratio'] = self.get_move_ratio()
@@ -110,27 +113,27 @@ class _mode_hpmc(_integrator):
         if self.implicit:
             self.check_implicit_params()
 
-    ## Set pos_writer definitions for specified shape parameters
-    #
-    # \param pos pos writer to setup
-    # \param colors dictionary of type name to color mappings
-    # \returns nothing
-    #
-    # setup_pos_writer uses the shape_param settings to specify the shape definitions (via set_def) to the provided
-    # pos file. This overrides any previous values specified to set_def.
-    #
-    # \a colors allows you to set per-type colors for particles. Specify colors as strings in the injavis format. When
-    # colors is not specified for a type, all colors default to 005984FF.
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(...);
-    # mc.shape_param.set(....);
-    # pos = pos_writer.dumpy.pos("dump.pos", period=100);
-    # mc.setup_pos_writer(pos, colors=dict(A='005984FF'));
-    # ~~~~~~~~~~~~
-    #
     def setup_pos_writer(self, pos, colors={}):
+        R""" Set pos_writer definitions for specified shape parameters.
+
+        Args:
+            pos (:py:class:`hoomd.dump.pos`): pos writer to setup
+            colors (dict): dictionary of type name to color mappings
+
+        :py:meth:`setup_pos_writer` uses the shape_param settings to specify the shape definitions (via set_def)
+        to the provided pos file writer. This overrides any previous values specified to
+        :py:meth:`hoomd.dump.pos.set_def`.
+
+        *colors* allows you to set per-type colors for particles. Specify colors as strings in the injavis format. When
+        colors is not specified for a type, all colors default to ``005984FF``.
+
+        Examples::
+
+            mc = hpmc.integrate.shape(...);
+            mc.shape_param.set(....);
+            pos = pos_writer.dumpy.pos("dump.pos", period=100);
+            mc.setup_pos_writer(pos, colors=dict(A='005984FF'));
+        """
         self.check_initialization();
 
         # param_list = self.required_params;
@@ -171,24 +174,6 @@ class _mode_hpmc(_integrator):
             if not type_name in self.shape_param.keys(): # only add new keys
                 self.shape_param.update({ type_name: shape_param_type(self, i) });
 
-
-    ## Changes parameters of an existing integration mode
-    # \param d (if set) Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio (if set) New value for the move ratio
-    # \param nselect (if set) New value for the number of particles to select for trial moves in one cell
-    # \param ln_gamma (if set) **Frenkel-Ladd only**: new value for ln_gamma
-    # \param q_factor (if set) **Frenkel-Ladd only**: new value for q_factor
-    # \param r0 (if set) **Frenkel-Ladd only**: new value for r0
-    # \param q0 (if set) **Frenkel-Ladd only**: new value for q0
-    # \param drift_period (if set) **Frenkel-Ladd only**: new value for drift_period
-    # \param nR (if set) **Implicit depletants only**: Number density of implicit depletants in free volume
-    # \param depletant_type (if set) **Implicit depletants only**: Particle type to use as implicit depletant
-    # \param ntrial (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant
-    # \param use_bvh (if set) No longer used.
-    #
-    # \returns nothing
-    #
     def set_params(self,
                    d=None,
                    a=None,
@@ -199,10 +184,26 @@ class _mode_hpmc(_integrator):
                    r0=None,
                    q0=None,
                    drift_period=None,
-                   use_bvh=None,
                    nR=None,
                    depletant_type=None,
                    ntrial=None):
+        R""" Changes parameters of an existing integration mode.
+
+        Args:
+            d (float): (if set) Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+            a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+            move_ratio (float): (if set) New value for the move ratio.
+            nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
+            ln_gamma (float): (if set) **Frenkel-Ladd only**: new value for ln_gamma.
+            q_factor (float): (if set) **Frenkel-Ladd only**: new value for q_factor.
+            r0 (list): (if set) **Frenkel-Ladd only**: new value for r0.
+            q0 (list): (if set) **Frenkel-Ladd only**: new value for q0.
+            drift_period (int): (if set) **Frenkel-Ladd only**: new value for drift_period.
+            nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
+            depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
+            ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
+        """
+
         hoomd.util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_integrator == None:
@@ -251,11 +252,6 @@ class _mode_hpmc(_integrator):
         elif any([p is not None for p in [ln_gamma,q_factor,r0,q0,drift_period]]):
             raise RuntimeError("FL integration parameters specified for non-FL integrator")
 
-        if use_bvh is not None:
-            hoomd.context.msg.warning("use_bvh is no longer needed, HPMC always run in BVH mode.")
-            hoomd.context.msg.warning("use_bvh may be removed in a future version.")
-            # TODO: remove use_bvh some day - this message was added 8/4/2014
-
         if self.implicit:
             if nR is not None:
                 self.implicit_params.append('nR')
@@ -270,77 +266,83 @@ class _mode_hpmc(_integrator):
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
-    ## Count the number of overlaps
-    #
-    # \returns The number of overlaps in the current system configuration
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # run(100)
-    # num_overlaps = mc.count_overlaps();
-    # ~~~~~~~~~~~~
-    #
     def count_overlaps(self):
+        R""" Count the number of overlaps.
+
+        Returns:
+            The number of overlaps in the current system configuration
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            run(100)
+            num_overlaps = mc.count_overlaps();
+        """
         self.update_forces()
         self.cpp_integrator.communicate(True);
         return self.cpp_integrator.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False);
 
-    ## Get the average acceptance ratio for translate moves
-    #
-    # \returns The average translate accept ratio during the last run()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # run(100)
-    # t_accept = mc.get_translate_acceptance();
-    # ~~~~~~~~~~~~
-    #
     def get_translate_acceptance(self):
+        R""" Get the average acceptance ratio for translate moves.
+
+        Returns:
+            The average translate accept ratio during the last :py:func:`hoomd.run()`.
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            run(100)
+            t_accept = mc.get_translate_acceptance();
+
+        """
         counters = self.cpp_integrator.getCounters(1);
         return counters.getTranslateAcceptance();
 
-    ## Get the average acceptance ratio for rotate moves
-    #
-    # \returns The average rotate accept ratio during the last run()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # run(100)
-    # t_accept = mc.get_rotate_acceptance();
-    # ~~~~~~~~~~~~
-    #
     def get_rotate_acceptance(self):
+        R""" Get the average acceptance ratio for rotate moves.
+
+        Returns:
+            The average rotate accept ratio during the last :py:func:`hoomd.run()`.
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            run(100)
+            t_accept = mc.get_rotate_acceptance();
+
+        """
         counters = self.cpp_integrator.getCounters(1);
         return counters.getRotateAcceptance();
 
-    ## Get the number of trial moves per second
-    #
-    # \returns The number of trial moves per second performed during the last run() command
-    #
     def get_mps(self):
+        R""" Get the number of trial moves per second.
+
+        Returns:
+            The number of trial moves per second performed during the last :py:func:`hoomd.run()`.
+
+        """
         return self.cpp_integrator.getMPS();
 
-    ## Get all trial move counters
-    #
-    # \returns A dictionary containing all trial moves counted during the last run
-    #
-    # The dictionary contains the entries
-    # * *translate_accept_count* - count of the number of accepted translate moves
-    # * *translate_reject_count* - count of the number of rejected translate moves
-    # * *rotate_accept_count* - count of the number of accepted rotate moves
-    # * *rotate_reject_count* - count of the number of rejected rotate moves
-    # * *overlap_checks* - estimate of the number of overlap checks performed
-    # * *translate_acceptance* - Average translate acceptance ratio over the run
-    # * *rotate_acceptance* - Average rotate acceptance ratio over the run
-    # * *move_count* - Count of the number of trial moves during the run
-    #
     def get_counters(self):
+        R""" Get all trial move counters.
+
+        Returns:
+            A dictionary containing all trial moves counted during the last :py:func:`hoomd.run()`.
+
+        The dictionary contains the entries:
+
+        * *translate_accept_count* - count of the number of accepted translate moves
+        * *translate_reject_count* - count of the number of rejected translate moves
+        * *rotate_accept_count* - count of the number of accepted rotate moves
+        * *rotate_reject_count* - count of the number of rejected rotate moves
+        * *overlap_checks* - estimate of the number of overlap checks performed
+        * *translate_acceptance* - Average translate acceptance ratio over the run
+        * *rotate_acceptance* - Average rotate acceptance ratio over the run
+        * *move_count* - Count of the number of trial moves during the run
+        """
         counters = self.cpp_integrator.getCounters(1);
         return dict(translate_accept_count=counters.translate_accept_count,
                     translate_reject_count=counters.translate_reject_count,
@@ -351,68 +353,80 @@ class _mode_hpmc(_integrator):
                     rotate_acceptance=counters.getRotateAcceptance(),
                     move_count=counters.getNMoves());
 
-    ## Get the maximum trial displacement
-    # \param type Type name to query
-    #
-    # \returns The current value of the 'd' parameter of the integrator
-    #
     def get_d(self,type=None):
+        R""" Get the maximum trial displacement.
+
+        Args:
+            type (str): Type name to query.
+
+        Returns:
+            The current value of the 'd' parameter of the integrator.
+
+        """
         if type is None:
             return self.cpp_integrator.getD(0);
         else:
             return self.cpp_integrator.getD(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
 
-    ## Get the maximum trial rotation
-    # \param type Type name to query
-    #
-    # \returns The current value of the 'a' parameter of the integrator
-    #
     def get_a(self,type=None):
+        R""" Get the maximum trial rotation.
+
+        Args:
+            type (str): Type name to query.
+
+        Returns:
+            The current value of the 'a' parameter of the integrator.
+
+        """
         if type is None:
             return self.cpp_integrator.getA(0);
         else:
             return self.cpp_integrator.getA(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
 
-    ## Get the current probability of attempting translation moves (versus rotation moves)
-    #
-    # \returns The current value of the 'move_ratio' parameter of the integrator
-    #
     def get_move_ratio(self):
+        R""" Get the current probability of attempting translation moves.
+
+        Returns: The current value of the 'move_ratio' parameter of the integrator.
+
+        """
         return self.cpp_integrator.getMoveRatio();
 
-    ## Get nselect parameter
-    #
-    # \returns The current value of the 'nselect' parameter of the integrator
-    #
     def get_nselect(self):
+        R""" Get nselect parameter.
+
+        Returns:
+            The current value of the 'nselect' parameter of the integrator.
+
+        """
         return self.cpp_integrator.getNSelect();
 
-    ## Get ntrial parameter
-    #
-    # \returns The current value of the 'ntrial' parameter of the integrator
-    #
     def get_ntrial(self):
+        R""" Get ntrial parameter.
+
+        Returns:
+            The current value of the 'ntrial' parameter of the integrator.
+
+        """
         if not self.implicit:
             hoomd.context.msg.warning("ntrial only available in simulations with non-interacting depletants. Returning 0.\n")
             return 0;
 
         return self.cpp_integrator.getNTrial();
 
-    ## Get the average ratio of configurational bias attempts to depletant insertion moves
-    #
-    # \note Only applies to simulations with non-interacting depletants
-    #
-    # \returns The average configurational bias ratio during the last run()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..,implicit=True);
-    # mc.shape_param.set(....);
-    # run(100)
-    # cb_ratio = mc.get_configurational_bias_ratio();
-    # ~~~~~~~~~~~~
-    #
     def get_configurational_bias_ratio(self):
+        R""" Get the average ratio of configurational bias attempts to depletant insertion moves.
+
+        Returns:
+            The average configurational bias ratio during the last :py:func:`hoomd.run()`.
+
+        Example::
+
+            mc = hpmc.integrate.shape(..,implicit=True);
+            mc.shape_param.set(....);
+            run(100)
+            cb_ratio = mc.get_configurational_bias_ratio();
+
+        """
         if not self.implicit:
             hoomd.context.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
             return 0;
@@ -465,60 +479,45 @@ def setA(cpp_integrator,a):
         for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
             cpp_integrator.setA(a,i);
 
-## HPMC integration for spheres (2D/3D)
-#
-# Hard particle Monte Carlo integration method for spheres.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Sphere parameters:**
-# - *diameter* - diameter of the sphere (distance units) - **required**
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \note The largest diameter in a simulation should be 1 for optimal performance.
-#
-class sphere(_mode_hpmc):
-    ## Specifies the hpmc integration mode for spheres
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar for all types or dict by type
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=415236)
-    # mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-    # mc.shape_param.set('A', diameter=1.0)
-    # mc.shape_param.set('B', diameter=2.0)
-    # print('diameter = ', mc.shape_param['A'].diameter)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # mc = hpmc.integrate.sphere(seed=415236, d=0.3, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,r0=rs,drift_period)
-    # mc.shape_param.set('B', diameter=1.0)
-    #
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=8,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', diameter=1.0)
-    # mc.shape_param.set('B', diameter=.1)
+class sphere(mode_hpmc):
+    R""" HPMC integration for spheres (2D/3D).
+
+    Args:
+        seed (int): Random number seed
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        nselect (int): (if set) Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration.
+        implicit (bool): Flag to enable implicit depletants.
+
+    Hard particle Monte Carlo integration method for spheres.
+
+    Sphere parameters:
+
+    * *diameter* (**required**) - diameter of the sphere (distance units)
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Examples::
+
+        mc = hpmc.integrate.sphere(seed=415236)
+        mc = hpmc.integrate.sphere(seed=415236, d=0.3)
+        mc.shape_param.set('A', diameter=1.0)
+        mc.shape_param.set('B', diameter=2.0)
+        print('diameter = ', mc.shape_param['A'].diameter)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=8,nR=3,depletant_type='B')
+        mc.shape_param.set('A', diameter=1.0)
+        mc.shape_param.set('B', diameter=.1)
+    """
+
     def __init__(self, seed, d=0.1, nselect=None, fl_flag=False, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -561,105 +560,50 @@ class sphere(_mode_hpmc):
         d = param.diameter;
         return 'sphere {0}'.format(d);
 
-## \internal
-# \brief HPMC integration for spherocylinders
-#
-# \warning The spherocylinder is not implemented. Do not use this method.
-# \param fl_flag Flag for enabling Frenkel-Ladd Integration
-#
-class spherocylinder(_mode_hpmc):
-    ## Specifies the hpmc integration mode
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,fl_flag=False):
+class convex_polygon(mode_hpmc):
+    R""" HPMC integration for convex polygons (2D).
+
+    Args:
+        seed (int): Random number seed
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+
+    Note:
+        For concave polygons, use :py:class:`simple_polygon`.
+
+    Convex polygon parameters:
+
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+
+        * Vertices **MUST** be specified in a *counter-clockwise* order.
+        * The origin **MUST** be contained within the vertices.
+        * Points inside the polygon **MUST NOT** be included.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
+          don't put the origin right next to an edge).
+
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Examples::
+
+        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
+        print('vertices = ', mc.shape_param['A'].vertices)
+
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag);
-
-        # initialize the reflected c++ class
-        #if not hoomd.context.exec_conf.isCUDAEnabled():
-        #    self.cpp_integrator = _hpmc.IntegratorHPMCSphere(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
-        #else:
-        #    self.cpp_integrator = _hpmc.IntegratorHPMCGPUSphere(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
-
-        #No GPU implementation yet...
-        if (fl_flag):
-          self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpherocylinder(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
-        else:
-          self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpherocylinder(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, seed);
-
-        # Set the appropriate neighbor list range
-        neighbor_list.subscribe(lambda: self.cpp_integrator.getMaxDiameter()+2*self.d);
-
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-
-## HPMC integration for convex polygons (2D)
-#
-# Hard particle Monte Carlo integration method for convex polygons.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Convex polygon parameters:**
-# - *vertices* - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units) - **required**
-#     - Vertices **MUST** be specified in a *counter-clockwise* order.
-#     - The origin **MUST** be contained within the vertices.
-#     - Points inside the polygon **MUST NOT** be included.
-#     - The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
-#       don't put the origin right next to an edge).
-#     - The enclosing circle of the largest polygon should be diameter ~1 for optimal performance.
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class convex_polygon(_mode_hpmc):
-    ## Specifies the hpmc integration mode for convex polygons
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_polygon(seed=415236)
-    # mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
-    # mc.shape_param.set('B', vertices=[(-0.05, -0.05), (0.05, -0.05), (0.05, 0.05), (-0.05, 0.05)]);
-    #
-    # \note Implicit depletants are not yet supported for this 2D shape
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False, implicit=False):
-        hoomd.util.print_status_line();
-
-        # initialize base class
-        _mode_hpmc.__init__(self,fl_flag, implicit);
+        mode_hpmc.__init__(self,fl_flag, False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -708,75 +652,52 @@ class convex_polygon(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for convex spheropolygons
-#
-# Hard particle Monte Carlo integration method for convex spheropolygons.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# Useful cases:
-#  * A 1-vertex spheropolygon is a disk.
-#  * A 2-vertex spheropolygon is a spherocylinder.
-#
-# **Spheropolygon parameters:**
-# - *vertices* - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units) - **required**
-#     - The origin **MUST** be contained within the vertices.
-#     - The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
-#       don't put the origin right next to an edge).
-#     - The enclosing circle of the largest spheropolygon should be diameter ~1 for optimal performance.
-# - *sweep_radius* - the radius of the sphere swept around the edges of the polygon (distance units) - **optional** (default: 0.0)
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class convex_spheropolygon(_mode_hpmc):
-    ## Specifies the hpmc integration mode for convex spheropolygons
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_spheropolygon(seed=415236)
-    # mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
-    # mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
-    # mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
-    # mc.shape_param.set('B', vertices=[(0,0)], sweep_radius=0.1);
-    #
-    # \note Implicit depletants are not yet supported for this 2D shape
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+class convex_spheropolygon(mode_hpmc):
+    R""" HPMC integration for convex spheropolygons (2D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+
+    Spheropolygon parameters:
+
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+
+        * The origin **MUST** be contained within the shape.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
+          don't put the origin right next to an edge).
+
+    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Useful cases:
+
+     * A 1-vertex spheropolygon is a disk.
+     * A 2-vertex spheropolygon is a spherocylinder.
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Examples::
+
+        mc = hpmc.integrate.convex_spheropolygon(seed=415236)
+        mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
+        mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
+        print('vertices = ', mc.shape_param['A'].vertices)
+
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -829,75 +750,50 @@ class convex_spheropolygon(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for simple polygons (2D)
-#
-# Hard particle Monte Carlo integration method for simple polygons.
-#
-# For simple polygons that are not concave, use integrate.convex_polygon, it will execute much faster than
-# integrate.simple_polygon.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Simple polygon parameters:**
-# - *vertices* - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units) - **required**
-#     - Vertices **MUST** be specified in a *counter-clockwise* order.
-#     - The polygon may be concave, but edges must not cross.
-#     - The origin doesn't necessarily need to be inside the shape.
-#     - The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
-#     - The enclosing circle of the largest polygon should be diameter ~1 for optimal performance.
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class simple_polygon(_mode_hpmc):
-    ## Specifies the hpmc integration mode for simple polygons
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.simple_polygon(seed=415236)
-    # mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
-    # mc.shape_param.set('B', vertices=[(-0.05, -0.05), (0.05, -0.05), (0.05, 0.05), (-0.05, 0.05)])
-    #
-    # \note Implicit depletants are not yet supported for this 2D shape
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+class simple_polygon(mode_hpmc):
+    R""" HPMC integration for simple polygons (2D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+
+    Note:
+        For simple polygons that are not concave, use :py:class:`convex_polygon`, it will execute much faster than
+        :py:class:`simple_polygon`.
+
+    Simple polygon parameters:
+
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+
+        * Vertices **MUST** be specified in a *counter-clockwise* order.
+        * The polygon may be concave, but edges must not cross.
+        * The origin doesn't necessarily need to be inside the shape.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
+
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Examples::
+
+        mc = hpmc.integrate.simple_polygon(seed=415236)
+        mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
+        print('vertices = ', mc.shape_param['A'].vertices)
+
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -944,77 +840,60 @@ class simple_polygon(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for general polyhedra
-#
-# Hard particle Monte Carlo integration method for general polyhedra.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Polyhedron parameters:**
-# - *vertices* - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units) - **required**
-#     - The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-#     - The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
-#       don't put the origin right next to an edge).
-#     - The enclosing circle of the largest polyhedron should be diameter 1 for optimal performance.
-# - *faces* - a list of vertex indices for every face
-# - *sweep_radius* - (**optional**) rounding radius applied to polyhedron (Default: 0)
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# violated.
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class polyhedron(_mode_hpmc):
-    ## Specifies the hpmc integration mode for convex polyhedra
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.polyhedron(seed=415236)
-    # mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-    #     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-    #     faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # print('faces = ', mc.shape_param['A'].faces)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-    #     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-    #     faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
-    # mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-    #     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
-    # mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
-    #     (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
+class polyhedron(mode_hpmc):
+    R""" HPMC integration for general polyhedra (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+
+    Polyhedron parameters:
+
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+
+        * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
+        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
+          don't put the origin right next to a face).
+
+    * *faces* (**required**) - a list of vertex indices for every face
+    * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Example::
+
+        mc = hpmc.integrate.polyhedron(seed=415236)
+        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
+            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
+            faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
+        print('vertices = ', mc.shape_param['A'].vertices)
+        print('faces = ', mc.shape_param['A'].faces)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
+            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
+        mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
+            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
+    """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1070,67 +949,53 @@ class polyhedron(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for convex polyhedra
-#
-# Hard particle Monte Carlo integration method for convex polyhedra.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Convex polyhedron parameters:**
-# - *vertices* - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units) - **required**
-#     - The origin **MUST** be contained within the vertices.
-#     - The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
-#       don't put the origin right next to an edge).
-#     - The enclosing circle of the largest polyhedron should be diameter 1 for optimal performance.
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class convex_polyhedron(_mode_hpmc):
-    ## Specifies the hpmc integration mode for convex polyhedra
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    # \param max_verts Set the maximum number of vertices in a polyhedron.
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_polyhedron(seed=415236)
-    # mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=64):
+class convex_polyhedron(mode_hpmc):
+    R""" HPMC integration for convex polyhedra (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+        max_verts (int): Set the maximum number of vertices in a polyhedron.
+
+    Convex polyhedron parameters:
+
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+
+        * The origin **MUST** be contained within the vertices.
+        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
+          don't put the origin right next to a face).
+
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=415236)
+        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        print('vertices = ', mc.shape_param['A'].vertices)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=8):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1181,73 +1046,61 @@ class convex_polyhedron(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for faceted spheres
-#
-# Hard particle Monte Carlo integration method for spheres intersected by halfspaces
-#
-# The equation defining each halfspace is given by
-# \f$ n_i\cdot r + b_i \le 0 \f$,
-# where \f$ n_i \f$ is the face normal, and \f$ b_i \f$ the offset.
-#
-# The origin must be chosen so as to lie **inside the shape**, or the overlap check will not work.
-# This condition is not checked.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Faceted sphere parameters:**
-# - *normals* - list of (x,y,z) tuples defining the facet normals (distance units) - **required**
-# - *offsets* - list of offsets (distance unit^2) -- **required**
-# - *diameter* - diameter of sphere
-# - *vertices* - list of vertices for intersection polyhedron - **required**
-# - *origin* - origin vector -- **required**
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \warn It is assumed that none of the input planes are coplanar
-#
-class faceted_sphere(_mode_hpmc):
-    ## Specifies the hpmc integration mode for faceted spheres
-    # \param seed Random number seed
-    # \param d Maximum move displacement
-    # \param a Maximum rotation move
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.faceted_sphere(seed=415236)
-    # mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
-    # print('diameter = ', mc.shape_param['A'].diameter)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
-    # mc.shape_param.set('B', normals=[],diameter=0.1);
+class faceted_sphere(mode_hpmc):
+    R""" HPMC integration for faceted spheres (3D).
 
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+
+    A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
+
+    .. math::
+        n_i\cdot r + b_i \le 0
+
+    where :math:`n_i` is the face normal, and :math:`b_i` is  the offset.
+
+    Warning:
+        The origin must be chosen so as to lie **inside the shape**, or the overlap check will not work.
+        This condition is not checked.
+
+    Faceted sphere parameters:
+
+    * *normals* (**required**) - list of (x,y,z) tuples defining the facet normals (distance units)
+    * *offsets* (**required**) - list of offsets (distance unit^2)
+    * *diameter* (**required**) - diameter of sphere
+    * *vertices* (**required**) - list of vertices for intersection polyhedron
+    * *origin* (**required**) - origin vector
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        Planes must not be coplanar.
+
+    Example::
+
+        mc = hpmc.integrate.faceted_sphere(seed=415236)
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
+        print('diameter = ', mc.shape_param['A'].diameter)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
+        mc.shape_param.set('B', normals=[],diameter=0.1);
+    """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1299,60 +1152,46 @@ class faceted_sphere(_mode_hpmc):
         else:
             raise RuntimeError("No vertices supplied.")
 
-## HPMC integration for sphinx particles
-#
-# Hard particle Monte Carlo integration method for dimpled spheres (spheres with 'positive' and 'negative' volumes)
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Sphinx parameters:**
-# - *diameters* - diameters of spheres (positive OR negative real numbers)
-# - *centers* - centers of spheres in local coordinate frame
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-class sphinx(_mode_hpmc):
-    ## Specifies the hpmc integration mode for faceted spheres
-    # \param seed Random number seed
-    # \param d Maximum move displacement
-    # \param a Maximum rotation move
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphinx(seed=415236)
-    # mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
-    # print('diameters = ', mc.shape_param['A'].diameters)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=3,depletant_type='B')
-    # mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
-    # mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
+class sphinx(mode_hpmc):
+    R""" HPMC integration for sphinx particles (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+
+    Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
+
+    Sphinx parameters:
+
+    * *diameters* - diameters of spheres (positive OR negative real numbers)
+    * *centers* - centers of spheres in local coordinate frame
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Quick Example::
+
+        mc = hpmc.integrate.sphinx(seed=415236)
+        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
+        print('diameters = ', mc.shape_param['A'].diameters)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
+        mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
+    """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1407,74 +1246,59 @@ class sphinx(_mode_hpmc):
 
         return shape_def
 
-#
-## HPMC integration for spheropolyhedra
-#
-# Hard particle Monte Carlo integration method for spheres, spherocylinders, and spheropolyhedra.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Spheropolyhedron parameters:**
-# - *vertices* - vertices of the polyhedron as a list of (x,y,z) tuples of numbers (distance units) - **required**
-#     - The origin **MUST** be contained within the vertices.
-#     - The origin centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
-#       don't put the origin right next to an edge).
-#     - The enclosing sphere of the largest polyhedron should be diameter ~1 for optimal performance.
-#     - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
-#     - Two vertices and a non-zero radius R define a prolate spherocylinder, but pos file output is not supported.
-# - *sweep_radius* - the radius of the sphere swept around the surface of the polyhedron - **optional** (default: 0.0)
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#              (default: False)
-#
-# \warning Currently, hpmc does not check that all requirements are met. Undefined behavior will result if they are
-# violated.
-#
-class convex_spheropolyhedron(_mode_hpmc):
-    ## Specifies the hpmc integration mode for convex spheropolyhedra
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    # \param max_verts Set the maximum number of vertices in a spheropolyhedron.
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_spheropolyhedron(seed=415236)
-    # mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # print('vertices = ', mc.shape_param['A'].vertices)
-    # mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1, ignore_statistics=True);
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1, ignore_statistics=True);
-    # ~~~~~~~~~~~~~
-    # \par Depletants example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nR=3,depletant_type='SphericalDepletant')
-    # mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-    # mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=64):
+class convex_spheropolyhedron(mode_hpmc):
+    R""" HPMC integration for spheropolyhedra (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+        max_verts (int): Set the maximum number of vertices in a polyhedron.
+
+    A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
+
+    Spheropolyhedron parameters:
+
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+
+        - The origin **MUST** be contained within the vertices.
+        - The origin centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+          don't put the origin right next to a face).
+        - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
+        - Two vertices and a non-zero radius R define a prolate spherocylinder.
+
+    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Warning:
+        HPMC does not check that all requirements are met. Undefined behavior will result if they are
+        violated.
+
+    Example::
+
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
+        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        print('vertices = ', mc.shape_param['A'].vertices)
+        mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1, ignore_statistics=True);
+
+    Depletants example::
+
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nR=3,depletant_type='SphericalDepletant')
+        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=8):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1532,64 +1356,45 @@ class convex_spheropolyhedron(_mode_hpmc):
 
         return shape_def
 
-## HPMC integration for ellipsoids (2D/3D)
-#
-# Hard particle Monte Carlo integration method for ellipsoids.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **Ellipsoid parameters:**
-# - *a* - principle axis a of the ellipsoid (radius in the x direction) (distance units) - **required**
-# - *b* - principle axis b of the ellipsoid (radius in the b direction) (distance units) - **required**
-# - *c* - principle axis c of the ellipsoid (radius in the c direction) (distance units) - **required**
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# \note The largest radius should be 0.5 for optimal performance
-#
-class ellipsoid(_mode_hpmc):
-    ## Specifies the hpmc integration mode for ellipsoid shapes
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.ellipsoid(seed=415236)
-    # mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
-    # print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
-    # mc.shape_param.set('A', a=0.5, b=0.25, c=0.125, ignore_statistics=True);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=50,depletant_type='B')
-    # mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
-    # mc.shape_param.set('B', a=0.5, b=0.25, c=0.125);
+class ellipsoid(mode_hpmc):
+    R""" HPMC integration for ellipsoids (2D/3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+
+    Ellipsoid parameters:
+
+    * *a* (**required**) - principle axis a of the ellipsoid (radius in the x direction) (distance units)
+    * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
+    * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+
+    Example::
+
+        mc = hpmc.integrate.ellipsoid(seed=415236)
+        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
+        print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
+        mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
+    """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1630,63 +1435,46 @@ class ellipsoid(_mode_hpmc):
     def format_param_pos(self, param):
         return 'ellipsoid {0} {1} {2}'.format(param['a'], param['b'], param['c']);
 
-## HPMC integration for sphere_union
-#
-# Hard particle Monte Carlo integration method for particles composed of union of multiple spheres.
-#
-# Required parameters must be set for each particle type before the simulation is started with run(). To set shape
-# parameters, save the integrator in a variable (e.g. mc) then use
-# \link param::set mc.shape_param.set() \endlink to set parameters.
-# ~~~~~~~~~~~~
-# mc = hpmc.integrate.shape(...)
-# mc.shape_param.set('A', param=1.0)
-# ~~~~~~~~~~~~
-#
-# **SphereUnion parameters:**
-# - *diameters* - list of diameters of the spheres (distance units) - **required**
-# - *centers* - list of centers of constituent spheres in particle coordinates - **required**
-# - *ignore_overlaps* - set to True to disable overlap checks between this and other types with *ignore_overlaps*=True - **optional** (default: False)
-# - *ignore_statistics* - set to True to disable ignore for statistics tracking **optional** (default: False)
-#
-# Multishape is the name of the internal C++ naming scheme. The user-facing interface is called sphere_union
-class sphere_union(_mode_hpmc):
-    ## Specifies the hpmc integration mode for a union of spheres
-    # \param seed Random number seed
-    # \param d Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param a Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type
-    # \param move_ratio ratio of translation moves to rotation moves
-    # \param nselect (if set) Override the automatic choice for the number of trial moves to perform in each cell
-    # \param fl_flag Flag for enabling Frenkel-Ladd Integration
-    # \param implicit Flag to enable implicit depletants
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere_union(seed=415236)
-    # mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
-    # mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
-    # print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
-    # print('center of the first sphere = ', mc.shape_param['A'].centers[0])
-    # ~~~~~~~~~~~~~
-    # \par FL Example:
-    # ~~~~~~~~~~~~~
-    # rs = [...] # Einstein crystal coordinate position
-    # qs = [...] # Einstein crystal coordinate orientation
-    # mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, fl_flag=True)
-    # mc.set_param(ln_gamma=2.0,q_factor=10.0,r0=rs,q0=qs,drift_period)
-    # mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
-    # ~~~~~~~~~~~~~
-    # \par Depletants Example:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, implicit=True)
-    # mc.set_param(nselect=1,nR=50,depletant_type='B')
-    # mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
-    # mc.shape_param.set('B', diameters=[1.0], centers=[(0.0, 0.0, 0.0)]);
+class sphere_union(mode_hpmc):
+    R""" HPMC integration for unions of spheres (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
+        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        implicit (bool): Flag to enable implicit depletants.
+
+    Sphere union parameters:
+
+    * *diameters* (**required**) - list of diameters of the spheres (distance units).
+    * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*.
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+
+    Example::
+
+        mc = hpmc.integrate.sphere_union(seed=415236)
+        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
+        mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
+        print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
+        print('center of the first sphere = ', mc.shape_param['A'].centers[0])
+
+    Depletants Example::
+
+        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
+        mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
+    """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        _mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,fl_flag,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
