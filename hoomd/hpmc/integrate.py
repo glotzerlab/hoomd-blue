@@ -609,8 +609,6 @@ class convex_polygon(mode_hpmc):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLConvexPolygon(hoomd.context.current.system_definition, seed);
-            elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolygon(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
@@ -618,10 +616,7 @@ class convex_polygon(mode_hpmc):
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -637,8 +632,6 @@ class convex_polygon(mode_hpmc):
         # setup the coefficient options
         if fl_flag:
             self.required_params+=['r0','q0','ln_gamma','q_factor']
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -703,8 +696,6 @@ class convex_spheropolygon(mode_hpmc):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpheropolygon(hoomd.context.current.system_definition, seed);
-            elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolygon(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
@@ -712,10 +703,8 @@ class convex_spheropolygon(mode_hpmc):
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
+
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -729,8 +718,6 @@ class convex_spheropolygon(mode_hpmc):
 
         if fl_flag:
             self.fl_required_params=['r0','q0','ln_gamma','q_factor']
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -799,8 +786,6 @@ class simple_polygon(mode_hpmc):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(fl_flag):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSimplePolygon(hoomd.context.current.system_definition, seed);
-            elif(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSimplyPolygon(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
@@ -808,10 +793,8 @@ class simple_polygon(mode_hpmc):
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if (fl_flag):
                 raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
+
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set parameters
         setD(self.cpp_integrator,d);
@@ -825,8 +808,6 @@ class simple_polygon(mode_hpmc):
 
         if fl_flag:
             self.fl_required_params=['r0','q0','ln_gamma','q_factor']
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
     # \internal
     # \brief Format shape parameters for pos file output
