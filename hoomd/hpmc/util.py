@@ -1,5 +1,5 @@
-## \package hpmc.util
-# \brief HPMC helpers and utilities
+R""" HPMC utilities
+"""
 
 from __future__ import print_function
 from __future__ import division
@@ -602,36 +602,38 @@ class snapshot:
     def to_zip(self,filename):
         raise NotImplementedError("snapshot.to_zip not yet implemented.")
 
-## Tune mc parameters by using mappings between tunables and get_ methods to update HPMC parameters according to desired acceptance rates
-#
-# You should run enough steps to get good statistics for the acceptance ratios. 10,000 trial moves
-# seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
-# For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
-# of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
-#
-# Note: there are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
-#
-# \par Example:
-# ~~~~~~~~~
-# mc = hpmc.integrate.convex_polyhedron()
-# mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
-# tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
-# for i in range(10):
-#     run(1e4)
-#     tuner.update()
-# ~~~~~~~~~
 class tune(object):
-    ## Constructor
-    # \param obj HPMC integrator/updater instance
-    # \param tunables list of parameters to tune
-    # \param target desired acceptance rate
-    # \param max_val maximum allowed values for corresponding tunables
-    # \param max_scale maximum amount to scale a parameter in a single update
-    # \param gamma damping factor (>= 0.0) to keep from scaling parameter values too fast
-    # \param type Type name to tune move sizes for
-    # \param args Additional positional arguments
-    # \param kwargs Additional keyword arguments
-    #
+    R""" Tune mc parameters.
+
+    Args:
+        obj: HPMC integrator/updater instance
+        tunables (list): list of parameters to tune
+        target (float): desired acceptance rate
+        max_val (float): maximum allowed values for corresponding tunables
+        max_scale (float): maximum amount to scale a parameter in a single update
+        gamma (float): damping factor (>= 0.0) to keep from scaling parameter values too fast
+        type (str): Type name to tune move sizes for
+        args: Additional positional arguments
+        kwargs: Additional keyword arguments
+
+    You should run enough steps to get good statistics for the acceptance ratios. 10,000 trial moves
+    seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
+    For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
+    of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
+
+    Note:
+        There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron()
+        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
+        for i in range(10):
+            run(1e4)
+            tuner.update()
+
+    """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
@@ -708,8 +710,9 @@ class tune(object):
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
 
-    ## Calculate and set tunable parameters using statistics from the run just completed
     def update(self):
+        R""" Calculate and set tunable parameters using statistics from the run just completed.
+        """
         import hoomd
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
@@ -750,20 +753,23 @@ class tune(object):
         self.obj.set_params(**newquantities)
         hoomd.util._disable_status_lines = False;
 
-## Tune the HPMC NPT Updater
-# Note that a bigger gamma is necessary because there are multiple parameters affecting each acceptance rate
-#
-# \par Example:
-# ~~~
-# mc = hpmc.integrate.convex_polyhedron()
-# mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
-# updater = hpmc.update.npt(mc, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1)
-# tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)
-# for i in range(10):
-#     run(1e4)
-#     tuner.update()
-# ~~~
 class tune_npt(tune):
+    R""" Tune the HPMC NPT Updater.
+
+    Note:
+        A bigger gamma is necessary because there are multiple parameters affecting each acceptance rate.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron()
+        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        updater = hpmc.update.npt(mc, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1)
+        tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)
+        for i in range(10):
+            run(1e4)
+            tuner.update()
+
+    """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         tunable_map = {
                     'dLx': (

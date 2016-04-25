@@ -1,17 +1,31 @@
-## \package hoomd.hpmc.data
-# \brief HPMC data structures
+""" Shape data structures.
+"""
 
 import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import numpy
 
-## Manages shape parameters
-#
-# The parameters for all hpmc integrator shapes are specified using this class. Parameters are
-# specified per particle type. Every HPMC integrator has a member shape_param that is of type _param and is used
-# to set the parameters of the shapes.
 class param_dict(dict):
+    R""" Manage shape parameters.
+
+    The parameters for all hpmc integrator shapes (:py:mod:`hoomd.hpmc.integrate`) are specified using this class.
+    Parameters are specified per particle type. Every HPMC integrator has a member shape_param that can read and
+    set parameters of the shapes.
+
+    :py:class:`shape_param` can be used as a dictionary to access parameters by type. You can read individual parameters
+    or set parameters with :py:meth:`set`.
+
+    Example::
+
+        mc = hpmc.integrate.sphere();
+        mc.shape_param['A'].set(diameter=2.0)
+        mc.shape_param['B'].set(diameter=0.1)
+        dA = mc.shape_param['A'].diameter
+        dB = mc.shape_param['B'].diameter
+
+    """
+
     def __init__(self, mc):
         dict.__init__(self);
         self.mc = mc;
@@ -27,34 +41,37 @@ class param_dict(dict):
                 raise RuntimeError("could not create proxy for type {}".format(key));
         return super(param_dict, self).__getitem__(key);
 
-    ## Sets parameters for particle type(s)
-    # \param type Particle type (string) or list of types
-    # \param params Named parameters (see below for examples)
-    # \returns nothing
-    #
-    # Calling set() results in one or more parameters being set for a shape. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the hpmc
-    # integrator you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible particle types types defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is an error to specify coefficients for
-    # particle types that do not exist in the simulation.
-    #
-    # To set the same parameters for many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved `sysdef` from the init command.
-    #
-    # \b Quick Examples:
-    # \code
-    # mc.shape_param.set('A', diameter=1.0)
-    # mc.shape_param.set('B', diameter=2.0)
-    # mc.shape_param.set(['A', 'B'], diameter=2.0)
-    # \endcode
-    #
-    # \note Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
-    # then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
-    #
     def set(self, types, **params):
+        """ Sets parameters for particle type(s).
+
+        Args:
+            type (str): Particle type (string) or list of types
+            params: Named parameters (see specific integrator for required parameters - :py:mod:`hoomd.hpmc.integrate`)
+
+        Calling set() results in one or more parameters being set for a shape. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the hpmc
+        integrator you are setting these coefficients for, see the corresponding documentation.
+
+        All possible particle types types defined in the simulation box must be specified before executing :py:func:`hoomd.run()`.
+        You will receive an error if you fail to do so. It is an error to specify coefficients for
+        particle types that do not exist in the simulation.
+
+        To set the same parameters for many particle types, provide a list of type names instead of a single
+        one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
+        of particles in the simulation can be gotten from a saved `sysdef` from the init command.
+
+        Examples::
+
+            mc.shape_param.set('A', diameter=1.0)
+            mc.shape_param.set('B', diameter=2.0)
+            mc.shape_param.set(['A', 'B'], diameter=2.0)
+
+
+        Note:
+            Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
+            then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
+
+        """
         # hoomd.util.print_status_line();
 
         # listify the input

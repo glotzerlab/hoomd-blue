@@ -1,5 +1,5 @@
-## \package hpmc.integrate
-# \brief HPMC integration modes
+""" Compute properties of hard particle configurations.
+"""
 
 from . import _hpmc
 from . import integrate
@@ -11,7 +11,7 @@ class sdf(_analyzer):
     R""" Compute the scale distribution function.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator (don't specify a new integrator later, sdf will continue to use the old one).
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         filename (str): Output file name.
         xmax (float): Maximum *x* value at the right hand side of the rightmost bin.
         dx (float): Bin width.
@@ -37,7 +37,7 @@ class sdf(_analyzer):
       * *dx* = 1e-4
       * Polynomial curve fit of degree 5.
 
-    In systems near densest packings, *dx*=1e-5 may be needed along with either a smaller xmax or a smaller region to fit.
+    In systems near densest packings, ``dx=1e-5`` may be needed along with either a smaller xmax or a smaller region to fit.
     A good rule of thumb might be to fit a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5 - but this needs further testing to
     confirm.
 

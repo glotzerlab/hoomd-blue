@@ -1,5 +1,5 @@
-## \package hpmc.compute
-# \brief HPMC integration modes
+""" Compute properties of hard particle configurations.
+"""
 
 from __future__ import print_function
 
@@ -9,31 +9,33 @@ from hoomd.hpmc import integrate
 from hoomd.compute import _compute
 import hoomd
 
-## Compute the free volume available to a test particle by stoachstic integration
-#
-# compute.free_volume computes the free volume of a particle assembly using stochastic integration with a test particle type.
-# It works together with an HPMC integrator, which defines the particle types used in the simulation.
-# As parameters it requires the number of MC integration samples (\b nsample), and the type of particle (\b test_type)
-# to use for the integration.
-#
-# Once initialized, the compute provides a log quantity
-# called **hpmc_free_volume**, that can be logged via analyze.log.
-# If a suffix is specified, the log quantities name will be
-# **hpmc_free_volume_suffix**.
-#
 class free_volume(_compute):
-    ## Specifies the SDF analysis to perform
-    # \param mc MC integrator (don't specify a new integrator later, sdf will continue to use the old one)
-    # \param seed Random seed for MC integration (integer)
-    # \param type Type of particle to use for integration
-    # \param nsample Number of samples to use in MC integration
-    # \param suffix Suffix to use for log quantity
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=415236)
-    # compute.free_volume(mc=mc, seed=123, test_type='B', nsample=1000)
-    # log = analyze.log(quantities=['hpmc_free_volume'], period=100, filename='log.dat', overwrite=True)
-    # ~~~~~~~~~~~~~
+    R""" Compute the free volume available to a test particle by stochastic integration.
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        seed (int): Random seed for MC integration.
+        type (str): Type of particle to use for integration
+        nsample (int): Number of samples to use in MC integration
+        suffix (str): Suffix to use for log quantity
+
+    :py:class`free_volume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
+    It works together with an HPMC integrator, which defines the particle types used in the simulation.
+    As parameters it requires the number of MC integration samples (*nsample*), and the type of particle (*test_type*)
+    to use for the integration.
+
+    Once initialized, the compute provides a log quantity
+    called **hpmc_free_volume**, that can be logged via :py:class:`hoomd.analyze.log`.
+    If a suffix is specified, the log quantities name will be
+    **hpmc_free_volume_suffix**.
+
+    Examples::
+
+        mc = hpmc.integrate.sphere(seed=415236)
+        compute.free_volume(mc=mc, seed=123, test_type='B', nsample=1000)
+        log = analyze.log(quantities=['hpmc_free_volume'], period=100, filename='log.dat', overwrite=True)
+
+    """
     def __init__(self, mc, seed, suffix='', test_type=None, nsample=None):
         hoomd.util.print_status_line();
 
@@ -136,47 +138,49 @@ class _external(_compute):
         self.cpp_compute = None;
         # nothing else to do.
 
-## Restrain particles on a lattice
-#
-# The command hpmc.compute.lattice_field specifies that a harmonic spring is added
-# to every particle and a
-#
-# \f{eqnarray*}
-# V_{i}(r)  = k_r*(r_i-r_{oi})^2 \\
-# V_{i}(q)  = k_q*(q_i-q_{oi})^2 \\
-# \f}
-#
-# \note the 1/2 is not included here and \f$ k \f$ should be defined appropriately
-#
-# - \f$ k_r \f$ - \c translational spring constant (in energy units)
-# - \f$ r_{o} \f$ - \c lattice positions (in distance units)
-# - \f$ k_q \f$ - \c rotational spring constant (in energy units)
-# - \f$ q_{o} \f$ - \c lattice orientations
-#
-#
-# Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
-# **lattice_energy** -- total lattice energy
-# **lattice_energy_pp_avg** -- average lattice energy per particle
-# **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle
-# **lattice_translational_spring_constant** -- translational spring constant
-# **lattice_rotational_spring_constant** -- rotational spring constant
-# **lattice_num_samples** -- number of samples used to compute the average and standard deviation
-# \b Example:
-# \code
-# mc = hpmc.integrate.sphere(seed=415236);
-# hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-# log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
-# \endcode
 class lattice_field(_external):
-    ## Specify the lattice field.
-    #
-    # \param mc MC integrator (don't specify a new integrator later, lattice will continue to use the old one)
-    # \param position list of positions to restrain each particle.
-    # \param orientation list of orientations to restrain each particle.
-    # \param k translational spring constant
-    # \param q rotational spring constant
-    # \param symmetry list of equivalent quaternions for the shape.
-    # \param setup if true pass the object created to the integrator.
+    R""" Restrain particles on a lattice
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        position (list): list of positions to restrain each particle.
+        orientation (list): list of orientations to restrain each particle.
+        k (float): translational spring constant.
+        q (float): rotational spring constant.
+        symmetry (list): list of equivalent quaternions for the shape.
+        setup (bool): When true pass the object created to the integrator.
+
+    :py:class:`lattice_field` specifies that a harmonic spring is added to every particle:
+
+    .. math::
+
+        V_{i}(r)  = k_r*(r_i-r_{oi})^2 \\
+        V_{i}(q)  = k_q*(q_i-q_{oi})^2
+
+    Note:
+        1/2 is not included in the formulas, specify your spring constants accordingly.
+
+    * :math:`k_r` - translational spring constant (in energy units).
+    * :math:`r_{o}` - lattice positions (in distance units).
+    * :math:`k_q` - rotational spring constant (in energy units)
+    * :math:`q_{o}` - lattice orientations (quaternion)
+
+    Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
+
+    * **lattice_energy** -- total lattice energy
+    * **lattice_energy_pp_avg** -- average lattice energy per particle
+    * **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle
+    * **lattice_translational_spring_constant** -- translational spring constant
+    * **lattice_rotational_spring_constant** -- rotational spring constant
+    * **lattice_num_samples** -- number of samples used to compute the average and standard deviation
+
+    Example::
+
+        mc = hpmc.integrate.sphere(seed=415236);
+        hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+        log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
+
+    """
     def __init__(self, mc, position = [], orientation = [], k = 0.0, q = 0.0, symmetry = [], setup=True):
         import numpy
         hoomd.util.print_status_line();
@@ -228,17 +232,20 @@ class lattice_field(_external):
         if setup :
             mc.set_external(self);
 
-    ## Reset the reference positions or reference orientations
-    #
-    # \param position list of positions to restrain each particle.
-    # \param orientation list of orientations to restrain each particle.
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.sphere(seed=415236);
-    # lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-    # lattice.set_references(position=bcc_lattice)
-    # \endcode
     def set_references(self, position = [], orientation = []):
+        R""" Reset the reference positions or reference orientations.
+
+        Args:
+            position (list): list of positions to restrain each particle.
+            orientation (list): list of orientations to restrain each particle.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice.set_references(position=bcc_lattice)
+
+        """
         import numpy
         hoomd.util.print_status_line();
         if type(position) == numpy.ndarray:
@@ -253,66 +260,70 @@ class lattice_field(_external):
 
         self.cpp_compute.setReferences(position, orientation);
 
-    ## Set the translational and rotational spring constants
-    #
-    # \param k translational spring constant
-    # \param q rotational spring constant
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.sphere(seed=415236);
-    # lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-    # ks = np.linspace(1000, 0.01, 100);
-    # for k in ks:
-    #   lattice.set_params(k=k, q=0.0);
-    #   run(1000)
-    # \endcode
     def set_params(self, k, q):
+        R""" Set the translational and rotational spring constants.
+
+        Args:
+            k (float): translational spring constant.
+            q (float): rotational spring constant.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              lattice.set_params(k=k, q=0.0);
+              run(1000)
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.setParams(float(k), float(q));
 
-    ## Reset the statistics counters
-    #
-    # \param timestep the timestep to pass into the reset function.
-    #
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.sphere(seed=415236);
-    # lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-    # ks = np.linspace(1000, 0.01, 100);
-    # for k in ks:
-    #   lattice.set_params(k=k, q=0.0);
-    #   lattice.reset();
-    #   run(1000)
-    # \endcode
     def reset(self, timestep = None):
+        R""" Reset the statistics counters.
+
+        Args:
+            timestep (int): the timestep to pass into the reset function.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              lattice.set_params(k=k, q=0.0);
+              lattice.reset();
+              run(1000)
+
+        """
         hoomd.util.print_status_line();
         if timestep == None:
             timestep = hoomd.context.current.system.getCurrentTimeStep();
         self.cpp_compute.reset(timestep);
 
-
-
-## Manage multiple external fields
-#
-# compute.external_field_composite allows the user to create and compute multiple
-# external fields. Once created use compute.external_field_composite.add_field
-# to add a new field.
-#
-# Once initialized, the compute provides a log quantities that other external
-# fields create. See those external fields to find the quantities
-#
 class external_field_composite(_external):
-    ## Specifies the compute class for multiple external fields
-    # \param mc MC integrator (don't specify a new integrator later, external_field_composite will continue to use the old one)
-    # \param setup if setup is true then the object created will be added to the integrator
-    # \param fields List of external fields to combine together.
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(...);
-    # walls = hpmc.compute.walls(...)
-    # lattice = hpmc.compute.lattice(...)
-    # composite_field = hpmc.compute.external_field_composite(mc, fields=[walls, lattice])
-    # ~~~~~~~~~~~~~
+    R""" Manage multiple external fields.
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator (don't specify a new integrator later, external_field_composite will continue to use the old one)
+        setup (bool): if setup is true then the object created will be added to the integrator
+        fields (list): List of external fields to combine together.
+
+    :py:class:`external_field_composite` allows the user to create and compute multiple
+    external fields. Once created use :py:meth:`add_field` to add a new field.
+
+    Once initialized, the compute provides a log quantities that other external
+    fields create. See those external fields to find the quantities.
+
+    Examples::
+
+        mc = hpmc.integrate.shape(...);
+        walls = hpmc.compute.walls(...)
+        lattice = hpmc.compute.lattice(...)
+        composite_field = hpmc.compute.external_field_composite(mc, fields=[walls, lattice])
+
+    """
     def __init__(self, mc, setup=True, fields = None):
         _external.__init__(self);
         cls = None;
@@ -355,54 +366,62 @@ class external_field_composite(_external):
         if not fields is None:
             self.add_field(fields=fields);
 
-    ## Add an external field to the ensemble
-    #
-    # \param fields list of fields to add
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(...);
-    # composite_field = hpmc.compute.external_field_composite(mc)
-    # walls = hpmc.compute.walls(..., setup=False)
-    # lattice = hpmc.compute.lattice(..., setup=False)
-    # composite_field.add_field(fields=[walls, lattice])
-    # ~~~~~~~~~~~~
     def add_field(self, fields):
+        R""" Add an external field to the ensemble.
+
+        Args:
+            fields (list): list of fields to add
+
+        Example::
+
+            mc = hpmc.integrate.shape(...);
+            composite_field = hpmc.compute.external_field_composite(mc)
+            walls = hpmc.compute.walls(..., setup=False)
+            lattice = hpmc.compute.lattice(..., setup=False)
+            composite_field.add_field(fields=[walls, lattice])
+
+        """
         if not type(fields) == list:
             fields = list(fields);
         for field in fields:
             self.cpp_compute.addExternal(field.cpp_compute);
 
-## Manage walls (an external field type)
-#
-# compute.wall allows the user to implement one or more walls. If multiple walls are added, then particles are confined by the INTERSECTION of all of these walls. In other words,
-# particles are confined by all walls if they independently satisfy the confinement condition associated with each separate wall.
-# Once you've created an instance of this class, use compute.wall.add_sphere_wall
-# to add a new spherical wall, compute.wall.add_cylinder_wall to add a new cylindrical wall, or
-# compute.wall.add_plane_wall to add a new plane wall.
-#
-# Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
-# **hpmc_wall_volume** -- the volume associated with the intersection of implemented walls. This number is only meaningful
-# if the user has initially provided it through compute.wall.set_volume(). It will subsequently change when
-# the box is resized and walls are scaled appropriately.
-# **hpmc_wall_sph_rsq-i** -- the squared radius of the spherical wall indexed by i, beginning at 0 in the order the sphere
-# walls were added to the system.
-# **hpmc_wall_cyl_rsq-i** -- the squared radius of the cylindrical wall indexed by i, beginning at 0 in the order the
-# cylinder walls were added to the system.
-# \b Example:
-# \code
-# mc = hpmc.integrate.sphere(seed = 415236);
-# ext_wall = hpmc.compute.wall(mc);
-# ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-# ext_wall.set_volume(4./3.*np.pi);
-# log = analyze.log(quantities=['hpmc_wall_volume','hpmc_wall_sph_rsq-0'], period=100, filename='log.dat', overwrite=True);
-# \endcode
 class wall(_external):
-    ## Specifies the compute class for the walls external field type.
-    # \param mc MC integrator
-    # \param setup if setup is true then the object created will be added to the integrator
+    R""" Manage walls (an external field type).
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`):MC integrator.
+        setup (bool): if setup is true then the object created will be added to the integrator.
+
+    :py:class:`wall` allows the user to implement one or more walls. If multiple walls are added, then particles are
+    confined by the INTERSECTION of all of these walls. In other words, particles are confined by all walls if they
+    independently satisfy the confinement condition associated with each separate wall.
+    Once you've created an instance of this class, use :py:meth:`add_sphere_wall`
+    to add a new spherical wall, :py:meth:`add_cylinder_wall` to add a new cylindrical wall, or
+    :py:meth:`add_plane_wall` to add a new plane wall.
+
+    Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
+
+    * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
+      if the user has initially provided it through :py:meth:`set_volume`. It will subsequently change when
+      the box is resized and walls are scaled appropriately.
+    * **hpmc_wall_sph_rsq-i** : the squared radius of the spherical wall indexed by i, beginning at 0 in the order the sphere
+      walls were added to the system.
+    * **hpmc_wall_cyl_rsq-i** : the squared radius of the cylindrical wall indexed by i, beginning at 0 in the order the
+      cylinder walls were added to the system.
+
+    Example::
+
+        mc = hpmc.integrate.sphere(seed = 415236);
+        ext_wall = hpmc.compute.wall(mc);
+        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+        ext_wall.set_volume(4./3.*np.pi);
+        log = analyze.log(quantities=['hpmc_wall_volume','hpmc_wall_sph_rsq-0'], period=100, filename='log.dat', overwrite=True);
+
+    """
+
     index=0;
+
     def __init__(self, mc, setup=True):
         hoomd.util.print_status_line();
         _external.__init__(self);
@@ -428,75 +447,87 @@ class wall(_external):
         if setup:
             mc.set_external(self);
 
-    ## Count the overlaps associated with the walls. A particle "overlaps" with a wall if it fails to meet
-    ## the confinement condition associated with the wall.
-    #
-    # \returns The number of overlaps associated with the walls
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # run(100)
-    # num_overlaps = ext_wall.count_overlaps();
-    # ~~~~~~~~~~~~
     def count_overlaps(self, exit_early=False):
+        R""" Count the overlaps associated with the walls.
+
+        Args:
+            exit_early (bool): When True, stop counting overlaps after the first one is found.
+
+        Returns:
+            The number of overlaps associated with the walls
+
+        A particle "overlaps" with a wall if it fails to meet the confinement condition associated with the wall.
+
+        Example:
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            run(100)
+            num_overlaps = ext_wall.count_overlaps();
+
+        """
         hoomd.util.print_status_line();
         return self.cpp_compute.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), exit_early);
 
-    ## Add a spherical wall to the simulation
-    #
-    # \param radius radius of spherical wall
-    # \param origin origin (center) of spherical wall.
-    # \param inside if True, then particles are CONFINED by the wall if they exist entirely inside the sphere (in the portion of connected space that contains the origin).
-    # if False, then particles are CONFINED by the wall if they exist entirely outside the sphere (in the portion of connected space that does not contain the origin). DEFAULTS to True.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ~~~~~~~~~~~~
     def add_sphere_wall(self, radius, origin, inside = True):
+        R""" Add a spherical wall to the simulation.
+
+        Args:
+            radius (float): radius of spherical wall
+            origin (tuple): origin (center) of spherical wall.
+            inside (bool): When True, particles are CONFINED by the wall if they exist entirely inside the sphere (in the portion of connected space that contains the origin).
+                           When False, then particles are CONFINED by the wall if they exist entirely outside the sphere (in the portion of connected space that does not contain the origin).
+
+        Quick Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.AddSphereWall(_hpmc.make_sphere_wall(radius, origin, inside));
 
-    ## Change the parameters associated with a particular sphere wall
-    #
-    # \param index index of the sphere wall to be modified. indices begin at 0 in the order the sphere walls were added to the system.
-    # \param radius new radius of spherical wall
-    # \param origin new origin (center) of spherical wall.
-    # \param inside new confinement condition. if True, then particles are CONFINED by the wall if they exist entirely inside the sphere (in the portion of connected space that contains the origin).
-    # if False, then particles are CONFINED by the wall if they exist entirely outside the sphere (in the portion of connected space that does not contain the origin). DEFAULTS to True.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.set_sphere_wall(index = 0, radius = 3.0, origin = [0, 0, 0], inside = True);
-    # ~~~~~~~~~~~~
     def set_sphere_wall(self, index, radius, origin, inside = True):
+        R""" Change the parameters associated with a particular sphere wall.
+
+        Args:
+            index (int): index of the sphere wall to be modified. indices begin at 0 in the order the sphere walls were added to the system.
+            radius (float): New radius of spherical wall
+            origin (tuple): New origin (center) of spherical wall.
+            inside (bool): New confinement condition. When True, particles are CONFINED by the wall if they exist entirely inside the sphere (in the portion of connected space that contains the origin).
+                           When False, then particles are CONFINED by the wall if they exist entirely outside the sphere (in the portion of connected space that does not contain the origin).
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.set_sphere_wall(index = 0, radius = 3.0, origin = [0, 0, 0], inside = True);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.SetSphereWallParameter(index, _hpmc.make_sphere_wall(radius, origin, inside));
 
-    ## Access a parameter associated with a particular sphere wall
-    #
-    # \param index index of the sphere wall to be accessed. indices begin at 0 in the order the sphere walls were added to the system.
-    # \param param name of parameter to be accessed. options are "rsq" (squared radius of sphere wall), "origin" (origin of sphere wall), and "inside" (confinement condition associated with sphere wall)
-    # \returns value of queried parameter
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # rsq = ext_wall.get_sphere_wall_param(index = 0, param = "rsq");
-    # ~~~~~~~~~~~~
     def get_sphere_wall_param(self, index, param):
+        R""" Access a parameter associated with a particular sphere wall.
+
+        Args:
+            index (int): index of the sphere wall to be accessed. indices begin at 0 in the order the sphere walls were added to the system.
+            param (str): name of parameter to be accessed. options are "rsq" (squared radius of sphere wall), "origin" (origin of sphere wall), and "inside" (confinement condition associated with sphere wall)
+
+        Returns:
+            Value of queried parameter.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            rsq = ext_wall.get_sphere_wall_param(index = 0, param = "rsq");
+
+        """
         hoomd.util.print_status_line();
         t = self.cpp_compute.GetSphereWallParametersPy(index);
         if param == "rsq":
@@ -509,94 +540,104 @@ class wall(_external):
             hoomd.context.msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
             raise RuntimeError("Error: compute.wall");
 
-    ## Remove a particular sphere wall from the simulation
-    #
-    # \param index index of the sphere wall to be removed. indices begin at 0 in the order the sphere walls were added to the system.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.remove_sphere_wall(index = 0);
-    # ~~~~~~~~~~~~
     def remove_sphere_wall(self, index):
+        R""" Remove a particular sphere wall from the simulation.
+
+        Args:
+            index (int): index of the sphere wall to be removed. indices begin at 0 in the order the sphere walls were added to the system.
+
+        Quick Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.remove_sphere_wall(index = 0);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.RemoveSphereWall(index);
 
-    ## Get the current number of sphere walls in the simulation
-    #
-    # \returns the current number of sphere walls in the simulation
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # num_sph_walls = ext_wall.get_num_sphere_walls();
-    # ~~~~~~~~~~~~
     def get_num_sphere_walls(self):
+        R""" Get the current number of sphere walls in the simulation.
+
+        Returns: the current number of sphere walls in the simulation
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            num_sph_walls = ext_wall.get_num_sphere_walls();
+
+        """
         hoomd.util.print_status_line();
         return self.cpp_compute.getNumSphereWalls();
 
-    ## Add a cylindrical wall to the simulation
-    #
-    # \param radius radius of cylindrical wall
-    # \param origin origin (center) of cylindrical wall
-    # \param orientation vector that defines the direction of the long axis of the cylinder. will be normalized automatically by hpmc.
-    # \param inside if True, then particles are CONFINED by the wall if they exist entirely inside the cylinder (in the portion of connected space that contains the origin).
-    # if False, then particles are CONFINED by the wall if they exist entirely outside the cylinder (in the portion of connected space that does not contain the origin). DEFAULTS to True.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # ~~~~~~~~~~~~
     def add_cylinder_wall(self, radius, origin, orientation, inside = True):
+        R""" Add a cylindrical wall to the simulation.
+
+        Args:
+            radius (float): radius of cylindrical wall
+            origin (tuple): origin (center) of cylindrical wall
+            orientation (tuple): vector that defines the direction of the long axis of the cylinder. will be normalized automatically by hpmc.
+            inside (bool): When True, then particles are CONFINED by the wall if they exist entirely inside the cylinder (in the portion of connected space that contains the origin).
+                           When False, then particles are CONFINED by the wall if they exist entirely outside the cylinder (in the portion of connected space that does not contain the origin). DEFAULTS to True.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+
+        """
+
         hoomd.util.print_status_line();
         param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside);
         self.cpp_compute.AddCylinderWall(param);
 
-    ## Change the parameters associated with a particular cylinder wall
-    #
-    # \param index index of the cylinder wall to be modified. indices begin at 0 in the order the cylinder walls were added to the system.
-    # \param radius new radius of cylindrical wall
-    # \param origin new origin (center) of cylindrical wall
-    # \param orientation new orientation vector of cylindrical wall
-    # \param inside new confinement condition. if True, then particles are CONFINED by the wall if they exist entirely inside the cylinder (in the portion of connected space that contains the origin).
-    # if False, then particles are CONFINED by the wall if they exist entirely outside the cylinder (in the portion of connected space that does not contain the origin). DEFAULTS to True.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # ext_wall.set_cylinder_wall(index = 0, radius = 3.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # ~~~~~~~~~~~~
     def set_cylinder_wall(self, index, radius, origin, orientation, inside = True):
+        R""" Change the parameters associated with a particular cylinder wall.
+
+        Args:
+            index (int): index of the cylinder wall to be modified. indices begin at 0 in the order the cylinder walls were added to the system.
+            radius (float): New radius of cylindrical wall
+            origin (tuple): New origin (center) of cylindrical wall
+            orientation (tuple): New vector that defines the direction of the long axis of the cylinder. will be normalized automatically by hpmc.
+            inside (bool): New confinement condition. When True, then particles are CONFINED by the wall if they exist entirely inside the cylinder (in the portion of connected space that contains the origin).
+                           When False, then particles are CONFINED by the wall if they exist entirely outside the cylinder (in the portion of connected space that does not contain the origin). DEFAULTS to True.
+
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+            ext_wall.set_cylinder_wall(index = 0, radius = 3.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+
+        """
         hoomd.util.print_status_line();
         param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside)
         self.cpp_compute.SetCylinderWallParameter(index, param);
 
-    ## Access a parameter associated with a particular cylinder wall
-    #
-    # \param index index of the cylinder wall to be accessed. indices begin at 0 in the order the cylinder walls were added to the system.
-    # \param param name of parameter to be accessed. options are "rsq" (squared radius of cylinder wall), "origin" (origin of cylinder wall), "orientation" (orientation of cylinder wall),
-    # and "inside" (confinement condition associated with cylinder wall)
-    # \returns value of queried parameter
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # rsq = ext_wall.get_cylinder_wall_param(index = 0, param = "rsq");
-    # ~~~~~~~~~~~~
     def get_cylinder_wall_param(self, index, param):
+        R""" Access a parameter associated with a particular cylinder wall.
+
+        Args:
+            index (int): index of the cylinder wall to be accessed. indices begin at 0 in the order the cylinder walls were added to the system.
+            param (str): name of parameter to be accessed. options are "rsq" (squared radius of cylinder wall), "origin" (origin of cylinder wall), "orientation" (orientation of cylinder wall),
+                         and "inside" (confinement condition associated with cylinder wall).
+
+        Returns:
+            Value of queried parameter.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+            rsq = ext_wall.get_cylinder_wall_param(index = 0, param = "rsq");
+
+        """
         hoomd.util.print_status_line();
         t = self.cpp_compute.GetCylinderWallParametersPy(index);
         if param == "rsq":
@@ -611,86 +652,96 @@ class wall(_external):
             hoomd.context.msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
             raise RuntimeError("Error: compute.wall");
 
-    ## Remove a particular cylinder wall from the simulation
-    #
-    # \param index index of the cylinder wall to be removed. indices begin at 0 in the order the cylinder walls were added to the system.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # ext_wall.remove_cylinder_wall(index = 0);
-    # ~~~~~~~~~~~~
     def remove_cylinder_wall(self, index):
+        R""" Remove a particular cylinder wall from the simulation.
+
+        Args:
+            index (int): index of the cylinder wall to be removed. indices begin at 0 in the order the cylinder walls were added to the system.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+            ext_wall.remove_cylinder_wall(index = 0);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.RemoveCylinderWall(index);
 
-    ## Get the current number of cylinder walls in the simulation
-    #
-    # \returns the current number of cylinder walls in the simulation
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
-    # num_cyl_walls = ext_wall.get_num_cylinder_walls();
-    # ~~~~~~~~~~~~
     def get_num_cylinder_walls(self):
+        R""" Get the current number of cylinder walls in the simulation.
+
+        Returns:
+            The current number of cylinder walls in the simulation.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
+            num_cyl_walls = ext_wall.get_num_cylinder_walls();
+
+        """
         hoomd.util.print_status_line();
         return self.cpp_compute.getNumCylinderWalls();
 
-    ## Add a plane wall to the simulation
-    #
-    # \param normal vector normal to the plane. this, in combination with a point on the plane, defines the plane entirely. It will be normalized automatically by hpmc.
-    # The direction of the normal vector defines the confinement condition associated with the plane wall. If every part of a particle exists in the halfspace into which the normal points, then that particle is CONFINED by the plane wall.
-    # \param origin a point on the plane wall. this, in combination with the normal vector, defines the plane entirely.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
-    # ~~~~~~~~~~~~
     def add_plane_wall(self, normal, origin):
+        R""" Add a plane wall to the simulation.
+
+        Args:
+            normal (tuple): vector normal to the plane. this, in combination with a point on the plane, defines the plane entirely. It will be normalized automatically by hpmc.
+                            The direction of the normal vector defines the confinement condition associated with the plane wall. If every part of a particle exists in the halfspace into which the normal points, then that particle is CONFINED by the plane wall.
+            origin (tuple): a point on the plane wall. this, in combination with the normal vector, defines the plane entirely.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.AddPlaneWall(_hpmc.make_plane_wall(normal, origin, True));
 
-    ## Change the parameters associated with a particular plane wall
-    #
-    # \param index index of the plane wall to be modified. indices begin at 0 in the order the plane walls were added to the system.
-    # \param normal new vector normal to the plane
-    # \param origin new point on the plane
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
-    # ext_wall.set_plane_wall(index = 0, normal = [0, 0, 1], origin = [0, 0, 1]);
-    # ~~~~~~~~~~~~
     def set_plane_wall(self, index, normal, origin):
+        R""" Change the parameters associated with a particular plane wall.
+
+        Args:
+            index (int): index of the plane wall to be modified. indices begin at 0 in the order the plane walls were added to the system.
+            normal (tuple): new vector normal to the plane. this, in combination with a point on the plane, defines the plane entirely. It will be normalized automatically by hpmc.
+                            The direction of the normal vector defines the confinement condition associated with the plane wall. If every part of a particle exists in the halfspace into which the normal points, then that particle is CONFINED by the plane wall.
+            origin (tuple): new point on the plane wall. this, in combination with the normal vector, defines the plane entirely.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
+            ext_wall.set_plane_wall(index = 0, normal = [0, 0, 1], origin = [0, 0, 1]);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.SetPlaneWallParameter(index, _hpmc.make_plane_wall(normal, origin, True));
 
-    ## Access a parameter associated with a particular plane wall
-    #
-    # \param index index of the plane wall to be accessed. indices begin at 0 in the order the plane walls were added to the system.
-    # \param param name of parameter to be accessed. options are "normal" (vector normal to the plane wall), and "origin" (point on the plane wall)
-    # \returns value of queried parameter
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
-    # n = ext_wall.get_plane_wall_param(index = 0, param = "normal");
-    # ~~~~~~~~~~~~
     def get_plane_wall_param(self, index, param):
+        R""" Access a parameter associated with a particular plane wall.
+
+        Args:
+            index (int): index of the plane wall to be accessed. indices begin at 0 in the order the plane walls were added to the system.
+            param (str): name of parameter to be accessed. options are "normal" (vector normal to the plane wall), and "origin" (point on the plane wall)
+
+        Returns:
+            Value of queried parameter.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
+            n = ext_wall.get_plane_wall_param(index = 0, param = "normal");
+
+        """
         hoomd.util.print_status_line();
         t = self.cpp_compute.GetPlaneWallParametersPy(index);
         if param == "normal":
@@ -701,83 +752,93 @@ class wall(_external):
             hoomd.context.msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
             raise RuntimeError("Error: compute.wall");
 
-    ## Remove a particular plane wall from the simulation
-    #
-    # \param index index of the plane wall to be removed. indices begin at 0 in the order the plane walls were added to the system.
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
-    # ext_wall.remove_plane_wall(index = 0);
-    # ~~~~~~~~~~~~
     def remove_plane_wall(self, index):
+        R""" Remove a particular plane wall from the simulation.
+
+        Args:
+            index (int): index of the plane wall to be removed. indices begin at 0 in the order the plane walls were added to the system.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
+            ext_wall.remove_plane_wall(index = 0);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.RemovePlaneWall(index);
 
-    ## Get the current number of plane walls in the simulation
-    #
-    # \returns the current number of plane walls in the simulation
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
-    # num_plane_walls = ext_wall.get_num_plane_walls();
-    # ~~~~~~~~~~~~
     def get_num_plane_walls(self):
+        R""" Get the current number of plane walls in the simulation.
+
+        Returns:
+            The current number of plane walls in the simulation.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
+            num_plane_walls = ext_wall.get_num_plane_walls();
+
+        """
         hoomd.util.print_status_line();
         return self.cpp_compute.getNumPlaneWalls();
 
-    ## Set the volume associated with the intersection of all walls in the system. This number will subsequently change when the box is resized and walls are scaled appropriately.
-    #
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.set_volume(4./3.*np.pi);
-    # ~~~~~~~~~~~~
     def set_volume(self, volume):
+        R""" Set the volume associated with the intersection of all walls in the system.
+
+        This number will subsequently change when the box is resized and walls are scaled appropriately.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.set_volume(4./3.*np.pi);
+
+        """
         hoomd.util.print_status_line();
         self.cpp_compute.setVolume(volume);
 
-    ## Get the current volume associated with the intersection of all walls in the system. If this quantity has not previously been set by the user, this returns a meaningless value.
-    #
-    # \returns the current volume associated with the intersection of all walls in the system
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.set_volume(4./3.*np.pi);
-    # run(100)
-    # curr_vol = ext_wall.get_volume();
-    # ~~~~~~~~~~~~
     def get_volume(self):
+        R""" Get the current volume associated with the intersection of all walls in the system.
+
+        If this quantity has not previously been set by the user, this returns a meaningless value.
+
+        Returns:
+            The current volume associated with the intersection of all walls in the system.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.set_volume(4./3.*np.pi);
+            run(100)
+            curr_vol = ext_wall.get_volume();
+
+        """
         hoomd.util.print_status_line();
         return self.cpp_compute.getVolume();
 
-    ## Get the simulation box that the wall class is currently storing
-    #
-    # \returns the boxdim object that the wall class is currently storing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.set_volume(4./3.*np.pi);
-    # run(100)
-    # curr_box = ext_wall.get_curr_box();
-    # ~~~~~~~~~~~~
     def get_curr_box(self):
+        R""" Get the simulation box that the wall class is currently storing.
+
+        Returns:
+            The boxdim object that the wall class is currently storing.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed = 415236);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.set_volume(4./3.*np.pi);
+            run(100)
+            curr_box = ext_wall.get_curr_box();
+
+        """
         hoomd.util.print_status_line();
         return data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
                            Ly=self.cpp_compute.GetCurrBoxLy(),
@@ -786,28 +847,28 @@ class wall(_external):
                            xz=self.cpp_compute.GetCurrBoxTiltFactorXZ(),
                            yz=self.cpp_compute.GetCurrBoxTiltFactorYZ());
 
-    ## Set the simulation box that the wall class is currently storing.
-    ## You may want to set this independently so that you can cleverly control whether or not the walls actually scale in case you manually resize your simulation box.
-    ## The walls scale automatically when they get the signal that the global box, associated with the system definition, has scaled. They do so, however, with a scale factor associated with
-    ## the ratio of the volume of the global box to the volume of the box that the walls class is currently storing. (After the scaling the box that the walls class is currently storing is updated appropriately.)
-    ## If you want to change the simulation box WITHOUT scaling the walls, then, you must first update the simulation box that the walls class is storing, THEN update the global box associated with the system definition.
-    #
-    # \returns nothing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # init_box = hoomd.data.boxdim(L=10, dimensions=3);
-    # system = hoomd.init.create_empty(N=1, box=init_box, particle_types=['A']);
-    # system.particles[0].position = [0,0,0];
-    # system.particles[0].type = 'A';
-    # mc = hpmc.integrate.sphere(seed = 415236);
-    # mc.shape_param.set('A', diameter = 2.0);
-    # ext_wall = hpmc.compute.wall(mc);
-    # ext_wall.add_sphere_wall(radius = 3.0, origin = [0, 0, 0], inside = True);
-    # ext_wall.set_curr_box(Lx=2.0*init_box.Lx, Ly=2.0*init_box.Ly, Lz=2.0*init_box.Lz, xy=init_box.xy, xz=init_box.xz, yz=init_box.yz);
-    # system.sysdef.getParticleData().setGlobalBox(ext_wall.get_curr_box()._getBoxDim())
-    # ~~~~~~~~~~~~
     def set_curr_box(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None):
+        R""" Set the simulation box that the wall class is currently storing.
+
+        You may want to set this independently so that you can cleverly control whether or not the walls actually scale in case you manually resize your simulation box.
+        The walls scale automatically when they get the signal that the global box, associated with the system definition, has scaled. They do so, however, with a scale factor associated with
+        the ratio of the volume of the global box to the volume of the box that the walls class is currently storing. (After the scaling the box that the walls class is currently storing is updated appropriately.)
+        If you want to change the simulation box WITHOUT scaling the walls, then, you must first update the simulation box that the walls class is storing, THEN update the global box associated with the system definition.
+
+        Example::
+
+            init_box = hoomd.data.boxdim(L=10, dimensions=3);
+            system = hoomd.init.create_empty(N=1, box=init_box, particle_types=['A']);
+            system.particles[0].position = [0,0,0];
+            system.particles[0].type = 'A';
+            mc = hpmc.integrate.sphere(seed = 415236);
+            mc.shape_param.set('A', diameter = 2.0);
+            ext_wall = hpmc.compute.wall(mc);
+            ext_wall.add_sphere_wall(radius = 3.0, origin = [0, 0, 0], inside = True);
+            ext_wall.set_curr_box(Lx=2.0*init_box.Lx, Ly=2.0*init_box.Ly, Lz=2.0*init_box.Lz, xy=init_box.xy, xz=init_box.xz, yz=init_box.yz);
+            system.sysdef.getParticleData().setGlobalBox(ext_wall.get_curr_box()._getBoxDim())
+
+        """
         # much of this is from hoomd's update.py box_resize class
         hoomd.util.print_status_line();
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
@@ -831,26 +892,30 @@ class wall(_external):
 
         self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz);
 
-## Compute the Frenkel-Ladd Energy of a crystal
-#
-# The command hpmc.compute.frenkel_ladd_energy interacts with the hpmc.compute.lattice_field
-# and hpmc.update.remove_drift
-#
-# Once initialized, the compute provides the log quantities from the hpmc.compute.lattice_field
 class frenkel_ladd_energy(_compute):
-    # \param ln_gamma log of the translational spring constant
-    # \param q_factor scale factor between the translational spring constant and rotational spring constant
-    # \param r0 reference lattice positions
-    # \param q0 reference lattice orientations
-    # \param drift_period period call the remove drift updater
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.convex_polyhedron(seed=seed);
-    # mc.shape_param.set("A", vertices=verts)
-    # mc.set_params(d=0.005, a=0.005)
-    # #set the FL parameters
-    # fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
-    # \endcode
+    R""" Compute the Frenkel-Ladd Energy of a crystal.
+
+    Args:
+        ln_gamma (float): log of the translational spring constant
+        q_factor (float): scale factor between the translational spring constant and rotational spring constant
+        r0 (list): reference lattice positions
+        q0 (list): reference lattice orientations
+        drift_period (int): period call the remove drift updater
+
+    :py:class:`frenkel_ladd_energy` interacts with the :py:class:`hoomd.hpmc.compute.lattice_field`
+    and :py:class:`hoomd.hpmc.update.remove_drift`.
+
+    Once initialized, the compute provides the log quantities from the :py:class:`hoomd.hpmc.compute.lattice_field`.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=seed);
+        mc.shape_param.set("A", vertices=verts)
+        mc.set_params(d=0.005, a=0.005)
+        #set the FL parameters
+        fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
+
+    """
     def __init__(   self,
                     mc,
                     ln_gamma,
@@ -889,38 +954,41 @@ class frenkel_ladd_energy(_compute):
                                         symmetry=symmetry);
         self.remove_drift = hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
 
-    ## Reset the statistics counters
-    #
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.sphere(seed=415236);
-    # fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
-    # ks = np.linspace(1000, 0.01, 100);
-    # for k in ks:
-    #   fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
-    #   fl.reset_statistics();
-    #   run(1000)
-    # \endcode
     def reset_statistics(self):
+        R""" Reset the statistics counters.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
+              fl.reset_statistics();
+              run(1000)
+
+        """
         hoomd.util.print_status_line();
         self.lattice.reset(0);
 
-    ## Set the Frenkel-Ladd parameters
-    #
-    # \param ln_gamma log of the translational spring constant
-    # \param q_factor scale factor between the translational spring constant and rotational spring constant
-    #
-    # \b Example:
-    # \code
-    # mc = hpmc.integrate.sphere(seed=415236);
-    # fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
-    # ks = np.linspace(1000, 0.01, 100);
-    # for k in ks:
-    #   fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
-    #   fl.reset_statistics();
-    #   run(1000)
-    # \endcode
     def set_params(self, ln_gamma = None, q_factor = None):
+        R""" Set the Frenkel-Ladd parameters.
+
+        Args:
+            ln_gamma (float): log of the translational spring constant
+            q_factor (float): scale factor between the translational spring constant and rotational spring constant
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
+              fl.reset_statistics();
+              run(1000)
+
+        """
         import math
         hoomd.util.print_status_line();
         if not q_factor is None:
