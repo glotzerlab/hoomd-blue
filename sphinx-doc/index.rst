@@ -4,6 +4,12 @@ HOOMD-blue
 Welcome to the user documentation for HOOMD-blue!
 
 .. toctree::
+    :maxdepth: 3
+    :caption: Concepts
+
+    compiling
+
+.. toctree::
    :maxdepth: 3
    :caption: Python Modules
 
