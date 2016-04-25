@@ -1,543 +1,449 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+Credits
+=======
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
+HOOMD-blue Developers:
+----------------------
 
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
-
-/*!
-\page page_credits Credits
-
-<hr>
-<h1>HOOMD-blue Developers:</h1>
-<hr>
-Joshua Anderson, University of Michigan - <b>Lead developer</b>
+Joshua Anderson, University of Michigan - **Lead developer**
 
 Alex Travesset, Iowa State University and Ames Laboratory
 
 Rastko Sknepnek, Northwestern
- - integrate.npt
- - pair.morse
+ * integrate.npt
+ * pair.morse
 
 Carolyn Phillips, University of Michigan
- - dihedral.table
- - angle.table
- - bond.table
- - pair.dpdlj
- - pair.dpd
- - pair.dpd_conservative
- - integrate.langevin
- - bond.fene
- - pair.slj
- - Initial testing and debugging of HOOMD on Mac OS X systems
+ * dihedral.table
+ * angle.table
+ * bond.table
+ * pair.dpdlj
+ * pair.dpd
+ * pair.dpd_conservative
+ * integrate.langevin
+ * bond.fene
+ * pair.slj
+ * Initial testing and debugging of HOOMD on Mac OS X systems
 
 Aaron Keys, University of Michigan
-  - update.enforce2d and other updates enabling to 2D simulations
-  - hoomd c++ compilation helper script
-  - binary restart files
-  - integrate.mode_minimize_fire
+  * update.enforce2d and other updates enabling to 2D simulations
+  * hoomd c++ compilation helper script
+  * binary restart files
+  * integrate.mode_minimize_fire
 
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
-  - pair.cgcmm
-  - angle.harmonic
-  - angle.cgcmm
-  - dihedral.harmonic
-  - improper.harmonic
-  - numerous other small contributions enhancing the usability of HOOMD
+  * pair.cgcmm
+  * angle.harmonic
+  * angle.cgcmm
+  * dihedral.harmonic
+  * improper.harmonic
+  * numerous other small contributions enhancing the usability of HOOMD
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
-  - pair.eam
+  * pair.eam
 
 Philipp Mertmann, Ruhr University Bochum
- - charge.pppm
- - pair.ewald
+ * charge.pppm
+ * pair.ewald
 
 Stephen Barr, Princeton University
- - charge.pppm
- - pair.ewald
+ * charge.pppm
+ * pair.ewald
 
 Greg van Anders, Benjamin Schultz, University of Michigan
- - refactoring of ForceCompute
+ * refactoring of ForceCompute
 
 Eric Irrgang, University of Michigan
- - RPM packaging and daily builds
+ * RPM packaging and daily builds
 
 Ross Smith, University of Michigan
- - Deb packaging and daily builds
+ * Deb packaging and daily builds
 
 Peter Palm, Jens Glaser, Leipzig University
- - group functionality in force.constant
- - misc bug fixes
- - conversion of bond forces to template evaluator implementation
+ * group functionality in force.constant
+ * misc bug fixes
+ * conversion of bond forces to template evaluator implementation
 
 Jens Glaser, University of Michigan
- - integrate.npt anisotropic integration (mkt)
- - pair.force_shifted_lj
- - Dynamic addition/removal of bonds
- - Computation of virial and pressure tensor
- - integrate.nph
- - Framework for external potentials
- - external.periodic
- - ParticleData refactoring
- - MPI communication
- - Optimization of MPI communication for strong scaling
- - Neighborlist and pair force performance improvements (multiple threads per particle)
- - Enable cell based neighbor list on small boxes
- - Testing of angle.table and dihedral.table
- - Replicate command
- - metadata output
- - anisotropic particle integrators
- - Gay-Berne pair potential
- - pair.reaction_field
- - Rewrite of rigid body framework
- - Multi-GPU electrostatics (PPPM)
+ * integrate.npt anisotropic integration (mkt)
+ * pair.force_shifted_lj
+ * Dynamic addition/removal of bonds
+ * Computation of virial and pressure tensor
+ * integrate.nph
+ * Framework for external potentials
+ * external.periodic
+ * ParticleData refactoring
+ * MPI communication
+ * Optimization of MPI communication for strong scaling
+ * Neighborlist and pair force performance improvements (multiple threads per particle)
+ * Enable cell based neighbor list on small boxes
+ * Testing of angle.table and dihedral.table
+ * Replicate command
+ * metadata output
+ * anisotropic particle integrators
+ * Gay-Berne pair potential
+ * pair.reaction_field
+ * Rewrite of rigid body framework
+ * Multi-GPU electrostatics (PPPM)
 
 Pavani Medapuram, University of Minnesota
- - Framework for external potentials
- - external.periodic
+ * Framework for external potentials
+ * external.periodic
 
 Brandon D. Smith, University of Michigan
- - full double precision compile time option
- - integrate.berendsen
- - pair.tersoff
+ * full double precision compile time option
+ * integrate.berendsen
+ * pair.tersoff
 
 Trung Dac Nguyen, University of Michigan
- - integreate.nve_rigid
- - integrate.bdnvt_rigid
- - integrate.nvt_rigid
- - integrate.npt_rigid
- - integrate.mode_minimize_rigid_fire
- - associated rigid body data structures and helper functions
- - integrate.nph_rigid
+ * integreate.nve_rigid
+ * integrate.bdnvt_rigid
+ * integrate.nvt_rigid
+ * integrate.npt_rigid
+ * integrate.mode_minimize_rigid_fire
+ * associated rigid body data structures and helper functions
+ * integrate.nph_rigid
 
 Ryan Marson, University of Michigan
- - unwrap_rigid option to dump.dcd
+ * unwrap_rigid option to dump.dcd
 
 Kevin Silmore, Princeton University
- - OPLS dihedral
+ * OPLS dihedral
 
 David Tarjan, University of Virginia
- - performance tweaks to the neighbor list and pair force code
+ * performance tweaks to the neighbor list and pair force code
 
 Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
- - bug fixes for rigid body virial corrections
+ * bug fixes for rigid body virial corrections
 
 Michael P. Howard, Princeton University
- - Automatic citation list generator
- - Neighbor list memory footprint reduction
- - Bounding volume hierarchy (tree) neighbor lists
- - Stenciled cell list (stencil) neighbor lists
- - Per-type MPI ghost layer communication
- - Dynamic load balancing
- - Wall potentials extrapolated mode
+ * Automatic citation list generator
+ * Neighbor list memory footprint reduction
+ * Bounding volume hierarchy (tree) neighbor lists
+ * Stenciled cell list (stencil) neighbor lists
+ * Per-type MPI ghost layer communication
+ * Dynamic load balancing
+ * Wall potentials extrapolated mode
 
 James Antonaglia, University of Michigan
- - pair.mie
+ * pair.mie
 
 Carl Simon Adorf, University of Michigan
- - Analyzer callback
- - metadata output
+ * Analyzer callback
+ * metadata output
 
 Paull Dodd, University of Michigan
- - pair.compute_energy
+ * pair.compute_energy
 
 Erin Teich, University of Michigan
- - addInfo callback to dump.pos
+ * addInfo callback to dump.pos
 
 Joseph Berleant, University of Michigan
- - fix python 3.4 segfault
+ * fix python 3.4 segfault
 
 Matthew Spellings, Univeristy of Michigan
- - anisotropic particle integrators
- - Gay-Berne, dipole pair potentials
+ * anisotropic particle integrators
+ * Gay-Berne, dipole pair potentials
 
 James Proctor, University of Michigan
- - Refactor external potential framework
- - Wall potentials
+ * Refactor external potential framework
+ * Wall potentials
 
 Chengyu Dai, University of Michigan
- - Rewrite integrate.brownian with 3D rotational updates
- - Rewrite integrate.langevin with 3D rotational updates
+ * Rewrite integrate.brownian with 3D rotational updates
+ * Rewrite integrate.langevin with 3D rotational updates
 
 Isass Bruss, Chengyu Dai, University of Michigan
- - force.active
- - update.constraint_ellipsoid
+ * force.active
+ * update.constraint_ellipsoid
 
-<hr>
-<h1>Source code</h1>
-<hr>
-<b>HOOMD:</b> HOOMD-blue is a continuation of the HOOMD project (http://www.ameslab.gov/hoomd/). The code from the original project is used under
-the following license:<br>
+Source code
+-----------
 
-\verbatim
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+**HOOMD:** HOOMD-blue is a continuation of the HOOMD project (http://www.ameslab.gov/hoomd/). The code from the original project is used under the following license::
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+    Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+    Source Software License
+    Copyright (c) 2008 Ames Laboratory Iowa State University
+    All rights reserved.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+    Redistribution and use of HOOMD, in source and binary forms, with or
+    without modification, are permitted, provided that the following
+    conditions are met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+    * Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
-contributors may be used to endorse or promote products derived from this
-software without specific prior written permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
-\endverbatim
-
-<hr>
-<b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the UIUC Open Source License.<br>
-<b>Molfile plugin code</b> from VMD is used for generic file format reading and writing - Used under the UIUC Open Source License<br>
-\verbatim
-University of Illinois Open Source License
-Copyright 2006 Theoretical and Computational Biophysics Group,
-All rights reserved.
-
-Developed by: Theoretical and Computational Biophysics Group
-              University of Illinois at Urbana-Champaign
-              http://www.ks.uiuc.edu/
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the Software), to deal with
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to
-do so, subject to the following conditions:
-
-Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimers.
-
-Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimers in the documentation
-and/or other materials provided with the distribution.
-
-Neither the names of Theoretical and Computational Biophysics Group,
-University of Illinois at Urbana-Champaign, nor the names of its contributors
-may be used to endorse or promote products derived from this Software without
-specific prior written permission.
-
-THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS WITH THE SOFTWARE.
-\endverbatim
-<hr>
-<b>XML parsing</b> is performed with XML.c from http://www.applied-mathematics.net/tools/xmlParser.html - Used under the BSD License<br>
-<br>
-Copyright (c) 2002, Frank Vanden Berghen<br>
-All rights reserved.<br>
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
- - Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
- - Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
- - Neither the name of the Frank Vanden Berghen nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-<hr>
-<b>FindCUDA.cmake</b> (http://www.sci.utah.edu/~abe/FindCuda.html) has been modified slightly and is used as part of the build system - Used under the MIT License<br>
-\verbatim
-The MIT License
-
-Copyright (c) 2008-2009
-NVIDIA Corp.
-
-Copyright (c) 2007-2009
-Scientific Computing and Imaging Institute, University of Utah
-
-License for the specific language governing rights and limitations under
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
-\endverbatim
-<hr>
-<b>Saru</b> is used for random number generation - Used under the following license<br>
-Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
-
-Permission to use, copy, modify, and distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-<hr>
-Some <b>CUDA API headers</b> are included in the HOOMD-blue source code for code compatibility in CPU only biulds - Used under the following license<br>
-\verbatim
-Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
-
-NOTICE TO USER:
-
-This source code is subject to NVIDIA ownership rights under U.S. and
-international Copyright laws.  Users and possessors of this source code
-are hereby granted a nonexclusive, royalty-free license to use this code
-in individual and commercial software.
-
-NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE
-CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
-IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
-IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL,
-OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE
-OR PERFORMANCE OF THIS SOURCE CODE.
-
-U.S. Government End Users.   This source code is a "commercial item" as
-that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of
-"commercial computer  software"  and "commercial computer software
-documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995)
-and is provided to the U.S. Government only as a commercial end item.
-Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through
-227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the
-source code with only those rights set forth herein.
-
-Any use of this source code in individual and commercial software must
-include, in the user documentation and internal comments to the code,
-the above Disclaimer and U.S. Government End Users Notice.
-\endverbatim
-
-<hr>
-FFTs on the CPU reference implementation of PPPM are performed using <b>kissFFT</b> from http://sourceforge.net/projects/kissfft/,
-used under the following license
-<br>
-\verbatim
-Copyright (c) 2003-2010 Mark Borgerding
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* Neither the author nor the names of any contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-\endverbatim
-
-<hr>
-ModernGPU source code is embedded in HOOMD's package and is used for various tasks: http://nvlabs.github.io/moderngpu/
-
-\verbatim
-Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
     documentation and/or other materials provided with the distribution.
-    * Neither the name of the NVIDIA CORPORATION nor the
-    names of its contributors may be used to endorse or promote products
-    derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-\endverbatim
+    * Neither the name of the copyright holder nor the names HOOMD's
+    contributors may be used to endorse or promote products derived from this
+    software without specific prior written permission.
 
-<hr>
-num_util is embedded in HOOMD's package.
+    Disclaimer
 
-\verbatim
-Copyright 2006  Phil Austin (http://www.eos.ubc.ca/personal/paustin)
-Distributed under the Boost Software License, Version 1.0. (See
-accompanying file LICENSE_1_0.txt or copy at
-http://www.boost.org/LICENSE_1_0.txt)
-\endverbatim
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+    CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
-<hr>
-CUB 1.4.1 source code is embedded in HOOMD's package and is used for various tasks: http://nvlabs.github.io/cub/
+    IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+    THE POSSIBILITY OF SUCH DAMAGE.
 
-\verbatim
-Copyright (c) 2011, Duane Merrill.  All rights reserved.
-Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
+**Sockets code** from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the UIUC Open Source License.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the NVIDIA CORPORATION nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+**Molfile plugin code** from VMD is used for generic file format reading and writing - Used under the UIUC Open Source License::
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-\endverbatim
+    University of Illinois Open Source License
+    Copyright 2006 Theoretical and Computational Biophysics Group,
+    All rights reserved.
 
-<hr>
+    Developed by: Theoretical and Computational Biophysics Group
+                  University of Illinois at Urbana-Champaign
+                  http://www.ks.uiuc.edu/
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this software and associated documentation files (the Software), to deal with
+    the Software without restriction, including without limitation the rights to
+    use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+    of the Software, and to permit persons to whom the Software is furnished to
+    do so, subject to the following conditions:
+
+    Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimers.
+
+    Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimers in the documentation
+    and/or other materials provided with the distribution.
+
+    Neither the names of Theoretical and Computational Biophysics Group,
+    University of Illinois at Urbana-Champaign, nor the names of its contributors
+    may be used to endorse or promote products derived from this Software without
+    specific prior written permission.
+
+    THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+    THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+    OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS WITH THE SOFTWARE.
+
+
+**XML parsing** is performed with XML.c from http://www.applied-mathematics.net/tools/xmlParser.html - Used under the BSD License::
+
+    Copyright (c) 2002, Frank Vanden Berghen<br>
+    All rights reserved.<br>
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+     - Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+     - Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+     - Neither the name of the Frank Vanden Berghen nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+**Saru** is used for random number generation - Used under the following license::
+
+    Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
+
+    Permission to use, copy, modify, and distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Some **CUDA API headers** are included in the HOOMD-blue source code for code compatibility in CPU only biulds - Used under the following license::
+
+    Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
+
+    NOTICE TO USER:
+
+    This source code is subject to NVIDIA ownership rights under U.S. and
+    international Copyright laws.  Users and possessors of this source code
+    are hereby granted a nonexclusive, royalty-free license to use this code
+    in individual and commercial software.
+
+    NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE
+    CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
+    IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH
+    REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+    IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL,
+    OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+    OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+    OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE
+    OR PERFORMANCE OF THIS SOURCE CODE.
+
+    U.S. Government End Users.   This source code is a "commercial item" as
+    that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of
+    "commercial computer  software"  and "commercial computer software
+    documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995)
+    and is provided to the U.S. Government only as a commercial end item.
+    Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through
+    227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the
+    source code with only those rights set forth herein.
+
+    Any use of this source code in individual and commercial software must
+    include, in the user documentation and internal comments to the code,
+    the above Disclaimer and U.S. Government End Users Notice.
+
+FFTs on the CPU reference implementation of PPPM are performed using **kissFFT** from http://sourceforge.net/projects/kissfft/,
+used under the following license::
+
+    Copyright (c) 2003-2010 Mark Borgerding
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice, this
+    list of conditions and the following disclaimer in the documentation and/or
+    other materials provided with the distribution.
+
+    * Neither the author nor the names of any contributors may be used to endorse or
+    promote products derived from this software without specific prior written
+    permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+    ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ModernGPU source code is embedded in HOOMD's package and is used for various tasks: http://nvlabs.github.io/moderngpu/::
+
+    Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+        * Neither the name of the NVIDIA CORPORATION nor the
+        names of its contributors may be used to endorse or promote products
+        derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+num_util is embedded in HOOMD's package::
+
+    Copyright 2006  Phil Austin (http://www.eos.ubc.ca/personal/paustin)
+    Distributed under the Boost Software License, Version 1.0. (See
+    accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+    \endverbatim
+
+CUB 1.4.1 source code is embedded in HOOMD's package and is used for various tasks: http://nvlabs.github.io/cub/::
+
+    Copyright (c) 2011, Duane Merrill.  All rights reserved.
+    Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of the NVIDIA CORPORATION nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 Eigen 3.2.5 (http://eigen.tuxfamily.org/) is embedded in HOOMD's package and is made available under the
-Mozilla Public License v.2.0 (http://mozilla.org/MPL/2.0/). Its linear algebra routines are used
-for dynamic load balancing. Source code is available through the [downloads](http://codeblue.umich.edu/hoomd-blue/download.html).
+Mozilla Public License v.2.0 (http://mozilla.org/MPL/2.0/). Its linear algebra routines are used for dynamic load balancing. Source code is available through the [downloads](http://codeblue.umich.edu/hoomd-blue/download.html).
 
-<hr>
 A constrained least-squares problem is solved for dynamic load balancing using <b>BVLSSolver</b>, which is embedded
-in HOOMD's package and is made available under the following license:
-\verbatim
-Copyright (c) 2015, Michael P. Howard. All rights reserved.
+in HOOMD's package and is made available under the following license::
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    1. Redistributions of source code must retain the above copyright
-       notice, this list of conditions and the following disclaimer.
+    Copyright (c) 2015, Michael P. Howard. All rights reserved.
 
-    2. Redistributions in binary form must reproduce the above copyright
-       notice, this list of conditions and the following disclaimer in the
-       documentation and/or other materials provided with the distribution.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        1. Redistributions of source code must retain the above copyright
+           notice, this list of conditions and the following disclaimer.
 
-    3. Neither the name of the copyright holder nor the names of its
-       contributors may be used to endorse or promote products derived from
-       this software without specific prior written permission.
+        2. Redistributions in binary form must reproduce the above copyright
+           notice, this list of conditions and the following disclaimer in the
+           documentation and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-\endverbatim
+        3. Neither the name of the copyright holder nor the names of its
+           contributors may be used to endorse or promote products derived from
+           this software without specific prior written permission.
 
-<hr>
-<h1>Libraries</h1>
-<hr>
-HOOMD-blue links to the following libraries, possibly statically or dynamically depending on configuration options chosen at build time <br>
- - \b boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)<br>
- - \b zlib - Used under the zlib license (http://www.zlib.net/zlib_license.html)<br>
- - \b python - Used under the Python license (http://www.python.org/psf/license/)<br>
- - \b cuFFT - Used under the same license as the NVIDIA CUDA toolkit<br>
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+    IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+    OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+    OF SUCH DAMAGE.
 
-<hr>
-*/
+Libraries
+---------
+
+HOOMD-blue links to the following libraries, possibly statically or dynamically depending on configuration options chosen at build time
+ * boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)
+ * python - Used under the Python license (http://www.python.org/psf/license/)
+ * cuFFT - Used under the same license as the NVIDIA CUDA toolkit
