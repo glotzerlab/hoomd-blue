@@ -4,10 +4,17 @@ HOOMD-blue
 Welcome to the user documentation for HOOMD-blue!
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :caption: Concepts
 
     compiling
+    command-line-options
+    units
+    box
+    aniso
+    mpi
+    autotuner
+    restartable-jobs
 
 .. toctree::
    :maxdepth: 3
