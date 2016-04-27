@@ -13,6 +13,7 @@ md
     module-md-dihedral
     module-md-external
     module-md-force
+    module-md-improper
 
 .. rubric:: Details
 

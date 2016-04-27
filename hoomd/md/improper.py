@@ -49,6 +49,18 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Improper potentials.
+
+Impropers add forces between specified quadruplets of particles and are typically used to
+model rotation about chemical bonds without having bonds to connect the atoms. Their most
+common use is to keep structural elements flat, i.e. model the effect of conjugated
+double bonds, like in benzene rings and its derivatives.
+
+By themselves, impropers that have been specified in an input file do nothing. Only when you
+specify an improper force (i.e. improper.harmonic), are forces actually calculated between the
+listed particles.
+"""
+
 from hoomd.md import _md
 from hoomd.md import force;
 import hoomd;
@@ -56,46 +68,18 @@ import hoomd;
 import math;
 import sys;
 
-## \package hoomd.improper
-# \brief Commands that specify %improper forces
-#
-# Impropers add forces between specified quadruplets of particles and are typically used to
-# model rotation about chemical bonds without having bonds to connect the atoms. Their most
-# common use is to keep structural elements flat, i.e. model the effect of conjugated
-# double bonds, like in benzene rings and its derivatives.
-# Impropers between particles are set when an input XML file is read
-# (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
-#
-# By themselves, impropers that have been specified in an input file do nothing. Only when you
-# specify an improper force (i.e. improper.harmonic), are forces actually calculated between the
-# listed particles.
-
-## Defines %improper coefficients
-# \brief Defines improper potential coefficients
-# The coefficients for all %improper force are specified using this class. Coefficients are
-# specified per improper type.
-#
-# There are two ways to set the coefficients for a particular %improper %force.
-# The first way is to save the %improper %force in a variable and call set() directly.
-# See below for an example of this.
-#
-# The second method is to build the coeff class first and then assign it to the
-# %improper %force. There are some advantages to this method in that you could specify a
-# complicated set of %improper %force coefficients in a separate python file and import
-# it into your job script.
-#
-# Example:
-# \code
-# my_coeffs = improper.coeff();
-# my_improper_force.improper_coeff.set('polymer', k=330.0, r=0.84)
-# my_improper_force.improper_coeff.set('backbone', k=330.0, r=0.84)
-# \endcode
 class coeff:
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
+    R""" Define improper coefficients.
+
+    The coefficients for all improper force are specified using this class. Coefficients are
+    specified per improper type.
+
+    Examples::
+
+        my_coeffs = improper.coeff();
+        my_improper_force.improper_coeff.set('polymer', k=330.0, r=0.84)
+        my_improper_force.improper_coeff.set('backbone', k=330.0, r=0.84)
+    """
     def __init__(self):
         self.values = {};
         self.default_coeff = {}
@@ -119,35 +103,37 @@ class coeff:
     def set_default_coeff(self, name, value):
         self.default_coeff[name] = value;
 
-    ## Sets parameters for one improper type
-    # \param type Type of improper
-    # \param coeffs Named coefficients (see below for examples)
-    #
-    # Calling set() results in one or more parameters being set for a improper type. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the %improper
-    # %force you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible improper types as defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-    # improper types that do not exist in the simulation. This can be useful in defining a %force field for many
-    # different types of impropers even when some simulations only include a subset.
-    #
-    # To set the same coefficients between many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved \c system from the init command.
-    #
-    # \b Examples:
-    # \code
-    # my_improper_force.improper_coeff.set('polymer', k=330.0, r0=0.84)
-    # my_improper_force.improper_coeff.set('backbone', k=1000.0, r0=1.0)
-    # my_improper_force.improper_coeff.set(['improperA','improperB'], k=100, r0=0.0)
-    # \endcode
-    #
-    # \note Single parameters can be updated. If both k and r0 have already been set for a particle type,
-    # then executing coeff.set('polymer', r0=1.0) will %update the value of polymer impropers and leave the other
-    # parameters as they were previously set.
-    #
     def set(self, type, **coeffs):
+        R""" Sets parameters for one improper type.
+
+        Args:
+            type (str): Type of improper (or list of types).
+            coeffs: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a improper type. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the improper
+        force you are setting these coefficients for, see the corresponding documentation.
+
+        All possible improper types as defined in the simulation box must be specified before executing :py:mod:`hoomd.run()`.
+        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+        improper types that do not exist in the simulation. This can be useful in defining a force field for many
+        different types of impropers even when some simulations only include a subset.
+
+        To set the same coefficients between many particle types, provide a list of type names instead of a single
+        one. All types in the list will be set to the same parameters.
+
+        Examples::
+
+            my_improper_force.improper_coeff.set('polymer', k=330.0, r0=0.84)
+            my_improper_force.improper_coeff.set('backbone', k=1000.0, r0=1.0)
+            my_improper_force.improper_coeff.set(['improperA','improperB'], k=100, r0=0.0)
+
+        Note:
+            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
+            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
+            parameters as they were previously set.
+
+        """
         hoomd.util.print_status_line();
 
         # listify the input
@@ -239,36 +225,32 @@ class coeff:
     def get_metadata(self):
         return self.values
 
-## Harmonic %improper force
-#
-# The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
-# in the simulation.
-# \f[ V(r) = \frac{1}{2}k \left( \chi - \chi_{0}  \right )^2 \f]
-# where \f$ \chi \f$ is angle between two sides of the improper
-#
-# Coefficients:
-# - \f$ k \f$ - strength of %force (in energy units)
-# - \f$ \chi_{0} \f$ - equilibrium angle (in radians)
-#
-# Coefficients \f$ k \f$ and \f$ \chi_0 \f$ must be set for each type of %improper in the simulation using
-# improper_coeff.set().
-#
-# \b Examples:
-# \code
-# harmonic.improper_coeff.set('heme-ang', k=30.0, chi=1.57)
-# harmonic.improper_coeff.set('hdyro-bond', k=20.0, chi=1.57)
-# \endcode
-#
-# \note Specifying the improper.harmonic command when no impropers are defined in the simulation results in an error.
-#
-# \MPI_SUPPORTED
 class harmonic(force._force):
-    ## Specify the %harmonic %improper %force
-    #
-    # \b Example:
-    # \code
-    # harmonic = improper.harmonic()
-    # \endcode
+    R""" Harmonic improper potential.
+
+    The command improper.harmonic specifies a harmonic improper potential energy between every quadruplet of particles
+    in the simulation.
+
+    .. math::
+
+        V(r) = \frac{1}{2}k \left( \chi - \chi_{0}  \right )^2
+
+    where :math:`\chi` is angle between two sides of the improper.
+
+    Coefficients:
+
+    - :math:`k` - strength of force, ``k`` (in energy units)
+    - :math:`\chi_{0}` - equilibrium angle, ``chi`` (in radians)
+
+    Coefficients :math:`k` and :math:`\chi_0` must be set for each type of improper in the simulation using
+    :py:meth:`improper_coeff.set() <coeff.set()>`.
+
+    Examples::
+
+        harmonic.improper_coeff.set('heme-ang', k=30.0, chi=1.57)
+        harmonic.improper_coeff.set('hdyro-bond', k=20.0, chi=1.57)
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         # check that some impropers are defined
