@@ -49,20 +49,21 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.constrain
-# \brief Commands that create constraint forces on particles
-#
-# Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
-# or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
-# sphere with constrain.sphere.
-#
-# As with other force commands in hoomd_script, multiple constrain commands can be issued to specify multiple
-# constraints, which are additively applied. Note, however, that not all constraints specified in this manner will
-# be valid if two separate constrain commands operate on the same particles.
-#
-# The degrees of freedom removed from the system by constraints are correctly taken into account when computing the
-# temperature for thermostatting and logging.
-#
+R""" Constraints.
+
+Constraint forces constrain a given set of particle to a given surface, to have some relative orientation,
+or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
+sphere with :py:class:`sphere`.
+
+As with other force commands in hoomd, multiple constrain commands can be issued to specify multiple
+constraints, which are additively applied.
+
+Warning:
+    Constraints will be invalidated if two separate constraint commands apply to the same particle.
+
+The degrees of freedom removed from the system by constraints are correctly taken into account when computing the
+temperature for thermostatting and logging.
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -134,27 +135,19 @@ class _constraint_force(hoomd.meta._metadata):
             hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
-
-    ## Disables the force
-    #
-    # \b Examples:
-    # \code
-    # force.disable()
-    # \endcode
-    #
-    # Executing the disable command will remove the force from the simulation.
-    # Any run() command executed after disabling a force will not calculate or
-    # use the force during the simulation. A disabled force can be re-enabled
-    # with enable()
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = constrain.some_force()
-    # # ... later in the script
-    # force.disable()
-    # \endcode
     def disable(self):
+        R""" Disable the force.
+
+        Example::
+
+            force.disable()
+
+
+        Executing the disable command removes the force from the simulation.
+        Any :py:func:`hoomd.run()` command executed after disabling a force will not calculate or
+        use the force during the simulation. A disabled force can be re-enabled
+        with :py:meth:`enable()`
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -168,49 +161,15 @@ class _constraint_force(hoomd.meta._metadata):
         # remove the compute from the system
         hoomd.context.current.system.removeCompute(self.force_name);
 
-    ## Benchmarks the force computation
-    # \param n Number of iterations to average the benchmark over
-    #
-    # \b Examples:
-    # \code
-    # t = force.benchmark(n = 100)
-    # \endcode
-    #
-    # The value returned by benchmark() is the average time to perform the force
-    # computation, in milliseconds. The benchmark is performed by taking the current
-    # positions of all particles in the simulation and repeatedly calculating the forces
-    # on them. Thus, you can benchmark different situations as you need to by simply
-    # running a simulation to achieve the desired state before running benchmark().
-    #
-    # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run
-    # directly after the particle data is initialized with an init command, then the
-    # results of the benchmark will not be typical of the time needed during the actual
-    # simulation. Particles are not reordered to improve cache performance until at least
-    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = pair.some_force()
-    # # ... later in the script
-    # t = force.benchmark(n = 100)
-    # \endcode
-    def benchmark(self, n):
-        self.check_initialization();
-
-        # run the benchmark
-        return self.cpp_force.benchmark(int(n))
-
-    ## Enables the force
-    #
-    # \b Examples:
-    # \code
-    # force.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
     def enable(self):
+        R""" Enable the force.
+
+        Example::
+
+            force.enable()
+
+        See :py:meth:`disable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -243,23 +202,23 @@ class _constraint_force(hoomd.meta._metadata):
 # set default counter
 _constraint_force.cur_id = 0;
 
-## Constrain particles to the surface of a sphere
-#
-# The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
-# them to a sphere. Currently does not work with Brownian or Langevin dynamics (integrate.brownian and
-# integrate.langevin).
-# \MPI_SUPPORTED
 class sphere(_constraint_force):
-    ## Specify the %sphere constraint %force
-    #
-    # \param group Group on which to apply the constraint
-    # \param P (x,y,z) tuple indicating the position of the center of the sphere (in distance units)
-    # \param r Radius of the sphere (in distance units)
-    #
-    # \b Examples:
-    # \code
-    # constrain.sphere(group=groupA, P=(0,10,2), r=10)
-    # \endcode
+    R""" Constrain particles to the surface of a sphere.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        P (tuple): (x,y,z) tuple indicating the position of the center of the sphere (in distance units).
+        r (float): Radius of the sphere (in distance units).
+
+    :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
+    them to a sphere. Currently does not work with Brownian or Langevin dynamics (:py:class:`hoomd.md.integrate.brownian`
+    and :py:class:`integrate.langevin`).
+
+    Example::
+
+        constrain.sphere(group=groupA, P=(0,10,2), r=10)
+
+    """
     def __init__(self, group, P, r):
         hoomd.util.print_status_line();
 
@@ -281,37 +240,34 @@ class sphere(_constraint_force):
         self.r = r
         self.metadata_fields = ['group','P', 'r']
 
-## Constrain pairwise particle distances
-#
-# The command constrain.distance specifies that forces will be applied to all particles pairs for
-# which constraints have been defined
-#
-# The constraint algorithm implemented is described in
-#
-# [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul., vol. 13, no. 6, pp. 395--405, 1994.
-# and
-# [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp. 188--197, Sep. 2001.
-#
-# In brief, the second derivative of the Lagrange multipliers with resepect to time is set to zero, such
-# that both the distance constraints and their time derivatives are conserved within the accuracy of the Velocity
-# Verlet scheme, i.e. within \f$ \Delta t^2 \f$. The corresponding linear system of equations is solved.
-# Because constraints are satisfied at \f$ t + 2 \Delta t \f$, the scheme is self-correcting and drifts are avoided.
-#
-# \note In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
-# Therefore, if molecules defined by constraints extend over more than half the local domain size, an error is raised.
-#
-# \warning constrain.distance() does not currently interoperate with integrate.brownian() or integrate.langevin()
-#
-# \sa hoomd.data.system_data
-#
-# \MPI_SUPPORTED
 class distance(_constraint_force):
-    ## Specify the pairwise %distance constraint %force
-    #
-    # \b Examples:
-    # \code
-    # constrain.distance()
-    # \endcode
+    R""" Constrain pairwise particle distances.
+
+    :py:class:`distance` specifies that forces will be applied to all particles pairs for
+    which constraints have been defined.
+
+    The constraint algorithm implemented is described in:
+
+     * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul., vol. 13, no. 6, pp. 395--405, 1994.
+     * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp. 188--197, Sep. 2001.
+
+    In brief, the second derivative of the Lagrange multipliers with respect to time is set to zero, such
+    that both the distance constraints and their time derivatives are conserved within the accuracy of the Velocity
+    Verlet scheme, i.e. within :math:`\Delta t^2`. The corresponding linear system of equations is solved.
+    Because constraints are satisfied at :math:`t + 2 \Delta t`, the scheme is self-correcting and drifts are avoided.
+
+    Warning:
+        In MPI simulations, all particles connected through constraints will be communicated between processors as ghost particles.
+        Therefore, it is an error when molecules defined by constraints extend over more than half the local domain size.
+
+    .. caution::
+        constrain.distance() does not currently interoperate with integrate.brownian() or integrate.langevin()
+
+    Example::
+
+        constrain.distance()
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
 
@@ -326,69 +282,66 @@ class distance(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    ## Set parameters for constraint computation
-    #
-    # \param rel_tol The relative tolerance with which constraint violations are detected (**optional**)
-    # \b Examples:
-    # \code
-    # dist = constrain.distance()
-    # dist.set_params(rel_tol=0.0001)
     def set_params(self,rel_tol=None):
+        R""" Set parameters for constraint computation.
+
+        Args:
+            rel_tol (float): The relative tolerance with which constraint violations are detected (**optional**).
+
+        Example::
+
+            dist = constrain.distance()
+            dist.set_params(rel_tol=0.0001)
+        """
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
-## Constrain rigid bodies
-#
-# Combine particles into rigid bodies. Rigid bodies are defined by a single central particle, and a number of constituent
-# particles. The type of a particle determines whether it is a central particle or not. For central particle types,
-# the parameters passed to constrain.rigid() specify which constituent particle types and positions are associated with it.
-#
-# The system is initialized with the central particles only, and the constituent particles are created automatically
-# around every central particle upon a call to rigid.create_bodies()
-#
-# Example for defining a cylindrical rigid body of two constituent particles of type 'const' and a central particle of
-# type 'central':
-#
-# \code
-# # create the constituent particle type
-# system.particles.types.add('const')
-# # define the rigid body type
-# rigid = md.constrain.rigid()
-# rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
-# # .. create pair.lj() ..
-# # create constituent particles and run
-# rigid.create_bodies()
-# run(100)
-# \endcode
-#
-# In this example, only particles of type 'central' are assumed to exist already, whereas the constituent particles
-# will be created with the run() command. Multiple, subsequent run()'s are supported, and the particles won't be duplicated
-# once created.
-#
-# \note Automatic creation of constituent particles can change particle tags. If bonds have been defined between particles
-# in the startup file, or bonds connect to constituent particles, rigid bodies should be created manually.
-#
-# Example with manual initialization of constituent particles.
-# \code
-# # intialize system, including constituent particles and some bonds
-# system = init.read_xml('init.xml')
-# rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
-# run(100)
-# \endcode
-#
-# \note If you create the constituent particles manually, the central particle of a rigid body must have a lower tag than
-# all of its constituent particles. Constituent particles follow in monotically increasing tag order, corresponding
-# to the order they were defined in the argument to rigid.set_param(). The order of central and contiguous particles need
-# **not** to be contiguous.
-#
-# \MPI_SUPPORTED
 class rigid(_constraint_force):
-    ## Specify rigid body constraints
-    #
-    # \b Examples:
-    # \code
-    # rigid = constrain.rigid()
-    # \endcode
+    R""" Constrain particles in rigid bodies.
+
+    Combine particles into rigid bodies. Rigid bodies are defined by a single central particle, and a number of constituent
+    particles. The type of a particle determines whether it is a central particle or not. For central particle types,
+    the parameters passed to :py:class:`rigid` specify which constituent particle types and positions are associated with it.
+
+    The system may initialized with the central particles only, and the constituent particles are created automatically
+    around every central particle upon a call to :py:meth:`create_bodies()`
+
+    Example for defining a cylindrical rigid body of two constituent particles of type 'const' and a central particle of
+    type 'central'::
+
+
+        # create the constituent particle type
+        system.particles.types.add('const')
+        # define the rigid body type
+        rigid = md.constrain.rigid()
+        rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
+        # .. create pair.lj() ..
+        # create constituent particles and run
+        rigid.create_bodies()
+        run(100)
+
+    In this example, only particles of type 'central' are assumed to exist already, whereas the constituent particles
+    will be created with the run() command. Multiple, subsequent run()'s are supported, and the particles won't be duplicated
+    once created.
+
+    .. danger::
+        Automatic creation of constituent particles can change particle tags. If bonds have been defined between particles
+        in the initial configuration, or bonds connect to constituent particles, rigid bodies should be created manually.
+
+    Example with manual initialization of constituent particles::
+
+        # intialize system, including constituent particles and some bonds
+        system = init.read_xml('init.xml')
+        rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
+        run(100)
+
+    .. important::
+        When you create the constituent particles manually, the central particle of a rigid body must have a lower tag than
+        all of its constituent particles. Constituent particles follow in monotically increasing tag order, corresponding
+        to the order they were defined in the argument to :py:meth:`set_param()`. The order of central and contiguous particles need
+        **not** to be contiguous.
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
 
@@ -405,27 +358,29 @@ class rigid(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    ## Set constituent particle types and coordinates for a rigid body
-    #
-    # \param type_name The type of the central particle
-    # \param types List of types of constituent particles
-    # \param positions List of relative positions of constituent particles
-    # \param orientations List of orientations of constituent particles (**optional**)
-    # \param charge List of charges of constituent particles (**optional**)
-    # \param diameters List of diameters of constituent particles (**optional**)
-    #
-    # \note The constituent particle type must be existant.
-    # If it does not exist, it can be created on the fly using
-    # \code system.particles.types.add('A_const') \endcode
-    # See also \link hoomd_script.data data access\endlink.
-    #
-    # Example:
-    # \code
-    # rigid = constrain.rigd()
-    # rigid.set_param('A', types = ['A_const', 'A_const'], positions = [(0,0,1),(0,0,-1)])
-    # rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
-    # \endcode
     def set_param(self,type_name, types, positions, orientations=None, charges=None, diameters=None):
+        R""" Set constituent particle types and coordinates for a rigid body.
+
+        Args:
+            type_name (str): The type of the central particle
+            types (list): List of types of constituent particles
+            positions (list): List of relative positions of constituent particles
+            orientations (list): List of orientations of constituent particles (**optional**)
+            charge (list): List of charges of constituent particles (**optional**)
+            diameters (list): List of diameters of constituent particles (**optional**)
+
+        .. caution::
+            The constituent particle type must be exist.
+            If it does not exist, it can be created on the fly using
+            ``system.particles.types.add('A_const')`` (see :py:mod:`hoomd.data`).
+
+        Example::
+
+            rigid = constrain.rigd()
+            rigid.set_param('A', types = ['A_const', 'A_const'], positions = [(0,0,1),(0,0,-1)])
+            rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
+
+        """
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -494,9 +449,12 @@ class rigid(_constraint_force):
         # set parameters in C++ force
         self.cpp_force.setParam(type_id, type_vec, pos_vec, orientation_vec, charge_vec, diameter_vec)
 
-    ## Create copies of rigid bodies
-    # \param create If true, create rigid bodies, otherwise validate existing ones
     def create_bodies(self, create=True):
+        R""" Create copies of rigid bodies.
+
+        Args:
+            create (bool): When True, create rigid bodies, otherwise validate existing ones.
+        """
         self.cpp_force.validateRigidBodies(create)
 
     ## \internal

@@ -9,6 +9,7 @@ md
     module-md-angle
     module-md-bond
     module-md-charge
+    module-md-constrain
 
 .. rubric:: Details
 
