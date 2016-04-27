@@ -11,6 +11,7 @@ md
     module-md-charge
     module-md-constrain
     module-md-dihedral
+    module-md-external
 
 .. rubric:: Details
 
