@@ -10,6 +10,7 @@ md
     module-md-bond
     module-md-charge
     module-md-constrain
+    module-md-dihedral
 
 .. rubric:: Details
 
