@@ -1,8 +1,10 @@
 Credits
 =======
 
-HOOMD-blue Developers:
-----------------------
+HOOMD-blue Developers
+---------------------
+
+The following people contributed to the :py:mod:`hoomd` and :py:mod:`hoomd.md` packages.
 
 Joshua Anderson, University of Michigan - **Lead developer**
 
@@ -155,6 +157,81 @@ Chengyu Dai, University of Michigan
 Isass Bruss, Chengyu Dai, University of Michigan
  * force.active
  * update.constraint_ellipsoid
+
+HPMC developers
+---------------
+
+The following people contributed to the :py:mod:`hpmc` package.
+
+* Joshua Anderson, University of Michigan - Lead developer
+    * Vision
+    * Initial design
+    * Code review
+    * NVT trial move processing (CPU / GPU)
+    * Sphere shape
+    * Polygon shape
+    * Spheropolygon shape
+    * Simple polygon shape
+    * Ellipsoid shape - adaptation of Michael's Ellipsoid overlap check
+    * 2D Xenocollide implementation
+    * 2D GJKE implementation
+    * MPI parallel domain decomposition
+    * Scale distribution function pressure measurement
+    * POS writer integration
+    * Bounding box tree generation, query, and optimizations
+    * BVH implementation of trial move processing
+    * SSE and AVX intrinsics
+
+* Eric Irrgang, University of Michigan
+    * NPT updater
+    * Convex polyhedron shape
+    * Convex spheropolyhedron shape
+    * 3D Xenocollide implementation
+    * 3D GJKE implementation
+    * Move size autotuner (in collaboration with Ben Schultz)
+    * Densest packing compressor (in collaboration with Ben Schultz)
+    * POS file utilities (in collaboration with Ben Schultz)
+    * Shape union low-level implementation
+    * Sphere union shape (in collaboration with Khalid Ahmed)
+
+* Ben Schultz, University of Michigan
+    * Frenkel-Ladd free energy determination
+    * Move size autotuner (in collaboration with Eric Irrgang)
+    * Densest packing compressor (in collaboration with Eric Irrgang)
+    * POS file utilities (in collaboration with Eric Irrgang)
+    * Assign move size by particle type
+    * Ellipsoid overlap check bug fixes
+
+* Jens Glaser, University of Michigan
+    * Patchy sphere shape
+    * General polyhedron shape
+    * BVH implementation for countOverlaps
+    * Hybrid BVH/small box trial move processing
+    * Helped port the Sphinx overlap check
+    * Dynamic number of particle types support
+    * Implicit depletants
+
+* Eric Harper, University of Michigan
+    * Misc bug fixes to move size by particle type feature
+    * Initial code for MPI domain decomposition
+
+* Khalid Ahmed, University of Michigan
+    * Ported the Sphinx overlap check
+    * Sphere union shape (in collaberation with Eric Irrgang)
+
+* Elizabeth R Chen, University of Michigan
+    * Developed the Sphinx overlap check
+
+* Carl Simon Adorf, University of Michigan
+    * meta data output
+
+* Samanthule Nola, University of Michigan
+    * Run time determination of max_verts
+
+* Paul Dodd, Erin Teich, University of Michigan
+    * External potential framework
+    * Wall overlap checks
+    * Lattice external potential
 
 Source code
 -----------
