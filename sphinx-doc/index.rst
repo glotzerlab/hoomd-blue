@@ -22,6 +22,7 @@ Welcome to the user documentation for HOOMD-blue!
 
    module-hoomd
    package-hpmc
+   package-md
 
 .. toctree::
    :maxdepth: 3
