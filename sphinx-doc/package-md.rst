@@ -8,6 +8,7 @@ md
 
     module-md-angle
     module-md-bond
+    module-md-charge
 
 .. rubric:: Details
 
