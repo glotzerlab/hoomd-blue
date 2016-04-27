@@ -12,6 +12,7 @@ md
     module-md-constrain
     module-md-dihedral
     module-md-external
+    module-md-force
 
 .. rubric:: Details
 
