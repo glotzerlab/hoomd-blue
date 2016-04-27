@@ -49,6 +49,16 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Angle potentials.
+
+Angles add forces between specified triplets of particles and are typically used to
+model chemical angles between two bonds.
+
+By themselves, angles that have been specified in an initial configuration do nothing. Only when you
+specify an angle force (i.e. angle.harmonic), are forces actually calculated between the
+listed particles.
+"""
+
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
@@ -57,27 +67,29 @@ import hoomd
 import math;
 import sys;
 
-## Defines %angle coefficients
-# \brief Defines angle potential coefficients
-# The coefficients for all %angle force are specified using this class. Coefficients are
-# specified per angle type.
-#
-# There are two ways to set the coefficients for a particular %angle %force.
-# The first way is to save the %angle %force in a variable and call set() directly.
-# See below for an example of this.
-#
-# The second method is to build the coeff class first and then assign it to the
-# %angle %force. There are some advantages to this method in that you could specify a
-# complicated set of %angle %force coefficients in a separate python file and import
-# it into your job script.
-#
-# Example:
-# \code
-# my_coeffs = angle.coeff();
-# my_angle_force.angle_coeff.set('polymer', k=330.0, r=0.84)
-# my_angle_force.angle_coeff.set('backbone', k=330.0, r=0.84)
-# \endcode
 class coeff:
+    R""" Define angle coefficients.
+
+    The coefficients for all angle force are specified using this class. Coefficients are
+    specified per angle type.
+
+    There are two ways to set the coefficients for a particular angle potential.
+    The first way is to save the angle potential in a variable and call :py:meth:`set()` directly.
+    See below for an example of this.
+
+    The second method is to build the coeff class first and then assign it to the
+    angle potential. There are some advantages to this method in that you could specify a
+    complicated set of angle potential coefficients in a separate python file and import
+    it into your job script.
+
+    Example::
+
+        my_coeffs = hoomd.md.angle.coeff();
+        my_angle_force.angle_coeff.set('polymer', k=330.0, r=0.84)
+        my_angle_force.angle_coeff.set('backbone', k=330.0, r=0.84)
+
+    """
+
     ## \internal
     # \brief Initializes the class
     # \details
@@ -106,35 +118,34 @@ class coeff:
     def set_default_coeff(self, name, value):
         self.default_coeff[name] = value;
 
-    ## Sets parameters for one angle type
-    # \param type Type of angle
-    # \param coeffs Named coefficients (see below for examples)
-    #
-    # Calling set() results in one or more parameters being set for a angle type. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the %angle
-    # %force you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible angle types as defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-    # angle types that do not exist in the simulation. This can be useful in defining a %force field for many
-    # different types of angles even when some simulations only include a subset.
-    #
-    # To set the same coefficients between many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved \c system from the init command.
-    #
-    # \b Examples:
-    # \code
-    # my_angle_force.angle_coeff.set('polymer', k=330.0, r0=0.84)
-    # my_angle_force.angle_coeff.set('backbone', k=1000.0, r0=1.0)
-    # my_angle_force.angle_coeff.set(['angleA','angleB'], k=100, r0=0.0)
-    # \endcode
-    #
-    # \note Single parameters can be updated. If both k and r0 have already been set for a particle type,
-    # then executing coeff.set('polymer', r0=1.0) will %update the value of polymer angles and leave the other
-    # parameters as they were previously set.
-    #
     def set(self, type, **coeffs):
+        R""" Sets parameters for angle types.
+
+        Args:
+            type (str): Type of angle (or a list of type names)
+            coeffs: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a angle type. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the angle
+        potential you are setting these coefficients for, see the corresponding documentation.
+
+        All possible angle types as defined in the simulation box must be specified before executing run().
+        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+        angle types that do not exist in the simulation. This can be useful in defining a potential field for many
+        different types of angles even when some simulations only include a subset.
+
+        Examples::
+
+            my_angle_force.angle_coeff.set('polymer', k=330.0, r0=0.84)
+            my_angle_force.angle_coeff.set('backbone', k=1000.0, r0=1.0)
+            my_angle_force.angle_coeff.set(['angleA','angleB'], k=100, r0=0.0)
+
+        Note:
+            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
+            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
+            parameters as they were previously set.
+
+        """
         hoomd.util.print_status_line();
 
         # listify the input
@@ -210,7 +221,7 @@ class coeff:
         return valid;
 
     ## \internal
-    # \brief Gets the value of a single %angle %force coefficient
+    # \brief Gets the value of a single angle potential coefficient
     # \detail
     # \param type Name of angle type
     # \param coeff_name Coefficient to get
@@ -226,47 +237,33 @@ class coeff:
     def get_metadata(self):
         return self.values
 
-## \package hoomd.angle
-# \brief Commands that specify %angle forces
-#
-# Angles add forces between specified triplets of particles and are typically used to
-# model chemical angles between two bonds. Angles between particles are set when an input XML file is read
-# (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
-#
-# By themselves, angles that have been specified in an input file do nothing. Only when you
-# specify an angle force (i.e. angle.harmonic), are forces actually calculated between the
-# listed particles.
-
-## Harmonic %angle force
-#
-# The command angle.harmonic specifies a %harmonic potential energy between every triplet of particles
-# with an angle specified between them.
-#
-# \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
-# where \f$ \theta \f$ is the angle between the triplet of particles.
-#
-# Coefficients:
-# - \f$ \theta_0 \f$ - rest %angle (in radians)
-# - \f$ k \f$ - %force constant (in units of energy/radians^2)
-#
-# Coefficients \f$ k \f$ and \f$ \theta_0 \f$ must be set for each type of %angle in the simulation using
-# angle_coeff.set().
-#
-# \b Examples:
-# \code
-# harmonic.angle_coeff.set('polymer', k=3.0, t0=0.7851)
-# harmonic.angle_coeff.set('backbone', k=100.0, t0=1.0)
-# \endcode
-#
-# \note Specifying the angle.harmonic command when no angles are defined in the simulation results in an error.
-# \MPI_SUPPORTED
 class harmonic(force._force):
-    ## Specify the %harmonic %angle %force
-    #
-    # \b Example:
-    # \code
-    # harmonic = angle.harmonic()
-    # \endcode
+    R""" Harmonic angle potential.
+
+    The command angle.harmonic specifies a harmonic potential energy between every triplet of particles
+    with an angle specified between them.
+
+    .. math::
+
+        V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
+
+    where :math:`\theta` is the angle between the triplet of particles.
+
+    Coefficients:
+
+    - :math:`\theta_0` - rest angle  ``t0`` (in radians)
+    - :math:`k` - potential constant ``k`` (in units of energy/radians^2)
+
+    Coefficients :math:`k` and :math:`\theta_0` must be set for each type of angle in the simulation using the
+    method :py:meth:`angle_coeff.set() <coeff.set()>`.
+
+    Examples::
+
+        harmonic = angle.harmonic()
+        harmonic.angle_coeff.set('polymer', k=3.0, t0=0.7851)
+        harmonic.angle_coeff.set('backbone', k=100.0, t0=1.0)
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         # check that some angles are defined
@@ -324,53 +321,58 @@ class harmonic(force._force):
         data['angle_coeff'] = self.angle_coeff
         return data
 
-## CGCMM %angle force
-#
-# The command angle.cgcmm defines a regular %harmonic potential energy between every defined triplet
-# of particles in the simulation, but in addition in adds the repulsive part of a CGCMM pair potential
-# between the first and the third particle.
-#
-# Reference \cite Levine2011 describes the CGCMM implementation details in HOOMD-blue. Cite it
-# if you utilize the CGCMM potential in your work.
-#
-# The total potential is thus,
-# \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
-# where \f$ \theta \f$ is the current angle between the three particles
-# and either
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[
-#     \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]
-#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
-# or
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
-#     V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
-#     \left( \frac{\sigma}{r} \right)^{6} \right]
-#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
-# or
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
-#     V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#     \left( \frac{\sigma}{r} \right)^{4} \right]
-#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
-#  \f$ r_{13} \f$ being the distance between the two outer particles of the angle.
-#
-# Coeffients:
-# - \f$ \theta_0 \f$ - rest %angle (in radians)
-# - \f$ k \f$ - %force constant (in units of energy/radians^2)
-# - \f$ \varepsilon \f$ - strength of potential (in energy units)
-# - \f$ \sigma \f$ - distance of interaction (in distance units)
-#
-# Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for
-# each type of %angle in the simulation using
-# set_coeff().
-#
-# \note Specifying the angle.cgcmm command when no angles are defined in the simulation results in an error.
-# \MPI_SUPPORTED
 class cgcmm(force._force):
-    ## Specify the %cgcmm %angle %force
-    #
-    # \b Example:
-    # \code
-    # cgcmmAngle = angle.cgcmm()
-    # \endcode
+    R""" CGCMM angle potential.
+
+    The command angle.cgcmm defines a regular harmonic potential energy between every defined triplet
+    of particles in the simulation, but in addition in adds the repulsive part of a CGCMM pair potential
+    between the first and the third particle.
+
+    `B. Levine et. al. 2011 <http://dx.doi.org/10.1021/ct2005193>`_ describes the CGCMM implementation details in
+    HOOMD-blue. Cite it if you utilize the CGCMM potential in your work.
+
+    The total potential is thus:
+
+    .. math::
+
+        V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
+
+    where :math:`\theta` is the current angle between the three particles
+    and either:
+
+    .. math::
+
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[
+        \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}}
+
+
+    .. math::
+
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+        V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
+        \left( \frac{\sigma}{r} \right)^{6} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}
+
+    .. math::
+
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+        V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        \left( \frac{\sigma}{r} \right)^{4} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}}
+
+    with :math:`r_{13}` being the distance between the two outer particles of the angle.
+
+    Coefficients:
+
+    - :math:`\theta_0` - rest angle ``t0`` (in radians)
+    - :math:`k` - potential constant ``k`` (in units of energy/radians^2)
+    - :math:`\varepsilon` - strength of potential ``epsilon`` (in energy units)
+    - :math:`\sigma` - distance of interaction ``sigma`` (in distance units)
+
+    Coefficients :math:`k, \theta_0, \varepsilon``, and :math:`\sigma` and Lennard-Jones exponents pair must be set for
+    each type of angle in the simulation using :py:meth:`set_coeff()`.
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         # check that some angles are defined
@@ -392,31 +394,25 @@ class cgcmm(force._force):
         # variable for tracking which angle type coefficients have been set
         self.angle_types_set = [];
 
-    ## Sets the CG-CMM %angle coefficients for a particular %angle type
-    #
-    # \param angle_type Angle type to set coefficients for
-    # \param k Coefficient \f$ k \f$ (in units of energy/radians^2)
-    # \param t0 Coefficient \f$ \theta_0 \f$ (in radians)
-    # \param exponents is the type of CG-angle exponents we want to use for the repulsion.
-    # \param epsilon is the 1-3 repulsion strength (in energy units)
-    # \param sigma is the CG particle radius (in distance units)
-    #
-    # Using set_coeff() requires that the specified CGCMM angle %force has been saved in a variable. i.e.
-    # \code
-    # cgcmm = angle.cgcmm()
-    # \endcode
-    #
-    # \b Examples (note use of 'exponents' variable):
-    # \code
-    # cgcmm.set_coeff('polymer', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
-    # cgcmm.set_coeff('backbone', k=100.0, t0=1.0, exponents=96, epsilon=23.0, sigma=0.1)
-        # cgcmm.set_coeff('residue', k=100.0, t0=1.0, exponents='lj12_4', epsilon=33.0, sigma=0.02)
-        # cgcmm.set_coeff('cg96', k=100.0, t0=1.0, exponents='LJ9-6', epsilon=9.0, sigma=0.3)
-    # \endcode
-    #
-    # The coefficients for every CG-CMM angle type in the simulation must be set
-    # before the run() can be started.
     def set_coeff(self, angle_type, k, t0, exponents, epsilon, sigma):
+        R""" Sets the CG-CMM angle coefficients for a particular angle type.
+
+        Args:
+            angle_type (str): Angle type to set coefficients for
+            k (float): Coefficient :math:`k` (in units of energy/radians^2)
+            t0 (float): Coefficient :math:`\theta_0` (in radians)
+            exponents (str): is the type of CG-angle exponents we want to use for the repulsion.
+            epsilon (float): is the 1-3 repulsion strength (in energy units)
+            sigma (float): is the CG particle radius (in distance units)
+
+        Examples::
+
+            cgcmm.set_coeff('polymer', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
+            cgcmm.set_coeff('backbone', k=100.0, t0=1.0, exponents=96, epsilon=23.0, sigma=0.1)
+            cgcmm.set_coeff('residue', k=100.0, t0=1.0, exponents='lj12_4', epsilon=33.0, sigma=0.02)
+            cgcmm.set_coeff('cg96', k=100.0, t0=1.0, exponents='LJ9-6', epsilon=9.0, sigma=0.3)
+
+        """
         hoomd.util.print_status_line();
         cg_type=0
 
@@ -477,85 +473,64 @@ def _table_eval(theta, V, T, width):
       i = int(round((theta)/dth))
       return (V[i], T[i])
 
-
-## Tabulated %angle %force
-#
-# The command angle.table specifies that a tabulated  %angle %force should be added to every bonded triple of particles
-# in the simulation.
-#
-# The %torque \f$ T\f$ is (in units of force * distance)
-# \f{eqnarray*}
-#  T(\theta)     = & T_{\mathrm{user}}(\theta) \\
-# \f}
-# and the potential \f$ V(\theta) \f$ is (in energy units)
-# \f{eqnarray*}
-#            = & V_{\mathrm{user}}(\theta) \\
-# \f}
-# ,where \f$ \theta \f$ is the %angle from A-B to B-C in the triple.
-#
-# \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ are evaluated on *width* grid points
-# between \f$ 0 \f$ and \f$ \pi \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify: \f$ T = -\frac{\partial V}{\partial \theta}\f$
-#
-# The following coefficients must be set per unique %pair of particle types.
-# - \f$ T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
-# - coefficients passed to `func` - `coeff` (see example)
-#
-# The table *width* is set once when angle.table is specified (see table.__init__())
-# There are two ways to specify the other parameters.
-#
-# \par Example: Set table from a given function
-# When you have a functional form for T and F, you can enter that
-# directly into python. angle.table will evaluate the given function over \a width points between \f$ 0 \f$ and \f$ \pi \f$
-# and use the resulting values in the table.
-# ~~~~~~~~~~~~~
-# def harmonic(theta, kappa, theta_0):
-#     V = 0.5 * kappa * (theta-theta_0)**2;
-#     T = -kappa*(theta-theta_0);
-#     return (V, T)
-#
-# btable = angle.table(width=1000)
-# btable.angle_coeff.set('angle1', func=harmonic, coeff=dict(kappa=330, theta_0=0))
-# btable.angle_coeff.set('angle2', func=harmonic,coeff=dict(kappa=30, theta_0=0.1))
-# ~~~~~~~~~~~~~
-#
-# \par Example: Set a table from a file
-# When you have no function for for *T* or *F*, or you otherwise have the data listed in a file, angle.table can use the given
-# values direcly. You must first specify the number of rows in your tables when initializing angle.table. Then use
-# table.set_from_file() to read the file.
-# ~~~~~~~~~~~~~
-# btable = angle.table(width=1000)
-# btable.set_from_file('polymer', 'angle.dat')
-# ~~~~~~~~~~~~~
-#
-# \par Example: Mix functions and files
-# ~~~~~~~~~~~~~
-# btable.angle_coeff.set('angle1', unc=harmonic, coeff=dict(kappa=330, theta_0=0))
-# btable.set_from_file('angle2', 'angle.dat')
-# ~~~~~~~~~~~~~
-#
-# \note %Angle coefficients for all type angles in the simulation must be
-# set before it can be started with run().
-# \MPI_SUPPORTED
 class table(force._force):
-    ## Specify the Tabulated %angle %force
-    #
-    # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # def har(theta, kappa, theta_0):
-    #   V = 0.5 * kappa * (theta-theta_0)**2;
-    #   T = -kappa*(theta-theta_0);
-    #   return (V, T)
-    #
-    # atable = angle.table(width=1000)
-    # atable.angle_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=0.0))
-    # \endcode
-    #
-    # \note %Pair coefficients for all type angles in the simulation must be
-    # set before it can be started with run()
+    R""" Tabulated angle potential.
+
+    Args:
+
+        width (int): Number of points to use to interpolate V and F (see documentation above)
+        name (str): Name of the force instance
+
+    :py:class:`table` specifies that a tabulated  angle potential should be added to every bonded triple of particles
+    in the simulation.
+
+    The torque :math:`T` is (in units of force * distance) and the potential :math:`V(\theta)` is (in energy units):
+
+    .. math::
+        \begin{eqnarray*}
+         T(\theta)     = & T_{\mathrm{user}}(\theta) \\
+         V(\theta)     = & V_{\mathrm{user}}(\theta)
+        \end{eqnarray*}
+
+    where :math:`\theta` is the angle from A-B to B-C in the triple.
+
+    :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` are evaluated on *width* grid points
+    between :math:`0` and :math:`\pi`. Values are interpolated linearly between grid points.
+    For correctness, you must specify: :math:`T = -\frac{\partial V}{\partial \theta}`
+
+    Parameters:
+
+    - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` - evaluated by `func` (see example)
+    - coefficients passed to `func` - `coeff` (see example)
+
+    The table *width* is set once when :py:class:`table` is specified. There are two ways to specify the other
+    parameters.
+
+    .. rubric:: Set table from a given function
+
+    When you have a functional form for T and F, you can enter that
+    directly into python. :py:class:`table` will evaluate the given function over *width* points between :math:`0` and :math:`\pi`
+    and use the resulting values in the table::
+
+        def harmonic(theta, kappa, theta_0):
+            V = 0.5 * kappa * (theta-theta_0)**2;
+            T = -kappa*(theta-theta_0);
+            return (V, T)
+
+        btable = angle.table(width=1000)
+        btable.angle_coeff.set('angle1', func=harmonic, coeff=dict(kappa=330, theta_0=0))
+        btable.angle_coeff.set('angle2', func=harmonic,coeff=dict(kappa=30, theta_0=0.1))
+
+    .. rubric:: Set a table from a file
+
+    When you have no function for for *T* or *F*, or you otherwise have the data listed in a file, :py:class:`table` can use the given
+    values directly. You must first specify the number of rows in your tables when initializing :py:class:`table`. Then use
+    :py:meth:`set_from_file()` to read the file::
+
+        btable = angle.table(width=1000)
+        btable.set_from_file('polymer', 'angle.dat')
+
+    """
     def __init__(self, width, name=None):
         hoomd.util.print_status_line();
 
@@ -618,72 +593,74 @@ class table(force._force):
 
             self.update_angle_table(i, func, coeff);
 
-    ## Set a angle pair interaction from a file
-    # \param anglename Name of angle
-    # \param filename Name of the file to read
-    #
-    # The provided file specifies V and F at equally spaced theta values.
-    # Example:
-    # \code
-    # #t  V    T
-    # 0.0 2.0 -3.0
-    # 1.5707 3.0 -4.0
-    # 3.1414 2.0 -3.0
-    # \endcode
-    #
-    # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at \f$ \pi \f$
-    # and that \f$ \delta \theta = \pi/(N-1) \f$. The table is read
-    # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
-    #
     def set_from_file(self, anglename, filename):
-          hoomd.util.print_status_line();
+        R""" Set a angle pair interaction from a file.
 
-          # open the file
-          f = open(filename);
+        Args:
+            anglename (str): Name of angle
+            filename (str): Name of the file to read
 
-          theta_table = [];
-          V_table = [];
-          T_table = [];
+        The provided file specifies V and F at equally spaced theta values::
 
-          # read in lines from the file
-          for line in f.readlines():
-              line = line.strip();
+            #t  V    T
+            0.0 2.0 -3.0
+            1.5707 3.0 -4.0
+            3.1414 2.0 -3.0
 
-              # skip comment lines
-              if line[0] == '#':
-                  continue;
+        Warning:
+            The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at :math:`\pi`
+            and that :math:`\delta \theta = \pi/(N-1)`. The table is read
+            directly into the grid points used to evaluate :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)`.
 
-              # split out the columns
-              cols = line.split();
-              values = [float(f) for f in cols];
+        """
+        hoomd.util.print_status_line();
 
-              # validate the input
-              if len(values) != 3:
-                  hoomd.context.msg.error("angle.table: file must have exactly 3 columns\n");
-                  raise RuntimeError("Error reading table file");
+        # open the file
+        f = open(filename);
 
-              # append to the tables
-              theta_table.append(values[0]);
-              V_table.append(values[1]);
-              T_table.append(values[2]);
+        theta_table = [];
+        V_table = [];
+        T_table = [];
 
-          # validate input
-          if self.width != len(theta_table):
-              hoomd.context.msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
-              raise RuntimeError("Error reading table file");
+        # read in lines from the file
+        for line in f.readlines():
+            line = line.strip();
+
+            # skip comment lines
+            if line[0] == '#':
+                continue;
+
+            # split out the columns
+            cols = line.split();
+            values = [float(f) for f in cols];
+
+            # validate the input
+            if len(values) != 3:
+                hoomd.context.msg.error("angle.table: file must have exactly 3 columns\n");
+                raise RuntimeError("Error reading table file");
+
+            # append to the tables
+            theta_table.append(values[0]);
+            V_table.append(values[1]);
+            T_table.append(values[2]);
+
+        # validate input
+        if self.width != len(theta_table):
+            hoomd.context.msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
+            raise RuntimeError("Error reading table file");
 
 
-          # check for even spacing
-          dth = math.pi / float(self.width-1);
-          for i in range(0,self.width):
-              theta =  dth * i;
-              if math.fabs(theta - theta_table[i]) > 1e-3:
-                  hoomd.context.msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
-                  raise RuntimeError("Error reading table file");
+        # check for even spacing
+        dth = math.pi / float(self.width-1);
+        for i in range(0,self.width):
+            theta =  dth * i;
+            if math.fabs(theta - theta_table[i]) > 1e-3:
+                hoomd.context.msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
+                raise RuntimeError("Error reading table file");
 
-          hoomd.util.quiet_status();
-          self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-          hoomd.util.unquiet_status();
+        hoomd.util.quiet_status();
+        self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
+        hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata
@@ -695,5 +672,3 @@ class table(force._force):
 
         data['angle_coeff'] = self.angle_coeff
         return data
-
-

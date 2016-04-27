@@ -7,6 +7,7 @@ md
     :maxdepth: 3
 
     module-md-angle
+    module-md-bond
 
 .. rubric:: Details
 
