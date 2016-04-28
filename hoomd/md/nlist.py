@@ -842,7 +842,7 @@ class tree(nlist):
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         hoomd.util.print_status_line()
 
-        _nlist.__init__(self)
+        nlist.__init__(self)
 
         # the r_cut will be overridden by the pair potentials attached to the neighbor list
         default_r_cut = 0.0
