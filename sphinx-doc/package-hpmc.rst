@@ -1,6 +1,12 @@
 hpmc
 ====
 
+.. rubric:: Details
+
+.. automodule:: hoomd.hpmc
+    :synopsis: HPMC package.
+    :members:
+
 .. rubric:: Modules
 
 .. toctree::
@@ -12,9 +18,3 @@ hpmc
     module-hpmc-integrate
     module-hpmc-update
     module-hpmc-util
-
-.. rubric:: Details
-
-.. automodule:: hoomd.hpmc
-    :synopsis: HPMC package.
-    :members:

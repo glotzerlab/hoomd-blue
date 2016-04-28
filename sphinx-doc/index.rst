@@ -20,7 +20,7 @@ Welcome to the user documentation for HOOMD-blue!
    :maxdepth: 3
    :caption: Python Modules
 
-   module-hoomd
+   package-hoomd
    package-hpmc
    package-md
 

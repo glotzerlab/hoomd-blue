@@ -1,6 +1,12 @@
 md
 ====
 
+.. rubric:: Details
+
+.. automodule:: hoomd.md
+    :synopsis: Molecular Dynamics.
+    :members:
+
 .. rubric:: Modules
 
 .. toctree::
@@ -17,9 +23,3 @@ md
     module-md-integrate
     module-md-nlist
     module-md-pair
-
-.. rubric:: Details
-
-.. automodule:: hoomd.md
-    :synopsis: Molecular Dynamics.
-    :members:

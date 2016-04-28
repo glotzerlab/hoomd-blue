@@ -1,6 +1,23 @@
 hoomd
 =====
 
+.. rubric:: Overview
+
+.. autosummary::
+    :nosignatures:
+
+    hoomd.cuda_profile_start
+    hoomd.cuda_profile_stop
+    hoomd.get_step
+    hoomd.run
+    hoomd.run_upto
+
+.. rubric:: Details
+
+.. automodule:: hoomd
+    :synopsis: HOOMD-blue main package.
+    :members:
+
 .. rubric:: Modules
 
 .. toctree::
@@ -21,20 +38,3 @@ hoomd
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
-
-.. rubric:: Overview
-
-.. autosummary::
-    :nosignatures:
-
-    hoomd.cuda_profile_start
-    hoomd.cuda_profile_stop
-    hoomd.get_step
-    hoomd.run
-    hoomd.run_upto
-
-.. rubric:: Details
-
-.. automodule:: hoomd
-    :synopsis: HOOMD-blue main package.
-    :members:
