@@ -15,6 +15,7 @@ md
     module-md-force
     module-md-improper
     module-md-integrate
+    module-md-nlist
 
 .. rubric:: Details
 
