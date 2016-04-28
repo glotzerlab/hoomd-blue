@@ -487,10 +487,9 @@ class table(force._force):
     The torque :math:`T` is (in units of force * distance) and the potential :math:`V(\theta)` is (in energy units):
 
     .. math::
-        \begin{eqnarray*}
-         T(\theta)     = & T_{\mathrm{user}}(\theta) \\
-         V(\theta)     = & V_{\mathrm{user}}(\theta)
-        \end{eqnarray*}
+
+        T(\theta)     = & T_{\mathrm{user}}(\theta) \\
+        V(\theta)     = & V_{\mathrm{user}}(\theta)
 
     where :math:`\theta` is the angle from A-B to B-C in the triple.
 

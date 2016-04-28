@@ -25,9 +25,10 @@ vector.
 Definitions and formulas for the cell parameter matrix
 ------------------------------------------------------
 
-The full cell parameter matrix is
+The full cell parameter matrix is:
 
 .. math::
+    :nowrap:
 
     \begin{eqnarray*}
     \mathbf{h}& =& \left(\begin{array}{ccc} L_x & xy L_y & xz L_z \\
@@ -41,17 +42,19 @@ The relationships between the tilt factors and the box angles :math:`\alpha`,
 :math:`\beta` and :math:`\gamma` are as follows:
 
 .. math::
+    :nowrap:
 
     \begin{eqnarray*}
     \cos\gamma \equiv \cos(\angle\vec a_1, \vec a_2) &=& \frac{xy}{\sqrt{1+xy^2}}\\
     \cos\beta \equiv \cos(\angle\vec a_1, \vec a_3) &=& \frac{xz}{\sqrt{1+xz^2+yz^2}}\\
-    \cos\alpha \equiv \cos(\angle\vec a_2, \vec a_3) &=& \frac{xy \cdot xz + yz}{\sqrt{1+xy^2} \sqrt{1+xz^2+yz^2}} \\
+    \cos\alpha \equiv \cos(\angle\vec a_2, \vec a_3) &=& \frac{xy \cdot xz + yz}{\sqrt{1+xy^2} \sqrt{1+xz^2+yz^2}}
     \end{eqnarray*}
 
 Given an arbitrarily oriented lattice with box vectors :math:`\vec v_1, \vec v_2, \vec v_3`, the HOOMD-blue
 box parameters for the rotated box can be found as follows.
 
 .. math::
+    :nowrap:
 
     \begin{eqnarray*}
     L_x &=& v_1\\
@@ -61,7 +64,7 @@ box parameters for the rotated box can be found as follows.
     L_z &=& \vec v_3 \cdot \frac{\vec v_1 \times \vec v_2}{\left| \vec v_1 \times \vec v_2 \right|}\\
     a_{3x} &=& \frac{\vec v_1 \cdot \vec v_3}{v_1}\\
     xz &=& \frac{a_{3x}}{L_z}\\
-    yz &=& \frac{\vec v_2 \cdot \vec v_3 - a_{2x}a_{3x}}{L_y L_z}\\
+    yz &=& \frac{\vec v_2 \cdot \vec v_3 - a_{2x}a_{3x}}{L_y L_z}
     \end{eqnarray*}
 
 Example::

@@ -14,6 +14,7 @@ md
     module-md-external
     module-md-force
     module-md-improper
+    module-md-integrate
 
 .. rubric:: Details
 

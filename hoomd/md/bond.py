@@ -368,10 +368,11 @@ class fene(_bond):
     :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter of particle :math:`i`, and
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
-                   = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma    \\
+                   = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
     Coefficients:
@@ -438,6 +439,7 @@ class table(force._force):
     The force :math:`\vec{F}` is (in force units) and the potential :math:`V(r)` is (in energy units):
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
