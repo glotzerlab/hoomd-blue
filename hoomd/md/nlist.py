@@ -598,7 +598,7 @@ class cell(nlist):
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None, deterministic=False):
         hoomd.util.print_status_line()
 
-        _nlist.__init__(self)
+        nlist.__init__(self)
 
         if name is None:
             self.name = "cell_nlist_%d" % cell.cur_id
@@ -680,7 +680,7 @@ class stencil(nlist):
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
         hoomd.util.print_status_line()
 
-        _nlist.__init__(self)
+        nlist.__init__(self)
 
         if name is None:
             self.name = "stencil_nlist_%d" % stencil.cur_id
