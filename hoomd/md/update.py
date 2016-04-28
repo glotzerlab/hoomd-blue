@@ -49,44 +49,46 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Update particle properties.
+
+When an updater is specified, it acts on the particle system each time step to change
+it in some way. See the documentation of specific updaters to find out what they do.
+"""
+
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd;
 from hoomd.update import _updater
 import sys;
 
-## \package hoomd.update
-# \brief Commands that modify the system state in some way
-#
-# When an updater is specified, it acts on the particle system each time step to change
-# it in some way. See the documentation of specific updaters to find out what they do.
-
-## Rescales particle velocities
-#
-# Every \a period time steps, particle velocities are rescaled by equal factors
-# so that they are consistent with a given temperature in the equipartition theorem
-# \f$\langle 1/2 m v^2 \rangle = k_B T \f$.
-#
-# update.rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
-# \MPI_SUPPORTED
 class rescale_temp(_updater):
-    ## Initialize the rescaler
-    #
-    # \param T Temperature set point (in energy units)
-    # \param period Velocities will be rescaled every \a period time steps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
-    #
-    # \b Examples:
-    # \code
-    # update.rescale_temp(T=1.2)
-    # rescaler = update.rescale_temp(T=0.5)
-    # update.rescale_temp(period=100, T=1.03)
-    # update.rescale_temp(period=100, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
-    # \endcode
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
+    r""" Rescales particle velocities.
+
+    Args:
+        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point (in energy units)
+        period (int): Velocities will be rescaled every *period* time steps
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* time steps, particle velocities and angular momenta are rescaled by equal factors
+    so that they are consistent with a given temperature in the equipartition theorem
+
+    .. math::
+
+        \langle 1/2 m v^2 \rangle = k_B T
+
+        \langle 1/2 I \omega^2 \rangle = k_B T
+
+    .. attention::
+        :py:class:`rescale_temp` does **not** run on the GPU, and will significantly slow down simulations.
+
+    Examples::
+
+        update.rescale_temp(T=1.2)
+        rescaler = update.rescale_temp(T=0.5)
+        update.rescale_temp(period=100, T=1.03)
+        update.rescale_temp(period=100, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+
+    """
     def __init__(self, T, period=1, phase=-1):
         hoomd.util.print_status_line();
 
@@ -108,20 +110,17 @@ class rescale_temp(_updater):
         self.period = period
         self.metadata_fields = ['T','period']
 
-    ## Change rescale_temp parameters
-    #
-    # \param T New temperature set point (in energy units)
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # rescaler = update.rescale_temp(T=0.5)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # rescaler.set_params(T=2.0)
-    # \endcode
     def set_params(self, T=None):
+        R""" Change rescale_temp parameters.
+
+        Args:
+            T (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set point (in energy units)
+
+        Examples::
+
+            rescaler.set_params(T=2.0)
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -130,29 +129,22 @@ class rescale_temp(_updater):
             self.cpp_updater.setT(T.cpp_variant);
             self.T = T
 
-## Zeroes system momentum
-#
-# Every \a period time steps, particle velocities are modified such that the total linear
-# momentum of the system is set to zero.
-#
-# update.zero_momentum is intended to be used when the \ref integrate.nve "NVE" integrator has the
-# \a limit option specified, where Newton's third law is broken and systems could gain momentum.
-# Of course, it can be used in any script.
-#
-# \MPI_SUPPORTED
 class zero_momentum(_updater):
-    ## Initialize the momentum zeroer
-    #
-    # \param period Momentum will be zeroed every \a period time steps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # update.zero_momentum()
-    # zeroer= update.zero_momentum(period=10)
-    # \endcode
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
+    R""" Zeroes system momentum.
+
+    Args:
+        period (int): Momentum will be zeroed every *period* time steps
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* time steps, particle velocities are modified such that the total linear
+    momentum of the system is set to zero.
+
+    Examples::
+
+        update.zero_momentum()
+        zeroer= update.zero_momentum(period=10)
+
+    """
     def __init__(self, period=1, phase=-1):
         hoomd.util.print_status_line();
 
@@ -167,26 +159,18 @@ class zero_momentum(_updater):
         self.period = period
         self.metadata_fields = ['period']
 
-## Enforces 2D simulation
-#
-# Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
-# 2D simulations when other calculations may cause particles to drift out of the plane.
-#
-# Using enforce2d is only allowed when the system is specified as having only 2 dimensions. This specification can
-# be made in the xml file read by hoomd.init.read_xml() or set dynamically via the particle data access routines. Setting
-# the number of dimensions to 2 also changes the degrees of freedom calculation for temperature calculations and forces
-# the neighbor list to only find 2D neighbors. Doing so requires that a small, but non-zero, value be set for the z
-# dimension of the simulation box.
-#
-# \MPI_SUPPORTED
 class enforce2d(_updater):
-    ## Initialize the 2D enforcement
-    #
-    # \b Examples:
-    # \code
-    # update.enforce2d()
-    # \endcode
-    #
+    R""" Enforces 2D simulation.
+
+    Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
+    2D simulations when other calculations may cause particles to drift out of the plane. Using enforce2d is only
+    allowed when the system is specified as having only 2 dimensions.
+
+    Examples::
+
+        update.enforce2d()
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         period = 1;
@@ -201,32 +185,38 @@ class enforce2d(_updater):
             self.cpp_updater = _md.Enforce2DUpdaterGPU(hoomd.context.current.system_definition);
         self.setupUpdater(period);
 
-## Constrain particles to the surface of a ellipsoid
-#
-# The command update.constraint_ellipsoid specifies that all particles are constrained
-# to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
-# Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
-# Note: For the algorithm to work, we must have \f$rx >= rz,~ry >= rz,~rz > 0\f$.
-# Also note: this method does not properly conserve virial coefficients.
-# Also note: random thermal forces from the integrator are applied in 3D not 2D, therefore they aren't fully accurate.
-# Suggested use is therefore only for T=0.
-# \MPI_NOT_SUPPORTED
 class constraint_ellipsoid(_updater):
-    ## Specify the %ellipsoid updater
-    #
-    # \param group Group for which the update will be set
-    # \param P (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units).
-    # \param rx radius of an ellipsoid in the X direction (in distance units).
-    # \param ry radius of an ellipsoid in the Y direction (in distance units).
-    # \param rz radius of an ellipsoid in the Z direction (in distance units).
-    # \param r radius of a sphere (in distance units), such that r=rx=ry=rz.
-    #
-    # \b Examples:
-    # \code
-    # update.constraint_ellipsoid(P=(-1,5,0), r=9)
-    # update.constraint_ellipsoid(rx=7, ry=5, rz=3)
-    # \endcode
-    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=_hoomd.make_scalar3(0,0,0)):
+    R""" Constrain particles to the surface of a ellipsoid.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group for which the update will be set
+        P (tuple): (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units).
+        rx (float): radius of an ellipsoid in the X direction (in distance units).
+        ry (float): radius of an ellipsoid in the Y direction (in distance units).
+        rz (float): radius of an ellipsoid in the Z direction (in distance units).
+        r (float): radius of a sphere (in distance units), such that r=rx=ry=rz.
+
+    :py:class:`constraint_ellipsoid` specifies that all particles are constrained
+    to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
+    Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
+
+    .. attention::
+        For the algorithm to work, we must have :math:`rx >= rz,~ry >= rz,~rz > 0`.
+
+    Note:
+        This method does not properly conserve virial coefficients.
+
+    Note:
+        random thermal forces from the integrator are applied in 3D not 2D, therefore they aren't fully accurate.
+        Suggested use is therefore only for T=0.
+
+    Examples::
+
+        update.constraint_ellipsoid(P=(-1,5,0), r=9)
+        update.constraint_ellipsoid(rx=7, ry=5, rz=3)
+
+    """
+    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0,0,0)):
         hoomd.util.print_status_line();
         period = 1;
 
