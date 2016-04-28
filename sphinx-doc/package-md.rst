@@ -16,6 +16,7 @@ md
     module-md-improper
     module-md-integrate
     module-md-nlist
+    module-md-pair
 
 .. rubric:: Details
 

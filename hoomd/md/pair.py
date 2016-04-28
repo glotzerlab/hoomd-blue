@@ -49,32 +49,30 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.pair
-# \brief Commands that create forces between pairs of particles
-#
-# Generally, %pair forces are short range and are summed over all non-bonded particles
-# within a certain cutoff radius of each particle. Any number of %pair forces
-# can be defined in a single simulation. The net %force on each particle due to
-# all types of %pair forces is summed.
-#
-# Pair forces require that parameters be set for each unique type %pair. Coefficients
-# are set through the aid of the coeff class. To set this coefficients, specify
-# a %pair %force and save it in a variable
-# \code
-# my_force = pair.some_pair_force(arguments...)
-# \endcode
-# Then the coefficients can be set using the saved variable.
-# \code
-# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
-# my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-# \endcode
-# This example set the parameters \a epsilon and \a sigma
-# (which are used in pair.lj). Different %pair forces require that different
-# coefficients are set. Check the documentation of each to see the definition
-# of the coefficients.
-#
-# \sa \ref page_quick_start
+R""" Pair potentials.
+
+Generally, pair forces are short range and are summed over all non-bonded particles
+within a certain cutoff radius of each particle. Any number of pair forces
+can be defined in a single simulation. The net force on each particle due to
+all types of pair forces is summed.
+
+Pair forces require that parameters be set for each unique type pair. Coefficients
+are set through the aid of the :py:class:`coeff` class. To set this coefficients, specify
+a pair force and save it in a variable::
+
+    my_force = pair.some_pair_force(arguments...)
+
+Then the coefficients can be set using the saved variable::
+
+    my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
+    my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
+
+This example set the parameters *epsilon* and *sigma*
+(which are used in :py:class:`lj`). Different pair forces require that different
+coefficients are set. Check the documentation of each to see the definition
+of the coefficients.
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -87,40 +85,39 @@ import sys;
 
 from collections import OrderedDict
 
-## Defines %pair coefficients
-#
-# All %pair forces use coeff to specify the coefficients between different
-# pairs of particles indexed by type. The set of %pair coefficients is a symmetric
-# matrix defined over all possible pairs of particle types.
-#
-# There are two ways to set the coefficients for a particular %pair %force.
-# The first way is to save the %pair %force in a variable and call set() directly.
-# To see an example of this, see the documentation for the package pair
-# or the \ref page_quick_start
-#
-# The second method is to build the coeff class first and then assign it to the
-# %pair %force. There are some advantages to this method in that you could specify a
-# complicated set of %pair coefficients in a separate python file and import it into
-# your job script.
-#
-# Example (file \em force_field.py):
-# \code
-# from hoomd_script import *
-# my_coeffs = pair.coeff();
-# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
-# my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-# \endcode
-# Example job script:
-# \code
-# from hoomd_script import *
-# import force_field
-#
-# .....
-# my_force = pair.some_pair_force(arguments...)
-# my_force.pair_coeff = force_field.my_coeffs
-# \endcode
 class coeff:
+    R""" Define pair coefficients
+
+    All pair forces use :py:class:`coeff` to specify the coefficients between different
+    pairs of particles indexed by type. The set of pair coefficients is a symmetric
+    matrix defined over all possible pairs of particle types.
+
+    There are two ways to set the coefficients for a particular pair force.
+    The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
+
+    The second method is to build the :py:class:`coeff` class first and then assign it to the
+    pair force. There are some advantages to this method in that you could specify a
+    complicated set of pair coefficients in a separate python file and import it into
+    your job script.
+
+    Example (**force_field.py**)::
+
+        from hoomd import md
+        my_coeffs = md.pair.coeff();
+        my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
+        my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
+
+    Example job script::
+
+        from hoomd import md
+        import force_field
+
+        .....
+        my_force = md.pair.some_pair_force(arguments...)
+        my_force.pair_coeff = force_field.my_coeffs
+
+    """
 
     ## \internal
     # \brief Initializes the class
@@ -164,51 +161,53 @@ class coeff:
     def set_default_coeff(self, name, value):
         self.default_coeff[name] = value;
 
-    ## Sets parameters for one type %pair
-    # \param a First particle type in the %pair
-    # \param b Second particle type in the %pair
-    # \param coeffs Named coefficients (see below for examples)
-    #
-    # Calling set() results in one or more parameters being set for a single type %pair.
-    # Particle types are identified by name, and parameters are also added by name.
-    # Which parameters you need to specify depends on the %pair %force you are setting
-    # these coefficients for, see the corresponding documentation.
-    #
-    # All possible type pairs as defined in the simulation box must be specified before
-    # executing run(). You will receive an error if you fail to do so. It is not an error,
-    # however, to specify coefficients for particle types that do not exist in the simulation.
-    # This can be useful in defining a %force field for many different types of particles even
-    # when some simulations only include a subset.
-    #
-    # There is no need to specify coefficients for both pairs 'A','B' and 'B','A'. Specifying
-    # only one is sufficient.
-    #
-    # To set the same coefficients between many particle types, provide a list of type names instead of a single
-    # one. All pairs between the two lists will be set to the same parameters. A convenient wildcard that lists
-    # all types of particles in the simulation can be gotten from a saved \c system from the init command.
-    #
-    # \b Examples:
-    # \code
-    # coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-    # coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
-    # coeff.set(['A', 'B', 'C', 'D'], 'F', epsilon=2.0)
-    # coeff.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], epsilon=1.0)
-    #
-    # system = init.read_xml('init.xml')
-    # coeff.set(system.particles.types, system.particles.types, epsilon=2.0)
-    # coeff.set('A', system.particles.types, epsilon=1.2)
-    # \endcode
-    #
-    # \note Single parameters can be updated. If both epsilon and sigma have already been
-    # set for a type %pair, then executing coeff.set('A', 'B', epsilon=1.1) will %update
-    # the value of epsilon and leave sigma as it was previously set.
-    #
-    # Some %pair potentials assign default values to certain parameters. If the default setting for a given coefficient
-    # (as documented in the respective %pair command), it does not need to be listed on the coeff.set() line.
-    # The default value will automatically be set.
-    #
     def set(self, a, b, **coeffs):
+        R""" Sets parameters for one type pair.
+
+        Args:
+            a (str): First particle type in the pair (or a list of type names)
+            b (str): Second particle type in the pair (or a list of type names)
+            coeffs: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a single type pair
+        or set of type pairs.
+        Particle types are identified by name, and parameters are also added by name.
+        Which parameters you need to specify depends on the pair force you are setting
+        these coefficients for, see the corresponding documentation.
+
+        All possible type pairs as defined in the simulation box must be specified before
+        executing :py:class:`run()`. You will receive an error if you fail to do so. It is not an error,
+        however, to specify coefficients for particle types that do not exist in the simulation.
+        This can be useful in defining a force field for many different types of particles even
+        when some simulations only include a subset.
+
+        There is no need to specify coefficients for both pairs 'A', 'B' and 'B', 'A'. Specifying
+        only one is sufficient.
+
+        To set the same coefficients between many particle types, provide a list of type names instead of a single
+        one. All pairs between the two lists will be set to the same parameters.
+
+        Examples::
+
+            coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+            coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
+            coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
+            coeff.set(['A', 'B', 'C', 'D'], 'F', epsilon=2.0)
+            coeff.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], epsilon=1.0)
+
+            system = init.read_xml('init.xml')
+            coeff.set(system.particles.types, system.particles.types, epsilon=2.0)
+            coeff.set('A', system.particles.types, epsilon=1.2)
+
+        Note:
+            Single parameters can be updated. If both epsilon and sigma have already been
+            set for a type pair, then executing ``coeff.set('A', 'B', epsilon=1.1)`` will update
+            the value of epsilon and leave sigma as it was previously set.
+
+        Some pair potentials assign default values to certain parameters. If the default setting for a given coefficient
+        (as documented in the respective pair command) is not set explicitly, the default will be used.
+
+        """
         hoomd.util.print_status_line();
 
         # listify the inputs
@@ -305,7 +304,7 @@ class coeff:
         return valid;
 
     ## \internal
-    # \brief Try to get whether a single %pair coefficient
+    # \brief Try to get whether a single pair coefficient
     # \detail
     # \param a First name in the type pair
     # \param b Second name in the type pair
@@ -323,64 +322,81 @@ class coeff:
         else:
             return None;
 
-## Generic %pair %force
-#
-# pair.pair is not a command hoomd scripts should execute directly. Rather, it is a base command that provides common
-# features to all standard %pair forces. Rather than repeating all of that documentation in a dozen different places,
-# it is collected here.
-#
-# All %pair %force commands specify that a given potential energy and %force be computed on all particle pairs in the
-# system within a short range cutoff distance \f$ r_{\mathrm{cut}} \f$.
-#
-# The %force \f$ \vec{F}\f$ is
-# \f{eqnarray*}
-# \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
-#           = & 0           & r \ge r_{\mathrm{cut}} \\
-# \f}
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair, and \f$ V(r) \f$ is
-# chosen by a mode switch (see set_params())
-# \f{eqnarray*}
-# V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#       = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
-#       = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
-#       = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge r_{\mathrm{cut}}
-# \f}
-# , \f$ S(r) \f$ is the XPLOR smoothing function
-# \f{eqnarray*}
-# S(r) = & 1 & r < r_{\mathrm{on}} \\
-#      = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 -
-#          3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3}
-#        & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
-#  = & 0 & r > r_{\mathrm{cut}} \\
-# \f}
-# and \f$ V_{\mathrm{pair}}(r) \f$ is the specific %pair potential chosen by the respective command.
-#
-# Enabling the XPLOR smoothing function \f$ S(r) \f$ results in both the potential energy and the %force going smoothly
-# to 0 at \f$ r = r_{\mathrm{cut}} \f$, sometimes improving the rate of energy drift in long simulations.
-# \f$ r_{\mathrm{on}} \f$ controls the point at which the smoothing starts, so it can be set to only slightly modify
-# the tail of the potential. It is suggested that you plot your potentials with various values of
-# \f$ r_{\mathrm{on}} \f$ in order to find a good balance between a smooth potential function and minimal modification
-# of the original \f$ V_{\mathrm{pair}}(r) \f$. A good value for the LJ potential is
-# \f$ r_{\mathrm{on}} = 2 \cdot \sigma\f$
-#
-# The split smoothing / shifting of the potential when the mode is \c xplor is designed for use in mixed WCA / LJ
-# systems. The WCA potential and it's first derivative already go smoothly to 0 at the cutoff, so there is no need
-# to apply the smoothing function. In such mixed systems, set \f$ r_{\mathrm{on}} \f$ to a value greater than
-# \f$ r_{\mathrm{cut}} \f$ for those pairs that interact via WCA in order to enable shifting of the WCA potential
-# to 0 at the cuttoff.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False, the particle type %pair interaction is excluded from the neighbor
-# list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
-# with large size disparity. Functionally, this is equivalent to setting \f$ r_{\mathrm{cut}} = 0 \f$ in the %pair force
-# because negative \f$ r_{\mathrm{cut}} \f$ has no physical meaning.
 class pair(force._force):
+    R""" Common pair potential documentation.
+
+    Users should not invoke :py:class:`pair` directly. It is a base command that provides common
+    features to all standard pair forces. Common documentation for all pair potentials is documented here.
+
+    All pair force commands specify that a given potential energy and force be computed on all non-excluded particle
+    pairs in the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
+
+    The force :math:`\vec{F}` applied between each pair of particles is:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+                  = & 0           & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair, and :math:`V(r)` is
+    chosen by a mode switch (see :py:meth:`set_params()`):
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
+              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge r_{\mathrm{cut}}
+        \end{eqnarray*}
+
+    :math:`S(r)` is the XPLOR smoothing function:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        S(r) = & 1 & r < r_{\mathrm{on}} \\
+             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 -
+                 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3}
+               & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+             = & 0 & r > r_{\mathrm{cut}} \\
+         \end{eqnarray*}
+
+    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by the respective command.
+
+    Enabling the XPLOR smoothing function :math:`S(r)` results in both the potential energy and the force going smoothly
+    to 0 at :math:`r = r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
+    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts, so it can be set to only slightly modify
+    the tail of the potential. It is suggested that you plot your potentials with various values of
+    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth potential function and minimal modification
+    of the original :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
+    :math:`r_{\mathrm{on}} = 2 \cdot \sigma`.
+
+    The split smoothing / shifting of the potential when the mode is ``xplor`` is designed for use in mixed WCA / LJ
+    systems. The WCA potential and it's first derivative already go smoothly to 0 at the cutoff, so there is no need
+    to apply the smoothing function. In such mixed systems, set :math:`r_{\mathrm{on}}` to a value greater than
+    :math:`r_{\mathrm{cut}}` for those pairs that interact via WCA in order to enable shifting of the WCA potential
+    to 0 at the cuttoff.
+
+    The following coefficients must be set per unique pair of particle types. See :py:mod:`hoomd.pair` for information
+    on how to set coefficients:
+
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}` - *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type pair interaction is excluded from the neighbor
+    list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
+    with large size disparity. Functionally, this is equivalent to setting :math:`r_{\mathrm{cut}} = 0` in the pair force
+    because negative :math:`r_{\mathrm{cut}}` has no physical meaning.
+    """
+
     ## \internal
     # \brief Initialize the pair force
     # \details
@@ -411,25 +427,28 @@ class pair(force._force):
             self.nlist.subscribe(lambda:self.get_rcut())
             self.nlist.update_rcut()
 
-    ## Set parameters controlling the way forces are computed
-    #
-    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    #
-    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
-    #  - \b none - No shifting is performed and potentials are abruptly cut off
-    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the
-    #               cutoff when ron < rcut, and shifts the potential to 0 ar the cutoff when ron >= rcut.
-    # (see pair above for formulas and more information)
-    #
-    # \b Examples:
-    # \code
-    # mypair.set_params(mode="shift")
-    # mypair.set_params(mode="no_shift")
-    # mypair.set_params(mode="xplor")
-    # \endcode
-    #
     def set_params(self, mode=None):
+        R""" Set parameters controlling the way forces are computed.
+
+        Args:
+            mode (str): (if set) Set the mode with which potentials are handled at the cutoff.
+
+        Valid values for *mode* are: "none" (the default), "shift", and "xplor":
+
+        - **none** - No shifting is performed and potentials are abruptly cut off
+        - **shift** - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+        - **xplor** - A smoothing function is applied to gradually decrease both the force and potential to 0 at the
+          cutoff when ron < rcut, and shifts the potential to 0 at the cutoff when ron >= rcut.
+
+        See :py:class:`pair` for the equations.
+
+        Examples::
+
+            mypair.set_params(mode="shift")
+            mypair.set_params(mode="no_shift")
+            mypair.set_params(mode="xplor")
+
+        """
         hoomd.util.print_status_line();
 
         if mode is not None:
@@ -536,95 +555,79 @@ class pair(force._force):
         data['pair_coeff'] = self.pair_coeff
         return data
 
-    ## Compute the energy between two sets of particles
-    #
-    # \f$
-    # U = \sum_{i \in \mathrm{tags1}, j \in \mathrm{tags2}} V_{ij}(r)
-    # \f$,
-    # where \f$V_{ij}(r)\f$ is the pairwise energy between two particles \f$i\f$ and \f$j\f$.
-    #
-    # \param tags1 is a numpy array of particle tags in the first group (type int32)
-    # \param tags2 is a numpy array of particle tags in the second group (type int32)
-    #
-    # Some assumed properties of the sets \a tags1 and \a tags2 are:
-    #   - \a tags1 and \a tags2 are disjoint
-    #   - all elements in \a tags1 and \a tags2 are unique
-    #   - \a tags1 and \a tags2 are contiguous numpy arrays of dtype int32
-    #
-    # Niether of these properties are checked in the current version.
-    #
-    # \b Examples:
-    # \code
-    # ...
-    # tags=numpy.linspace(0,N-1,1, dtype=numpy.int32)
-    # # computes the energy between even and odd particles
-    # U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]), tags2=numpy.array(tags[1:N:2]))
-    # \endcode
     def compute_energy(self, tags1, tags2):
+        R""" Compute the energy between two sets of particles.
+
+        Args:
+            tags1 (ndarray<int32>): a numpy array of particle tags in the first group
+            tags2 (ndarray<int32>): a numpy array of particle tags in the second group
+
+        .. math::
+
+            U = \sum_{i \in \mathrm{tags1}, j \in \mathrm{tags2}} V_{ij}(r)
+
+        where :math:`V_{ij}(r)` is the pairwise energy between two particles :math:`i` and :math:`j`.
+
+        Assumed properties of the sets *tags1* and *tags2* are:
+
+        - *tags1* and *tags2* are disjoint
+        - all elements in *tags1* and *tags2* are unique
+        - *tags1* and *tags2* are contiguous numpy arrays of dtype int32
+
+        None of these properties are validated.
+
+        Examples::
+
+            tags=numpy.linspace(0,N-1,1, dtype=numpy.int32)
+            # computes the energy between even and odd particles
+            U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]), tags2=numpy.array(tags[1:N:2]))
+
+        """
         # future versions could use np functions to test the assumptions above and raise an error if they occur.
         return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
 
-## Lennard-Jones %pair %force
-#
-# The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-# - \f$ \alpha \f$ - \c alpha (unitless)
-#   - <i>optional</i>: defaults to 1.0
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.lj is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
-# lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-# lj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class lj(pair):
-    ## Specify the Lennard-Jones %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # lj = pair.lj(r_cut=3.0)
-    # lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
-    # lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Lennard-Jones pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`lj` specifies that a Lennard-Jones pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        lj = pair.lj(r_cut=3.0)
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
+        lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+        lj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -657,63 +660,46 @@ class lj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-## Gaussian %pair %force
-#
-# The command pair.gauss specifies that a Gaussian %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-#  V_{\mathrm{gauss}}(r)  = & \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right]
-#                                         & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.gauss is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
-# gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class gauss(pair):
-    ## Specify the Gaussian %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # gauss = pair.gauss(r_cut=3.0)
-    # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Gaussian pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`gauss` specifies that a Gaussian pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{gauss}}(r)  = & \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right]
+                                                & r < r_{\mathrm{cut}} \\
+                               = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        gauss = pair.gauss(r_cut=3.0)
+        gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
+        gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -742,81 +728,69 @@ class gauss(pair):
 
         return _hoomd.make_scalar2(epsilon, sigma);
 
-## Shifted Lennard-Jones %pair %force
-#
-# The command pair.slj specifies that a shifted Lennard-Jones type %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-#    \f{eqnarray*}
-#    V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
-#                           \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r < (r_{\mathrm{cut}} + \Delta) \\
-#                         = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
-#    \f}
-#    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see hoomd.pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-#   - <i>optional</i>: defaults to 1.0
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-# \note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
-#
-# \b Example:
-# \code
-# slj.pair_coeff.set('A', 'A', epsilon=1.0)
-# slj.pair_coeff.set('A', 'B', epsilon=2.0, r_cut=3.0);
-# slj.pair_coeff.set('B', 'B', epsilon=1.0, r_cut=2**(1.0/6.0));
-# slj.pair_coeff.set(['A', 'B'], ['C', 'D'], espilon=2.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
-# the maximum possible actual r_cut in simulation
-# pair.slj must know the maximum diameter of all the particles over the entire run, or \a d_max .
-# This value is either determined automatically from the initialization or can be set by the user and can be modified between runs with the
-# command nlist.set_params(). In most cases, the correct value can be identified automatically (see __init__()).
-#
-# \MPI_SUPPORTED
 class slj(pair):
-    ## Specify the Shifted Lennard-Jones %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    # \param d_max Maximum diameter particles in the simulation will have (in distance units)
-    #
-    # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
-    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized.
-    #
-    # If particle diameters change after initialization, it is \b imperative that \a d_max be the largest
-    # diameter that any particle will attain at any time during the following run() commands. If \a d_max is smaller
-    # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
-    # simulation will be incorrect. \a d_max can be changed between runs by calling nlist.set_params().
-    #
-    # \b Example:
-    # \code
-    # slj = pair.slj(r_cut=3.0, d_max = 2.0)
-    # slj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # slj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0);
-    # slj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Shifted Lennard-Jones pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+        d_max (float): Maximum diameter particles in the simulation will have (in distance units)
+
+    :py:class:`slj` specifies that a shifted Lennard-Jones type pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
+                               \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r < (r_{\mathrm{cut}} + \Delta) \\
+                             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
+        \end{eqnarray*}
+
+    where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of particle :math:`i`.
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+      - *optional*: defaults to 1.0
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. attention::
+        Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of *xplor* is not supported.
+
+    The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
+    the maximum possible actual r_cut in simulation
+    pair.slj must know the maximum diameter of all the particles over the entire run, *d_max* .
+    This value is either determined automatically from the initialization or can be set by the user and can be
+    modified between runs with :py:meth:`hoomd.md.nlist.nlist.set_params()`. In most cases, the correct value can be
+    identified automatically.
+
+    The specified value of *d_max* will be used to properly determine the neighbor lists during the following
+    :py:func:`hoomd.run()` commands. If not specified, :py:class:`slj` will set d_max to the largest diameter
+    in particle data at the time it is initialized.
+
+    If particle diameters change after initialization, it is **imperative** that *d_max* be the largest
+    diameter that any particle will attain at any time during the following :py:func:`hoomd.run()` commands.
+    If *d_max* is smaller than it should be, some particles will effectively have a smaller value of *r_cut*
+    then was set and the simulation will be incorrect. *d_max* can be changed between runs by calling
+    :py:meth:`hoomd.md.nlist.nlist.set_params()`.
+
+    Example::
+
+        slj = pair.slj(r_cut=3.0, d_max = 2.0)
+        slj.pair_coeff.set('A', 'A', epsilon=1.0)
+        slj.pair_coeff.set('A', 'B', epsilon=2.0, r_cut=3.0);
+        slj.pair_coeff.set('B', 'B', epsilon=1.0, r_cut=2**(1.0/6.0));
+        slj.pair_coeff.set(['A', 'B'], ['C', 'D'], espilon=2.0)
+
+    """
     def __init__(self, r_cut, nlist=None, d_max=None, name=None):
         hoomd.util.print_status_line();
 
@@ -859,23 +833,15 @@ class slj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-    ## Set parameters controlling the way forces are computed
-    #
-    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    #
-    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
-    #  - \b none - No shifting is performed and potentials are abruptly cut off
-    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    #
-    # (see pair above for formulas and more information)
-    #
-    # \b Examples:
-    # \code
-    # slj.set_params(mode="shift")
-    # slj.set_params(mode="no_shift")
-    # \endcode
-    #
     def set_params(self, mode=None):
+        R""" Set parameters controlling the way forces are computed.
+
+        See :py:meth:`pair.set_params()`.
+
+        Note:
+            **xplor** is not a valid setting for :py:class:`slj`.
+
+        """
         hoomd.util.print_status_line();
 
         if mode == "xplor":
@@ -884,62 +850,45 @@ class slj(pair):
 
         pair.set_params(self, mode=mode);
 
-## Yukawa %pair %force
-#
-# The command pair.yukawa specifies that a Yukawa %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-#  V_{\mathrm{yukawa}}(r)  = & \varepsilon \frac{ \exp \left( -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in units of energy*distance)
-# - \f$ \kappa \f$ - \c kappa (in units of 1/distance)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in units of distance)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.yukawa is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
-# yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
-# yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class yukawa(pair):
-    ## Specify the Yukawa %pair %force
-    #
-    # \param r_cut Default cutoff radius (in units of distance)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # yukawa = pair.lj(r_cut=3.0)
-    # yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
-    # yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Yukawa pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`yukawa` specifies that a Yukawa pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+         V_{\mathrm{yukawa}}(r)  = & \varepsilon \frac{ \exp \left( -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\kappa` - *kappa* (in units of 1/distance)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        yukawa = pair.lj(r_cut=3.0)
+        yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+        yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
+        yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -968,59 +917,43 @@ class yukawa(pair):
 
         return _hoomd.make_scalar2(epsilon, kappa);
 
-## Ewald %pair %force
-#
-# The command pair.ewald specifies that a Ewald %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-#  V_{\mathrm{ewald}}(r)  = & q_i q_j erfc(\kappa r)/r & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \kappa \f$ - \c kappa
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.ewald is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# ewald.pair_coeff.set('A', 'A', kappa=1.0)
-# ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
-# \endcode
-#
-# The cutoff radius \a r_cut passed into the initial pair.ewald command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
-#       for you.
-#
-# \MPI_SUPPORTED
 class ewald(pair):
-    ## Specify the Ewald %pair %force
-    #
-    # \param r_cut Default cutoff radius
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # ewald = pair.ewald(r_cut=3.0)
-    # ewald.pair_coeff.set('A', 'A', kappa=1.0)
-    # ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Ewald pair potential.
+
+    :py:class:`ewald` specifies that a Ewald pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+         V_{\mathrm{ewald}}(r)  = & q_i q_j \mathrm{erfc}(\kappa r)/r & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\kappa` - *kappa* (in 1/distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+
+    Example::
+
+        ewald = pair.ewald(r_cut=3.0)
+        ewald.pair_coeff.set('A', 'A', kappa=1.0)
+        ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
+
+    Warning:
+        **DO NOT** use in conjunction with :py:class:`hoomd.md.charge.pppm`. It automatically creates and configures
+        :py:class:`ewald` for you.
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -1048,68 +981,54 @@ class ewald(pair):
 
         return kappa;
 
-## CMM coarse-grain model %pair %force
-#
-# The command pair.cgcmm specifies that a special version of Lennard-Jones type %pair %force
-# should be added to every non-bonded particle %pair in the simulation. This potential
-# version is used in the CMM coarse grain model and uses a combination of Lennard-Jones
-# potentials with different exponent pairs between different atom pairs.
-#
-# Reference \cite Levine2011 describes the CGCMM implementation details in HOOMD-blue. Cite it
-# if you utilize the CGCMM potential in your work.
-#
-# The %force \f$ \vec{F}\f$ is
-# \f{eqnarray*}
-# \vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}} \\
-#          = & 0                          & r \ge r_{\mathrm{cut}} \\
-# \f}
-# with being either
-# \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
-# or
-# \f[ V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
-#                                                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
-# or
-# \f[ V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                                                            \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
-# and \f$ \vec{r} \f$ being the vector pointing from one particle to the other in the %pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in units of energy)
-# - \f$ \sigma \f$ - \c sigma (in units of distance)
-# - \f$ \alpha \f$ - \c alpha (unitless)
-# - exponents, the choice of LJ-exponents, currently supported are 12-6, 9-6, and 12-4.
-#
-# We support three keyword variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
-#
-# \b Example:
-# \code
-# cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6')
-# cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
-# cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
-#
-# \MPI_NOT_SUPPORTED
 class cgcmm(force._force):
-    ## Specify the CG-CMM Lennard-Jones %pair %force
-    #
-    # \param r_cut Cuttoff radius (see documentation above) (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # cg1 = pair.cgcmm(r_cut=3.0)
-    # cg1.pair_coeff.set('A', 'A', epsilon=0.5, sigma=1.0, alpha=1.0, exponents='lj12_4')
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" CMM coarse-grain model pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+
+    :py:class:`cgcmm` specifies that a special version of Lennard-Jones pair force
+    should be added to every non-bonded particle pair in the simulation. This potential
+    version is used in the CMM coarse grain model and uses a combination of Lennard-Jones
+    potentials with different exponent pairs between different atom pairs.
+
+    `B. Levine et. al. 2011 <http://dx.doi.org/10.1021/ct2005193>`_ describes the CGCMM implementation details in
+    HOOMD-blue. Cite it if you utilize the CGCMM potential in your work.
+
+    Multiple potential functions can be selected:
+
+    .. math::
+
+        V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                                                  \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
+
+        V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
+                                                             \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
+
+        V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                                                               \alpha \left( \frac{\sigma}{r} \right)^{4} \right]
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
+    - exponents, the choice of LJ-exponents, currently supported are 12-6, 9-6, and 12-4.
+
+    We support three keyword variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn).
+
+    Example::
+
+        cg1 = pair.cgcmm(r_cut=3.0)
+        cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6')
+        cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
+        cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
+
+    """
     def __init__(self, r_cut, nlist=None):
         hoomd.util.print_status_line();
 
@@ -1209,88 +1128,84 @@ def _table_eval(r, rmin, rmax, V, F, width):
     i = int(round((r - rmin)/dr))
     return (V[i], F[i])
 
-## Tabulated %pair %force
-#
-# The command pair.table specifies that a tabulated  %pair %force should be added to every non-excluded particle %pair
-# in the simulation.
-#
-# The %force \f$ \vec{F}\f$ is (in force units)
-# \f{eqnarray*}
-#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
-#                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
-#                       = & 0                           & r \ge r_{\mathrm{max}} \\
-# \f}
-# and the potential \f$ V(r) \f$ is (in energy units)
-# \f{eqnarray*}
-# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
-#            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
-#            = & 0                    & r \ge r_{\mathrm{max}} \\
-# \f}
-# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
-#
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
-# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
-#
-# The following coefficients must be set per unique %pair of particle types.
-# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
-# - coefficients passed to `func` - `coeff` (see example)
-# - \f$ r_{\mathrm{min}} \f$ - `rmin` (in distance units)
-# - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
-#
-# The table *width* is set once when pair.table is specified (see table.__init__())
-# There are two ways to specify the other parameters.
-#
-# \par Example: Set table from a given function
-# When you have a functional form for V and F, you can enter that
-# directly into python. pair.table will evaluate the given function over \a width points between \a rmin and \a rmax
-# and use the resulting values in the table.
-# ~~~~~~~~~~~~~
-# def lj(r, rmin, rmax, epsilon, sigma):
-#     V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
-#     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
-#     return (V, F)
-#
-# table = pair.table(width=1000)
-# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-# table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
-# ~~~~~~~~~~~~~
-#
-# \par Example: Set a table from a file
-# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, pair.table can use the given
-# values direcly. You must first specify the number of rows in your tables when initializing pair.table. Then use
-# table.set_from_file() to read the file.
-# ~~~~~~~~~~~~~
-# table = pair.table(width=1000)
-# table.set_from_file('A', 'A', filename='table_AA.dat')
-# table.set_from_file('A', 'B', filename='table_AB.dat')
-# table.set_from_file('B', 'B', filename='table_BB.dat')
-# ~~~~~~~~~~~~~
-#
-# \par Example: Mix functions and files
-# ~~~~~~~~~~~~~
-# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-# table.set_from_file('B', 'B', filename='table_BB.dat')
-# ~~~~~~~~~~~~~
-#
-# \note For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
-# not diverge near r=0, then a setting of \c rmin=0 is valid.
-#
-# \note %Pair coefficients for all type pairs in the simulation must be
-# set before it can be started with run().
-# \MPI_SUPPORTED
 class table(force._force):
-    ## Specify the Tabulated %pair %force
-    #
-    # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
+    R""" Tabulated pair potential.
+
+    Args:
+        width (int): Number of points to use to interpolate V and F.
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+        name (str): Name of the force instance
+
+    :py:class:`table` specifies that a tabulated pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    The force :math:`\vec{F}` is (in force units):
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
+                             = & F_{\mathrm{user}}(r)\hat{r} & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
+                             = & 0                           & r \ge r_{\mathrm{max}} \\
+        \end{eqnarray*}
+
+    and the potential :math:`V(r)` is (in energy units)
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V(r)       = & 0                    & r < r_{\mathrm{min}} \\
+                   = & V_{\mathrm{user}}(r) & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
+                   = & 0                    & r \ge r_{\mathrm{max}} \\
+        \end{eqnarray*}
+
+    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair.
+
+    :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated on *width* grid points between
+    :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
+    For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`V_{\mathrm{user}}(r)` and :math:`F_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
+    - coefficients passed to ``func`` - *coeff* (see example)
+    - :math:`_{\mathrm{min}}` - *rmin* (in distance units)
+    - :math:`_{\mathrm{max}}` - *rmax* (in distance units)
+
+    .. rubric:: Set table from a given function
+
+    When you have a functional form for V and F, you can enter that
+    directly into python. :py:class:`table` will evaluate the given function over *width* points between
+    *rmin* and *rmax* and use the resulting values in the table::
+
+        def lj(r, rmin, rmax, epsilon, sigma):
+            V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
+            F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
+            return (V, F)
+
+        table = pair.table(width=1000)
+        table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
+        table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
+        table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
+
+    .. rubric:: Set a table from a file
+
+    When you have no function for for *V* or *F*, or you otherwise have the data listed in a file,
+    :py:class:`table` can use the given values directly. You must first specify the number of rows
+    in your tables when initializing pair.table. Then use :py:meth:`set_from_file()` to read the file::
+
+        table = pair.table(width=1000)
+        table.set_from_file('A', 'A', filename='table_AA.dat')
+        table.set_from_file('A', 'B', filename='table_AB.dat')
+        table.set_from_file('B', 'B', filename='table_BB.dat')
+
+    Note:
+        For potentials that diverge near r=0, make sure to set *rmin* to a reasonable value. If a potential does
+        not diverge near r=0, then a setting of *rmin=0* is valid.
+
+    """
     def __init__(self, width, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -1403,28 +1318,30 @@ class table(force._force):
 
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
 
-    ## Set a pair interaction from a file
-    # \param a Name of type A in pair
-    # \param b Name of type B in pair
-    # \param filename Name of the file to read
-    #
-    # The provided file specifies V and F at equally spaced r values.
-    # Example:
-    # \code
-    # #r  V    F
-    # 1.0 2.0 -3.0
-    # 1.1 3.0 -4.0
-    # 1.2 2.0 -3.0
-    # 1.3 1.0 -2.0
-    # 1.4 0.0 -1.0
-    # 1.5 -1.0 0.0
-    #\endcode
-    #
-    # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
-    # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
-    # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
-    #
     def set_from_file(self, a, b, filename):
+        R""" Set a pair interaction from a file.
+
+        Args:
+            a (str): Name of type A in pair
+            b (str): Name of type B in pair
+            filename (str): Name of the file to read
+
+        The provided file specifies V and F at equally spaced r values.
+
+        Example::
+
+            #r  V    F
+            1.0 2.0 -3.0
+            1.1 3.0 -4.0
+            1.2 2.0 -3.0
+            1.3 1.0 -2.0
+            1.4 0.0 -1.0
+            1.5 -1.0 0.0
+
+        The first r value sets *rmin*, the last sets *rmax*. Any line with # as the first non-whitespace character is
+        is treated as a comment. The *r* values must monotonically increase and be equally spaced. The table is read
+        directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`_{\mathrm{user}}(r)`.
+        """
         hoomd.util.print_status_line();
 
         # open the file
@@ -1477,63 +1394,41 @@ class table(force._force):
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
         hoomd.util.unquiet_status();
 
-## Morse %pair %force
-#
-# The command pair.morse specifies that a Morse %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-#  V_{\mathrm{morse}}(r)  = & D_0 \left[ \exp \left(-2\alpha\left(r-r_0\right)\right) -2\exp \left(-\alpha\left(r-r_0\right)\right) \right] & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ D_0 \f$ - \c D0, depth of the potential at its minimum (in energy units)
-# - \f$ \alpha \f$ - \c alpha, controls the width of the potential well (in units of 1/distance)
-# - \f$ r_0 \f$ - \c r0, position of the minimum (in distance units)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (int distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.morse is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
-# morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
-# morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class morse(pair):
-    ## Specify the Morse %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # morse = pair.morse(r_cut=3.0)
-    # morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
-    # morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Morse pair potential.
+
+    :py:class:`morse` specifies that a Morse pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{morse}}(r)  = & D_0 \left[ \exp \left(-2\alpha\left(r-r_0\right)\right) -2\exp \left(-\alpha\left(r-r_0\right)\right) \right] & r < r_{\mathrm{cut}} \\
+                               = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`D_0` - *D0*, depth of the potential at its minimum (in energy units)
+    - :math:`\alpha` - *alpha*, controls the width of the potential well (in units of 1/distance)
+    - :math:`r_0` - *r0*, position of the minimum (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        morse = pair.morse(r_cut=3.0)
+        morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
+        morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
+        morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -1563,87 +1458,78 @@ class morse(pair):
 
         return _hoomd.make_scalar4(D0, alpha, r0, 0.0);
 
-## NVT Integration via Dissipative Particle Dynamics %pair %force
-#
-# The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Cite it
-# if you utilize the DPD functionality in your work.
-#
-# \f{eqnarray*}
-# F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
-# \f}
-#
-# \f{eqnarray*}
-# F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
-# F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
-# F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
-# \f}
-#
-# \f{eqnarray*}
-# w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-# where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
-# random number in the range [-1, 1].
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ A \f$ - \a A (in force units)
-# - \f$ \gamma \f$ gamma (in units of force/velocity)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# To use the dpd thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
-# (see hoomd.variant for more information).  Use of the
-# dpd thermostat pair force with other integrators will result in unphysical behavior.
-# To use pair.dpd with a different conservative potential than \f$ F_C \f$, simply set A to zero.  Note that dpd thermostats
-# are often defined in terms of \f$ \sigma \f$ where \f$ \sigma = \sqrt{2k_b\gamma T} \f$.
-#
-#
-# \b Example:
-# \code
-# dpd = pair.dpd(r_cut=1.0, T=1.0)
-# dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
-# dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
-# dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
-# dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
-# dpd.set_params(T = 1.0)
-# integrate.mode_standard(dt=0.02)
-# integrate.nve(group=group.all())
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
-# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
-#
-# \MPI_SUPPORTED
 class dpd(pair):
-    ## Specify the DPD %pair %force and thermostat
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param T Temperature of thermostat (in energy units)
-    # \param name Name of the force instance
-    # \param seed seed for the PRNG in the DPD thermostat
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # dpd = pair.dpd(r_cut=3.0, T=1.0, seed=12345)
-    # dpd.pair_coeff.set('A', 'A', A=1.0, gamma = 3.0)
-    # dpd.pair_coeff.set('A', 'B', A=2.0, gamma = 3.0, r_cut = 1.0)
-    # dpd.pair_coeff.set('B', 'B', A=1.0, gamma = 3.0)
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Dissipative Particle Dynamics.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        seed (int): seed for the PRNG in the DPD thermostat.
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`dpd` specifies that a DPD pair force should be applied between every
+    non-excluded particle pair in the simulation, including an interaction potential,
+    pairwise drag force, and pairwise random force. See `Groot and Warren 1997 <http://dx.doi.org/10.1063/1.474784>`_.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
+        \end{eqnarray*}
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
+        F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+        F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
+        \end{eqnarray*}
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
+    and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
+
+    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
+    details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
+
+    :py:class:`dpd` does not implement and energy shift / smoothing modes due to the function of the force.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in force units)
+    - :math:`\gamma` - *gamma* (in units of force/velocity)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    To use the DPD thermostat, an :py:class:`hoomd.md.integrate.nve` integrator must be applied to the system and
+    the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
+    in unphysical behavior. To use pair.dpd with a different conservative potential than :math:`F_C`,
+    set A to zero and define the conservative pair potential separately.  Note that DPD thermostats
+    are often defined in terms of :math:`\sigma` where :math:`\sigma = \sqrt{2k_b\gamma T}`.
+
+    Example::
+
+        dpd = pair.dpd(r_cut=1.0, T=1.0)
+        dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
+        dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
+        dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
+        dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
+        dpd.set_params(T = 1.0)
+        integrate.mode_standard(dt=0.02)
+        integrate.nve(group=group.all())
+
+    """
     def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -1688,21 +1574,16 @@ class dpd(pair):
         T = hoomd.variant._setup_variant_input(T);
         self.cpp_force.setT(T.cpp_variant);
 
-
-    ## Changes parameters
-    # \param T Temperature (if set) (in energy units)
-    #
-    # To change the parameters of an existing pair force, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # dpd = pair.dpd(r_cut = 1.0)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # dpd.set_params(T=2.0)
-    # \endcode
     def set_params(self, T=None):
+        R""" Changes parameters.
+
+        Args:
+            T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+
+        Example::
+
+            dpd.set_params(T=2.0)
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -1717,63 +1598,47 @@ class dpd(pair):
         gamma = coeff['gamma'];
         return _hoomd.make_scalar2(a, gamma);
 
-## DPD Conservative %pair %force
-#
-# The command pair.dpd_conservative specifies that the conservative part of the DPD %pair %force should be added to every
-# non-bonded particle %pair in the simulation.  No thermostat (e.g. Drag Force and Random Force) is applied.
-#
-# \f{eqnarray*}
-# V_{\mathrm{DPD-C}}(r)  = & A \cdot \left( r_{\mathrm{cut}} - r \right)
-#                        - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
-#                               & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair in the
-# main hoomd documentation.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ A \f$ - \a A (in force units)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# \b Example:
-# \code
-# dpdc.pair_coeff.set('A', 'A', A=1.0)
-# dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
-# dpdc.pair_coeff.set('B', 'B', A=1.0)
-# dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# pair.dpd_conservative does not implement and energy shift / smoothing modes due to the function of the force.
-#
-# The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
-# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class dpd_conservative(pair):
-    ## Specify the DPD conservative %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # dpdc = pair.dpd_conservative(r_cut=3.0)
-    # dpdc.pair_coeff.set('A', 'A', A=1.0)
-    # dpdc.pair_coeff.set('A', 'B', A=2.0)
-    # dpdc.pair_coeff.set('B', 'B', A=1.0)
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" DPD Conservative pair force.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`dpd_conservative` specifies the conservative part of the DPD pair potential should be applied between
+    every non-excluded particle pair in the simulation. No thermostat (e.g. Drag Force and Random Force) is applied,
+    as is in :py:class:`dpd`.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{DPD-C}}(r)  = & A \cdot \left( r_{\mathrm{cut}} - r \right)
+                               - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
+                                      & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+
+    :py:class:`dpd_conservative` does not implement and energy shift / smoothing modes due to the function of the force.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in force units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        dpdc = pair.dpd_conservative(r_cut=3.0)
+        dpdc.pair_coeff.set('A', 'A', A=1.0)
+        dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
+        dpdc.pair_coeff.set('B', 'B', A=1.0)
+        dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -1822,32 +1687,37 @@ class dpd_conservative(pair):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
 
-## EAM %pair %force
-#
-# The command pair.eam specifies that the EAM (embedded atom method) %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# No coefficients need to be set for pair.eam. All specifications, including the cutoff radius, form of the potential,
-# etc. are read in from the specified file.
-#
-# Particle type names must match those referenced in the EAM potential file.
-#
-# Two file formats are supported: \em Alloy and \em FS. They are described in LAMMPS documentation
-# (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
-# and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
-#
-# \MPI_NOT_SUPPORTED
 class eam(force._force):
-    ## Specify the EAM %pair %force
-    #
-    # \param file Filename with potential tables in Alloy or FS format
-    # \param type Type of file potential ('Alloy', 'FS')
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
-    # \endcode
+    R""" EAM pair potential.
+
+    Args:
+        file (str): Filename with potential tables in Alloy or FS format
+        type (str): Type of file potential ('Alloy', 'FS')
+        nlist (:py:mod:`hoomd.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+
+    :py:class:`eam` specifies that a EAM (embedded atom method) pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    No coefficients need to be set for :py:class:`eam`. All specifications, including the cutoff radius, form of the
+    potential, etc. are read in from the specified file.
+
+    Particle type names must match those referenced in the EAM potential file.
+
+    Two file formats are supported: *Alloy* and *FS*. They are described in LAMMPS documentation
+    (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
+    and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
+
+    .. attention::
+        EAM is **NOT** supported in MPI parallel simulations.
+
+    .. danger::
+        HOOMD-blue's EAM implementation is known to be broken.
+
+    Example::
+
+        eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
+
+    """
     def __init__(self, file, type, nlist=None):
         c = hoomd.cite.article(cite_key = 'morozov2011',
                          author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
@@ -1906,102 +1776,87 @@ class eam(force._force):
         # check that the pair coefficients are valid
         pass;
 
-
-
-## NVT Integration via Dissipative Particle Dynamics %pair %force with a Lennard Jones conservative force
-#
-# The command pair.dpdlj specifies that a DPD thermostat and a Lennard Jones (LJ) %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Cite it
-# if you utilize the DPD functionality in your work.
-#
-# \f{eqnarray*}
-# F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
-# \f}
-#
-# \f{eqnarray*}
-# F_{\mathrm{C}}(r) = & \partial V_{\mathrm{LJ}} / \partial r \\
-# F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
-# F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
-# \f}
-#
-# where
-# \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-# and
-# \f{eqnarray*}
-# w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-# where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
-# random number in the range [-1, 1].
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-# - \f$ \alpha \f$ - \c alpha (unitless)
-#   - <i>optional</i>: defaults to 1.0
-# - \f$ \gamma \f$ gamma (in units of force/velocity)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# To use the dpdlj thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
-# (see hoomd.variant for more information).  Use of the
-# dpdlj thermostat pair force with other integrators will result in unphysical behavior.
-# To use pair.dpdlj with a different conservative potential than \f$ F_C \f$, simply set A to zero.  Note that dpdlj thermostats
-# are often defined in terms of \f$ \sigma \f$ where \f$ \sigma = \sqrt{2k_b\gamma T} \f$.
-#
-#
-# \b Example:
-# \code
-# dpdlj = pair.dpdlj(r_cut=2.5, T=1.0)
-# dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
-# dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
-# dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
-# dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
-# dpdlj.set_params(T = 1.0)
-# integrate.mode_standard(dt=0.005)
-# integrate.nve(group=group.all())
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.dpdlj command sets the default \a r_cut for all
-# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
-# See hoomd.pair.pair for a full description of the various options. XPLOR smoothing is not available.
-#
-# \MPI_SUPPORTED
 class dpdlj(pair):
-    ## Specify the DPD %pair %force and thermostat
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param T Temperature of thermostat (in energy units)
-    # \param name Name of the force instance
-    # \param seed seed for the PRNG in the DPD thermostat
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # dpdlj = pair.dpdlj(r_cut=3.0, T=1.0, seed=12345)
-    # dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
-    # dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
-    # dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Dissipative Particle Dynamics with a LJ conservative force
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        seed (int): seed for the PRNG in the DPD thermostat.
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`dpdlj` specifies that a DPD thermostat and a Lennard-Jones pair potential should be applied between
+    every non-excluded particle pair in the simulation.
+
+    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
+    details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
+        \end{eqnarray*}
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        F_{\mathrm{C}}(r) = & \partial V_{\mathrm{LJ}} / \partial r \\
+        F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+        F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
+        \end{eqnarray*}
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
+    and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless)
+      - *optional*: defaults to 1.0
+    - :math:`\gamma` - *gamma* (in units of force/velocity)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    To use the DPD thermostat, an :py:class:`hoomd.md.integrate.nve` integrator must be applied to the system and
+    the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
+    in unphysical behavior.
+
+    Example::
+
+        dpdlj = pair.dpdlj(r_cut=2.5, T=1.0)
+        dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
+        dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
+        dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
+        dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
+        dpdlj.set_params(T = 1.0)
+        integrate.mode_standard(dt=0.005)
+        integrate.nve(group=group.all())
+
+    """
+
     def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2048,22 +1903,19 @@ class dpdlj(pair):
         T = variant._setup_variant_input(T);
         self.cpp_force.setT(T.cpp_variant);
 
-    ## Changes parameters
-    # \param T Temperature (if set) (in energy units)
-    # \param mode energy shift/smoothing mode (default noshift).  see pair.lj
-    #
-    # To change the parameters of an existing pair force, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # dpdlj = pair.dpd(r_cut = 1.0)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # dpdlj.ljset_params(T=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
-    # dpdlj.ljset_params(T=2.0, mode="shift")
-    # \endcode
     def set_params(self, T=None, mode=None):
+        R""" Changes parameters.
+
+        Args:
+            T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature (if set) (in energy units)
+            mode (str): energy shift/smoothing mode (default noshift).
+
+        Examples::
+
+            dpdlj.set_params(T=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
+            dpdlj.set_params(T=2.0, mode="shift")
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -2091,69 +1943,54 @@ class dpdlj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar4(lj1, lj2, gamma, 0.0);
 
-
-## Force-shifted Lennard-Jones %pair %force
-#
-# The command pair.force_shifted_lj specifies that a modified Lennard-Jones type %pair %force should be added to every
-# non-bonded particle %pair in the simulation. The force differs from the one calculated by  %pair.lj by the subtraction
-# of the value of the force at \f$ r_{\mathrm{cut}} \f$, such that the force smoothly goes to zero at the cut-off. The
-# potential is modified by a linear function. This potential can be used as a substitute for %pair.lj,
-# when the exact analytical form of the latter is not required but a smaller cut-off radius is desired for computational
-# efficency. See \cite Toxvaerd2011 for a discussion of this potential.
-#
-# \f{eqnarray*}
-# V(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-# and
-# \f[ \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}}) \f].
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-# - \f$ \alpha \f$ - \c alpha (unitless)
-#   - <i>optional</i>: defaults to 1.0
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.force_shifted_lj is a standard %pair potential and supports a number of energy shift / smoothing modes.
-# See hoomd.pair.pair for a full description of the various options.
-#
-# \b Example:
-# \code
-# fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.force_shifted_lj command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class force_shifted_lj(pair):
-    ## Specify the force-shifted Lennard-Jones %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # fslj = pair.force_shifted_lj(r_cut=1.5)
-    # fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Force-shifted Lennard-Jones pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`force_shifted_lj` specifies that a modified Lennard-Jones pair force should be applied between
+    non-excluded particle pair in the simulation. The force differs from the one calculated by  :py:class:`lj`
+    by the subtraction of the value of the force at :math:`r_{\mathrm{cut}}`, such that the force smoothly goes
+    to zero at the cut-off. The potential is modified by a linear function. This potential can be used as a substitute
+    for :py:class:`lj`, when the exact analytical form of the latter is not required but a smaller cut-off radius is
+    desired for computational efficency. See `Toxvaerd et. al. 2011 <http://dx.doi.org/10.1063/1.3558787>`_
+    for a discussion of this potential.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    .. math::
+
+        \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        fslj = pair.force_shifted_lj(r_cut=1.5)
+        fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2186,43 +2023,45 @@ class force_shifted_lj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-## Moliere %pair %force
-#
-# The command pair.moliere specifies that a Moliere %pair %force should be added to every
-# non-bonded particle pair in the simulation
-#
-# \f{eqnarray*}
-# V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + 0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
-#                         = & 0 & r > r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exat definition of the %force and potential calculation and how cutoff radii are handled,
-# see pair.
-#
-# The following coefficients must be set per unique %pair of particle types.  See hoomd.pair
-# or the \ref page_quick_start for information on how to set coefficients.
-# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
-# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
-# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
-# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
-#
-# pair.moliere is a standard %pair potential and supports a number of energy shift / smoothing
-# modes.  See pair for a full description of the various options.
-#
 class moliere(pair):
-    ## Specify the Moliere %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \code
-    # moliere = pair.moliere(r_cut = 3.0)
-    # moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
-    # started with run().
+    R""" Moliere pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`moliere` specifies that a Moliere type pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + 0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
+                                = & 0 & r > r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
+    - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
+    - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
+    - :math:`a_0` - *a_0* - The Bohr radius (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        moliere = pair.moliere(r_cut = 3.0)
+        moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2260,43 +2099,45 @@ class moliere(pair):
             aF = 1.0;
         return _hoomd.make_scalar2(Zsq, aF);
 
-## ZBL %pair %force
-#
-# The command pair.zbl specifies that a Ziegler-Biersack-Littmark %pair %force should be added to every
-# non-bonded particle pair in the simulation
-#
-# \f{eqnarray*}
-# V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
-#                         = & 0, & r > r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled,
-# see pair.
-#
-# The following coefficients must be set per unique %pair of particle types.  See hoomd.pair
-# or the \ref page_quick_start for information on how to set coefficients.
-# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
-# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
-# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
-# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
-#
-# pair.zbl is a standard %pair potential and supports a number of energy shift / smoothing
-# modes.  See pair for a full description of the various options.
-#
 class zbl(pair):
-    ## Specify the ZBL %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \code
-    # zbl = pair.zbl(r_cut = 3.0)
-    # zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
-    # started with run().
+    R""" ZBL pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`zbl` specifies that a Ziegler-Biersack-Littmark pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
+                                = & 0, & r > r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
+    - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
+    - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
+    - :math:`a_0` - *a_0* - The Bohr radius (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        zbl = pair.zbl(r_cut = 3.0)
+        zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2334,28 +2175,27 @@ class zbl(pair):
             aF = 1.0;
         return _hoomd.make_scalar2(Zsq, aF);
 
-## Tersoff Potential
-#
-# The command pair.tersoff specifies that the Tersoff three-body potential should be applied to every
-# non-bonded particle pair in the simulation.  Despite the fact that the Tersoff potential accounts
-# for the effects of third bodies, it is included in the %pair potentials because the species of the
-# third body is irrelevant.  It can thus use type-pair parameters similar to those of the %pair potentials.
-#
-# The Tersoff potential is a bond-order potential based on the Morse potential that accounts for the weakening of
-# individual bonds with increasing coordination number.  It does this by computing a modifier to the
-# attractive term of the potential.  The modifier contains the effects of third-bodies on the bond
-# energies.  The potential also includes a smoothing function around the cutoff.  The smoothing function
-# used in this work is exponential in nature as opposed to the sinusoid used by Tersoff.  The exponential
-# function provides continuity up (I believe) the second derivative.
-#
 class tersoff(pair):
-    ## Specify the Tersoff force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
+    R""" Tersoff Potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`tersoff` specifies that the Tersoff three-body potential should be applied to every
+    non-bonded particle pair in the simulation.  Despite the fact that the Tersoff potential accounts
+    for the effects of third bodies, it is included in the pair potentials because the species of the
+    third body is irrelevant. It can thus use type-pair parameters similar to those of the pair potentials.
+
+    The Tersoff potential is a bond-order potential based on the Morse potential that accounts for the weakening of
+    individual bonds with increasing coordination number. It does this by computing a modifier to the
+    attractive term of the potential. The modifier contains the effects of third-bodies on the bond
+    energies. The potential also includes a smoothing function around the cutoff. The smoothing function
+    used in this work is exponential in nature as opposed to the sinusoid used by Tersoff. The exponential
+    function provides continuity up (I believe) the second derivative.
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2419,67 +2259,49 @@ class tersoff(pair):
 
         return _md.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
 
-## Mie potential %pair %force
-#
-# The command pair.mie specifies that a Mie potential type %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# \f{eqnarray*}
-# V_{\mathrm{mie}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
-#                   \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
-#                     = & 0 & r \ge r_{\mathrm{cut}} \\
-# \f}
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \sigma \f$ - \c sigma (in distance units)
-# - \f$ n \f$ - \c n (unitless)
-# - \f$ m \f$ - \c m (unitless)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.mie is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=12, m=6)
-# mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0);
-# mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0);
-# mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.mie command sets the default \a r_cut for all %pair
-# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
-#
-# \MPI_SUPPORTED
 class mie(pair):
-    ## Specify the Mie potential %pair %force
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # mie = pair.mie(r_cut=3.0)
-    # mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=13.0, m=7.0)
-    # mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14.0, m=7.0, r_cut=3.0, r_on=2.0);
-    # mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Mie pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`mie` specifies that a Mie pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{mie}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
+                          \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`n` - *n* (unitless)
+    - :math:`m` - *m* (unitless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        mie = pair.mie(r_cut=3.0)
+        mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=12, m=6)
+        mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0);
+        mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0);
+        mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2514,23 +2336,19 @@ class mie(pair):
         mie4 = m
         return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
 
-## Generic anisotropic %pair potential
-#
-# pair.ai_pair is not a command hoomd scripts should execute directly. Rather, it is a base command that
-# provides common features to all anisotropic %pair forces. Rather than repeating all of that documentation in a
-# dozen different places, it is collected here.
-#
-# All anisotropic %pair potential commands specify that a given potential energy, %force and torque be computedi
-# on all particle pairs in the system within a short range cutoff distance \f$ r_{\mathrm{cut}} \f$.
-# The interaction energy, forces and torque depend on the inter-particle separation
-# \f$ \vec r \f$ and on the orientations \f$\vec e_i, \vec e_j\f$, of the particles.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
 class ai_pair(pair):
+    R""" Generic anisotropic pair potential.
+
+    Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
+    provides common features to all anisotropic pair forces. Rather than repeating all of that documentation in a
+    dozen different places, it is collected here.
+
+    All anisotropic pair potential commands specify that a given potential energy, force and torque be computed
+    on all non-excluded particle pairs in the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
+    The interaction energy, forces and torque depend on the inter-particle separation
+    :math:`\vec r` and on the orientations :math:`\vec q_i`, :math:`q_j`, of the particles.
+    """
+
     ## \internal
     # \brief Initialize the pair force
     # \details
@@ -2549,21 +2367,23 @@ class ai_pair(pair):
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
 
-    ## Set parameters controlling the way forces are computed
-    #
-    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    #
-    # valid values for \a mode are: "none" (the default) and "shift"
-    #  - \b none - No shifting is performed and potentials are abruptly cut off
-    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    #
-    # \b Examples:
-    # \code
-    # mypair.set_params(mode="shift")
-    # mypair.set_params(mode="no_shift")
-    # \endcode
-    #
     def set_params(self, mode=None):
+        R""" Set parameters controlling the way forces are computed.
+
+        Args:
+            mode (str): (if set) Set the mode with which potentials are handled at the cutoff
+
+        valid values for mode are: "none" (the default) and "shift":
+
+        - *none* - No shifting is performed and potentials are abruptly cut off
+        - *shift* - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+
+        Examples::
+
+            mypair.set_params(mode="shift")
+            mypair.set_params(mode="no_shift")
+
+        """
         hoomd.util.print_status_line();
 
         if mode is not None:
@@ -2599,79 +2419,66 @@ class ai_pair(pair):
                 self.cpp_force.setParams(i, j, param);
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
 
-## Gay-Berne anisotropic %pair potential
-#
-# The Gay-Berne potential computes the Lennard-Jones potential between anisotropic particles.
-#
-# This version of the Gay-Berne potential supports identical pairs of uniaxial ellipsoids,
-# with orientation-independent energy-well depth.
-#
-# The interaction energy for this anisotropic pair potential is (\cite Allen2006):
-#
-# \f{eqnarray*}
-# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \zeta^{-12} -
-#                       \zeta{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
-#                     = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
-# \f},
-# where
-# \f{equation}
-# \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)
-# \f},
-#
-# \f{equation}
-# \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}\cdot\vec{H^{-1}}\cdot\hat{\vec{r}}
-# \f},
-#
-# \f{equation}
-# \vec{H} = 2 \ell_\perp^2 \vec{1} + (\ell_\parallel^2 - \ell_\perp^2) (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
-# \f},
-# with \f$ \sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel) \f$.
-#
-# The cut-off parameter \f$ r_{\mathrm{cut}} \f$ is defined for two particles oriented
-# parallel along the \b long axis, i.e.
-# \f$ \zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} +
-# \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)\f$
-# where \f$ \sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel) \f$ .
-#
-# The quantities \f$ \ell_\parallel \f$ and \f$ \ell_\perp \f$ denote the semi-axis lengths parallel
-# and perpendicular to particle orientation.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \ell_perp \f$ - \c lperp (in distance units)
-# - \f$ \ell_par \f$ - \c lpar (in distance units)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.gb is an anisotropic %pair potential and supports shifting the energy at the cut-off.
-# See hoomd.pair.pair for how to set this option.
-#
-# \b Example:
-# \code
-# gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
-# gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# \MPI_SUPPORTED
 class gb(ai_pair):
-    ## Specify the Gay-Berne %pair %force and torque
-    #
-    # \param r_cut Default cutoff radius (in distance units)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # gb = pair.gb(r_cut=2.5)
-    # gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=1.0, lpar=1.5)
-    # gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Gay-Berne anisotropic pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`gb` computes the Gay-Berne potential between anisotropic particles.
+
+    This version of the Gay-Berne potential supports identical pairs of uniaxial ellipsoids,
+    with orientation-independent energy-well depth.
+
+    The interaction energy for this anisotropic pair potential is
+    (`Allen et. al. 2006 <http://dx.doi.org/10.1080/00268970601075238>`_):
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \zeta^{-12} -
+                              \zeta^{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
+                            = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    .. math::
+
+        \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)
+
+        \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}\cdot\vec{H^{-1}}\cdot\hat{\vec{r}}
+
+        \vec{H} = 2 \ell_\perp^2 \vec{1} + (\ell_\parallel^2 - \ell_\perp^2) (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
+
+    with :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
+
+    The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles oriented parallel along
+    the **long** axis, i.e.
+    :math:`\zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} + \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)`
+    where :math:`\sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel)` .
+
+    The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the semi-axis lengths parallel
+    and perpendicular to particle orientation.
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\ell_\perp` - *lperp* (in distance units)
+    - :math:`\ell_\parallel` - *lpar* (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        gb = pair.gb(r_cut=2.5)
+        gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
+        gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
+
+    """
     def __init__(self, r_cut, name=None):
         hoomd.util.print_status_line();
 
@@ -2704,48 +2511,38 @@ class gb(ai_pair):
 
         return _hoomd.make_scalar3(epsilon, lperp, lpar);
 
-##     Create dipole-dipole, dipole-charge, or charge-charge anisotropic interactions
-#
-#  This class computes the (screened) interaction between pairs of
-#  particles with dipoles and electrostatic charges. The total energy
-#  computed is
-#
-#  \f{equation}
-#  U_{dipole} = U_{dd} + U_{de} + U_{ee}
-#  \f},
-#
-#  where
-#
-#  \f{equation}
-#  U_{dd} = A e^{-\kappa r} \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3} - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})(\vec{\mu_j}\cdot \vec{r_{ji}})}{r^5}\right)
-#  \f},
-#
-#  \f{equation}
-#  U_{de} = A e^{-\kappa r} \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3} - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}\right)
-#  \f},
-#
-#  \f{equation}
-#  U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
-#  \f}
-#
-# The following coefficients may be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - mu - magnitude of \f$ \vec{\mu} = \mu (1, 0, 0) \f$ for unrotated particles
-# - A - electrostatic energy scale \f$A\f$ (default value 1.0)
-# - kappa - inverse screening length \f$\kappa\f$
-#
-# \b Example:
-# \code
-# # A/A interact only with screened electrostatics
-# dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
-# dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# \MPI_SUPPORTED
 class dipole(ai_pair):
+    R""" Screened dipole-dipole interactions.
+
+    :py:class:`dipole` computes the (screened) interaction between pairs of
+    particles with dipoles and electrostatic charges. The total energy
+    computed is:
+
+    .. math::
+
+        U_{dipole} = U_{dd} + U_{de} + U_{ee}
+
+        U_{dd} = A e^{-\kappa r} \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3} - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})(\vec{\mu_j}\cdot \vec{r_{ji}})}{r^5}\right)
+
+        U_{de} = A e^{-\kappa r} \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3} - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}\right)
+
+        U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - mu - magnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
+    - A - electrostatic energy scale :math:`A` (default value 1.0)
+    - kappa - inverse screening length :math:`\kappa`
+
+    Example::
+
+        # A/A interact only with screened electrostatics
+        dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+        dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
+
+    """
     def __init__(self, r_cut, name=None):
         hoomd.util.print_status_line();
 
@@ -2782,74 +2579,51 @@ class dipole(ai_pair):
 
         return params
 
-## Onsager reaction field %pair %force
-#
-# The command pair.reaction_field specifies that a reaction field %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# Reaction field electrostatics is an approximation to the screened electrostatic interaction,
-# which assumes that the medium can be treated as an electrostatic continuum of dielectric
-# constant \f$ \epsilon_{RF} \f$ outside the cutoff sphere of radius \f$ r_{\mathrm{cut}} \f$.
-#
-#    \f[ V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
-#        \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]\f]
-#
-#    The reaction field potential does not require charge or diameter to be set. Two parameters,
-#    \f$ \varepsilon \f$ and \f$ \epsilon_{RF} \f$ are needed.
-#
-# [1] J. a. Barker and R. O. Watts, "Monte Carlo studies of the dielectric properties of water-like
-#     models," Mol. Phys., vol. 26, no. June 2015, pp. 789-792, 1973.
-#
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
-#
-# If \f$ epsilon_{RF} \f$ is specified as zero, it will represent infinity.
-#
-# The following coefficients must be set per unique %pair of particle types. See hoomd.pair or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon (in units of energy*distance)
-# - \f$ \epsilon_{RF} \f$ - \c eps_rf (dimensionless)
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in units of distance)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.reaction_field is a standard %pair potential and supports a number of energy shift / smoothing modes.
-# See hoomd.pair.pair for a full
-# description of the various options.
-#
-# \b Example:
-# \code
-# reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
-# reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
-# reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
-# \endcode
-#
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd.pair.coeff.set() pair_coeff.set()\endlink.
-#
-# The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for
-# all %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair.
-# The cutoff distances used for the neighbor list will by dynamically determined from the maximum of all
-# \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
-#
-# \MPI_SUPPORTED
 class reaction_field(pair):
-    ## Specify the Onsager reaction field %pair %force
-    #
-    # \param r_cut Default cutoff radius (in units of distance)
-    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # reaction_field = pair.reaction_field(r_cut=3.0)
-    # reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
-    # reaction_field.pair_coeff.set('A', 'B', epsilon=2.0, eps_rf=0, r_cut=3.0, r_on=2.0);
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
+    R""" Onsager reaction field pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        name (str): Name of the force instance.
+
+    :py:class:`reaction_field` specifies that an Onsager reaction field pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    Reaction field electrostatics is an approximation to the screened electrostatic interaction,
+    which assumes that the medium can be treated as an electrostatic continuum of dielectric
+    constant :math:`\epsilon_{RF}` outside the cutoff sphere of radius :math:`r_{\mathrm{cut}}`.
+    See: `Barker et. al. 1973 <http://dx.doi.org/10.1080/00268977300102101>`_.
+
+    .. math::
+
+       V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
+           \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
+
+    The reaction field potential does not require charge or diameter to be set. Two parameters,
+    :math:`\varepsilon` and :math:`\epsilon_{RF}` are needed. If :math:`epsilon_{RF}` is specified as zero,
+    it will represent infinity.
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in units of energy*distance)
+    - :math:`\epsilon_{RF}` - *eps_rf* (dimensionless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}` - *r_on* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        reaction_field = pair.reaction_field(r_cut=3.0)
+        reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
+        reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
+        reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
+
+    """
     def __init__(self, r_cut, nlist=None, name=None):
         hoomd.util.print_status_line();
 
@@ -2877,35 +2651,3 @@ class reaction_field(pair):
         eps_rf = coeff['eps_rf'];
 
         return _hoomd.make_scalar2(epsilon, eps_rf);
-
-    ## Set parameters controlling the way forces are computed
-    #
-    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    #
-    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
-    #  - \b none - No shifting is performed and potentials are abruptly cut off
-    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the
-    #               cutoff when ron < rcut, and shifts the potential to 0 ar the cutoff when ron >= rcut.
-    # (see pair above for formulas and more information)
-    #
-    # \b Examples:
-    # \code
-    # mypair.set_params(mode="shift")
-    # mypair.set_params(mode="no_shift")
-    # mypair.set_params(mode="xplor")
-    # \endcode
-    #
-    def set_params(self, mode=None):
-        hoomd.util.print_status_line();
-
-        if mode is not None:
-            if mode == "no_shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
-            elif mode == "shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
-            elif mode == "xplor":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
-            else:
-                hoomd.context.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in pair force");
