@@ -24,3 +24,4 @@ md
     module-md-nlist
     module-md-pair
     module-md-update
+    module-md-wall
