@@ -19,8 +19,8 @@ if len(sys.argv) > 3:
     print("invalid input");
     sys.exit(1)
 
-os.environ['CC'] = '/usr/bin/clang'
-os.environ['CXX'] = '/usr/bin/clang++'
+os.environ['CC'] = os.popen("which %s" % "clang").read().strip()
+os.environ['CXX'] = os.popen("which %s" % "clang++").read().strip()
 
 call(["mkdir", "-p", "build"])
 os.chdir("build");

@@ -4,13 +4,19 @@ channels:
 dependencies:
 - backports=1.0=py35_0
 - boost=1.59.0=glotzer_py35_6
+- cloog=0.18.0=0
 - cmake=3.3.1=0
 - decorator=4.0.9=py35_0
 - get_terminal_size=1.0.0=py35_0
+- gmp=5.1.2=2
 - icu=54.1=0
 - ipython=4.2.0=py35_0
 - ipython_genutils=0.1.0=py35_0
+- isl=0.12.2=0
+- llvm=3.3=0
 - mkl=11.3.1=0
+- mpc=1.0.1=0
+- mpfr=3.1.2=0
 - numpy=1.11.0=py35_0
 - openssl=1.0.2g=0
 - path.py=8.2.1=py35_0
@@ -23,6 +29,7 @@ dependencies:
 - setuptools=20.7.0=py35_0
 - simplegeneric=0.8.1=py35_0
 - sqlite=3.9.2=0
+- system=5.8=2
 - tk=8.5.18=0
 - traitlets=4.2.1=py35_0
 - wheel=0.29.0=py35_0
