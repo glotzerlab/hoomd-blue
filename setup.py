@@ -22,4 +22,4 @@ if len(sys.argv) > 3:
 call(["mkdir", "-p", "build"])
 os.chdir("build");
 call(["cmake", "../", "-DINSTALL_SITE=on", "-DBUILD_TESTING=off"])
-call(["make", "install", "-j4"])
+call(["make", "install"])
