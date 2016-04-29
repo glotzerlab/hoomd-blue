@@ -18,7 +18,7 @@ class bond_harmonic_tests (unittest.TestCase):
         self.separation=dict(A=0.35, B=0.35)
         self.s=init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create a md.force.constant
     def test_create(self):

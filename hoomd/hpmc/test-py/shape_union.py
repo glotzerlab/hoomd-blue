@@ -93,7 +93,7 @@ class sphere_union(unittest.TestCase):
         system = init.create_empty(N=N, box=data.boxdim(L=L, dimensions=ndim), particle_types=['A'])
 
         # decrease initialization time with smaller grid for Hilbert curve
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         mc = hpmc.integrate.sphere_union(seed=seed);
         mc.shape_param.set("A", diameters=[1.0, 1.0], centers=spheres);

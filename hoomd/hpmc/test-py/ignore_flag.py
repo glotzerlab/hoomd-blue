@@ -18,7 +18,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
         self.system  = init.create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A'])
         self.mc = hpmc.integrate.convex_polyhedron(seed=10,a=0.1,d=0.1,max_verts=8);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_overlap_flags(self):
 

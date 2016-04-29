@@ -13,7 +13,7 @@ class update_rescale_temp_tests (unittest.TestCase):
         print
         self.system = init.create_random(N=10000, phi_p=0.01,min_dist=1);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):

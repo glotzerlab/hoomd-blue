@@ -14,7 +14,7 @@ class dmp_dcd_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         if comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.dcd');

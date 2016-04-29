@@ -13,7 +13,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         #print
         init.create_empty(N=100, box=data.boxdim(L=40), particle_types=['A', 'B']);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_max_rcut(self):
         lj = md.pair.lj(r_cut=2.5);

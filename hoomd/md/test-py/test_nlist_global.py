@@ -15,7 +15,7 @@ class pair_nlist_tests (unittest.TestCase):
         #indirectly create the global neighbor list by creating a md.pair.lj without an argument
         md.pair.lj(r_cut=3.0);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test set_params via the wrapper
     def test_set_params(self):

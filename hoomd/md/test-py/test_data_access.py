@@ -13,7 +13,7 @@ class particle_data_access_tests (unittest.TestCase):
         print
         self.s = init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests reading/setting of the box
     def test_box(self):
@@ -196,7 +196,7 @@ class bond_data_access_tests (unittest.TestCase):
                                    dihedral_types=['dihedralA', 'dihedralB'],
                                    improper_types=['improperA', 'improperB']);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests bonds
     def test_bonds(self):
@@ -413,7 +413,7 @@ class pair_access_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):

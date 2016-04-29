@@ -15,7 +15,7 @@ class constraint_sphere_tests (unittest.TestCase):
         self.sysdef.particles[0].position = (5,0,0);
         self.sysdef.particles[1].position = (-5,1,1);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_basic(self):
         all = group.all()

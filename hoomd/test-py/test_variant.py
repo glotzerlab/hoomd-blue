@@ -13,7 +13,7 @@ class variant_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests creation of the constant variant
     def test_const(self):

@@ -93,7 +93,6 @@ from hoomd import group
 from hoomd import init
 from hoomd import integrate
 from hoomd import option
-from hoomd import sorter
 from hoomd import update
 from hoomd import util
 from hoomd import variant

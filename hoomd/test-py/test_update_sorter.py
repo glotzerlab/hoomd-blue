@@ -16,7 +16,7 @@ class update_sorter_tests (unittest.TestCase):
     # test set_params
     def test_set_params(self):
 
-        sorter.set_params(grid=20);
+        context.current.sorter.set_params(grid=20);
 
     def tearDown(self):
         context.initialize();

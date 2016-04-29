@@ -13,7 +13,7 @@ class analyze_msd_tests (unittest.TestCase):
         print
         self.s = hoomd.init.create_random(N=100, phi_p=0.05);
 
-        hoomd.sorter.set_params(grid=8)
+        hoomd.context.current.sorter.set_params(grid=8)
 
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');

@@ -13,7 +13,7 @@ class force_constant_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create a md.force.constant
     def test_create(self):

@@ -16,7 +16,7 @@ class validate_test(unittest.TestCase):
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_sanity_check(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -46,7 +46,7 @@ class convex_polygon_test(unittest.TestCase):
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_convex_polygon(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -71,7 +71,7 @@ class simple_polygon_test(unittest.TestCase):
         self.mc = hpmc.integrate.simple_polygon(seed=10);
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.0, 0.0), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_simple_polygon(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -103,7 +103,7 @@ class convex_polyhedron_test(unittest.TestCase):
                                                (2,-1,1),
                                                (2,1,1)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_convex_polyhedron(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -128,7 +128,7 @@ class sphere_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_sphere(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -153,7 +153,7 @@ class sphere_union_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere_union(seed=10);
         self.mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0, 0), (0.25, 0, 0)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_sphere_union(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -178,7 +178,7 @@ class convex_spheropolygon_test(unittest.TestCase):
         self.mc = hpmc.integrate.convex_spheropolygon(seed=10);
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_convex_spheropolygon(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -205,7 +205,7 @@ class polyhedron_test(unittest.TestCase):
                                 (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
                                 faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_polyhedron(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -241,7 +241,7 @@ class faceted_sphere_test(unittest.TestCase):
                                     diameter=2,
                                     origin=(0,0,0));
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_faceted_sphere(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -273,7 +273,7 @@ class convex_spheropolyhedron_test(unittest.TestCase):
                                                (2,-1,1),
                                                (2,1,1)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_convex_spheropolyhedron(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -298,7 +298,7 @@ class ellipsoid_test(unittest.TestCase):
         self.mc = hpmc.integrate.ellipsoid(seed=10);
         self.mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_ellipsoid(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -324,7 +324,7 @@ class sphinx_test(unittest.TestCase):
         self.mc.shape_param.set('A', diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
 			               colors=['ff','ffff00','ffff00']);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_sphinx(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1

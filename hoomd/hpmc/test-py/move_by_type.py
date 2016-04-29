@@ -36,7 +36,7 @@ class pair_move_some(unittest.TestCase):
         self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
         self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_move_some(self):
 
@@ -113,7 +113,7 @@ class pair_rot_some(unittest.TestCase):
         self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
         self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_rot_some(self):
 

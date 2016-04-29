@@ -146,7 +146,6 @@ set(files analyze.py
           integrate.py
           meta.py
           option.py
-          sorter.py
           update.py
           util.py
           variant.py

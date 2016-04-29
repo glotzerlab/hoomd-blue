@@ -32,7 +32,7 @@ class pair_smallbox2d_test1 (unittest.TestCase):
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_cell_list(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -59,7 +59,7 @@ class pair_smallbox2d_test2 (unittest.TestCase):
         self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.1);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_no_overlap(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -120,7 +120,7 @@ class pair_smallbox2d_test3 (unittest.TestCase):
                 self.system.particles[i*l+j].position = (i*x*0.9,j*x*0.9,0);
                 self.system.particles[i*l+j].orientation = (1,0,0,0);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_large_moves_two(self):
         # Run with a very large move distance to trigger pathological cases where particles are

@@ -70,7 +70,7 @@ class gsd_write_tests (unittest.TestCase):
 
         self.s = init.read_snapshot(self.snapshot);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the dump
     def test(self):
@@ -212,7 +212,7 @@ class gsd_read_tests (unittest.TestCase):
             self.snapshot.constraints.value[0] = 2.5
 
         self.s = init.read_snapshot(self.snapshot);
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests data.gsd_snapshot
     def test_gsd_snapshot(self):
@@ -298,7 +298,7 @@ class gsd_default_type (unittest.TestCase):
             self.snapshot.particles.types = ['A'];
 
         self.s = init.read_snapshot(self.snapshot);
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests data.gsd_snapshot
     def test_gsd(self):

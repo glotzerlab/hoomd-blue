@@ -15,7 +15,7 @@ class cite_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         # ensure that the bibliography is there
         cite._ensure_global_bib()

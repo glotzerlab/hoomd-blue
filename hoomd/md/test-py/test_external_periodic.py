@@ -13,7 +13,7 @@ class external_periodic_tests (unittest.TestCase):
         print
         self.s = init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create an external.periodic
     def test_create(self):

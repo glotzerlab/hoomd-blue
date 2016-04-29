@@ -38,7 +38,7 @@ class angle_table_tests (unittest.TestCase):
 
         self.sys = init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create a md.angle.table
     def test_create(self):

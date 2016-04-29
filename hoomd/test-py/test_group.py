@@ -36,7 +36,7 @@ class pair_group_tests (unittest.TestCase):
         self.s.particles[10].position = (0,0,-2);
         self.s.particles[10].type = 'B';
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_all(self):
         all = group.all()

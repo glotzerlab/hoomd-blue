@@ -19,7 +19,7 @@ class nlist_tree_tests (unittest.TestCase):
         except RuntimeError:
             self.nl = None
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test set_params
     def test_set_params(self):

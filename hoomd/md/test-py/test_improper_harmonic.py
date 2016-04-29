@@ -37,7 +37,7 @@ class improper_harmonic_tests (unittest.TestCase):
 
         init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create an angle.harmonic
     def test_create(self):

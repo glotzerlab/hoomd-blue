@@ -13,7 +13,7 @@ class force_base_tests (unittest.TestCase):
         print
         self.N=1000;
         self.s = init.create_random(N=self.N, phi_p=0.05);
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):

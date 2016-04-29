@@ -19,7 +19,7 @@ class integrate_langevin_tests (unittest.TestCase):
         self.s = init.create_random(N=100, phi_p=0.05);
         md.force.constant(fx=0.1, fy=0.1, fz=0.1)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the integration method
     def test(self):
@@ -95,7 +95,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         # this defaults all particles to position 0, which is what we want for this test
         self.s = init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_noiseless_t(self):
         # Setup an ideal gas with a gamma and T and validate the MSD

@@ -15,7 +15,7 @@ class integrate_npt_tests (unittest.TestCase):
         md.force.constant(fx=0.1, fy=0.1, fz=0.1)
         lj = md.pair.lj(r_cut=2.5)
         lj.pair_coeff.set('A','A', epsilon=1.0, sigma=1.0)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the integrator
     def test(self):

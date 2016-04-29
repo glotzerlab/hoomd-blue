@@ -16,7 +16,7 @@ class pair_dipole_tests (unittest.TestCase):
         snap.particles.angmom[:] = 1
         system.restore_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):

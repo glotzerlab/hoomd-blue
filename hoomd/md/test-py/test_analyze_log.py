@@ -14,7 +14,7 @@ class analyze_log_tests (unittest.TestCase):
         print
         hoomd.init.create_random(N=100, phi_p=0.05);
 
-        hoomd.sorter.set_params(grid=8)
+        hoomd.context.current.sorter.set_params(grid=8)
 
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');
@@ -73,7 +73,7 @@ class analyze_log_query_tests (unittest.TestCase):
         hoomd.md.integrate.mode_standard(dt=0.005);
         hoomd.md.integrate.langevin(hoomd.group.all(), seed=1, T=1.0);
 
-        hoomd.sorter.set_params(grid=8)
+        hoomd.context.current.sorter.set_params(grid=8)
 
     # tests query with no output file
     def test(self):

@@ -18,7 +18,7 @@ class integrate_brownian_script_tests (unittest.TestCase):
         print
         self.s = init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the integration method
     def test(self):
@@ -72,7 +72,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         # this defaults all particles to position 0, which is what we want for this test
         self.s = init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_gamma(self):
         # Setup an ideal gas with a gamma and T and validate the MSD

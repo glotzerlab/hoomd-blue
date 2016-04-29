@@ -32,7 +32,7 @@ class pair_smallbox3d_test1 (unittest.TestCase):
         self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_cell_list(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -58,7 +58,7 @@ class pair_smallbox3d_test2 (unittest.TestCase):
         self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_no_overlap(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1

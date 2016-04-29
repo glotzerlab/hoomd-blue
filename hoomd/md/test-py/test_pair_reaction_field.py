@@ -13,7 +13,7 @@ class pair_reaction_field_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):

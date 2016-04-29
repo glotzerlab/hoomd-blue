@@ -68,7 +68,7 @@ class convex_polyhedron_test(unittest.TestCase):
                    [2,-1,1],
                    [2,1,1]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.convex_polyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_polyhedron']['shape_param']['A']['vertices'], vertices)
@@ -86,7 +86,7 @@ class sphere_test(unittest.TestCase):
 
     def test_metadata_dump(self):
         self.mc.shape_param.set('A', diameter=1.0)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.sphere', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.sphere']['shape_param']['A']['diameter'], 1.0)
@@ -105,7 +105,7 @@ class sphere_union_test(unittest.TestCase):
         diameters = [1.0, 1.0]
         centers = [[-0.25, 0, 0], [0.25, 0, 0]]
         self.mc.shape_param.set('A', diameters=diameters, centers=centers)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.sphere_union', meta_data)
         # readback is not currently enabled for shape union
@@ -134,7 +134,7 @@ class convex_spheropolygon_test(unittest.TestCase):
                    [2,1]]
 
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.convex_spheropolygon', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_spheropolygon']['shape_param']['A']['vertices'], vertices)
@@ -161,7 +161,7 @@ class polyhedron_test(unittest.TestCase):
                    [2,1,1]]
         faces = [[1,2,3,4]]
         self.mc.shape_param.set('A', vertices=vertices, faces=[])
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.polyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.polyhedron']['shape_param']['A']['vertices'], vertices)
@@ -193,7 +193,7 @@ class faceted_sphere_test(unittest.TestCase):
             origin=[0,0,0]
             )
         self.mc.shape_param.set('A',  ** shape_param)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.faceted_sphere', meta_data)
         for key in shape_param:
@@ -220,7 +220,7 @@ class convex_spheropolyhedron_test(unittest.TestCase):
                    [2,-1,1],
                    [2,1,1]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.convex_spheropolyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_spheropolyhedron']['shape_param']['A']['vertices'], vertices)
@@ -239,7 +239,7 @@ class ellipsoid_test(unittest.TestCase):
     def test_metadata_dump(self):
         shape_param = dict(a=0.5, b=0.25, c=0.125)
         self.mc.shape_param.set('A',  **shape_param)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.ellipsoid', meta_data)
         for key in shape_param:
@@ -260,7 +260,7 @@ class sphinx_test(unittest.TestCase):
         shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
 			               colors=['ff','ffff00','ffff00'])
         self.mc.shape_param.set('A',  **shape_param)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()[0]
         self.assertIn('hoomd.hpmc.integrate.sphinx', meta_data)
 

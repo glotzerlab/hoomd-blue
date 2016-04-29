@@ -134,6 +134,18 @@ class SimulationContext(object):
         gauss = pair.gauss(...)
         ...
         run(100)
+
+    Attributes:
+        sorter (:py:class:`hoomd.update.sort`): Global particle sorter.
+        system_definition (:py:class:`hoomd.data.system_data`): System definition.
+
+    The attributes are global to the context. User scripts may access documented attributes to control settings,
+    access particle data, etc... See the linked documentation of each attribute for more details. For example,
+    to disable the global sorter::
+
+        c = context.initialize();
+        c.sorter.disable();
+
     """
     def __init__(self):
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script

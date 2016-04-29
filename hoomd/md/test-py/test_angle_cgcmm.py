@@ -37,7 +37,7 @@ class angle_cgcmm_tests (unittest.TestCase):
 
         init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create an md.angle.cgcmm
     def test_create(self):

@@ -16,7 +16,7 @@ class nlist_stencil_tests (unittest.TestCase):
         # directly create a neighbor list
         self.nl = md.nlist.stencil()
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test set_params
     def test_set_params(self):

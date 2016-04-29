@@ -32,7 +32,7 @@ class pair_accept_all (unittest.TestCase):
         self.mc = hpmc.integrate.ellipsoid(seed=10);
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=True,ignore_overlaps=True)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_accept_all(self):
         # check 1, see if there are any overlaps. There should be none as all overlaps are ignored
@@ -83,7 +83,7 @@ class pair_accept_none (unittest.TestCase):
         self.mc = hpmc.integrate.ellipsoid(seed=10);
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=False)
         self.mc.set_params(d=0.01,a=0.01)
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_accept_none(self):
         # check 1, see if there are any overlaps. There should be 2
@@ -121,7 +121,7 @@ class pair_accept_some(unittest.TestCase):
         self.mc.shape_param.set('A', a=0.5,b=0.5,c=0.5,ignore_statistics=True,ignore_overlaps=True)
         self.mc.shape_param.set('B', a=0.5,b=0.5,c=0.5,ignore_statistics=False,ignore_overlaps=False)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_accept_some(self):
         # check 1, see if there are any overlaps. There should be none as all overlaps are ignored

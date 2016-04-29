@@ -14,7 +14,7 @@ class update_enforce2d_tests (unittest.TestCase):
         s = init.create_random(N=100, box=data.boxdim(L=100, dimensions=2));
         s.dimensions = 2
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):
