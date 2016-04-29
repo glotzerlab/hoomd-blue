@@ -49,15 +49,15 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Modify the system state periodically.
+
+When an updater is specified, it acts on the particle system every *period* steps to change
+it in some way. See the documentation of specific updaters to find out what they do.
+"""
+
 from hoomd import _hoomd;
 import hoomd;
 import sys;
-
-## \package hoomd.update
-# \brief Commands that modify the system state in some way
-#
-# When an updater is specified, it acts on the particle system each time step to change
-# it in some way. See the documentation of specific updaters to find out what they do.
 
 ## \internal
 # \brief Base class for updaters
@@ -143,26 +143,18 @@ class _updater(hoomd.meta._metadata):
             hoomd.context.msg.error('Bug in hoomd. cpp_updater not set, please report\n');
             raise RuntimeError();
 
-    ## Disables the updater
-    #
-    # \b Examples:
-    # \code
-    # updater.disable()
-    # \endcode
-    #
-    # Executing the disable command will remove the updater from the system.
-    # Any run() command executed after disabling an updater will not use that
-    # updater during the simulation. A disabled updater can be re-enabled
-    # with enable()
-    #
-    # To use this command, you must have saved the updater in a variable, as
-    # shown in this example:
-    # \code
-    # updater = update.some_updater()
-    # # ... later in the script
-    # updater.disable()
-    # \endcode
     def disable(self):
+        R""" Disables the updater.
+
+        Examples::
+
+            updater.disable()
+
+        Executing the disable command will remove the updater from the system.
+        Any :py:func:`hoomd.run()` command executed after disabling an updater will not use that
+        updater during the simulation. A disabled updater can be re-enabled
+        with :py:meth:`enable()`
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -175,15 +167,17 @@ class _updater(hoomd.meta._metadata):
         hoomd.context.current.system.removeUpdater(self.updater_name);
         self.enabled = False;
 
-    ## Enables the updater
-    #
-    # \b Examples:
-    # \code
-    # updater.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
     def enable(self):
+        R""" Enables the updater.
+
+        Examples::
+
+            updater.enable()
+
+        See Also:
+            :py:meth:`disable()`
+        """
+
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -195,28 +189,22 @@ class _updater(hoomd.meta._metadata):
         hoomd.context.current.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
         self.enabled = True;
 
-    ## Changes the period between updater executions
-    #
-    # \param period New period to set
-    #
-    # \b Examples:
-    # \code
-    # updater.set_period(100);
-    # updater.set_period(1);
-    # \endcode
-    #
-    # While the simulation is \ref run() "running", the action of each updater
-    # is executed every \a period time steps. Changing the period does not change the phase set when the analyzer
-    # was first created.
-    #
-    # To use this command, you must have saved the updater in a variable, as
-    # shown in this example:
-    # \code
-    # updater = update.some_updater()
-    # # ... later in the script
-    # updater.set_period(10)
-    # \endcode
     def set_period(self, period):
+        R""" Changes the updater period.
+
+        Args:
+            period (int): New period to set.
+
+        Examples::
+
+            updater.set_period(100);
+            updater.set_period(1);
+
+        While the simulation is running, the action of each updater
+        is executed every *period* time steps. Changing the period does
+        not change the phase set when the analyzer was first created.
+        """
+
         hoomd.util.print_status_line();
 
         if type(period) == type(1.0):
@@ -240,49 +228,43 @@ class _updater(hoomd.meta._metadata):
 
         return data
 
-#
-# **************************************************************************
-
-## Sorts particles in memory to improve cache coherency
-#
-# Every \a period time steps, particles are reordered in memory based on
-# a Hilbert curve. This operation is very efficient, and the reordered particles
-# significantly improve performance of all other algorithmic steps in HOOMD.
-#
-# The reordering is accomplished by placing particles in spatial bins. A Hilbert curve is generated that traverses
-# these bins and particles are reordered in memory in the same order in which
-# they fall on the curve. The grid dimension used over the course of the simulation is held constant, and the default
-# is chosen to be as fine as possible without utilizing too much memory. The dimension can be changed with set_params(),
-# just be aware that the value chosen will be rounded up to the next power of 2 and that the amount of memory usage for
-# 3D simulations grows very quickly:
-# - \a grid=128 uses 8 MB
-# - \a grid=256 uses 64 MB
-# - \a grid=512 uses 512 MB
-# - \a grid=1024 uses 4096 MB
-#
-# 2D simulations do not use any additional memory and default to \a grid=4096
-#
-# Because all simulations benefit from this process, a sorter is created by
-# default. If you have reason to disable it or modify parameters, you
-# can use the built-in variable \c sorter to do so after initialization. The
-# following code example disables the sorter. The hoomd.init.create_random command
-# is just an example; sorter can be modified after any command that initializes
-# the system.
-# \code
-# hoomd.init.create_random(N=1000, phi_p=0.2)
-# sorter.disable()
-# \endcode
 class sort(_updater):
-    ## Initialize the sorter
-    #
-    # Users should not initialize the sorter directly. One in created for you
-    # when any initialization command from init is run.
-    # The created sorter can be accessed via the built-in variable \c sorter.
-    #
-    # By default, the sorter is created with a \a grid of 256 (4096 in 2D) and
-    # an update period of 300 time steps (100 if running on the CPU).
-    # The period can be changed with set_period() and the grid width can be
-    # changed with set_params()
+    R""" Sorts particles in memory to improve cache coherency.
+
+    Warning:
+        Do not specify :py:class:`hoomd.update.sort` explicitly in your script. HOOMD creates
+        a sorter by default.
+
+    Every *period* time steps, particles are reordered in memory based on
+    a Hilbert curve. This operation is very efficient, and the reordered particles
+    significantly improve performance of all other algorithmic steps in HOOMD.
+
+    The reordering is accomplished by placing particles in spatial bins. A Hilbert curve
+    is generated that traverses these bins and particles are reordered in memory in the
+    same order in which they fall on the curve. The grid dimension used over the course
+    of the simulation is held constant, and the default is chosen to be as fine as possible
+    without utilizing too much memory. The grid size can be changed with :py:meth:`set_params()`.
+
+    Warning:
+        Memory usage by the sorter grows quickly with the grid size:
+
+        * grid=128 uses 8 MB
+        * grid=256 uses 64 MB
+        * grid=512 uses 512 MB
+        * grid=1024 uses 4096 MB
+
+    Note:
+        2D simulations do not use any additional memory and default to grid=4096.
+
+    A sorter is created by default. To disable it or modify parameters, save the
+    context and access the sorter through it::
+
+        c = context.initialize();
+        hoomd.init.create_random(N=1000, phi_p=0.2)
+        # the sorter is only available after initialization
+        c.sorter.disable()
+    """
+
     def __init__(self):
         # initialize base class
         _updater.__init__(self);
@@ -300,72 +282,73 @@ class sort(_updater):
 
         self.setupUpdater(default_period);
 
-    ## Change sorter parameters
-    #
-    # \param grid New grid dimension (if set)
-    #
-    # \b Examples:
-    # \code
-    # sorter.set_params(grid=128)
-    # \endcode
     def set_params(self, grid=None):
+        R""" Change sorter parameters.
+
+        Args:
+            grid (int): New grid dimension (if set)
+
+        Examples::
+            sorter.set_params(grid=128)
+        """
+
         hoomd.util.print_status_line();
         self.check_initialization();
 
         if grid is not None:
             self.cpp_updater.setGrid(grid);
 
-## Rescales the system box size
-#
-# Every \a period time steps, the system box dimensions is updated to values given by
-# the user (in a variant). As an option, the particles can either be left in place
-# as the box is changed or their positions can be scaled with the box.
-#
-# \MPI_SUPPORTED
 class box_resize(_updater):
-    ## Initialize box size resize updater
-    #
-    # \param L (if set) box length in the x,y, and z directions as a function of time (in distance units)
-    # \param Lx (if set) box length in the x direction as a function of time (in distance units)
-    # \param Ly (if set) box length in the y direction as a function of time (in distance units)
-    # \param Lz (if set) box length in the z direction as a function of time (in distance units)
-    # \param xy (if set) X-Y tilt factor as a function of time (dimensionless)
-    # \param xz (if set) X-Z tilt factor as a function of time (dimensionless)
-    # \param yz (if set) Y-Z tilt factor as a function of time (dimensionless)
-    # \param period The box size will be updated every \a period time steps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \a L, Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
-    # if any of the box parameters are not specified, they are set to maintain the same value in the current box.
-    #
-    # Use \a L as a shorthand to specify Lx, Ly, and Lz to the same value.
-    #
-    # By default, particle positions are rescaled with the box. To change this behavior,
-    # use set_params().
-    #
-    # If, under rescaling, tilt factors get too large, the simulation may slow down due to too many ghost atoms
-    # being communicated. update.box.resize does NOT reset the box to orthorhombic shape if this occurs (and does not
-    # move the next periodic image into the primary cell).
-    #
-    # \b Examples:
-    # \code
-    # update.box_resize(L = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]))
-    # box_resize = update.box_resize(L = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
-    # update.box_resize(Lx = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]),
-    #                   Ly = hoomd.variant.linear_interp([(0, 20), (1e6, 60)]),
-    #                   Lz = hoomd.variant.linear_interp([(0, 10), (1e6, 80)]))
-    # update.box_resize(Lx = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
-    #
-    # # Shear the box in the xy plane using Lees-Edwards boundary conditions
-    # update.box_resize(xy = hoomd.variant.linear_interp([(0,0), (1e6, 1)]))
-    # \endcode
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    #
-    # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
-    # are not performed.
-    #
-    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=-1):
+    R""" Rescale the system box size.
+
+    Args:
+        L (:py:mod:`hoomd.variant`): (if set) box length in the x,y, and z directions as a function of time (in distance units)
+        Lx (:py:mod:`hoomd.variant`): (if set) box length in the x direction as a function of time (in distance units)
+        Ly (:py:mod:`hoomd.variant`): (if set) box length in the y direction as a function of time (in distance units)
+        Lz (:py:mod:`hoomd.variant`): (if set) box length in the z direction as a function of time (in distance units)
+        xy (:py:mod:`hoomd.variant`): (if set) X-Y tilt factor as a function of time (dimensionless)
+        xz (:py:mod:`hoomd.variant`): (if set) X-Z tilt factor as a function of time (dimensionless)
+        yz (:py:mod:`hoomd.variant`): (if set) Y-Z tilt factor as a function of time (dimensionless)
+        period (int): The box size will be updated every *period* time steps.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        scale_particles (bool): When True (the default), scale particles into the new box. When False, do not change particle positions when changing the box.
+
+    Every *period* time steps, the system box dimensions is updated to values given by
+    the user (in a variant). As an option, the particles can either be left in place
+    as the box is changed or their positions can be scaled with the box.
+
+    Note:
+        If *period* is set to None, then the given box lengths are applied immediately and
+        periodic updates are not performed.
+
+    L, Lx, Ly, Lz, xy, xz, yz can either be set to a constant number or a :py:mod:`hoomd.variant`.
+    if any of the box parameters are not specified, they are set to maintain the same value in the
+    current box.
+
+    Use L as a shorthand to specify Lx, Ly, and Lz to the same value.
+
+    By default, particle positions are rescaled with the box. Set *scale_particles=False*
+    to leave particles in place when changing the box.
+
+    If, under rescaling, tilt factors get too large, the simulation may slow down due
+    to too many ghost atoms being communicated. :py:class:`hoomd.update.box_resize`
+    does NOT reset the box to orthorhombic shape if this occurs (and does not move
+    the next periodic image into the primary cell).
+
+    Examples::
+
+        update.box_resize(L = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]))
+        box_resize = update.box_resize(L = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
+        update.box_resize(Lx = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]),
+                          Ly = hoomd.variant.linear_interp([(0, 20), (1e6, 60)]),
+                          Lz = hoomd.variant.linear_interp([(0, 10), (1e6, 80)]))
+        update.box_resize(Lx = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
+
+        # Shear the box in the xy plane using Lees-Edwards boundary conditions
+        update.box_resize(xy = hoomd.variant.linear_interp([(0,0), (1e6, 1)]))
+    """
+
+    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=-1, scale_particles=True):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -419,86 +402,66 @@ class box_resize(_updater):
         # create the c++ mirror class
         self.cpp_updater = _hoomd.BoxResizeUpdater(hoomd.context.current.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
                                                   xy.cpp_variant, xz.cpp_variant, yz.cpp_variant);
+        self.cpp_updater.setParams(scale_particles);
+
         if period is None:
             self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
         else:
             self.setupUpdater(period, phase);
 
-    ## Change box_resize parameters
-    #
-    # \param scale_particles Set to True to scale particles with the box. Set to False
-    #        to have particles remain in place when the box is scaled.
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # box_resize = update.box_resize(Lx = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # box_resize.set_params(scale_particles = False)
-    # box_resize.set_params(scale_particles = True)
-    # \endcode
-    def set_params(self, scale_particles=None):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        if scale_particles is not None:
-            self.cpp_updater.setParams(scale_particles);
-
-## Adjusts the boundaries of a domain %decomposition on a regular 3D grid.
-#
-# Every \a period steps, the boundaries of the processor domains are adjusted to distribute the particle load close
-# to evenly between them. The load imbalance is defined as the number of particles owned by a rank divided by the
-# average number of particles per rank if the particles had a uniform distribution:
-# \f[
-# I = \frac{N(i)}{N / P}
-# \f]
-# where \f$ N(i) \f$ is the number of particles on processor \f$i\f$, \f$N\f$ is the total number of particles, and
-# \f$P\f$ is the number of ranks.
-#
-# In order to adjust the load imbalance, the sizes are rescaled by the inverse of the imbalance factor. To reduce
-# oscillations and communication overhead, a domain cannot move more than 5% of its current size in a single
-# rebalancing step, and the edge of a domain cannot move more than half the distance to its neighbors.
-#
-# Simulations with interfaces (so that there is a particle density gradient) or clustering should benefit from load
-# balancing. The potential speedup is roughly \f$I-1.0\f$, so that if the largest imbalance is 1.4, then the user
-# can expect a roughly 40% speedup in the simulation. This is of course an estimate that assumes that all algorithms
-# are roughly linear in \f$N\f$, all GPUs are fully occupied, and the simulation is limited by the speed of the slowest
-# processor. It also assumes that all particles roughly equal. If you have a simulation where, for example, some particles
-# have significantly more pair force neighbors than others, this estimate of the load imbalance may not produce the
-# optimal results.
-#
-# A load balancing adjustment is only performed when the maximum load imbalance exceeds a \a tolerance. The ideal load
-# balance is 1.0, so setting \a tolerance less than 1.0 will force an adjustment every \a period. The load balancer
-# can attempt multiple iterations of balancing every \a period, and up to \a maxiter attempts can be made. The optimal
-# values of \a period and \a maxiter will depend on your simulation.
-#
-# Load balancing can be performed independently and sequentially for each dimension of the simulation box. A small
-# performance increase may be obtained by disabling load balancing along dimensions that are known to be homogeneous.
-# For example, if there is a planar vapor-liquid interface normal to the \f$z\f$ axis, then it may be advantageous to
-# disable balancing along \f$x\f$ and \f$y\f$.
-#
-# In systems that are well-behaved, there is minimal overhead of balancing with a small \a period. However, if the
-# system is not capable of being balanced (for example, due to the density distribution or minimum domain size), having
-# a small \a period and high \a maxiter may lead to a large performance loss. In such systems, it is currently best to
-# either balance infrequently or to balance once in a short test run and then set the decomposition statically in a
-# separate initialization.
-#
-# Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
-#
-# \MPI_SUPPORTED
 class balance(_updater):
-    ## Create a load balancer
-    #
-    # \param x If true, balance in x dimension
-    # \param y If true, balance in y dimension
-    # \param z If true, balance in z dimension
-    # \param tolerance Load imbalance tolerance (if <= 1.0, balance every step)
-    # \param maxiter Maximum number of iterations to attempt in a single step
-    # \param period Balancing will be attempted every \a period time steps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
+    R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.
+
+    Args:
+        x (bool): If True, balance in x dimension.
+        y (bool): If True, balance in y dimension.
+        z (bool): If True, balance in z dimension.
+        tolerance (float): Load imbalance tolerance (if <= 1.0, balance every step).
+        maxiter (int): Maximum number of iterations to attempt in a single step.
+        period (int): Balancing will be attempted every \a period time steps
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* steps, the boundaries of the processor domains are adjusted to distribute the particle load close
+    to evenly between them. The load imbalance is defined as the number of particles owned by a rank divided by the
+    average number of particles per rank if the particles had a uniform distribution:
+
+    .. math::
+
+        I = \frac{N(i)}{N / P}
+
+    where :math:` N(i) ` is the number of particles on processor :math:`i`, :math:`N` is the total number of particles, and
+    :math:`P` is the number of ranks.
+
+    In order to adjust the load imbalance, the sizes are rescaled by the inverse of the imbalance factor. To reduce
+    oscillations and communication overhead, a domain cannot move more than 5% of its current size in a single
+    rebalancing step, and the edge of a domain cannot move more than half the distance to its neighbors.
+
+    Simulations with interfaces (so that there is a particle density gradient) or clustering should benefit from load
+    balancing. The potential speedup is roughly :math:`I-1.0`, so that if the largest imbalance is 1.4, then the user
+    can expect a roughly 40% speedup in the simulation. This is of course an estimate that assumes that all algorithms
+    are roughly linear in :math:`N`, all GPUs are fully occupied, and the simulation is limited by the speed of the slowest
+    processor. It also assumes that all particles roughly equal. If you have a simulation where, for example, some particles
+    have significantly more pair force neighbors than others, this estimate of the load imbalance may not produce the
+    optimal results.
+
+    A load balancing adjustment is only performed when the maximum load imbalance exceeds a *tolerance*. The ideal load
+    balance is 1.0, so setting *tolerance* less than 1.0 will force an adjustment every *period*. The load balancer
+    can attempt multiple iterations of balancing every *period*, and up to *maxiter* attempts can be made. The optimal
+    values of *period* and *maxiter* will depend on your simulation.
+
+    Load balancing can be performed independently and sequentially for each dimension of the simulation box. A small
+    performance increase may be obtained by disabling load balancing along dimensions that are known to be homogeneous.
+    For example, if there is a planar vapor-liquid interface normal to the :math:`z` axis, then it may be advantageous to
+    disable balancing along :math:`x` and :math:`y`.
+
+    In systems that are well-behaved, there is minimal overhead of balancing with a small *period*. However, if the
+    system is not capable of being balanced (for example, due to the density distribution or minimum domain size), having
+    a small *period* and high *maxiter* may lead to a large performance loss. In such systems, it is currently best to
+    either balance infrequently or to balance once in a short test run and then set the decomposition statically in a
+    separate initialization.
+
+    Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
+    """
     def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=-1):
         hoomd.util.print_status_line();
 
@@ -528,20 +491,22 @@ class balance(_updater):
         self.set_params(x,y,z,tolerance, maxiter)
         hoomd.util.unquiet_status()
 
-    ## Change load balancing parameters
-    #
-    # \param x If true, balance in x dimension
-    # \param y If true, balance in y dimension
-    # \param z If true, balance in z dimension
-    # \param tolerance Load imbalance tolerance (if <= 1.0, always rebalance)
-    # \param maxiter Maximum number of iterations to attempt in a single step
-    #
-    # \b Examples:
-    # \code
-    # balance.set_params(x=True, y=False)
-    # balance.set_params(tolerance=0.02, maxiter=5)
-    # \endcode
     def set_params(self, x=None, y=None, z=None, tolerance=None, maxiter=None):
+        R""" Change load balancing parameters.
+
+        Args:
+            x (bool): If True, balance in x dimension.
+            y (bool): If True, balance in y dimension.
+            z (bool): If True, balance in z dimension.
+            tolerance (float): Load imbalance tolerance (if <= 1.0, balance every step).
+            maxiter (int): Maximum number of iterations to attempt in a single step.
+
+
+        Examples::
+
+            balance.set_params(x=True, y=False)
+            balance.set_params(tolerance=0.02, maxiter=5)
+        """
         hoomd.util.print_status_line()
         self.check_initialization()
 

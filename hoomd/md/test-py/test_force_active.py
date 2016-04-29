@@ -38,7 +38,6 @@ class force_active_tests (unittest.TestCase):
 
         self.assertRaises(RuntimeError, act.enable);
         self.assertRaises(RuntimeError, act.disable);
-        self.assertRaises(RuntimeError, act.benchmark, 500);
 
     def tearDown(self):
         context.initialize();

@@ -3,17 +3,32 @@ HOOMD-blue
 
 Welcome to the user documentation for HOOMD-blue!
 
-Contents:
+.. toctree::
+    :maxdepth: 2
+    :caption: Concepts
+
+    compiling
+    command-line-options
+    units
+    box
+    aniso
+    mpi
+    autotuner
+    restartable-jobs
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
+   :caption: Python Modules
 
-   module-hoomd
+   package-hoomd
+   package-hpmc
+   package-md
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 3
+   :caption: Reference
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   license
+   credits
+   indices
 

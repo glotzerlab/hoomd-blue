@@ -49,20 +49,16 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.charge
-# \brief Commands that create forces between pairs of particles
-#
-# Charged interactions are usually long ranged, and for computational efficiency this is split
-# into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
-# implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
-# and short range parts.
-#
-# Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
-# produce incorrect results.
-#
-# The following methods are available:
-# - pppm
-#
+R""" Electrostatic potentials.
+
+Charged interactions are usually long ranged, and for computational efficiency this is split
+into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
+implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
+and short range parts.
+
+Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
+produce incorrect results.
+"""
 
 from hoomd.md import force;
 from hoomd import _hoomd
@@ -76,46 +72,50 @@ import sys;
 
 from math import sqrt
 
-## Long-range electrostatics computed with the PPPM method
-#
-# Reference \cite LeBard2012 describes the PPPM implementation details in HOOMD-blue. Cite it
-# if you utilize the PPPM functionality in your work.
-#
-# The command charge.pppm specifies that the \b both the long-ranged \b and short range parts of the electrostatic
-# force is computed between all charged particles in the simulation. In other words, charge.pppm() initializes and
-# sets all parameters for its own pair.ewald, so you do not need to specify an additional one.
-#
-# Parameters:
-# - Nx - Number of grid points in x direction
-# - Ny - Number of grid points in y direction
-# - Nz - Number of grid points in z direction
-# - order - Number of grid points in each direction to assign charges to
-# - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
-#
-# Parameters Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
-# set_params() before any run() can take place.
-#
-# See \ref page_units for information on the units assigned to charges in hoomd.
-# \note charge.pppm takes a particle group as an option. This should be the group of all charged particles
-#       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
-#       If you are going to add charged particles at a later point in the simulation with the data access API,
-#       ensure that this group includes those particles as well.
-#
-# \note In MPI simulations, the number of grid point along every dimensions must be a power of two
-#
-# \MPI_SUPPORTED
 class pppm(force._force):
-    ## Specify long-ranged electrostatic interactions between particles
-    #
-    # \param group Group on which to apply long range PPPM forces. The short range part is always applied between
-    #              all particles.
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # charged = group.charged();
-    # pppm = charge.pppm(group=charged)
-    # \endcode
+    R""" Long-range electrostatics computed with the PPPM method.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group on which to apply long range PPPM forces. The short range part is always applied between
+                                       all particles.
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a cell-list based neighbor list)
+
+
+    `D. LeBard et. al. 2012 <http://dx.doi.org/10.1039/c1sm06787g>`_ describes the PPPM implementation details in
+    HOOMD-blue. Please cite it if you utilize the PPPM functionality in your work.
+
+    :py:class:`pppm` specifies **both** the long-ranged **and** short range parts of the electrostatic
+    force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
+    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
+
+    Parameters:
+
+    - Nx - Number of grid points in x direction
+    - Ny - Number of grid points in y direction
+    - Nz - Number of grid points in z direction
+    - order - Number of grid points in each direction to assign charges to
+    - :math:`r_{\mathrm{cut}}` - Cutoff for the short-ranged part of the electrostatics calculation
+
+    Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
+    :py:meth:`set_params()` before any :py:func:`hoomd.run()` can take place.
+
+    See :ref:`page-units` for information on the units assigned to charges in hoomd.
+
+    Note:
+          :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
+          (:py:func:`hoomd.group.charged`). However, note that this group is static and determined at the time
+          :py:class:`pppm` is specified. If you are going to add charged particles at a later point in the simulation
+          with the data access API, ensure that this group includes those particles as well.
+
+    .. important::
+        In MPI simulations, the number of grid point along every dimensions must be a power of two.
+
+    Example::
+
+        charged = group.charged();
+        pppm = charge.pppm(group=charged)
+
+    """
     def __init__(self, group, nlist=None):
         hoomd.util.print_status_line();
 
@@ -163,30 +163,22 @@ class pppm(force._force):
         self.ewald.enable();
         hoomd.util.unquiet_status();
 
-    ## Sets the PPPM parameters
-    #
-    # \param Nx - Number of grid points in x direction
-    # \param Ny - Number of grid points in y direction
-    # \param Nz - Number of grid points in z direction
-    # \param order - Number of grid points in each direction to assign charges to
-    # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
-    # \param period - (Optional) Update period for the long-range part, in number of time steps
-    #
-    # Using set_params() requires that the specified PPPM force has been saved in a variable. i.e.
-    # \code
-    # pppm = charge.pppm()
-    # \endcode
-    #
-    # \note Setting period to a value greater than 1 can degrade the accuracy of the PPPM calculation.
-    #
-    # \b Examples:
-    # \code
-    # pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
-    # \endcode
-    # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
-    # The parameters for PPPM  must be set
-    # before the run() can be started.
     def set_params(self, Nx, Ny, Nz, order, rcut):
+        """ Sets PPPM parameters.
+
+        Args:
+            Nx (int): Number of grid points in x direction
+            Ny (int): Number of grid points in y direction
+            Nz (int): Number of grid points in z direction
+            order (int): Number of grid points in each direction to assign charges to
+            rcut  (float): Cutoff for the short-ranged part of the electrostatics calculation
+
+        Examples::
+
+            pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
+
+        Note that the Fourier transforms are much faster for number of grid points of the form 2^N.
+        """
         hoomd.util.print_status_line();
 
         if hoomd.context.current.system_definition.getNDimensions() != 3:

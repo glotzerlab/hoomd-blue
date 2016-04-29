@@ -31,6 +31,7 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
@@ -38,11 +39,15 @@ extensions = [
     'IPython.sphinxext.ipython_directive'
 ]
 
+autosummary_generate = True
+
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 autodoc_docstring_signature = True;
+autodoc_default_flags = ['inherited-members'];
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+exclude_patterns = ['_build', '_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:

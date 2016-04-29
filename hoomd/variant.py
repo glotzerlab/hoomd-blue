@@ -49,17 +49,16 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
+R""" Specify values that vary over time.
+
+This package contains various commands for creating quantities that can vary
+smoothly over the course of a simulation. For example, set the temperature in
+a NVT simulation to slowly heat or cool the system over a long simulation.
+"""
+
 from hoomd import _hoomd;
 import hoomd;
 import sys;
-
-## \package hoomd.variant
-# \brief Commands for specifying values that vary over time
-#
-# This package contains various commands for creating quantities that can vary
-# smoothly over the course of a simulation. For example, the temperature in
-# update.nvt can be set to a variant.linear_interp in order to slowly heat
-# or cool the system over a long simulation.
 
 ## \internal
 # \brief Base class for variant type
@@ -104,54 +103,42 @@ class _constant(_variant):
     def get_metadata(self):
         return self.val
 
-## Linearly interpolated variant
-#
-# variant.linear_interp creates a time-varying quantity where the value at each time step
-# is determined by linear interpolation between a given set of points.
-
-# At time steps before the
-# initial point, the value is identical to the value at the first given point. At time steps
-# after the final point, the value is identical to the value at the last given point. All points
-# between are determined by linear interpolation.
-#
-# By default, a time step for a given point is referenced to the current time step of the simulation.
-# For example,
-# \code
-# hoomd.init.create_random(N=1000, phi_p=0.2)
-# ...
-# run(1000)
-# variant.linear_interp(...)
-# run(1000)
-# \endcode
-# A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
-# 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
-# at the time of creation. The point where 0 is defined can be changed by setting the \z zero parameter in the
-# command that specifies the linear_interp.
-#
-# See __init__() for the syntax which the set values can be specified.
 class linear_interp(_variant):
-    ## Specify a linearly interpolated %variant
-    #
-    # \param points Set points in the linear interpolation (see below)
-    # \param zero Specify absolute time step number location for 0 in \a points. Use 'now' to indicate the current step.
-    #
-    # \a points is a list of (time, set value) tuples. For example, to specify
-    # a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
-    # back down to 5 at time step 200:
-    # \code
-    # points = [(0, 10), (100, 20), (200, 5)]
-    # \endcode
-    # Any number of points can be specified in any order. However, listing them
-    # monotonically increasing in time will result in a much more human readable set
-    # of values.
-    #
-    # \b Examples:
-    # \code
-    # L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
-    # V = variant.linear_interp(points = [(0, 10), (1e6, 20)], zero=80000)
-    # integrate.nvt(group=all, tau = 0.5,
-    #     T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
-    # \endcode
+    R""" Linearly interpolated variant.
+
+    Args:
+        points (list): Set points in the linear interpolation (see below)
+        zero (int): Specify absolute time step number location for 0 in *points*. Use 'now' to indicate the current step.
+
+
+    :py:class:`hoomd.variant.linear_interp` creates a time-varying quantity where the
+    value at each time step is determined by linear interpolation between a given set of points.
+
+    At time steps before the initial point, the value is identical to the value at the first
+    given point. At time steps after the final point, the value is identical to the value at
+    the last given point. All points between are determined by linear interpolation.
+
+    Time steps given to :py:class:`hoomd.variant.linear_interp` are relative to the current
+    step of the simulation, and starts counting from 0 at the time of creation. Set
+    *zero* to control the relative starting point.
+
+    *points* is a list of ``(time step, set value)`` tuples. For example, to specify
+    a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
+    back down to 5 at time step 200::
+
+        points = [(0, 10), (100, 20), (200, 5)]
+
+    Any number of points can be specified in any order. However, listing them
+    monotonically increasing in time will result in a much more human readable set
+    of values.
+
+    Examples::
+
+        L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
+        V = variant.linear_interp(points = [(0, 10), (1e6, 20)], zero=80000)
+        integrate.nvt(group=all, tau = 0.5,
+            T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
+    """
     def __init__(self, points, zero='now'):
         # initialize the base class
         _variant.__init__(self);

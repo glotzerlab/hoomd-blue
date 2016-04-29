@@ -49,571 +49,549 @@
 
 # Maintainer: joaander
 
+R""" Access system configuration data.
+
+Code in the data package provides high-level access to all of the particle, bond and other data that define the
+current state of the system. You can use python code to directly read and modify this data, allowing you to analyze
+simulation results while the simulation runs, or to create custom initial configurations with python code.
+
+There are two ways to access the data.
+
+1. Snapshots record the system configuration at one instant in time. You can store this state to analyze the data,
+   restore it at a future point in time, or to modify it and reload it. Use snapshots for initializing simulations,
+   or when you need to access or modify the entire simulation state.
+2. Data proxies directly access the current simulation state. Use data proxies if you need to only touch a few
+   particles or bonds at a a time.
+
+.. rubric:: Snapshots
+
+Relevant methods:
+
+* :py:meth:`hoomd.data.system_data.take_snapshot()` captures a snapshot of the current system state. A snapshot is a
+  copy of the simulation state. As the simulation continues to progress, data in a captured snapshot will remain
+  constant.
+* :py:meth:`hoomd.data.system_data.restore_snapshot()` replaces the current system state with the state stored in
+  a snapshot.
+* :py:meth:`hoomd.data.make_snapshot()` creates an empty snapshot that you can populate with custom data.
+* :py:func:`hoomd.init.read_snapshot()` initializes a simulation from a snapshot.
+
+Examples::
+
+    snapshot = system.take_snapshot()
+    system.restore_snapshot(snapshot)
+    snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
+    # ... populate snapshot with data ...
+    init.read_snapshot(snapshot)
+
+.. rubric:: Snapshot and MPI
+
+In MPI simulations, the snapshot is only valid on rank 0. make_snapshot, read_snapshot, and take_snapshot,
+restore_snapshot are collective calls, and need to be called on all ranks. But only rank 0 can access data
+in the snapshot::
+
+    snapshot = system.take_snapshot(all=True)
+    if comm.get_rank() == 0:
+        s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
+        snapshot.particles.position[0] = [1,2,3];
+
+    system.restore_snapshot(snapshot);
+    snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
+    if comm.get_rank() == 0:
+        snapshot.particles.position[:] = ....
+    init.read_snapshot(snapshot)
+
+.. rubric:: Simulation box
+
+You can access the simulation box from a snapshot::
+
+    >>> print(snapshot.box)
+    Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0 dimensions=3
+
+and can change it::
+
+    >>> snapsot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
+    >>> print(snapshot.box)
+    Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0 dimensions=3
+
+*All* particles must be inside the box before using the snapshot to initialize a simulation or restoring it.
+The dimensionality of the system (2D/3D) cannot change after initialization.
+
+.. rubric:: Particle properties
+
+Particle properties are present in `snapshot.particles`. Each property is stored in a numpy array that directly
+accesses the memory of the snapshot. References to these arrays will become invalid when the snapshot itself is
+garbage collected.
+
+* `N` is the number of particles in the particle data snapshot::
+
+    >>> print(snapshot.particles.N)
+    64000
+
+* Change the number of particles in the snapshot with resize. Existing particle properties are
+  preserved after the resize. Any newly created particles will have default values. After resizing,
+  existing references to the numpy arrays will be invalid, access them again
+  from `snapshot.particles.*`::
+
+    >>> snapshot.particles.resize(1000);
+
+* The list of all particle types in the simulation can be accessed and modified::
+
+    >>> print(snapshot.particles.types)
+    ['A', 'B', 'C']
+    >>> snapshot.particles.types = ['1', '2', '3', '4'];
+
+* Individual particles properties are stored in numpy arrays. Vector quantities are stored in Nx3 arrays of floats
+  (or doubles) and scalar quantities are stored in N length 1D arrays::
+
+    >>> print(snapshot.particles.position[10])
+    [ 1.2398  -10.2687  100.6324]
+
+* Various properties can be accessed of any particle, and the numpy arrays can be sliced or passed whole to other
+  routines::
+
+    >>> print(snapshot.particles.typeid[10])
+    2
+    >>> print(snapshot.particles.velocity[10])
+    (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
+    >>> print(snapshot.particles.mass[10])
+    1.0
+    >>> print(snapshot.particles.diameter[10])
+    1.0
+
+* Particle properties can be set in the same way. This modifies the data in the snapshot, not the
+  current simulation state::
+
+    >>> snapshot.particles.position[10] = [1,2,3]
+    >>> print(snapshot.particles.position[10])
+    [ 1.  2.  3.]
+
+* Snapshots store particle types as integers that index into the type name array::
+
+    >>> print(snapshot.particles.typeid)
+    [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
+    >>> snapshot.particles.types = ['A', 'B', 'C'];
+    >>> snapshot.particles.typeid[0] = 2;   # C
+    >>> snapshot.particles.typeid[1] = 0;   # A
+    >>> snapshot.particles.typeid[2] = 1;   # B
+
+For a list of all particle properties in the snapshot see :py:class:`hoomd.data.SnapshotParticleData`.
+
+.. rubric:: Bonds
+
+Bonds are stored in `snapshot.bonds`. :py:meth:`hoomd.data.system_data.take_snapshot()` does not record the bonds
+by default, you need to request them with the argument `bonds=True`.
+
+* `N` is the number of bonds in the bond data snapshot::
+
+    >>> print(snapshot.bonds.N)
+    100
+
+* Change the number of bonds in the snapshot with resize. Existing bonds are
+  preserved after the resize. Any newly created bonds will be initialized to 0. After resizing,
+  existing references to the numpy arrays will be invalid, access them again
+  from `snapshot.bonds.*`::
+
+    >>> snapshot.bonds.resize(1000);
+
+* Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
+  the individual particles in the bond. The value of each element is the tag of the particle participating in the
+  bond::
+
+    >>> print(snapshot.bonds.group)
+    [[0 1]
+    [1 2]
+    [3 4]
+    [4 5]]
+    >>> snapshot.bonds.group[0] = [10,11]
+
+* Snapshots store bond types as integers that index into the type name array::
+
+    >>> print(snapshot.bonds.typeid)
+    [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
+    >>> snapshot.bonds.types = ['A', 'B', 'C'];
+    >>> snapshot.bonds.typeid[0] = 2;   # C
+    >>> snapshot.bonds.typeid[1] = 0;   # A
+    >>> snapshot.bonds.typeid[2] = 1;   # B
+
+
+.. rubric:: Angles, dihedrals and impropers
+
+Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the group array is sized
+appropriately to store the number needed for each type of bond.
+
+* `snapshot.angles.group` is Nx3
+* `snapshot.dihedrals.group` is Nx4
+* `snapshot.impropers.group` is Nx4
+
+.. rubric:: Constraints
+
+Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
+The only difference is that instead of a type, constraints take a distance as parameter.
+
+* `N` is the number of constraints in the constraint data snapshot::
+
+    >>> print(snapshot.constraints.N)
+    99
+
+* Change the number of constraints in the snapshot with resize. Existing constraints are
+  preserved after the resize. Any newly created constraints will be initialized to 0. After resizing,
+  existing references to the numpy arrays will be invalid, access them again
+  from `snapshot.constraints.*`::
+
+    >>> snapshot.constraints.resize(1000);
+
+* Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the constraint `i`. The second axis `j` goes over
+  the individual particles in the constraint. The value of each element is the tag of the particle participating in the
+  constraint::
+
+    >>> print(snapshot.constraints.group)
+    [[4 5]
+    [6 7]
+    [6 8]
+    [7 8]]
+    >>> snapshot.constraints.group[0] = [10,11]
+
+* Snapshots store constraint distances as floats::
+
+    >>> print(snapshot.constraints.value)
+    [ 1.5 2.3 1.0 0.1 ]
+
+.. rubric:: data_proxy Proxy access
+
+For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
+of the script::
+
+    system = init.read_xml(filename="input.xml")
+
+Warning:
+    The performance of the proxy access is very slow. Use snapshots to access the whole system configuration
+    efficiently.
+
+.. rubric:: Simulation box
+
+You can access the simulation box::
+
+    >>> print(system.box)
+    Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
+
+and can change it::
+
+    >>> system.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
+    >>> print(system.box)
+    Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0
+
+**All** particles must **always** remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
+errors to be thrown or for hoomd to just crash. The dimensionality of the system cannot change after initialization.
+
+.. rubric:: Particle properties<
+
+For a list of all particle properties that can be read and/or set, see :py:class:`hoomd.data.particle_data_proxy`.
+The examples here only demonstrate changing a few of them.
+
+``system.particles`` is a window into all of the particles in the system.
+It behaves like standard python list in many ways.
+
+* Its length (the number of particles in the system) can be queried::
+
+    >>> len(system.particles)
+    64000
+
+* A short summary can be printed of the list::
+
+    >>> print(system.particles)
+    Particle Data for 64000 particles of 1 type(s)
+
+* The list of all particle types in the simulation can be accessed::
+
+    >>> print(system.particles.types)
+    ['A']
+    >>> print system.particles.types
+    Particle types: ['A']
+
+* Particle types can be added between :py:func:`hoomd.run()` commands::
+
+    >>> system.particles.types.add('newType')
+
+* Individual particles can be accessed at random::
+
+    >>> i = 4
+    >>> p = system.particles[i]
+
+* Various properties can be accessed of any particle (note that p can be replaced with system.particles[i]
+  and the results are the same)::
+
+    >>> p.tag
+    4
+    >>> p.position
+    (27.296911239624023, -3.5986068248748779, 10.364067077636719)
+    >>> p.velocity
+    (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
+    >>> p.mass
+    1.0
+    >>> p.diameter
+    1.0
+    >>> p.type
+    'A'
+    >>> p.tag
+    4
+
+* Particle properties can be set in the same way::
+
+    >>> p.position = (1,2,3)
+    >>> p.position
+    (1.0, 2.0, 3.0)
+
+* Finally, all particles can be easily looped over::
+
+    for p in system.particles:
+        p.velocity = (0,0,0)
+
+Particles may be added at any time in the job script, and a unique tag is returned::
+
+    >>> system.particles.add('A')
+    >>> t = system.particles.add('B')
+
+Particles may be deleted by index::
+
+    >>> del system.particles[0]
+    >>> print(system.particles[0])
+    tag         : 1
+    position    : (23.846603393554688, -27.558368682861328, -20.501256942749023)
+    image       : (0, 0, 0)
+    velocity    : (0.0, 0.0, 0.0)
+    acceleration: (0.0, 0.0, 0.0)
+    charge      : 0.0
+    mass        : 1.0
+    diameter    : 1.0
+    type        : A
+    typeid      : 0
+    body        : 4294967295
+    orientation : (1.0, 0.0, 0.0, 0.0)
+    net_force   : (0.0, 0.0, 0.0)
+    net_energy  : 0.0
+    net_torque  : (0.0, 0.0, 0.0)
+
+Note:
+    The particle with tag 1 is now at index 0. No guarantee is made about how the
+    order of particles by index will or will not change, so do not write any job scripts which assume
+    a given ordering.
+
+To access particles in an index-independent manner, use their tags. For example, to remove all particles
+of type 'A', do::
+
+    tags = []
+    for p in system.particles:
+        if p.type == 'A'
+            tags.append(p.tag)
+
+Then remove each of the bonds by their unique tag::
+
+    for t in tags:
+        system.particles.remove(t)
+
+Particles can also be accessed through their unique tag::
+
+    t = system.particles.add('A')
+    p = system.particles.get(t)
+
+Any defined group can be used in exactly the same way as ``system.particles`` above, only the particles accessed
+will be those just belonging to the group. For a specific example, the following will set the velocity of all
+particles of type A to 0::
+
+    groupA = group.type(name="a-particles", type='A')
+    for p in groupA:
+        p.velocity = (0,0,0)
+
+.. rubric:: Bond Data<
+
+Bonds may be added at any time in the job script::
+
+    >>> system.bonds.add("bondA", 0, 1)
+    >>> system.bonds.add("bondA", 1, 2)
+    >>> system.bonds.add("bondA", 2, 3)
+    >>> system.bonds.add("bondA", 3, 4)
+
+Individual bonds may be accessed by index::
+
+    >>> bnd = system.bonds[0]
+    >>> print(bnd)
+    tag          : 0
+    typeid       : 0
+    a            : 0
+    b            : 1
+    type         : bondA
+    >>> print(bnd.type)
+    bondA
+    >>> print(bnd.a)
+    0
+    >>> print(bnd.b)
+    1
+
+Warning:
+    The order in which bonds appear by index is not static and may change at any time!
+
+Bonds may be deleted by index::
+
+    >>> del system.bonds[0]
+    >>> print(system.bonds[0])
+    tag          : 3
+    typeid       : 0
+    a            : 3
+    b            : 4
+    type         : bondA
+
+To access bonds in an index-independent manner, use their tags. For example, to delete all bonds which connect to
+particle 2, first loop through the bonds and build a list of bond tags that match the criteria::
+
+    tags = []
+    for b in system.bonds:
+        if b.a == 2 or b.b == 2:
+            tags.append(b.tag)
+
+Then remove each of the bonds by their unique tag::
+
+    for t in tags:
+        system.bonds.remove(t)
+
+Bonds can also be accessed through their unique tag::
+
+    t = system.bonds.add('polymer',0,1)
+    p = system.bonds.get(t)
+
+.. rubric:: Angle, Dihedral, and Improper Data
+
+Angles, Dihedrals, and Impropers may be added at any time in the job script::
+
+    >>> system.angles.add("angleA", 0, 1, 2)
+    >>> system.dihedrals.add("dihedralA", 1, 2, 3, 4)
+    >>> system.impropers.add("dihedralA", 2, 3, 4, 5)
+
+Individual angles, dihedrals, and impropers may be accessed, deleted by index or removed by tag with the same syntax
+as described for bonds, just replace *bonds* with *angles*, *dihedrals*, or, *impropers* and access the
+appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
+
+.. rubric:: Constraints
+
+Constraints may be added and removed from within the job script.
+
+To add a constraint of length 1.5 between particles 0 and 1::
+
+    >>> t = system.constraints.add(0, 1, 1.5)
+
+To remove it again::
+
+    >>> system.contraints.remove(t)
+
+.. rubric:: Forces
+
+Forces can be accessed in a similar way::
+
+    >>> lj = pair.lj(r_cut=3.0)
+    >>> lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    >>> print(lj.forces[0])
+    tag         : 0
+    force       : (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
+    virial      : -0.0931386947632
+    energy      : -0.0469368174672
+    >>> f0 = lj.forces[0]
+    >>> print(f0.force)
+    (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
+    >>> print(f0.virial)
+    -0.093138694763n
+    >>> print(f0.energy)
+    -0.0469368174672
+
+In this manner, forces due to the lj pair force, bonds, and any other force commands in hoomd can be accessed
+independently from one another. See :py:class:`hoomd.data.force_data_proxy` for a definition of each data field.
+
+.. Proxy references
+
+For advanced code using the particle data access from python, it is important to understand that the hoomd
+particles, forces, bonds, et cetera, are accessed as proxies. This means that after::
+
+    p = system.particles[i]
+
+is executed, *p* **does not** store the position, velocity, ... of particle *i*. Instead, it stores *i* and
+provides an interface to get/set the properties on demand. This has some side effects you need to be aware of.
+
+* First, it means that *p* (or any other proxy reference) always references the current state of the particle.
+  As an example, note how the position of particle p moves after the run() command::
+
+    >>> p.position
+    (-21.317455291748047, -23.883811950683594, -22.159387588500977)
+    >>> run(1000)
+    ** starting run **
+    ** run complete **
+    >>> p.position
+    (-19.774742126464844, -23.564577102661133, -21.418502807617188)
+
+* Second, it means that copies of the proxy reference cannot be changed independently::
+
+    p.position
+    >>> a = p
+    >>> a.position
+    (-19.774742126464844, -23.564577102661133, -21.418502807617188)
+    >>> p.position = (0,0,0)
+    >>> a.position
+    (0.0, 0.0, 0.0)
+
+"""
+
 from hoomd import _hoomd
 import hoomd
 
-## \package hoomd.data
-# \brief Access particles, bonds, and other state information inside scripts
-#
-# Code in the data package provides high-level access to all of the particle, bond and other %data that define the
-# current state of the system. You can use python code to directly read and modify this data, allowing you to analyze
-# simulation results while the simulation runs, or to create custom initial configurations with python code.
-#
-# There are two ways to access the data.
-#
-# 1. Snapshots record the system configuration at one instant in time. You can store this state to analyze the data,
-#    restore it at a future point in time, or to modify it and reload it. Use snapshots for initializing simulations,
-#    or when you need to access or modify the entire simulation state.
-# 2. Data proxies directly access the current simulation state. Use data proxies if you need to only touch a few
-#    particles or bonds at a a time.
-#
-# \section data_snapshot Snapshots
-# <hr>
-#
-# <h3>Relevant methods:</h3>
-#
-# * system_data.take_snapshot() captures a snapshot of the current system state. A snapshot is a copy of the simulation
-# state. As the simulation continues to progress, data in a captured snapshot will remain constant.
-# * system_data.restore_snapshot() replaces the current system state with the state stored in a snapshot.
-# * data.make_snapshot() creates an empty snapshot that you can populate with custom data.
-# * init.read_snapshot() initializes a simulation from a snapshot.
-#
-# \code
-# snapshot = system.take_snapshot()
-# system.restore_snapshot(snapshot)
-# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
-# # ... populate snapshot with data ...
-# init.read_snapshot(snapshot)
-# \endcode
-#
-# <hr>
-# <h3>Snapshot and MPI</h3>
-# In MPI simulations, the snapshot is only valid on rank 0. make_snapshot, read_snapshot, and take_snapshot, restore_snapshot are
-# collective calls, and need to be called on all ranks. But only rank 0 can access data in the snapshot.
-# \code
-# snapshot = system.take_snapshot(all=True)
-# if comm.get_rank() == 0:
-#     s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
-#     snapshot.particles.position[0] = [1,2,3];
-#
-# system.restore_snapshot(snapshot);
-# snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
-# if comm.get_rank() == 0:
-#     snapshot.particles.position[:] = ....
-# init.read_snapshot(snapshot)
-# \endcode
-#
-# <hr>
-# <h3>Simulation box</h3>
-# You can access the simulation box from a snapshot:
-# \code
-# >>> print(snapshot.box)
-# Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0 dimensions=3
-# \endcode
-# and can change it:
-# \code
-# >>> snapsot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
-# >>> print(snapshot.box)
-# Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0 dimensions=3
-# \endcode
-# \b All particles must be inside the box before using the snapshot to initialize a simulation or restoring it.
-# The dimensionality of the system (2D/3D) cannot change after initialization.
-#
-# <h3>Particle properties</h3>
-#
-# Particle properties are present in `snapshot.particles`. Each property is stored in a numpy array that directly
-# accesses the memory of the snapshot. References to these arrays will become invalid when the snapshot itself is
-# garbage collected.
-#
-# - `N` is the number of particles in the particle data snapshot
-# \code
-# >>> print(snapshot.particles.N)
-# 64000
-# \endcode
-# - Change the number of particles in the snapshot with resize. Existing particle properties are
-#   preserved after the resize. Any newly created particles will have default values. After resizing,
-#   existing references to the numpy arrays will be invalid, access them again
-#   from `snapshot.particles.*`
-# \code
-# >>> snapshot.particles.resize(1000);
-# \endcode
-# - The list of all particle types in the simulation can be accessed and modified
-# \code
-# >>> print(snapshot.particles.types)
-# ['A', 'B', 'C']
-# >>> snapshot.particles.types = ['1', '2', '3', '4'];
-# \endcode
-# - Individual particles properties are stored in numpy arrays. Vector quantities are stored in Nx3 arrays of floats
-#   (or doubles) and scalar quantities are stored in N length 1D arrays.
-# \code
-# >>> print(snapshot.particles.position[10])
-# [ 1.2398  -10.2687  100.6324]
-# \endcode
-# - Various properties can be accessed of any particle, and the numpy arrays can be sliced or passed whole to other
-#   routines.
-# \code
-# >>> print(snapshot.particles.typeid[10])
-# 2
-# >>> print(snapshot.particles.velocity[10])
-# (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
-# >>> print(snapshot.particles.mass[10])
-# 1.0
-# >>> print(snapshot.particles.diameter[10])
-# 1.0
-# \endcode
-# - Particle properties can be set in the same way. This modifies the data in the snapshot, not the
-#   current simulation state.
-# \code
-# >>> snapshot.particles.position[10] = [1,2,3]
-# >>> print(snapshot.particles.position[10])
-# [ 1.  2.  3.]
-# \endcode
-# - Snapshots store particle types as integers that index into the type name array:
-# \code
-# >>> print(snapshot.particles.typeid)
-# [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
-# >>> snapshot.particles.types = ['A', 'B', 'C'];
-# >>> snapshot.particles.typeid[0] = 2;   # C
-# >>> snapshot.particles.typeid[1] = 0;   # A
-# >>> snapshot.particles.typeid[2] = 1;   # B
-# \endcode
-#
-# For a list of all particle properties in the snapshot see SnapshotParticleData.
-#
-# <h3>Bonds</h3>
-#
-# Bonds are stored in `snapshot.bonds`. system_data.take_snapshot() does not record the bonds by default, you need to
-# request them with the argument `bonds=True`.
-#
-# - `N` is the number of bonds in the bond data snapshot
-# \code
-# >>> print(snapshot.bonds.N)
-# 100
-# \endcode
-# - Change the number of bonds in the snapshot with resize. Existing bonds are
-#   preserved after the resize. Any newly created bonds will be initialized to 0. After resizing,
-#   existing references to the numpy arrays will be invalid, access them again
-#   from `snapshot.bonds.*`
-# \code
-# >>> snapshot.bonds.resize(1000);
-# \endcode
-# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
-#   the individual particles in the bond. The value of each element is the tag of the particle participating in the
-#   bond.
-# \code
-# >>> print(snapshot.bonds.group)
-# [[0 1]
-# [1 2]
-# [3 4]
-# [4 5]]
-# >>> snapshot.bonds.group[0] = [10,11]
-# \endcode
-# - Snapshots store bond types as integers that index into the type name array:
-# \code
-# >>> print(snapshot.bonds.typeid)
-# [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
-# >>> snapshot.bonds.types = ['A', 'B', 'C'];
-# >>> snapshot.bonds.typeid[0] = 2;   # C
-# >>> snapshot.bonds.typeid[1] = 0;   # A
-# >>> snapshot.bonds.typeid[2] = 1;   # B
-# \endcode
-#
-# <h3>Angles, dihedrals and impropers</h3>
-#
-# Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the group array is sized
-# appropriately to store the number needed for each type of bond.
-#
-# * `snapshot.angles.group` is Nx3
-# * `snapshot.dihedrals.group` is Nx4
-# * `snapshot.impropers.group` is Nx4
-#
-# <h3>Constraints</h3>
-#
-# Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
-# The only difference is that instead of a type, constraints take a distance as parameter.
-#
-# - `N` is the number of constraints in the constraint data snapshot
-# \code
-# >>> print(snapshot.constraints.N)
-# 99
-# \endcode
-# - Change the number of constraints in the snapshot with resize. Existing constraints are
-#   preserved after the resize. Any newly created constraints will be initialized to 0. After resizing,
-#   existing references to the numpy arrays will be invalid, access them again
-#   from `snapshot.constraints.*`
-# \code
-# >>> snapshot.constraints.resize(1000);
-# \endcode
-# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the constraint `i`. The second axis `j` goes over
-#   the individual particles in the constraint. The value of each element is the tag of the particle participating in the
-#   constraint.
-# \code
-# >>> print(snapshot.constraints.group)
-# [[4 5]
-# [6 7]
-# [6 8]
-# [7 8]]
-# >>> snapshot.constraints.group[0] = [10,11]
-# \endcode
-# - Snapshots store constraint distances as floats
-# \code
-# >>> print(snapshot.constraints.value)
-# [ 1.5 2.3 1.0 0.1 ]
-# \endcode
-#
-# \section data_proxy Proxy access
-#
-# For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
-# of the script, like so:
-# \code
-# system = init.read_xml(filename="input.xml")
-# \endcode
-#
-# <hr>
-# <h3>Simulation box</h3>
-# You can access the simulation box like so:
-# \code
-# >>> print(system.box)
-# Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
-# \endcode
-# and can change it like so:
-# \code
-# >>> system.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
-# >>> print(system.box)
-# Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0
-# \endcode
-# \b All particles must \b always remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
-# errors to be thrown or for hoomd to just crash. The dimensionality of the system cannot change after initialization.
-# <hr>
-# <h3>Particle properties</h3>
-# For a list of all particle properties that can be read and/or set, see the particle_data_proxy. The examples
-# here only demonstrate changing a few of them.
-#
-# With the result of an init command saved in the variable \c system (see above), \c system.particles is a window
-# into all of the particles in the system. It behaves like standard python list in many ways.
-# - Its length (the number of particles in the system) can be queried
-# \code
-# >>> len(system.particles)
-# 64000
-# \endcode
-# - A short summary can be printed of the list
-# \code
-# >>> print(system.particles)
-# Particle Data for 64000 particles of 1 type(s)
-# \endcode
-# - The list of all particle types in the simulation can be accessed
-# \code
-# >>> print(system.particles.types)
-# ['A']
-# >>> print system.particles.types
-# Particle types: ['A']
-# \endcode
-# - Particle types can be added between subsequent run() commands:
-# \code
-# >>> system.particles.types.add('newType')
-# \endcode
-# - Individual particles can be accessed at random.
-# \code
-# >>> i = 4
-# >>> p = system.particles[i]
-# \endcode
-# - Various properties can be accessed of any particle
-# \code
-# >>> p.tag
-# 4
-# >>> p.position
-# (27.296911239624023, -3.5986068248748779, 10.364067077636719)
-# >>> p.velocity
-# (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
-# >>> p.mass
-# 1.0
-# >>> p.diameter
-# 1.0
-# >>> p.type
-# 'A'
-# >>> p.tag
-# 4
-# \endcode
-# (note that p can be replaced with system.particles[i] above and the results are the same)
-# - Particle properties can be set in the same way:
-# \code
-# >>> p.position = (1,2,3)
-# >>> p.position
-# (1.0, 2.0, 3.0)
-# \endcode
-# - Finally, all particles can be easily looped over
-# \code
-# for p in system.particles:
-#     p.velocity = (0,0,0)
-# \endcode
-#
-# Performance is decent, but not great. The for loop above that sets all velocities to 0 takes 0.86 seconds to execute
-# on a 2.93 GHz core2 iMac. The interface has been designed to be flexible and easy to use for the widest variety of
-# initialization tasks, not efficiency.
-# For doing modifications that operate on the whole system data efficiently, snapshots can be used.
-# Their usage is described below.
-#
-# Particles may be added at any time in the job script, and a unique tag is returned.
-# \code
-# >>> system.particles.add('A')
-# >>> t = system.particles.add('B')
-# \endcode
-#
-# Particles may be deleted by index.
-# \code
-# >>> del system.particles[0]
-# >>> print(system.particles[0])
-# tag         : 1
-# position    : (23.846603393554688, -27.558368682861328, -20.501256942749023)
-# image       : (0, 0, 0)
-# velocity    : (0.0, 0.0, 0.0)
-# acceleration: (0.0, 0.0, 0.0)
-# charge      : 0.0
-# mass        : 1.0
-# diameter    : 1.0
-# type        : A
-# typeid      : 0
-# body        : 4294967295
-# orientation : (1.0, 0.0, 0.0, 0.0)
-# net_force   : (0.0, 0.0, 0.0)
-# net_energy  : 0.0
-# net_torque  : (0.0, 0.0, 0.0)
-# \endcode
-# \note The particle with tag 1 is now at index 0. No guarantee is made about how the
-# order of particles by index will or will not change, so do not write any job scripts which assume a given ordering.
-#
-# To access particles in an index-independent manner, use their tags. For example, to remove all particles
-# of type 'A', do
-# \code
-# tags = []
-# for p in system.particles:
-#     if p.type == 'A'
-#         tags.append(p.tag)
-# \endcode
-# Then remove each of the bonds by their unique tag.
-# \code
-# for t in tags:
-#     system.particles.remove(t)
-# \endcode
-# Particles can also be accessed through their unique tag:
-# \code
-# t = system.particles.add('A')
-# p = system.particles.get(t)
-# \endcode
-#
-# There is a second way to access the particle data. Any defined group can be used in exactly the same way as
-# \c system.particles above, only the particles accessed will be those just belonging to the group. For a specific
-# example, the following will set the velocity of all particles of type A to 0.
-# \code
-# groupA = group.type(name="a-particles", type='A')
-# for p in groupA:
-#     p.velocity = (0,0,0)
-# \endcode
-#
-# <hr>
-# <h3>Bond Data</h3>
-# Bonds may be added at any time in the job script.
-# \code
-# >>> system.bonds.add("bondA", 0, 1)
-# >>> system.bonds.add("bondA", 1, 2)
-# >>> system.bonds.add("bondA", 2, 3)
-# >>> system.bonds.add("bondA", 3, 4)
-# \endcode
-#
-# Individual bonds may be accessed by index.
-# \code
-# >>> bnd = system.bonds[0]
-# >>> print(bnd)
-# tag          : 0
-# typeid       : 0
-# a            : 0
-# b            : 1
-# type         : bondA
-# >>> print(bnd.type)
-# bondA
-# >>> print(bnd.a)
-# 0
-# >>> print(bnd.b)
-#1
-# \endcode
-# \note The order in which bonds appear by index is not static and may change at any time!
-#
-# Bonds may be deleted by index.
-# \code
-# >>> del system.bonds[0]
-# >>> print(system.bonds[0])
-# tag          : 3
-# typeid       : 0
-# a            : 3
-# b            : 4
-# type         : bondA
-# \endcode
-# \note Regarding the previous note: see how the last bond added is now at index 0. No guarantee is made about how the
-# order of bonds by index will or will not change, so do not write any job scripts which assume a given ordering.
-#
-# To access bonds in an index-independent manner, use their tags. For example, to delete all bonds which connect to
-# particle 2, first loop through the bonds and build a list of bond tags that match the criteria.
-# \code
-# tags = []
-# for b in system.bonds:
-#     if b.a == 2 or b.b == 2:
-#         tags.append(b.tag)
-# \endcode
-# Then remove each of the bonds by their unique tag.
-# \code
-# for t in tags:
-#     system.bonds.remove(t)
-# \endcode
-# Bonds can also be accessed through their unique tag:
-# \code
-# t = system.bonds.add('polymer',0,1)
-# p = system.bonds.get(t)
-# \endcode
-#
-# <hr>
-# <h3>Angle, Dihedral, and Improper Data</h3>
-# Angles, Dihedrals, and Impropers may be added at any time in the job script.
-# \code
-# >>> system.angles.add("angleA", 0, 1, 2)
-# >>> system.dihedrals.add("dihedralA", 1, 2, 3, 4)
-# >>> system.impropers.add("dihedralA", 2, 3, 4, 5)
-# \endcode
-#
-# Individual angles, dihedrals, and impropers may be accessed, deleted by index or removed by tag with the same syntax
-# as described for bonds, just replace \em bonds with \em angles, \em dihedrals, or, \em impropers and access the
-# appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
-# <hr>
-#
-# <hr>
-# <h3>Constraints</h3>
-# Constraints may be added and removed from within the job script.
-#
-# To add a constraint of length 1.5 between particles 0 and 1:
-# \code
-# >>> t = system.constraints.add(0, 1, 1.5)
-# \endcode
-#
-# To remove it again:
-# \code
-# >>> system.contraints.remove(t)
-# \endcode
-#
-# <hr>
-# <h3>Forces</h3>
-# Forces can be accessed in a similar way.
-# \code
-# >>> lj = pair.lj(r_cut=3.0)
-# >>> lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# >>> print(lj.forces[0])
-# tag         : 0
-# force       : (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
-# virial      : -0.0931386947632
-# energy      : -0.0469368174672
-# >>> f0 = lj.forces[0]
-# >>> print(f0.force)
-# (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
-# >>> print(f0.virial)
-# -0.093138694763n
-# >>> print(f0.energy)
-# -0.0469368174672
-# \endcode
-#
-# In this manner, forces due to the lj %pair %force, bonds, and any other %force commands in hoomd can be accessed
-# independently from one another. See force_data_proxy for a definition of each parameter accessed.
-#
-# <hr>
-# <h3>Proxy references</h3>
-#
-# For advanced code using the particle data access from python, it is important to understand that the hoomd
-# particles, forces, bonds, et cetera, are accessed as proxies. This means that after
-# \code
-# p = system.particles[i]
-# \endcode
-# is executed, \a p \b does \b not store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
-# provides an interface to get/set the properties on demand. This has some side effects you need to be aware of.
-# - First, it means that \a p (or any other proxy reference) always references the current state of the particle.
-# As an example, note how the position of particle p moves after the run() command.
-# \code
-# >>> p.position
-# (-21.317455291748047, -23.883811950683594, -22.159387588500977)
-# >>> run(1000)
-# ** starting run **
-# ** run complete **
-# >>> p.position
-# (-19.774742126464844, -23.564577102661133, -21.418502807617188)
-# \endcode
-# - Second, it means that copies of the proxy reference cannot be changed independently.
-# \code
-# p.position
-# >>> a = p
-# >>> a.position
-# (-19.774742126464844, -23.564577102661133, -21.418502807617188)
-# >>> p.position = (0,0,0)
-# >>> a.position
-# (0.0, 0.0, 0.0)
-# \endcode
-#
-# If you need to store some particle properties at one time in the simulation and access them again later, you will need
-# to make copies of the actual property values themselves and not of the proxy references.
-#
-
-## Define box dimensions
-#
-# Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
-# see \ref page_box. A boxdim provides a way to specify all six parameters for a given box and perform some common
-# operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
-# to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
-# box.
-#
-# boxdim parameters may be accessed directly.
-# ~~~~
-# b = data.boxdim(L=20);
-# b.xy = 1.0;
-# b.yz = 0.5;
-# b.Lz = 40;
-# ~~~~
-#
-# **Two dimensional systems**
-#
-# 2D simulations in hoomd are embedded in 3D boxes with short heights in the z direction. To create a 2D box,
-# set dimensions=2 when creating the boxdim. This will force Lz=1 and xz=yz=0. init commands that support 2D boxes
-# will pass the dimensionality along to the system. When you assign a new boxdim to an already initialized system,
-# the dimensionality flag is ignored. Changing the number of dimensions during a simulation run is not supported.
-#
-# In 2D boxes, *volume* is in units of area.
-#
-# **Shorthand notation**
-#
-# data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
-# and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
-# the others.
-#
-# **Examples:**
-#
-# There are many ways to define boxes.
-#
-# * Cubic box with given volume: `data.boxdim(volume=V)`
-# * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
-# * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
-# * Cubic box with given length: `data.boxdim(L=10)`
-# * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
-#
-# system = init.read_xml('init.xml')
-# system.box = system.box.scale(s=2)
-# ~~~
 class boxdim(hoomd.meta._metadata):
-    ## Initialize a boxdim object
-    #
-    # \param Lx box extent in the x direction (distance units)
-    # \param Ly box extent in the y direction (distance units)
-    # \param Lz box extent in the z direction (distance units)
-    # \param xy tilt factor xy (dimensionless)
-    # \param xz tilt factor xz (dimensionless)
-    # \param yz tilt factor yz (dimensionless)
-    # \param dimensions Number of dimensions in the box (2 or 3).
-    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
-    # \param volume Scale the given box dimensions up to the this volume (area if dimensions=2)
-    #
+    R""" Define box dimensions.
+
+    Args:
+        Lx (float): box extent in the x direction (distance units)
+        Ly (float): box extent in the y direction (distance units)
+        Lz (float): box extent in the z direction (distance units)
+        xy (float): tilt factor xy (dimensionless)
+        xz (float): tilt factor xz (dimensionless)
+        yz (float): tilt factor yz (dimensionless)
+        dimensions (int): Number of dimensions in the box (2 or 3).
+        L (float): shorthand for specifying Lx=Ly=Lz=L (distance units)
+        volume (float): Scale the given box dimensions up to the this volume (area if dimensions=2)
+
+    Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
+    see TODO: ref page. A boxdim provides a way to specify all six parameters for a given box and perform some common
+    operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
+    to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
+    box.
+
+    Access attributes directly::
+
+        b = data.boxdim(L=20);
+        b.xy = 1.0;
+        b.yz = 0.5;
+        b.Lz = 40;
+
+
+    .. rubric:: Two dimensional systems
+
+    2D simulations in hoomd are embedded in 3D boxes with short heights in the z direction. To create a 2D box,
+    set dimensions=2 when creating the boxdim. This will force Lz=1 and xz=yz=0. init commands that support 2D boxes
+    will pass the dimensionality along to the system. When you assign a new boxdim to an already initialized system,
+    the dimensionality flag is ignored. Changing the number of dimensions during a simulation run is not supported.
+
+    In 2D boxes, *volume* is in units of area.
+
+    .. rubric:: Shorthand notation
+
+    data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
+    and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
+    the others.
+
+    Examples:
+
+    * Cubic box with given volume: `data.boxdim(volume=V)`
+    * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
+    * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
+    * Cubic box with given length: `data.boxdim(L=10)`
+    * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
+
+    """
     def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
         if L is not None:
             Lx = L;
@@ -638,16 +616,20 @@ class boxdim(hoomd.meta._metadata):
         # base class constructor
         hoomd.meta._metadata.__init__(self)
 
-    ## Scale box dimensions
-    #
-    # \param sx scale factor in the x direction
-    # \param sy scale factor in the y direction
-    # \param sz scale factor in the z direction
-    #
-    # Scales the box by the given scale factors. Tilt factors are not modified.
-    #
-    # \returns a reference to itself
     def scale(self, sx=1.0, sy=1.0, sz=1.0, s=None):
+        R""" Scale box dimensions.
+
+        Args:
+            sx (float): scale factor in the x direction
+            sy (float): scale factor in the y direction
+            sz (float): scale factor in the z direction
+            s (float): Shorthand for sx=s, sy=x, sz=s
+
+        Scales the box by the given scale factors. Tilt factors are not modified.
+
+        Returns:
+            A reference to the modified box.
+        """
         if s is not None:
             sx = s;
             sy = s;
@@ -658,14 +640,18 @@ class boxdim(hoomd.meta._metadata):
         self.Lz = self.Lz * sz;
         return self
 
-    ## Set the box volume
-    #
-    # \param volume new box volume (area if dimensions=2)
-    #
-    # setVolume() scales the box to the given volume (or area).
-    #
-    # \returns a reference to itself
     def set_volume(self, volume):
+        R""" Set the box volume.
+
+        Args:
+            volume (float): new box volume (area if dimensions=2)
+
+        Scale the box to the given volume (or area).
+
+        Returns:
+            A reference to the modified box.
+        """
+
         cur_vol = self.get_volume();
 
         if self.dimensions == 3:
@@ -676,33 +662,39 @@ class boxdim(hoomd.meta._metadata):
             self.scale(s, s, 1.0);
         return self
 
-    ## Get the box volume
-    #
-    # Returns the box volume (area in 2D).
-    #
     def get_volume(self):
+        R""" Get the box volume.
+
+        Returns:
+            The box volume (area in 2D).
+        """
         b = self._getBoxDim();
         return b.getVolume(self.dimensions == 2);
 
-    ## Get a lattice vector
-    #
-    # \param i (=0,1,2) direction of lattice vector
-    #
-    # \returns a lattice vector (3-tuple) along direction \a i
-    #
     def get_lattice_vector(self,i):
+        R""" Get a lattice vector.
+
+        Args:
+            i (int): (=0,1,2) direction of lattice vector
+
+        Returns:
+            The lattice vector (3-tuple) along direction *i*.
+        """
+
         b = self._getBoxDim();
         v = b.getLatticeVector(int(i))
         return (v.x, v.y, v.z)
 
-    ## Wrap a vector using the periodic boundary conditions
-    #
-    # \param v The vector to wrap
-    # \param img A vector of integer image flags that will be updated (optional)
-    #
-    # \returns the wrapped vector and the image flags
-    #
     def wrap(self,v, img=(0,0,0)):
+        R""" Wrap a vector using the periodic boundary conditions.
+
+        Args:
+            v (tuple): The vector to wrap
+            img (tuple): A vector of integer image flags that will be updated (optional)
+
+        Returns:
+            The wrapped vector and the image flags in a tuple.
+        """
         u = _hoomd.make_scalar3(v[0],v[1],v[2])
         i = _hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
         c = _hoomd.make_char3(0,0,0)
@@ -710,26 +702,32 @@ class boxdim(hoomd.meta._metadata):
         img = (i.x,i.y,i.z)
         return (u.x, u.y, u.z),img
 
-    ## Apply the minimum image convention to a vector using periodic boundary conditions
-    #
-    # \param v The vector to apply minimum image to
-    #
-    # \returns the minimum image
-    #
     def min_image(self,v):
+        R""" Apply the minimum image convention to a vector using periodic boundary conditions.
+
+        Args:
+            v (tuple): The vector to apply minimum image to
+
+        Returns:
+            The minimum image as a tuple.
+
+        """
         u = _hoomd.make_scalar3(v[0],v[1],v[2])
         u = self._getBoxDim().minImage(u)
         return (u.x, u.y, u.z)
 
-    ## Scale a vector to fractional coordinates
-    #
-    # \param v The vector to convert to fractional coordinates
-    #
-    # make_fraction() takes a vector in a box and computes a vector where all components are
-    # between 0 and 1.
-    #
-    # \returns the scaled vector
     def make_fraction(self,v):
+        R""" Scale a vector to fractional coordinates.
+
+        Args:
+            v (tuple): The vector to convert to fractional coordinates
+
+        make_fraction() takes a vector in a box and computes a vector where all components are
+        between 0 and 1.
+
+        Returns:
+            The scaled vector.
+        """
         u = _hoomd.make_scalar3(v[0],v[1],v[2])
         w = _hoomd.make_scalar3(0,0,0)
 
@@ -761,18 +759,22 @@ class boxdim(hoomd.meta._metadata):
         data['V'] = self.get_volume()
         return data
 
-##
-# \brief Access system data
-#
-# system_data provides access to the different data structures that define the current state of the simulation.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# system_data, documented by example.
-#
 class system_data(hoomd.meta._metadata):
-    ## \internal
-    # \brief create a system_data
-    #
-    # \param sysdef SystemDefinition to connect
+    R""" Access system data
+
+    system_data provides access to the different data structures that define the current state of the simulation.
+    See :py:mod:`hoomd.data` for a full explanation of how to use by example.
+
+    Attributes:
+        box (:py:class:`hoomd.data.boxdim`)
+        particles (:py:class:`hoomd.data.particle_data_proxy`)
+        bonds (:py:class:`hoomd.data.bond_data_proxy`)
+        angles (:py:class:`hoomd.data.angle_data_proxy`)
+        diehdrals (:py:class:`hoomd.data.diehdral_data_proxy`)
+        impropers (:py:class:`hoomd.data.dihedral_data_proxy`)
+        constraint (:py:class:`hoomd.data.constraint_data_proxy`)
+    """
+
     def __init__(self, sysdef):
         self.sysdef = sysdef;
         self.particles = particle_data(sysdef.getParticleData());
@@ -785,34 +787,36 @@ class system_data(hoomd.meta._metadata):
         # base class constructor
         hoomd.meta._metadata.__init__(self)
 
-    ## Take a snapshot of the current system data
-    #
-    # This functions returns a snapshot object. It contains the current
-    # partial or complete simulation state. With appropriate options
-    # it is possible to select which data properties should be included
-    # in the snapshot.
-    #
-    # \param particles If true, particle data is included in the snapshot
-    # \param bonds If true, bond, angle, dihedral, improper and constraint data is included
-    # \param integrators If true, integrator data is included the snapshot
-    # \param all If true, the entire system state is saved in the snapshot
-    # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
-    #
-    # \returns the snapshot object.
-    #
-    # \code
-    # snapshot = system.take_snapshot()
-    # snapshot = system.take_snapshot()
-    # snapshot = system.take_snapshot(bonds=true)
-    # \endcode
-    #
-    # \MPI_SUPPORTED
     def take_snapshot(self,
                       particles=True,
                       bonds=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
+        R""" Take a snapshot of the current system data.
+
+        Args:
+            particles (bool): When True, particle data is included in the snapshot.
+            bonds (bool): When true, bond, angle, dihedral, improper and constraint data is included.
+            integrators (bool): When true, integrator data is included the snapshot.
+            all (bool): When true, the entire system state is saved in the snapshot.
+            dtype (str): Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
+
+        Returns:
+            The snapshot object.
+
+        This functions returns a snapshot object. It contains the current.
+        partial or complete simulation state. With appropriate options
+        it is possible to select which data properties should be included
+        in the snapshot
+
+        Examples::
+
+            snapshot = system.take_snapshot()
+            snapshot = system.take_snapshot()
+            snapshot = system.take_snapshot(bonds=true)
+
+        """
         hoomd.util.print_status_line();
 
         if all is True:
@@ -830,33 +834,34 @@ class system_data(hoomd.meta._metadata):
 
         return cpp_snapshot
 
-    ## Replicates the system along the three spatial dimensions
-    #
-    # \param nx Number of times to replicate the system along the x-direction
-    # \param ny Number of times to replicate the system along the y-direction
-    # \param nz Number of times to replicate the system along the z-direction
-    #
-    # This method explictly replicates particles along all three spatial directions, as
-    # opposed to replication implied by periodic boundary conditions.
-    # The box is resized and the number of particles is updated so that the new box
-    # holds the specified number of replicas of the old box along all directions.
-    # Particle coordinates are updated accordingly to fit into the new box. All velocities and
-    # other particle properties are replicated as well. Also bonded groups between particles
-    # are replicated.
-    #
-    # Example usage:
-    # \code
-    # system = init.read_xml("some_file.xml")
-    # system.replicate(nx=2,ny=2,nz=2)
-    # \endcode
-    #
-    # \note It is a limitation that in MPI simulations the dimensions of the processor grid
-    # are not updated upon replication. For example, if an initially cubic box is replicated along only one
-    # spatial direction, this could lead to decreased performance if the processor grid was
-    # optimal for the original box dimensions, but not for the new ones.
-    #
-    # \MPI_SUPPORTED
     def replicate(self, nx=1, ny=1, nz=1):
+        R""" Replicates the system along the three spatial dimensions.
+
+        Args:
+            nx (int): Number of times to replicate the system along the x-direction
+            ny (int): Number of times to replicate the system along the y-direction
+            nz (int): Number of times to replicate the system along the z-direction
+
+        This method replicates particles along all three spatial directions, as
+        opposed to replication implied by periodic boundary conditions.
+        The box is resized and the number of particles is updated so that the new box
+        holds the specified number of replicas of the old box along all directions.
+        Particle coordinates are updated accordingly to fit into the new box. All velocities and
+        other particle properties are replicated as well. Also bonded groups between particles
+        are replicated.
+
+        Examples::
+
+            system = init.read_xml("some_file.xml")
+            system.replicate(nx=2,ny=2,nz=2)
+
+
+        Note:
+            The dimensions of the processor grid are not updated upon replication. For example, if an initially
+            cubic box is replicated along only one spatial direction, this could lead to decreased performance
+            if the processor grid was optimal for the original box dimensions, but not for the new ones.
+
+        """
         hoomd.util.print_status_line()
 
         nx = int(nx)
@@ -885,43 +890,40 @@ class system_data(hoomd.meta._metadata):
         self.restore_snapshot(cpp_snapshot)
         hoomd.util.unquiet_status()
 
-    ## Re-initializes the system from a snapshot
-    #
-    # \param snapshot The snapshot to initialize the system from
-    #
-    # Snapshots temporarily store system %data. Snapshots contain the complete simulation state in a
-    # single object. They can be used to restart a simulation.
-    #
-    # Example use cases in which a simulation may be restarted from a snapshot include python-script-level
-    # \b Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
-    # some criterium), and where the system is re-initialized from that same state in the case
-    # when a move is not accepted.
-    #
-    # Example for the procedure of taking a snapshot and re-initializing from it:
-    # \code
-    # system = init.read_xml("some_file.xml")
-    #
-    # ... run a simulation ...
-    #
-    # snapshot = system.take_snapshot(all=True)
-    # ...
-    # system.restore_snapshot(snapshot)
-    # \endcode
-    #
-    # \warning restore_snapshot() may invalidate force coefficients, neighborlist r_cut values, and other per type quantities if called within a callback
-    #          during a run(). You can restore a snapshot during a run only if the snapshot is of a previous state of the currently running system.
-    #          Otherwise, you need to use restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
-    #
-    # \sa hoomd.data
-    # \MPI_SUPPORTED
     def restore_snapshot(self, snapshot):
+        R""" Re-initializes the system from a snapshot.
+
+        Args:
+            snapshot:. The snapshot to initialize the system from.
+
+        Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
+        single object. They can be used to restart a simulation.
+
+        Example use cases in which a simulation may be restarted from a snapshot include python-script-level
+        Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
+        some criterium), and where the system is re-initialized from that same state in the case
+        when a move is not accepted.
+
+        Example::
+
+            system = init.read_xml("some_file.xml")
+
+            ... run a simulation ...
+
+            snapshot = system.take_snapshot(all=True)
+            ...
+            system.restore_snapshot(snapshot)
+
+        Warning:
+                restore_snapshot() may invalidate force coefficients, neighborlist r_cut values, and other per type
+                quantities if called within a callback during a run(). You can restore a snapshot during a run only
+                if the snapshot is of a previous state of the currently running system. Otherwise, you need to use
+                restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
+
+        """
         hoomd.util.print_status_line();
 
         self.sysdef.initializeFromSnapshot(snapshot);
-
-    ## \var sysdef
-    # \internal
-    # \brief SystemDefinition to which this instance is connected
 
     ## \internal
     # \brief Get particle metadata
@@ -1167,32 +1169,30 @@ class particle_data(hoomd.meta._metadata):
         data['types'] = list(self.types);
         return data
 
-## Access a single particle via a proxy
-#
-# particle_data_proxy provides access to all of the properties of a single particle in the system.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# particle_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c tag          : An integer indexing the particle in the system. Tags run from 0 to N-1;
-# - \c acceleration : A 3-tuple of floats   (x, y, z) Note that acceleration is a calculated quantity and cannot be set. (in acceleration units)
-# - \c typeid       : An integer defining the type id
-#
-# The following attributes can be both read and set
-# - \c position     : A 3-tuple of floats   (x, y, z) (in distance units)
-# - \c image        : A 3-tuple of integers (x, y, z)
-# - \c velocity     : A 3-tuple of floats   (x, y, z) (in velocity units)
-# - \c charge       : A single float
-# - \c mass         : A single float (in mass units)
-# - \c diameter     : A single float (in distance units)
-# - \c type         : A string naming the type
-# - \c body         : Rigid body id integer (-1 for free particles)
-# - \c orientation  : Orientation of anisotropic particle (quaternion)
-# - \c net_force    : Net force on particle (x, y, z) (in force units)
-# - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
-# - \c net_torque   : Net torque on the particle (x, y, z) (in torque units)
-#
 class particle_data_proxy(object):
+    R""" Access a single particle via a proxy.
+
+    particle_data_proxy provides access to all of the properties of a single particle in the system.
+    See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        tag (int): A uniqe name for the particle in the system. Tags run from 0 to N-1.
+        acceleration (tuple): A 3-tuple of floats (x, y, z). Acceleration is a calculated quantity and cannot be set. (in acceleration units)
+        typeid (int): The type id of the particle.
+        position (tuple): (x, y, z) (float, in distance units).
+        image (tuple): (x, y, z) (int).
+        velocity (tuple): (x, y, z) (float, in velocity units).
+        charge (float): Particle charge.
+        mass (float): (in mass units).
+        diameter (float): (in distance units).
+        type (str): Particle type name.
+        body (int): Rigid body id (-1 for free particles).
+        orientation (tuple) : (w,x,y,z) (float, quaternion).
+        net_force (tuple): Net force on particle (x, y, z) (float, in force units).
+        net_energy (float): Net contribution of particle to the potential energy (in energy units).
+        net_torque (tuple): Net torque on the particle (x, y, z) (float, in torque units).
+    """
+
     ## \internal
     # \brief create a particle_data_proxy
     #
@@ -1440,21 +1440,19 @@ class force_data(object):
     def __iter__(self):
         return force_data.force_data_iterator(self);
 
-## Access the %force on a single particle via a proxy
-#
-# force_data_proxy provides access to the current %force, virial, and energy of a single particle due to a single
-# %force computations.
-#
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# force_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c %force         : A 3-tuple of floats (x, y, z) listing the current %force on the particle
-# - \c virial         : A float containing the contribution of this particle to the total virial
-# - \c energy         : A float containing the contribution of this particle to the total potential energy
-# - \c torque         : A 3-tuple of floats (x, y, z) listing the current torque on the particle
-#
 class force_data_proxy(object):
+    R""" Access the force on a single particle via a proxy.
+
+    force_data_proxy provides access to the current force, virial, and energy of a single particle due to a single
+    force computation. See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        force (tuple): (float, x, y, z) - the current force on the particle (force units)
+        virial (tuple): This particle's contribution to the total virial tensor.
+        energy (float): This particle's contribution to the total potential energy (energy units)
+        torque (float): (float x, y, z) - current torque on the particle (torque units)
+
+    """
     ## \internal
     # \brief create a force_data_proxy
     #
@@ -1614,24 +1612,24 @@ class bond_data(hoomd.meta._metadata):
         data['types'] = [self.bdata.getNameByType(i) for i in range(self.bdata.getNTypes())];
         return data
 
-## Access a single bond via a proxy
-#
-# bond_data_proxy provides access to all of the properties of a single bond in the system.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# bond_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c tag          : A unique integer attached to each bond (not in any particular range). A bond's tag remans fixed
-#                     during its lifetime. (Tags previously used by removed bonds may be recycled).
-# - \c typeid       : An integer indexing the bond type of the bond.
-# - \c a            : An integer indexing the A particle in the bond. Particle tags run from 0 to N-1;
-# - \c b            : An integer indexing the B particle in the bond. Particle tags run from 0 to N-1;
-# - \c type         : A string naming the type
-#
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-# \MPI_SUPPORTED
 class bond_data_proxy(object):
+    R""" Access a single bond via a proxy.
+
+    bond_data_proxy provides access to all of the properties of a single bond in the system.
+    See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        tag (int): A unique integer attached to each bond (not in any particular range). A bond's tag remains fixed
+                   during its lifetime. (Tags previously used by removed bonds may be recycled).
+        typeid (int): Type id of the bond.
+        a (int): The tag of the first particle in the bond.
+        b (int): The tag of the second particle in the bond.
+        type (str): Bond type name.
+
+    In the current version of the API, only already defined type names can be used. A future improvement will allow
+    dynamic creation of new type names from within the python API.
+    """
+
     ## \internal
     # \brief create a bond_data_proxy
     #
@@ -1784,24 +1782,20 @@ class constraint_data(hoomd.meta._metadata):
         data['N'] = len(self)
         return data
 
-## Access a single constraint via a proxy
-#
-# constraint_data_proxy provides access to all of the properties of a single constraint in the system.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# constraint_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c tag          : A unique integer attached to each constraint (not in any particular range). A constraint's tag remans fixed
-#                     during its lifetime. (Tags previously used by removed constraint may be recycled).
-# - \c d            : A float indicating the constraint distance
-# - \c a            : An integer indexing the A particle in the constraint. Particle tags run from 0 to N-1;
-# - \c b            : An integer indexing the B particle in the constraint. Particle tags run from 0 to N-1;
-# - \c type         : A string naming the type
-#
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-# \MPI_SUPPORTED
 class constraint_data_proxy(object):
+    R""" Access a single constraint via a proxy.
+
+    constraint_data_proxy provides access to all of the properties of a single constraint in the system.
+    See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        tag (int): A unique integer attached to each constraint (not in any particular range). A constraint's tag remains fixed
+                   during its lifetime. (Tags previously used by removed constraints may be recycled).
+        d (float): The constraint distance.
+        a (int): The tag of the first particle in the constraint.
+        b (int): The tag of the second particle in the constraint.
+
+    """
     ## \internal
     # \brief create a constraint_data_proxy
     #
@@ -1952,25 +1946,25 @@ class angle_data(hoomd.meta._metadata):
         data['types'] = [self.adata.getNameByType(i) for i in range(self.adata.getNTypes())];
         return data
 
-## Access a single angle via a proxy
-#
-# angle_data_proxy provides access to all of the properties of a single angle in the system.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# angle_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c tag          : A unique integer attached to each angle (not in any particular range). A angle's tag remans fixed
-#                     during its lifetime. (Tags previously used by removed angles may be recycled).
-# - \c typeid       : An integer indexing the angle's type.
-# - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
-# - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
-# - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
-# - \c type         : A string naming the type
-#
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-# \MPI_SUPPORTED
 class angle_data_proxy(object):
+    R""" Access a single angle via a proxy.
+
+    angle_data_proxy provides access to all of the properties of a single angle in the system.
+    See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        tag (int): A unique integer attached to each angle (not in any particular range). A angle's tag remains fixed
+                   during its lifetime. (Tags previously used by removed angles may be recycled).
+        typeid (int): Type id of the angle.
+        a (int): The tag of the first particle in the angle.
+        b (int): The tag of the second particle in the angle.
+        c (int): The tag of the third particle in the angle.
+        type (str): angle type name.
+
+    In the current version of the API, only already defined type names can be used. A future improvement will allow
+    dynamic creation of new type names from within the python API.
+    """
+
     ## \internal
     # \brief create a angle_data_proxy
     #
@@ -2136,31 +2130,26 @@ class dihedral_data(hoomd.meta._metadata):
         data['types'] = [self.ddata.getNameByType(i) for i in range(self.ddata.getNTypes())];
         return data
 
-## Access a single dihedral via a proxy
-#
-# dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
-# This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
-# dihedral_data_proxy, documented by example.
-#
-# The following attributes are read only:
-# - \c tag          : A unique integer attached to each dihedral (not in any particular range). A dihedral's tag remans fixed
-#                     during its lifetime. (Tags previously used by removed dihedral may be recycled).
-# - \c typeid       : An integer indexing the dihedral's type.
-# - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
-# - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
-# - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
-# - \c d            : An integer indexing the D particle in the dihedral. Particle tags run from 0 to N-1;
-# - \c type         : A string naming the type
-#
-# In the current version of the API, only already defined type names can be used. A future improvement will allow
-# dynamic creation of new type names from within the python API.
-# \MPI_SUPPORTED
 class dihedral_data_proxy(object):
-    ## \internal
-    # \brief create a dihedral_data_proxy
-    #
-    # \param ddata DihedralData to which this proxy belongs
-    # \param tag Tag of this dihedral in \a ddata
+    R""" Access a single dihedral via a proxy.
+
+    dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
+    See :py:mod:`hoomd.data` for examples.
+
+    Attributes:
+        tag (int): A unique integer attached to each dihedral (not in any particular range). A dihedral's tag remains fixed
+                   during its lifetime. (Tags previously used by removed dihedrals may be recycled).
+        typeid (int): Type id of the dihedral.
+        a (int): The tag of the first particle in the dihedral.
+        b (int): The tag of the second particle in the dihedral.
+        c (int): The tag of the third particle in the dihedral.
+        d (int): The tag of the fourth particle in the dihedral.
+        type (str): dihedral type name.
+
+    In the current version of the API, only already defined type names can be used. A future improvement will allow
+    dynamic creation of new type names from within the python API.
+    """
+
     def __init__(self, ddata, tag):
         self.ddata = ddata;
         self.tag = tag;
@@ -2225,44 +2214,44 @@ def set_snapshot_box(snapshot, box):
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
 _hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
 
-## Make an empty snapshot
-#
-# \param N Number of particles to create
-# \param box a data.boxdim object that defines the simulation box
-# \param particle_types List of particle type names (must not be zero length)
-# \param bond_types List of bond type names (may be zero length)
-# \param angle_types List of angle type names (may be zero length)
-# \param dihedral_types List of Dihedral type names (may be zero length)
-# \param improper_types List of improper type names (may be zero length)
-# \param dtype Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
-#
-# \b Examples:
-# \code
-# snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
-# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
-# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
-# ... set properties in snapshot ...
-# init.read_snapshot(snapshot);
-# \endcode
-#
-# make_snapshot() creates particles with <b>default properties</b>. You must set reasonable values for particle
-# properties before initializing the system with init.read_snapshot().
-#
-# The default properties are:
-# - position 0,0,0
-# - velocity 0,0,0
-# - image 0,0,0
-# - orientation 1,0,0,0
-# - typeid 0
-# - charge 0
-# - mass 1.0
-# - diameter 1.0
-#
-# make_snapshot() creates the particle, bond, angle, dihedral, and improper types with the names specified. Use these
-# type names later in the job script to refer to particles (i.e. in lj.set_params).
-#
-# \sa hoomd.init.read_snapshot()
 def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], dtype='float'):
+    R""" Make an empty snapshot.
+
+    Args:
+        N (int): Number of particles to create.
+        box (:py:class:`hoomd.data.boxdim`): Simulation box parameters.
+        particle_types (list): Particle type names (must not be zero length).
+        bond_types (list): Bond type names (may be zero length).
+        angle_types (list): Angle type names (may be zero length).
+        dihedral_types (list): Dihedral type names (may be zero length).
+        improper_types (list): Improper type names (may be zero length).
+        dtype (str): Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
+
+    Examples::
+
+        snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
+        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
+        ... set properties in snapshot ...
+        init.read_snapshot(snapshot);
+
+    :py:func:`hoomd.data.make_snapshot()` creates all particles with **default properties**. You must set reasonable
+    values for particle properties before initializing the system with :py:func:`hoomd.init.read_snapshot()`.
+
+    The default properties are:
+
+    * position 0,0,0
+    * velocity 0,0,0
+    * image 0,0,0
+    * orientation 1,0,0,0
+    * typeid 0
+    * charge 0
+    * mass 1.0
+    * diameter 1.0
+
+    See Also:
+        :py:func:`hoomd.init.read_snapshot()`
+    """
     if dtype == 'float':
         snapshot = _hoomd.SnapshotSystemData_float();
     elif dtype == 'double':
@@ -2282,91 +2271,56 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
 
     return snapshot;
 
-## Read a snapshot from a GSD file
-#
-# \param filename GSD file to read the snapshot from
-# \param frame Frame to read from the GSD file
-#
-# gsd_snapshot() opens the given GSD file and reads a snapshot from it.
-#
 def gsd_snapshot(filename, frame=0):
+    R""" Read a snapshot from a GSD file.
+
+    Args:
+        filename (str): GSD file to read the snapshot from.
+        frame (int): Frame to read from the GSD file.
+
+    :py:func:`hoomd.data.gsd_snapshot()` opens the given GSD file and reads a snapshot from it.
+    """
     reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
     return reader.getSnapshot();
 
-## \class SnapshotParticleData
-# \brief Snapshot that stores particle properties
-#
-# Users should not create SnapshotParticleData directly. Use data.make_snapshot() or system_data.take_snapshot()
-# to get a snapshot of the system.
+
+# Note: SnapshotParticleData should never be instantiated, it is a placeholder to generate sphinx documentation,
+# as the real SnapshotParticleData lives in c++.
 class SnapshotParticleData:
-    # dummy class just to make doxygen happy
+    R""" Snapshot of particle data properties.
 
-    def __init__(self):
-        # doxygen even needs to see these variables to generate documentation for them
-        self.N = None;
-        self.position = None;
-        self.velocity = None;
-        self.acceleration = None;
-        self.typeid = None;
-        self.mass = None;
-        self.charge = None;
-        self.diameter = None;
-        self.image = None;
-        self.body = None;
-        self.types = None;
-        self.orientation = None;
-        self.moment_inertia = None;
-        self.angmom = None;
+    Users should not create SnapshotParticleData directly. Use :py:func:`hoomd.data.make_snapshot()`
+    or :py:meth:`hoomd.data.system_data.take_snapshot()` to make snapshots.
 
-    ## \property N
-    # Number of particles in the snapshot
+    Attributes:
+        N (int): Number of particles in the snapshot
+        types (list): List of string type names (assignable)
+        position (ndarray Nx3): numpy array containing the position of each particle (float or double)
+        orientation (ndarray Nx4): numpy array containing the orientation quaternion of each particle (float or double)
+        velocity (ndarray Nx3): numpy array containing the velocity of each particle (float or double)
+        acceleration (ndarray Nx3): numpy array containing the acceleration of each particle (float or double)
+        typeid (ndarray): N length numpy array containing the type id of each particle (32-bit unsigned int)
+        mass (ndarray): N length numpy array containing the mass of each particle (float or double)
+        charge (ndarray): N length numpy array containing the charge of each particle (float or double)
+        diameter (ndarray): N length numpy array containing the diameter of each particle (float or double)
+        image (ndarray Nx3): numpy array containing the image of each particle (32-bit int)
+        body (ndarray): N length numpy array containing the body of each particle (32-bit unsigned int)
+        moment_inertia (ndarray Nx3): numpy array containing the principal moments of inertia of each particle (float or double)
+        angmom (ndarray Nx4): numpy array containing the angular momentum quaternion of each particle (float or double)
 
-    ## \property types
-    # List of string type names (assignable)
+    See Also:
+        :py:mod:`hoomd.data`
+    """
 
-    ## \property position
-    # Nx3 numpy array containing the position of each particle (float or double)
-
-    ## \property orientation
-    # Nx4 numpy array containing the orientation quaternion of each particle (float or double)
-
-    ## \property velocity
-    # Nx3 numpy array containing the velocity of each particle (float or double)
-
-    ## \property acceleration
-    # Nx3 numpy array containing the acceleration of each particle (float or double)
-
-    ## \property typeid
-    # N length numpy array containing the type id of each particle (32-bit unsigned int)
-
-    ## \property mass
-    # N length numpy array containing the mass of each particle (float or double)
-
-    ## \property charge
-    # N length numpy array containing the charge of each particle (float or double)
-
-    ## \property diameter
-    # N length numpy array containing the diameter of each particle (float or double)
-
-    ## \property image
-    # Nx3 numpy array containing the image of each particle (32-bit int)
-
-    ## \property body
-    # N length numpy array containing the body of each particle (32-bit unsigned int)
-
-    ## \property moment_inertia
-    # Nx3 length numpy array containing the principal moments of inertia of each particle (float or double)
-
-    ## \property angmom
-    # Nx4 length numpy array containing the angular momentum quaternion of each particle (float or double)
-
-    ## Resize the snapshot to hold N particles
-    #
-    # \param N new size of the snapshot
-    #
-    # resize() changes the size of the arrays in the snapshot to hold \a N particles. Existing particle properties are
-    # preserved after the resize. Any newly created particles will have default values. After resizing,
-    # existing references to the numpy arrays will be invalid, access them again
-    # from `snapshot.particles.*`
     def resize(self, N):
+        R""" Resize the snapshot to hold N particles.
+
+        Args:
+            N (int): new size of the snapshot.
+
+        :py:meth:`resize()` changes the size of the arrays in the snapshot to hold *N* particles. Existing particle
+        properties are preserved after the resize. Any newly created particles will have default values. After resizing,
+        existing references to the numpy arrays will be invalid, access them again
+        from `snapshot.particles.*`
+        """
         pass

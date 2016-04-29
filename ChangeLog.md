@@ -20,7 +20,7 @@
 * Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
   notebook output blocks.
 * `analyze.log` can now register python callback functions as sources for logged quantities.
-* The GSD file format (http://gsd.readthedocs.org/en/latest/) is fully implemented in hoomd
+* The GSD file format (http://gsd.readthedocs.io) is fully implemented in hoomd
     * `dump.gsd` writes GSD trajectories and restart files (use `truncate=true` for restarts).
     * `init.read_gsd` reads GSD file and initializes the system, and can start the simulation
        from any frame in the GSD file.

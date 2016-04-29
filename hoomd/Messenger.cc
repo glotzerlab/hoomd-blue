@@ -457,10 +457,10 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     assert(m_mpi_comm);
 
     // overwrite old file
-    MPI_File_delete(filename.c_str(), MPI_INFO_NULL);
+    MPI_File_delete((char *)filename.c_str(), MPI_INFO_NULL);
 
     // open the log file
-    int ret = MPI_File_open(m_mpi_comm, filename.c_str(),  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
+    int ret = MPI_File_open(m_mpi_comm, (char *)filename.c_str(),  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
 
     if (ret == 0)
         m_file_open = true;

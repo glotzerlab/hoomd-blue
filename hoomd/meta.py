@@ -49,20 +49,18 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.meta
-# \brief Write out simulation and environment context metadata
-#
-# Metadata is stored in form of key-value pairs in a JSON file and used
-# to summarize the per-run simulation parameters so that they can be easily
-# taken up by other scripts and stored in a database.
-#
-# The metadata is returned by dump_metadata() and can optionally be written to a file.
-# Provide user defined metadata as mapping type.
-#
-# \code
-# metadata = meta.dump_metadata()
-# meta.dump_metadata(filename = "metadata.json", overwrite = False, user = {'debug': True}, indent=2)
-# \endcode
+R""" Write out simulation and environment context metadata.
+
+Metadata is stored in form of key-value pairs in a JSON file and used
+to summarize the per-run simulation parameters so that they can be easily
+taken up by other scripts and stored in a database.
+
+Example::
+
+    metadata = meta.dump_metadata()
+    meta.dump_metadata(filename = "metadata.json", overwrite = False, user = {'debug': True}, indent=2)
+
+"""
 
 import hoomd;
 import json, collections;
@@ -100,25 +98,29 @@ class _metadata_from_dict:
 
         return data
 
-## Writes simulation metadata into a file
-#
-# When called, this function will query all registered forces, updaters etc.
-# and ask them to provide metadata. E.g. a pair potential will return
-# information about parameters, the Logger will output the filename it is
-# logging to, etc.
-#
-# Custom metadata can be provided as a dictionary.
-#
-# The output is aggregated into a dictionary and written to a
-# JSON file, together with a timestamp.
-#
-# \param filename The name of the file to write JSON metadata to (optional)
-# \param user Additional metadata, needs to be a mapping type, such as a dict()
-# \param overwrite If true, overwrite output file if it already exists
-# \param indent The json indentation size
-#
-# \returns metadata as a dictionary
 def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
+    R""" Writes simulation metadata into a file.
+
+    Args:
+        filename (str): The name of the file to write JSON metadata to (optional)
+        user (dict): Additional metadata.
+        overwrite (bool): If true, overwrite output file.
+        indent (int): The json indentation size
+
+    Returns:
+        metadata as a dictionary
+
+    When called, this function will query all registered forces, updaters etc.
+    and ask them to provide metadata. E.g. a pair potential will return
+    information about parameters, the Logger will output the filename it is
+    logging to, etc.
+
+    Custom metadata can be provided as a dictionary to *user*.
+
+    The output is aggregated into a dictionary and written to a
+    JSON file, together with a timestamp. Current metadata is
+    appended to the end of the file.
+    """
     hoomd.util.print_status_line();
 
     if not hoomd.init.is_initialized():

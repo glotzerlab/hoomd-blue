@@ -307,7 +307,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         }
 
     // now gather actual objects
-    MPI_Gatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
+    MPI_Gatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
 
     // on root processor, de-serialize data
     if (rank == (int) root)
@@ -364,7 +364,7 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     char *rbuf = new char[len];
 
     // now gather actual objects
-    MPI_Allgatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
+    MPI_Allgatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
 
     // de-serialize data
     for (unsigned int i = 0; i < out_values.size(); i++)

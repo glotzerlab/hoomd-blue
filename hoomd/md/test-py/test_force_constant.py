@@ -32,7 +32,6 @@ class force_constant_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, const.set_force, fx=1.45, fy=0.25, fz=-0.1);
         self.assertRaises(RuntimeError, const.enable);
         self.assertRaises(RuntimeError, const.disable);
-        self.assertRaises(RuntimeError, const.benchmark, 500);
 
     def tearDown(self):
         context.initialize();

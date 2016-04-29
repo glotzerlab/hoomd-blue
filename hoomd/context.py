@@ -49,10 +49,11 @@
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
 
-## \package hoomd.context
-# \brief Gather information about the execution context
-#
-# As much data from the environment is gathered as possible.
+R""" Manage execution contexts.
+
+Every hoomd simulation needs an execution context that describes what hardware it should execute on,
+the MPI configuration for the job, etc...
+"""
 
 import os
 import hoomd
@@ -86,55 +87,54 @@ current = None;
 
 _prev_args = None;
 
-## Simulation context
-#
-# Store all of the context related to a single simulation, including the system state, forces, updaters, integration
-# methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
-# active simulation context. You swap between simulation contexts by using this class as a context manager:
-#
-# ```
-# sim1 = context.SimulationContext();
-# sim2 = context.SimulationContext();
-# with sim1:
-#   init.read_xml('init1.xml');
-#   lj = pair.lj(...)
-#   ...
-#
-# with sim2:
-#   init.read_xml('init2.xml');
-#   gauss = pair.gauss(...)
-#   ...
-#
-# # run simulation 1 for a bit
-# with sim1:
-#    run(100)
-#
-# # run simulation 2 for a bit
-# with sim2:
-#    run(100)
-#
-# # set_current sets the current context without needing to use with
-# sim1.set_current()
-# run(100)
-# ```
-#
-# If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
-# and erase the existing one.
-#
-# ```
-# context.initialize()
-# init.read_xml('init1.xml');
-# lj = pair.lj(...)
-# ...
-# run(100);
-#
-# context.initialize()
-# init.read_xml('init2.xml');
-# gauss = pair.gauss(...)
-# ...
-# run(100)
-# ```
 class SimulationContext(object):
+    R""" Simulation context
+
+    Store all of the context related to a single simulation, including the system state, forces, updaters, integration
+    methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
+    active simulation context. You swap between simulation contexts by using this class as a context manager::
+
+
+        sim1 = context.SimulationContext();
+        sim2 = context.SimulationContext();
+        with sim1:
+          init.read_xml('init1.xml');
+          lj = pair.lj(...)
+          ...
+
+        with sim2:
+          init.read_xml('init2.xml');
+          gauss = pair.gauss(...)
+          ...
+
+        # run simulation 1 for a bit
+        with sim1:
+           run(100)
+
+        # run simulation 2 for a bit
+        with sim2:
+           run(100)
+
+        # set_current sets the current context without needing to use with
+        sim1.set_current()
+        run(100)
+
+
+    If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
+    and erase the existing one::
+
+        context.initialize()
+        init.read_xml('init1.xml');
+        lj = pair.lj(...)
+        ...
+        run(100);
+
+        context.initialize()
+        init.read_xml('init2.xml');
+        gauss = pair.gauss(...)
+        ...
+        run(100)
+    """
     def __init__(self):
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
         self.system_definition = None;
@@ -197,26 +197,28 @@ class SimulationContext(object):
 
         current = self.prev;
 
-## Initialize the execution context
-# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
-#
-# initialize() parses the command line arguments given, sets the options and initializes MPI and GPU execution
-# (if any). By default, initialize() reads arguments given on the command line. Provide a string to initialize()
-# to set the launch configuration within the job script.
-#
-# initialize() can be called more than once in a script. However, the execution parameters are fixed on the first call
-# and args is ignored. Subsequent calls to initialize() create a new SimulationContext and set it current. This
-# behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
-# set when rerunning the notebook within an existing kernel.
-#
-# **Example:**
-# \code
-# from hoomd_script import *
-# context.initialize();
-# context.initialize("--mode=gpu --nrank=64");
-# \endcode
-#
 def initialize(args=None):
+    R""" Initialize the execution context
+
+    Args:
+        args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
+
+    :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
+    (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
+    to set the launch configuration within the job script.
+
+    :py:func:`hoomd.context.initialize()` can be called more than once in a script. However, the execution parameters are fixed on the first call
+    and *args* is ignored. Subsequent calls to :py:func:`hoomd.context.initialize()` create a new :py:class:`SimulationContext` and set it current. This
+    behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
+    set when rerunning the notebook within an existing kernel.
+
+    Example::
+
+        from hoomd import *
+        context.initialize();
+        context.initialize("--mode=gpu --nrank=64");
+
+    """
     global exec_conf, msg, options, current, _prev_args
     _prev_args = args;
 

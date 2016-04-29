@@ -49,12 +49,12 @@
 
 # Maintainer: joaander
 
-## \package hoomd.option
-# \brief Commands set global options
-#
-# Options may be set on the command line (\ref page_command_line_options) or from a job script. The option.set_* commands
-# override any settings made on the command line.
-#
+R""" Set global options.
+
+Options may be set on the command line or from a job script using :py:func:`hoomd.context.initialize()`.
+The option.set_* commands override any settings made previously.
+
+"""
 
 from optparse import OptionParser;
 
@@ -234,25 +234,28 @@ def _parse_command_line(arg_string=None):
     if cmd_options.user is not None:
         hoomd.context.options.user = shlex.split(cmd_options.user);
 
-## Get user options
-#
-# \return List of user options passed in via --user="arg1 arg2 ..."
-# \sa \ref page_command_line_options
-#
 def get_user():
+    R""" Get user options.
+
+    Return:
+        List of user options passed in via --user="arg1 arg2 ..."
+    """
     _verify_init();
     return hoomd.context.options.user;
 
-## Set the notice level
-#
-# \param notice_level Specifies the maximum notice level to print (an integer)
-#
-# The notice level may be changed before or after initialization, and may be changed many times during a job script.
-#
-# \note Overrides --notice-level on the command line.
-# \sa \ref page_command_line_options
-#
 def set_notice_level(notice_level):
+    R""" Set the notice level.
+
+    Args:
+        notice_level (int). The maximum notice level to print.
+
+    The notice level may be changed before or after initialization, and may be changed
+    many times during a job script.
+
+    Note:
+        Overrides ``--notice-level`` on the command line.
+
+    """
     _verify_init();
 
     try:
@@ -264,18 +267,20 @@ def set_notice_level(notice_level):
     hoomd.context.msg.setNoticeLevel(notice_level);
     hoomd.context.options.notice_level = notice_level;
 
-## Set the message file
-#
-# \param fname Specifies the name of the file to write. The file will be overwritten. Set to None to direct messages
-#              back to stdout/stderr.
-#
-# The message file may be changed before or after initialization, and may be changed many times during a job script.
-# Changing the message file will only affect messages sent after the change.
-#
-# \note Overrides --msg-file on the command line.
-# \sa \ref page_command_line_options
-#
 def set_msg_file(fname):
+    R""" Set the message file.
+
+    Args:
+        fname (str): Specifies the name of the file to write. The file will be overwritten.
+                     Set to None to direct messages back to stdout/stderr.
+
+    The message file may be changed before or after initialization, and may be changed many times during a job script.
+    Changing the message file will only affect messages sent after the change.
+
+    Note:
+        Overrides ``--msg-file`` on the command line.
+
+    """
     _verify_init();
 
     if fname is not None:
@@ -285,14 +290,16 @@ def set_msg_file(fname):
 
     hoomd.context.options.msg_file = fname;
 
-## Set the Autotuner parameters
-#
-# \param enable Set to True to enable autotuning. Set to False to disable.
-# \param period Approximate period in time steps between retuning
-#
-# \sa page_autotuner
-#
 def set_autotuner_params(enable=True, period=100000):
+    R""" Set autotuner parameters.
+
+    Args:
+        enable (bool). Set to True to enable autotuning. Set to False to disable.
+        period (int): Approximate period in time steps between retuning.
+
+    TODO: reference autotuner page here.
+
+    """
     _verify_init();
 
     hoomd.context.options.autotuner_period = period;

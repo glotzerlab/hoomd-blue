@@ -23,7 +23,6 @@ class nlist_cell_tests (unittest.TestCase):
         self.nl.set_params(r_buff=0.6);
         self.nl.set_params(check_period = 20);
         self.nl.set_params(d_max = 2.0, dist_check = False)
-        self.nl.set_params(deterministic = True);
 
     # test reset_exclusions
     def test_reset_exclusions_works(self):

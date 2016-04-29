@@ -51,11 +51,6 @@ class update_box_resize_tests (unittest.TestCase):
                           yz= variant.linear_interp([(0,0), (1e5, .3)]), period=10);
         run(100);
 
-    # test set_params
-    def test_set_params(self):
-        upd = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
-        upd.set_params(scale_particles = False);
-
     def tearDown(self):
         context.initialize();
 

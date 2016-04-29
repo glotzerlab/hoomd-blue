@@ -49,19 +49,17 @@
 
 # Maintainer: mphoward / All Developers are free to add commands for new features
 
+""" Commands to support automatic citation generation.
+
+Certain features of HOOMD-blue require citation because they represent significant contributions from developers.
+In order to make these citations transparent and easy, HOOMD-blue will automatically print citation notices at run
+time when you use a feature that should be cited. Users should read and cite these publications in their work.
+Citations can be saved as a BibTeX file for easy incorporation into bibliographies.
+"""
+
 import hoomd
 import textwrap
 import os
-
-## \package hoomd.cite
-# \brief Commands to support automatic citation generation
-#
-# Certain features of HOOMD-blue require citation because they represent significant contributions from developers.
-# In order to make these citations transparent and easy, HOOMD-blue will automatically print citation notices at run
-# time when you use a feature that should be cited. Users should read and cite these publications in their work.
-# Citations can be saved as a BibTeX file for easy incorporation into bibliographies. The bibliography is generated
-# in accordance with the terms laid out at \ref page_citing.
-#
 
 ## \internal
 # \brief Generic citation object
@@ -485,19 +483,22 @@ def _ensure_global_bib():
 
     return hoomd.context.bib
 
-## Saves the automatically generated %bibliography to a BibTeX file
-#
-# \param file File name for the saved %bibliography
-#
-# After save() is called for the first time, the %bibliography will (re-)generate each time that a new feature is added
-# to ensure that all citations have been included. If \a file already exists, it will be overwritten.
-#
-# \b Examples
-# \code
-# cite.save()
-# cite.save(file='cite.bib')
-# \endcode
 def save(file='hoomd.bib'):
+    """ Saves the automatically generated bibliography to a BibTeX file
+
+    Args:
+
+        file(str): File name for the saved bibliography
+
+    After :py:func:`save()` is called for the first time, the bibliography will (re-)generate each time that a new feature is added
+    to ensure that all citations have been included. If ``file`` already exists, it will be overwritten.
+
+    Examples::
+
+        cite.save()
+        cite.save(file='cite.bib')
+    """
+
     hoomd.util.print_status_line()
 
     # force a bibliography to exist
