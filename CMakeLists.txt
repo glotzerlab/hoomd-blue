@@ -10,8 +10,6 @@ endif()
 
 project (HOOMD)
 
-# setup the install directories
-include (CMake_install_options.cmake)
 # bring in custom modules
 add_subdirectory (CMake)
 # setup version tagging info
@@ -45,6 +43,9 @@ include (HOOMDMacros)
 include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
+
+# setup the install directories
+include (CMake_install_options.cmake)
 
 ################################
 # set up unit tests
