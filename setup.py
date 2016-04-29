@@ -21,5 +21,5 @@ if len(sys.argv) > 3:
 
 call(["mkdir", "-p", "build"])
 os.chdir("build");
-call(["cmake", "../", "-DINSTALL_SITE=on", "-DBUILD_TESTING=off"])
+call(["cmake", "../", "-DINSTALL_SITE=on", "-DBUILD_TESTING=off", "-DGCC_ARCH=pentium3"])
 call(["make", "install"])

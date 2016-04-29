@@ -6,7 +6,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
     message(STATUS "Overriding CMake's default CFLAGS (this should appear only once)")
 
     ## Allow GCC_ARCH flag to set the -march field
-    if("$ENV{GCC_ARCH}" STREQUAL "")
+    if(NOT GCC_ARCH AND "$ENV{GCC_ARCH}" STREQUAL "")
         set(GCC_ARCH "native")
         message(STATUS "GCC_ARCH env var not set, setting -march to ${GCC_ARCH}")
     else()
