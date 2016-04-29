@@ -1,7 +1,9 @@
 name: hoomd
+channels:
+- glotzer
 dependencies:
 - backports=1.0=py35_0
-- boost=1.60.0=py35_0
+- boost=1.59.0=glotzer_py35_6
 - cmake=3.3.1=0
 - decorator=4.0.9=py35_0
 - get_terminal_size=1.0.0=py35_0
