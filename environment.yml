@@ -1,18 +1,32 @@
 name: hoomd
 dependencies:
+- backports=1.0=py35_0
 - boost=1.60.0=py35_0
 - cmake=3.3.1=0
+- decorator=4.0.9=py35_0
+- get_terminal_size=1.0.0=py35_0
 - icu=54.1=0
+- ipython=4.2.0=py35_0
+- ipython_genutils=0.1.0=py35_0
 - mkl=11.3.1=0
 - numpy=1.11.0=py35_0
 - openssl=1.0.2g=0
+- path.py=8.2.1=py35_0
+- pexpect=4.0.1=py35_0
+- pickleshare=0.5=py35_0
 - pip=8.1.1=py35_1
+- ptyprocess=0.5=py35_0
 - python=3.5.1=0
 - readline=6.2=2
 - setuptools=20.7.0=py35_0
+- simplegeneric=0.8.1=py35_0
 - sqlite=3.9.2=0
 - tk=8.5.18=0
+- traitlets=4.2.1=py35_0
 - wheel=0.29.0=py35_0
 - xz=5.0.5=1
 - zlib=1.2.8=0
+- pip:
+  - backports.shutil-get-terminal-size==1.0.0
+  - ipython-genutils==0.1.0
 
