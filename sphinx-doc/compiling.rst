@@ -248,6 +248,22 @@ distributions ship both python2 and python3, but only build boost against python
 hoomd to build against python2. Check the hoomd-users mailing lists for posts by users who share their hoomd build
 instructions on a variety of distributions.
 
+Installing prerequisites with conda
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Conda is very useful as a delivery platform for `stable binaries <https://codeblue.umich.edu/hoomd-blue/download.html>`_,
+and we do recommend only using it for that purpose. However, many users do wish to use conda to provide development
+perquisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
+ensure that all libraries (mpi, boost, python, etc...) are linked from the conda environment. First, install miniconda.
+Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
+
+    conda uninstall hoomd
+    conda install boost sphinx git mpich2 numpy cmake
+
+Check the CMake configuration to ensure that it finds python, boost, numpy, and MPI from within the conda installation.
+If any of these library or include files reference directories other than your conda environment, you will need to
+set the appropriate setting for ``BOOST_ROOT``, ``PYTHON_EXECUTABLE``, etc...
+
 .. _compile-hoomd:
 
 Compile HOOMD-blue
