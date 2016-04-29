@@ -169,12 +169,12 @@ endif()
 
 option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
-    add_subdirectory(md)
-
     if (ENABLE_MPI)
         # add the distributed FFT library
-        add_subdirectory(extern/dfftlib)
+        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
+
+    add_subdirectory(md)
 endif()
 
 if (NOT SINGLE_PRECISION)
