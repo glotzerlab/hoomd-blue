@@ -19,7 +19,10 @@ if len(sys.argv) > 3:
     print("invalid input");
     sys.exit(1)
 
+os.environ['CC'] = '/usr/bin/clang'
+os.environ['CXX'] = '/usr/bin/clang++'
+
 call(["mkdir", "-p", "build"])
 os.chdir("build");
-call(["cmake", "../", "-DINSTALL_SITE=on", "-DBUILD_TESTING=off", "-DGCC_ARCH=core2"])
+call(["cmake", "../", "-DINSTALL_SITE=on", "-DBUILD_TESTING=off"])
 call(["make", "install"])
