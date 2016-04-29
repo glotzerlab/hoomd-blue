@@ -35,7 +35,7 @@ without warning if you launch hoomd from ``$HOME``.
     module switch PrgEnv-cray PrgEnv-gnu
     module load cudatoolkit
     module load bwpy
-    export SOFTWARE_ROOT=${HOME}
+    export SOFTWARE_ROOT=${HOME}/software
     export CPATH="${BWPY_DIR}/usr/include"
     export LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
     export LD_LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64:${LD_LIBRARY_PATH}"
@@ -213,7 +213,7 @@ library. Download and unpack the latest version of the boost source code.
 Then run the following in the shell. The variables are set for Comet, you will need to change the python version
 and root directory to match your cluster::
 
-    PREFIX="${SOFTWARE_ROOT}/boost"
+    PREFIX="${SOFTWARE_ROOT}"
     PY_VER="2.7"
     PYTHON="/opt/python/bin/python2.7"
     PYTHON_ROOT="/opt/python"
@@ -237,7 +237,7 @@ and root directory to match your cluster::
             -j20 \
             install
 
-Then set ``BOOST_ROOT=${SOFTWARE_ROOT}/boost`` before running cmake.
+Then set ``BOOST_ROOT=${SOFTWARE_ROOT}`` before running cmake.
 
 Installing prerequisites on a workstation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -280,7 +280,7 @@ Compile::
     $ cd hoomd-blue
     $ mkdir build
     $ cd build
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/hoomd
+    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
     $ make -j20
 
 Run::
@@ -295,7 +295,7 @@ to test your build.
 To install a stable version for general use, run::
 
     make install
-    export PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/hoomd
+    export PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
 
 To run out of your build directory::
 
@@ -345,9 +345,10 @@ remove `CMakeCache.txt` and then run cmake and specify these options on the comm
 
 Other option changes take effect at any time. These can be set from within `ccmake` or on the command line:
 
+* **CMAKE_INSTALL_PREFIX** - Directory to install the hoomd python module. All files will be under
+  ${CMAKE_INSTALL_PREFIX}/hoomd
 * **BUILD_TESTING** - Enables the compilation of unit tests
 * **CMAKE_BUILD_TYPE** - sets the build type (case sensitive)
-
     * **Debug** - Compiles debug information into the library and executables.
       Enables asserts to check for programming mistakes. HOOMD-blue will run
       slow when compiled in Debug mode, but problems are easier to
@@ -355,7 +356,6 @@ Other option changes take effect at any time. These can be set from within `ccma
     * **RelWithDebInfo** - Compiles with optimizations and debug symbols. Useful for profiling benchmarks.
     * **Release** - All compiler optimizations are enabled and asserts are removed.
       Recommended for production builds: required for any benchmarking.
-
 * **ENABLE_CUDA** - Enable compiling of the GPU accelerated computations using CUDA. Defaults *on* if the CUDA toolkit
   is found. Defaults *off* if the CUDA toolkit is not found.
 * **ENABLE_DOXYGEN** - enables the generation of user and developer documentation (Defaults *off*)
