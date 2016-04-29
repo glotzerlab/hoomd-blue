@@ -322,12 +322,31 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGrou
     {
     int res = 0;
 
-    // loop through all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    bool aniso = false;
+
+    // This is called before prepRun, so we need to determine the anisotropic modes independently here.
+    // It cannot be done earlier, as the integration methods were not in place.
+    // set (an-)isotropic integration mode
+    switch (m_aniso_mode)
         {
-        // dd them all together
-        res += (*method)->getRotationalNDOF(group);
+        case Anisotropic:
+            aniso = true;
+            break;
+        case Automatic:
+        default:
+            aniso = getAnisotropic();
+            break;
+        }
+
+    if (aniso)
+        {
+        // loop through all methods
+        std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+        for (method = m_methods.begin(); method != m_methods.end(); ++method)
+            {
+            // dd them all together
+            res += (*method)->getRotationalNDOF(group);
+            }
         }
 
     return res;
