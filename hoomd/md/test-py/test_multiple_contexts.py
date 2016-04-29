@@ -51,6 +51,7 @@ class multi_context(unittest.TestCase):
         c1 = context.SimulationContext()
         c1.set_current();
         self.assertTrue(context.current is c1);
+        c1.on_gpu();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

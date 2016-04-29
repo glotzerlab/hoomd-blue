@@ -194,9 +194,20 @@ class SimulationContext(object):
         self.group_all = None;
 
     def set_current(self):
+        R""" Force this to be the current context
+        """
         global current
 
         current = self;
+
+    def on_gpu(self):
+        R""" Test whether this job is running on a GPU.
+
+        Returns:
+            True if this invocation of HOOMD-blue is executing on a GPU. False if it is on the CPU.
+        """
+        global exec_conf
+        return exec_conf.isCUDAEnabled()
 
     def __enter__(self):
         global current
