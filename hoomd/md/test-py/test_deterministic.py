@@ -20,11 +20,11 @@ class determinstic(unittest.TestCase):
         self.assert_(context.current.system);
         self.harmonic = md.bond.harmonic();
         self.harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
-        self.pair = md.pair.lj(r_cut=2.5)
+        nl = md.nlist.cell(deterministic=True)
+        self.pair = md.pair.lj(r_cut=2.5, nlist=nl)
         self.pair.pair_coeff.set('A','A',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('A','B',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('B','B',epsilon=1.0, sigma=1.0)
-        md.nlist.set_params(deterministic=True)
         option.set_autotuner_params(enable=False)
 
     def test_run1(self):

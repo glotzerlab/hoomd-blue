@@ -717,8 +717,19 @@ class stencil(nlist):
 
         # save the user defined parameters
         hoomd.util.quiet_status()
-        self.set_params(r_buff, check_period, d_max, dist_check, cell_width)
+        self.set_params(r_buff, check_period, d_max, dist_check)
+        self.set_cell_width(cell_width)
         hoomd.util.unquiet_status()
+
+    def set_cell_width(self, cell_width):
+        R""" Set the cell width
+
+        Args:
+            cell_width (float): New cell width.
+        """
+        hoomd.util.print_status_line()
+        if cell_width is not None:
+            self.cpp_nlist.setCellWidth(float(cell_width))
 
     def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
         R""" Make a series of short runs to determine the fastest performing bin width.
@@ -770,7 +781,7 @@ class stencil(nlist):
         for i in range(0,jumps):
             # set the current r_buff
             cw = min_cell_width + i * dr;
-            self.set_params(cell_width=cw);
+            self.set_cell_width(cell_width=cw)
 
             # run the benchmark 3 times
             tps = [];
@@ -791,7 +802,7 @@ class stencil(nlist):
         fastest_width = width_list[fastest];
 
         # set the fastest and rerun the warmup steps to identify the max check period
-        self.set_params(cell_width=fastest_width);
+        self.set_cell_width(cell_width=fastest_width)
 
         # notify the user of the benchmark results
         hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
@@ -946,14 +957,14 @@ def _subscribe_global_nlist(cb):
 # nlist.set_params(deterministic=True)
 # option.set_autotuner_params(enable=False)
 # \endcode
-def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=True):
+def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True):
     hoomd.util.print_status_line();
     if hoomd.context.current.neighbor_list is None:
         hoomd.context.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     hoomd.util.quiet_status();
-    hoomd.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
+    hoomd.context.current.neighbor_list.set_params(r_buff, check_period, d_max, dist_check);
     hoomd.util.unquiet_status();
 
 ## Thin wrapper for resetting exclusion for global neighbor list
