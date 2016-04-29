@@ -301,36 +301,6 @@ def get_step():
 
     return context.current.system.getCurrentTimeStep();
 
-def cuda_profile_start():
-    """ Start CUDA profiling.
-
-    When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
-    startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
-    application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
-    you want nvvp to start collecting information.
-
-    Example::
-
-        from hoomd_script import *
-        init.read_xml("init.xml");
-        # setup....
-        run(30000);  # warm up and auto-tune kernel block sizes
-        option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
-        cuda_profile_start();
-        run(100);
-
-    """
-    _hoomd.cuda_profile_start();
-
-def cuda_profile_stop():
-    """ Stop CUDA profiling.
-
-        See Also:
-            :py:func:`cuda_profile_start()`.
-    """
-
-    _hoomd.cuda_profile_stop();
-
 # Check to see if we are built without MPI support and the user used mpirun
 if (not _hoomd.is_MPI_available()) and ('OMPI_COMM_WORLD_RANK' in os.environ or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ):
     print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');

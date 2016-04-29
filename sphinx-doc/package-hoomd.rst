@@ -6,8 +6,6 @@ hoomd
 .. autosummary::
     :nosignatures:
 
-    hoomd.cuda_profile_start
-    hoomd.cuda_profile_stop
     hoomd.get_step
     hoomd.run
     hoomd.run_upto

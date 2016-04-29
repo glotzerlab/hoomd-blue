@@ -58,6 +58,7 @@ import os.path;
 import linecache;
 import re;
 import hoomd;
+from hoomd import _hoomd;
 
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted
@@ -129,3 +130,33 @@ def print_status_line():
         message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
         hoomd.context.msg.notice(1, ''.join(message).rstrip('\n') + '\n');
         linecache.clearcache()
+
+def cuda_profile_start():
+    """ Start CUDA profiling.
+
+    When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
+    startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
+    application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
+    you want nvvp to start collecting information.
+
+    Example::
+
+        from hoomd_script import *
+        init.read_xml("init.xml");
+        # setup....
+        run(30000);  # warm up and auto-tune kernel block sizes
+        option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
+        cuda_profile_start();
+        run(100);
+
+    """
+    _hoomd.cuda_profile_start();
+
+def cuda_profile_stop():
+    """ Stop CUDA profiling.
+
+        See Also:
+            :py:func:`cuda_profile_start()`.
+    """
+
+    _hoomd.cuda_profile_stop();
