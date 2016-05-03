@@ -47,6 +47,8 @@
   `dihedral_coeff.set`, and `improper_coeff.set` instead.
 * `hoomd_script` no longer exists, python commands are now spread across `hoomd`, `hoomd.md`, and other sub packages.
 * `integrate.\*_rigid()` no longer exists. Use a standard integrator on `group.rigid_center()`, and define rigid bodies using `constrain.rigid()`
+* All neighbor lists must be explicitly created using `nlist.\*`, and each pair potential must be attached explicitly to a neighbor list. A default
+  global neighbor list is no longer created.
 
 *Other changes*
 
@@ -61,6 +63,7 @@
 * Removed `integrate.bdnvt`: use `integrate.langevin`
 * Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
 * Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
+* Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
 ## v1.3.3
 
 Released 2016/03/06
