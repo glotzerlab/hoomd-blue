@@ -14,7 +14,8 @@ class multi_context(unittest.TestCase):
 
         with c1:
             init.create_random(N=2000, phi_p=0.2)
-            lj = md.pair.lj(r_cut=3.0)
+            nl = md.nlist.cell()
+            lj = md.pair.lj(r_cut=3.0, nlist = nl)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
             md.integrate.mode_standard(dt=0.005)
@@ -22,7 +23,8 @@ class multi_context(unittest.TestCase):
 
         with c2:
             init.create_random(N=1000, phi_p=0.02)
-            lj = md.pair.lj(r_cut=3.0)
+            nl = md.nlist.cell()
+            lj = md.pair.lj(r_cut=3.0, nlist = nl)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
             md.integrate.mode_standard(dt=0.005)

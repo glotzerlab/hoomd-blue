@@ -74,7 +74,8 @@ class bond_harmonic_tests (unittest.TestCase):
     def test_exclusions(self):
         harmonic = md.bond.harmonic();
         harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
-        lj = md.pair.lj(r_cut=3.0)
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=3.0, nlist = nl)
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
         lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0);
         lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0);
@@ -83,8 +84,8 @@ class bond_harmonic_tests (unittest.TestCase):
         md.integrate.nve(all);
         run(100)
 
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10))
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10))
+        self.assertEqual(nl.cpp_nlist.getNumExclusions(2), (17*100+2*10))
+        self.assertEqual(nl.cpp_nlist.getNumExclusions(1), (2*100+2*10))
 
         # delete bonds connected to a particle
         tags = []
@@ -100,8 +101,9 @@ class bond_harmonic_tests (unittest.TestCase):
 
         run(100)
 
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+2)
+        self.assertEqual(nl.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
+        self.assertEqual(nl.cpp_nlist.getNumExclusions(1), (2*100+2*10)+2)
+        del nl
         del lj
         del harmonic
 

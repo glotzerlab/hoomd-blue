@@ -31,6 +31,8 @@ class constrain_distance_tests (unittest.TestCase):
         self.system.constraints.add(0,2,1.5)
         self.system.constraints.add(1,2,math.sqrt(1.5**2.0+1.5**2.0))
 
+        self.nl = md.nlist.cell()
+
     # test to see that se can create a md.force.constant
     def test_create(self):
         md.constrain.distance();
@@ -43,7 +45,7 @@ class constrain_distance_tests (unittest.TestCase):
 
         md.integrate.nve(group=group.all())
 
-        lj = md.pair.lj(r_cut=2.5)
+        lj = md.pair.lj(r_cut=2.5, nlist = self.nl)
         lj.pair_coeff.set('A','A',epsilon=1.0,sigma=1.0)
         lj.set_params(mode="shift")
 
@@ -101,15 +103,15 @@ class constrain_distance_tests (unittest.TestCase):
     # test exclusions in neighbor list
     def test_exclusions(self):
         distance = md.constrain.distance();
-        lj = md.pair.lj(r_cut=3.0)
+        lj = md.pair.lj(r_cut=3.0, nlist = self.nl)
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
         run(100)
 
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(2), 3)
-        self.assertEqual(context.current.neighbor_list.cpp_nlist.getNumExclusions(1), 0)
+        self.assertEqual(self.nl.cpp_nlist.getNumExclusions(2), 3)
+        self.assertEqual(self.nl.cpp_nlist.getNumExclusions(1), 0)
 
     # test exceeding the maximum contraint length in MPI
     def test_mpi(self):
@@ -127,6 +129,7 @@ class constrain_distance_tests (unittest.TestCase):
 
     def tearDown(self):
         del self.system
+        del self.nl
         context.initialize();
 
 if __name__ == '__main__':

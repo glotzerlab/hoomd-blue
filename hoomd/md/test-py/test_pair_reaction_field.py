@@ -13,59 +13,48 @@ class pair_reaction_field_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);
+        self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):
-        rf = md.pair.reaction_field(r_cut=3.0);
+        rf = md.pair.reaction_field(r_cut=3.0, nlist = self.nl);
         rf.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf = 1.0);
         rf.update_coeffs();
 
     # test missing coefficients
     def test_set_missing_epsilon(self):
-        rf = md.pair.reaction_field(r_cut=3.0);
+        rf = md.pair.reaction_field(r_cut=3.0, nlist = self.nl);
         rf.pair_coeff.set('A', 'A', eps_rf=1.0);
         self.assertRaises(RuntimeError, rf.update_coeffs);
 
     # test missing coefficients
     def test_missing_AA(self):
-        rf = md.pair.reaction_field(r_cut=3.0);
+        rf = md.pair.reaction_field(r_cut=3.0, nlist = self.nl);
         self.assertRaises(RuntimeError, rf.update_coeffs);
 
     # test set params
     def test_set_params(self):
-        rf = md.pair.reaction_field(r_cut=3.0);
+        rf = md.pair.reaction_field(r_cut=3.0, nlist = self.nl);
         rf.set_params(mode="no_shift");
         rf.set_params(mode="shift");
         rf.set_params(mode="xplor");
         self.assertRaises(RuntimeError, rf.set_params, mode="blah");
 
     # test nlist subscribe
-    def test_nlist_global_subscribe(self):
-        rf = md.pair.reaction_field(r_cut=2.5);
-        rf.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
-        context.current.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, context.current.neighbor_list.r_cut.get_pair('A','A'));
-
-        rf.pair_coeff.set('A', 'A', r_cut = 2.0)
-        context.current.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, context.current.neighbor_list.r_cut.get_pair('A','A'));
-
-    # test nlist subscribe
     def test_nlist_subscribe(self):
-        nl = md.nlist.cell()
-        rf = md.pair.reaction_field(r_cut=2.5, nlist=nl);
-        self.assertEqual(context.current.neighbor_list, None)
+        rf = md.pair.reaction_field(r_cut=2.5, nlist = self.nl);
 
         rf.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
-        nl.update_rcut();
-        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+        self.nl.update_rcut();
+        self.assertAlmostEqual(2.5, self.nl.r_cut.get_pair('A','A'));
 
         rf.pair_coeff.set('A', 'A', r_cut = 2.0)
-        nl.update_rcut();
-        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
+        self.nl.update_rcut();
+        self.assertAlmostEqual(2.0, self.nl.r_cut.get_pair('A','A'));
 
     def tearDown(self):
+        del self.nl
         context.initialize();
 
 # test the validity of the pair potential
@@ -76,10 +65,11 @@ class test_pair_reaction_field_potential(unittest.TestCase):
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (1.5,0,0)
         init.read_snapshot(snap)
+        self.nl = md.nlist.cell()
 
     # test the calculation of force and potential
     def test_potential(self):
-        rf = md.pair.reaction_field(r_cut=2.0)
+        rf = md.pair.reaction_field(r_cut=2.0, nlist = self.nl)
 
         # basic test case
         rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=3.0)
@@ -150,6 +140,7 @@ class test_pair_reaction_field_potential(unittest.TestCase):
         rf.set_params(mode="no_shift")
 
     def tearDown(self):
+        del self.nl
         context.initialize();
 
 if __name__ == '__main__':

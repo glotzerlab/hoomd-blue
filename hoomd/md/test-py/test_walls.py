@@ -92,7 +92,8 @@ class wall_lj_tests (unittest.TestCase):
     def test_center(self):
         self.s.particles[0].position=(0,0,0)
         # specify Lennard-Jones interactions between particle pairs
-        lj = md.pair.lj(r_cut=2.5)
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=2.5, nlist = nl)
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         run(100)
 

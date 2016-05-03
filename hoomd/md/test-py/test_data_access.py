@@ -417,7 +417,8 @@ class pair_access_tests (unittest.TestCase):
 
     # basic test of creation
     def test(self):
-        lj = md.pair.lj(r_cut=3.0);
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=3.0, nlist = nl);
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
         lj.update_coeffs();
         for p in lj.forces:

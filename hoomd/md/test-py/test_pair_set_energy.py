@@ -14,11 +14,12 @@ class pair_set_energy_tests (unittest.TestCase):
         print
         self.N=1000;
         self.s = init.create_random(N=self.N, phi_p=0.05);
+        self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):
-        lj = md.pair.lj(r_cut=3.0);
+        lj = md.pair.lj(r_cut=3.0, nlist = self.nl);
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         lj.update_coeffs();
 
@@ -37,7 +38,7 @@ class pair_set_energy_tests (unittest.TestCase):
         self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5);
 
     def tearDown(self):
-        self.s = None
+        del self.s, self.nl
         context.initialize();
 
 
