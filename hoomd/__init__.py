@@ -217,10 +217,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     context.current.system.enableProfiler(profile);
     context.current.system.enableQuietRun(quiet);
 
-    if context.current.neighbor_list:
-        context.current.neighbor_list.update_rcut();
-        context.current.neighbor_list.update_exclusions_defaults();
-
     # update all user-defined neighbor lists
     for nl in context.current.neighbor_lists:
         nl.update_rcut()

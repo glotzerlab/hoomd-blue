@@ -405,7 +405,7 @@ class pair(force._force):
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         # initialize the base class
         force._force.__init__(self, name);
 
@@ -419,13 +419,10 @@ class pair(force._force):
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
         self.pair_coeff.set_default_coeff('r_on', self.global_r_cut);
 
-        # if no neighbor list is supplied, use the default global neighborlist
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda:self.get_rcut())
-            self.nlist.update_rcut()
+        # setup the neighbor list
+        self.nlist = nlist
+        self.nlist.subscribe(lambda:self.get_rcut())
+        self.nlist.update_rcut()
 
     def set_params(self, mode=None):
         R""" Set parameters controlling the way forces are computed.
@@ -591,7 +588,7 @@ class lj(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`lj` specifies that a Lennard-Jones pair potential should be applied between every
@@ -628,7 +625,7 @@ class lj(pair):
         lj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -665,7 +662,7 @@ class gauss(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`gauss` specifies that a Gaussian pair potential should be applied between every
@@ -700,7 +697,7 @@ class gauss(pair):
         gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -733,7 +730,7 @@ class slj(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
         d_max (float): Maximum diameter particles in the simulation will have (in distance units)
 
@@ -791,7 +788,7 @@ class slj(pair):
         slj.pair_coeff.set(['A', 'B'], ['C', 'D'], espilon=2.0)
 
     """
-    def __init__(self, r_cut, nlist=None, d_max=None, name=None):
+    def __init__(self, r_cut, nlist, d_max=None, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -855,7 +852,7 @@ class yukawa(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`yukawa` specifies that a Yukawa pair potential should be applied between every
@@ -889,7 +886,7 @@ class yukawa(pair):
         yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -954,7 +951,7 @@ class ewald(pair):
         :py:class:`ewald` for you.
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -986,7 +983,7 @@ class cgcmm(force._force):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
 
     :py:class:`cgcmm` specifies that a special version of Lennard-Jones pair force
     should be added to every non-bonded particle pair in the simulation. This potential
@@ -1029,7 +1026,7 @@ class cgcmm(force._force):
         cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
 
     """
-    def __init__(self, r_cut, nlist=None):
+    def __init__(self, r_cut, nlist):
         hoomd.util.print_status_line();
 
         # Error out in MPI simulations
@@ -1206,7 +1203,7 @@ class table(force._force):
         not diverge near r=0, then a setting of *rmin=0* is valid.
 
     """
-    def __init__(self, width, nlist=None, name=None):
+    def __init__(self, width, nlist, name=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -1429,7 +1426,7 @@ class morse(pair):
         morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -1463,9 +1460,9 @@ class dpd(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
         name (str): Name of the force instance.
 
     :py:class:`dpd` specifies that a DPD pair force should be applied between every
@@ -1530,7 +1527,7 @@ class dpd(pair):
         integrate.nve(group=group.all())
 
     """
-    def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, T, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1603,7 +1600,7 @@ class dpd_conservative(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`dpd_conservative` specifies the conservative part of the DPD pair potential should be applied between
@@ -1639,7 +1636,7 @@ class dpd_conservative(pair):
         dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1718,7 +1715,7 @@ class eam(force._force):
         eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
 
     """
-    def __init__(self, file, type, nlist=None):
+    def __init__(self, file, type, nlist):
         c = hoomd.cite.article(cite_key = 'morozov2011',
                          author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
                          title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
@@ -1781,9 +1778,9 @@ class dpdlj(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
         name (str): Name of the force instance.
 
     :py:class:`dpdlj` specifies that a DPD thermostat and a Lennard-Jones pair potential should be applied between
@@ -1857,7 +1854,7 @@ class dpdlj(pair):
 
     """
 
-    def __init__(self, r_cut, T, seed=1, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, T, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1948,7 +1945,7 @@ class force_shifted_lj(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`force_shifted_lj` specifies that a modified Lennard-Jones pair force should be applied between
@@ -1991,7 +1988,7 @@ class force_shifted_lj(pair):
         fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -2028,7 +2025,7 @@ class moliere(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`moliere` specifies that a Moliere type pair potential should be applied between every
@@ -2062,7 +2059,7 @@ class moliere(pair):
         moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -2104,7 +2101,7 @@ class zbl(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`zbl` specifies that a Ziegler-Biersack-Littmark pair potential should be applied between every
@@ -2138,7 +2135,7 @@ class zbl(pair):
         zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -2180,7 +2177,7 @@ class tersoff(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`tersoff` specifies that the Tersoff three-body potential should be applied to every
@@ -2196,7 +2193,7 @@ class tersoff(pair):
     function provides continuity up (I believe) the second derivative.
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -2264,7 +2261,7 @@ class mie(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`mie` specifies that a Mie pair potential should be applied between every
@@ -2302,7 +2299,7 @@ class mie(pair):
         mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
@@ -2357,7 +2354,7 @@ class ai_pair(pair):
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         # initialize the base class
         force._force.__init__(self, name);
 
@@ -2366,6 +2363,11 @@ class ai_pair(pair):
         # setup the coefficent matrix
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
+
+        # setup the neighbor list
+        self.nlist = nlist
+        self.nlist.subscribe(lambda:self.get_rcut())
+        self.nlist.update_rcut()
 
     def set_params(self, mode=None):
         R""" Set parameters controlling the way forces are computed.
@@ -2424,7 +2426,7 @@ class gb(ai_pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`gb` computes the Gay-Berne potential between anisotropic particles.
@@ -2479,24 +2481,21 @@ class gb(ai_pair):
         gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
 
     """
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
         # initialize the base class
-        ai_pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
+        ai_pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGB;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPairGBGPU(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.AnisoPotentialPairGBGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGBGPU;
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
@@ -2513,6 +2512,11 @@ class gb(ai_pair):
 
 class dipole(ai_pair):
     R""" Screened dipole-dipole interactions.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
 
     :py:class:`dipole` computes the (screened) interaction between pairs of
     particles with dipoles and electrostatic charges. The total energy
@@ -2543,24 +2547,21 @@ class dipole(ai_pair):
         dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
 
     """
-    def __init__(self, r_cut, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         ## tell the base class how we operate
 
         # initialize the base class
-        ai_pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = nl._subscribe_global_nlist(lambda : self.get_rcut());
+        ai_pair.__init__(self, r_cut, nlist, name);
 
         ## create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipole;
         else:
-            neighbor_list.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPairDipoleGPU(hoomd.context.current.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.AnisoPotentialPairDipoleGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipoleGPU;
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
@@ -2584,7 +2585,7 @@ class reaction_field(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`reaction_field` specifies that an Onsager reaction field pair potential should be applied between every
@@ -2624,7 +2625,7 @@ class reaction_field(pair):
         reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
 
     """
-    def __init__(self, r_cut, nlist=None, name=None):
+    def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
 
         # tell the base class how we operate
