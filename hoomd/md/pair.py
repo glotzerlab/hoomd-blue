@@ -618,7 +618,8 @@ class lj(pair):
 
     Example::
 
-        lj = pair.lj(r_cut=3.0)
+        nl = nlist.cell()
+        lj = pair.lj(r_cut=3.0, nlist=nl)
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
         lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
@@ -691,7 +692,8 @@ class gauss(pair):
 
     Example::
 
-        gauss = pair.gauss(r_cut=3.0)
+        nl = nlist.cell()
+        gauss = pair.gauss(r_cut=3.0, nlist=nl)
         gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
         gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
@@ -781,7 +783,8 @@ class slj(pair):
 
     Example::
 
-        slj = pair.slj(r_cut=3.0, d_max = 2.0)
+        nl = nlist.cell()
+        slj = pair.slj(r_cut=3.0, nlist=nl, d_max = 2.0)
         slj.pair_coeff.set('A', 'A', epsilon=1.0)
         slj.pair_coeff.set('A', 'B', epsilon=2.0, r_cut=3.0);
         slj.pair_coeff.set('B', 'B', epsilon=1.0, r_cut=2**(1.0/6.0));
@@ -880,7 +883,8 @@ class yukawa(pair):
 
     Example::
 
-        yukawa = pair.lj(r_cut=3.0)
+        nl = nlist.cell()
+        yukawa = pair.lj(r_cut=3.0, nlist=nl)
         yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
         yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
         yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
@@ -942,7 +946,8 @@ class ewald(pair):
 
     Example::
 
-        ewald = pair.ewald(r_cut=3.0)
+        nl = nlist.cell()
+        ewald = pair.ewald(r_cut=3.0, nlist=nl)
         ewald.pair_coeff.set('A', 'A', kappa=1.0)
         ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
 
@@ -1020,7 +1025,8 @@ class cgcmm(force._force):
 
     Example::
 
-        cg1 = pair.cgcmm(r_cut=3.0)
+        nl = nlist.cell()
+        cg = pair.cgcmm(r_cut=3.0, nlist=nl)
         cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6')
         cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
         cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
@@ -1193,7 +1199,8 @@ class table(force._force):
     :py:class:`table` can use the given values directly. You must first specify the number of rows
     in your tables when initializing pair.table. Then use :py:meth:`set_from_file()` to read the file::
 
-        table = pair.table(width=1000)
+        nl = nlist.cell()
+        table = pair.table(width=1000, nlist=nl)
         table.set_from_file('A', 'A', filename='table_AA.dat')
         table.set_from_file('A', 'B', filename='table_AB.dat')
         table.set_from_file('B', 'B', filename='table_BB.dat')
@@ -1420,7 +1427,8 @@ class morse(pair):
 
     Example::
 
-        morse = pair.morse(r_cut=3.0)
+        nl = nlist.cell()
+        morse = pair.morse(r_cut=3.0, nlist=nl)
         morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
         morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
         morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
@@ -1517,7 +1525,8 @@ class dpd(pair):
 
     Example::
 
-        dpd = pair.dpd(r_cut=1.0, T=1.0)
+        nl = nlist.cell()
+        dpd = pair.dpd(r_cut=1.0, nlist=nl, T=1.0)
         dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
         dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
@@ -1629,7 +1638,8 @@ class dpd_conservative(pair):
 
     Example::
 
-        dpdc = pair.dpd_conservative(r_cut=3.0)
+        nl = nlist.cell()
+        dpdc = pair.dpd_conservative(r_cut=3.0, nlist=nl)
         dpdc.pair_coeff.set('A', 'A', A=1.0)
         dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
         dpdc.pair_coeff.set('B', 'B', A=1.0)
@@ -1712,7 +1722,8 @@ class eam(force._force):
 
     Example::
 
-        eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
+        nl = nlist.cell()
+        eam = pair.eam(file='al1.mendelev.eam.fs', type='FS', nlist=nl)
 
     """
     def __init__(self, file, type, nlist):
@@ -1843,7 +1854,8 @@ class dpdlj(pair):
 
     Example::
 
-        dpdlj = pair.dpdlj(r_cut=2.5, T=1.0)
+        nl = nlist.cell()
+        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, T=1.0)
         dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
         dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
         dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
@@ -1984,7 +1996,8 @@ class force_shifted_lj(pair):
 
     Example::
 
-        fslj = pair.force_shifted_lj(r_cut=1.5)
+        nl = nlist.cell()
+        fslj = pair.force_shifted_lj(r_cut=1.5, nlist=nl)
         fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
     """
@@ -2055,7 +2068,8 @@ class moliere(pair):
 
     Example::
 
-        moliere = pair.moliere(r_cut = 3.0)
+        nl = nlist.cell()
+        moliere = pair.moliere(r_cut = 3.0, nlist=nl)
         moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
 
     """
@@ -2131,7 +2145,8 @@ class zbl(pair):
 
     Example::
 
-        zbl = pair.zbl(r_cut = 3.0)
+        nl = nlist.cell()
+        zbl = pair.zbl(r_cut = 3.0, nlist=nl)
         zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
 
     """
@@ -2292,7 +2307,8 @@ class mie(pair):
 
     Example::
 
-        mie = pair.mie(r_cut=3.0)
+        nl = nlist.cell()
+        mie = pair.mie(r_cut=3.0, nlist=nl)
         mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=12, m=6)
         mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0);
         mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0);
@@ -2476,7 +2492,8 @@ class gb(ai_pair):
 
     Example::
 
-        gb = pair.gb(r_cut=2.5)
+        nl = nlist.cell()
+        gb = pair.gb(r_cut=2.5, nlist=nl)
         gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
         gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
 
@@ -2619,7 +2636,8 @@ class reaction_field(pair):
 
     Example::
 
-        reaction_field = pair.reaction_field(r_cut=3.0)
+        nl = nlist.cell()
+        reaction_field = pair.reaction_field(r_cut=3.0, nlist=nl)
         reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
         reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
         reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
