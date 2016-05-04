@@ -57,6 +57,7 @@
 * `__version__` is now available in the top level package
 * `boost::iostreams` is no longer a build dependency
 * `boost::filesystem` is no longer a build dependency
+* Memory usage of `nlist.stencil` is significantly reduced
 
 *Removed*
 
