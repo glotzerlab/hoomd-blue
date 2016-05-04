@@ -104,7 +104,7 @@ The LBVH algorithm is *O(N* log *N)* to search the tree.
     :align: center
     :alt: LBVH tree schematic
 
-We have found that LBVHs are very useful for systems with size asymmetry greater than 2:1 between the largest
+We have found that LBVHs (:py:class:`hoomd.md.nlist.tree`) are very useful for systems with size asymmetry greater than 2:1 between the largest
 and smallest cutoffs, and when the fraction of large particles is dilute (< 20%). These conditions are typical of many
 colloidal systems. Additionally, LBVHs can be used advantageously in sparse systems or systems with large volumes,
 where they have less overhead and memory demands than cell lists.
