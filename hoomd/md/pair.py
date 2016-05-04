@@ -1762,13 +1762,9 @@ class eam(force._force):
 
         #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
         r_cut_new = self.cpp_force.get_r_cut();
-        # if no neighbor list is supplied, use the default global neighborlist
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda : r_cut_new)
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda:self.get_rcut())
-            self.nlist.update_rcut()
+        self.nlist = nlist
+        self.nlist.subscribe(lambda : r_cut_new)
+        self.nlist.update_rcut()
 
         #Load neighbor list to compute.
         self.cpp_force.set_neighbor_list(self.nlist);
