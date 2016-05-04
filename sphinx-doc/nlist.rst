@@ -97,15 +97,17 @@ LBVHs are binary tree structures that partition the system based on *objects* ra
 This means that the memory they require scales with the number of particles in the system rather than the system volume,
 which may be particularly advantageous for large, sparse systems. Because of their lightweight memory footprint,
 LBVHs can also be constructed per-type, and this makes searching the trees very efficient in size asymmetric systems.
-We have found that LBVHs are very useful for systems with size asymmetry greater than 2:1 between the largest
-and smallest cutoffs, and when the fraction of large particles is dilute (< 20%). These conditions are typical of many
-colloidal systems. Additionally, LBVHs can be used advantageously in sparse systems or systems with large volumes,
-where they have less overhead and memory demands than cell lists.
+The LBVH algorithm is *O(N* log *N)* to search the tree.
 
 .. image:: tree_schematic.png
     :width: 400 px
     :align: center
     :alt: LBVH tree schematic
+
+We have found that LBVHs are very useful for systems with size asymmetry greater than 2:1 between the largest
+and smallest cutoffs, and when the fraction of large particles is dilute (< 20%). These conditions are typical of many
+colloidal systems. Additionally, LBVHs can be used advantageously in sparse systems or systems with large volumes,
+where they have less overhead and memory demands than cell lists.
 
 Multiple neighbor lists
 -----------------------
