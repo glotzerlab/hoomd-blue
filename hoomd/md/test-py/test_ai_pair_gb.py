@@ -59,7 +59,7 @@ class pair_gb_tests (unittest.TestCase):
     # test nlist subscribe
     def test_nlist_subscribe(self):
         gb = md.pair.gb(r_cut=2.5, nlist = self.nl);
-        gb.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        gb.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0)
         self.nl.update_rcut();
         self.assertAlmostEqual(2.5, self.nl.r_cut.get_pair('A','A'));
 
