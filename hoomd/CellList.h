@@ -236,6 +236,13 @@ class CellList : public Compute
             m_params_changed = true;
             }
 
+        //! Set the flag to compute the cell adjacency list
+        void setComputeAdjList(bool compute_adj_list)
+            {
+            m_compute_adj_list = compute_adj_list;
+            m_params_changed = true;
+            }
+
         // @}
         //! \name Get properties
         // @{
@@ -387,6 +394,7 @@ class CellList : public Compute
         boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
 
         bool m_sort_cell_list;               //!< If true, sort cell list
+        bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();

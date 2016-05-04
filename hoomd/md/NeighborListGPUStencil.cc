@@ -94,6 +94,7 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
     // types are always required now
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
+    m_cl->setComputeAdjList(false);
 
     CHECK_CUDA_ERROR();
 
