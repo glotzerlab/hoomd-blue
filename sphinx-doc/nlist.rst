@@ -23,7 +23,7 @@ reduces the complexity of the problem. There are three accelerators implemented 
 
 * :ref:`lbvh-tree`
 
-More details for each can be found below and in `Howard 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_. Each
+More details for each can be found below and in `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_. Each
 neighbor list style has its own advantages and disadvantages that the user should consider on a case-by-case basis.
 
 .. _cell-list:
@@ -64,7 +64,7 @@ Stenciled cell list
 
 Performance of the simple cell-list can be improved in the size asymmetric case by basing the bin size of the cell
 list on the **smallest** cutoff radius of all pair potentials attached to the neighbor list
-(`in't Veld 2008 <http://dx.doi.org/10.1016/j.cpc.2008.03.005>`_). From the previous example, the bin size is now based
+(`P.J. in't Veld et al. 2008 <http://dx.doi.org/10.1016/j.cpc.2008.03.005>`_). From the previous example, the bin size is now based
 on :math:`r_{\rm AA}`. A *stencil* is then constructed on a per-pair basis that defines the bins to search. Some particles
 can now be excluded without distance check if they lie in bins outside the stencil. The small A particles only need
 to distance check other A particles in the dark blue cells (dashed outline). This reduces both the number of distances

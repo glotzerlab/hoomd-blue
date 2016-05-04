@@ -548,7 +548,7 @@ class rcut:
                 cur_pair = self.ensure_pair(a,b);
 
 class cell(nlist):
-    R""" cell list based neighbor list.
+    R""" Cell list based neighbor list
 
     Args:
         r_buff (float):  Buffer width.
@@ -624,7 +624,8 @@ class cell(nlist):
 cell.cur_id = 0
 
 class stencil(nlist):
-    R""" Cell listbased neighbor list using stencils
+    R""" Cell list based neighbor list using stencils
+
     Args:
         r_buff (float):  Buffer width.
         check_period (int): How often to attempt to rebuild the neighbor list.
@@ -638,6 +639,9 @@ class stencil(nlist):
     non-bonded pairwise interactions. Cell listing allows for O(N) construction of the neighbor list. Particles are first
     spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
     list.
+    
+    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
+    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
 
     This neighbor-list style differs from :py:class:`cell` based on how the adjacent cells are searched for particles. The cell
     list *cell_width* is set by default using the shortest active cutoff radius in the system. One *stencil* is computed
@@ -666,6 +670,19 @@ class stencil(nlist):
     """
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
         hoomd.util.print_status_line()
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='howard2016',
+                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
+                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=203,
+                         pages='45--52',
+                         month='Mar',
+                         year='2016',
+                         doi='10.1016/j.cpc.2016.02.003',
+                         feature='stenciled neighbor lists')
+        hoomd.cite._ensure_global_bib().add(c)
 
         nlist.__init__(self)
 
@@ -818,6 +835,9 @@ class tree(nlist):
     for monodisperse systems. The user should carefully benchmark neighbor list build times to select the appropriate
     neighbor list construction type.
 
+    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
+    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
+
     Users can create multiple neighbor lists, and may see significant performance increases by doing so for systems with
     size asymmetry, especially when used in conjunction with nlist.cell.
 
@@ -839,6 +859,19 @@ class tree(nlist):
     """
     def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
         hoomd.util.print_status_line()
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='howard2016',
+                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
+                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=203,
+                         pages='45--52',
+                         month='Mar',
+                         year='2016',
+                         doi='10.1016/j.cpc.2016.02.003',
+                         feature='tree neighbor lists')
+        hoomd.cite._ensure_global_bib().add(c)
 
         nlist.__init__(self)
 
