@@ -380,6 +380,8 @@ class nlist:
         Returns:
             (optimal_r_buff, maximum check_period)
         """
+        hoomd.util.print_status_line();
+
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
@@ -387,6 +389,9 @@ class nlist:
         if self.cpp_nlist is None:
             hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
+
+        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
+        hoomd.util.quiet_status();
 
         # start off at a check_period of 1
         self.set_params(check_period=1)
@@ -427,6 +432,9 @@ class nlist:
         self.set_params(r_buff=fastest_r_buff);
         hoomd.run(warmup);
 
+        # all done with the parameter sets and run calls (mostly)
+        hoomd.util.unquiet_status();
+
         # notify the user of the benchmark results
         hoomd.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
         hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
@@ -435,7 +443,9 @@ class nlist:
 
         # set the found max check period
         if set_max_check_period:
+            hoomd.util.quiet_status();
             self.set_params(check_period=self.query_update_period());
+            hoomd.util.unquiet_status();
 
         # return the results to the script
         return (fastest_r_buff, self.query_update_period());
@@ -756,6 +766,9 @@ class stencil(nlist):
         if max_cell_width is None:
             max_cell_width = self.cpp_nlist.getMaxRList()
 
+        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
+        hoomd.util.quiet_status();
+
         # make the warmup run
         hoomd.run(warmup);
 
@@ -764,11 +777,13 @@ class stencil(nlist):
         width_list = [];
         tps_list = [];
 
-        # loop over all desired r_buff points
+        # loop over all desired cell width points
         for i in range(0,jumps):
-            # set the current r_buff
+            # set the current cell width
             cw = min_cell_width + i * dr;
+            hoomd.util.quiet_status();
             self.set_cell_width(cell_width=cw)
+            hoomd.util.unquiet_status();
 
             # run the benchmark 3 times
             tps = [];
@@ -784,12 +799,15 @@ class stencil(nlist):
             tps_list.append(tps[1]);
             width_list.append(cw);
 
-        # find the fastest r_buff
+        # find the fastest cell width
         fastest = tps_list.index(max(tps_list));
         fastest_width = width_list[fastest];
 
-        # set the fastest and rerun the warmup steps to identify the max check period
+        # set the fastest cell width
         self.set_cell_width(cell_width=fastest_width)
+
+        # all done with the parameter sets and run calls (mostly)
+        hoomd.util.unquiet_status();
 
         # notify the user of the benchmark results
         hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
@@ -798,7 +816,6 @@ class stencil(nlist):
 
         # return the results to the script
         return fastest_width
-
 stencil.cur_id = 0
 
 class tree(nlist):
