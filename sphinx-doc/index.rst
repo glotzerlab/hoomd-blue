@@ -12,6 +12,7 @@ Welcome to the user documentation for HOOMD-blue!
     units
     box
     aniso
+    nlist
     mpi
     autotuner
     restartable-jobs
