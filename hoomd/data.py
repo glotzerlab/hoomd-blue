@@ -1232,6 +1232,8 @@ class particle_data_proxy(object):
 
     @position.setter
     def position(self, value):
+        if len(value) != 3:
+            raise ValueError("The input value/vector should be exactly length 3.")
         v = _hoomd.Scalar3();
         v.x = float(value[0]);
         v.y = float(value[1]);
@@ -1245,6 +1247,8 @@ class particle_data_proxy(object):
 
     @velocity.setter
     def velocity(self, value):
+        if len(value) != 3:
+            raise ValueError("The input value/vector should be exactly length 3.")
         v = _hoomd.Scalar3();
         v.x = float(value[0]);
         v.y = float(value[1]);
@@ -1263,6 +1267,8 @@ class particle_data_proxy(object):
 
     @image.setter
     def image(self, value):
+        if len(value) != 3:
+            raise ValueError("The input value/vector should be exactly length 3.")
         v = _hoomd.int3();
         v.x = int(value[0]);
         v.y = int(value[1]);
@@ -1291,7 +1297,7 @@ class particle_data_proxy(object):
 
     @diameter.setter
     def diameter(self, value):
-        self.pdata.setDiameter(self.tag, value);
+        self.pdata.setDiameter(self.tag, float(value));
 
     @property
     def typeid(self):
@@ -1322,6 +1328,8 @@ class particle_data_proxy(object):
 
     @orientation.setter
     def orientation(self, value):
+        if len(value) != 4:
+            raise ValueError("The input value/vector should be exactly length 4.")
         o = _hoomd.Scalar4();
         o.x = float(value[0]);
         o.y = float(value[1]);
@@ -1336,6 +1344,8 @@ class particle_data_proxy(object):
 
     @angular_momentum.setter
     def angular_momentum(self, value):
+        if len(value) != 4:
+            raise ValueError("The input value/vector should be exactly length 4.")
         a = _hoomd.Scalar4();
         a.x = float(value[0]);
         a.y = float(value[1]);
@@ -1350,6 +1360,8 @@ class particle_data_proxy(object):
 
     @moment_inertia.setter
     def moment_inertia(self, value):
+        if len(value) != 3:
+            raise ValueError("The input value/vector should be exactly length 3.")
         m = _hoomd.Scalar3();
         m.x = float(value[0]);
         m.y = float(value[1]);
