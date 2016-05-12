@@ -60,6 +60,7 @@
 * `boost::filesystem` is no longer a build dependency
 * New concepts page explaining the different styles of neighbor lists
 * Default neighbor list buffer radius is more clearly shown to be r_buff = 0.4
+* Memory usage of `nlist.stencil` is significantly reduced
 
 *Removed*
 

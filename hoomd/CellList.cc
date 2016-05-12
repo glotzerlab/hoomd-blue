@@ -68,7 +68,8 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
-      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
+      m_compute_adj_list(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -337,26 +338,37 @@ void CellList::initializeMemory()
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
-    // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
-    uint3 n_unique_neighbors = m_dim;
-    n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-    n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-    n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
-
-    unsigned int n_adj;
-    if (m_sysdef->getNDimensions() == 2)
-        n_adj = n_unique_neighbors.x * n_unique_neighbors.y;
-    else
-        n_adj = n_unique_neighbors.x * n_unique_neighbors.y * n_unique_neighbors.z;
-
-    m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
-
     // allocate memory
     GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
-    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
-    m_cell_adj.swap(cell_adj);
+    if (m_compute_adj_list)
+        {
+        // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
+        uint3 n_unique_neighbors = m_dim;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+
+        unsigned int n_adj;
+        if (m_sysdef->getNDimensions() == 2)
+            n_adj = n_unique_neighbors.x * n_unique_neighbors.y;
+        else
+            n_adj = n_unique_neighbors.x * n_unique_neighbors.y * n_unique_neighbors.z;
+
+        m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
+
+        GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
+        m_cell_adj.swap(cell_adj);
+        }
+    else
+        {
+        m_cell_adj_indexer = Index2D();
+
+        // array is not needed, discard it
+        GPUArray<unsigned int> cell_adj;
+        m_cell_adj.swap(cell_adj);
+        }
 
     GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
@@ -400,7 +412,9 @@ void CellList::initializeMemory()
     if (m_prof)
         m_prof->pop();
 
-    initializeCellAdj();
+    // only initialize the adjacency list if requested
+    if (m_compute_adj_list)
+        initializeCellAdj();
     }
 
 void CellList::initializeCellAdj()

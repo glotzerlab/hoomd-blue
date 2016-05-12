@@ -95,6 +95,7 @@ NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sys
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
+    m_cl->setComputeAdjList(false);
 
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
