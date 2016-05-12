@@ -13,7 +13,8 @@ class integrate_npt_tests (unittest.TestCase):
         print
         init.create_random(N=1000, phi_p=0.05);
         md.force.constant(fx=0.1, fy=0.1, fz=0.1)
-        lj = md.pair.lj(r_cut=2.5)
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=2.5, nlist = nl)
         lj.pair_coeff.set('A','A', epsilon=1.0, sigma=1.0)
         context.current.sorter.set_params(grid=8)
 

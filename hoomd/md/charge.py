@@ -78,7 +78,7 @@ class pppm(force._force):
     Args:
         group (:py:mod:`hoomd.group`): Group on which to apply long range PPPM forces. The short range part is always applied between
                                        all particles.
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a cell-list based neighbor list)
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
 
 
     `D. LeBard et. al. 2012 <http://dx.doi.org/10.1039/c1sm06787g>`_ describes the PPPM implementation details in
@@ -116,20 +116,17 @@ class pppm(force._force):
         pppm = charge.pppm(group=charged)
 
     """
-    def __init__(self, group, nlist=None):
+    def __init__(self, group, nlist):
         hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self);
         # create the c++ mirror class
 
-        # PPPM doesn't really need a neighbor list, so subscribe call back as None
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda : None)
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda : None)
-            self.nlist.update_rcut()
+        # PPPM itself doesn't really need a neighbor list, so subscribe call back as None
+        self.nlist = nlist
+        self.nlist.subscribe(lambda : None)
+        self.nlist.update_rcut()
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PPPMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);

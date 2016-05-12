@@ -12,7 +12,7 @@ class update_rescale_temp_tests (unittest.TestCase):
     def setUp(self):
         print
         self.system = init.create_random(N=10000, phi_p=0.01,min_dist=1);
-
+        self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the updater
@@ -59,7 +59,7 @@ class update_rescale_temp_tests (unittest.TestCase):
 
     # test functionality with siotropic particles
     def test_aniso(self):
-        lj = md.pair.lj(r_cut=3.0);
+        lj = md.pair.lj(r_cut=3.0, nlist = self.nl);
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.7);
 
         integrator = md.integrate.mode_standard(dt=0.005)
@@ -84,7 +84,7 @@ class update_rescale_temp_tests (unittest.TestCase):
 
     # test functionality with ansiotropic particles
     def test_aniso(self):
-        gb = md.pair.gb(r_cut=3.0);
+        gb = md.pair.gb(r_cut=3.0, nlist = self.nl);
         gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=.45, lpar=0.25);
 
         for p in self.system.particles:
@@ -109,7 +109,7 @@ class update_rescale_temp_tests (unittest.TestCase):
         self.assertAlmostEqual(T, 5.0, 3)
 
     def tearDown(self):
-        del self.system
+        del self.system, self.nl
         context.initialize();
 
 

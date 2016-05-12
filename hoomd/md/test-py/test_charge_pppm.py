@@ -22,7 +22,8 @@ class charge_pppm_tests (unittest.TestCase):
     # basic test of creation and param setting
     def test(self):
         all = group.all()
-        c = md.charge.pppm(all);
+        nl = md.nlist.cell()
+        c = md.charge.pppm(all, nlist = nl);
         c.set_params(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
@@ -71,13 +72,14 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
     # basic test of creation and param setting
     def test(self):
         all = group.all()
-        c = md.charge.pppm(all);
+        nl = md.nlist.cell()
+        c = md.charge.pppm(all, nlist = nl);
         c.set_params(Nx=128, Ny=128, Nz=128, order=3, rcut=2.0);
         log = analyze.log(quantities = ['pppm_energy','pressure_xx','pressure_xy','pressure_xz', 'pressure_yy','pressure_yz', 'pressure_zz'], period = 1, filename=None);
         md.integrate.mode_standard(dt=0.0);
         md.integrate.nve(all);
         # trick to allow larger decompositions
-        md.nlist.set_params(r_buff=0.1)
+        nl.set_params(r_buff=0.1)
         run(1);
 
         self.assertAlmostEqual(c.forces[0].force[0], 0.00904953, 5)

@@ -18,6 +18,7 @@ class test_constrain_rigid(unittest.TestCase):
 
         # generate a system of N=8 AB diblocks
         self.system=init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
+        self.nl = md.nlist.cell()
 
         for p in self.system.particles:
             p.moment_inertia = (.5,.5,1)
@@ -33,7 +34,7 @@ class test_constrain_rigid(unittest.TestCase):
 
         md.integrate.mode_standard(dt=0.001)
 
-        lj = md.pair.lj(r_cut=False)
+        lj = md.pair.lj(r_cut=False, nlist = self.nl)
 
         # central particles
         lj.pair_coeff.set(['A','B'], self.system.particles.types, epsilon=1.0, sigma=1.0, r_cut=2.5)
@@ -87,7 +88,7 @@ class test_constrain_rigid(unittest.TestCase):
 
         md.integrate.mode_standard(dt=0.001)
 
-        lj = md.pair.lj(r_cut=False)
+        lj = md.pair.lj(r_cut=False, nlist = self.nl)
 
         # central particles
         lj.pair_coeff.set(['A','B'], self.system.particles.types, epsilon=1.0, sigma=1.0, r_cut=2.5)
@@ -142,7 +143,7 @@ class test_constrain_rigid(unittest.TestCase):
 
         md.integrate.mode_standard(dt=0.001)
 
-        lj = md.pair.lj(r_cut=False)
+        lj = md.pair.lj(r_cut=False, nlist = self.nl)
 
         # central particles
         lj.pair_coeff.set(['A','B'], self.system.particles.types, epsilon=1.0, sigma=1.0, r_cut=2.5)
@@ -208,7 +209,7 @@ class test_constrain_rigid(unittest.TestCase):
         run(100)
 
     def tearDown(self):
-        del self.system
+        del self.system, self.nl
         context.initialize();
 
 if __name__ == '__main__':
