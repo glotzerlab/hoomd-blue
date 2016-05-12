@@ -3,7 +3,7 @@ import sys
 from subprocess import call
 import os
 
-if len(sys.argv) == 1:
+if len(sys.argv) != 3:
     print("invalid input");
     sys.exit(1)
 
@@ -12,10 +12,6 @@ if sys.argv[1] != 'install':
     sys.exit(1)
 
 if len(sys.argv) == 3 and sys.argv[2] != '--force':
-    print("invalid input");
-    sys.exit(1)
-
-if len(sys.argv) > 3:
     print("invalid input");
     sys.exit(1)
 
