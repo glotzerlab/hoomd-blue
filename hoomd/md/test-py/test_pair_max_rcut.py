@@ -17,9 +17,9 @@ class pair_max_rcut_tests (unittest.TestCase):
 
     def test_max_rcut(self):
         lj = md.pair.lj(r_cut=2.5, nlist = self.nl);
-        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
-        lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0)
-        lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0)
+        lj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0)
+        lj.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0)
+        lj.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0)
         self.assertAlmostEqual(2.5, lj.get_max_rcut());
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
         self.assertAlmostEqual(2.5, lj.get_max_rcut());
@@ -30,9 +30,9 @@ class pair_max_rcut_tests (unittest.TestCase):
 
     def test_nlist_subscribe(self):
         lj = md.pair.lj(r_cut=2.5, nlist = self.nl);
-        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=3.0)
-        lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0)
-        lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=3.1)
+        lj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0)
+        lj.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=3.1)
 
         # check that everything is initialized correctly
         self.nl.update_rcut()
@@ -47,9 +47,9 @@ class pair_max_rcut_tests (unittest.TestCase):
 
         # a second potential, only (B,B) should be bigger than the LJ
         gauss = md.pair.gauss(r_cut=1.0, nlist = self.nl)
-        gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
-        gauss.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.0)
-        gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=5.1)
+        gauss.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=1.0)
+        gauss.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0, r_cut=2.0)
+        gauss.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=5.1)
 
         self.nl.update_rcut()
         self.assertAlmostEqual(3.0, self.nl.r_cut.get_pair('A','A'));
@@ -57,16 +57,16 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(5.1, self.nl.r_cut.get_pair('B','B'));
 
         # change B,B back down, and make sure you get the LJ cutoff instead
-        gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=1.0)
+        gauss.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=1.0)
         run(1)
         self.assertAlmostEqual(3.1, self.nl.r_cut.get_pair('B','B'));
 
     # test independent subscription to two neighbor list
     def test_multi_nlist_subscribe(self):
         lj = md.pair.lj(r_cut=2.5, nlist = self.nl);
-        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=3.0)
-        lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0)
-        lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=3.1)
+        lj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0)
+        lj.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=3.1)
 
         # check that everything is initialized correctly
         self.nl.update_rcut()
@@ -83,9 +83,9 @@ class pair_max_rcut_tests (unittest.TestCase):
         # but, it's attached to the second neighbor list, so nothing should change
         nl2 = md.nlist.cell()
         gauss = md.pair.gauss(r_cut=1.0, nlist = nl2)
-        gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
-        gauss.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.0)
-        gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=5.1)
+        gauss.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=1.0)
+        gauss.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0, r_cut=2.0)
+        gauss.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=5.1)
 
         self.nl.update_rcut()
         nl2.update_rcut()
@@ -98,9 +98,9 @@ class pair_max_rcut_tests (unittest.TestCase):
 
         # now, attach a third potential to the first neighbor list, and things should change there
         slj = md.pair.slj(r_cut=1.0, nlist=self.nl, d_max=1.0)
-        slj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
-        slj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.0)
-        slj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=5.1)
+        slj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=1.0)
+        slj.pair_coeff.set('A', 'B', sigma=1.0, epsilon=1.0, r_cut=2.0)
+        slj.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=5.1)
 
         self.nl.update_rcut()
         nl2.update_rcut()
@@ -109,7 +109,7 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(5.1, self.nl.r_cut.get_pair('B','B'));
 
         # change B,B back down, and make sure you get the LJ cutoff instead
-        slj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=1.0)
+        slj.pair_coeff.set('B', 'B', sigma=1.0, epsilon=1.0, r_cut=1.0)
         run(1)
         self.assertAlmostEqual(3.1, self.nl.r_cut.get_pair('B','B'));
 

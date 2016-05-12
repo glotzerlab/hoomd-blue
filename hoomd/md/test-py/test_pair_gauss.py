@@ -44,7 +44,7 @@ class pair_gauss_tests (unittest.TestCase):
     def test_nlist_subscribe(self):
         gauss = md.pair.gauss(r_cut=2.5, nlist = self.nl);
 
-        gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        gauss.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0)
         self.nl.update_rcut();
         self.assertAlmostEqual(2.5, self.nl.r_cut.get_pair('A','A'));
 
