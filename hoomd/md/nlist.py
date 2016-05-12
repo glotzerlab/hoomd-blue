@@ -106,7 +106,7 @@ class nlist:
 
         # save the parameters we set
         self.r_cut = rcut();
-        self.r_buff = 0.0;
+        self.r_buff = 0.4;
 
         # save a list of subscribers that may have a say in determining the maximum r_cut
         self.subscriber_callbacks = [];
@@ -178,7 +178,7 @@ class nlist:
         to be updated less often, but more particles are included leading to slower force computations.
         Smaller values of *r_buff* lead to faster force computation, but more often neighbor list updates,
         slowing overall performance again. The sweet spot for the best performance needs to be found by
-        experimentation. The default of *r_buff = 0.8* works well in practice for Lennard-Jones liquid
+        experimentation. The default of *r_buff = 0.4* works well in practice for Lennard-Jones liquid
         simulations.
 
         As *r_buff* is changed, *check_period* must be changed correspondingly. The neighbor list is updated
@@ -380,6 +380,8 @@ class nlist:
         Returns:
             (optimal_r_buff, maximum check_period)
         """
+        hoomd.util.print_status_line();
+
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
@@ -387,6 +389,9 @@ class nlist:
         if self.cpp_nlist is None:
             hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
+
+        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
+        hoomd.util.quiet_status();
 
         # start off at a check_period of 1
         self.set_params(check_period=1)
@@ -427,6 +432,9 @@ class nlist:
         self.set_params(r_buff=fastest_r_buff);
         hoomd.run(warmup);
 
+        # all done with the parameter sets and run calls (mostly)
+        hoomd.util.unquiet_status();
+
         # notify the user of the benchmark results
         hoomd.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
         hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
@@ -435,7 +443,9 @@ class nlist:
 
         # set the found max check period
         if set_max_check_period:
+            hoomd.util.quiet_status();
             self.set_params(check_period=self.query_update_period());
+            hoomd.util.unquiet_status();
 
         # return the results to the script
         return (fastest_r_buff, self.query_update_period());
@@ -548,7 +558,7 @@ class rcut:
                 cur_pair = self.ensure_pair(a,b);
 
 class cell(nlist):
-    R""" cell list based neighbor list.
+    R""" Cell list based neighbor list
 
     Args:
         r_buff (float):  Buffer width.
@@ -582,7 +592,7 @@ class cell(nlist):
         is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
         significantly degraded performance or incorrect results.
     """
-    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None, deterministic=False):
+    def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None, deterministic=False):
         hoomd.util.print_status_line()
 
         nlist.__init__(self)
@@ -593,20 +603,15 @@ class cell(nlist):
         else:
             self.name = name
 
-        # the r_cut will be overridden by the pair potentials attached to the neighbor list
-        default_r_cut = 0.0
-        # assume r_buff = 0.4 as a typical default value that the user can (and should) override
-        default_r_buff = 0.4
-
         # create the C++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = _md.NeighborListBinned(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            self.cpp_nlist = _md.NeighborListBinned(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl )
         else:
             self.cpp_cl  = _hoomd.CellListGPU(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            self.cpp_nlist = _md.NeighborListGPUBinned(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
+            self.cpp_nlist = _md.NeighborListGPUBinned(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl )
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
@@ -624,7 +629,8 @@ class cell(nlist):
 cell.cur_id = 0
 
 class stencil(nlist):
-    R""" Cell listbased neighbor list using stencils
+    R""" Cell list based neighbor list using stencils
+
     Args:
         r_buff (float):  Buffer width.
         check_period (int): How often to attempt to rebuild the neighbor list.
@@ -638,6 +644,9 @@ class stencil(nlist):
     non-bonded pairwise interactions. Cell listing allows for O(N) construction of the neighbor list. Particles are first
     spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
     list.
+    
+    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
+    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
 
     This neighbor-list style differs from :py:class:`cell` based on how the adjacent cells are searched for particles. The cell
     list *cell_width* is set by default using the shortest active cutoff radius in the system. One *stencil* is computed
@@ -664,8 +673,21 @@ class stencil(nlist):
         is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
         significantly degraded performance or incorrect results.
     """
-    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
+    def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
         hoomd.util.print_status_line()
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='howard2016',
+                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
+                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=203,
+                         pages='45--52',
+                         month='Mar',
+                         year='2016',
+                         doi='10.1016/j.cpc.2016.02.003',
+                         feature='stenciled neighbor lists')
+        hoomd.cite._ensure_global_bib().add(c)
 
         nlist.__init__(self)
 
@@ -675,24 +697,19 @@ class stencil(nlist):
         else:
             self.name = name
 
-        # the r_cut will be overridden by the pair potentials attached to the neighbor list
-        default_r_cut = 0.0
-        # assume r_buff = 0.4 as a typical default value that the user can (and should) override
-        default_r_buff = 0.4
-
         # create the C++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
             hoomd.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = _md.NeighborListStencil(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_nlist = _md.NeighborListStencil(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl, cls)
         else:
             self.cpp_cl  = _hoomd.CellListGPU(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
             hoomd.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = _md.NeighborListGPUStencil(hoomd.context.current.system_definition, default_r_cut, default_r_buff, self.cpp_cl, cls)
+            self.cpp_nlist = _md.NeighborListGPUStencil(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl, cls)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 
@@ -756,6 +773,9 @@ class stencil(nlist):
         if max_cell_width is None:
             max_cell_width = self.cpp_nlist.getMaxRList()
 
+        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
+        hoomd.util.quiet_status();
+
         # make the warmup run
         hoomd.run(warmup);
 
@@ -764,11 +784,13 @@ class stencil(nlist):
         width_list = [];
         tps_list = [];
 
-        # loop over all desired r_buff points
+        # loop over all desired cell width points
         for i in range(0,jumps):
-            # set the current r_buff
+            # set the current cell width
             cw = min_cell_width + i * dr;
+            hoomd.util.quiet_status();
             self.set_cell_width(cell_width=cw)
+            hoomd.util.unquiet_status();
 
             # run the benchmark 3 times
             tps = [];
@@ -784,12 +806,15 @@ class stencil(nlist):
             tps_list.append(tps[1]);
             width_list.append(cw);
 
-        # find the fastest r_buff
+        # find the fastest cell width
         fastest = tps_list.index(max(tps_list));
         fastest_width = width_list[fastest];
 
-        # set the fastest and rerun the warmup steps to identify the max check period
+        # set the fastest cell width
         self.set_cell_width(cell_width=fastest_width)
+
+        # all done with the parameter sets and run calls (mostly)
+        hoomd.util.unquiet_status();
 
         # notify the user of the benchmark results
         hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
@@ -798,7 +823,6 @@ class stencil(nlist):
 
         # return the results to the script
         return fastest_width
-
 stencil.cur_id = 0
 
 class tree(nlist):
@@ -817,6 +841,9 @@ class tree(nlist):
     improved performance compared to cell lists in systems with moderate size asymmetry, but has poorer performance
     for monodisperse systems. The user should carefully benchmark neighbor list build times to select the appropriate
     neighbor list construction type.
+
+    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
+    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
 
     Users can create multiple neighbor lists, and may see significant performance increases by doing so for systems with
     size asymmetry, especially when used in conjunction with nlist.cell.
@@ -837,21 +864,29 @@ class tree(nlist):
         BVH tree neighbor lists are currently only supported on Kepler (sm_30) architecture devices and newer.
 
     """
-    def __init__(self, r_buff=None, check_period=1, d_max=None, dist_check=True, name=None):
+    def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None):
         hoomd.util.print_status_line()
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='howard2016',
+                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
+                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=203,
+                         pages='45--52',
+                         month='Mar',
+                         year='2016',
+                         doi='10.1016/j.cpc.2016.02.003',
+                         feature='tree neighbor lists')
+        hoomd.cite._ensure_global_bib().add(c)
 
         nlist.__init__(self)
 
-        # the r_cut will be overridden by the pair potentials attached to the neighbor list
-        default_r_cut = 0.0
-        # assume r_buff = 0.4 as a typical default value that the user can (and should) override
-        default_r_buff = 0.4
-
         # create the C++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_nlist = _md.NeighborListTree(hoomd.context.current.system_definition, default_r_cut, default_r_buff)
+            self.cpp_nlist = _md.NeighborListTree(hoomd.context.current.system_definition, 0.0, r_buff)
         else:
-            self.cpp_nlist = _md.NeighborListGPUTree(hoomd.context.current.system_definition, default_r_cut, default_r_buff)
+            self.cpp_nlist = _md.NeighborListGPUTree(hoomd.context.current.system_definition, 0.0, r_buff)
 
         self.cpp_nlist.setEvery(check_period, dist_check)
 

@@ -8,6 +8,7 @@
 
 * Angles, dihedrals, and impropers no longer initialize with one default type.
 * Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+* Data proxies verify input types and vector lengths.
 
 *New features*
 
@@ -57,6 +58,8 @@
 * `__version__` is now available in the top level package
 * `boost::iostreams` is no longer a build dependency
 * `boost::filesystem` is no longer a build dependency
+* New concepts page explaining the different styles of neighbor lists
+* Default neighbor list buffer radius is more clearly shown to be r_buff = 0.4
 * Memory usage of `nlist.stencil` is significantly reduced
 
 *Removed*
@@ -65,6 +68,7 @@
 * Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
 * Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
 * Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
+
 ## v1.3.3
 
 Released 2016/03/06
