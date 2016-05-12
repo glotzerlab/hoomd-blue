@@ -308,6 +308,12 @@ class CellList : public Compute
         //! Get the adjacency list
         const GPUArray<unsigned int>& getCellAdjArray() const
             {
+            if (!m_compute_adj_list)
+                {
+                m_exec_conf->msg->error() << "Cell adjacency list is not computed!" << std::endl;
+                m_exec_conf->msg->error() << "Use setComputeAdjList(true) to calculate it on the next compute()" << std::endl;
+                throw std::runtime_error("Cell adjacency list not available");
+                }
             return m_cell_adj;
             }
 
