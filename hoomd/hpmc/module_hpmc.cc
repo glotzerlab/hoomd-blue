@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"

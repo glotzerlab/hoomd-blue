@@ -1,5 +1,5 @@
-## \package hpmc.integrate
-# \brief HPMC integration modes
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc

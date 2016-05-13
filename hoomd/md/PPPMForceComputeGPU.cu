@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #include "PPPMForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
 
@@ -1491,7 +1494,7 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
                d_sum_virial_partial,
                d_mesh_virial);
 
-    // calculate final virial values 
+    // calculate final virial values
     const unsigned int final_block_size = 512;
     shared_size = 6*final_block_size*sizeof(Scalar);
     kernel_final_reduce_virial<<<1, final_block_size,shared_size>>>(d_sum_virial_partial,

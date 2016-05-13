@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #include "PPPMForceCompute.h"
 
 using namespace boost::python;
@@ -99,7 +102,7 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
         if (ny % didx.getH())
             {
             m_exec_conf->msg->error()
-                << "The number of mesh points along the y-direction ("<< ny <<") is not" << std::endl 
+                << "The number of mesh points along the y-direction ("<< ny <<") is not" << std::endl
                 << "a multiple of the height (" << didx.getH() << ") of the processsor grid!" << std::endl
                 << std::endl;
             throw std::runtime_error("Error initializing charge.pppm");
@@ -1408,7 +1411,7 @@ void PPPMForceCompute::fixExclusions()
             Scalar qiqj = qi * qj;
             Scalar erffac = erf(m_kappa * r) / r;
             Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
-            Scalar pair_eng = qiqj * erffac; 
+            Scalar pair_eng = qiqj * erffac;
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
             virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;

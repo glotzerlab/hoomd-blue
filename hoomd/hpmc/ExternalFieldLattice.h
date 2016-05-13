@@ -1,9 +1,6 @@
-//
-// ExternalField.h
-// Paul Dodd
-// 04/15/2015
-//
-// inclusion guard
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #ifndef _EXTERNAL_FIELD_LATTICE_H_
 #define _EXTERNAL_FIELD_LATTICE_H_
 
