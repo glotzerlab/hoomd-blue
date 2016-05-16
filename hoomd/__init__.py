@@ -4,9 +4,7 @@
 """ HOOMD-blue python API
 
 :py:mod:`hoomd` provides a high level user interface for executing
-simulations using HOOMD.
-
-.. ipython:: python
+simulations using HOOMD::
 
     import hoomd
     from hoomd import md
@@ -85,9 +83,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
         quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
-    Example:
-
-        .. ipython:: python
+    Example::
 
             hoomd.run(10)
             hoomd.run(10e6, limit_hours=1.0/3600.0, limit_multiple=10)
@@ -236,9 +232,7 @@ def get_step():
     Returns:
         The current simulation time step.
 
-    Example:
-
-        .. ipython:: python
+    Example::
 
             print(hoomd.get_step())
     """

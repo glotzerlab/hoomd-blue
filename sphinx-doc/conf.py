@@ -19,7 +19,7 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-# sys.path.insert(0, os.path.abspath('.))
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ------------------------------------------------
 
@@ -34,16 +34,13 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive'
+    'sphinx.ext.mathjax'
 ]
-
-autosummary_generate = True
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 autodoc_docstring_signature = True;
 autodoc_default_flags = ['inherited-members'];
+autodoc_mock_imports = ['numpy'];
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
