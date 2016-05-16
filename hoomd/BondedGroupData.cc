@@ -1237,7 +1237,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
             ;
 
         // boost 1.60.0 compatibility
-        #if (BOOST_VERSION >= 106000)
+        #if (BOOST_VERSION == 106000)
         register_ptr_to_python< boost::shared_ptr<T> >();
         register_ptr_to_python< boost::shared_ptr<Snapshot> >();
         #endif
@@ -1255,7 +1255,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
             ;
 
         // boost 1.60.0 compatibility
-        #if (BOOST_VERSION >= 106000)
+        #if (BOOST_VERSION == 106000)
         register_ptr_to_python< boost::shared_ptr<T> >();
         register_ptr_to_python< boost::shared_ptr<Snapshot> >();
         #endif

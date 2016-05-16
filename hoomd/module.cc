@@ -413,7 +413,7 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_Messenger();
 
     // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
+    #if (BOOST_VERSION == 106000)
     register_ptr_to_python< boost::shared_ptr< IMDInterface > >();
     register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();

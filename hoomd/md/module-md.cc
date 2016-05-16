@@ -174,7 +174,7 @@ void export_wall_params_helpers()
     def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
 
     // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
+    #if (BOOST_VERSION == 106000)
     register_ptr_to_python< boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
     #endif
     }
@@ -331,7 +331,7 @@ BOOST_PYTHON_MODULE(_md)
 #endif
 
     // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
+    #if (BOOST_VERSION == 106000)
     register_ptr_to_python< boost::shared_ptr< TablePotential > >();
     register_ptr_to_python< boost::shared_ptr< PPPMForceCompute > >();
     register_ptr_to_python< boost::shared_ptr< ConstExternalFieldDipoleForceCompute > >();
