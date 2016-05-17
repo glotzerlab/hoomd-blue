@@ -689,7 +689,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     // compute pressure for the next half time step
     PressureTensor P = m_thermo_group_t->getPressureTensor();
 
-    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
+    if ( std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy) || std::isnan(P.yz) || std::isnan(P.zz) )
         {
         Scalar extP = m_P->getValue(timestep);
         P.xx = P.yy = P.zz = extP;

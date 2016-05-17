@@ -476,7 +476,7 @@ void CellList::computeCellList()
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        if (isnan(p.x) || isnan(p.y) || isnan(p.z))
+        if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
             {
             conditions.y = n+1;
             continue;

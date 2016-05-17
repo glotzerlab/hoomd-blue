@@ -48,10 +48,10 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         }
 
     vector<Scalar3> c_f_lst;
-    tuple tmp_force;
+    boost::python::tuple tmp_force;
     for (unsigned int i = 0; i < len(f_lst); i++)
         {
-        tmp_force = extract<tuple>(f_lst[i]);
+        tmp_force = extract<boost::python::tuple>(f_lst[i]);
         if (len(tmp_force) !=3)
             throw runtime_error("Non-3D force given for ActiveForceCompute");
         c_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
