@@ -1,11 +1,6 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// $Id: PotentialBond.h 2904 2010-03-23 17:10:10Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/PotentialBond.h $
-// Maintainer: phillicl
-
 #include <boost/shared_ptr.hpp>
 
 #include <boost/python.hpp>

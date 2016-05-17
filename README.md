@@ -3,7 +3,7 @@
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
 and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
-many nodes. For more information, see the [HOOMD-blue website](https://codeblue.umich.edu/hoomd-blue).
+many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab.engin.umich.edu/hoomd-blue).
 
 # Installing HOOMD-blue
 
@@ -35,7 +35,7 @@ To run out of the build directory, add the build directory to your `PYTHONPATH`:
 export PYTHONPATH=`pwd`:$PYTHONPATH
 ```
 
-For more detailed instructions, [see the documentationn](https://codeblue.umich.edu/hoomd-blue/doc/page_compile_guide.html).
+For more detailed instructions, [see the documentation](http://glotzerlab.engin.umich.edu/hoomd-blue/doc/page_compile_guide.html).
 
 ## Prerequisites
 
@@ -78,7 +78,7 @@ Save this as `lj.py` and run with `python lj.py`.
 
 # Documentation
 
-Documentation for the current stable release is available online: [http://codeblue.umich.edu/hoomd-blue/doc/](http://codeblue.umich.edu/hoomd-blue/doc/)
+Documentation for current and previous releases is available at [readthedocs](http://hoomd-blue.readthedocs.io).
 
 # Change log
 

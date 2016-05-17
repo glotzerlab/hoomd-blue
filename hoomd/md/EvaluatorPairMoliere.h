@@ -1,11 +1,6 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// $Id: EvaluatorPairLJ.h 2862 2010-03-12 19:16:16Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/EvaluatorPairLJ.h $
-// Maintainer: joaander
-
 #ifndef __PAIR_EVALUATOR_MOLIERE__
 #define __PAIR_EVALUATOR_MOLIERE__
 

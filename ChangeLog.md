@@ -4,6 +4,8 @@
 
 ## v2.0.0
 
+HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
+
 *Bug fixes*
 
 * Angles, dihedrals, and impropers no longer initialize with one default type.
@@ -536,7 +538,7 @@ xml.write(filename="file.xml")
     * update.zero_momentum
 1. NVT integration using the Berendsen thermostat (*integrate.berendsen*)
 1. Bonds, angles, dihedrals, and impropers can now be created and deleted with the python data access API.
-1. Attribution clauses added to the "HOOMD-blue license":http://codeblue.umich.edu/hoomd-blue/doc/page_license.html
+1. Attribution clauses added to the HOOMD-blue license.
 
 *Changes that may break existing job scripts*
 

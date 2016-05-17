@@ -251,7 +251,7 @@ instructions on a variety of distributions.
 Installing prerequisites with conda
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conda is very useful as a delivery platform for `stable binaries <https://codeblue.umich.edu/hoomd-blue/download.html>`_,
+Conda is very useful as a delivery platform for `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_,
 and we do recommend only using it for that purpose. However, many users do wish to use conda to provide development
 perquisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
 ensure that all libraries (mpi, boost, python, etc...) are linked from the conda environment. First, install miniconda.

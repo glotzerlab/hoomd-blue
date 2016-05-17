@@ -486,7 +486,7 @@ CUB 1.4.1 source code is embedded in HOOMD's package and is used for various tas
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Eigen 3.2.5 (http://eigen.tuxfamily.org/) is embedded in HOOMD's package and is made available under the
-Mozilla Public License v.2.0 (http://mozilla.org/MPL/2.0/). Its linear algebra routines are used for dynamic load balancing. Source code is available through the [downloads](http://codeblue.umich.edu/hoomd-blue/download.html).
+Mozilla Public License v.2.0 (http://mozilla.org/MPL/2.0/). Its linear algebra routines are used for dynamic load balancing. Source code is available through the [downloads](http://glotzerlab.engin.umich.edu/hoomd-blue/download.html).
 
 A constrained least-squares problem is solved for dynamic load balancing using <b>BVLSSolver</b>, which is embedded
 in HOOMD's package and is made available under the following license::
