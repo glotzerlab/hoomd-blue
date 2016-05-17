@@ -16,6 +16,7 @@ Welcome to the user documentation for HOOMD-blue!
     mpi
     autotuner
     restartable-jobs
+    varperiod
 
 .. toctree::
    :maxdepth: 3

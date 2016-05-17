@@ -14,58 +14,6 @@ from hoomd import _hoomd;
 import hoomd;
 import sys;
 
-## \page variable_period_docs Variable period specification
-#
-# TODO: put this in its own page in sphinx
-#
-# If, for any reason, a constant period for a command is not to your liking, you can make it any
-# function you please! Just specify a function taking a single argument to the period parameter.
-# Any analyze, update, or dump command in hoomd can be given such a variable period.
-# dump.xml is used as an example here, but the same works with \b any update, dump,
-# or analyze command
-#
-# For example, lets say we want to dump xml files at time steps 1, 10, 100, 1000, ...
-# The following command will do the job.
-#
-# \code
-# dump.xml(filename="dump", period = lambda n: 10**n)
-# \endcode
-#
-# It is that simple. Any mathematical expression that can be represented in python can be used
-# in place of the 10**n.
-#
-# <b>More examples:</b>
-# \code
-# dump.xml(filename="dump", period = lambda n: n**2)
-# dump.xml(filename="dump", period = lambda n: 2**n)
-# dump.xml(filename="dump", period = lambda n: 1005 + 0.5 * 10**n)
-# \endcode
-#
-# The only requirement is that the object passed into period is callable, accepts one argument, and returns
-# a floating point number or integer. The function also had better be monotonically increasing or the output
-# might not make any sense.
-#
-# <b>How does it work, exactly?</b>
-# - First, the current time step of the simulation is saved when the analyzer is created
-# - \a n is also set to 1 when the analyzer is created
-# - Every time the analyzer performs it's output, it evaluates the given function at the current value of \a n
-#   and records that as the next time to perform the analysis. \a n is then incremented by 1
-#
-# Here is a final example of how variable periods behave in simulations where analyzers are not created on time step 0.
-# The following
-# \code
-# ... initialize ...
-# run(4000)
-# dump.xml(filename="dump", period = lambda n: 2**n)
-# run(513)
-# \endcode
-# will result in dump files at time steps 4000, 4002, 4004, 4008, 4016, 4032, 4064, 4128, 4256, and 4512.
-#
-# In other words, the function specified for the period starts counting at the time step <b>when the analyzer is created</b>.
-# Consequently, any analyze, dump, or update command given a variable period becomes ill-defined if it is disabled and then re-enabled.
-# If this is done, it will then re-enable with a constant period of 1000 as a default case.
-#
-
 ## \internal
 # \brief Base class for analyzers
 #
@@ -297,8 +245,10 @@ class log(_analyzer):
     specified forces, integrators, and updaters. It writes a single line to the specified
     output file every *period* time steps. The resulting file is suitable for direct import
     into a spreadsheet, MATLAB, or other software that can handle simple delimited files.
+    See :ref:`page-units` for information on the units in hoomd.
 
     Quantities that can be logged at any time:
+
     - **volume** - Volume of the simulation box (in volume units)
     - **N** - Particle nubmer (dimensionless)
     - **lx** - Box length in x direction (in length units)
@@ -311,7 +261,7 @@ class log(_analyzer):
     - **time** - Wall-clock running time from the start of the log (in seconds)
 
     Thermodynamic properties:
-    - The following quantities are always available and computed over all particles in the system (see compute.thermo for detailed definitions):
+    - The following quantities are always available and computed over all particles in the system (see :py:class:`hoomd.compute.thermo` for detailed definitions):
 
       - **num_particles**
       - **ndof**
@@ -325,7 +275,7 @@ class log(_analyzer):
       - **pressure** (in pressure units)
       - **pressure_xx**, **pressure_xy**, **pressure_xz**, **pressure_yy**, **pressure_yz**, **pressure_zz** (in pressure units)
 
-    - The above quantities, tagged with a <i>_groupname</i> suffix are automatically available for any group passed to
+    - The above quantities, tagged with a *_groupname* suffix are automatically available for any group passed to
       an integrate command
     - Specify a compute.thermo directly to enable additional quantities for user-specified groups.
 
@@ -334,53 +284,53 @@ class log(_analyzer):
 
     - Pair potentials
 
-      - **pair_dpd_energy** (pair.dpd) - Total DPD conservative potential energy (in energy units)
-      - **pair_dpdlj_energy** (pair.dpdlj) - Total DPDLJ conservative potential energy (in energy units)
-      - **pair_eam_energy** (pair.eam) - Total EAM potential energy (in energy units)
-      - **pair_ewald_energy** (pair.ewald) - Short ranged part of the electrostatic energy (in energy units)
-      - **pair_gauss_energy** (pair.gauss) - Total Gaussian potential energy (in energy units)
-      - **pair_lj_energy** (pair.lj) - Total Lennard-Jones potential energy (in energy units)
-      - **pair_morse_energy** (pair.yukawa) - Total Morse potential energy (in energy units)
-      - **pair_table_energy** (pair.table) - Total potential energy from Tabulated potentials (in energy units)
-      - **pair_slj_energy** (pair.slj) - Total Shifted Lennard-Jones potential energy (in energy units)
-      - **pair_yukawa_energy** (pair.yukawa) - Total Yukawa potential energy (in energy units)
-      - **pair_force_shifted_lj_energy** (pair.force_shifted_lj) - Total Force-shifted Lennard-Jones potential energy (in energy units)
-      - **pppm_energy** (charge.pppm) -  Long ranged part of the electrostatic energy (in energy units)
+      - **pair_dpd_energy** (:py:class:`hoomd.md.pair.dpd`) - Total DPD conservative potential energy (in energy units)
+      - **pair_dpdlj_energy** (:py:class:`hoomd.md.pair.dpdlj`) - Total DPDLJ conservative potential energy (in energy units)
+      - **pair_eam_energy** (:py:class:`hoomd.md.pair.eam`) - Total EAM potential energy (in energy units)
+      - **pair_ewald_energy** (:py:class:`hoomd.md.pair.ewald`) - Short ranged part of the electrostatic energy (in energy units)
+      - **pair_gauss_energy** (:py:class:`hoomd.md.pair.gauss`) - Total Gaussian potential energy (in energy units)
+      - **pair_lj_energy** (:py:class:`hoomd.md.pair.lj`) - Total Lennard-Jones potential energy (in energy units)
+      - **pair_morse_energy** (:py:class:`hoomd.md.pair.yukawa`) - Total Morse potential energy (in energy units)
+      - **pair_table_energy** (:py:class:`hoomd.md.pair.table`) - Total potential energy from Tabulated potentials (in energy units)
+      - **pair_slj_energy** (:py:class:`hoomd.md.pair.slj`) - Total Shifted Lennard-Jones potential energy (in energy units)
+      - **pair_yukawa_energy** (:py:class:`hoomd.md.pair.yukawa`) - Total Yukawa potential energy (in energy units)
+      - **pair_force_shifted_lj_energy** (:py:class:`hoomd.md.pair.force_shifted_lj`) - Total Force-shifted Lennard-Jones potential energy (in energy units)
+      - **pppm_energy** (:py:class:`hoomd.md.charge.pppm`) -  Long ranged part of the electrostatic energy (in energy units)
 
     - Bond potentials
 
-      - **bond_fene_energy** (bond.fene) - Total fene bond potential energy (in energy units)
-      - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
-      - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
+      - **bond_fene_energy** (:py:class:`hoomd.md.bond.fene`) - Total fene bond potential energy (in energy units)
+      - **bond_harmonic_energy** (:py:class:`hoomd.md.bond.harmonic`) - Total harmonic bond potential energy (in energy units)
+      - **bond_table_energy** (:py:class:`hoomd.md.bond.table`) - Total table bond potential energy (in energy units)
 
     - Angle potentials
 
-      - **angle_harmonic_energy** (angle.harmonic) - Total harmonic angle potential energy (in energy units)
+      - **angle_harmonic_energy** (:py:class:`hoomd.md.angle.harmonic`) - Total harmonic angle potential energy (in energy units)
 
     - Dihedral potentials
 
-      - **dihedral_harmonic_energy** (dihedral.harmonic) - Total harmonic dihedral potential energy (in energy units)
+      - **dihedral_harmonic_energy** (:py:class:`hoomd.md.dihedral.harmonic`) - Total harmonic dihedral potential energy (in energy units)
 
     - External potentials
 
-      - **external_periodic_energy** (external.periodic) - Total periodic potential energy (in energy units)
-      - **external_e_field_energy** (external.e_field) - Total e_field potential energy (in energy units)
+      - **external_periodic_energy** (:py:class:`hoomd.md.external.periodic`) - Total periodic potential energy (in energy units)
+      - **external_e_field_energy** (:py:class:`hoomd.md.external.e_field`) - Total e_field potential energy (in energy units)
 
     - Wall potentials
 
-      - **external_wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
-      - **external_wall_gauss_energy** (wall.gauss) - Total Gauss wall energy (in energy units)
-      - **external_wall_slj_energy** (wall.slj) - Total Shifted Lennard-Jones wall energy (in energy units)
-      - **external_wall_yukawa_energy** (wall.yukawa) - Total Yukawa wall energy (in energy units)
-      - **external_wall_mie_energy** (wall.mie) - Total Mie wall energy (in energy units)
+      - **external_wall_lj_energy** (:py:class:`hoomd.md.wall.lj`) - Total Lennard-Jones wall energy (in energy units)
+      - **external_wall_gauss_energy** (:py:class:`hoomd.md.wall.gauss`) - Total Gauss wall energy (in energy units)
+      - **external_wall_slj_energy** (:py:class:`hoomd.md.wall.slj`) - Total Shifted Lennard-Jones wall energy (in energy units)
+      - **external_wall_yukawa_energy** (:py:class:`hoomd.md.wall.yukawa`) - Total Yukawa wall energy (in energy units)
+      - **external_wall_mie_energy** (:py:class:`hoomd.md.wall.mie`) - Total Mie wall energy (in energy units)
 
     - Integrators
 
-      - **langevin_reservoir_energy_groupname** (integrate.bdnvt) - Energy reservoir for the Langevin integrator (in energy units)
-      - **nvt_reservoir_energy_groupname** (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
-      - **nvt_mtk_reservoir_energy_groupname** (integrate.nvt) - Energy reservoir for the NVT MTK thermostat (in energy units)
-      - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
-      - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
+      - **langevin_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.langevin`) - Energy reservoir for the Langevin integrator (in energy units)
+      - **nvt_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT thermostat (in energy units)
+      - **nvt_mtk_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT MTK thermostat (in energy units)
+      - **npt_thermostat_energy** (:py:class:`hoomd.md.integrate.npt`) - Energy of the NPT thermostat
+      - **npt_barostat_energy** (:py:class:`hoomd.md.integrate.npt` & :py:class:`hoomd.md.integrate.nph`) - Energy of the NPT (or NPH) barostat
 
     Additionally, all pair and bond poetentials can be provided user-defined names that are appended as suffixes to the
     logged quantitiy (e.g. with ``pair.lj(r_cut=2.5, name="alpha")``, the logged quantity would be pair_lj_energy_alpha):
@@ -430,9 +380,6 @@ class log(_analyzer):
 
         log = analyze.log(filename=None, quantities=['potential_energy'], period=1)
         U = log.query('potential_energy')
-
-    TODO: reference units concept page.
-    TODO: cross reference to appropriate classes.
 
     By default, columns in the log file are separated by tabs, suitable for importing as a
     tab-delimited spreadsheet. The delimiter can be changed to any string using :py:meth:`set_params()`
