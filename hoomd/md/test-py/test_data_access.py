@@ -185,11 +185,15 @@ class particle_data_access_tests (unittest.TestCase):
         del self.s
         context.initialize();
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # tests for bond, angle, dihedral, and improper data access
 class bond_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_empty(N=100, box=data.boxdim(L=10),
+        self.s = create_empty(N=100, box=data.boxdim(L=10),
                                    particle_types=['A'],
                                    bond_types=['bondA', 'bondB'],
                                    angle_types=['angleA', 'angleB'],

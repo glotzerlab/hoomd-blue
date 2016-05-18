@@ -7,11 +7,15 @@ context.initialize()
 import unittest
 import os
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # test the constrain.sphere command
 class constraint_sphere_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.sysdef = init.create_empty(N=2, box=data.boxdim(L=40), particle_types=['A']);
+        self.sysdef = create_empty(N=2, box=data.boxdim(L=40), particle_types=['A']);
         self.sysdef.particles[0].position = (5,0,0);
         self.sysdef.particles[1].position = (-5,1,1);
 

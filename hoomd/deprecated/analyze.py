@@ -13,9 +13,6 @@ import hoomd;
 class msd(_analyzer):
     R""" Mean-squared displacement.
 
-    .. deprecated:: 2.0
-       analyze.msd will be replaced by a more general system capable of window averaging in a future release.
-
     Args:
         filename (str): File to write the data to.
         groups (list): List of groups to calculate the MSDs of.
@@ -24,6 +21,9 @@ class msd(_analyzer):
         r0_file (str): hoomd_xml file specifying the positions (and images) to use for :math:`\vec{r}_0`.
         overwrite (bool): set to True to overwrite the file *filename* if it exists.
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    .. deprecated:: 2.0
+       analyze.msd will be replaced by a more general system capable of window averaging in a future release.
 
     :py:class:`msd` can be given any number of groups of particles. Every *period* time steps, it calculates the mean squared
     displacement of each group (referenced to the particle positions at the time step the command is issued at) and prints
@@ -69,6 +69,7 @@ class msd(_analyzer):
 
     If *r0_file* is left at the default of None, then the current state of the system at the execution of the
     analyze.msd command is used to initialize :math:`\vec{r}_0`.
+
     """
 
     def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=-1):

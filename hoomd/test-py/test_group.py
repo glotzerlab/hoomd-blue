@@ -8,11 +8,15 @@ import unittest
 import os
 import gc
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # group - test grouping commands
 class pair_group_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_empty(N=11, box=data.boxdim(L=5), particle_types=['A', 'B']);
+        self.s = create_empty(N=11, box=data.boxdim(L=5), particle_types=['A', 'B']);
         self.s.particles[0].position = (0,0,0);
         self.s.particles[0].type = 'A';
         self.s.particles[1].position = (1,1,1);

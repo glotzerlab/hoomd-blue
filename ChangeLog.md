@@ -38,20 +38,23 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
   to the original selection criteria. For example, this can be used to periodically update a cuboid
   group to include particles only in the specified region.
-* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
-* 'force.get_energy' allows querying the potential energy of a particle group for a specific force
+* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a
+  dielectric medium.
+* `force.get_energy` allows querying the potential energy of a particle group for a specific force
 
 *Changes that require job script modifications*
 
 * `context.initialize()` is now required before any other hoomd script command.
 * `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
-* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
+* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to
+  the `context` module and members of the currently active `SimulationContext`.
 * bonds, angles, dihedrals, and impropers no longer use the `set_coeff` syntax. Use `bond_coeff.set`, `angle_coeff.set`,
   `dihedral_coeff.set`, and `improper_coeff.set` instead.
 * `hoomd_script` no longer exists, python commands are now spread across `hoomd`, `hoomd.md`, and other sub packages.
-* `integrate.\*_rigid()` no longer exists. Use a standard integrator on `group.rigid_center()`, and define rigid bodies using `constrain.rigid()`
-* All neighbor lists must be explicitly created using `nlist.\*`, and each pair potential must be attached explicitly to a neighbor list. A default
-  global neighbor list is no longer created.
+* `integrate.\*_rigid()` no longer exists. Use a standard integrator on `group.rigid_center()`, and define rigid bodies
+  using `constrain.rigid()`
+* All neighbor lists must be explicitly created using `nlist.\*`, and each pair potential must be attached explicitly
+  to a neighbor list. A default global neighbor list is no longer created.
 
 *Other changes*
 
@@ -63,6 +66,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * New concepts page explaining the different styles of neighbor lists
 * Default neighbor list buffer radius is more clearly shown to be r_buff = 0.4
 * Memory usage of `nlist.stencil` is significantly reduced
+* A C++11 compliant compiler is now required to build HOOMD-blue
 
 *Removed*
 
@@ -71,6 +75,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
 * Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
 * Removed PDB and MOL2 dump writers.
+* Removed init.create_empty
 
 *Deprecated*
 

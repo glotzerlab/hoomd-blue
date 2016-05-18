@@ -861,7 +861,8 @@ class wall(_external):
         Example::
 
             init_box = hoomd.data.boxdim(L=10, dimensions=3);
-            system = hoomd.init.create_empty(N=1, box=init_box, particle_types=['A']);
+            snap = hoomd.data.make_snapshot(N=1, box=init_box, particle_types=['A']);
+            system = hoomd.init.read_snapshot(snap);
             system.particles[0].position = [0,0,0];
             system.particles[0].type = 'A';
             mc = hpmc.integrate.sphere(seed = 415236);

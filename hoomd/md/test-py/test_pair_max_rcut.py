@@ -7,11 +7,15 @@ context.initialize()
 import unittest
 import os
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # pair - multiple type max_rcut test
 class pair_max_rcut_tests (unittest.TestCase):
     def setUp(self):
         #print
-        init.create_empty(N=100, box=data.boxdim(L=40), particle_types=['A', 'B']);
+        create_empty(N=100, box=data.boxdim(L=40), particle_types=['A', 'B']);
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

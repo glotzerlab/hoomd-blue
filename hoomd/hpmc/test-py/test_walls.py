@@ -10,9 +10,13 @@ import numpy as np
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 class sphere_wall_sphere_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
@@ -47,7 +51,7 @@ class sphere_wall_sphere_test(unittest.TestCase):
 
 class sphere_wall_convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices = [(-0.5,-0.5,-0.5),
                                                 (-0.5,0.5,-0.5),
@@ -113,7 +117,7 @@ class sphere_wall_convex_polyhedron_test(unittest.TestCase):
 
 class cylinder_wall_sphere_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
@@ -148,7 +152,7 @@ class cylinder_wall_sphere_test(unittest.TestCase):
 
 class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices = [(-0.5,-0.5,-0.5),
                                                 (-0.5,0.5,-0.5),
@@ -213,7 +217,7 @@ class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
 
 class plane_wall_sphere_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
@@ -252,7 +256,7 @@ class plane_wall_sphere_test(unittest.TestCase):
 
 class plane_wall_convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices = [(-0.5,-0.5,-0.5),
                                                 (-0.5,0.5,-0.5),
@@ -315,7 +319,7 @@ class plane_wall_convex_polyhedron_test(unittest.TestCase):
 
 class sphere_wall_tetrahedron_specific_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices = [( np.sqrt(3)/3.,  np.sqrt(3)/3.,  np.sqrt(3)/3.),
                                                 (-np.sqrt(3)/3., -np.sqrt(3)/3.,  np.sqrt(3)/3.),

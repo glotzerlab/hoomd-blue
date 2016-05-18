@@ -12,10 +12,6 @@ import hoomd;
 class xml(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the HOOMD XML format.
 
-    .. deprecated:: 2.0
-       GSD is the new default file format for HOOMD-blue. It can store everything that an XML file can in
-       an efficient binary format that is easy to access. See :py:class:`hoomd.dump.gsd`.
-
     Args:
         filename (str): (optional) Base of the file name
         period (int): (optional) Number of time steps between file dumps
@@ -24,6 +20,10 @@ class xml(hoomd.analyze._analyzer):
                      is ignored for periodic updates
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where &(step + phase) % period == 0*.
         restart (bool): When True, write only *filename* and don't save previous states.
+
+    .. deprecated:: 2.0
+       GSD is the new default file format for HOOMD-blue. It can store everything that an XML file can in
+       an efficient binary format that is easy to access. See :py:class:`hoomd.dump.gsd`.
 
     Every *period* time steps, a new file will be created. The state of the
     particles at that time step is written to the file in the HOOMD XML format.
@@ -264,6 +264,8 @@ class pos(hoomd.analyze._analyzer):
                             information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
                             may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
 
+    .. deprecated:: 2.0
+
     The file is opened on initialization and a new frame is appended every \a period steps.
 
     Warning:
@@ -273,6 +275,7 @@ class pos(hoomd.analyze._analyzer):
 
         dump.pos(filename="dump.pos", period=1000)
         pos = dump.pos(filename="particles.pos", period=1e5)
+
     """
     def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
         hoomd.util.print_status_line();
