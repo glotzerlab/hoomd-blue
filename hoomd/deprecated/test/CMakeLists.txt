@@ -4,6 +4,7 @@
 # need a few settings for the unit test library
 # first, they need the boost unit test framework added as a library
 set(ADDITIONAL_LIBS _hoomd
+        _deprecated
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         )
 
@@ -12,7 +13,14 @@ if (Boost_MINOR_VERSION GREATER 59)
 list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 endif ()
 
+# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
 add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
 ####################################
 ## Setup valgrind options
@@ -39,34 +47,8 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
-    test_cell_list
-    test_cell_list_stencil
-    test_gpu_array
-    test_gridshift_correct
-    test_index1d
-    test_messenger
-    test_particle_group
-    test_pdata
-    test_quat
-    test_rotmat2
-    test_rotmat3
-    test_system
-    test_utils
-    test_vec2
-    test_vec3
+    test_hoomd_xml
     )
-
-option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
-
-if(ENABLE_MPI)
-    MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
-    SET("NProc_${_KEY}" "${_VALUE}")
-    SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
-    ENDMACRO(ADD_TO_MPI_TESTS)
-
-    # define every test together with the number of processors
-    ADD_TO_MPI_TESTS(test_load_balancer 8)
-endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc

@@ -75,6 +75,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 *Deprecated*
 
 * Deprecated analyze.msd.
+* Deprecated dump.xml.
 
 ## v1.3.3
 

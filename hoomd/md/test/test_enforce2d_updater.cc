@@ -24,7 +24,6 @@
 
 #include "hoomd/md/IntegratorTwoStep.h"
 
-#include "hoomd/HOOMDDumpWriter.h"
 #include "hoomd/extern/saruprng.h"
 
 #include <math.h>

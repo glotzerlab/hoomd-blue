@@ -24,7 +24,6 @@
 #include "ConstForceCompute.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
-#include "HOOMDDumpWriter.h"
 #include "POSDumpWriter.h"
 #include "DCDDumpWriter.h"
 #include "GSDDumpWriter.h"
@@ -370,7 +369,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     // analyzers
     export_Analyzer();
     export_IMDInterface();
-    export_HOOMDDumpWriter();
     export_POSDumpWriter();
     export_DCDDumpWriter();
     export_GSDDumpWriter();
@@ -411,7 +409,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     register_ptr_to_python< boost::shared_ptr< IMDInterface > >();
     register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< Logger > >();
     register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();

@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "MSDAnalyzer.h"
+#include "HOOMDDumpWriter.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -18,6 +19,7 @@ using namespace boost::python;
 BOOST_PYTHON_MODULE(_deprecated)
     {
     export_MSDAnalyzer();
+    export_HOOMDDumpWriter();
 
 #ifdef ENABLE_CUDA
 #endif
@@ -25,6 +27,7 @@ BOOST_PYTHON_MODULE(_deprecated)
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
     register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
+    register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
 
     #ifdef ENABLE_CUDA
     #endif

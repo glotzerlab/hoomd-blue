@@ -11,7 +11,7 @@
 
 
 #include "HOOMDDumpWriter.h"
-#include "BondedGroupData.h"
+#include "hoomd/BondedGroupData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -23,7 +23,7 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
+#include "hoomd/Communicator.h"
 #endif
 
 using namespace std;

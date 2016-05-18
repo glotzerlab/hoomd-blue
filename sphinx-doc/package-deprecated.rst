@@ -13,3 +13,4 @@ deprecated
     :maxdepth: 3
 
     module-deprecated-analyze
+    module-deprecated-dump

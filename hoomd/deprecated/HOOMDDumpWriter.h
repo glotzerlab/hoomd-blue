@@ -12,7 +12,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "Analyzer.h"
+#include "hoomd/Analyzer.h"
 
 #include <string>
 

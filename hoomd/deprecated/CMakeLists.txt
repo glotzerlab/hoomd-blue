@@ -3,6 +3,7 @@
 set(_deprecated_sources
      module-deprecated.cc
      MSDAnalyzer.cc
+     HOOMDDumpWriter.cc
    )
 
 if (ENABLE_CUDA)
@@ -67,6 +68,7 @@ ENDMACRO(copy_file)
 
 set(files __init__.py
           analyze.py
+          dump.py
     )
 
 install(FILES ${files}
@@ -81,5 +83,5 @@ add_custom_target(copy_deprecated ALL DEPENDS ${files})
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
-    # add_subdirectory(test)
+    add_subdirectory(test)
 endif()

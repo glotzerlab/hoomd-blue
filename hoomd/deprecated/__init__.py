@@ -8,3 +8,4 @@ kept temporarily for users whose workflow depends on them. Deprecated features m
 """
 
 from hoomd.deprecated import analyze
+from hoomd.deprecated import dump

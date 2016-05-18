@@ -23,7 +23,6 @@ set(_hoomd_sources Analyzer.cc
                    ForceConstraint.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
-                   HOOMDDumpWriter.cc
                    HOOMDInitializer.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
