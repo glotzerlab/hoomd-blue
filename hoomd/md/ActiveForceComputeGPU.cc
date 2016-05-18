@@ -66,6 +66,8 @@ using namespace std;
     \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     relevant for non-point-like anisotropic particles.
+    /param orientation_reverse_link When True, the active force vector is coupled to particle orientation. Useful for
+    for using a particle's orientation to log the active force vector.
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
@@ -75,12 +77,13 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition>
                                         int seed,
                                         boost::python::list f_lst,
                                         bool orientation_link,
+                                        bool orientation_reverse_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
+        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -127,7 +130,7 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -139,6 +142,7 @@ void ActiveForceComputeGPU::setForces()
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
     bool orientationLink = (m_orientationLink == true);
+    bool orientationReverseLink = (m_orientationReverseLink == true);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 
@@ -154,6 +158,7 @@ void ActiveForceComputeGPU::setForces()
                                      m_ry,
                                      m_rz,
                                      orientationLink,
+                                     orientationReverseLink,
                                      N,
                                      m_block_size);
     }
@@ -229,6 +234,7 @@ void export_ActiveForceComputeGPU()
                                     boost::shared_ptr<ParticleGroup>,
                                     int,
                                     boost::python::list,
+                                    bool,
                                     bool,
                                     Scalar,
                                     Scalar3,

@@ -66,6 +66,8 @@ using namespace std;
     \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     relevant for non-point-like anisotropic particles.
+    /param orientation_reverse_link When True, the active force vector is coupled to particle orientation. Useful for
+    for using a particle's orientation to log the active force vector.
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
@@ -75,13 +77,14 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
                                         int seed,
                                         boost::python::list f_lst,
                                         bool orientation_link,
+                                        bool orientation_reverse_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff),
-            m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_orientationReverseLink(orientation_reverse_link),
+            m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
 
@@ -148,7 +151,7 @@ void ActiveForceCompute::setForces()
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // sanity check
@@ -182,6 +185,16 @@ void ActiveForceCompute::setForces()
             h_force.data[idx].x = f.x;
             h_force.data[idx].y = f.y;
             h_force.data[idx].z = f.z;
+            }
+        // rotate particle orientation only if orientation is reverse linked to active force vector
+        if (m_orientationReverseLink == true)
+            {
+            f = make_scalar3(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);
+            vec3<Scalar> fvec(f);
+            quat<Scalar> quati(h_orientation.data[idx]);
+            quati = fvec * quati;
+            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
+            h_orientation.data[idx] = quat_to_scalar4(quati);
             }
         }
     }
@@ -354,6 +367,7 @@ void export_ActiveForceCompute()
                                     boost::shared_ptr<ParticleGroup>,
                                     int,
                                     boost::python::list,
+                                    bool,
                                     bool,
                                     Scalar,
                                     Scalar3,

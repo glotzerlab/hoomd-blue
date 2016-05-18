@@ -71,6 +71,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar ry,
                                            Scalar rz,
                                            bool orientationLink,
+                                           bool orientationReverseLink,
                                            const unsigned int N,
                                            unsigned int block_size);
 

@@ -85,6 +85,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar ry,
                                                     Scalar rz,
                                                     bool orientationLink,
+                                                    bool orientationReverseLink
                                                     const unsigned int N)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -115,6 +116,18 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
         d_force[idx].y = f.y;
         d_force[idx].z = f.z;
         }
+    // rotate particle orientation only if orientation is reverse linked to active force vector
+    if (orientationReverseLink == true)
+        {
+        f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
+                        d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
+        vec3<Scalar> fvec(f);
+        quat<Scalar> quati(d_orientation[idx]);
+        quati = fvec * quati;
+        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
+        d_orientation[idx] = quat_to_scalar4(quati);
+        }
+    }
     }
 
 //! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
@@ -285,6 +298,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar ry,
                                            Scalar rz,
                                            bool orientationLink,
+                                           bool orientationReverseLink,
                                            const unsigned int N,
                                            unsigned int block_size)
     {
@@ -306,6 +320,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     ry,
                                                                     rz,
                                                                     orientationLink,
+                                                                    orientationReverseLink,
                                                                     N);
     return cudaSuccess;
     }
