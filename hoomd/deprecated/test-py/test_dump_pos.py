@@ -2,12 +2,13 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 context.initialize()
 import unittest
 import os
 import tempfile
 
-# unit tests for dump.pos
+# unit tests for deprecated.dump.pos
 class dmp_pos_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -23,21 +24,21 @@ class dmp_pos_tests (unittest.TestCase):
 
     # tests basic creation of the dump
     def test(self):
-        dump.pos(filename=self.tmp_file, period=100);
+        deprecated.dump.pos(filename=self.tmp_file, period=100);
         run(10)
         if comm.get_rank() == 0:
             os.remove(self.tmp_file)
 
     # test with phase
     def test_phase(self):
-        dump.pos(filename=self.tmp_file, period=100, phase=0);
+        deprecated.dump.pos(filename=self.tmp_file, period=100, phase=0);
         run(10)
         if comm.get_rank() == 0:
             os.remove(self.tmp_file)
 
     # tests variable periods
     def test_variable(self):
-        dump.pos(filename=self.tmp_file, period=lambda n: n*100);
+        deprecated.dump.pos(filename=self.tmp_file, period=lambda n: n*100);
         run(10);
         if comm.get_rank() == 0:
             os.remove(self.tmp_file)

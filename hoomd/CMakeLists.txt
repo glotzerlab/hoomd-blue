@@ -35,7 +35,6 @@ set(_hoomd_sources Analyzer.cc
                    Messenger.cc
                    ParticleData.cc
                    ParticleGroup.cc
-                   POSDumpWriter.cc
                    Profiler.cc
                    RandomGenerator.cc
                    SFCPackUpdater.cc

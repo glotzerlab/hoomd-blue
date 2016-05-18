@@ -8,7 +8,7 @@
     \brief Declares the POSDumpWriter class
 */
 
-#include "Analyzer.h"
+#include "hoomd/Analyzer.h"
 
 #include <string>
 #include <fstream>
@@ -55,7 +55,7 @@ class POSDumpWriter : public Analyzer
 
         bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
         bool m_write_info; //!< If true, there is additional info to write
-        boost::python::object m_add_info; // method that returns additional information 
+        boost::python::object m_add_info; // method that returns additional information
     };
 
 //! Exports the POSDumpWriter class to python

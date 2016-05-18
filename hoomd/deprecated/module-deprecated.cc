@@ -3,6 +3,7 @@
 
 #include "MSDAnalyzer.h"
 #include "HOOMDDumpWriter.h"
+#include "POSDumpWriter.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -20,6 +21,7 @@ BOOST_PYTHON_MODULE(_deprecated)
     {
     export_MSDAnalyzer();
     export_HOOMDDumpWriter();
+    export_POSDumpWriter();
 
 #ifdef ENABLE_CUDA
 #endif
@@ -28,6 +30,7 @@ BOOST_PYTHON_MODULE(_deprecated)
     #if (BOOST_VERSION == 106000)
     register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
 
     #ifdef ENABLE_CUDA
     #endif

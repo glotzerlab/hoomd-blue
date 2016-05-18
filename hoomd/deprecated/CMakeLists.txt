@@ -4,6 +4,7 @@ set(_deprecated_sources
      module-deprecated.cc
      MSDAnalyzer.cc
      HOOMDDumpWriter.cc
+     POSDumpWriter.cc
    )
 
 if (ENABLE_CUDA)

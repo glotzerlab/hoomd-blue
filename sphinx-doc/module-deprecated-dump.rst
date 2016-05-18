@@ -8,6 +8,7 @@ deprecated.dump
 .. autosummary::
     :nosignatures:
 
+    deprecated.dump.pos
     deprecated.dump.xml
 
 .. rubric:: Details

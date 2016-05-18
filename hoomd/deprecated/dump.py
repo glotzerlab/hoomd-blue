@@ -248,3 +248,62 @@ class xml(hoomd.analyze._analyzer):
 
         self.cpp_analyzer.analyze(hoomd.context.current.system.getCurrentTimeStep());
 
+class pos(hoomd.analyze._analyzer):
+    R""" Writes simulation snapshots in the POS format
+
+    Args:
+        filename (str): File name to write
+        period (int): (optional) Number of time steps between file dumps
+        unwrap_rigid (bool): When False, (the default) individual particles are written inside
+                             the simulation box which breaks up rigid bodies near box boundaries. When True,
+                             particles belonging to the same rigid body will be unwrapped so that the body
+                             is continuous. The center of mass of the body remains in the simulation box, but
+                             some particles may be written just outside it.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        addInfo (callable): A user-defined python function that returns a string of additional information when it is called. This
+                            information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
+                            may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
+
+    The file is opened on initialization and a new frame is appended every \a period steps.
+
+    Warning:
+        :py:class:`dump.pos` is not restart compatible. It always overwrites the file on initialization.
+
+    Examples::
+
+        dump.pos(filename="dump.pos", period=1000)
+        pos = dump.pos(filename="particles.pos", period=1e5)
+    """
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        hoomd.analyze._analyzer.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_analyzer = _deprecated.POSDumpWriter(hoomd.context.current.system_definition, filename);
+        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+
+        if addInfo is not None:
+            self.cpp_analyzer.setAddInfo(addInfo);
+
+        if period is not None:
+            self.setupAnalyzer(period, phase);
+            self.enabled = True;
+            self.prev_period = 1;
+        else:
+            self.enabled = False;
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.unwrap_rigid = unwrap_rigid
+        self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
+
+    def set_def(self, typ, shape):
+        v = hoomd.context.current.system_definition.getParticleData().getTypeByName(typ);
+        self.cpp_analyzer.setDef(v, shape)
+
+    def set_info(self, addInfo):
+        if addInfo is not None:
+            self.cpp_analyzer.setAddInfo(addInfo);
