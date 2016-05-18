@@ -71,6 +71,10 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
 * Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
 
+*Deprecated*
+
+* Deprecated analyze.msd.
+
 ## v1.3.3
 
 Released 2016/03/06

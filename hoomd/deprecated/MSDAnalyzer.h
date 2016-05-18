@@ -15,8 +15,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "Analyzer.h"
-#include "ParticleGroup.h"
+#include "hoomd/Analyzer.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <string>
 #include <fstream>

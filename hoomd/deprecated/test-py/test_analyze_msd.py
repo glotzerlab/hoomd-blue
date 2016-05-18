@@ -3,11 +3,12 @@
 
 import hoomd;
 hoomd.context.initialize()
+from hoomd import deprecated
 import unittest
 import os
 import tempfile
 
-# unit tests for hoomd.analyze.msd
+# unit tests for deprecated.analyze.msd
 class analyze_msd_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -24,26 +25,26 @@ class analyze_msd_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test(self):
-        hoomd.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()]);
+        deprecated.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()]);
         hoomd.run(100);
 
     # tests with phase
     def test_phase(self):
-        hoomd.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()], phase=0);
+        deprecated.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()], phase=0);
         hoomd.run(100);
 
     # test variable period
     def test_variable(self):
-        hoomd.analyze.msd(period = lambda n: n*10, filename=self.tmp_file, groups=[hoomd.group.all()]);
+        deprecated.analyze.msd(period = lambda n: n*10, filename=self.tmp_file, groups=[hoomd.group.all()]);
         hoomd.run(100);
 
     # test error if no groups defined
     def test_no_gropus(self):
-        self.assertRaises(RuntimeError, hoomd.analyze.msd, period=10, filename=self.tmp_file, groups=[]);
+        self.assertRaises(RuntimeError, deprecated.analyze.msd, period=10, filename=self.tmp_file, groups=[]);
 
     # test set_params
     def test_set_params(self):
-        ana = hoomd.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()]);
+        ana = deprecated.analyze.msd(period = 10, filename=self.tmp_file, groups=[hoomd.group.all()]);
         ana.set_params(delimiter = ' ');
         hoomd.run(100);
 
@@ -55,9 +56,9 @@ class analyze_msd_tests (unittest.TestCase):
         groupB = hoomd.group.type('B',update=True)
         self.assertEqual(len(groupA),100)
         self.assertEqual(len(groupB),1)
-        ana_A_ = hoomd.analyze.msd(period = 10, filename=self.tmp_file, groups=[groupA]);
+        ana_A_ = deprecated.analyze.msd(period = 10, filename=self.tmp_file, groups=[groupA]);
         self.s.particles.add('B')
-        ana_B = hoomd.analyze.msd(period = 10, filename=self.tmp_file+'_B', groups=[groupB]);
+        ana_B = deprecated.analyze.msd(period = 10, filename=self.tmp_file+'_B', groups=[groupB]);
         self.assertRaises(RuntimeError,self.s.particles.add, type='B')
         if hoomd.comm.get_rank() == 0:
             os.remove(self.tmp_file+'_B');

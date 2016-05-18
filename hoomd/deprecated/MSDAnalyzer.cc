@@ -11,11 +11,11 @@
 
 
 #include "MSDAnalyzer.h"
-#include "HOOMDInitializer.h"
-#include "Filesystem.h"
+#include "hoomd/HOOMDInitializer.h"
+#include "hoomd/Filesystem.h"
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
+#include "hoomd/Communicator.h"
 #endif
 
 #include <boost/python.hpp>

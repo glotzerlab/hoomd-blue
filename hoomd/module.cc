@@ -31,7 +31,6 @@
 #include "DCDDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
-#include "MSDAnalyzer.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -380,7 +379,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_GSDDumpWriter();
     export_MOL2DumpWriter();
     export_Logger();
-    export_MSDAnalyzer();
     export_CallbackAnalyzer();
     export_ParticleGroup();
 
@@ -420,7 +418,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< PDBDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< MOL2DumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< Logger > >();
     register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();

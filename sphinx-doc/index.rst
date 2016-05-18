@@ -25,6 +25,7 @@ Welcome to the user documentation for HOOMD-blue!
    package-hoomd
    package-hpmc
    package-md
+   package-deprecated
 
 .. toctree::
    :maxdepth: 3

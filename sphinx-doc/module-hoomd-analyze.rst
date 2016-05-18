@@ -9,7 +9,6 @@ hoomd.analyze
     hoomd.analyze.callback
     hoomd.analyze.imd
     hoomd.analyze.log
-    hoomd.analyze.msd
 
 .. rubric:: Details
 

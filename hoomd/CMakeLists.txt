@@ -35,7 +35,6 @@ set(_hoomd_sources Analyzer.cc
                    Logger.cc
                    Messenger.cc
                    MOL2DumpWriter.cc
-                   MSDAnalyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    PDBDumpWriter.cc
@@ -184,4 +183,9 @@ endif()
 
 if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
+endif()
+
+option(BUILD_DEPRECATED "Build the deprecated package" on)
+if (BUILD_DEPRECATED)
+    add_subdirectory(deprecated)
 endif()
