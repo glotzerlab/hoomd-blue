@@ -1,3 +1,5 @@
+.. _restartable-jobs:
+
 Restartable jobs
 ================
 

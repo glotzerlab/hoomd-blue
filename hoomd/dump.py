@@ -48,7 +48,7 @@ class xml(hoomd.analyze._analyzer):
     #
     # If period is set and restart is True, dump.xml() will write a temporary file and then move it to \a filename. This
     # stores only the most recent state of the simulation in the written file. It is useful for writing jobs that
-    # are restartable. TODO - link to restartable documentation.
+    # are restartable - see :ref:`restartable-jobs`.
     #
     # By default, only particle positions are output to the dump files. This can be changed
     # with set_params(), or by specifying the options in the dump.xml() command.
@@ -363,10 +363,7 @@ class dcd(hoomd.analyze._analyzer):
     specified file in the DCD file format. DCD only stores particle positions
     but is decently space efficient and fast to read and write.
 
-    Particle positions are written directly in distance units. TODO: reference units page.
-
-    Use in conjunction with dump.xml so that VMD has information on the
-    particle names and bond topology.
+    Particle positions are written directly in distance units - see :ref:`page-units`.
 
     Due to constraints of the DCD file format, once you stop writing to
     a file via :py:meth:`disable()`, you cannot continue writing to the same file,
