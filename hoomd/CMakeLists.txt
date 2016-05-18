@@ -34,10 +34,8 @@ set(_hoomd_sources Analyzer.cc
                    LoadBalancer.cc
                    Logger.cc
                    Messenger.cc
-                   MOL2DumpWriter.cc
                    ParticleData.cc
                    ParticleGroup.cc
-                   PDBDumpWriter.cc
                    POSDumpWriter.cc
                    Profiler.cc
                    RandomGenerator.cc

@@ -70,6 +70,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
 * Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
 * Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
+* Removed PDB and MOL2 dump writers.
 
 *Deprecated*
 

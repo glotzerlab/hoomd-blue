@@ -26,8 +26,6 @@
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
 #include "POSDumpWriter.h"
-#include "PDBDumpWriter.h"
-#include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
@@ -374,10 +372,8 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_IMDInterface();
     export_HOOMDDumpWriter();
     export_POSDumpWriter();
-    export_PDBDumpWriter();
     export_DCDDumpWriter();
     export_GSDDumpWriter();
-    export_MOL2DumpWriter();
     export_Logger();
     export_CallbackAnalyzer();
     export_ParticleGroup();
@@ -416,8 +412,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< PDBDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< MOL2DumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< Logger > >();
     register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();
