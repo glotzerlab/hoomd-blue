@@ -14,3 +14,4 @@ deprecated
 
     module-deprecated-analyze
     module-deprecated-dump
+    module-deprecated-init

@@ -108,6 +108,12 @@ To approximate a fair comparison of dynamics between CPU and GPU timesteps, log 
 quantity to get the number sweeps completed so far at each logged timestep.
 
 See `J. A. Anderson et. al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.024>`_ for design and implementation details.
+
+.. rubric:: Stability
+
+:py:mod:`hoomd.hpmc` is **stable**. When upgrading from version 2.x to 2.y (y > x),
+existing job scripts that follow *documented* interfaces for functions and classes
+will not require any modifications. **Maintainer:** Joshua A. Anderson
 """
 
 # need to import all submodules defined in this directory
