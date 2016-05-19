@@ -2684,6 +2684,9 @@ class van_der_waals(pair):
     If this conservative force is combined with a DPD thermostat, the conservative part of the
     original, i.e. Groot-Warren DPD force, should be set to zero.
 
+    The potential is meant to be used with a one-component liquid. Disable unwanted pair-interactions
+    with :math:`a=T=\alpha=0`.
+
     Example::
 
         nl = nlist.cell()
