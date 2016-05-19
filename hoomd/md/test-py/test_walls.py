@@ -3,6 +3,7 @@
 
 from hoomd import *
 from hoomd import md;
+from hoomd import deprecated
 context.initialize()
 import unittest
 import os
@@ -70,7 +71,7 @@ class wall_group_tests(unittest.TestCase):
 # test lj wall force in standard mode
 class wall_lj_tests (unittest.TestCase):
     def setUp(self):
-        self.s=init.create_random(N=100, box=data.boxdim(L=5));
+        self.s=deprecated.init.create_random(N=100, box=data.boxdim(L=5));
         updater=update.box_resize(L = 15, period=None, scale_particles = False);
         self.walls=md.wall.group();
         self.walls.add_sphere(r=5, origin=(0.0, 0.0, 0.0), inside=True);

@@ -4,6 +4,8 @@
 #include "MSDAnalyzer.h"
 #include "HOOMDDumpWriter.h"
 #include "POSDumpWriter.h"
+#include "HOOMDInitializer.h"
+#include "RandomGenerator.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -22,6 +24,8 @@ BOOST_PYTHON_MODULE(_deprecated)
     export_MSDAnalyzer();
     export_HOOMDDumpWriter();
     export_POSDumpWriter();
+    export_HOOMDInitializer();
+    export_RandomGenerator();
 
 #ifdef ENABLE_CUDA
 #endif
@@ -31,6 +35,9 @@ BOOST_PYTHON_MODULE(_deprecated)
     register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
     register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
     register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
+    register_ptr_to_python< boost::shared_ptr< HOOMDInitializer > >();
+    register_ptr_to_python< boost::shared_ptr< RandomGenerator > >();
+    register_ptr_to_python< boost::shared_ptr< PolymerParticleGenerator > >();
 
     #ifdef ENABLE_CUDA
     #endif

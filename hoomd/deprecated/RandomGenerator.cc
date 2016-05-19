@@ -640,9 +640,6 @@ class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleG
 
 void export_RandomGenerator()
     {
-    class_<std::vector<string> >("std_vector_string")
-    .def(vector_indexing_suite<std::vector<string> >())
-    ;
 
     class_< RandomGenerator >("RandomGenerator", init<boost::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int, unsigned int>())
     // virtual methods from ParticleDataInitializer are inherited

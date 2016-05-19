@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 import unittest
 import os, math, numpy as np
@@ -11,7 +12,7 @@ context.initialize();
 class force_active_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
         context.current.sorter.set_params(grid=8)
 

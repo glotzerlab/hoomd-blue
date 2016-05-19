@@ -4,11 +4,12 @@
 import hoomd
 hoomd.context.initialize()
 import unittest
+from hoomd import deprecated
 
 class analyze_callback_tests(unittest.TestCase):
 
     def setUp(self):
-        hoomd.init.create_random(N=100, phi_p=0.05)
+        deprecated.init.create_random(N=100, phi_p=0.05)
         self.test_index = 0
         self.test_index_2 = 0
 

@@ -12,7 +12,7 @@ import tempfile
 class analyze_msd_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = hoomd.init.create_random(N=100, phi_p=0.05);
+        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
 
         hoomd.context.current.sorter.set_params(grid=8)
 

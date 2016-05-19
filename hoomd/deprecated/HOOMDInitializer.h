@@ -12,10 +12,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "ParticleData.h"
-#include "BondedGroupData.h"
+#include "hoomd/ParticleData.h"
+#include "hoomd/BondedGroupData.h"
 #include "hoomd/extern/xmlParser.h"
-#include "BondedGroupData.h"
+#include "hoomd/BondedGroupData.h"
 
 #include <string>
 #include <vector>

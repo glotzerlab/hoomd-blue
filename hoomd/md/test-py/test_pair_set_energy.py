@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -13,7 +14,7 @@ class pair_set_energy_tests (unittest.TestCase):
     def setUp(self):
         print
         self.N=1000;
-        self.s = init.create_random(N=self.N, phi_p=0.05);
+        self.s = deprecated.init.create_random(N=self.N, phi_p=0.05);
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

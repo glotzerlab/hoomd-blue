@@ -7,8 +7,8 @@ context.initialize()
 import unittest
 import os
 
-# unit tests for init.create_random
-class init_create_random_tests (unittest.TestCase):
+# unit tests for options
+class option_tests (unittest.TestCase):
     def setUp(self):
         print
 

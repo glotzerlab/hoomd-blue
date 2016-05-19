@@ -11,7 +11,7 @@
 
 
 #include "MSDAnalyzer.h"
-#include "hoomd/HOOMDInitializer.h"
+#include "HOOMDInitializer.h"
 #include "hoomd/Filesystem.h"
 
 #ifdef ENABLE_MPI

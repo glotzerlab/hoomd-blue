@@ -13,7 +13,6 @@
 
 #include "hoomd/md/Enforce2DUpdater.h"
 #include "hoomd/md/AllPairPotentials.h"
-#include "hoomd/HOOMDInitializer.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"

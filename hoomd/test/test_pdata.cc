@@ -618,65 +618,6 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     BOOST_CHECK(pdata_type_test.getTypeByName("test") == 1);
     }
 
-//! Test operation of the simple cubic initializer class
-BOOST_AUTO_TEST_CASE( SimpleCubic_test )
-    {
-    Scalar tol = Scalar(1e-6);
-
-    // make a simple one-particle box
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    SimpleCubicInitializer one(1, 2.0, "ABC");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot = one.getSnapshot();
-    ParticleData one_data(snapshot->particle_data, snapshot->global_box, exec_conf);
-
-    BOOST_CHECK(one_data.getN() == 1);
-    {
-    ArrayHandle<Scalar4> h_pos(one_data.getPositions(), access_location::host, access_mode::read);
-
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, -1.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, -1.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, -1.0, tol);
-    }
-
-    BOOST_CHECK_EQUAL(one_data.getNameByType(0), "ABC");
-    BOOST_CHECK_EQUAL(one_data.getTypeByName("ABC"), (unsigned int)0);
-
-    // now try an 8-particle one
-    SimpleCubicInitializer eight(2, 2.0, "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot_eight = eight.getSnapshot();
-    ParticleData eight_data(snapshot_eight->particle_data, snapshot_eight->global_box, exec_conf);
-
-    BOOST_CHECK(eight_data.getN() == 8);
-    {
-    ArrayHandle<Scalar4> h_pos(eight_data.getPositions(), access_location::host, access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[1].y, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[1].z, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[2].x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[2].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[2].z, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[3].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[3].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[3].z, -2.0, tol);
-
-    MY_BOOST_CHECK_CLOSE(h_pos.data[4].x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[4].y, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[4].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[5].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[5].y, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[5].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[6].x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[6].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[6].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[7].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[7].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[7].z, 0.0, tol);
-    }
-    }
-
 //! Tests the RandomParticleInitializer class
 BOOST_AUTO_TEST_CASE( Random_test )
     {

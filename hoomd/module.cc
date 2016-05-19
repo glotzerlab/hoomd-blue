@@ -12,9 +12,7 @@
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
-#include "HOOMDInitializer.h"
 #include "GSDReader.h"
-#include "RandomGenerator.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
 #include "CellList.h"
@@ -35,6 +33,7 @@
 #include "System.h"
 #include "Variant.h"
 #include "Messenger.h"
+#include "SnapshotSystemData.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -310,6 +309,10 @@ BOOST_PYTHON_MODULE(_hoomd)
     .def(vector_indexing_suite<std::vector<Scalar> >())
     ;
 
+    class_<std::vector<string> >("std_vector_string")
+    .def(vector_indexing_suite<std::vector<string> >())
+    ;
+
     class_< std::vector<unsigned int> >("std_vector_uint")
     .def(vector_indexing_suite<std::vector<unsigned int> >())
     ;
@@ -345,11 +348,7 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_BondedGroupData<ConstraintData,Constraint>("ConstraintData","ConstraintDataSnapshot");
 
     // initializers
-    export_RandomInitializer();
-    export_SimpleCubicInitializer();
-    export_HOOMDInitializer();
     export_GSDReader();
-    export_RandomGenerator();
 
     // computes
     export_Compute();
@@ -418,9 +417,6 @@ BOOST_PYTHON_MODULE(_hoomd)
     register_ptr_to_python< boost::shared_ptr< ParticleData > >();
     register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<float> > >();
     register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<double> > >();
-    register_ptr_to_python< boost::shared_ptr< RandomGenerator > >();
-    register_ptr_to_python< boost::shared_ptr< PolymerParticleGenerator > >();
-    register_ptr_to_python< boost::shared_ptr< HOOMDInitializer > >();
     register_ptr_to_python< boost::shared_ptr< ParticleGroup > >();
     register_ptr_to_python< boost::shared_ptr< ParticleSelector > >();
     register_ptr_to_python< boost::shared_ptr< ParticleSelectorAll > >();

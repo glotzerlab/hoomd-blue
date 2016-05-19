@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -11,7 +12,7 @@ import os
 class update_rescale_temp_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.system = init.create_random(N=10000, phi_p=0.01,min_dist=1);
+        self.system = deprecated.init.create_random(N=10000, phi_p=0.01,min_dist=1);
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

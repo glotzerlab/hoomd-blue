@@ -1,5 +1,6 @@
 from hoomd import *
 from hoomd import md
+from hoomd import deprecated
 import math
 import unittest
 
@@ -17,7 +18,7 @@ class test_constrain_rigid(unittest.TestCase):
         species_B = dict(bond_len=2.1, type=['B'], bond="linear", count=N_B)
 
         # generate a system of N=8 AB diblocks
-        self.system=init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
+        self.system=deprecated.init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
         self.nl = md.nlist.cell()
 
         for p in self.system.particles:

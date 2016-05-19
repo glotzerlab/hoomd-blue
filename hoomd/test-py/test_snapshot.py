@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -16,7 +17,7 @@ class init_take_restore_snapshot (unittest.TestCase):
         polymers = [polymer1, polymer2]
         box = data.boxdim(L=35);
         separation=dict(A=0.42, B=0.42)
-        self.s = init.create_random_polymers(box=box, polymers=polymers, separation=separation);
+        self.s = deprecated.init.create_random_polymers(box=box, polymers=polymers, separation=separation);
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
 
@@ -146,7 +147,7 @@ class init_verify_npy_dtype (unittest.TestCase):
         polymer = dict(bond_len=1.2, type=['A']*1 + ['B']*2, bond="linear", count=3);
         box = data.boxdim(L=35);
         separation=dict(A=0.42, B=0.42)
-        self.s = init.create_random_polymers(box=box, polymers=[polymer], separation=separation);
+        self.s = deprecated.init.create_random_polymers(box=box, polymers=[polymer], separation=separation);
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
 

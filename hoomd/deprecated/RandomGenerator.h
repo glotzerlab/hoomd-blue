@@ -12,9 +12,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "ParticleData.h"
+#include "hoomd/ParticleData.h"
 
-#include "SnapshotSystemData.h"
+#include "hoomd/SnapshotSystemData.h"
 
 #include <string>
 #include <vector>

@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 from hoomd import *
+from hoomd import deprecated
 from hoomd import hpmc
 import math
 import unittest
@@ -10,7 +11,7 @@ context.initialize()
 class test_ghost_layer(unittest.TestCase):
     def test_implicit(self):
         # setup the MC integration
-        system = init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
+        system = deprecated.init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
 
         mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
         mc.set_params(d=0,a=0)
@@ -31,7 +32,7 @@ class test_ghost_layer(unittest.TestCase):
 
     def test_base(self):
         # setup the MC integration
-        system = init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
+        system = deprecated.init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
 
         mc = hpmc.integrate.convex_polyhedron(seed=123,max_verts=8)
         mc.set_params(d=0,a=0)

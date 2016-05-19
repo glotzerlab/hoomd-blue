@@ -11,7 +11,6 @@
 
 
 #include "CallbackAnalyzer.h"
-#include "HOOMDInitializer.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"

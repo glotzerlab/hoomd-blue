@@ -7,7 +7,7 @@
 
 #include <math.h>
 #include "hoomd/deprecated/HOOMDDumpWriter.h"
-#include "hoomd/HOOMDInitializer.h"
+#include "hoomd/deprecated/HOOMDInitializer.h"
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/Filesystem.h"
 

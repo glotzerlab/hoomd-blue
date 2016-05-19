@@ -5,6 +5,8 @@ set(_deprecated_sources
      MSDAnalyzer.cc
      HOOMDDumpWriter.cc
      POSDumpWriter.cc
+     HOOMDInitializer.cc
+     RandomGenerator.cc
    )
 
 if (ENABLE_CUDA)
@@ -70,6 +72,7 @@ ENDMACRO(copy_file)
 set(files __init__.py
           analyze.py
           dump.py
+          init.py
     )
 
 install(FILES ${files}

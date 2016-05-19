@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -16,7 +17,7 @@ class bond_table_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.35, B=0.35)
-        init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        deprecated.init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
 
         context.current.sorter.set_params(grid=8)
 

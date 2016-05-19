@@ -8,8 +8,8 @@
     \brief Defines the HOOMDInitializer class
 */
 #include "HOOMDInitializer.h"
-#include "SnapshotSystemData.h"
-#include "ExecutionConfiguration.h"
+#include "hoomd/SnapshotSystemData.h"
+#include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>

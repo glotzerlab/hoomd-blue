@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -12,7 +13,7 @@ import tempfile
 class dmp_dcd_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
         context.current.sorter.set_params(grid=8)
 

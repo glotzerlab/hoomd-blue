@@ -23,7 +23,6 @@ set(_hoomd_sources Analyzer.cc
                    ForceConstraint.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
-                   HOOMDInitializer.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
                    IMDInterface.cc
@@ -36,7 +35,6 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
-                   RandomGenerator.cc
                    SFCPackUpdater.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
