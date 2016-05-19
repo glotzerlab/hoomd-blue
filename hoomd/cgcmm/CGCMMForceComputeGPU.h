@@ -5,7 +5,7 @@
 // Maintainer: akohlmey
 
 #include "CGCMMForceCompute.h"
-#include "NeighborList.h"
+#include "hoomd/md/NeighborList.h"
 #include "CGCMMForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>

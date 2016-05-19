@@ -3,12 +3,13 @@
 
 from hoomd import *
 from hoomd import md
+from hoomd import cgcmm
 context.initialize()
 import unittest
 import os
 import numpy
 
-# tests md.angle.cgcmm
+# tests cgcmm.angle.cgcmm
 class angle_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -39,14 +40,14 @@ class angle_cgcmm_tests (unittest.TestCase):
 
         context.current.sorter.set_params(grid=8)
 
-    # test to see that se can create an md.angle.cgcmm
+    # test to see that se can create an cgcmm.angle.cgcmm
     def test_create(self):
-        md.angle.cgcmm();
+        cgcmm.angle.cgcmm();
 
     # test setting coefficients
     def test_set_coeff(self):
-        cgcmm = md.angle.cgcmm();
-        cgcmm.set_coeff('angleA', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
+        cg = cgcmm.angle.cgcmm();
+        cg.set_coeff('angleA', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
@@ -54,7 +55,7 @@ class angle_cgcmm_tests (unittest.TestCase):
 
     # test coefficient not set checking
     def test_set_coeff_fail(self):
-        cgcmm = md.angle.cgcmm();
+        cg = cgcmm.angle.cgcmm();
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);

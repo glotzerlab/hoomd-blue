@@ -5,7 +5,7 @@
 // Maintainer: akohlmey
 
 #include "hoomd/ForceCompute.h"
-#include "NeighborList.h"
+#include "hoomd/md/NeighborList.h"
 
 #include <boost/shared_ptr.hpp>
 

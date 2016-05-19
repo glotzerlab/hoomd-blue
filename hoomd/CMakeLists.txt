@@ -183,3 +183,8 @@ option(BUILD_DEPRECATED "Build the deprecated package" on)
 if (BUILD_DEPRECATED)
     add_subdirectory(deprecated)
 endif()
+
+option(BUILD_CGCMM "Build the cgcmm package" on)
+if (BUILD_CGCMM AND BUILD_MD)
+    add_subdirectory(cgcmm)
+endif()

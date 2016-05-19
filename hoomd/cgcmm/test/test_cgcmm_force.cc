@@ -11,9 +11,9 @@
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "hoomd/md/CGCMMForceCompute.h"
+#include "hoomd/cgcmm/CGCMMForceCompute.h"
 #ifdef ENABLE_CUDA
-#include "hoomd/md/CGCMMForceComputeGPU.h"
+#include "hoomd/cgcmm/CGCMMForceComputeGPU.h"
 #endif
 
 #include "hoomd/md/NeighborListTree.h"

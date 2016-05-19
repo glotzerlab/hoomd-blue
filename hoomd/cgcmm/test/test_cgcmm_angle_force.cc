@@ -11,10 +11,10 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
-#include "hoomd/md/CGCMMAngleForceCompute.h"
+#include "hoomd/cgcmm/CGCMMAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
 #ifdef ENABLE_CUDA
-#include "hoomd/md/CGCMMAngleForceComputeGPU.h"
+#include "hoomd/cgcmm/CGCMMAngleForceComputeGPU.h"
 #endif
 
 #include <stdio.h>

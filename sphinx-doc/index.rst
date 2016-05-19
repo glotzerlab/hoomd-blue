@@ -30,6 +30,7 @@ Welcome to the user documentation for HOOMD-blue!
    :maxdepth: 3
    :caption: Additional python packages
 
+   package-cgcmm
    package-deprecated
 
 .. toctree::

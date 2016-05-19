@@ -4,6 +4,7 @@
 # need a few settings for the unit test library
 # first, they need the boost unit test framework added as a library
 set(ADDITIONAL_LIBS _hoomd
+        _cgcmm
         _md
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         )
@@ -47,57 +48,9 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
-    test_berendsen_integrator
-    test_bondtable_bond_force
-    test_constraint_sphere
-    test_dipole_force
-    test_enforce2d_updater
-    test_ewald_force
-    test_external_periodic
-    test_fenebond_force
-    test_fire_energy_minimizer
-    test_force_shifted_lj
-    test_gaussian_force
-    test_gayberne_force
-    test_harmonic_angle_force
-    test_harmonic_bond_force
-    test_harmonic_dihedral_force
-    test_harmonic_improper_force
-    test_lj_force
-    test_mie_force
-    test_morse_force
-    test_neighborlist
-    test_opls_dihedral_force
-    test_pppm_force
-    test_slj_force
-    test_table_angle_force
-    test_table_dihedral_force
-    test_table_potential
-    test_temp_rescale_updater
-    test_walldata
-    test_yukawa_force
-    test_zero_momentum_updater
+    test_cgcmm_angle_force
+    test_cgcmm_force
     )
-
-if (NOT HOOMD_SKIP_LONG_TESTS)
-    # put the longest tests last
-set(TEST_LIST ${TEST_LIST}
-    test_dpd_integrator
-    test_npt_mtk_integrator
-    test_nvt_mtk_integrator
-    test_nve_integrator)
-endif()
-
-if(ENABLE_MPI)
-    MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
-    SET("NProc_${_KEY}" "${_VALUE}")
-    SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
-    ENDMACRO(ADD_TO_MPI_TESTS)
-
-    # define every test together with the number of processors
-    ADD_TO_MPI_TESTS(test_communication 8)
-    ADD_TO_MPI_TESTS(test_communicator_grid 8)
-endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc

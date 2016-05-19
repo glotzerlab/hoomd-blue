@@ -21,10 +21,10 @@ set(_deprecated_cu_sources
 set_source_files_properties(${_deprecated_sources} ${_deprecated_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_deprecated_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+CUDA_COMPILE(_CUDA_GENERATED_FILES ${_deprecated_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
+add_library (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
 target_link_libraries(_deprecated _hoomd ${HOOMD_COMMON_LIBS})

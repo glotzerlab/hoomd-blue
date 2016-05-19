@@ -3,12 +3,13 @@
 
 from hoomd import *
 from hoomd import deprecated
+from hoomd import cgcmm
 from hoomd import md;
 context.initialize()
 import unittest
 import os
 
-# md.pair.cgcmm
+# cgcmm.pair.cgcmm
 class pair_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
@@ -18,36 +19,36 @@ class pair_cgcmm_tests (unittest.TestCase):
 
     # basic test of creation
     def test(self):
-        cgcmm = md.pair.cgcmm(r_cut=3.0, nlist = self.nl);
-        cgcmm.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
-        cgcmm.update_coeffs();
+        cg = cgcmm.pair.cgcmm(r_cut=3.0, nlist = self.nl);
+        cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cg.update_coeffs();
 
     # test missing coefficients
     def test_set_missing_epsilon(self):
-        cgcmm = md.pair.cgcmm(r_cut=3.0, nlist = self.nl);
-        cgcmm.pair_coeff.set('A', 'A', sigma=1.0, alpha=1.0);
-        self.assertRaises(RuntimeError, cgcmm.update_coeffs);
+        cg = cgcmm.pair.cgcmm(r_cut=3.0, nlist = self.nl);
+        cg.pair_coeff.set('A', 'A', sigma=1.0, alpha=1.0);
+        self.assertRaises(RuntimeError, cg.update_coeffs);
 
     # test missing coefficients
     def test_missing_AA(self):
-        cgcmm = md.pair.cgcmm(r_cut=3.0, nlist = self.nl);
-        self.assertRaises(RuntimeError, cgcmm.update_coeffs);
+        cg = cgcmm.pair.cgcmm(r_cut=3.0, nlist = self.nl);
+        self.assertRaises(RuntimeError, cg.update_coeffs);
 
     # test nlist subscribe
     def test_nlist_subscribe(self):
-        cgcmm = md.pair.cgcmm(r_cut=2.5, nlist = self.nl);
+        cg = cgcmm.pair.cgcmm(r_cut=2.5, nlist = self.nl);
         self.nl.update_rcut();
         self.assertAlmostEqual(2.5, self.nl.r_cut.get_pair('A','A'));
 
     # test adding types
     def test_type_add(self):
-        cgcmm = md.pair.cgcmm(r_cut=3.0, nlist = self.nl);
-        cgcmm.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cg = cgcmm.pair.cgcmm(r_cut=3.0, nlist = self.nl);
+        cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
         self.s.particles.types.add('B')
-        self.assertRaises(RuntimeError, cgcmm.update_coeffs);
-        cgcmm.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
-        cgcmm.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
-        cgcmm.update_coeffs();
+        self.assertRaises(RuntimeError, cg.update_coeffs);
+        cg.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cg.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cg.update_coeffs();
 
     def tearDown(self):
         del self.s, self.nl
