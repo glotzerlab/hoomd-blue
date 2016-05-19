@@ -2620,3 +2620,108 @@ class reaction_field(pair):
         eps_rf = coeff['eps_rf'];
 
         return _hoomd.make_scalar2(epsilon, eps_rf);
+
+class van_der_waals(pair):
+    R""" Soft potential for simulating a van-der-Waals liquid
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`van_der_waals` specifies that the van-der-Waals three-body potential should be applied to every
+    non-bonded particle pair in the simulation.  Despite the fact that the van-derWaals potential accounts
+    for the effects of third bodies, it is included in the pair potentials because the species of the
+    third body is irrelevant. It can thus use type-pair parameters similar to those of the pair potentials.
+
+    The potential is used as the conservative part of the DPD pair force, and implements the force derived
+    from a local free energy functional with a free energy function corresponding to the van-der-Waals equation
+    of state, augmented by a cubic term.
+
+    The excess free energy per particle takes the form
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        \Psi^{ex} = -k_B T \ln((1-b \rho)-a\rho-\alpha a b \rho^3)
+        \end{equation}
+
+    which gives a pair-wise additive, three-body force
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-3 \alpha a b n_i^2\left)
+            + \left( \frac{k_B T b}{1-b n_j} - a - 3 \alpha a b n_j^2\right)\right\} w'_{ij} \vec e_{ij}
+        \end{equation}
+
+    Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
+        \end{equation}
+
+    The local density at the location of particle $i$ is defined as
+    .. math::
+        \begin{equation}
+        n_i = \sum\limits_j w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
+        \end{equation}
+
+    Note that the cutoff of the **pair** potential is :math:`r_c = 2r_{c,\mathrm{weight}}` .
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`a` - *A* (in units of energy*volume) - attraction parameter from vdW equation of state
+    - :math:`b` - *B* (in units of volume) - covolume from vdW equation of state
+    - :math:`T` - *T* (in units of temperature*k_B) - the temperature in the vdW equation of state
+    - :math:`alpha` - *alpha* (dimensionless) - controls the cubic term in the vdW free energy
+      - *optional*: defaults to zero
+
+    If this conservative force is combined with a DPD thermostat, the conservative part of the
+    original, i.e. Groot-Warren DPD force, should be set to zero.
+
+    Example::
+
+        nl = nlist.cell()
+        vdw = pair.van_der_waals(r_cut=3.0, nlist=nl)
+        vdw.pair_coeff.set('A', 'A', a=1.9*0.016,b=0.016,alpha=5,eps_rf=1.0)
+
+    For further details regarding this multibody potential, see
+
+    I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
+    J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
+
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # this potential cannot handle a half neighbor list
+        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialVanDerWaals(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialVanDerWaals;
+        else:
+            self.cpp_force = _md.PotentialVanDerWaalsGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialVanDerWaalsGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['A','B','alpha','T']
+        self.pair_coeff.set_default_coeff('alpha', 0.0);
+
+    def process_coeff(self, coeff):
+        return _hoomd.make_scalar4(coeff['A'],coeff['B'],coeff['alpha'],coeff['T'])
+
+

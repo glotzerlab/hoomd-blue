@@ -20,6 +20,7 @@
 #include "EAMForceCompute.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
+#include "EvaluatorVanDerWaals.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
@@ -216,6 +217,7 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
+    export_PotentialTersoff<PotentialTripletVanDerWaals> ("PotentialVanDerWaals");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
@@ -267,6 +269,7 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
+    export_PotentialTersoffGPU<PotentialTripletVanDerWaalsGPU, PotentialTripletVanDerWaals> ("PotentialVanDerWaalsGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>("PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");

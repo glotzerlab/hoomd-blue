@@ -94,8 +94,18 @@ class EvaluatorTersoff
             rik_sq = rsq;
             }
 
+        //! This is a pure pair potential
+        DEVICE static bool hasPerParticleEnergy() { return false; }
+
+        //! We need chi
+        DEVICE static bool needsChi() { return true; }
+
+        //! We have ik-forces
+        DEVICE static bool hasIkForce() { return true; }
+
         //! The Tersoff potential needs the bond angle
         DEVICE static bool needsAngle() { return true; }
+
         //! Set the bond angle value
         //! \param _cos_th Cosine of the angle between ij and ik
         DEVICE void setAngle(Scalar _cos_th)
@@ -173,10 +183,15 @@ class EvaluatorTersoff
                 }
             }
 
+        //! We don't have a scalar ij contribution
+        DEVICE void evalPhi(Scalar& chi)
+            { }
+
         //! Evaluate the force and potential energy due to ij interactions
         DEVICE void evalForceij(Scalar fR,
                                 Scalar fA,
                                 Scalar chi,
+                                Scalar phi,
                                 Scalar& bij,
                                 Scalar& force_divr,
                                 Scalar& potential_eng)
@@ -226,6 +241,9 @@ class EvaluatorTersoff
             // compute the potential energy
             potential_eng = Scalar(0.5) * fcut_ij * (fR - bij * fA);
             }
+
+        DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
+            { }
 
         //! Evaluate the forces due to ijk interactions
         DEVICE bool evalForceik(Scalar fR,

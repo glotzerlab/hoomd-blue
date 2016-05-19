@@ -27,6 +27,7 @@ md.pair
     md.pair.slj
     md.pair.table
     md.pair.tersoff
+    md.pair.van_der_waals
     md.pair.yukawa
     md.pair.zbl
 

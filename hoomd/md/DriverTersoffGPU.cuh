@@ -16,4 +16,8 @@
 cudaError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
                                        const tersoff_params *d_params);
 
+//! Compute CG vdW liquid forces on the GPU with EvaluatorVanDerWaals
+cudaError_t gpu_compute_vdw_forces(const tersoff_args_t& pair_args,
+                                   const Scalar4 *d_params);
+
 #endif
