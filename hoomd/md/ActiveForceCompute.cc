@@ -189,10 +189,11 @@ void ActiveForceCompute::setForces()
         // rotate particle orientation only if orientation is reverse linked to active force vector
         if (m_orientationReverseLink == true)
             {
-            f = make_scalar3(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);
-            vec3<Scalar> fvec(f);
-            quat<Scalar> quati(h_orientation.data[idx]);
-            quati = fvec * quati;
+            vec3<Scalar> f(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);
+            vec3<Scalar> vecZ(0.0, 0.0, 1.0);
+            vec3<Scalar> quatVec = cross(vecZ, f);
+            Scalar quatScal = slow::sqrt(h_actMag.data[i]*h_actMag.data[i]) + dot(f, vecZ);
+            quat<Scalar> quati(quatScal, quatVec);
             quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
             h_orientation.data[idx] = quat_to_scalar4(quati);
             }

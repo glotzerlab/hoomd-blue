@@ -119,15 +119,15 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     // rotate particle orientation only if orientation is reverse linked to active force vector
     if (orientationReverseLink == true)
         {
-        f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
+        vec3<Scalar> f(d_actMag[tag] * d_actVec[tag].x,
                         d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
-        vec3<Scalar> fvec(f);
-        quat<Scalar> quati(d_orientation[idx]);
-        quati = fvec * quati;
+        vec3<Scalar> vecZ(0.0, 0.0, 1.0);
+        vec3<Scalar> quatVec = cross(vecZ, f);
+        Scalar quatScal = slow::sqrt(d_actMag[tag]*d_actMag[tag]) + dot(f, vecZ);
+        quat<Scalar> quati(quatScal, quatVec);
         quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
-        d_orientation[idx] = quat_to_scalar4(quati);
+        h_orientation.data[idx] = quat_to_scalar4(quati);
         }
-    }
     }
 
 //! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
