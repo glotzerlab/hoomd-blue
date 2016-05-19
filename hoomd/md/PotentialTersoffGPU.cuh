@@ -22,6 +22,9 @@ struct tersoff_args_t
     //! Construct a tersoff_args_t
     tersoff_args_t(Scalar4 *_d_force,
                    const unsigned int _N,
+                   Scalar * _d_virial,
+                   unsigned int _virial_pitch,
+                   bool _compute_virial,
                    const Scalar4 *_d_pos,
                    const BoxDim& _box,
                    const unsigned int *_d_n_neigh,
@@ -36,6 +39,9 @@ struct tersoff_args_t
                    const unsigned int _max_tex1d_width)
                    : d_force(_d_force),
                      N(_N),
+                     d_virial(_d_virial),
+                     virial_pitch(_virial_pitch),
+                     compute_virial(_compute_virial),
                      d_pos(_d_pos),
                      box(_box),
                      d_n_neigh(_d_n_neigh),
@@ -53,6 +59,9 @@ struct tersoff_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     const unsigned int N;            //!< Number of particles
+    Scalar *d_virial;                //!< Virial to write out
+    const unsigned int virial_pitch; //!< Pitch for N*6 virial array
+    bool compute_virial;             //!< True if we are supposed to compute the virial
     const Scalar4 *d_pos;            //!< particle positions
     const BoxDim& box;                //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
@@ -128,9 +137,11 @@ static __device__ inline double atomicAdd(double* address, double val)
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator , unsigned char use_gmem_nlist>
+template< class evaluator , unsigned char use_gmem_nlist, unsigned char compute_virial>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
+                                                  Scalar *d_virial,
+                                                  unsigned int virial_pitch,
                                                   const Scalar4 *d_pos,
                                                   const BoxDim box,
                                                   const unsigned int *d_n_neigh,
@@ -176,6 +187,13 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
     // initialize the force to 0
     Scalar4 forcei = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    Scalar viriali_xx(0.0);
+    Scalar viriali_xy(0.0);
+    Scalar viriali_xz(0.0);
+    Scalar viriali_yy(0.0);
+    Scalar viriali_yz(0.0);
+    Scalar viriali_zz(0.0);
 
     // loop over neighbors to calculate per-particle energy
     Scalar phi(0.0);
@@ -259,7 +277,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
     // loop over neighbors
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-    {
+        {
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_j = next_j;
@@ -278,6 +296,13 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
         // initialize the force on j
         Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+        Scalar virialj_xx(0.0);
+        Scalar virialj_xy(0.0);
+        Scalar virialj_xz(0.0);
+        Scalar virialj_yy(0.0);
+        Scalar virialj_yz(0.0);
+        Scalar virialj_zz(0.0);
 
         // compute r_ij (FLOPS: 3)
         Scalar3 dxij = posi - posj;
@@ -380,9 +405,31 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             forcei.y += dxij.y * force_divr;
             forcei.z += dxij.z * force_divr;
 
+            if (compute_virial)
+                {
+                Scalar force_div2r = Scalar(0.5)*force_divr;
+                viriali_xx += force_div2r*dxij.x*dxij.x;
+                viriali_xy += force_div2r*dxij.x*dxij.y;
+                viriali_xz += force_div2r*dxij.x*dxij.z;
+                viriali_yy += force_div2r*dxij.y*dxij.y;
+                viriali_yz += force_div2r*dxij.y*dxij.z;
+                viriali_zz += force_div2r*dxij.z*dxij.z;
+                }
+
             forcej.x -= dxij.x * force_divr;
             forcej.y -= dxij.y * force_divr;
             forcej.z -= dxij.z * force_divr;
+
+            if (compute_virial)
+                {
+                Scalar force_div2r = Scalar(0.5)*force_divr;
+                virialj_xx += force_div2r*dxij.x*dxij.x;
+                virialj_xy += force_div2r*dxij.x*dxij.y;
+                virialj_xz += force_div2r*dxij.x*dxij.z;
+                virialj_yy += force_div2r*dxij.y*dxij.y;
+                virialj_yz += force_div2r*dxij.y*dxij.z;
+                virialj_zz += force_div2r*dxij.z*dxij.z;
+                }
 
             // potential energy of j must be halved
             forcej.w += Scalar(0.5)*potential_eng;
@@ -465,9 +512,34 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             forcei.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
                             forcei.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
 
+                            // NOTE: virial for ik forces not tested
+                            if (compute_virial)
+                                {
+                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.x;
+                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.x;
+                                viriali_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                viriali_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                viriali_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                viriali_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                viriali_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                viriali_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                }
+
                             forcej.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
                             forcej.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
                             forcej.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
+
+                            if (compute_virial)
+                                {
+                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.y;
+                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.y;
+                                virialj_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                virialj_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                virialj_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                virialj_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                virialj_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                virialj_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                }
 
                             forcek.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
                             forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
@@ -476,6 +548,18 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             atomicAdd(&d_force[cur_k].x, forcek.x);
                             atomicAdd(&d_force[cur_k].y, forcek.y);
                             atomicAdd(&d_force[cur_k].z, forcek.z);
+
+                            if (compute_virial)
+                                {
+                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
+                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
+                                atomicAdd(&d_virial[0*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x);
+                                atomicAdd(&d_virial[1*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y);
+                                atomicAdd(&d_virial[2*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z);
+                                atomicAdd(&d_virial[3*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y);
+                                atomicAdd(&d_virial[4*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z);
+                                atomicAdd(&d_virial[5*virial_pitch+cur_k],force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z);
+                                }
                             }
                         }
                     }
@@ -486,6 +570,16 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             atomicAdd(&d_force[cur_j].y, forcej.y);
             atomicAdd(&d_force[cur_j].z, forcej.z);
             atomicAdd(&d_force[cur_j].w, forcej.w);
+
+            if (compute_virial)
+                {
+                atomicAdd(&d_virial[0*virial_pitch+cur_j], virialj_xx);
+                atomicAdd(&d_virial[1*virial_pitch+cur_j], virialj_xy);
+                atomicAdd(&d_virial[2*virial_pitch+cur_j], virialj_xz);
+                atomicAdd(&d_virial[3*virial_pitch+cur_j], virialj_yy);
+                atomicAdd(&d_virial[4*virial_pitch+cur_j], virialj_yz);
+                atomicAdd(&d_virial[5*virial_pitch+cur_j], virialj_zz);
+                }
             }
         }
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -493,14 +587,26 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     atomicAdd(&d_force[idx].y, forcei.y);
     atomicAdd(&d_force[idx].z, forcei.z);
     atomicAdd(&d_force[idx].w, forcei.w);
+
+    if (compute_virial)
+        {
+        atomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
+        atomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
+        atomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
+        atomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
+        atomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
+        atomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
+        }
     }
 
-//! Kernel for zeroing forces before computation with atomic additions.
+//! Kernel for zeroing forces and virial before computation with atomic additions.
 /*! \param d_force Device memory to write forces to
     \param N Number of particles in the system
 
 */
 __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
+                                       Scalar *d_virial,
+                                       unsigned int virial_pitch,
                                        const unsigned int N)
     {
     // identify the particle we are supposed to handle
@@ -511,6 +617,14 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
 
     // zero the force
     d_force[idx] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    // zero the virial
+    d_virial[0*virial_pitch+idx] = Scalar(0.0);
+    d_virial[1*virial_pitch+idx] = Scalar(0.0);
+    d_virial[2*virial_pitch+idx] = Scalar(0.0);
+    d_virial[3*virial_pitch+idx] = Scalar(0.0);
+    d_virial[4*virial_pitch+idx] = Scalar(0.0);
+    d_virial[5*virial_pitch+idx] = Scalar(0.0);
     }
 
 //! Kernel driver that computes the three-body forces
@@ -528,24 +642,50 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-        else
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-        }
+    unsigned int run_block_size = 0;
 
-    unsigned int run_block_size = min(pair_args.block_size, max_block_size);
+    if (pair_args.compute_virial)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+                {
+                cudaFuncAttributes attr;
+                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 1>);
+                max_block_size = attr.maxThreadsPerBlock;
+                }
+            else
+                {
+                cudaFuncAttributes attr;
+                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 1>);
+                max_block_size = attr.maxThreadsPerBlock;
+                }
+            }
+
+        run_block_size = min(pair_args.block_size, max_block_size);
+        }
+    else
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+                {
+                cudaFuncAttributes attr;
+                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 0>);
+                max_block_size = attr.maxThreadsPerBlock;
+                }
+            else
+                {
+                cudaFuncAttributes attr;
+                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 0>);
+                max_block_size = attr.maxThreadsPerBlock;
+                }
+            }
+
+        run_block_size = min(pair_args.block_size, max_block_size);
+        }
 
     // setup the grid to run the kernel
     dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
@@ -576,38 +716,84 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
 
     // zero the forces
     gpu_zero_forces_kernel<<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                            pair_args.d_virial,
+                                                            pair_args.virial_pitch,
                                                             pair_args.N);
 
     // compute the new forces
-    if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+    if (!pair_args.compute_virial)
         {
-        gpu_compute_triplet_forces_kernel<evaluator, 1>
-          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                            pair_args.N,
-                                            pair_args.d_pos,
-                                            pair_args.box,
-                                            pair_args.d_n_neigh,
-                                            pair_args.d_nlist,
-                                            pair_args.d_head_list,
-                                            d_params,
-                                            pair_args.d_rcutsq,
-                                            pair_args.d_ronsq,
-                                            pair_args.ntypes);
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+            {
+            gpu_compute_triplet_forces_kernel<evaluator, 1, 0>
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                pair_args.N,
+                                                pair_args.d_virial,
+                                                pair_args.virial_pitch,
+                                                pair_args.d_pos,
+                                                pair_args.box,
+                                                pair_args.d_n_neigh,
+                                                pair_args.d_nlist,
+                                                pair_args.d_head_list,
+                                                d_params,
+                                                pair_args.d_rcutsq,
+                                                pair_args.d_ronsq,
+                                                pair_args.ntypes);
+            }
+        else
+            {
+            gpu_compute_triplet_forces_kernel<evaluator, 0, 0>
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                pair_args.N,
+                                                pair_args.d_virial,
+                                                pair_args.virial_pitch,
+                                                pair_args.d_pos,
+                                                pair_args.box,
+                                                pair_args.d_n_neigh,
+                                                pair_args.d_nlist,
+                                                pair_args.d_head_list,
+                                                d_params,
+                                                pair_args.d_rcutsq,
+                                                pair_args.d_ronsq,
+                                                pair_args.ntypes);
+            }
         }
     else
         {
-        gpu_compute_triplet_forces_kernel<evaluator, 0>
-          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                            pair_args.N,
-                                            pair_args.d_pos,
-                                            pair_args.box,
-                                            pair_args.d_n_neigh,
-                                            pair_args.d_nlist,
-                                            pair_args.d_head_list,
-                                            d_params,
-                                            pair_args.d_rcutsq,
-                                            pair_args.d_ronsq,
-                                            pair_args.ntypes);
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+            {
+            gpu_compute_triplet_forces_kernel<evaluator, 1, 1>
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                pair_args.N,
+                                                pair_args.d_virial,
+                                                pair_args.virial_pitch,
+                                                pair_args.d_pos,
+                                                pair_args.box,
+                                                pair_args.d_n_neigh,
+                                                pair_args.d_nlist,
+                                                pair_args.d_head_list,
+                                                d_params,
+                                                pair_args.d_rcutsq,
+                                                pair_args.d_ronsq,
+                                                pair_args.ntypes);
+            }
+        else
+            {
+            gpu_compute_triplet_forces_kernel<evaluator, 0, 1>
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                pair_args.N,
+                                                pair_args.d_virial,
+                                                pair_args.virial_pitch,
+                                                pair_args.d_pos,
+                                                pair_args.box,
+                                                pair_args.d_n_neigh,
+                                                pair_args.d_nlist,
+                                                pair_args.d_head_list,
+                                                d_params,
+                                                pair_args.d_rcutsq,
+                                                pair_args.d_ronsq,
+                                                pair_args.ntypes);
+            }
         }
     return cudaSuccess;
     }

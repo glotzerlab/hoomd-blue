@@ -126,9 +126,15 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
     this->m_tuner->begin();
     gpu_cgpf(tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
+                            d_virial.data,
+                            this->m_virial_pitch,
+                            compute_virial,
                             d_pos.data,
                             box,
                             d_n_neigh.data,
