@@ -310,7 +310,7 @@ class active(_force):
         orientation_link (bool): When True, particle orientation is coupled to the active force vector. Only
           relevant for non-point-like anisotropic particles.
         orientation_reverse_link (bool): When True, the active force vector is coupled to particle orientation. Useful for
-          for using a particle's orientation to log the active force vector.
+          for using a particle's orientation to log the active force vector. Quaternion rotation assumes base vector of (0,0,1).
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
         constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
           such as update.constraint_ellipsoid.
