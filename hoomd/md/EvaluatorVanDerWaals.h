@@ -132,7 +132,7 @@ class EvaluatorVanDerWaals
                 rho_i += norm;
 
                 // compute the ij force
-                force_divr = (T/rho_i/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*Scalar(2.0)*norm*fac/rcut/rij;
+                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*Scalar(2.0)*norm*fac/rcut/rij;
                 }
             }
 
@@ -147,7 +147,8 @@ class EvaluatorVanDerWaals
 
             rho_i += norm;
 
-            energy = T*logf(b*rho_i/(Scalar(1.0)-b*rho_i))-a*rho_i-Scalar(0.5)*alpha*a*b*rho_i*rho_i;
+            // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
+            energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*alpha*a*b*rho_i*rho_i;
             }
 
         //! Evaluate the forces due to ijk interactions

@@ -2635,15 +2635,15 @@ class van_der_waals(pair):
     third body is irrelevant. It can thus use type-pair parameters similar to those of the pair potentials.
 
     The potential is used as the conservative part of the DPD pair force, and implements the force derived
-    from a local free energy functional with a free energy function corresponding to the van-der-Waals equation
+    from a local free energy functional with an **excess** free energy function corresponding to the van-der-Waals equation
     of state, augmented by a cubic term.
 
-    The excess free energy per particle takes the form
+    The excess free energy, i.e. free energy minus the ideal gas contribution, per particle takes the form
     .. math::
         :nowrap:
 
         \begin{equation}
-        \Psi^{ex} = -k_B T \ln((1-b \rho)-a\rho-\alpha a b \rho^3)
+        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-a\rho-\alpha a b \rho^3
         \end{equation}
 
     which gives a pair-wise additive, three-body force
@@ -2652,7 +2652,7 @@ class van_der_waals(pair):
         :nowrap:
 
         \begin{equation}
-        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-3 \alpha a b n_i^2\left)
+        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-\alpha a b n_i^2\left)
             + \left( \frac{k_B T b}{1-b n_j} - a - 3 \alpha a b n_j^2\right)\right\} w'_{ij} \vec e_{ij}
         \end{equation}
 
@@ -2670,8 +2670,6 @@ class van_der_waals(pair):
         \begin{equation}
         n_i = \sum\limits_j w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
         \end{equation}
-
-    Note that the cutoff of the **pair** potential is :math:`r_c = 2r_{c,\mathrm{weight}}` .
 
     The following coefficients must be set per unique pair of particle types:
 
