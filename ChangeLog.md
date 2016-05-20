@@ -55,6 +55,9 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
   using `constrain.rigid()`
 * All neighbor lists must be explicitly created using `nlist.\*`, and each pair potential must be attached explicitly
   to a neighbor list. A default global neighbor list is no longer created.
+* Moved cgcmm into its own package.
+* Moved eam into the metal package.
+* Integrators now take `kT` arguments for temperature instead of `T` to avoid confusion on the units of temperature.
 
 *Other changes*
 
