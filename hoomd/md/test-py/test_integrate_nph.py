@@ -53,7 +53,7 @@ class integrate_nph_tests (unittest.TestCase):
         md.integrate.mode_standard(dt=0.005);
         all = group.all();
         nph = md.integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5);
-        nph.set_params(T=1.3);
+        nph.set_params(kT=1.3);
         nph.set_params(tau=0.6);
         nph.set_params(P=0.5);
         nph.set_params(tauP=0.6);

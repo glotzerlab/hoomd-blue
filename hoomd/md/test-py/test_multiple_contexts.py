@@ -20,7 +20,7 @@ class multi_context(unittest.TestCase):
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
             md.integrate.mode_standard(dt=0.005)
-            md.integrate.nvt(group=group.all(), T=1.2, tau=0.5)
+            md.integrate.nvt(group=group.all(), kT=1.2, tau=0.5)
 
         with c2:
             deprecated.init.create_random(N=1000, phi_p=0.02)
@@ -29,7 +29,7 @@ class multi_context(unittest.TestCase):
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
             md.integrate.mode_standard(dt=0.005)
-            md.integrate.nvt(group=group.all(), T=1.2, tau=0.5)
+            md.integrate.nvt(group=group.all(), kT=1.2, tau=0.5)
 
         with c1:
             run(10)

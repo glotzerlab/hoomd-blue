@@ -5,6 +5,7 @@
 # first, they need the boost unit test framework added as a library
 set(ADDITIONAL_LIBS _hoomd
         _md
+        _deprecated
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         )
 

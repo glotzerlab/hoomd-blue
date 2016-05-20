@@ -25,7 +25,7 @@ class constraint_sphere_tests (unittest.TestCase):
         all = group.all()
         md.constrain.sphere(group=all, P=(0,0,0), r=5)
         md.integrate.mode_standard(dt=0.005);
-        md.integrate.langevin(group=all, T=1.2, seed=0);
+        md.integrate.langevin(group=all, kT=1.2, seed=0);
         run(10);
         pos0 = self.sysdef.particles[0].position
         self.assertAlmostEqual(pos0[0]*pos0[0]+pos0[1]*pos0[1]+pos0[2]*pos0[2],5*5,1)

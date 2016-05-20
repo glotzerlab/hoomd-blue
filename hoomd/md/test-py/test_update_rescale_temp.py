@@ -18,22 +18,22 @@ class update_rescale_temp_tests (unittest.TestCase):
 
     # tests basic creation of the updater
     def test(self):
-        md.update.rescale_temp(T=1.0)
+        md.update.rescale_temp(kT=1.0)
         run(100);
 
     # tests with phase
     def test_phase(self):
-        md.update.rescale_temp(T=1.0, period=10, phase=0)
+        md.update.rescale_temp(kT=1.0, period=10, phase=0)
         run(100);
 
     # test variable periods
     def test_variable(self):
-        md.update.rescale_temp(T=1.0, period=lambda n: n*10)
+        md.update.rescale_temp(kT=1.0, period=lambda n: n*10)
         run(100);
 
     # test enable/disable
     def test_enable_disable(self):
-        upd = md.update.rescale_temp(T=1.0)
+        upd = md.update.rescale_temp(kT=1.0)
         upd.disable();
         self.assert_(not upd.enabled);
         upd.disable();
@@ -45,7 +45,7 @@ class update_rescale_temp_tests (unittest.TestCase):
 
     # test set_period
     def test_set_period(self):
-        upd = md.update.rescale_temp(T=1.0)
+        upd = md.update.rescale_temp(kT=1.0)
         upd.set_period(10);
         upd.disable();
         self.assertEqual(10, upd.prev_period);
@@ -55,8 +55,8 @@ class update_rescale_temp_tests (unittest.TestCase):
 
     # test set_params
     def test_set_params(self):
-        upd = md.update.rescale_temp(T=1.0);
-        upd.set_params(T=1.2);
+        upd = md.update.rescale_temp(kT=1.0);
+        upd.set_params(kT=1.2);
 
     # test functionality with siotropic particles
     def test_aniso(self):
@@ -64,11 +64,11 @@ class update_rescale_temp_tests (unittest.TestCase):
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.7);
 
         integrator = md.integrate.mode_standard(dt=0.005)
-        langevin = md.integrate.langevin(T=1.0,group=group.all(),seed=123)
+        langevin = md.integrate.langevin(kT=1.0,group=group.all(),seed=123)
         log = analyze.log(filename=None,quantities=['temperature'],period=1)
         run(100)
 
-        upd = md.update.rescale_temp(T=5.0)
+        upd = md.update.rescale_temp(kT=5.0)
         upd.set_period(1);
         # disable integration
         langevin.disable()
@@ -92,10 +92,10 @@ class update_rescale_temp_tests (unittest.TestCase):
             p.moment_inertia = (1,1,1)
 
         integrator = md.integrate.mode_standard(dt=0.005)
-        langevin = md.integrate.langevin(T=1.0,group=group.all(),seed=123)
+        langevin = md.integrate.langevin(kT=1.0,group=group.all(),seed=123)
         log = analyze.log(filename=None,quantities=['temperature','rotational_temperature'],period=1)
         run(100)
-        upd = md.update.rescale_temp(T=5.0)
+        upd = md.update.rescale_temp(kT=5.0)
         upd.set_period(1);
         # disable integration
         langevin.disable()

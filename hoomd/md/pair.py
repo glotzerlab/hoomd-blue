@@ -1274,7 +1274,7 @@ class dpd(pair):
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
@@ -1331,17 +1331,17 @@ class dpd(pair):
     Example::
 
         nl = nlist.cell()
-        dpd = pair.dpd(r_cut=1.0, nlist=nl, T=1.0)
+        dpd = pair.dpd(r_cut=1.0, nlist=nl, kT=1.0)
         dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
         dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
-        dpd.set_params(T = 1.0)
+        dpd.set_params(kT = 1.0)
         integrate.mode_standard(dt=0.02)
         integrate.nve(group=group.all())
 
     """
-    def __init__(self, r_cut, nlist, T, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1382,27 +1382,27 @@ class dpd(pair):
 
         # set the temperature
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
-        self.cpp_force.setT(T.cpp_variant);
+        kT = hoomd.variant._setup_variant_input(kT);
+        self.cpp_force.setT(kT.cpp_variant);
 
-    def set_params(self, T=None):
+    def set_params(self, kT=None):
         R""" Changes parameters.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
 
         Example::
 
-            dpd.set_params(T=2.0)
+            dpd.set_params(kT=2.0)
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
-            self.cpp_force.setT(T.cpp_variant);
+            kT = variant._setup_variant_input(kT);
+            self.cpp_force.setT(kT.cpp_variant);
 
     def process_coeff(self, coeff):
         a = coeff['A'];
@@ -1505,7 +1505,7 @@ class dpdlj(pair):
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
@@ -1570,7 +1570,7 @@ class dpdlj(pair):
     Example::
 
         nl = nlist.cell()
-        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, T=1.0)
+        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, kT=1.0)
         dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
         dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
         dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
@@ -1581,7 +1581,7 @@ class dpdlj(pair):
 
     """
 
-    def __init__(self, r_cut, nlist, T, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1624,10 +1624,10 @@ class dpdlj(pair):
 
         # set the temperature
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        self.cpp_force.setT(T.cpp_variant);
+        kT = variant._setup_variant_input(kT);
+        self.cpp_force.setT(kT.cpp_variant);
 
-    def set_params(self, T=None, mode=None):
+    def set_params(self, kT=None, mode=None):
         R""" Changes parameters.
 
         Args:
@@ -1636,18 +1636,18 @@ class dpdlj(pair):
 
         Examples::
 
-            dpdlj.set_params(T=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
-            dpdlj.set_params(T=2.0, mode="shift")
+            dpdlj.set_params(kT=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
+            dpdlj.set_params(kT=2.0, mode="shift")
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_force.setT(T.cpp_variant);
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_force.setT(kT.cpp_variant);
 
         if mode is not None:
             if mode == "xplor":

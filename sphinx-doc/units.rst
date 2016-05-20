@@ -3,11 +3,9 @@
 Units
 =====
 
-HOOMD-blue stores and computes all values in a system of generic, but fully self-consistent set of units.
+HOOMD-blue stores and computes all values in a system of generic, fully self-consistent set of units.
 No conversion factors need to be applied to values at every step. For example, a value with units
-of force comes from dividing energy by distance. You may be familiar with this system of units
-as being referred to as reduced units. These will be more formally generalized here for
-application to all types of potentials in HOOMD-blue.
+of force comes from dividing energy by distance.
 
 Fundamental Units
 -----------------
@@ -22,20 +20,21 @@ All other units that appear in HOOMD-blue are derived from these. Values can be 
 of units by assigning the desired units to :math:`\mathcal{D}`, :math:`\mathcal{E}`, and :math:`\mathcal{M}` and then
 multiplying by the appropriate conversion factors.
 
-The standard *Lennard-Jones* symbols :math:`\sigma` and :math:`\epsilon` are intentionally not used in this
-document. When you assign a value to :math:`\epsilon` in hoomd, for example, you are assigning it in units of energy:
-:math:`\epsilon = 5 \mathcal{E}`. Here, :math:`\epsilon` is **NOT** the unit of energy. To understand this in a trivial case,
-consider a system with two particle types, there are three distinct :math:`\epsilon_{ij}` values to set, and they cannot
-each be the unit of energy.
+The standard *Lennard-Jones* symbols :math:`\sigma` and :math:`\epsilon` are intentionally not referred to here.
+When you assign a value to :math:`\epsilon` in hoomd, for example, you are assigning it in units of energy:
+:math:`\epsilon = 5 \mathcal{E}`. :math:`\epsilon` is **NOT** the unit of energy - it is a value with units of
+energy.
 
 Temperature (thermal energy)
 ----------------------------
 
-The standard nomenclature in the literature regarding *reduced temperature*
-is generally not very precise or consistent. HOOMD-blue's parameter names unfortunately do not help that situation
-(maybe a later version will fix this). Formally, whenever HOOMD-blue asks for or reports a **temperature** :math:`T`, the
-value is a thermal energy :math:`T = k_\mathrm{B} T_\mathrm{actual}` *in units of energy*. The value :math:`k_\mathrm{B}`
-is determined by your choice of real units for distance, energy, and mass.
+HOOMD-blue accepts all temperature inputs and provides all temperature output values in units of energy:
+:math:`k T`, where :math:`k` is Boltzmann's constant. When using physical units, the value :math:`k_\mathrm{B}`
+is determined by the choices for distance, energy, and mass. In reduced units, one usually reports the value
+:math:`T^* = \frac{k T}{\mathcal{E}}`.
+
+Most of the argument inputs in HOOMD take the argument name ``kT`` to make it explicit. A few areas of the code
+may still refer to this as ``temperature``.
 
 Charge
 ------
@@ -57,3 +56,18 @@ Here are some commonly used derived units:
 - acceleration - :math:`\frac{\mathcal{D}}{\tau^2}`
 - force - :math:`\frac{\mathcal{E}}{\mathcal{D}}`
 - pressure - :math:`\frac{\mathcal{E}}{\mathcal{D}^3}`
+
+Example physical units
+----------------------
+
+There are many possible choices of physical units that one can assign. One common choice is:
+
+- distance - :math:`\mathcal{D} = \mathrm{nm}`
+- energy - :math:`\mathcal{E} = \mathrm{kJ/mol}`
+- mass - :math:`\mathcal{M} = \mathrm{amu}`
+
+Derived units / values in this system:
+
+- time - picoseconds
+- velocity - nm/picosecond
+- k = 0.00831445986144858 kJ/mol/Kelvin
