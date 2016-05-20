@@ -32,6 +32,7 @@ Welcome to the user documentation for HOOMD-blue!
 
    package-cgcmm
    package-deprecated
+   package-metal
 
 .. toctree::
    :maxdepth: 3

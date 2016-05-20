@@ -8,7 +8,6 @@ md.angle
 .. autosummary::
     :nosignatures:
 
-    md.angle.cgcmm
     md.angle.harmonic
     md.angle.table
 

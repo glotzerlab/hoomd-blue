@@ -188,3 +188,8 @@ option(BUILD_CGCMM "Build the cgcmm package" on)
 if (BUILD_CGCMM AND BUILD_MD)
     add_subdirectory(cgcmm)
 endif()
+
+option(BUILD_METAL "Build the metal package" on)
+if (BUILD_METAL AND BUILD_MD)
+    add_subdirectory(metal)
+endif()
