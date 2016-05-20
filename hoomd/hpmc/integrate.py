@@ -49,22 +49,16 @@ class mode_hpmc(_integrator):
     # \brief Initialize an empty integrator
     #
     # \post the member shape_param is created
-    def __init__(self,fl_flag,implicit):
+    def __init__(self, implicit):
         _integrator.__init__(self);
-        self.fl_flag=fl_flag
         self.implicit=implicit
 
         # setup the shape parameters
         self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
 
         #initialize list to check fl params
-        if self.fl_flag:
-            self.fl_params=list()
-
-        #initialize list to check fl params
         if self.implicit:
             self.implicit_params=list()
-
 
     ## Set the external field
     def set_external(self, ext):
@@ -105,10 +99,6 @@ class mode_hpmc(_integrator):
            hoomd.context.msg.error("Particle orientations are not normalized\n");
            raise RuntimeError("Error running integrator");
 
-        #make sure all the required FL parameters have been supplied
-        if self.fl_flag:
-            self.check_fl_params()
-
         #make sure all the required parameters for implicit depletant simulations have been supplied
         if self.implicit:
             self.check_implicit_params()
@@ -117,12 +107,12 @@ class mode_hpmc(_integrator):
         R""" Set pos_writer definitions for specified shape parameters.
 
         Args:
-            pos (:py:class:`hoomd.dump.pos`): pos writer to setup
+            pos (:py:class:`hoomd.deprecated.dump.pos`): pos writer to setup
             colors (dict): dictionary of type name to color mappings
 
         :py:meth:`setup_pos_writer` uses the shape_param settings to specify the shape definitions (via set_def)
         to the provided pos file writer. This overrides any previous values specified to
-        :py:meth:`hoomd.dump.pos.set_def`.
+        :py:meth:`hoomd.deprecated.dump.pos.set_def`.
 
         *colors* allows you to set per-type colors for particles. Specify colors as strings in the injavis format. When
         colors is not specified for a type, all colors default to ``005984FF``.
@@ -179,11 +169,6 @@ class mode_hpmc(_integrator):
                    a=None,
                    move_ratio=None,
                    nselect=None,
-                   ln_gamma=None,
-                   q_factor=None,
-                   r0=None,
-                   q0=None,
-                   drift_period=None,
                    nR=None,
                    depletant_type=None,
                    ntrial=None):
@@ -194,11 +179,6 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            ln_gamma (float): (if set) **Frenkel-Ladd only**: new value for ln_gamma.
-            q_factor (float): (if set) **Frenkel-Ladd only**: new value for q_factor.
-            r0 (list): (if set) **Frenkel-Ladd only**: new value for r0.
-            q0 (list): (if set) **Frenkel-Ladd only**: new value for q0.
-            drift_period (int): (if set) **Frenkel-Ladd only**: new value for drift_period.
             nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
             depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
             ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
@@ -232,25 +212,6 @@ class mode_hpmc(_integrator):
 
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
-
-        if self.fl_flag:
-            if ln_gamma is not None:
-                  self.fl_params.append('ln_gamma')
-                  self.cpp_integrator.setLnGamma(ln_gamma)
-            if q_factor is not None:
-                  self.fl_params.append('q_factor')
-                  self.cpp_integrator.setQFactor(q_factor)
-            if r0 is not None:
-                  self.fl_params.append('r0')
-                  self.cpp_integrator.setR0([tuple(r) for r in r0])
-            if q0 is not None:
-                  self.fl_params.append('q0')
-                  self.cpp_integrator.setQ0([tuple(q) for q in q0])
-            if drift_period is not None:
-                  self.fl_params.append('drift_period')
-                  self.cpp_integrator.setDriftPeriod(drift_period)
-        elif any([p is not None for p in [ln_gamma,q_factor,r0,q0,drift_period]]):
-            raise RuntimeError("FL integration parameters specified for non-FL integrator")
 
         if self.implicit:
             if nR is not None:
@@ -434,26 +395,6 @@ class mode_hpmc(_integrator):
         counters = self.cpp_integrator.getImplicitCounters(1);
         return counters.getConfigurationalBiasRatio();
 
-    ## Reset integrator state
-    #
-    # If the integrator maintains any internal state, this method resets it.
-    # This is useful for integrators which maintain running averages (e.g. Frenkel Ladd)
-    # \returns Nothing
-    #
-    def reset_state(self):
-        if self.fl_flag:
-            self.cpp_integrator.resetState(hoomd.context.current.system.getCurrentTimeStep())
-        else:
-            hoomd.context.msg.warning("This integrator does not maintain state. Are you using the integrator you think you are?\n");
-
-    ## Check the the required FL parameters have been supplied
-    # \returns Nothing
-    #
-    def check_fl_params(self):
-        for p in self.fl_required_params:
-            if not p in self.fl_params:
-                raise RuntimeError("FL Integrator is missing required parameter '%s.'"%(p))
-
     ## Check that the required implicit depletant parameters have been supplied
     # \returns Nothing
     #
@@ -485,8 +426,7 @@ class sphere(mode_hpmc):
     Args:
         seed (int): Random number seed
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        nselect (int): (if set) Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration.
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     Hard particle Monte Carlo integration method for spheres.
@@ -513,25 +453,21 @@ class sphere(mode_hpmc):
         mc.shape_param.set('B', diameter=.1)
     """
 
-    def __init__(self, seed, d=0.1, nselect=None, fl_flag=False, implicit=False):
+    def __init__(self, seed, d=0.1, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if (fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphere(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -540,17 +476,12 @@ class sphere(mode_hpmc):
         # set the default parameters
         setD(self.cpp_integrator,d);
         self.cpp_integrator.setMoveRatio(1.0)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
 
-        if fl_flag:
-          self.fl_required_params=['r0','ln_gamma']
-          self.cpp_integrator.setQFactor(0)
-          self.cpp_integrator.setQ0(hoomd.context.current.system_definition.getParticleData().getN()*[(1.0,0.0,0.0,0.0)])
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -568,8 +499,7 @@ class convex_polygon(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
 
     Note:
         For concave polygons, use :py:class:`simple_polygon`.
@@ -599,39 +529,29 @@ class convex_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag, False);
+        mode_hpmc.__init__(self, False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLConvexPolygon(hoomd.context.current.system_definition, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
-
-        # setup the coefficient options
-        if fl_flag:
-            self.required_params+=['r0','q0','ln_gamma','q_factor']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -653,8 +573,7 @@ class convex_spheropolygon(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
 
     Spheropolygon parameters:
 
@@ -686,38 +605,28 @@ class convex_spheropolygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,False);
+        mode_hpmc.__init__(self,False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSpheropolygon(hoomd.context.current.system_definition, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -745,8 +654,7 @@ class simple_polygon(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
 
     Note:
         For simple polygons that are not concave, use :py:class:`convex_polygon`, it will execute much faster than
@@ -776,38 +684,28 @@ class simple_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,False);
+        mode_hpmc.__init__(self,False);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSimplePolygon(hoomd.context.current.system_definition, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
+            self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
-
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set parameters
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -829,8 +727,7 @@ class polyhedron(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     Polyhedron parameters:
@@ -870,25 +767,21 @@ class polyhedron(mode_hpmc):
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
             (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLPolyhedron(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -898,14 +791,11 @@ class polyhedron(mode_hpmc):
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -939,7 +829,6 @@ class convex_polyhedron(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
         implicit (bool): Flag to enable implicit depletants.
         max_verts (int): Set the maximum number of vertices in a polyhedron.
 
@@ -972,25 +861,21 @@ class convex_polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
             else:
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU.");
             if implicit:
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1007,8 +892,6 @@ class convex_polyhedron(mode_hpmc):
         self.max_verts = max_verts;
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -1035,8 +918,7 @@ class faceted_sphere(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
@@ -1077,25 +959,21 @@ class faceted_sphere(mode_hpmc):
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLFacetedSphere(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1105,14 +983,11 @@ class faceted_sphere(mode_hpmc):
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -1141,8 +1016,7 @@ class sphinx(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
@@ -1168,25 +1042,22 @@ class sphinx(mode_hpmc):
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphinx(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
+
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1202,8 +1073,6 @@ class sphinx(mode_hpmc):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -1235,8 +1104,7 @@ class convex_spheropolyhedron(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_verts (int): Set the maximum number of vertices in a polyhedron.
 
@@ -1275,25 +1143,21 @@ class convex_spheropolyhedron(mode_hpmc):
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False, max_verts=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMono_FLSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
                 self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1310,8 +1174,6 @@ class convex_spheropolyhedron(mode_hpmc):
         self.max_verts = max_verts
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -1345,8 +1207,7 @@ class ellipsoid(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     Ellipsoid parameters:
@@ -1371,25 +1232,21 @@ class ellipsoid(mode_hpmc):
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLEllipsoid(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1400,14 +1257,11 @@ class ellipsoid(mode_hpmc):
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
 
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -1424,8 +1278,7 @@ class sphere_union(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        fl_flag (bool): Flag for enabling Frenkel-Ladd Integration
+        nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
 
     Sphere union parameters:
@@ -1451,23 +1304,19 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=None,fl_flag=False,implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,fl_flag,implicit);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(fl_flag):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMono_FLSphereUnion(hoomd.context.current.system_definition, seed);
-            elif(implicit):
+            if(implicit):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed);
         else:
-            if (fl_flag):
-                raise RuntimeError("Frenkel Ladd calculations are not implemented for the GPU at this time")
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
@@ -1479,14 +1328,11 @@ class sphere_union(mode_hpmc):
         setD(self.cpp_integrator,d);
         setA(self.cpp_integrator,a);
         self.cpp_integrator.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
+        self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        if fl_flag:
-            self.fl_required_params=['r0','q0','ln_gamma','q_factor']
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 

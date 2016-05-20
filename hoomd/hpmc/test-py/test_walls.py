@@ -20,7 +20,7 @@ class sphere_wall_sphere_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         self.ext_wall.add_sphere_wall(5.0, origin=[0,0,0], inside=True);
 
 
@@ -62,7 +62,7 @@ class sphere_wall_convex_polyhedron_test(unittest.TestCase):
                                                 (0.5,-0.5,0.5),
                                                 (0.5,0.5,0.5)])
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         self.ext_wall.add_sphere_wall(5.0, origin=[0,0,0], inside=True);
 
 
@@ -121,7 +121,7 @@ class cylinder_wall_sphere_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         self.ext_wall.add_cylinder_wall(5.0, [0,0,0], [0,0,1], inside=True);
 
 
@@ -163,7 +163,7 @@ class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
                                                 (0.5,-0.5,0.5),
                                                 (0.5,0.5,0.5)])
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         self.ext_wall.add_cylinder_wall(5.0, [0,0,0], [0,0,1], inside=True);
 
 
@@ -221,7 +221,7 @@ class plane_wall_sphere_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere(seed=10);
         self.mc.shape_param.set('A', diameter=1.0);
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         # this establishes the planar wall parallel to the yz plane, centered at (5,0,0).
         # the normal vector pointing along the (-) x axis means that
         # a particle to the left of the wall will be "inside" it, and
@@ -267,7 +267,7 @@ class plane_wall_convex_polyhedron_test(unittest.TestCase):
                                                 (0.5,-0.5,0.5),
                                                 (0.5,0.5,0.5)])
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         # this establishes the planar wall parallel to the yz plane, centered at (5,0,0).
         # the normal vector pointing along the (-) x axis means that
         # a particle to the left of the wall will be "inside" it, and
@@ -326,7 +326,7 @@ class sphere_wall_tetrahedron_specific_test(unittest.TestCase):
                                                 ( np.sqrt(3)/3., -np.sqrt(3)/3., -np.sqrt(3)/3.),
                                                 (-np.sqrt(3)/3.,  np.sqrt(3)/3., -np.sqrt(3)/3.)])
 
-        self.ext_wall = hpmc.compute.wall(self.mc);
+        self.ext_wall = hpmc.field.wall(self.mc);
         self.ext_wall.add_sphere_wall(0.2, origin=[0,0,0], inside=False);
 
 

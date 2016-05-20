@@ -8,11 +8,7 @@ hpmc.compute
 .. autosummary::
     :nosignatures:
 
-    hpmc.compute.external_field_composite
     hpmc.compute.free_volume
-    hpmc.compute.frenkel_ladd_energy
-    hpmc.compute.lattice_field
-    hpmc.compute.wall
 
 .. rubric:: Details
 
