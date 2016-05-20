@@ -2680,7 +2680,8 @@ class van_der_waals(pair):
       - *optional*: defaults to zero
 
     If this conservative force is combined with a DPD thermostat, the conservative part of the
-    original, i.e. Groot-Warren DPD force, should be set to zero.
+    original, i.e. Groot-Warren DPD force pair.dpd, should be set to zero. Note that the limiting
+    case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid.
 
     The potential is meant to be used with a one-component liquid. Disable unwanted pair-interactions
     with :math:`a=T=\alpha=0`.
@@ -2695,6 +2696,9 @@ class van_der_waals(pair):
 
     I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
     J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
+
+    R. D. Groot and P. B. Warren, “Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation,”
+    J. Chem. Phys., vol. 107, no. 11, p. 4423, 1997.
 
     """
     def __init__(self, r_cut, nlist, name=None):
