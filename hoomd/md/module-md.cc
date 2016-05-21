@@ -121,6 +121,17 @@ void export_tersoff_params()
     def("make_tersoff_params", &make_tersoff_params);
 }
 
+void export_vdw_params()
+    {
+    class_<vdw_params>("vdw_params", init<Scalar, Scalar, Scalar, Scalar, Scalar>())
+        .def_readwrite("a", &vdw_params::a)
+        .def_readwrite("b", &vdw_params::b)
+        .def_readwrite("alpha", &vdw_params::alpha)
+        .def_readwrite("T", &vdw_params::T)
+        .def_readwrite("N", &vdw_params::N)
+        ;
+    }
+
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
@@ -221,6 +232,7 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
+    export_vdw_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");

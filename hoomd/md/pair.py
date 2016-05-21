@@ -2636,24 +2636,29 @@ class van_der_waals(pair):
 
     The potential is used as the conservative part of the DPD pair force, and implements the force derived
     from a local free energy functional with an **excess** free energy function corresponding to the van-der-Waals equation
-    of state, augmented by a cubic term.
+    of state, augmented by a cubic term [1].
+
+    Optionally, when :math:`N_m\neq 1`, the potential accounts for the density-dependent correction that
+    arises when :math:`N_m` vdW gas atoms are subsumed into a single, coarse-grained bead [2]. In that case,
+    the vDW parameters :math:`a` and :math:`b` need to be rescaled by factors of :math:`N_m^2` and :math:`N_m`,
+    respectively. Note that that the forces due to this entropy correction are inversely proportional to the
+    local density, which is why coarse-graining requires higher densities [2].
 
     The excess free energy, i.e. free energy minus the ideal gas contribution, per particle takes the form
     .. math::
         :nowrap:
 
         \begin{equation}
-        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-a\rho-\alpha a b \rho^3
+        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-\frac12 a\rho-\alpha a b \rho^3 + (N_m - 1) k_B T \frac{1}{\rho}\ln\frac{b \rho}{1-b \rho}
         \end{equation}
 
     which gives a pair-wise additive, three-body force
 
     .. math::
-        :nowrap:
-
         \begin{equation}
         \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-\alpha a b n_i^2\left)
-            + \left( \frac{k_B T b}{1-b n_j} - a - 3 \alpha a b n_j^2\right)\right\} w'_{ij} \vec e_{ij}
+            + \left( \frac{k_B T b}{1-b n_j} - a - \alpha a b n_j^2\right)\right\} w'_{ij} \vec e_{ij}
+            + (N_m - 1) k_B T \left\( \frac{1}{n_i}\frac{1}{1-b n_i} + \frac{1}{n_j}\frac{1}{1-b n_j} \right) w'{ij} \vec e_{ij}
         \end{equation}
 
     Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
@@ -2668,7 +2673,7 @@ class van_der_waals(pair):
     The local density at the location of particle $i$ is defined as
     .. math::
         \begin{equation}
-        n_i = \sum\limits_j w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
+        n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
         \end{equation}
 
     The following coefficients must be set per unique pair of particle types:
@@ -2678,10 +2683,12 @@ class van_der_waals(pair):
     - :math:`T` - *T* (in units of temperature*k_B) - the temperature in the vdW equation of state
     - :math:`alpha` - *alpha* (dimensionless) - controls the cubic term in the vdW free energy
       - *optional*: defaults to zero
+    - :math:`N_m` - *N* (dimensionless) - number of vdW atoms per CG bead
+      - *optional*: defaults to one
 
     If this conservative force is combined with a DPD thermostat, the conservative part of the
     original, i.e. Groot-Warren DPD force pair.dpd, should be set to zero. Note that the limiting
-    case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid.
+    case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid [3].
 
     The potential is meant to be used with a one-component liquid. Disable unwanted pair-interactions
     with :math:`a=T=\alpha=0`.
@@ -2694,10 +2701,14 @@ class van_der_waals(pair):
 
     For further details regarding this multibody potential, see
 
-    I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
+    [1] I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
     J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
 
-    R. D. Groot and P. B. Warren, “Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation,”
+    [2] S. Y. Trofimov, E. L. F. Nies, and M. A. J. Michels,
+    "Thermodynamic consistency in dissipative particle dynamics simulations of strongly nonideal liquids and liquid mixtures,”
+    J. Chem. Phys., vol. 117, no. 20, pp. 9383-9394, 2002.
+
+    [3] R. D. Groot and P. B. Warren, "Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation,"
     J. Chem. Phys., vol. 107, no. 11, p. 4423, 1997.
 
     """
@@ -2723,10 +2734,11 @@ class van_der_waals(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficients
-        self.required_coeffs = ['A','B','alpha','T']
+        self.required_coeffs = ['A','B','alpha','T','N']
         self.pair_coeff.set_default_coeff('alpha', 0.0);
+        self.pair_coeff.set_default_coeff('N', 1.0);
 
     def process_coeff(self, coeff):
-        return _hoomd.make_scalar4(coeff['A'],coeff['B'],coeff['alpha'],coeff['T'])
+        return _md.vdw_params(coeff['A'],coeff['B'],coeff['alpha'],coeff['T'],coeff['N'])
 
 

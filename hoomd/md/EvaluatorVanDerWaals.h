@@ -16,8 +16,14 @@
 
     For a derivation of the potential equations, see
 
-    I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
+    [1] I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
     J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
+
+    For a discussion of the terms arising from coarse-graining, see
+
+    [2] S. Y. Trofimov, E. L. F. Nies, and M. A. J. Michels,
+    "Thermodynamic consistency in dissipative particle dynamics simulations of strongly nonideal liquids and liquid mixtures,"
+    J. Chem. Phys., vol. 117, no. 20, pp. 9383-9394, 2002.
 */
 
 #ifdef NVCC
@@ -28,12 +34,31 @@
 #define HOSTDEVICE
 #endif
 
+//! Parameter structure for vdW fluids
+struct vdw_params
+    {
+    //! Constructor
+    vdw_params(Scalar _a,
+       Scalar _b,
+       Scalar _alpha,
+       Scalar _T,
+       Scalar _N)
+        : a(_a), b(_b), alpha(_alpha), T(_T), N(_N)
+        { }
+
+    Scalar a;     //!< energy parameter of vdW EOS
+    Scalar b;     //!< covolume of vdW EOS
+    Scalar alpha; //!< Coefficient of cubic term
+    Scalar T;     //!< Temperature
+    Scalar N;     //!< number of real particles per CG bead (default == 1)
+    };
+
 //! Class for evaluating the VanDerWaals three-body potential
 class EvaluatorVanDerWaals
     {
     public:
         //! Define the parameter type used by this evaluator
-        typedef Scalar4 param_type;
+        typedef vdw_params param_type;
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
@@ -41,8 +66,8 @@ class EvaluatorVanDerWaals
             \param _params Per type-pair parameters for this potential
         */
         DEVICE EvaluatorVanDerWaals(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), a(_params.x), b(_params.y), alpha(_params.z),
-              T(_params.w)
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), a(_params.a), b(_params.b), alpha(_params.alpha),
+              T(_params.T), N(_params.N)
             {
             }
 
@@ -129,10 +154,14 @@ class EvaluatorVanDerWaals
                 Scalar fac = Scalar(1.0)-rij/rcut;
 
                 // add self-weight
-                rho_i += norm;
+ //               rho_i += norm; // see discussion in [2]
 
                 // compute the ij force
-                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*Scalar(2.0)*norm*fac/rcut/rij;
+                Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
+                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*w_prime;
+
+                // CG correction
+                force_divr += (N-Scalar(1.0))*T/rho_i/(Scalar(1.0)-b*rho_i)*w_prime;
                 }
             }
 
@@ -145,10 +174,14 @@ class EvaluatorVanDerWaals
             Scalar rcut = fast::sqrt(rcutsq);
             norm /= rcutsq*rcut;
 
-            rho_i += norm;
+            // add self-weight
+//            rho_i += norm; // see discussion in [2]
 
             // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
             energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*alpha*a*b*rho_i*rho_i;
+
+            // CG correction
+            energy += (N-Scalar(1.0))*T*logf(rho_i*b/(Scalar(1.0)-b*rho_i));
             }
 
         //! Evaluate the forces due to ijk interactions
@@ -181,6 +214,7 @@ class EvaluatorVanDerWaals
         Scalar b;      //!< b parameter in vdW EOS
         Scalar alpha;  //!< Coefficient of cubic term
         Scalar T;      //!< temperature scaling factor for ideal gas
+        Scalar N;      //!< coarse-graining multiplier
     };
 
 #endif
