@@ -34,6 +34,8 @@
 #define HOSTDEVICE
 #endif
 
+const Scalar eps_vdw(1e-3);
+
 //! Parameter structure for vdW fluids
 struct vdw_params
     {
@@ -160,8 +162,12 @@ class EvaluatorVanDerWaals
                 Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
                 force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*w_prime;
 
-                // CG correction
-                force_divr += (N-Scalar(1.0))*T/rho_i/(Scalar(1.0)-b*rho_i)*w_prime;
+                // guard against numerical errors at low density
+                if (fabs(N-Scalar(1.0)) > eps_vdw)
+                    {
+                    // CG correction
+                    force_divr += (N-Scalar(1.0))*T/rho_i/(Scalar(1.0)-b*rho_i)*w_prime;
+                    }
                 }
             }
 
@@ -180,8 +186,13 @@ class EvaluatorVanDerWaals
             // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
             energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*alpha*a*b*rho_i*rho_i;
 
-            // CG correction
-            energy += (N-Scalar(1.0))*T*logf(rho_i*b/(Scalar(1.0)-b*rho_i));
+
+            // guard against numerical errors at low density
+            if (fabs(N-Scalar(1.0)) > eps_vdw)
+                {
+                // CG correction
+                energy += (N-Scalar(1.0))*T*logf(rho_i*b/(Scalar(1.0)-b*rho_i));
+                }
             }
 
         //! Evaluate the forces due to ijk interactions
