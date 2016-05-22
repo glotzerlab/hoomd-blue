@@ -191,7 +191,7 @@ class EvaluatorVanDerWaals
             if (fabs(N-Scalar(1.0)) > eps_vdw)
                 {
                 // CG correction
-                energy += (N-Scalar(1.0))*T*logf(rho_i*b/(Scalar(1.0)-b*rho_i));
+                energy += (N-Scalar(1.0))*T*logf(rho_i/(Scalar(1.0)-b*rho_i));
                 }
             }
 
