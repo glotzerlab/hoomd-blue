@@ -85,7 +85,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar ry,
                                                     Scalar rz,
                                                     bool orientationLink,
-                                                    bool orientationReverseLink
+                                                    bool orientationReverseLink,
                                                     const unsigned int N)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -126,7 +126,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
         Scalar quatScal = slow::sqrt(d_actMag[tag]*d_actMag[tag]) + dot(f, vecZ);
         quat<Scalar> quati(quatScal, quatVec);
         quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
-        h_orientation.data[idx] = quat_to_scalar4(quati);
+        d_orientation[idx] = quat_to_scalar4(quati);
         }
     }
 
