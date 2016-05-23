@@ -29,6 +29,69 @@ def is_initialized():
     else:
         return True;
 
+def read_getar(filename, modes={'any': 'any'}):
+    """Initialize a system from a trajectory archive (.tar, .getar,
+    .sqlite) file. Returns a HOOMD `system_data` object.
+
+    :param filename: Name of the file to read from
+    :param modes: dictionary of {property: frame} values; see below
+
+    The **modes** argument is a dictionary. The keys of this dictionary
+    should be either property names (see `Supported Property Table`_) or
+    tuples of property names.
+
+    If the key is a tuple of property names, data for those names will
+    be restored from the same frame. Other acceptable keys are "any" to
+    restore any properties which are present from the file, "angle_any"
+    to restore any angle-related properties present, "bond_any", and so
+    forth. The values associated with each key in the dictionary should
+    be "any" (in which case any frame present for the data will be
+    restored, even if the frames are different for two property names in
+    a tuple), "latest" (grab the most recent frame data), "earliest", or
+    a specific timestep value.
+
+    """
+    hoomd.util.print_status_line()
+
+    # initialize GPU/CPU execution configuration and MPI early
+    hoomd.context._verify_init();
+
+    # check if initialization has already occured
+    if is_initialized():
+        hoomd.context.current.msg.error("Cannot initialize more than once\n")
+        raise RuntimeError("Error initializing")
+
+    newModes = _parse_getar_modes(modes)
+
+    # read in the data
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename)
+    snapshot = initializer.initialize(newModes)
+
+    try:
+        box = snapshot._global_box
+    except AttributeError:
+        box = snapshot.box
+
+    my_domain_decomposition = _create_domain_decomposition(box)
+    if my_domain_decomposition is not None:
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(
+            snapshot, hoomd.context.exec_conf, my_domain_decomposition)
+    else:
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(
+            snapshot, hoomd.context.exec_conf)
+
+    hoomd.context.current.system = _hoomd.System(
+        hoomd.context.current.system_definition, initializer.getTimestep())
+
+    _perform_common_init_tasks()
+
+    if (hoomd.data.get_snapshot_box(snapshot).dimensions == 2 and
+        any(abs(z) > 1e-5 for z in snapshot.particles.position[:, 2])):
+        raise RuntimeWarning('Initializing a 2D system with some z '
+                             'components out-of-plane')
+
+    return hoomd.data.system_data(hoomd.context.current.system_definition)
+
 def read_snapshot(snapshot):
     R""" Initializes the system from a snapshot.
 
@@ -128,6 +191,23 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     _perform_common_init_tasks();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
+def restore_getar(filename, modes={'any': 'any'}):
+    """Restore a subset of the current system's parameters from a trajectory
+    archive (.tar, .zip) file.
+
+    :param filename: Name of the file to read from
+    :param modes: dictionary of {property: frame} values; see :py:func:`read_getar`
+
+    """
+    hoomd.util.print_status_line()
+
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename)
+
+    newModes = _parse_getar_modes(modes)
+
+    initializer.restore(newModes, hoomd.context.current.system_definition)
+    del initializer
+
 ## Performs common initialization tasks
 #
 # \internal
@@ -177,3 +257,12 @@ def _create_domain_decomposition(box):
 
     return hoomd.context.current.decomposition._make_cpp_decomposition(box)
 
+def _parse_getar_modes(modes):
+    newModes = {}
+    for key in modes:
+        if type(key) == str:
+            newModes[(key,)] = str(modes[key])
+        else:
+            newModes[tuple(key)] = str(modes[key])
+
+    return newModes

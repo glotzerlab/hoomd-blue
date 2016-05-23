@@ -1,0 +1,3 @@
+[submodule "hoomd/extern/libgetar"]
+	path = hoomd/extern/libgetar
+	url = https://bitbucket.org/glotzer/libgetar

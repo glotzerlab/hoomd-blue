@@ -47,6 +47,18 @@ include (CMake_preprocessor_flags.cmake)
 # setup the install directories
 include (CMake_install_options.cmake)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
+
+find_package(libgetar)
+
+if (libgetar_DIR)
+  set(LIBGETAR_SHARED TRUE)
+  add_subdirectory(${libgetar_DIR} EXCLUDE_FROM_ALL)
+else (libgetar_DIR)
+  message(FATAL_ERROR "Libgetar was not found in hoomd/extern/libgetar. Please "
+                      "pull the libgetar source, i.e. via `git submodule update`.")
+endif (libgetar_DIR)
+
 ################################
 # set up unit tests
 enable_testing()
@@ -65,4 +77,3 @@ add_subdirectory (hoomd)
 if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
-
