@@ -13,6 +13,7 @@ hoomd.dump
 .. rubric:: Details
 
 .. automodule:: hoomd.dump
+    :synopsis: Write system configurations to files.
     :exclude-members: dcd, getar, gsd
 
     .. autoclass:: dcd
