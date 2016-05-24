@@ -175,7 +175,7 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(&header, 0, sizeof(header));
 
     header.magic = 0x65DF65DF65DF65DF;
-    header.gsd_version = gsd_make_version(0,3);
+    header.gsd_version = gsd_make_version(1,0);
     strncpy(header.application, application, sizeof(header.application)-1);
     header.application[sizeof(header.application)-1] = 0;
     strncpy(header.schema, schema, sizeof(header.schema)-1);
@@ -236,7 +236,9 @@ int __gsd_read_header(struct gsd_handle* handle)
     if (handle->header.magic != 0x65DF65DF65DF65DF)
         return -2;
 
-    if (handle->header.gsd_version != gsd_make_version(0,3))
+    if (handle->header.gsd_version < gsd_make_version(1,0) && handle->header.gsd_version != gsd_make_version(0,3))
+        return -3;
+    if (handle->header.gsd_version >= gsd_make_version(2,0))
         return -3;
 
     // determine the file size
