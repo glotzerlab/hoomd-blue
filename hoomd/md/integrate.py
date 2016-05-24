@@ -245,6 +245,12 @@ class npt(_integration_method):
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
         T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         P (:py:mod:`hoomd.variant` or :py:obj:`float`): Pressure set point for the barostat (in pressure units).
+        Sxx (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress xx component set point for the barostat (in pressure units).
+        Syy (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress yy component set point for the barostat (in pressure units).
+        Szz (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress zz component set point for the barostat (in pressure units).
+        Sxy (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress xy component set point for the barostat (in pressure units).
+        Syz (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress yz component set point for the barostat (in pressure units).
+        Sxz (:py:mod:`hoomd.variant` or :py:obj:`float`): Stress xz component set point for the barostat (in pressure units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
         tauP (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
@@ -365,7 +371,19 @@ class npt(_integration_method):
 
         # setup the variant inputs
         T = hoomd.variant._setup_variant_input(T);
-        P = hoomd.variant._setup_variant_input(P);
+
+        # If P is a stress, should be [xx, yy, zz, yz, xz, xy]
+        if (type(P)==list):
+            if (len(P)==6):
+                self.S = P
+            else:
+                raise RuntimeError("Unrecognized stress tensor form");
+        else:
+            self.S = [P,P,P,0,0,0]
+
+        S = [hoomd.variant._setup_variant_input(self.S[i]) for i in range(6)]
+
+        Svar = [S[i].cpp_variant for i in range(6)]
 
         # create the compute thermo for half time steps
         if group is hoomd.context.current.group_all:
@@ -433,9 +451,29 @@ class npt(_integration_method):
             flags |= _md.TwoStepNPTMTK.baroFlags.baro_yz
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition, 
+                                                group.cpp_group, 
+                                                thermo_group.cpp_compute, 
+                                                thermo_group_t.cpp_compute, 
+                                                tau, 
+                                                tauP, 
+                                                T.cpp_variant, 
+                                                Svar,
+                                                cpp_couple, 
+                                                flags, 
+                                                nph);
         else:
-            self.cpp_method = _md.TwoStepNPTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = _md.TwoStepNPTMTKGPU(hoomd.context.current.system_definition, 
+                                                   group.cpp_group, 
+                                                   thermo_group.cpp_compute, 
+                                                   thermo_group_t.cpp_compute, 
+                                                   tau, 
+                                                   tauP, 
+                                                   T.cpp_variant, 
+                                                   Svar,
+                                                   cpp_couple, 
+                                                   flags, 
+                                                   nph);
 
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
@@ -446,7 +484,6 @@ class npt(_integration_method):
         self.group  = group
         self.T = T
         self.tau = tau
-        self.P = P
         self.tauP = tauP
         self.couple = couple
         self.rescale_all = rescale_all
@@ -488,10 +525,32 @@ class npt(_integration_method):
             self.cpp_method.setTau(tau);
             self.tau = tau
         if P is not None:
-            # setup the variant inputs
-            P = hoomd.variant._setup_variant_input(P);
-            self.cpp_method.setP(P.cpp_variant);
-            self.P = P
+            S = []
+            # P should be [xx, yy, zz, xy, yz, xz]
+            if (type(P)==list):
+                if (len(P)==6):
+                    S.append(hoomd.variant._setup_variant_input(P[0]));
+                    S.append(hoomd.variant._setup_variant_input(P[1]));
+                    S.append(hoomd.variant._setup_variant_input(P[2]));
+                    S.append(hoomd.variant._setup_variant_input(P[3]));
+                    S.append(hoomd.variant._setup_variant_input(P[4]));
+                    S.append(hoomd.variant._setup_variant_input(P[5]));
+                    self.S = P
+                else:
+                    raise RuntimeError("Unrecognized stress tensor form");
+            else:
+                S.append(hoomd.variant._setup_variant_input(P));
+                S.append(hoomd.variant._setup_variant_input(P));
+                S.append(hoomd.variant._setup_variant_input(P));
+                S.append(0);
+                S.append(0);
+                S.append(0);
+                self.S = [P,P,P,0,0,0]
+
+            Svar = []
+            Svar.append(S[i].cpp_variant for i in range(6))
+            self.cpp_method.setS(Svar)
+
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
             self.tauP = tauP
@@ -510,7 +569,7 @@ class npt(_integration_method):
         if not self.nph:
             data['T'] = self.T
             data['tau'] = self.tau
-        data['P'] = self.P
+        data['S'] = self.S
         data['tauP'] = self.tauP
 
         lengths = ''

@@ -29,7 +29,7 @@ using namespace std;
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
-    \param P Pressure set point
+    \param S Pressure or Stress set point. Pressure if one value, Stress if a list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy]
     \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
@@ -40,12 +40,12 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
-                       boost::shared_ptr<Variant> P,
+		       boost::python::list S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
 
-    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, P, couple, flags,nph)
+    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -351,7 +351,7 @@ void export_TwoStepNPTMTKGPU()
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,
-                       boost::shared_ptr<Variant>,
+		       boost::python::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,
                        const bool>())
