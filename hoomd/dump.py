@@ -96,15 +96,49 @@ class dcd(hoomd.analyze._analyzer):
         raise RuntimeError('Error changing updater period');
 
 class getar(hoomd.analyze._analyzer):
-    """HOOMD analyzer for dumping properties to a getar file at intervals
+    """Analyzer for dumping system properties to a getar file at intervals.
 
-    Example::
+    Properties to dump can be given either as a
+    :py:class:`getar.DumpProp` object or a name. Supported property
+    names are specified in the Supported Property Table in
+    :py:class:`hoomd.init.read_getar`.
 
-        # detailed API
-        zip1 = dump.getar('dump.zip', static=['types'],
-                    dynamic={'orientation': 10000,
-                             'velocity': 5000,
-                             dump.getar.DumpProp('position', highPrecision=True): 10000})
+    Files can be opened in write, append, or one-shot mode. Write mode
+    overwrites files with the same name, while append mode adds to
+    them. One-shot mode is intended for restorable system backups and
+    is described below.
+
+    **One-shot mode**
+
+    In one-shot mode, activated by passing mode='1' to the getar
+    constructor, properties are written to a temporary file, which then
+    overwrites the file with the given filename. In this way, the file
+    with the given filename should always have the most recent frame of
+    successfully written data. This mode is designed for being able to
+    dump restoration data often without wasting large amounts of space
+    saving earlier data.
+
+    For convenience, you can also specify **composite properties**,
+    which are expanded according to the table below.
+
+    .. tabularcolumns:: |p{0.25 \textwidth}|p{0.75 \textwidth}|
+    .. csv-table::
+       :header: "Name", "Result"
+       :widths: 1, 3
+
+       "global_all", "box, dimensions"
+       "angle_all", "angle_type_names, angle_tag, angle_type"
+       "bond_all", "bond_type_names, bond_tag, bond_type"
+       "dihedral_all", "dihedral_type_names, dihedral_tag, dihedral_type"
+       "improper_all", "improper_type_names, improper_tag, improper_type"
+       "particle_all", "angular_momentum, body, charge, diameter, image, mass, moment_inertia, orientation, position, type, type_names, velocity"
+       "all", "particle_all, angle_all, bond_all, dihedral_all, improper_all, global_all"
+       "viz_static", "type, type_names"
+       "viz_dynamic", "position, box"
+       "viz_all", "viz_static, viz_dynamic"
+       "viz_aniso_dynamic", "viz_dynamic, orientation"
+       "viz_aniso_all", "viz_static, viz_aniso_dynamic"
+
     """
 
     class DumpProp(namedtuple('DumpProp', ['name', 'highPrecision', 'compression'])):
@@ -268,6 +302,15 @@ class getar(hoomd.analyze._analyzer):
         Property specifications can be either a property name (as a string) or
         :py:class:`DumpProp` objects if you desire greater control over how the
         property will be dumped.
+
+        Example::
+
+            # detailed API; see `dump.getar.simple` for simpler wrappers
+            zip = dump.getar('dump.zip', static=['types'],
+                      dynamic={'orientation': 10000,
+                               'velocity': 5000,
+                               dump.getar.DumpProp('position', highPrecision=True): 10000})
+
         """
 
         self._static = self._expandNames(static)
@@ -343,21 +386,41 @@ class getar(hoomd.analyze._analyzer):
     def simple(cls, filename, period, mode='w', static=[], dynamic=[], high_precision=False):
         """Create a :py:class:`getar` dump object with a simpler interface.
 
+        Static properties will be dumped once immediately, and dynamic
+        properties will be dumped every `period` steps. For detailed
+        explanation of arguments, see :py:class:`getar`.
+
         :param filename: Name of the file to open
         :param period: Period to dump the given dynamic properties with
         :param mode: Run mode; see mode list in :py:class:`getar`.
         :param static: List of static properties to dump immediately
         :param dynamic: List of properties to dump every `period` steps
         :param high_precision: If True, dump precision properties
+
+        Example::
+
+            # for later visualization of anisotropic systems
+            zip2 = hoomd.dump.getar.simple(
+                 'dump.sqlite', 100000, 'a', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
+
+            # as backup to restore from later
+            backup = hoomd.dump.getar.simple(
+                'backup.tar', 10000, '1', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
+
         """
         dynamicDict = {cls.DumpProp(name, highPrecision=high_precision): period for name in dynamic}
         return cls(filename=filename, mode=mode, static=static, dynamic=dynamicDict)
 
     @classmethod
     def immediate(cls, filename, static, dynamic):
-        """Immediately dump the given static and dynamic properties to the
-        given filename. Parameters are the same as for
-        :py:class:`getar`.
+        """Immediately dump the given static and dynamic properties to the given filename.
+
+        For detailed explanation of arguments, see :py:class:`getar`.
+
+        Example::
+
+            hoomd.dump.getar.immediate(
+                'snapshot.tar', static=['viz_static'], dynamic=['viz_dynamic'])
 
         """
         hoomd.util.quiet_status()

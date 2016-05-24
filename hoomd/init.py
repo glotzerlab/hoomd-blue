@@ -36,9 +36,9 @@ def read_getar(filename, modes={'any': 'any'}):
     :param filename: Name of the file to read from
     :param modes: dictionary of {property: frame} values; see below
 
-    The **modes** argument is a dictionary. The keys of this dictionary
-    should be either property names (see `Supported Property Table`_) or
-    tuples of property names.
+    The **modes** argument is a dictionary. The keys of this
+    dictionary should be either property names (see the Supported
+    Property Table below) or tuples of property names.
 
     If the key is a tuple of property names, data for those names will
     be restored from the same frame. Other acceptable keys are "any" to
@@ -49,6 +49,41 @@ def read_getar(filename, modes={'any': 'any'}):
     restored, even if the frames are different for two property names in
     a tuple), "latest" (grab the most recent frame data), "earliest", or
     a specific timestep value.
+
+    **Supported Property Table**
+
+    .. tabularcolumns:: |p{0.25 \textwidth}|p{0.1 \textwidth}|p{0.2 \textwidth}|p{0.45 \textwidth}|
+    .. csv-table::
+       :header: "Name", "Type", "Shape", "Notes"
+       :widths: 1, 1, 1, 5
+
+       "angle_type_names", "JSON [String]", "(N_angle_types,)", "list containing the name of each angle type in JSON format"
+       "angle_tag", "unsigned int", "(N_angle, 3)", "array of particle tags for each angle interaction"
+       "angle_type", "unsigned int", "(N_angle,)", "array of angle interaction types"
+       "angular_momentum", "float", "(N, 4)", "per-particle angular momentum quaternion"
+       "body", "int", "(N,)", "particle rigid body index"
+       "bond_type_names", "JSON [String]", "(N_bond_types,)", "list containing the name of each bond type in JSON format"
+       "bond_tag", "unsigned int", "(N_bond, 2)", "array of particle tags for each bond interaction"
+       "bond_type", "unsigned int", "(N_bond,)", "array of bond interaction types"
+       "box", "float", "(6,)", "vector of box lengths (x, y, z, tilt_xy, tilt_xz, tilt_yz); can be high precision"
+       "charge", "float", "(N,)", "particle charge"
+       "diameter", "float", "(N,)", "particle diameter"
+       "dihedral_type_names", "JSON [String]", "(N_dihedral_types,)", "list containing the name of each dihedral type in JSON format"
+       "dihedral_tag", "unsigned int", "(N_dihedral, 4)", "array of particle tags for each dihedral interaction"
+       "dihedral_type", "unsigned int", "(N_dihedral,)", "array of dihedral interaction types"
+       "dimensions", "unsigned int", "1", "number of dimensions of the system"
+       "image", "int", "(N, 3)", "how many times each particle has passed through the periodic boundary conditions"
+       "improper_type_names", "JSON [String]", "(N_improper_types,)", "list containing the name of each improper type in JSON format"
+       "improper_tag", "unsigned int", "(N_improper, 4)", "array of particle tags for each improper interaction"
+       "improper_type", "unsigned int", "(N_improper,)", "array of improper interaction types"
+       "mass", "float", "(N,)", "particle mass"
+       "moment_inertia", "float", "(N, 3)", "moment of inertia of each particle (diagonalized)."
+       "orientation", "float", "(N, 4)", "particle orientation, expressed as a quaternion in the order (real, imag_i, imag_j, imag_k); can be high precision"
+       "position", "float", "(N, 3)", "the position of each particle in the system (can be high precision)"
+       "potential_energy", "float", "(N,)", "per-particle potential energy; can't be used in MPI runs"
+       "type", "unsigned int", "(N,)", "particle numerical type index"
+       "type_names", "JSON [String]", "(N_types,)", "list containing the name of each particle type in JSON format"
+       "velocity", "float", "(N, 3)", "velocity of each particle in the system"
 
     """
     hoomd.util.print_status_line()
@@ -192,11 +227,12 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 def restore_getar(filename, modes={'any': 'any'}):
-    """Restore a subset of the current system's parameters from a trajectory
-    archive (.tar, .zip) file.
+    """Restore a subset of the current system's parameters from a
+    trajectory archive (.tar, .zip, .sqlite) file. For a detailed
+    discussion of arguments, see :py:func:`read_getar`.
 
     :param filename: Name of the file to read from
-    :param modes: dictionary of {property: frame} values; see :py:func:`read_getar`
+    :param modes: dictionary of {property: frame} values, as described in :py:func:`read_getar`
 
     """
     hoomd.util.print_status_line()
