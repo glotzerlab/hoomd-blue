@@ -87,10 +87,13 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
 	 */
 	virtual void setS(boost::python::list S)
             {
+	    	std::vector<boost::shared_ptr<Variant> > swapS;
+		swapS.resize(0);
 	    	for (int i = 0; i< 6; ++i)
 		{
-		m_S.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
+		swapS.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
 		}
+		m_S.swap(swapS);
             }
 
         //! Update the tau value
