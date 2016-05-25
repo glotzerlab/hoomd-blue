@@ -2649,15 +2649,15 @@ class van_der_waals(pair):
         :nowrap:
 
         \begin{equation}
-        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-\frac12 a\rho-\alpha a b \rho^3 + (N_m - 1) k_B T \frac{1}{\rho}\ln\frac{b \rho}{1-b \rho}
+        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-\frac12 a\rho-\beta \rho^3 + (N_m - 1) k_B T \frac{1}{\rho}\ln\frac{b \rho}{1-b \rho}
         \end{equation}
 
     which gives a pair-wise additive, three-body force
 
     .. math::
         \begin{equation}
-        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-\alpha a b n_i^2\left)
-            + \left( \frac{k_B T b}{1-b n_j} - a - \alpha a b n_j^2\right)\right\} w'_{ij} \vec e_{ij}
+        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-\beta n_i^2\left)
+            + \left( \frac{k_B T b}{1-b n_j} - a - \beta n_j^2\right)\right\} w'_{ij} \vec e_{ij}
             + (N_m - 1) k_B T \left\( \frac{1}{n_i}\frac{1}{1-b n_i} + \frac{1}{n_j}\frac{1}{1-b n_j} \right) w'{ij} \vec e_{ij}
         \end{equation}
 
@@ -2681,7 +2681,7 @@ class van_der_waals(pair):
     - :math:`a` - *A* (in units of energy*volume) - attraction parameter from vdW equation of state
     - :math:`b` - *B* (in units of volume) - covolume from vdW equation of state
     - :math:`T` - *T* (in units of temperature*k_B) - the temperature in the vdW equation of state
-    - :math:`alpha` - *alpha* (dimensionless) - controls the cubic term in the vdW free energy
+    - :math:`beta` - *beta* (in units of energy*volume^2) - controls the cubic term in the vdW free energy
       - *optional*: defaults to zero
     - :math:`N_m` - *N* (dimensionless) - number of vdW atoms per CG bead
       - *optional*: defaults to one
@@ -2690,14 +2690,19 @@ class van_der_waals(pair):
     original, i.e. Groot-Warren DPD force pair.dpd, should be set to zero. Note that the limiting
     case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid [3].
 
+    Alternatively, the potential can be used in conjunction with pair.dpd to simulate the repulsive
+    part of the MDPD potential [4]. In that case, :math:`b=a=0`, and :math:`beta` is the coefficient
+    of the repulsive interaction. The attractive part is handled by pair.dpd with a negative
+    pair coefficient **A**.
+
     The potential is meant to be used with a one-component liquid. Disable unwanted pair-interactions
-    with :math:`a=T=\alpha=0`.
+    with :math:`a=b=\beta=0`.
 
     Example::
 
         nl = nlist.cell()
         vdw = pair.van_der_waals(r_cut=3.0, nlist=nl)
-        vdw.pair_coeff.set('A', 'A', a=1.9*0.016,b=0.016,alpha=5,eps_rf=1.0)
+        vdw.pair_coeff.set('A', 'A', a=1.9*0.016,b=0.016,beta=0.0024,eps_rf=1.0)
 
     For further details regarding this multibody potential, see
 
@@ -2711,6 +2716,8 @@ class van_der_waals(pair):
     [3] R. D. Groot and P. B. Warren, "Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation,"
     J. Chem. Phys., vol. 107, no. 11, p. 4423, 1997.
 
+    [4] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
+    Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
     def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
@@ -2734,11 +2741,11 @@ class van_der_waals(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficients
-        self.required_coeffs = ['A','B','alpha','T','N']
-        self.pair_coeff.set_default_coeff('alpha', 0.0);
+        self.required_coeffs = ['A','B','beta','T','N']
+        self.pair_coeff.set_default_coeff('beta', 0.0);
         self.pair_coeff.set_default_coeff('N', 1.0);
 
     def process_coeff(self, coeff):
-        return _md.vdw_params(coeff['A'],coeff['B'],coeff['alpha'],coeff['T'],coeff['N'])
+        return _md.vdw_params(coeff['A'],coeff['B'],coeff['beta'],coeff['T'],coeff['N'])
 
 

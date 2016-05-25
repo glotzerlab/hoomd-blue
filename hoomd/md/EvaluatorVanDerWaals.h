@@ -42,15 +42,15 @@ struct vdw_params
     //! Constructor
     vdw_params(Scalar _a,
        Scalar _b,
-       Scalar _alpha,
+       Scalar _beta,
        Scalar _T,
        Scalar _N)
-        : a(_a), b(_b), alpha(_alpha), T(_T), N(_N)
+        : a(_a), b(_b), beta(_beta), T(_T), N(_N)
         { }
 
     Scalar a;     //!< energy parameter of vdW EOS
     Scalar b;     //!< covolume of vdW EOS
-    Scalar alpha; //!< Coefficient of cubic term
+    Scalar beta;  //!< Coefficient of cubic term
     Scalar T;     //!< Temperature
     Scalar N;     //!< number of real particles per CG bead (default == 1)
     };
@@ -68,7 +68,7 @@ class EvaluatorVanDerWaals
             \param _params Per type-pair parameters for this potential
         */
         DEVICE EvaluatorVanDerWaals(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), a(_params.a), b(_params.b), alpha(_params.alpha),
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), a(_params.a), b(_params.b), beta(_params.beta),
               T(_params.T), N(_params.N)
             {
             }
@@ -160,7 +160,7 @@ class EvaluatorVanDerWaals
 
                 // compute the ij force
                 Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
-                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-alpha*a*b*rho_i)*w_prime;
+                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-beta*rho_i)*w_prime;
 
                 // guard against numerical errors at low density
                 if (fabs(N-Scalar(1.0)) > eps_vdw)
@@ -184,7 +184,7 @@ class EvaluatorVanDerWaals
 //            rho_i += norm; // see discussion in [2]
 
             // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
-            energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*alpha*a*b*rho_i*rho_i;
+            energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*beta*rho_i*rho_i;
 
 
             // guard against numerical errors at low density
@@ -223,7 +223,7 @@ class EvaluatorVanDerWaals
         Scalar rcutsq; //!< Stored rcutsq from the constructor
         Scalar a;      //!< a parameter in vdW EOS
         Scalar b;      //!< b parameter in vdW EOS
-        Scalar alpha;  //!< Coefficient of cubic term
+        Scalar beta;  //!< Coefficient of cubic term
         Scalar T;      //!< temperature scaling factor for ideal gas
         Scalar N;      //!< coarse-graining multiplier
     };

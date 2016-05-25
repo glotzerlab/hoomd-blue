@@ -126,7 +126,7 @@ void export_vdw_params()
     class_<vdw_params>("vdw_params", init<Scalar, Scalar, Scalar, Scalar, Scalar>())
         .def_readwrite("a", &vdw_params::a)
         .def_readwrite("b", &vdw_params::b)
-        .def_readwrite("alpha", &vdw_params::alpha)
+        .def_readwrite("beta", &vdw_params::beta)
         .def_readwrite("T", &vdw_params::T)
         .def_readwrite("N", &vdw_params::N)
         ;
