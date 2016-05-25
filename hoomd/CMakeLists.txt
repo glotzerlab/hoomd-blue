@@ -193,3 +193,8 @@ option(BUILD_METAL "Build the metal package" on)
 if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
+
+option(BUILD_DEM "Build the dem package" on)
+if (BUILD_DEM AND BUILD_MD)
+    add_subdirectory(dem)
+endif()
