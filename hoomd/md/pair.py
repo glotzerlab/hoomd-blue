@@ -2691,7 +2691,7 @@ class van_der_waals(pair):
     case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid [3].
 
     Alternatively, the potential can be used in conjunction with pair.dpd to simulate the repulsive
-    part of the MDPD potential [4]. In that case, :math:`b=a=0`, and :math:`beta` is the coefficient
+    part of the MDPD potential [4]. In that case, :math:`b=a=0`, and :math:`-beta` is the coefficient
     of the repulsive interaction. The attractive part is handled by pair.dpd with a negative
     pair coefficient **A**.
 
