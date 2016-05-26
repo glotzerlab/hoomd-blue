@@ -27,7 +27,7 @@ class _DEMBase:
             for typ in type_list:
                 self.setParams3D(typ, [[0, 0, 0]], [], False)
 
-    def setParams2D(self, type, vertices, center=True):
+    def setParams2D(self, type, vertices, center=False):
         """Set the vertices for a given particle type. Takes a type
         name, a list of 2D vertices relative to the center of mass of
         the particle, and a boolean value for whether to center the
@@ -52,7 +52,7 @@ class _DEMBase:
         self.cpp_force.setRcut(self.r_cut)
         self.cpp_force.setParams(itype, vertices)
 
-    def setParams3D(self, type, vertices, faces, center=True):
+    def setParams3D(self, type, vertices, faces, center=False):
         """Set the shape parameters for a given particle type. Takes a
         type name, a list of 3D vertices, a list of lists of vertex
         indices (with one list for each face), and a boolean value for
