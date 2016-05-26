@@ -398,7 +398,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
     for(size_t shapeIdx(0); shapeIdx < m_facesVec.size(); ++shapeIdx)
     {
         const unsigned int faceSize(m_facesVec[shapeIdx].size());
-        h_numTypeFaces.data[shapeIdx] = faceSize > 2? faceSize: 0;
+        h_numTypeFaces.data[shapeIdx] = faceSize;
     }
 }
 
@@ -502,9 +502,11 @@ size_t DEM3DForceCompute<Real, Real4, Potential>::numDegenerateVerts() const
 
     for(typename std::vector<std::vector<std::vector<unsigned int> > >::const_iterator shapeIter(this->m_facesVec.begin());
         shapeIter != this->m_facesVec.end(); ++shapeIter)
+    {
         for(typename std::vector<std::vector<unsigned int> >::const_iterator faceIter(shapeIter->begin());
             faceIter != shapeIter->end(); ++faceIter)
             result += faceIter->size() ? faceIter->size(): 1;
+    }
 
     return result;
 }
