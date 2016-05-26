@@ -57,6 +57,17 @@ def read_getar(filename, modes={'any': 'any'}):
     a tuple), "latest" (grab the most recent frame data), "earliest", or
     a specific timestep value.
 
+    Example::
+
+        # creating file to initialize beforehand using libgetar
+        with gtar.GTAR('init.zip', 'w') as traj:
+            traj.writePath('position.f32.ind', positions)
+            traj.writePath('velocity.f32.ind', velocities)
+            traj.writePath('metadata.json', json.dumps(metadata))
+        system = hoomd.init.read_getar('init.zip')
+        # using the backup created in the `hoomd.dump.getar.simple` example
+        system = hoomd.init.read_getar('backup.tar')
+
     **Supported Property Table**
 
     .. tabularcolumns:: |p{0.25 \textwidth}|p{0.1 \textwidth}|p{0.2 \textwidth}|p{0.45 \textwidth}|

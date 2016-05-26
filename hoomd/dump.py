@@ -407,10 +407,13 @@ class getar(hoomd.analyze._analyzer):
 
         Example::
 
+            # [optionally] dump metadata beforehand with libgetar
+            with gtar.GTAR('dump.sqlite', 'w') as trajectory:
+                metadata = json.dumps(hoomd.meta.dump_metadata())
+                trajectory.writeStr('hoomd_metadata.json', metadata)
             # for later visualization of anisotropic systems
             zip2 = hoomd.dump.getar.simple(
                  'dump.sqlite', 100000, 'a', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
-
             # as backup to restore from later
             backup = hoomd.dump.getar.simple(
                 'backup.tar', 10000, '1', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
