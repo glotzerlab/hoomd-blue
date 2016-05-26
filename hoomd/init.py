@@ -86,46 +86,46 @@ def read_getar(filename, modes={'any': 'any'}):
        "velocity", "float", "(N, 3)", "velocity of each particle in the system"
 
     """
-    hoomd.util.print_status_line()
+    hoomd.util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
     hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd.context.current.msg.error("Cannot initialize more than once\n")
-        raise RuntimeError("Error initializing")
+        hoomd.context.current.msg.error("Cannot initialize more than once\n");
+        raise RuntimeError("Error initializing");
 
-    newModes = _parse_getar_modes(modes)
+    newModes = _parse_getar_modes(modes);
 
     # read in the data
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename)
-    snapshot = initializer.initialize(newModes)
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
+    snapshot = initializer.initialize(newModes);
 
     try:
-        box = snapshot._global_box
+        box = snapshot._global_box;
     except AttributeError:
-        box = snapshot.box
+        box = snapshot.box;
 
-    my_domain_decomposition = _create_domain_decomposition(box)
+    my_domain_decomposition = _create_domain_decomposition(box);
     if my_domain_decomposition is not None:
         hoomd.context.current.system_definition = _hoomd.SystemDefinition(
-            snapshot, hoomd.context.exec_conf, my_domain_decomposition)
+            snapshot, hoomd.context.exec_conf, my_domain_decomposition);
     else:
         hoomd.context.current.system_definition = _hoomd.SystemDefinition(
-            snapshot, hoomd.context.exec_conf)
+            snapshot, hoomd.context.exec_conf);
 
     hoomd.context.current.system = _hoomd.System(
-        hoomd.context.current.system_definition, initializer.getTimestep())
+        hoomd.context.current.system_definition, initializer.getTimestep());
 
-    _perform_common_init_tasks()
+    _perform_common_init_tasks();
 
     if (hoomd.data.get_snapshot_box(snapshot).dimensions == 2 and
         any(abs(z) > 1e-5 for z in snapshot.particles.position[:, 2])):
         raise RuntimeWarning('Initializing a 2D system with some z '
-                             'components out-of-plane')
+                             'components out-of-plane');
 
-    return hoomd.data.system_data(hoomd.context.current.system_definition)
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 def read_snapshot(snapshot):
     R""" Initializes the system from a snapshot.
@@ -235,14 +235,14 @@ def restore_getar(filename, modes={'any': 'any'}):
     :param modes: dictionary of {property: frame} values, as described in :py:func:`read_getar`
 
     """
-    hoomd.util.print_status_line()
+    hoomd.util.print_status_line();
 
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename)
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
 
-    newModes = _parse_getar_modes(modes)
+    newModes = _parse_getar_modes(modes);
 
-    initializer.restore(newModes, hoomd.context.current.system_definition)
-    del initializer
+    initializer.restore(newModes, hoomd.context.current.system_definition);
+    del initializer;
 
 ## Performs common initialization tasks
 #
