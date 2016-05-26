@@ -10,7 +10,7 @@ import hoomd
 try:
     import gtar
 except ImportError:
-    print('Warning: gtar python module not found, getar tests not run',
+    print('Warning: gtar python module not found, some getar tests not run',
           file=sys.stderr)
     gtar = None
 
@@ -148,43 +148,45 @@ class RandomSystem:
 
         return result
 
-class test_random_read_write(unittest.TestCase):
-    def test_zip(self):
-        self._test_procedure('dump.zip')
+# skip this test if the gtar python module is not available
+if gtar is not None:
+    class test_random_read_write(unittest.TestCase):
+        def test_zip(self):
+            self._test_procedure('dump.zip')
 
-    def test_tar(self):
-        self._test_procedure('dump.tar')
+        def test_tar(self):
+            self._test_procedure('dump.tar')
 
-    def test_sqlite(self):
-        self._test_procedure('dump.sqlite')
+        def test_sqlite(self):
+            self._test_procedure('dump.sqlite')
 
-    def _test_procedure(self, fname):
-        random.seed()
-        self.last_fname = fname
-        hoomd.util.quiet_status()
+        def _test_procedure(self, fname):
+            random.seed()
+            self.last_fname = fname
+            hoomd.util.quiet_status()
 
-        for _ in range(10):
-            seed = random.randint(1, 2**32 - 1)
-            sys1 = RandomSystem(seed)
-            if hoomd.comm.get_rank() == 0:
-                sys1.writeGetar(fname)
+            for _ in range(10):
+                seed = random.randint(1, 2**32 - 1)
+                sys1 = RandomSystem(seed)
+                if hoomd.comm.get_rank() == 0:
+                    sys1.writeGetar(fname)
 
-            sys2 = RandomSystem(0)
-            system = hoomd.init.read_getar(fname,
-                                           {tuple(sys1.restoreProps): 'any'})
-            sys2.readSystem(system)
-            del system
+                sys2 = RandomSystem(0)
+                system = hoomd.init.read_getar(fname,
+                                               {tuple(sys1.restoreProps): 'any'})
+                sys2.readSystem(system)
+                del system
+                hoomd.context.initialize()
+
+                self.assertEqual(sys1, sys2)
+
+        def setUp(self):
             hoomd.context.initialize()
 
-            self.assertEqual(sys1, sys2)
-
-    def setUp(self):
-        hoomd.context.initialize()
-
-    def tearDown(self):
-        if hoomd.comm.get_rank() == 0:
-            os.remove(self.last_fname);
-        hoomd.comm.barrier_all();
+        def tearDown(self):
+            if hoomd.comm.get_rank() == 0:
+                os.remove(self.last_fname);
+            hoomd.comm.barrier_all();
 
 class test_basic_io(unittest.TestCase):
     def test_basic(self):
