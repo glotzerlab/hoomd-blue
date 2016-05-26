@@ -73,76 +73,76 @@ namespace getardump{
 
     /// Object to use to restore HOOMD system snapshots
     class GetarInitializer
-    {
-    public:
-        /// Constructor
-        ///
-        /// :param exec_conf: Execution configuration to use
-        /// :param filename: Filename to restore from
-        GetarInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                       const string &filename);
+        {
+        public:
+            /// Constructor
+            ///
+            /// :param exec_conf: Execution configuration to use
+            /// :param filename: Filename to restore from
+            GetarInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                const string &filename);
 
-        /// Python binding to initialize the system from a set of
-        /// restoration properties
-        shared_ptr<SystemSnapshot> initializePy(dict &pyModes);
+            /// Python binding to initialize the system from a set of
+            /// restoration properties
+            shared_ptr<SystemSnapshot> initializePy(dict &pyModes);
 
-        /// Python binding to restore part of the system from a set of
-        /// restoration properties. Values are first taken from the
-        /// given system definition.
-        void restorePy(dict &pyModes, shared_ptr<SystemDefinition> sysdef);
+            /// Python binding to restore part of the system from a set of
+            /// restoration properties. Values are first taken from the
+            /// given system definition.
+            void restorePy(dict &pyModes, shared_ptr<SystemDefinition> sysdef);
 
-        /// Grab the greatest timestep from the most recent
-        /// restoration or initialization stage
-        unsigned int getTimestep() const;
+            /// Grab the greatest timestep from the most recent
+            /// restoration or initialization stage
+            unsigned int getTimestep() const;
 
-    private:
-        /// Return true if the Record indicates a property we know how
-        /// to restore
-        bool knownProperty(const Record &rec) const;
+        private:
+            /// Return true if the Record indicates a property we know how
+            /// to restore
+            bool knownProperty(const Record &rec) const;
 
-        /// Insert one or more known records to restore into the given
-        /// set if the records match the given name
-        bool insertRecord(const string &name, std::set<Record> &rec) const;
+            /// Insert one or more known records to restore into the given
+            /// set if the records match the given name
+            bool insertRecord(const string &name, std::set<Record> &rec) const;
 
-        /// Convert a particular python dict into a std::map
-        map<set<Record>, string> parseModes(dict &pyModes);
+            /// Convert a particular python dict into a std::map
+            map<set<Record>, string> parseModes(dict &pyModes);
 
-        /// Initialize the system given a set of modes
-        shared_ptr<SystemSnapshot> initialize(const map<set<Record>, string> &modes);
+            /// Initialize the system given a set of modes
+            shared_ptr<SystemSnapshot> initialize(const map<set<Record>, string> &modes);
 
-        /// Restore part of a system given a system definition and a
-        /// set of modes
-        void restore(shared_ptr<SystemDefinition> &sysdef, const map<set<Record>, string> &modes);
+            /// Restore part of a system given a system definition and a
+            /// set of modes
+            void restore(shared_ptr<SystemDefinition> &sysdef, const map<set<Record>, string> &modes);
 
-        /// Fill in any missing data in the given snapshot and perform
-        /// basic consistency checks
-        void fillSnapshot(shared_ptr<SystemSnapshot> snapshot);
+            /// Fill in any missing data in the given snapshot and perform
+            /// basic consistency checks
+            void fillSnapshot(shared_ptr<SystemSnapshot> snapshot);
 
-        /// Restore a system from bits of the given snapshot and the
-        /// given restoration modes
-        shared_ptr<SystemSnapshot> restoreSnapshot(
-            shared_ptr<SystemSnapshot> &systemSnap, const map<set<Record>, string> &modes);
+            /// Restore a system from bits of the given snapshot and the
+            /// given restoration modes
+            shared_ptr<SystemSnapshot> restoreSnapshot(
+                shared_ptr<SystemSnapshot> &systemSnap, const map<set<Record>, string> &modes);
 
-        /// Restore a set of records for the same frame
-        void restoreSimultaneous(shared_ptr<SystemSnapshot> snapshot,
-                                 const set<Record> &records, string frame);
+            /// Restore a set of records for the same frame
+            void restoreSimultaneous(shared_ptr<SystemSnapshot> snapshot,
+                const set<Record> &records, string frame);
 
-        /// Restore a single property
-        void restoreSingle(shared_ptr<SystemSnapshot> snap,
-                           const Record &rec);
+            /// Restore a single property
+            void restoreSingle(shared_ptr<SystemSnapshot> snap,
+                const Record &rec);
 
-        /// Parse a type_names.json file
-        vector<string> parseTypeNames(const string &json);
+            /// Parse a type_names.json file
+            vector<string> parseTypeNames(const string &json);
 
-        /// Saved execution configuration
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;
-        /// Saved trajectory archive object
-        GTAR m_traj;
-        /// Set of known records we found in the current trajectory archive
-        vector<Record> m_knownRecords;
-        /// Cached timestep
-        unsigned int m_timestep;
-    };
+            /// Saved execution configuration
+            boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;
+            /// Saved trajectory archive object
+            GTAR m_traj;
+            /// Set of known records we found in the current trajectory archive
+            vector<Record> m_knownRecords;
+            /// Cached timestep
+            unsigned int m_timestep;
+        };
 
 
 void export_GetarInitializer();
