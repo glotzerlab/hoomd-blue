@@ -313,38 +313,6 @@ namespace getardump{
         unsigned int m_minor;
     };
 
-// class InertiaIterator: public std::iterator<std::input_iterator_tag, float>
-// {
-// public:
-//     InertiaIterator(InertiaTensor *begin):
-//         m_major(begin), m_minor(0)
-//     {}
-
-    //     void operator++()
-    //     {
-    //         m_major += (++m_minor == 6);
-    //         m_minor %= 6;
-    //     }
-
-    //     float operator*()
-    //     {
-    //         return m_major->operator[](m_minor);
-    //     }
-
-
-    // bool operator==(const InertiaIterator &rhs) const
-    // {
-    //     return m_major == rhs.m_major && m_minor == rhs.m_minor;
-    // }
-
-    // bool operator!=(const InertiaIterator &rhs) const
-    // {return !(rhs == *this);}
-
-    // private:
-    //     InertiaTensor *m_major;
-    //     unsigned int m_minor;
-    // };
-
     template<typename Iter>
     class Scalar4wIterator: public std::iterator<std::input_iterator_tag, float>
     {

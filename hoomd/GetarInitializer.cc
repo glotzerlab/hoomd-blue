@@ -346,60 +346,6 @@ namespace getardump{
             snapshot->particle_data.type_mapping.push_back(string(1, 'A' + (char) i));
         }
 
-        // unsigned int bdata_N(snapshot->rigid_data.size);
-
-        // if(snapshot->rigid_data.com.size() != bdata_N)
-        // {
-        //     if(snapshot->rigid_data.com.size())
-        //     {
-        //         stringstream message;
-        //         message << "Expected to find " << bdata_N << " rigid bodies, but found " <<
-        //             snapshot->rigid_data.com.size() << " centers of mass" << endl;
-        //         throw runtime_error(message.str());
-        //     }
-        //     m_exec_conf->msg->notice(3) << "Filling rigid centers of mass with the value (0, 0, 0)" << endl;
-        //     snapshot->rigid_data.com = vector<Scalar3>(bdata_N, make_scalar3(0, 0, 0));
-        // }
-
-        // if(snapshot->rigid_data.vel.size() != bdata_N)
-        // {
-        //     if(snapshot->rigid_data.vel.size())
-        //     {
-        //         stringstream message;
-        //         message << "Expected to find " << bdata_N << " rigid bodies, but found " <<
-        //             snapshot->rigid_data.vel.size() << " velocities" << endl;
-        //         throw runtime_error(message.str());
-        //     }
-        //     m_exec_conf->msg->notice(3) << "Filling rigid velocities with the value (0, 0, 0)" << endl;
-        //     snapshot->rigid_data.vel = vector<Scalar3>(bdata_N, make_scalar3(0, 0, 0));
-        // }
-
-        // if(snapshot->rigid_data.angmom.size() != bdata_N)
-        // {
-        //     if(snapshot->rigid_data.angmom.size())
-        //     {
-        //         stringstream message;
-        //         message << "Expected to find " << bdata_N << " rigid bodies, but found " <<
-        //             snapshot->rigid_data.angmom.size() << " angular momenta" << endl;
-        //         throw runtime_error(message.str());
-        //     }
-        //     m_exec_conf->msg->notice(3) << "Filling rigid angular momenta with the value (0, 0, 0)" << endl;
-        //     snapshot->rigid_data.angmom = vector<Scalar3>(bdata_N, make_scalar3(0, 0, 0));
-        // }
-
-        // if(snapshot->rigid_data.body_image.size() != bdata_N)
-        // {
-        //     if(snapshot->rigid_data.body_image.size())
-        //     {
-        //         stringstream message;
-        //         message << "Expected to find " << bdata_N << " rigid bodies, but found " <<
-        //             snapshot->rigid_data.body_image.size() << " body images" << endl;
-        //         throw runtime_error(message.str());
-        //     }
-        //     m_exec_conf->msg->notice(3) << "Filling rigid body images with the value (0, 0, 0)" << endl;
-        //     snapshot->rigid_data.body_image = vector<int3>(bdata_N, make_int3(0, 0, 0));
-        // }
-
         unsigned int bond_N(snapshot->bond_data.type_id.size());
 
         if(snapshot->bond_data.groups.size() != bond_N)
@@ -762,16 +708,8 @@ namespace getardump{
 
             if(rec.getName() ==  "image")
             {
-                // if(rec.getGroup() == "rigid_body")
-                // {
-                //     snap->rigid_data.body_image = data;
-                //     snap->rigid_data.size = data.size();
-                // }
-                // else
-                // {
                     snap->particle_data.image = data;
                     snap->particle_data.size = data.size();
-                // }
             }
             else
             {
@@ -849,80 +787,9 @@ namespace getardump{
                 throw runtime_error(msg);
             }
         }
-        // Scalar3 quantities
-        else if(rec.getName() == "center_of_mass" ||
-                rec.getName() == "angular_momentum" ||
-                (rec.getGroup() == "rigid_body" && rec.getName() == "velocity"))
-        {
-            vector<Scalar3> data;
-            if(rec.getFormat() == Float32)
-            {
-                SharedArray<float> rawData(m_traj.readIndividual<float>(rec.getPath()));
-                found = rawData.get();
-
-                if(rawData.size() % 3)
-                {
-                    stringstream msg;
-                    msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
-                    throw runtime_error(msg.str());
-                }
-
-                Scalar3Iterator<float> begin(rawData.begin());
-                Scalar3Iterator<float> end(rawData.end());
-
-                data = vector<Scalar3>(begin, end);
-            }
-            else if(rec.getFormat() == Float64)
-            {
-                SharedArray<double> rawData(m_traj.readIndividual<double>(rec.getPath()));
-                found = rawData.get();
-
-                if(rawData.size() % 3)
-                {
-                    stringstream msg;
-                    msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
-                    throw runtime_error(msg.str());
-                }
-
-                Scalar3Iterator<double> begin(rawData.begin());
-                Scalar3Iterator<double> end(rawData.end());
-
-                data = vector<Scalar3>(begin, end);
-            }
-            else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
-
-            if(!found)
-            {
-                throw runtime_error("Found no data at " + rec.getPath());
-            }
-
-            // if(rec.getName() == "center_of_mass")
-            // {
-            //     snap->rigid_data.com = data;
-            //     snap->rigid_data.size = data.size();
-            // }
-            // else if(rec.getName() == "angular_momentum")
-            // {
-            //     snap->rigid_data.angmom = data;
-            //     snap->rigid_data.size = data.size();
-            // }
-            // else if(rec.getName() == "velocity")
-            // {
-            //     snap->rigid_data.vel = data;
-            //     snap->rigid_data.size = data.size();
-            // }
-            // else
-            // {
-                string msg("Failed to locate where to set the property at ");
-                msg += rec.getPath();
-                msg += " (programmer error)";
-                throw runtime_error(msg);
-            // }
-        }
         // Scalar3/vec3<Scalar> properties, depending on hoomd
         // version. Note that velocity is for particles, not rigid
-        // bodies here (see previous "else if" block)
+        // bodies here
         else if(rec.getName() == "position" || rec.getName() == "velocity" ||
                 rec.getName() == "acceleration" || rec.getName() == "moment_inertia")
         {

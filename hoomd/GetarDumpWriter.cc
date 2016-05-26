@@ -519,69 +519,6 @@ namespace getardump{
             writer.writeIndividual<vector<unsigned int>::iterator, int32_t>(
                 desc.getFormattedPath(timestep), begin, end, desc.m_compression);
         }
-        // else if(desc.m_prop == BodyAngularMomentum)
-        // {
-        //     boost::shared_ptr<RigidData> rdata(m_sysdef->getRigidData());
-        //     ArrayHandle<Scalar4> handle(rdata->getAngMom(),
-        //                                 access_location::host, access_mode::read);
-        //     const unsigned int N(rdata->getNumBodies());
-        //     Scalar4xyzIterator<float, Scalar4*> begin(handle.data);
-        //     Scalar4xyzIterator<float, Scalar4*> end(&handle.data[N]);
-        //     writer.writeIndividual<Scalar4xyzIterator<float, Scalar4*>, float>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
-        // else if(desc.m_prop == BodyCOM)
-        // {
-        //     boost::shared_ptr<RigidData> rdata(m_sysdef->getRigidData());
-        //     ArrayHandle<Scalar4> handle(rdata->getCOM(),
-        //                                 access_location::host, access_mode::read);
-        //     const unsigned int N(rdata->getNumBodies());
-        //     Scalar4xyzIterator<float, Scalar4*> begin(handle.data);
-        //     Scalar4xyzIterator<float, Scalar4*> end(&handle.data[N]);
-        //     writer.writeIndividual<Scalar4xyzIterator<float, Scalar4*>, float>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
-        // else if(desc.m_prop == BodyImage)
-        // {
-        //     typedef Int3xyzIterator<vector<int3>::iterator> iter_t;
-        //     iter_t begin(m_systemSnap->rigid_data.body_image.begin());
-        //     iter_t end(m_systemSnap->rigid_data.body_image.end());
-        //     writer.writeIndividual<iter_t, int32_t>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
-        // else if(desc.m_prop == BodyMomentInertia)
-        // {
-        //     boost::shared_ptr<RigidData> rdata(m_sysdef->getRigidData());
-        //     ArrayHandle<Scalar4> handle(rdata->getMomentInertia(),
-        //                                 access_location::host, access_mode::read);
-        //     const unsigned int N(rdata->getNumBodies());
-        //     Scalar4xyzIterator<float, Scalar4*> begin(handle.data);
-        //     Scalar4xyzIterator<float, Scalar4*> end(&handle.data[N]);
-        //     writer.writeIndividual<Scalar4xyzIterator<float, Scalar4*>, float>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
-        // else if(desc.m_prop == BodyOrientation)
-        // {
-        //     boost::shared_ptr<RigidData> rdata(m_sysdef->getRigidData());
-        //     ArrayHandle<Scalar4> handle(rdata->getOrientation(),
-        //                                 access_location::host, access_mode::read);
-        //     const unsigned int N(rdata->getNumBodies());
-        //     Scalar4xyzwIterator<float, Scalar4*> begin(handle.data);
-        //     Scalar4xyzwIterator<float, Scalar4*> end(&handle.data[N]);
-        //     writer.writeIndividual<Scalar4xyzwIterator<float, Scalar4*>, float>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
-        // else if(desc.m_prop == BodyVelocity)
-        // {
-        //     boost::shared_ptr<RigidData> rdata(m_sysdef->getRigidData());
-        //     ArrayHandle<Scalar4> handle(rdata->getVel(),
-        //                                 access_location::host, access_mode::read);
-        //     const unsigned int N(rdata->getNumBodies());
-        //     Scalar4xyzIterator<float, Scalar4*> begin(handle.data);
-        //     Scalar4xyzIterator<float, Scalar4*> end(&handle.data[N]);
-        //     writer.writeIndividual<Scalar4xyzIterator<float, Scalar4*>, float>(
-        //         desc.getFormattedPath(timestep), begin, end, desc.m_compression);
-        // }
         else if(desc.m_prop == BondNames)
         {
             string json(makeTypeList(m_systemSnap->bond_data.type_mapping));
