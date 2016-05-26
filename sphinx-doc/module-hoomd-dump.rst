@@ -29,4 +29,6 @@ hoomd.dump
             :param highPrecision: True if the property should be dumped in high precision, if possible
             :param compression: Compression level to save the property with, if possible
 
+        .. automethod:: getar.__init__
+
     .. autoclass:: gsd

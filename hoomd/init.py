@@ -33,8 +33,15 @@ def read_getar(filename, modes={'any': 'any'}):
     """Initialize a system from a trajectory archive (.tar, .getar,
     .sqlite) file. Returns a HOOMD `system_data` object.
 
-    :param filename: Name of the file to read from
-    :param modes: dictionary of {property: frame} values; see below
+    Args:
+        filename (str): Name of the file to read from
+        modes (dict): dictionary of {property: frame} values; see below
+
+    Getar files are a simple interface on top of archive formats (such
+    as zip and tar) for storing trajectory data efficiently. A more
+    thorough description of the format and a description of a python
+    API to read and write these files is available at `the libgetar
+    documentation <http://glotzerlab.engin.umich.edu/libgetar/>`_.
 
     The **modes** argument is a dictionary. The keys of this
     dictionary should be either property names (see the Supported
@@ -231,9 +238,9 @@ def restore_getar(filename, modes={'any': 'any'}):
     trajectory archive (.tar, .zip, .sqlite) file. For a detailed
     discussion of arguments, see :py:func:`read_getar`.
 
-    :param filename: Name of the file to read from
-    :param modes: dictionary of {property: frame} values, as described in :py:func:`read_getar`
-
+    Args:
+        filename (str): Name of the file to read from
+        modes (dict): dictionary of {property: frame} values, as described in :py:func:`read_getar`
     """
     hoomd.util.print_status_line();
 

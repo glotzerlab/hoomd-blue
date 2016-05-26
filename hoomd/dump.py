@@ -98,6 +98,12 @@ class dcd(hoomd.analyze._analyzer):
 class getar(hoomd.analyze._analyzer):
     """Analyzer for dumping system properties to a getar file at intervals.
 
+    Getar files are a simple interface on top of archive formats (such
+    as zip and tar) for storing trajectory data efficiently. A more
+    thorough description of the format and a description of a python
+    API to read and write these files is available at `the libgetar
+    documentation <http://glotzerlab.engin.umich.edu/libgetar/>`_.
+
     Properties to dump can be given either as a
     :py:class:`getar.DumpProp` object or a name. Supported property
     names are specified in the Supported Property Table in
@@ -280,11 +286,12 @@ class getar(hoomd.analyze._analyzer):
         location according to the mode and prepares to dump the given
         sets of properties.
 
-        :param filename: Name of the file to open
-        :param mode: Run mode; see mode list below.
-        :param static: List of static properties to dump immediately
-        :param dynamic: Dictionary of {prop: period} periodic dumps
-        :param _register: If True, register as a hoomd analyzer (internal)
+        Args:
+            filename (str): Name of the file to open
+            mode (str): Run mode; see mode list below.
+            static (list): List of static properties to dump immediately
+            dynamic (dict): Dictionary of {prop: period} periodic dumps
+            _register (bool): If True, register as a hoomd analyzer (internal)
 
         Note that zip32-format archives can not be appended to at the
         moment; for details and solutions, see the libgetar
@@ -297,7 +304,7 @@ class getar(hoomd.analyze._analyzer):
 
         * 'w': Write, and overwrite if file exists
         * 'a': Write, and append if file exists
-        * '1': One-shot mode: keep only one frame of data. For details on one-shot mode, see `One-shot mode`_.
+        * '1': One-shot mode: keep only one frame of data. For details on one-shot mode, see the "One-shot mode" section of :py:class:`getar`.
 
         Property specifications can be either a property name (as a string) or
         :py:class:`DumpProp` objects if you desire greater control over how the
@@ -390,12 +397,13 @@ class getar(hoomd.analyze._analyzer):
         properties will be dumped every `period` steps. For detailed
         explanation of arguments, see :py:class:`getar`.
 
-        :param filename: Name of the file to open
-        :param period: Period to dump the given dynamic properties with
-        :param mode: Run mode; see mode list in :py:class:`getar`.
-        :param static: List of static properties to dump immediately
-        :param dynamic: List of properties to dump every `period` steps
-        :param high_precision: If True, dump precision properties
+        Args:
+            filename (str): Name of the file to open
+            period (int): Period to dump the given dynamic properties with
+            mode (str): Run mode; see mode list in :py:class:`getar`.
+            static (list): List of static properties to dump immediately
+            dynamic (list): List of properties to dump every `period` steps
+            high_precision (bool): If True, dump precision properties
 
         Example::
 
