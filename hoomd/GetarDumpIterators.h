@@ -57,6 +57,10 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/BondedGroupData.h"
 
+/// This file contains iterators to serialize and deserialize various
+/// composite data types found in hoomd for use in the getar reader
+/// and writer to and from flat streams of data.
+
 namespace getardump{
 
     // Iterator to give the keys of a map
