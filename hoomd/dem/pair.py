@@ -9,12 +9,34 @@ from . import params
 from . import utils
 
 class _DEMBase:
+    def __init__(self, nlist):
+        self.nlist = nlist
+        self.nlist.subscribe(self.get_rcut)
+        self.nlist.update_rcut()
+
+    def _initialize_types(self):
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+
+        if self.dimensions == 2:
+            for typ in type_list:
+                self.setParams2D(typ, [[0, 0]], False)
+        else:
+            for typ in type_list:
+                self.setParams3D(typ, [[0, 0, 0]], [], False)
+
     def setParams2D(self, type, vertices, center=True):
         """Set the vertices for a given particle type. Takes a type
         name, a list of 2D vertices relative to the center of mass of
         the particle, and a boolean value for whether to center the
         particle automatically."""
-        itype = globals.system_definition.getParticleData().getTypeByName(type)
+        itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type)
+
+        if not len(vertices):
+            vertices = [(0, 0)]
+            center = False
 
         # explicitly turn into a list of tuples
         if center:
@@ -35,7 +57,12 @@ class _DEMBase:
         type name, a list of 3D vertices, a list of lists of vertex
         indices (with one list for each face), and a boolean value for
         whether to center the particle automatically."""
-        itype = globals.system_definition.getParticleData().getTypeByName(type)
+        itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type)
+
+        if not len(vertices):
+            vertices = [(0, 0, 0)]
+            faces = []
+            center = False
 
         # explicitly turn into python lists
         if center:
@@ -56,7 +83,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
     ## Specify the DEM WCA force
     #
     # \param radius Rounding radius to use for shape
-    def __init__(self, radius=1.):
+    def __init__(self, nlist, radius=1.):
         hoomd.util.print_status_line();
         friction = None
 
@@ -65,13 +92,13 @@ class WCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000
         self.vertices = {}
 
-        self.onGPU = globals.exec_conf.isCUDAEnabled()
+        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled()
         cppForces = {(2, None, 'cpu'): _dem.WCADEM2D,
              (2, None, 'gpu'): (_dem.WCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.WCADEM3D,
              (3, None, 'gpu'): (_dem.WCADEM3DGPU if self.onGPU else None)}
 
-        self.dimensions = globals.system_definition.getNDimensions()
+        self.dimensions = hoomd.context.current.system_definition.getNDimensions()
 
         # initialize the base class
         hoomd.md.force._force.__init__(self);
@@ -79,19 +106,18 @@ class WCA(hoomd.md.force._force, _DEMBase):
         # interparticle cutoff radius, will be updated as shapes are added
         self.r_cut = 2*radius*2**(1./6)
 
-        # update the neighbor list
-        neighbor_list = nl._subscribe_global_nlist(self.get_rcut)
-
         if friction is None:
             potentialParams = params.WCA(radius=radius)
         else:
             raise RuntimeError('Unknown friction type: {}'.format(friction))
 
+        _DEMBase.__init__(self, nlist)
+
         key = (self.dimensions, friction, 'gpu' if self.onGPU else 'cpu')
         cpp_force = cppForces[key]
 
-        self.cpp_force = cpp_force(globals.system_definition,
-                                   neighbor_list.cpp_nlist, self.r_cut,
+        self.cpp_force = cpp_force(hoomd.context.current.system_definition,
+                                   self.nlist.cpp_nlist, self.r_cut,
                                    potentialParams)
 
         if self.dimensions == 2:
@@ -99,7 +125,9 @@ class WCA(hoomd.md.force._force, _DEMBase):
         else:
             self.setParams = self.setParams3D
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        self._initialize_types()
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     def update_coeffs(self):
         """Noop for this potential"""
@@ -120,10 +148,10 @@ class WCA(hoomd.md.force._force, _DEMBase):
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
         r_cut_dict = nl.rcut();
@@ -144,7 +172,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
     ## Specify the DEM WCA force, shifted by particle diameter
     #
     # \param radius Potential lengthscale ( \f$ \sigma = 2*r \f$ )
-    def __init__(self, radius=1., d_max=None):
+    def __init__(self, nlist, radius=1., d_max=None):
         hoomd.util.print_status_line();
         friction = None
 
@@ -153,18 +181,18 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000
         self.vertices = {}
 
-        self.onGPU = globals.exec_conf.isCUDAEnabled()
+        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled()
         cppForces = {(2, None, 'cpu'): _dem.SWCADEM2D,
              (2, None, 'gpu'): (_dem.SWCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.SWCADEM3D,
              (3, None, 'gpu'): (_dem.SWCADEM3DGPU if self.onGPU else None)}
 
-        self.dimensions = globals.system_definition.getNDimensions()
+        self.dimensions = hoomd.context.current.system_definition.getNDimensions()
 
         # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n")
+        if (hoomd._hoomd.is_MPI_available()):
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")
 
         # initialize the base class
@@ -172,27 +200,25 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
         # update the neighbor list
         if d_max is None :
-            sysdef = globals.system_definition;
+            sysdef = hoomd.context.current.system_definition;
             self.d_max = max(x.diameter for x in hoomd.data.particle_data(sysdef.getParticleData()))
-            globals.msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
+            hoomd.context.msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
 
         # interparticle cutoff radius, will be updated as shapes are added
         self.r_cut = 2*2*self.radius*2**(1./6)
-
-        # update the neighbor list
-        neighbor_list = nl._subscribe_global_nlist(self.get_rcut)
-        neighbor_list.cpp_nlist.setMaximumDiameter(self.d_max);
 
         if friction is None:
             potentialParams = params.SWCA(radius=radius)
         else:
             raise RuntimeError('Unknown friction type: {}'.format(friction))
 
+        _DEMBase.__init__(self, nlist)
+
         key = (self.dimensions, friction, 'gpu' if self.onGPU else 'cpu')
         cpp_force = cppForces[key]
 
-        self.cpp_force = cpp_force(globals.system_definition,
-                                   neighbor_list.cpp_nlist, self.r_cut,
+        self.cpp_force = cpp_force(hoomd.context.current.system_definition,
+                                   self.nlist.cpp_nlist, self.r_cut,
                                    potentialParams)
 
         if self.dimensions == 2:
@@ -200,7 +226,9 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         else:
             self.setParams = self.setParams3D
 
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        self._initialize_types()
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
     def update_coeffs(self):
         """Noop for this potential"""
@@ -220,10 +248,10 @@ class SWCA(hoomd.md.force._force, _DEMBase):
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         # update the rcut by pair type
         r_cut_dict = nl.rcut();
