@@ -271,7 +271,7 @@ Compile HOOMD-blue
 
 Clone the git repository to get the source::
 
-    $ git clone --recursive https://bitbucket.org/glotzer/hoomd-blue
+    $ git clone https://bitbucket.org/glotzer/hoomd-blue
 
 By default, the *maint* branch will be checked out. This branch includes all bug fixes since the last stable release.
 
