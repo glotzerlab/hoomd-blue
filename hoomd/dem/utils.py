@@ -213,8 +213,6 @@ def convexHull(vertices, tol=1e-6):
     from scipy.spatial import cKDTree, ConvexHull
     from scipy.sparse.csgraph import connected_components
 
-    vertices -= np.mean(vertices, axis=0)
-
     hull = ConvexHull(vertices)
     # Triangles in the same face will be defined by the same linear equalities
     dist = cKDTree(hull.equations)
@@ -228,32 +226,37 @@ def convexHull(vertices, tol=1e-6):
     # connected_components returns (number of faces, cluster index for each input)
     (_, joinTarget) = connected_components(connectivity, directed=False)
     faces = defaultdict(list)
+    norms = defaultdict(list)
     for (idx, target) in enumerate(joinTarget):
         faces[target].append(idx)
+        norms[target] = hull.equations[idx][:3]
 
     # a list of sets of all vertex indices in each face
-    faceVerts = [set(hull.simplices[faces[faceIndex]].flat) for faceIndex in faces]
+    faceVerts = [set(hull.simplices[faces[faceIndex]].flat) for faceIndex in sorted(faces)]
+    # normal vector for each face
+    faceNorms = [norms[faceIndex] for faceIndex in sorted(faces)]
 
     # polygonal faces
     polyFaces = []
-    for faceIndices in faceVerts:
-        face = list(faceIndices)
+    for (norm, faceIndices) in zip(faceNorms, faceVerts):
+        face = np.array(list(faceIndices), dtype=np.uint32)
         N = len(faceIndices)
 
         r = hull.points[face]
         rcom = np.mean(r, axis=0)
 
-        # Find the vertices where walking around the edge gives a negative volume
-        misordered = np.dot(np.cross(np.roll(r, -1, axis=0) - r, rcom - r), rcom) < 0
+        # plane_{a, b}: basis vectors in the plane
+        plane_a = r[0] - rcom
+        plane_a /= np.sqrt(np.sum(plane_a**2))
+        plane_b = np.cross(norm, plane_a)
 
-        # bubble sort the backward vertices
-        while np.any(misordered):
-            idx = np.where(misordered)[0][0]
-            (r[idx], r[(idx + 1)%N]) = (r[(idx + 1)%N].copy(), r[idx].copy())
-            (face[idx], face[(idx + 1)%N]) = (face[(idx + 1)%N], face[idx])
-            misordered = np.dot(np.cross(np.roll(r, -1, axis=0) - r, rcom - r), rcom) < 0
+        dr = r - rcom[np.newaxis, :]
+
+        thetas = np.arctan2(dr.dot(plane_b), dr.dot(plane_a))
+
+        sortidx = np.argsort(thetas)
+
+        face = face[sortidx]
         polyFaces.append(face)
 
-    (_, com, _) = massProperties(hull.points, polyFaces)
-
-    return (hull.points - com, polyFaces)
+    return (hull.points, polyFaces)
