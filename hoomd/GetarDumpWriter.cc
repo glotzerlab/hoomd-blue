@@ -58,7 +58,6 @@ namespace getardump{
 
     using namespace gtar;
     using boost::shared_ptr;
-    using std::cerr;
     using std::endl;
     using std::map;
     using std::max;
@@ -441,6 +440,7 @@ namespace getardump{
                     {
                     stringstream msg;
                     msg << "Error " << result << " in one-shot file: " << strerror(result);
+                    m_exec_conf->msg->error() << msg << endl;
                     throw runtime_error(msg.str());
                     }
                 }
@@ -730,7 +730,7 @@ namespace getardump{
             {
             string msg("Asked to write an individual property we don't know: ");
             msg += desc.getFormattedPath(timestep);
-            cerr << msg << endl;
+            m_exec_conf->msg->error() << msg << endl;
             throw runtime_error(msg);
             }
         }
@@ -767,7 +767,7 @@ namespace getardump{
         else
             {
             string msg("Unable to write the requested uniform");
-            cerr << msg << endl;
+            m_exec_conf->msg->error() << msg << endl;
             throw runtime_error(msg);
             }
         }
@@ -802,7 +802,7 @@ namespace getardump{
         else
             {
             string msg("Unable to write the requested text property");
-            cerr << msg << endl;
+            m_exec_conf->msg->error() << msg << endl;
             throw runtime_error(msg);
             }
         }
