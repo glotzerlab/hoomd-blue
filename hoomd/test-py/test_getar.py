@@ -1,3 +1,4 @@
+from __future__ import print_function;
 import json;
 import os;
 import random;
@@ -6,7 +7,6 @@ import unittest;
 
 import numpy as np;
 import hoomd;
-from __future__ import print_function;
 
 try:
     import gtar;
