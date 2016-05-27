@@ -35,7 +35,8 @@ class ActiveForceCompute : public ForceCompute
         ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              int seed, boost::python::list f_lst,
-                             bool orientation_link, Scalar rotation_diff,
+                             bool orientation_link, bool orientation_reverse_link,
+                             Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
                              Scalar ry,
@@ -59,6 +60,7 @@ class ActiveForceCompute : public ForceCompute
 
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
+        bool m_orientationReverseLink;
         Scalar m_rotationDiff;
         Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid
