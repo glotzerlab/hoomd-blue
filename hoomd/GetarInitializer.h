@@ -61,14 +61,6 @@
 #include <string>
 #include <vector>
 
-using boost::shared_ptr;
-using std::map;
-using std::set;
-using std::string;
-using std::vector;
-using namespace boost::python;
-using namespace gtar;
-
 namespace getardump{
 
     /// Object to use to restore HOOMD system snapshots
@@ -80,16 +72,16 @@ namespace getardump{
             /// :param exec_conf: Execution configuration to use
             /// :param filename: Filename to restore from
             GetarInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                const string &filename);
+                const std::string &filename);
 
             /// Python binding to initialize the system from a set of
             /// restoration properties
-            shared_ptr<SystemSnapshot> initializePy(dict &pyModes);
+            boost::shared_ptr<SystemSnapshot> initializePy(boost::python::dict &pyModes);
 
             /// Python binding to restore part of the system from a set of
             /// restoration properties. Values are first taken from the
             /// given system definition.
-            void restorePy(dict &pyModes, shared_ptr<SystemDefinition> sysdef);
+            void restorePy(boost::python::dict &pyModes, boost::shared_ptr<SystemDefinition> sysdef);
 
             /// Grab the greatest timestep from the most recent
             /// restoration or initialization stage
@@ -98,48 +90,48 @@ namespace getardump{
         private:
             /// Return true if the Record indicates a property we know how
             /// to restore
-            bool knownProperty(const Record &rec) const;
+            bool knownProperty(const gtar::Record &rec) const;
 
             /// Insert one or more known records to restore into the given
             /// set if the records match the given name
-            bool insertRecord(const string &name, std::set<Record> &rec) const;
+            bool insertRecord(const std::string &name, std::set<gtar::Record> &rec) const;
 
             /// Convert a particular python dict into a std::map
-            map<set<Record>, string> parseModes(dict &pyModes);
+            std::map<std::set<gtar::Record>, std::string> parseModes(boost::python::dict &pyModes);
 
             /// Initialize the system given a set of modes
-            shared_ptr<SystemSnapshot> initialize(const map<set<Record>, string> &modes);
+            boost::shared_ptr<SystemSnapshot> initialize(const std::map<std::set<gtar::Record>, std::string> &modes);
 
             /// Restore part of a system given a system definition and a
             /// set of modes
-            void restore(shared_ptr<SystemDefinition> &sysdef, const map<set<Record>, string> &modes);
+            void restore(boost::shared_ptr<SystemDefinition> &sysdef, const std::map<std::set<gtar::Record>, std::string> &modes);
 
             /// Fill in any missing data in the given snapshot and perform
             /// basic consistency checks
-            void fillSnapshot(shared_ptr<SystemSnapshot> snapshot);
+            void fillSnapshot(boost::shared_ptr<SystemSnapshot> snapshot);
 
             /// Restore a system from bits of the given snapshot and the
             /// given restoration modes
-            shared_ptr<SystemSnapshot> restoreSnapshot(
-                shared_ptr<SystemSnapshot> &systemSnap, const map<set<Record>, string> &modes);
+            boost::shared_ptr<SystemSnapshot> restoreSnapshot(
+                boost::shared_ptr<SystemSnapshot> &systemSnap, const std::map<std::set<gtar::Record>, std::string> &modes);
 
             /// Restore a set of records for the same frame
-            void restoreSimultaneous(shared_ptr<SystemSnapshot> snapshot,
-                const set<Record> &records, string frame);
+            void restoreSimultaneous(boost::shared_ptr<SystemSnapshot> snapshot,
+                                     const std::set<gtar::Record> &records, std::string frame);
 
             /// Restore a single property
-            void restoreSingle(shared_ptr<SystemSnapshot> snap,
-                const Record &rec);
+            void restoreSingle(boost::shared_ptr<SystemSnapshot> snap,
+                               const gtar::Record &rec);
 
             /// Parse a type_names.json file
-            vector<string> parseTypeNames(const string &json);
+            std::vector<std::string> parseTypeNames(const std::string &json);
 
             /// Saved execution configuration
             boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;
             /// Saved trajectory archive object
-            GTAR m_traj;
+            gtar::GTAR m_traj;
             /// Set of known records we found in the current trajectory archive
-            vector<Record> m_knownRecords;
+            std::vector<gtar::Record> m_knownRecords;
             /// Cached timestep
             unsigned int m_timestep;
         };

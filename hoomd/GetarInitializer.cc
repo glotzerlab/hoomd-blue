@@ -52,6 +52,7 @@
 
 namespace getardump{
 
+    using boost::shared_ptr;
     using std::auto_ptr;
     using std::endl;
     using std::vector;
@@ -59,7 +60,9 @@ namespace getardump{
     using std::max;
     using std::runtime_error;
     using std::set;
+    using std::string;
     using std::stringstream;
+    using namespace gtar;
 
     GetarInitializer::GetarInitializer(shared_ptr<const ExecutionConfiguration> exec_conf,
         const string &filename):
