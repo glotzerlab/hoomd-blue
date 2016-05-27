@@ -5,34 +5,31 @@ from collections import Counter, defaultdict, deque
 from itertools import chain
 import numpy as np
 
-def perimeter(vertices, factor=1.):
-    """Returns the perimeter of a polygon, multiplied by a given factor."""
-    rmag = np.sqrt(np.sum((vertices - np.roll(vertices, -1, axis=0))**2, axis=1));
-
-    return factor*np.sum(rmag);
-
-def normalize(vector):
+def _normalize(vector):
     """Returns a normalized version of a numpy vector."""
     return vector/np.sqrt(np.dot(vector, vector));
 
-def polygonNormal(vertices):
+def _polygonNormal(vertices):
     """Returns the unit normal vector of a planar set of vertices."""
-    return -normalize(np.cross(vertices[1] - vertices[0], vertices[0] - vertices[-1]));
+    return -_normalize(np.cross(vertices[1] - vertices[0], vertices[0] - vertices[-1]));
 
 def area(vertices, factor=1.):
-    """Returns the area of a polygon specified by a set of vertices
-    [(x, y)] or [(x, y, z)], scaled by the given factor."""
+    """Returns the signed area of a polygon specified by a set of vertices
+    [(x, y)] or [(x, y, z)], scaled by the given factor.
+    """
     vertices = np.asarray(vertices);
     shifted = np.roll(vertices, -1, axis=0);
 
     crosses = np.sum(np.cross(vertices, shifted), axis=0);
 
-    return np.abs(np.dot(crosses, polygonNormal(vertices))*factor/2);
+    return np.abs(np.dot(crosses, _polygonNormal(vertices))*factor/2);
 
 def spheroArea(vertices, radius=1., factor=1.):
-    """Returns the area of a spheropolygon with the given vertices and
-    a sphere radius of the given radius, multiplied by the given
-    factor."""
+    """Returns the area of a spheropolygon with the given vertices and a
+    sphere radius of the given radius, multiplied by the given
+    factor. The list of vertices should be specified in right-handed
+    order.
+    """
     vertices = list(vertices);
 
     if not len(vertices) or len(vertices) == 1:
@@ -60,12 +57,12 @@ def spheroArea(vertices, radius=1., factor=1.):
             # add a different point to the skeleton
             h = radius/np.sin(theta/2);
 
-            bisector = negBisector(dr1, (-dr2[0], -dr2[1]));
+            bisector = _negBisector(dr1, (-dr2[0], -dr2[1]));
             point = (x + bisector[0]*h, y + bisector[1]*h);
             polygonSkeleton.append(point);
 
         else:
-            (dr1, dr2) = normalize(dr1), normalize(dr2);
+            (dr1, dr2) = _normalize(dr1), _normalize(dr2);
 
             polygonSkeleton.append((x + dr1[1]*radius, y - dr1[0]*radius));
             polygonSkeleton.append((x, y));
@@ -184,16 +181,12 @@ def massProperties(vertices, faces=None, factor=1.):
 
     return mass*factor, com, moment*factor;
 
-momentInertia = massProperties;
-
-def areaAndMoment(vertices, factor=1.):
-    mass, _, moment = massProperties(vertices, factor);
-    return area(vertices, factor), moment;
-
 def center(vertices, faces=None):
-    """Returns a list of vertices shifted to have the center of mass
-    of the given points at the origin. If the input shape has no mass,
-    return the input."""
+    """Returns a list of vertices shifted to have the center of mass of
+    the given points at the origin. Shapes should be specified in
+    right-handed order. If the input shape has no mass, return the
+    input.
+    """
     (mass, COM, _) = massProperties(vertices, faces);
     if mass > 1e-6:
         return np.asarray(vertices) - COM[np.newaxis, :];
@@ -202,9 +195,9 @@ def center(vertices, faces=None):
 
 center3D = center;
 
-def negBisector(p1, p2):
+def _negBisector(p1, p2):
     """Return the negative bisector of an angle given by points p1 and p2"""
-    return -normalize(normalize(p1) + normalize(p2));
+    return -_normalize(_normalize(p1) + _normalize(p2));
 
 def convexHull(vertices, tol=1e-6):
     """Returns an array of vertices and a list of faces (vertex

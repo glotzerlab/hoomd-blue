@@ -1,12 +1,18 @@
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+R"""DEM pair potentials.
+"""
+
 import hoomd;
 import hoomd.md;
 import hoomd.md.nlist as nl;
 
 from math import sqrt;
 
-from . import _dem;
-from . import params;
-from . import utils;
+from hoomd.dem import _dem;
+from hoomd.dem import params;
+from hoomd.dem import utils;
 
 class _DEMBase:
     def __init__(self, nlist):
@@ -28,10 +34,17 @@ class _DEMBase:
                 self.setParams3D(typ, [[0, 0, 0]], [], False);
 
     def setParams2D(self, type, vertices, center=False):
-        """Set the vertices for a given particle type. Takes a type
-        name, a list of 2D vertices relative to the center of mass of
-        the particle, and a boolean value for whether to center the
-        particle automatically."""
+        """Set the vertices for a given particle type.
+
+        Args:
+            type (str): Name of the type to set the shape of
+            vertices (list): List of (2D) points specifying the coordinates of the shape
+            center (bool): If True, subtract the center of mass of the shape from the vertices before setting them for the shape
+
+        Shapes are specified as a list of 2D coordinates. Edges will
+        be made between all adjacent pairs of vertices, including one
+        between the last and first vertex.
+        """
         itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
 
         if not len(vertices):
@@ -53,10 +66,20 @@ class _DEMBase:
         self.cpp_force.setParams(itype, vertices);
 
     def setParams3D(self, type, vertices, faces, center=False):
-        """Set the shape parameters for a given particle type. Takes a
-        type name, a list of 3D vertices, a list of lists of vertex
-        indices (with one list for each face), and a boolean value for
-        whether to center the particle automatically."""
+        """Set the vertices for a given particle type.
+
+        Args:
+            type (str): Name of the type to set the shape of
+            vertices (list): List of (3D) points specifying the coordinates of the shape
+            faces (list): List of lists of indices specifying which coordinates comprise each face of a shape.
+            center (bool): If True, subtract the center of mass of the shape from the vertices before setting them for the shape
+
+        Shapes are specified as a list of coordinates (`vertices`) and
+        another list containing one list for each polygonal face
+        (`faces`). The elements of each list inside `faces` are
+        integer indices specifying which vertex in `vertices` comprise
+        the face.
+        """
         itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
 
         if not len(vertices):
@@ -80,9 +103,33 @@ class _DEMBase:
         self.cpp_force.setParams(itype, vertices, faces);
 
 class WCA(hoomd.md.force._force, _DEMBase):
-    ## Specify the DEM WCA force
-    #
-    # \param radius Rounding radius to use for shape
+    R"""Specify a purely repulsive Weeks-Chandler-Andersen DEM force with a constant rounding radius.
+
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list to use
+        radius (float): Rounding radius :math:`r` to apply to the shape vertices
+
+    The effect is as if a :py:class:`hoomd.md.pair.lj` interaction
+    with :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r`
+    were applied between the contact points of each pair of particles.
+
+    Examples::
+
+        # 2D system of squares
+        squares = hoomd.dem.pair.WCA(radius=.5)
+        squares.setParams('A', [[1, 1], [-1, 1], [-1, -1], [1, -1]])
+        # 3D system of rounded square plates
+        squarePlates = hoomd.dem.pair.WCA(radius=.5)
+        squarePlates.setParams('A',
+            vertices=[[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]],
+            faces=[[0, 1, 2, 3]], center=False)
+        # 3D system of some convex shape specified by vertices
+        (vertices, faces) = hoomd.dem.utils.convexHull(vertices)
+        shapes = hoomd.dem.pair.WCA(radius=.5)
+        shapes.setParams('A', vertices=vertices, faces=faces)
+
+    """
+
     def __init__(self, nlist, radius=1.):
         hoomd.util.print_status_line();
         friction = None;
@@ -169,9 +216,35 @@ class WCA(hoomd.md.force._force, _DEMBase):
         return r_cut_dict;
 
 class SWCA(hoomd.md.force._force, _DEMBase):
-    ## Specify the DEM WCA force, shifted by particle diameter
-    #
-    # \param radius Potential lengthscale ( \f$ \sigma = 2*r \f$ )
+    R"""Specify a purely repulsive Weeks-Chandler-Andersen DEM force with a particle-varying rounding radius.
+
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list to use
+        radius (float): Unshifted rounding radius :math:`r` to apply to the shape vertices
+        d_max (float): maximum rounding diameter among all particles in the system
+
+    The SWCA potential enables simulation of particles with
+    heterogeneous rounding radii. The effect is as if a
+    :py:class:`hoomd.md.pair.slj` interaction with
+    :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r` were
+    applied between the contact points of each pair of particles.
+
+    Examples::
+
+        # 2D system of squares
+        squares = hoomd.dem.pair.SWCA(radius=.5)
+        squares.setParams('A', [[1, 1], [-1, 1], [-1, -1], [1, -1]])
+        # 3D system of rounded square plates
+        squarePlates = hoomd.dem.pair.SWCA(radius=.5)
+        squarePlates.setParams('A',
+            vertices=[[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]],
+            faces=[[0, 1, 2, 3]], center=False)
+        # 3D system of some convex shape specified by vertices
+        (vertices, faces) = hoomd.dem.utils.convexHull(vertices)
+        shapes = hoomd.dem.pair.SWCA(radius=.5)
+        shapes.setParams('A', vertices=vertices, faces=faces)
+
+    """
     def __init__(self, nlist, radius=1., d_max=None):
         hoomd.util.print_status_line();
         friction = None;

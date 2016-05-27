@@ -1,4 +1,4 @@
-from . import _dem;
+from hoomd.dem import _dem;
 
 class WCA(_dem.WCAPotential):
     """Parameter wrapper for a WCA-like potential."""
