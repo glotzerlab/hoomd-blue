@@ -1,4 +1,4 @@
-DEM
+dem
 ===
 
 .. rubric:: Details
