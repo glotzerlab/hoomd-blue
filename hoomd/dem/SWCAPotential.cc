@@ -18,7 +18,7 @@ template<typename Real, typename Real4, typename FrictionModel> template<typenam
 DEVICE inline void SWCAPotential<Real, Real4, FrictionModel>::evaluate(
     const Vec &rij, const Vec &r0, const Vec &rPrime, Real &potential, Vec &force_i,
     Torque &torque_i, Vec &force_j, Torque &torque_j, float modFactor) const
-{
+    {
     const Vec r0Prime(rPrime - r0);
 
     // Use rmd to calculate SWCA force
@@ -26,7 +26,7 @@ DEVICE inline void SWCAPotential<Real, Real4, FrictionModel>::evaluate(
     const Real rmd(magr - m_delta);
 
     if(rmd*rmd <= m_rcutsq)
-    {
+        {
         const Real rmdsqInv(Real(1.0)/(rmd*rmd));
         const Real rmdsq3Inv(rmdsqInv*rmdsqInv*rmdsqInv);
         // Force between r0 and rPrime is prefactor*r0Prime
@@ -46,8 +46,7 @@ DEVICE inline void SWCAPotential<Real, Real4, FrictionModel>::evaluate(
         torque_i += cross(r0, force);
         force_j -= force;
         torque_j += cross(rjPrime, -force);
+        }
     }
-}
-
 
 #endif

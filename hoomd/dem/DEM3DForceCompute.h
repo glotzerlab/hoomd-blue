@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DEMEvaluator.h"
 
 /*! \file DEM3DForceCompute.h
-    \brief Declares the DEM3DForceCompute class
+  \brief Declares the DEM3DForceCompute class
 */
 
 #ifdef NVCC
@@ -71,39 +71,39 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes DEM 3D forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
-    NeighborList's compute() to make sure that the neighbor list is up to date.
+  neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
+  to identify these neighbors. Calling compute() in this class will in turn result in a call to the
+  NeighborList's compute() to make sure that the neighbor list is up to date.
 
-    Usage: Construct a DEM3DForceCompute, providing it an already constructed ParticleData and NeighborList.
-    Then set parameters for all possible pairs of types by calling setParams.
+  Usage: Construct a DEM3DForceCompute, providing it an already constructed ParticleData and NeighborList.
+  Then set parameters for all possible pairs of types by calling setParams.
 
-    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
-    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+  Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
+  a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
 
-    Basics of how geometry of particles is stored:
-    - Each face of a shape has a unique index among all shapes
-    - Each vertex has a unique "degenerate vertex" index among all shapes
+  Basics of how geometry of particles is stored:
+  - Each face of a shape has a unique index among all shapes
+  - Each vertex has a unique "degenerate vertex" index among all shapes
 
-    The following arrays are created to assist in iterating over geometry:
-    - face->next face in the shape (circularly linked index list)
-    - face->first degenerate vertex in the face
-    - degenerate vertex->next degenerate vertex in the face (circularly linked index list)
-    - degenerate vertex->real vertex index
-    - type index->first real vertex of type index
-    - type index->number of vertices
-    - type index->first edge of type index
-    - type index->number of edges in type
-    - (2*edge index)->first real vertex index in edge, (2*edge index + 1)->second real vertex in edge
-    - real vertex index->vertex (3D point)
+  The following arrays are created to assist in iterating over geometry:
+  - face->next face in the shape (circularly linked index list)
+  - face->first degenerate vertex in the face
+  - degenerate vertex->next degenerate vertex in the face (circularly linked index list)
+  - degenerate vertex->real vertex index
+  - type index->first real vertex of type index
+  - type index->number of vertices
+  - type index->first edge of type index
+  - type index->number of edges in type
+  - (2*edge index)->first real vertex index in edge, (2*edge index + 1)->second real vertex in edge
+  - real vertex index->vertex (3D point)
 
-    Implementation details:
-    - The first face of the type with type index i is stored at index i within the face->next face array
-    - Faces in a shape and vertices in a face use a circularly linked index structure
-    - Vertices (3D points) are stored consecutively for a shape
-    - Edges (pairs of vertex indices) are stored consecutively for a shape
+  Implementation details:
+  - The first face of the type with type index i is stored at index i within the face->next face array
+  - Faces in a shape and vertices in a face use a circularly linked index structure
+  - Vertices (3D points) are stored consecutively for a shape
+  - Edges (pairs of vertex indices) are stored consecutively for a shape
 
-    \ingroup computes
+  \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
 class DEM3DForceCompute : public ForceCompute
@@ -111,16 +111,16 @@ class DEM3DForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         DEM3DForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<NeighborList> nlist,
-                          Real r_cut, Potential potential);
+            boost::shared_ptr<NeighborList> nlist,
+            Real r_cut, Potential potential);
 
         //! Destructor
         virtual ~DEM3DForceCompute();
 
         //! Set the vertices for a particle
         virtual void setParams(unsigned int type,
-                               const boost::python::list &pyVertices,
-                               const boost::python::list &pyFaces);
+            const boost::python::list &pyVertices,
+            const boost::python::list &pyFaces);
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 
@@ -145,18 +145,18 @@ class DEM3DForceCompute : public ForceCompute
         //! Find the total number of degenerate vertices for all shapes
         size_t numDegenerateVerts() const;
 
-        #ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
-        {
+            {
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::orientation] = 1;
 
             flags |= ForceCompute::getRequestedCommFlags(timestep);
             return flags;
-        }
-        #endif
+            }
+    #endif
 
         //! Returns true because we compute the torque
         virtual bool isAnisotropic()

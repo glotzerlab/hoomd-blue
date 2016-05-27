@@ -68,7 +68,7 @@ template<typename Real, typename Real4, typename FrictionModel> template<typenam
 DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(
     const Vec &rij, const Vec &r0, const Vec &rPrime, Real &potential, Vec &force_i,
     Torque &torque_i, Vec &force_j, Torque &torque_j, float modFactor) const
-{
+    {
     // r0Prime is the vector from the interaction point on particle i
     // to that on particle j
     const Vec r0Prime(rPrime - r0);
@@ -77,7 +77,7 @@ DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(
     const Real rsq(dot(r0Prime, r0Prime));
 
     if(rsq <= m_rcutsq)
-    {
+        {
         const Real rsqInv(Real(1.0)/rsq);
         const Real rsq3Inv(rsqInv*rsqInv*rsqInv);
         // Force between r0 and rPrime is prefactor*r0Prime
@@ -96,7 +96,7 @@ DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(
         torque_i += cross(r0, force);
         force_j -= force;
         torque_j += cross(rjPrime, -force);
+        }
     }
-}
 
 #endif

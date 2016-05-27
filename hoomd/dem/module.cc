@@ -75,17 +75,17 @@ void export_NF_SWCA_3D();
 void export_NF_SWCA_2D();
 
 BOOST_PYTHON_MODULE(_dem)
-{
+    {
     export_params();
     export_NF_WCA_2D();
     export_NF_WCA_3D();
     export_NF_SWCA_2D();
     export_NF_SWCA_3D();
-}
+    }
 
 // Export all of the parameter wrapper objects to the python interface
 void export_params()
-{
+    {
     class_<NoFriction<Scalar> >("NoFriction");
 
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
@@ -93,4 +93,4 @@ void export_params()
 
     class_<WCA>("WCAPotential", init<Scalar, NoFriction<Scalar> >());
     class_<SWCA>("SWCAPotential", init<Scalar, NoFriction<Scalar> >());
-}
+    }

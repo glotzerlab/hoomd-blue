@@ -64,13 +64,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 void export_NF_WCA_3D()
-{
+    {
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
     typedef DEM3DForceCompute<Scalar, Scalar4, WCA> WCA_DEM_3D;
 
     class_<WCA_DEM_3D, boost::shared_ptr<WCA_DEM_3D>, bases<ForceCompute>, boost::noncopyable >
         ("WCADEM3D", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<NeighborList>, Scalar, WCA>())
+        boost::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_3D::setParams)
         .def("setRcut", &WCA_DEM_3D::setRcut)
         ;
@@ -81,10 +81,10 @@ void export_NF_WCA_3D()
     class_<WCA_DEM_3D_GPU, boost::shared_ptr<WCA_DEM_3D_GPU>,
            bases<WCA_DEM_3D>, boost::noncopyable >
         ("WCADEM3DGPU", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<NeighborList>, Scalar, WCA>())
+        boost::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_3D_GPU::setParams)
         .def("setRcut", &WCA_DEM_3D_GPU::setRcut)
         .def("setAutotunerParams", &WCA_DEM_3D_GPU::setAutotunerParams)
         ;
 #endif
-}
+    }

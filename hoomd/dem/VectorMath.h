@@ -65,15 +65,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template<typename Real>
 DEVICE vec2<Real> vec_from_scalar2(const Scalar2 &v)
-{
+    {
     return vec2<Real>(v.x, v.y);
-}
+    }
 
 //! z-component of the cross product of two vec2s
 /*! \param a First vector
-    \param b Second vector
+  \param b Second vector
 
-    Returns the cross product a.x * b.y - a.y * b.x.
+  Returns the cross product a.x * b.y - a.y * b.x.
 */
 template < class Real >
 DEVICE inline Real cross(const vec2<Real>& a, const vec2<Real>& b)

@@ -125,7 +125,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     const unsigned int *d_numTypeVerts, const unsigned int *d_firstTypeEdge,
     const unsigned int *d_numTypeEdges, const unsigned int *d_numTypeFaces,
     const unsigned int *d_vertexConnectivity, const unsigned int *d_edges)
-{
+    {
     extern __shared__ int sh[];
 
     // part{ForceTorques, Virials} are the forces and torques
@@ -188,75 +188,75 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     const size_t localThreadIdx(threadIdx.y*blockDim.x + threadIdx.x);
     unsigned int offset(0);
     do
-    {
-        if(localThreadIdx + offset < numFaces)
         {
+        if(localThreadIdx + offset < numFaces)
+            {
             nextFaces[localThreadIdx + offset] = d_nextFaces[localThreadIdx + offset];
             firstFaceVertex[localThreadIdx + offset] = d_firstFaceVertices[localThreadIdx + offset];
-        }
+            }
         offset += blockDim.x*blockDim.y*blockDim.z;
-    }
+        }
     while(offset < numFaces);
 
     offset = 0;
     do
-    {
-        if(localThreadIdx + offset < numDegenerateVerts)
         {
+        if(localThreadIdx + offset < numDegenerateVerts)
+            {
             nextVertex[localThreadIdx + offset] = d_nextVertices[localThreadIdx + offset];
             realVertex[localThreadIdx + offset] = d_realVertices[localThreadIdx + offset];
-        }
+            }
         offset += blockDim.x*blockDim.y*blockDim.z;
-    }
+        }
     while(offset < numDegenerateVerts);
 
     offset = 0;
     do
-    {
-        if(localThreadIdx + offset < numVerts)
         {
+        if(localThreadIdx + offset < numVerts)
+            {
             vertices[localThreadIdx + offset] = d_vertices[localThreadIdx + offset];
             vertexConnectivity[localThreadIdx + offset] = d_vertexConnectivity[localThreadIdx + offset];
-        }
+            }
         offset += blockDim.x*blockDim.y*blockDim.z;
-    }
+        }
     while(offset < numVerts);
 
     offset = 0;
     do
-    {
-        if(localThreadIdx + offset < numEdges)
         {
+        if(localThreadIdx + offset < numEdges)
+            {
             edges[2*(localThreadIdx + offset)] = d_edges[2*(localThreadIdx + offset)];
             edges[2*(localThreadIdx + offset) + 1] = d_edges[2*(localThreadIdx + offset) + 1];
-        }
+            }
         offset += blockDim.x*blockDim.y*blockDim.z;
-    }
+        }
     while(offset < numEdges);
 
     offset = 0;
     do
-    {
-        if(localThreadIdx + offset < numTypes)
         {
+        if(localThreadIdx + offset < numTypes)
+            {
             firstTypeVert[localThreadIdx + offset] = d_firstTypeVert[localThreadIdx + offset];
             numTypeVerts[localThreadIdx + offset] = d_numTypeVerts[localThreadIdx + offset];
             firstEdgeInType[localThreadIdx + offset] = d_firstTypeEdge[localThreadIdx + offset];
             numTypeEdges[localThreadIdx + offset] = d_numTypeEdges[localThreadIdx + offset];
             numTypeFaces[localThreadIdx + offset] = d_numTypeFaces[localThreadIdx + offset];
-        }
+            }
         offset += blockDim.x*blockDim.y*blockDim.z;
-    }
+        }
     while(offset < numTypes);
 
     // zero the accumulator values
     if(threadIdx.y == 0)
-    {
+        {
         partForces[threadIdx.x] = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
         partTorques[threadIdx.x] = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
         for(size_t i(0); i < 6; ++i)
             partVirials[6*threadIdx.x + i] = 0.0f;
-    }
+        }
 
     // Don't calculate results for nonsensical features
     if(threadIdx.y >= maxFeatures)
@@ -276,7 +276,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     __syncthreads();
 
     if(partIdx < N)
-    {
+        {
         const unsigned int n_neigh(d_n_neigh[partIdx]);
         const unsigned int myHead(d_head_list[partIdx]);
 
@@ -300,187 +300,187 @@ __global__ void gpu_compute_dem3d_forces_kernel(
 
         for(unsigned int featureEpoch(0);
             featureEpoch < (maxFeatures + blockDim.y - 1)/blockDim.y; ++featureEpoch)
-        {
-
-        const unsigned int localFeatureIdx(featureEpoch*blockDim.y + threadIdx.y);
-        if(localFeatureIdx >= maxFeatures)
-            continue;
-        const unsigned int featureType(min(localFeatureIdx/maxVertices, 2));
-        const unsigned int featureIdx(localFeatureIdx - maxVertices*featureType);
-
-        // reference points for vertex/face or edge/edge interactions
-        vec3<Real> r0, r1;
-        if(featureType == 0 && featureIdx < numTypeVerts[type_i])
-            r0 = rotate(quat_i, vec3<Real>(vertices[firstTypeVert[type_i] + featureIdx]));
-        else if(featureType == 2 && featureIdx < numTypeEdges[type_i])
-        {
-            r0 = rotate(quat_i, vec3<Real>(vertices[edges[2*(firstEdgeInType[type_i] + featureIdx)]]));
-            r1 = rotate(quat_i, vec3<Real>(vertices[edges[2*(firstEdgeInType[type_i] + featureIdx) + 1]]));
-        }
-
-        // prefetch neighbor index
-        unsigned int cur_neigh(0);
-        unsigned int next_neigh(d_nlist[myHead]);
-
-        for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-        {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
-            cur_neigh = next_neigh;
-            next_neigh = d_nlist[myHead + neigh_idx + 1];
-
-            // grab the position and type of the neighbor
-            const Scalar4 neigh_postype(texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh));
-            const unsigned int type_j(__scalar_as_int(neigh_postype.w));
-            const vec3<Scalar> neigh_pos(neigh_postype.x, neigh_postype.y, neigh_postype.z);
-
-            // rij is the distance from the center of particle
-            // i to particle j
-            vec3<Scalar> rijScalar(neigh_pos - pos_i);
-            rijScalar = vec3<Scalar>(box.minImage(vec_to_scalar3(rijScalar)));
-            const vec3<Real> rij(rijScalar);
-            const Real rsq(dot(rij, rij));
-
-            // read in the diameter of the particle j if necessary
-            // also, set the diameter in the evaluator
-            Scalar dj(0);
-            if (Evaluator::needsDiameter())
             {
-                dj = texFetchScalar(d_diam, pdata_diam_tex, cur_neigh);
-                evaluator.setDiameter(di, dj);
-            }
-            else
-                dj += 1.0f; //shut up compiler warning. Vestigal from HOOMD
 
-            if(evaluator.withinCutoff(rsq, r_cutsq))
-            {
-                // fetch neighbor's orientation
-                const Scalar4 neighQuatF(texFetchScalar4(d_quat, pdata_quat_tex, cur_neigh));
-                const quat<Real> neighQuat(
-                    neighQuatF.x, vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
+            const unsigned int localFeatureIdx(featureEpoch*blockDim.y + threadIdx.y);
+            if(localFeatureIdx >= maxFeatures)
+                continue;
+            const unsigned int featureType(min(localFeatureIdx/maxVertices, 2));
+            const unsigned int featureIdx(localFeatureIdx - maxVertices*featureType);
 
-                if (Evaluator::needsVelocity())
+            // reference points for vertex/face or edge/edge interactions
+            vec3<Real> r0, r1;
+            if(featureType == 0 && featureIdx < numTypeVerts[type_i])
+                r0 = rotate(quat_i, vec3<Real>(vertices[firstTypeVert[type_i] + featureIdx]));
+            else if(featureType == 2 && featureIdx < numTypeEdges[type_i])
                 {
-                    Scalar4 vj(texFetchScalar4(d_velocity, pdata_velocity_tex, cur_neigh));
-                    evaluator.setVelocity(vi - vec3<Scalar>(vj));
+                r0 = rotate(quat_i, vec3<Real>(vertices[edges[2*(firstEdgeInType[type_i] + featureIdx)]]));
+                r1 = rotate(quat_i, vec3<Real>(vertices[edges[2*(firstEdgeInType[type_i] + featureIdx) + 1]]));
                 }
 
-                Real potentialE(0.0f);
-                vec3<Real> forceij;
-                vec3<Real> forceji;
-                vec3<Real> torqueij;
-                vec3<Real> torqueji;
+            // prefetch neighbor index
+            unsigned int cur_neigh(0);
+            unsigned int next_neigh(d_nlist[myHead]);
 
-                if(featureType == 0 && featureIdx < numTypeVerts[type_i]) // vertices of i and faces/edges of j
+            for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
                 {
-                    // faces of j
-                    unsigned int faceIndexj(type_j);
-                    // shape j is a polyhedron
-                    if(numTypeFaces[type_j] > 0)
+                // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                // prefetch the next value and set the current one
+                cur_neigh = next_neigh;
+                next_neigh = d_nlist[myHead + neigh_idx + 1];
+
+                // grab the position and type of the neighbor
+                const Scalar4 neigh_postype(texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh));
+                const unsigned int type_j(__scalar_as_int(neigh_postype.w));
+                const vec3<Scalar> neigh_pos(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+
+                // rij is the distance from the center of particle
+                // i to particle j
+                vec3<Scalar> rijScalar(neigh_pos - pos_i);
+                rijScalar = vec3<Scalar>(box.minImage(vec_to_scalar3(rijScalar)));
+                const vec3<Real> rij(rijScalar);
+                const Real rsq(dot(rij, rij));
+
+                // read in the diameter of the particle j if necessary
+                // also, set the diameter in the evaluator
+                Scalar dj(0);
+                if (Evaluator::needsDiameter())
                     {
-                        do
+                    dj = texFetchScalar(d_diam, pdata_diam_tex, cur_neigh);
+                    evaluator.setDiameter(di, dj);
+                    }
+                else
+                    dj += 1.0f; //shut up compiler warning. Vestigal from HOOMD
+
+                if(evaluator.withinCutoff(rsq, r_cutsq))
+                    {
+                    // fetch neighbor's orientation
+                    const Scalar4 neighQuatF(texFetchScalar4(d_quat, pdata_quat_tex, cur_neigh));
+                    const quat<Real> neighQuat(
+                        neighQuatF.x, vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
+
+                    if (Evaluator::needsVelocity())
                         {
-                            evaluator.vertexFace(rij, r0, neighQuat,
-                                                 vertices, realVertex,
-                                                 nextVertex,
-                                                 firstFaceVertex[faceIndexj],
-                                                 potentialE, forceij,
-                                                 torqueij, forceji,
-                                                 torqueji);
-                            faceIndexj = nextFaces[faceIndexj];
+                        Scalar4 vj(texFetchScalar4(d_velocity, pdata_velocity_tex, cur_neigh));
+                        evaluator.setVelocity(vi - vec3<Scalar>(vj));
                         }
-                        while(faceIndexj != type_j);
-                    }
-                    // shape j wasn't a polyhedron, is it a spherocylinder?
-                    else if(numTypeEdges[type_j] > 0)
-                    {
-                        vec3<Real> p10(vertices[edges[2*(firstEdgeInType[type_j])]]);
-                        vec3<Real> p11(vertices[edges[2*(firstEdgeInType[type_j]) + 1]]);
-                        p10 = rotate(neighQuat, p10);
-                        p11 = rotate(neighQuat, p11);
 
-                        evaluator.vertexEdge(rij, r0, p10, p11, potentialE, forceij, torqueij, forceji, torqueji);
-                    }
-                    // shape j wasn't a spherocylinder either, must be a sphere
-                    else
-                    {
-                        vec3<Real> vertex1(vertices[firstTypeVert[type_j]]);
-                        vertex1 = rotate(neighQuat, vertex1);
+                    Real potentialE(0.0f);
+                    vec3<Real> forceij;
+                    vec3<Real> forceji;
+                    vec3<Real> torqueij;
+                    vec3<Real> torqueji;
 
-                        evaluator.vertexVertex(rij, r0, rij + vertex1,
-                                               potentialE, forceij, torqueij,
-                                               forceji, torqueji);
-
-                    }
-                }
-                else if(featureType == 1 && featureIdx < numTypeVerts[type_j]) // vertices of j and faces/edges of i
-                {
-                    evaluator.swapij();
-                    r0 = rotate(neighQuat, vec3<Real>(vertices[firstTypeVert[type_j] + featureIdx]));
-
-                    // faces of i
-                    unsigned int faceIndexi(type_i);
-                    if(numTypeFaces[type_i] > 0)
-                    {
-                        do
+                    if(featureType == 0 && featureIdx < numTypeVerts[type_i]) // vertices of i and faces/edges of j
                         {
-                            evaluator.vertexFace(-rij, r0, quat_i,
-                                                 vertices, realVertex, nextVertex,
-                                                 firstFaceVertex[faceIndexi], potentialE,
-                                                 forceji, torqueji, forceij, torqueij);
-                            faceIndexi = nextFaces[faceIndexi];
+                        // faces of j
+                        unsigned int faceIndexj(type_j);
+                        // shape j is a polyhedron
+                        if(numTypeFaces[type_j] > 0)
+                            {
+                            do
+                                {
+                                evaluator.vertexFace(rij, r0, neighQuat,
+                                    vertices, realVertex,
+                                    nextVertex,
+                                    firstFaceVertex[faceIndexj],
+                                    potentialE, forceij,
+                                    torqueij, forceji,
+                                    torqueji);
+                                faceIndexj = nextFaces[faceIndexj];
+                                }
+                            while(faceIndexj != type_j);
+                            }
+                        // shape j wasn't a polyhedron, is it a spherocylinder?
+                        else if(numTypeEdges[type_j] > 0)
+                            {
+                            vec3<Real> p10(vertices[edges[2*(firstEdgeInType[type_j])]]);
+                            vec3<Real> p11(vertices[edges[2*(firstEdgeInType[type_j]) + 1]]);
+                            p10 = rotate(neighQuat, p10);
+                            p11 = rotate(neighQuat, p11);
+
+                            evaluator.vertexEdge(rij, r0, p10, p11, potentialE, forceij, torqueij, forceji, torqueji);
+                            }
+                        // shape j wasn't a spherocylinder either, must be a sphere
+                        else
+                            {
+                            vec3<Real> vertex1(vertices[firstTypeVert[type_j]]);
+                            vertex1 = rotate(neighQuat, vertex1);
+
+                            evaluator.vertexVertex(rij, r0, rij + vertex1,
+                                potentialE, forceij, torqueij,
+                                forceji, torqueji);
+
+                            }
                         }
-                        while(faceIndexi != type_i);
-                    }
-                    // shape j wasn't a polyhedron, is it a spherocylinder?
-                    else if(numTypeEdges[type_i] > 0)
-                    {
-                        vec3<Real> p00(vertices[edges[2*(firstEdgeInType[type_i])]]);
-                        vec3<Real> p01(vertices[edges[2*(firstEdgeInType[type_i]) + 1]]);
-                        p00 = rotate(quat_i, p00);
-                        p01 = rotate(quat_i, p01);
+                    else if(featureType == 1 && featureIdx < numTypeVerts[type_j]) // vertices of j and faces/edges of i
+                        {
+                        evaluator.swapij();
+                        r0 = rotate(neighQuat, vec3<Real>(vertices[firstTypeVert[type_j] + featureIdx]));
 
-                        evaluator.vertexEdge(-rij, r0, p00, p01, potentialE, forceji, torqueji, forceij, torqueij);
+                        // faces of i
+                        unsigned int faceIndexi(type_i);
+                        if(numTypeFaces[type_i] > 0)
+                            {
+                            do
+                                {
+                                evaluator.vertexFace(-rij, r0, quat_i,
+                                    vertices, realVertex, nextVertex,
+                                    firstFaceVertex[faceIndexi], potentialE,
+                                    forceji, torqueji, forceij, torqueij);
+                                faceIndexi = nextFaces[faceIndexi];
+                                }
+                            while(faceIndexi != type_i);
+                            }
+                        // shape j wasn't a polyhedron, is it a spherocylinder?
+                        else if(numTypeEdges[type_i] > 0)
+                            {
+                            vec3<Real> p00(vertices[edges[2*(firstEdgeInType[type_i])]]);
+                            vec3<Real> p01(vertices[edges[2*(firstEdgeInType[type_i]) + 1]]);
+                            p00 = rotate(quat_i, p00);
+                            p01 = rotate(quat_i, p01);
+
+                            evaluator.vertexEdge(-rij, r0, p00, p01, potentialE, forceji, torqueji, forceij, torqueij);
+                            }
+                        // shape j wasn't a spherocylinder either, must be
+                        // a sphere; this is accounted for above, though.
+                        }
+                    else if(featureType == 2 && featureIdx < numTypeEdges[type_i]) // edge/edge
+                        {
+                        for(unsigned int edgeIdx(firstEdgeInType[type_j]);
+                            edgeIdx < firstEdgeInType[type_j] + numTypeEdges[type_j]; ++edgeIdx)
+                            {
+                            const vec3<Real> r2(rotate(neighQuat, vec3<Real>(vertices[edges[2*edgeIdx]])));
+                            const vec3<Real> r3(rotate(neighQuat, vec3<Real>(vertices[edges[2*edgeIdx + 1]])));
+                            evaluator.edgeEdge(rij, r0, r1, rij + r2, rij + r3,
+                                potentialE, forceij, torqueij, forceji, torqueji);
+                            }
+                        }
+
+                    localForce.x += forceij.x;
+                    localForce.y += forceij.y;
+                    localForce.z += forceij.z;
+                    localForce.w += potentialE;
+                    localTorque.x += torqueij.x;
+                    localTorque.y += torqueij.y;
+                    localTorque.z += torqueij.z;
+
+                    localVirial[0] -= .5f*rij.x*forceij.x;
+                    localVirial[1] -= .5f*rij.y*forceij.x;
+                    localVirial[2] -= .5f*rij.z*forceij.x;
+                    localVirial[3] -= .5f*rij.y*forceij.y;
+                    localVirial[4] -= .5f*rij.z*forceij.y;
+                    localVirial[5] -= .5f*rij.z*forceij.z;
+
                     }
-                    // shape j wasn't a spherocylinder either, must be
-                    // a sphere; this is accounted for above, though.
                 }
-                else if(featureType == 2 && featureIdx < numTypeEdges[type_i]) // edge/edge
-                {
-                    for(unsigned int edgeIdx(firstEdgeInType[type_j]);
-                        edgeIdx < firstEdgeInType[type_j] + numTypeEdges[type_j]; ++edgeIdx)
-                    {
-                        const vec3<Real> r2(rotate(neighQuat, vec3<Real>(vertices[edges[2*edgeIdx]])));
-                        const vec3<Real> r3(rotate(neighQuat, vec3<Real>(vertices[edges[2*edgeIdx + 1]])));
-                        evaluator.edgeEdge(rij, r0, r1, rij + r2, rij + r3,
-                                           potentialE, forceij, torqueij, forceji, torqueji);
-                    }
-                }
-
-                localForce.x += forceij.x;
-                localForce.y += forceij.y;
-                localForce.z += forceij.z;
-                localForce.w += potentialE;
-                localTorque.x += torqueij.x;
-                localTorque.y += torqueij.y;
-                localTorque.z += torqueij.z;
-
-                localVirial[0] -= .5f*rij.x*forceij.x;
-                localVirial[1] -= .5f*rij.y*forceij.x;
-                localVirial[2] -= .5f*rij.z*forceij.x;
-                localVirial[3] -= .5f*rij.y*forceij.y;
-                localVirial[4] -= .5f*rij.z*forceij.y;
-                localVirial[5] -= .5f*rij.z*forceij.z;
-
             }
         }
-        }
-    }
 
     // sum all the intermediate force and torque values for each
     // particle we calculate for in the block.
     if(partIdx < N)
-    {
+        {
         genAtomicAdd(&partForces[threadIdx.x].x, localForce.x);
         genAtomicAdd(&partForces[threadIdx.x].y, localForce.y);
         genAtomicAdd(&partForces[threadIdx.x].z, localForce.z);
@@ -492,21 +492,21 @@ __global__ void gpu_compute_dem3d_forces_kernel(
 
         for(size_t i(0); i < 6; ++i)
             genAtomicAdd(partVirials + 6*threadIdx.x + i, localVirial[i]);
-    }
+        }
 
     __syncthreads();
 
     // finally, write the result.
     if(partIdx < N && threadIdx.y == 0)
-    {
+        {
         partForces[threadIdx.x].w *= .5f;
         d_force[partIdx] = partForces[threadIdx.x];
         d_torque[partIdx] = partTorques[threadIdx.x];
 
         for(size_t i(0); i < 6; ++i)
             d_virial[i*virial_pitch + partIdx] = partVirials[6*threadIdx.x + i];
+        }
     }
-}
 
 /*! \param d_force Device memory to write computed forces
   \param d_torque Device memory to write computed torques
@@ -550,7 +550,7 @@ cudaError_t gpu_compute_dem3d_forces(
     const unsigned int *d_firstTypeEdge, const unsigned int *d_numTypeEdges,
     const unsigned int *d_numTypeFaces, const unsigned int *d_vertexConnectivity,
     const unsigned int *d_edges)
-{
+    {
 
     // setup the grid to run the kernel
     dim3 grid((int)ceil((double)N / (double)particlesPerBlock), 1, 1);
@@ -586,23 +586,23 @@ cudaError_t gpu_compute_dem3d_forces(
 
     // Calculate the amount of shared memory required
     const size_t shmSize(2*particlesPerBlock*sizeof(Real4) + 6*particlesPerBlock*sizeof(Real) + // forces, torques, virials per-particle
-                         2*numFaces*sizeof(unsigned int) + // face->next face, face->first vertex in face
-                         2*numDegenerateVerts*sizeof(unsigned int) + // vertex->next vertex, vertex->real vertex
-                         numVerts*sizeof(Real4) + 2*numEdges*sizeof(unsigned int) + // real vertex->point, edge->real index
-                         5*numTypes*sizeof(unsigned int) + numVerts*sizeof(unsigned int)); // per-type counts and per-vertex connectivity
+        2*numFaces*sizeof(unsigned int) + // face->next face, face->first vertex in face
+        2*numDegenerateVerts*sizeof(unsigned int) + // vertex->next vertex, vertex->real vertex
+        numVerts*sizeof(Real4) + 2*numEdges*sizeof(unsigned int) + // real vertex->point, edge->real index
+        5*numTypes*sizeof(unsigned int) + numVerts*sizeof(unsigned int)); // per-type counts and per-vertex connectivity
 
     // run the kernel
     gpu_compute_dem3d_forces_kernel<Real, Real4, Evaluator> <<< grid, threads,shmSize>>>
         (d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N,
-         d_nextFaces, d_firstFaceVertices, d_nextVertices,
-         d_realVertices, d_vertices, d_diam, d_velocity, maxFeatures,
-         maxVertices, numFaces, numDegenerateVerts, numVerts,
-         numEdges, numTypes, box, d_n_neigh, d_nlist, d_head_list, evaluator,
-         r_cutsq, d_firstTypeVert, d_numTypeVerts, d_firstTypeEdge,
-         d_numTypeEdges, d_numTypeFaces, d_vertexConnectivity,
-         d_edges);
+        d_nextFaces, d_firstFaceVertices, d_nextVertices,
+        d_realVertices, d_vertices, d_diam, d_velocity, maxFeatures,
+        maxVertices, numFaces, numDegenerateVerts, numVerts,
+        numEdges, numTypes, box, d_n_neigh, d_nlist, d_head_list, evaluator,
+        r_cutsq, d_firstTypeVert, d_numTypeVerts, d_firstTypeEdge,
+        d_numTypeEdges, d_numTypeFaces, d_vertexConnectivity,
+        d_edges);
 
     return cudaSuccess;
-}
+    }
 
 // vim:syntax=cpp

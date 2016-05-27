@@ -70,18 +70,18 @@
 
 template<typename Real>
 class NoFriction
-{
-public:
-    NoFriction() {}
+    {
+    public:
+        NoFriction() {}
 
-    DEVICE static bool needsVelocity() {return false;}
+        DEVICE static bool needsVelocity() {return false;}
 
-    DEVICE inline void setVelocity(const vec3<Real> &v) {}
+        DEVICE inline void setVelocity(const vec3<Real> &v) {}
 
-    DEVICE inline void swapij() {}
+        DEVICE inline void swapij() {}
 
-    template<typename Vec>
-    DEVICE inline Vec modifiedForce(const Vec &r0Prime, const Vec &force) const {return force;}
-};
+        template<typename Vec>
+        DEVICE inline Vec modifiedForce(const Vec &r0Prime, const Vec &force) const {return force;}
+    };
 
 #endif

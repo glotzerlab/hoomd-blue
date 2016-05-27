@@ -79,32 +79,32 @@
 */
 template<typename Real, typename Real4, typename Potential>
 class DEM3DForceComputeGPU: public DEM3DForceCompute<Real, Real4, Potential>
-{
-public:
-    //! Constructs the compute
-    DEM3DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
-                         Real r_cut, Potential potential);
-
-    //! Destructor
-    virtual ~DEM3DForceComputeGPU();
-
-    //! Set parameters for the builtin autotuner
-    virtual void setAutotunerParams(bool enable, unsigned int period)
     {
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-    }
+    public:
+        //! Constructs the compute
+        DEM3DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+            boost::shared_ptr<NeighborList> nlist,
+            Real r_cut, Potential potential);
 
-    //! Find the maximum number of GPU threads (2*vertices + edges) among all shapes
-    size_t maxGPUThreads() const;
+        //! Destructor
+        virtual ~DEM3DForceComputeGPU();
 
-protected:
-    boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+        //! Set parameters for the builtin autotuner
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
 
-    //! Actually compute the forces
-    virtual void computeForces(unsigned int timestep);
-};
+        //! Find the maximum number of GPU threads (2*vertices + edges) among all shapes
+        size_t maxGPUThreads() const;
+
+    protected:
+        boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
 
 #include "DEM3DForceComputeGPU.cc"
 

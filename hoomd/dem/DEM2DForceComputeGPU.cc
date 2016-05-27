@@ -91,24 +91,24 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
     boost::shared_ptr<NeighborList> nlist,
     Scalar r_cut, Potential potential)
     : DEM2DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential),
-      m_vertices(this->m_pdata->getNTypes(), this->m_exec_conf),
-      m_num_shape_vertices(this->m_pdata->getNTypes(), this->m_exec_conf)
-{
+    m_vertices(this->m_pdata->getNTypes(), this->m_exec_conf),
+    m_num_shape_vertices(this->m_pdata->getNTypes(), this->m_exec_conf)
+    {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
-    {
+        {
         this->m_exec_conf->msg->error() << "Creating a DEM2DForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing DEM2DForceComputeGPU");
-    }
+        }
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_2d", this->m_exec_conf));
-}
+    }
 
 /*! Destructor. */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::~DEM2DForceComputeGPU()
-{
-}
+    {
+    }
 
 /*! setParams: set the vertices for a numeric particle type from a python list.
   \param type Particle type index
@@ -116,11 +116,11 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::~DEM2DForceComputeGPU()
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::setParams(unsigned int type,
-                                                const boost::python::list &vertices)
-{
+    const boost::python::list &vertices)
+    {
     DEM2DForceCompute<Real, Real4, Potential>::setParams(type, vertices);
     createGeometry();
-}
+    }
 
 /*! \post The DEM2D forces are computed for the given timestep on the GPU.
   The neighborlist's compute method is called to ensure that it is up to date
@@ -131,7 +131,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::setParams(unsigned int
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned int timestep)
-{
+    {
     typedef DEMEvaluator<Real, Real4, Potential> Evaluator;
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -142,20 +142,20 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
-    {
+        {
         this->m_exec_conf->msg->error() << "DEM2DForceComputeGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in DEM2DForceComputeGPU");
-    }
+        }
 
     size_t threadsPerParticle(2*this->maxVertices());
     size_t particlesPerBlock(m_tuner->getParam()/threadsPerParticle);
     // cap the block size so we don't have forces for one particle
     // spread among multiple blocks
     particlesPerBlock = min(particlesPerBlock,
-                    (size_t)(this->m_exec_conf->dev_prop.maxThreadsPerBlock)/threadsPerParticle);
+        (size_t)(this->m_exec_conf->dev_prop.maxThreadsPerBlock)/threadsPerParticle);
     // don't use too many registers (~86 per thread)
     particlesPerBlock = min(particlesPerBlock,
-                    (size_t)(this->m_exec_conf->dev_prop.regsPerBlock/threadsPerParticle/86));
+        (size_t)(this->m_exec_conf->dev_prop.regsPerBlock/threadsPerParticle/86));
     // we better calculate for at least one particle per block
     particlesPerBlock = max(particlesPerBlock, (size_t)1);
 
@@ -214,14 +214,14 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
     int64_t mem_transfer = this->m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
     int64_t flops = n_calc * (3+12+5+2+3+11+3+8+7);
     if (this->m_prof) this->m_prof->pop(this->exec_conf, flops, mem_transfer);
-}
+    }
 
 /*!
   createGeometry: Update the device-side list of vertices and vertex indices.
- */
+*/
 template<typename Real, typename Real2, typename Real4, typename Potential>
 void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::createGeometry()
-{
+    {
     const size_t nVerts(numVertices());
 
     // resize the geometry arrays if necessary
@@ -232,28 +232,28 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::createGeometry()
         m_num_shape_vertices.resize(this->m_shapes.size());
 
     ArrayHandle<Real2> h_vertices(m_vertices, access_location::host,
-                                   access_mode::overwrite);
+        access_mode::overwrite);
     ArrayHandle<unsigned int> h_num_shape_vertices(
         m_num_shape_vertices, access_location::host, access_mode::overwrite);
 
     for(size_t i(0), k(0); i < this->m_shapes.size(); ++i)
-    {
+        {
         h_num_shape_vertices.data[i] = this->m_shapes[i].size();
         for(size_t j(0); j < this->m_shapes[i].size(); ++j, ++k)
-        {
+            {
             h_vertices.data[k].x = this->m_shapes[i][j].x;
             h_vertices.data[k].y = this->m_shapes[i][j].y;
+            }
         }
     }
-}
 
 /*!
   numVertices: Returns the total number of vertices for all shapes
   in the system.
- */
+*/
 template<typename Real, typename Real2, typename Real4, typename Potential>
 size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::numVertices() const
-{
+    {
     size_t result(0);
 
     for(typename std::vector<std::vector<vec2<Real> > >::const_iterator shapeIter(this->m_shapes.begin());
@@ -261,7 +261,7 @@ size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::numVertices() const
         result += shapeIter->size() ? shapeIter->size(): 1;
 
     return result;
-}
+    }
 
 /*!
   maxVertices: returns the maximum number of vertices among all shapes
@@ -269,7 +269,7 @@ size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::numVertices() const
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::maxVertices() const
-{
+    {
     size_t result(1);
 
     for(typename std::vector<std::vector<vec2<Real> > >::const_iterator shapeIter(this->m_shapes.begin());
@@ -277,7 +277,7 @@ size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::maxVertices() const
         result = max(result, shapeIter->size());
 
     return result;
-}
+    }
 
 #endif
 

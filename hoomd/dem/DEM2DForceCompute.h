@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DEMEvaluator.h"
 
 /*! \file DEM2DForceCompute.h
-    \brief Declares the DEM2DForceCompute class
+  \brief Declares the DEM2DForceCompute class
 */
 
 #ifdef NVCC
@@ -72,17 +72,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes DEM 2D forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
-    NeighborList's compute() to make sure that the neighbor list is up to date.
+  neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
+  to identify these neighbors. Calling compute() in this class will in turn result in a call to the
+  NeighborList's compute() to make sure that the neighbor list is up to date.
 
-    Usage: Construct a DEM2DForceCompute, providing it an already constructed ParticleData and NeighborList.
-    Then set parameters for each type by calling setParams.
+  Usage: Construct a DEM2DForceCompute, providing it an already constructed ParticleData and NeighborList.
+  Then set parameters for each type by calling setParams.
 
-    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
-    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+  Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
+  a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
 
-    \ingroup computes
+  \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
 class DEM2DForceCompute : public ForceCompute
@@ -90,15 +90,15 @@ class DEM2DForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         DEM2DForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<NeighborList> nlist,
-                          Real r_cut, Potential potential);
+            boost::shared_ptr<NeighborList> nlist,
+            Real r_cut, Potential potential);
 
         //! Destructor
         virtual ~DEM2DForceCompute();
 
         //! Set the vertices for a particle
         virtual void setParams(unsigned int type,
-                               const boost::python::list &vertices);
+            const boost::python::list &vertices);
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 
@@ -108,18 +108,18 @@ class DEM2DForceCompute : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Real getLogValue(const std::string& quantity, unsigned int timestep);
 
-        #ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
-        {
+            {
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::orientation] = 1;
 
             flags |= ForceCompute::getRequestedCommFlags(timestep);
             return flags;
-        }
-        #endif
+            }
+    #endif
 
         //! Returns true because we compute the torque
         virtual bool isAnisotropic()

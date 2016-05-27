@@ -69,67 +69,67 @@
 
 /*! Pluggable potential for a WCA interaction, shifted by the diameter of each particle.
 
-    The potential evaluated between contact points is:
-    \f{eqnarray*}
-    V_{\mathrm{SWCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
-                           \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] + \varepsilon & r < 2^{1/6}\sigma + \Delta \\
-                         = & 0 & r \ge 2^{1/6}\sigma + \Delta \\
-    \f}
-    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the assigned diameter of particle \f$ i \f$.
+  The potential evaluated between contact points is:
+  \f{eqnarray*}
+  V_{\mathrm{SWCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
+  \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] + \varepsilon & r < 2^{1/6}\sigma + \Delta \\
+  = & 0 & r \ge 2^{1/6}\sigma + \Delta \\
+  \f}
+  where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the assigned diameter of particle \f$ i \f$.
 */
 template<typename Real, typename Real4, typename FrictionModel>
 class SWCAPotential
-{
-public:
-    // Ctor; set sigma of the interaction to be twice the given value
-    // so the given value acts as a radius of interaction as might be
-    // expected for a spheropolygon
-    SWCAPotential(Real radius, const FrictionModel &frictionParams):
-        m_sigma6(radius*radius*radius*radius*radius*radius*64),
-        m_rcutsq(radius*radius*4*pow(2.0, 1./3)),
-        m_frictionParams(frictionParams) {}
-
-    // Length scale sigma accessors
-    Real getSigma6() const {return m_sigma6;}
-    void setRadius(Real radius)
     {
-        m_sigma6 = radius*radius*radius*radius*radius*radius*64;
-        m_rcutsq = radius*radius*4*pow(2.0, 1./3.0);
-    }
+    public:
+        // Ctor; set sigma of the interaction to be twice the given value
+        // so the given value acts as a radius of interaction as might be
+        // expected for a spheropolygon
+        SWCAPotential(Real radius, const FrictionModel &frictionParams):
+            m_sigma6(radius*radius*radius*radius*radius*radius*64),
+            m_rcutsq(radius*radius*4*pow(2.0, 1./3)),
+            m_frictionParams(frictionParams) {}
 
-    /*! evaluate the potential between two points */
-    template<typename Vec, typename Torque>
-    DEVICE inline void evaluate(
-        const Vec &rij, const Vec &r0, const Vec &rPrime,
-        Real &potential, Vec &force_i, Torque &torque_i,
-        Vec &force_j, Torque &torque_j, float modFactor=1) const;
+        // Length scale sigma accessors
+        Real getSigma6() const {return m_sigma6;}
+        void setRadius(Real radius)
+            {
+            m_sigma6 = radius*radius*radius*radius*radius*radius*64;
+            m_rcutsq = radius*radius*4*pow(2.0, 1./3.0);
+            }
 
-    /*! Test to see if we need to evaluate this potential
-    */
-    DEVICE inline bool withinCutoff(Real rsq, Real r_cut_sq)
-    {
-        return rsq < r_cut_sq;
-    }
+        /*! evaluate the potential between two points */
+        template<typename Vec, typename Torque>
+        DEVICE inline void evaluate(
+            const Vec &rij, const Vec &r0, const Vec &rPrime,
+            Real &potential, Vec &force_i, Torque &torque_i,
+            Vec &force_j, Torque &torque_j, float modFactor=1) const;
 
-    //! Test if potential needs the diameter
-    DEVICE static bool needsDiameter() {return true;}
-    DEVICE void setDiameter(Real di, Real dj) {m_delta = 0.5*(di+dj) - 1;}
+        /*! Test to see if we need to evaluate this potential
+         */
+        DEVICE inline bool withinCutoff(Real rsq, Real r_cut_sq)
+            {
+            return rsq < r_cut_sq;
+            }
 
-    //! Swap the sense of particle i and j for the friction params
-    DEVICE inline void swapij() {m_frictionParams.swapij();}
-    DEVICE static bool needsVelocity() {return FrictionModel::needsVelocity();}
-    DEVICE inline void setVelocity(const vec3<Real> &v) {m_frictionParams.setVelocity(v);}
+        //! Test if potential needs the diameter
+        DEVICE static bool needsDiameter() {return true;}
+        DEVICE void setDiameter(Real di, Real dj) {m_delta = 0.5*(di+dj) - 1;}
 
-private:
-    // Length scale sigma, raised to the sixth power for convenience
-    Real m_sigma6;
-    // Cutoff radius
-    Real m_rcutsq;
-    // Cutoff shift parameter
-    Real m_delta;
-    //! Parameters for friction (including relative velocity state, if necessary)
-    FrictionModel m_frictionParams;
-};
+        //! Swap the sense of particle i and j for the friction params
+        DEVICE inline void swapij() {m_frictionParams.swapij();}
+        DEVICE static bool needsVelocity() {return FrictionModel::needsVelocity();}
+        DEVICE inline void setVelocity(const vec3<Real> &v) {m_frictionParams.setVelocity(v);}
+
+    private:
+        // Length scale sigma, raised to the sixth power for convenience
+        Real m_sigma6;
+        // Cutoff radius
+        Real m_rcutsq;
+        // Cutoff shift parameter
+        Real m_delta;
+        //! Parameters for friction (including relative velocity state, if necessary)
+        FrictionModel m_frictionParams;
+    };
 
 #include "SWCAPotential.cc"
 

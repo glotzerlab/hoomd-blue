@@ -87,25 +87,25 @@ using namespace std;
 */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<NeighborList> nlist,
-                                                      Real r_cut, Potential potential)
+    boost::shared_ptr<NeighborList> nlist,
+    Real r_cut, Potential potential)
     : DEM3DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential)
-{
+    {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
-    {
+        {
         this->m_exec_conf->msg->error() << "Creating a DEM3DForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing DEM3DForceComputeGPU");
-    }
+        }
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_3d", this->m_exec_conf));
-}
+    }
 
 /*! Destructor. */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceComputeGPU<Real, Real4, Potential>::~DEM3DForceComputeGPU()
-{
-}
+    {
+    }
 
 /*!  maxGPUThreads: returns the maximum number of GPU threads
   (2*vertices + edges) that will be needed among all shapes in the
@@ -113,36 +113,36 @@ DEM3DForceComputeGPU<Real, Real4, Potential>::~DEM3DForceComputeGPU()
 */
 template<typename Real, typename Real4, typename Potential>
 size_t DEM3DForceComputeGPU<Real, Real4, Potential>::maxGPUThreads() const
-{
+    {
     typedef std::vector<std::vector<unsigned int> >::const_iterator FaceIter;
     typedef std::vector<unsigned int>::const_iterator VertIter;
 
     size_t maxGPUThreads(0);
 
     for(size_t i(0); i < this->m_facesVec.size(); ++i)
-    {
+        {
         std::set<std::pair<unsigned int, unsigned int> > edges;
         for(FaceIter faceIter(this->m_facesVec[i].begin());
             faceIter != this->m_facesVec[i].end(); ++faceIter)
-        {
+            {
             for(VertIter vertIter(faceIter->begin());
                 (vertIter + 1) != faceIter->end(); ++vertIter)
-            {
+                {
                 unsigned int smaller(*vertIter < *(vertIter + 1)? *vertIter: *(vertIter + 1));
                 unsigned int larger(*vertIter < *(vertIter + 1)? *(vertIter + 1): *vertIter);
                 std::pair<unsigned int, unsigned int> edge(smaller, larger);
                 edges.insert(edge);
-            }
+                }
             unsigned int smaller(faceIter->back() < faceIter->front()? faceIter->back(): faceIter->front());
             unsigned int larger(faceIter->back() < faceIter->front()? faceIter->front(): faceIter->back());
             std::pair<unsigned int, unsigned int> edge(smaller, larger);
             edges.insert(edge);
-        }
+            }
         maxGPUThreads = max(maxGPUThreads, 2*this->m_vertsVec[i].size() + edges.size());
-    }
+        }
 
     return maxGPUThreads;
-}
+    }
 
 /*! \post The DEM3D forces are computed for the given timestep on the GPU.
   The neighborlist's compute method is called to ensure that it is up to date
@@ -153,7 +153,7 @@ size_t DEM3DForceComputeGPU<Real, Real4, Potential>::maxGPUThreads() const
 */
 template<typename Real, typename Real4, typename Potential>
 void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int timestep)
-{
+    {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
 
@@ -163,20 +163,20 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int ti
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
-    {
+        {
         this->m_exec_conf->msg->error() << "DEM3DForceComputeGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in DEM3DForceComputeGPU");
-    }
+        }
 
     size_t threadsPerParticle(this->maxGPUThreads());
     size_t particlesPerBlock(m_tuner->getParam()/threadsPerParticle);
     // cap the block size so we don't have forces for one particle
     // spread among multiple blocks
     particlesPerBlock = min(particlesPerBlock,
-                    (size_t)(this->m_exec_conf->dev_prop.maxThreadsPerBlock)/threadsPerParticle);
+        (size_t)(this->m_exec_conf->dev_prop.maxThreadsPerBlock)/threadsPerParticle);
     // don't use too many registers (~145 per thread)
     particlesPerBlock = min(particlesPerBlock,
-                    (size_t)(this->m_exec_conf->dev_prop.regsPerBlock/threadsPerParticle/145));
+        (size_t)(this->m_exec_conf->dev_prop.regsPerBlock/threadsPerParticle/145));
     // we better calculate for at least one particle per block
     particlesPerBlock = max(particlesPerBlock, (size_t)1);
 
@@ -198,24 +198,24 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int ti
     ArrayHandle<unsigned int> d_nextFace(this->m_nextFace, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_firstFaceVert(this->m_firstFaceVert, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_firstTypeVert(this->m_firstTypeVert, access_location::device,
-                                            access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_numTypeVerts(this->m_numTypeVerts, access_location::device,
-                                               access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_firstTypeEdge(this->m_firstTypeEdge, access_location::device,
-                                               access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_numTypeEdges(this->m_numTypeEdges, access_location::device,
-                                         access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_numTypeFaces(this->m_numTypeFaces, access_location::device,
-                                         access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_vertexConnectivity(this->m_vertexConnectivity, access_location::device,
-                                         access_mode::read);
+        access_mode::read);
     ArrayHandle<unsigned int> d_edges(this->m_edges, access_location::device,
-                                       access_mode::read);
+        access_mode::read);
     ArrayHandle<Real4> d_verts(this->m_verts, access_location::device, access_mode::read);
     ArrayHandle<Real> d_faceRcutSq(this->m_faceRcutSq, access_location::device,
-                                   access_mode::read);
+        access_mode::read);
     ArrayHandle<Real> d_edgeRcutSq(this->m_edgeRcutSq, access_location::device,
-                                   access_mode::read);
+        access_mode::read);
     BoxDim box = this->m_pdata->getBox();
 
     ArrayHandle<Real4> d_force(this->m_force,access_location::device,access_mode::overwrite);
@@ -250,7 +250,7 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int ti
     int64_t mem_transfer = this->m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
     int64_t flops = n_calc * (3+12+5+2+3+11+3+8+7);
     if (this->m_prof) this->m_prof->pop(this->exec_conf, flops, mem_transfer);
-}
+    }
 
 #endif
 

@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DEMEvaluator.h"
 
 /*! \file DEM3DForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by DEM3DForceComputeGPU.
+  \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by DEM3DForceComputeGPU.
 */
 
 #ifndef __DEM3DFORCEGPU_CUH__
