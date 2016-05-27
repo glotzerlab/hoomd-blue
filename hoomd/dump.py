@@ -117,12 +117,15 @@ class getar(hoomd.analyze._analyzer):
     **One-shot mode**
 
     In one-shot mode, activated by passing mode='1' to the getar
-    constructor, properties are written to a temporary file, which then
-    overwrites the file with the given filename. In this way, the file
-    with the given filename should always have the most recent frame of
-    successfully written data. This mode is designed for being able to
-    dump restoration data often without wasting large amounts of space
-    saving earlier data.
+    constructor, properties are written to a temporary file, which
+    then overwrites the file with the given filename. In this way, the
+    file with the given filename should always have the most recent
+    frame of successfully written data. This mode is designed for
+    being able to dump restoration data often without wasting large
+    amounts of space saving earlier data. Note that this
+    create-and-overwrite process can be stressful on filesystems,
+    particularly lustre filesystems, and can get your account blocked
+    on some supercomputer resources if overused.
 
     For convenience, you can also specify **composite properties**,
     which are expanded according to the table below.
