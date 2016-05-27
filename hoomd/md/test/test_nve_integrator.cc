@@ -24,7 +24,7 @@
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/RandomGenerator.h"
+#include "hoomd/deprecated/RandomGenerator.h"
 
 #include <math.h>
 

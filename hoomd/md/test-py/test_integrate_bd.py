@@ -25,39 +25,39 @@ class integrate_brownian_script_tests (unittest.TestCase):
     def test(self):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
-        bd = md.integrate.brownian(all, T=1.2, seed=52);
+        bd = md.integrate.brownian(all, kT=1.2, seed=52);
         run(100);
         bd.disable();
-        bd = md.integrate.brownian(all, T=1.2, seed=1, dscale=1.0);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0);
         run(100);
         bd.disable();
-        bd = md.integrate.brownian(all, T=1.2, seed=1, dscale=1.0, noiseless_t=True);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True);
         run(100);
         bd.disable();
-        bd = md.integrate.brownian(all, T=1.2, seed=1, dscale=1.0, noiseless_r=True);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_r=True);
         run(100);
         bd.disable();
-        bd = md.integrate.brownian(all, T=1.2, seed=1, dscale=1.0, noiseless_t=True, noiseless_r=True);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True, noiseless_r=True);
         run(100);
         bd.disable();
 
     # test set_params
     def test_set_params(self):
         all = group.all();
-        bd = md.integrate.brownian(all, T=1.2, seed=1);
-        bd.set_params(T=1.3);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1);
+        bd.set_params(kT=1.3);
 
     # test set_gamma
     def test_set_gamma(self):
         all = group.all();
-        bd = md.integrate.brownian(all, T=1.2, seed=1);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
 
         # test set_gamma
     def test_set_gamma_r(self):
         all = group.all();
-        bd = md.integrate.brownian(all, T=1.2, seed=1);
+        bd = md.integrate.brownian(all, kT=1.2, seed=1);
         bd.set_gamma_r('A', 0.5);
         bd.set_gamma_r('B', 1.0);
 
@@ -83,7 +83,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         steps=10000;
 
         md.integrate.mode_standard(dt=dt);
-        bd = md.integrate.brownian(group.all(), T=T, seed=1, dscale=False);
+        bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False);
         bd.set_gamma('A', gamma);
 
         run(steps);
@@ -107,7 +107,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         steps=10000;
 
         md.integrate.mode_standard(dt=dt);
-        bd = md.integrate.brownian(group.all(), T=T, seed=1, dscale=False, noiseless_t=True);
+        bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False, noiseless_t=True);
         bd.set_gamma('A', gamma);
 
         run(steps);
@@ -131,7 +131,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         steps=10000;
 
         md.integrate.mode_standard(dt=dt);
-        bd = md.integrate.brownian(group.all(), T=T, seed=1, dscale=False, noiseless_t=True);
+        bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False, noiseless_t=True);
         bd.set_gamma('A', gamma);
 
         run(steps);
@@ -155,7 +155,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         steps=10000;
 
         md.integrate.mode_standard(dt=dt);
-        bd = md.integrate.brownian(group.all(), T=T, seed=1, dscale=gamma);
+        bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=gamma);
 
         run(steps);
 

@@ -54,7 +54,7 @@ class test_constrain_rigid(unittest.TestCase):
         center = group.rigid_center()
 
         # thermalize
-        langevin = md.integrate.langevin(group=center,T=1.0,seed=123)
+        langevin = md.integrate.langevin(group=center,kT=1.0,seed=123)
         langevin.set_gamma('A',2.0)
         langevin.set_gamma('B',2.0)
         run(50)
@@ -108,14 +108,14 @@ class test_constrain_rigid(unittest.TestCase):
         center = group.rigid_center()
 
         # thermalize
-        langevin = md.integrate.langevin(group=center,T=1.0,seed=123)
+        langevin = md.integrate.langevin(group=center,kT=1.0,seed=123)
         langevin.set_gamma('A',2.0)
         langevin.set_gamma('B',2.0)
         run(50)
         langevin.disable()
 
         P = 2.5
-        npt = md.integrate.npt(group=center,P=P,tauP=0.5,T=1.0,tau=1.0)
+        npt = md.integrate.npt(group=center,P=P,tauP=0.5,kT=1.0,tau=1.0)
 
         log = analyze.log(filename=None,quantities=['potential_energy','kinetic_energy','npt_thermostat_energy','npt_barostat_energy','volume'],period=10)
 

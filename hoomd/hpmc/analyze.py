@@ -16,8 +16,8 @@ class sdf(_analyzer):
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         filename (str): Output file name.
-        xmax (float): Maximum *x* value at the right hand side of the rightmost bin.
-        dx (float): Bin width.
+        xmax (float): Maximum *x* value at the right hand side of the rightmost bin (distance units).
+        dx (float): Bin width (distance units).
         navg (int): Number of times to average before writing the histogram to the file.
         period (int): Number of timesteps between histogram evaluations.
         overwrite (bool): Set to True to overwrite *filename* instead of appending to it.

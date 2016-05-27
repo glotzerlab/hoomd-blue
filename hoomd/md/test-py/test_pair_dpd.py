@@ -18,19 +18,19 @@ class pair_dpd_tests (unittest.TestCase):
 
     # basic test of creation
     def test(self):
-        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, T=1.0);
+        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, kT=1.0);
         dpd.pair_coeff.set('A', 'A', A=1.0, gamma = 4.5, r_cut=2.5);
         dpd.update_coeffs();
 
     # test missing coefficients
     def test_set_missing_gamma(self):
-        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, T=1.0);
+        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, kT=1.0);
         dpd.pair_coeff.set('A', 'A', A=40);
         self.assertRaises(RuntimeError, dpd.update_coeffs);
 
     # test missing coefficients
     def test_missing_AA(self):
-        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, T=1.0);
+        dpd = md.pair.dpd(r_cut=3.0, nlist = self.nl, kT=1.0);
         self.assertRaises(RuntimeError, dpd.update_coeffs);
 
     def tearDown(self):

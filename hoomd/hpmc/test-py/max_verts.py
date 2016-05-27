@@ -241,8 +241,7 @@ class convex_polyhedron_fl(unittest.TestCase):
     def test_8(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=8, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=8);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -258,8 +257,7 @@ class convex_polyhedron_fl(unittest.TestCase):
     def test_16(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=16, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=16);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -275,8 +273,7 @@ class convex_polyhedron_fl(unittest.TestCase):
     def test_32(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=32, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=32);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -292,8 +289,7 @@ class convex_polyhedron_fl(unittest.TestCase):
     def test_64(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=64, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=64);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -309,8 +305,7 @@ class convex_polyhedron_fl(unittest.TestCase):
     def test_128(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=128, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.1, max_verts=128);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -554,8 +549,7 @@ class convex_spheropolyhedron_fl(unittest.TestCase):
     def test_8(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=8, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=8);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -571,8 +565,7 @@ class convex_spheropolyhedron_fl(unittest.TestCase):
     def test_16(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=16, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=16);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -588,8 +581,7 @@ class convex_spheropolyhedron_fl(unittest.TestCase):
     def test_32(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=32, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=32);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -605,8 +597,7 @@ class convex_spheropolyhedron_fl(unittest.TestCase):
     def test_64(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=64, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=64);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -622,8 +613,7 @@ class convex_spheropolyhedron_fl(unittest.TestCase):
     def test_128(self):
         if hoomd.context.exec_conf.isCUDAEnabled():
             return;
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=128, fl_flag=True);
-        mc.set_params(ln_gamma=2.0,r0=[(0,0,0)],q0=[(1,0,0,0)],q_factor=10,drift_period=100)
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=10, d=0.1, max_verts=128);
         mc.shape_param.set(['A', 'B'], vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),

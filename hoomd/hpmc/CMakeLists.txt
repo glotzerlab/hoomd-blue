@@ -9,7 +9,6 @@ set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_free_volume.cc
                     module_hpmc.cc
-                    module_hpmc_fl.cc
                     module_hpmc_gpu.cc
                     module_muvt.cc
                     module_sdf.cc
@@ -86,6 +85,7 @@ set(files   analyze.py
             integrate.py
             update.py
             util.py
+            field.py
     )
 
 install(FILES ${files}
