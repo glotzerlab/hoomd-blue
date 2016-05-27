@@ -7,210 +7,210 @@ import unittest
 class sphere_sphere(unittest.TestCase):
 
     def test_potential_wca_2d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5);
 
     def test_potential_swca_2d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5);
 
     def test_potential_wca_3d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5);
 
     def test_potential_swca_3d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5);
 
     def _test_potential(self, typ, twoD, **params):
-        box = hoomd.data.boxdim(L=10, dimensions=(2 if twoD else 3))
-        snap = hoomd.data.make_snapshot(N=4, box=box)
-        snap.particles.position[0] = (0, 0, 0)
-        snap.particles.position[1] = (1, 0, 0)
-        snap.particles.position[2] = (0, 2**(1./6), 0)
-        snap.particles.position[3] = (1, 2**(1./6), 0)
+        box = hoomd.data.boxdim(L=10, dimensions=(2 if twoD else 3));
+        snap = hoomd.data.make_snapshot(N=4, box=box);
+        snap.particles.position[0] = (0, 0, 0);
+        snap.particles.position[1] = (1, 0, 0);
+        snap.particles.position[2] = (0, 2**(1./6), 0);
+        snap.particles.position[3] = (1, 2**(1./6), 0);
 
-        system = hoomd.init.read_snapshot(snap)
-        nl = hoomd.md.nlist.cell()
+        system = hoomd.init.read_snapshot(snap);
+        nl = hoomd.md.nlist.cell();
 
-        potential = typ(nlist=nl, **params)
-        nve = hoomd.md.integrate.nve(group=hoomd.group.all())
-        mode = hoomd.md.integrate.mode_standard(dt=0)
+        potential = typ(nlist=nl, **params);
+        nve = hoomd.md.integrate.nve(group=hoomd.group.all());
+        mode = hoomd.md.integrate.mode_standard(dt=0);
 
-        hoomd.run(1)
+        hoomd.run(1);
 
         for p in system.particles:
-            self.assertAlmostEqual(p.net_energy, 0.5)
+            self.assertAlmostEqual(p.net_energy, 0.5);
 
-        potential.disable()
+        potential.disable();
 
     def setUp(self):
-        hoomd.context.initialize()
+        hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier()
+        hoomd.comm.barrier();
 
 class spherocylinder_sphere(unittest.TestCase):
 
     def test_potential_wca_2d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5);
 
     def test_potential_swca_2d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5);
 
     def test_potential_wca_3d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5);
 
     def test_potential_swca_3d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5);
 
     def _test_potential(self, typ, twoD, **params):
-        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3))
-        snap = hoomd.data.make_snapshot(N=4, box=box)
+        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3));
+        snap = hoomd.data.make_snapshot(N=4, box=box);
 
-        snap.particles.position[0] = (0, 0, 0)
-        snap.particles.position[1] = (1, 0, 0)
-        snap.particles.position[2] = (0, 2 + 2**(1./6), 0)
-        snap.particles.position[3] = (1, 2 + 2**(1./6), 0)
+        snap.particles.position[0] = (0, 0, 0);
+        snap.particles.position[1] = (1, 0, 0);
+        snap.particles.position[2] = (0, 2 + 2**(1./6), 0);
+        snap.particles.position[3] = (1, 2 + 2**(1./6), 0);
 
-        snap.particles.typeid[:] = [1, 0, 1, 0]
+        snap.particles.typeid[:] = [1, 0, 1, 0];
 
-        snap.particles.types = ['A', 'B']
+        snap.particles.types = ['A', 'B'];
 
-        system = hoomd.init.read_snapshot(snap)
-        nl = hoomd.md.nlist.cell()
+        system = hoomd.init.read_snapshot(snap);
+        nl = hoomd.md.nlist.cell();
 
-        potential = typ(nlist=nl, **params)
-        nve = hoomd.md.integrate.nve(group=hoomd.group.all())
-        mode = hoomd.md.integrate.mode_standard(dt=0)
+        potential = typ(nlist=nl, **params);
+        nve = hoomd.md.integrate.nve(group=hoomd.group.all());
+        mode = hoomd.md.integrate.mode_standard(dt=0);
 
         if twoD:
-            vertices = [[0, 1], [0, -1]]
-            potential.setParams('A', vertices, center=False)
+            vertices = [[0, 1], [0, -1]];
+            potential.setParams('A', vertices, center=False);
         else:
-            vertices = [[0, 1, 0], [0, -1, 0]]
-            faces = [[0, 1]]
-            potential.setParams('A', vertices, faces, center=False)
+            vertices = [[0, 1, 0], [0, -1, 0]];
+            faces = [[0, 1]];
+            potential.setParams('A', vertices, faces, center=False);
 
-        hoomd.run(1)
+        hoomd.run(1);
 
         for p in system.particles:
-            self.assertAlmostEqual(p.net_energy, 0.5)
+            self.assertAlmostEqual(p.net_energy, 0.5);
 
-        potential.disable()
+        potential.disable();
 
     def setUp(self):
-        hoomd.context.initialize()
+        hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier()
+        hoomd.comm.barrier();
 
 class shape_sphere(unittest.TestCase):
 
     def test_potential_wca_2d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5);
 
     def test_potential_swca_2d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5);
 
     def test_potential_wca_3d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5);
 
     def test_potential_swca_3d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5);
 
     def _test_potential(self, typ, twoD, **params):
-        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3))
-        snap = hoomd.data.make_snapshot(N=4, box=box)
+        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3));
+        snap = hoomd.data.make_snapshot(N=4, box=box);
 
-        snap.particles.position[0] = (0, 0, 0)
-        snap.particles.position[1] = (3.5, 0, 0)
-        snap.particles.position[2] = (0, 5 + 2**(1./6), 0)
-        snap.particles.position[3] = (3.5, 5 + 2**(1./6), 0)
+        snap.particles.position[0] = (0, 0, 0);
+        snap.particles.position[1] = (3.5, 0, 0);
+        snap.particles.position[2] = (0, 5 + 2**(1./6), 0);
+        snap.particles.position[3] = (3.5, 5 + 2**(1./6), 0);
 
-        snap.particles.typeid[:] = [1, 0, 1, 0]
+        snap.particles.typeid[:] = [1, 0, 1, 0];
 
-        snap.particles.types = ['A', 'B']
+        snap.particles.types = ['A', 'B'];
 
-        system = hoomd.init.read_snapshot(snap)
-        nl = hoomd.md.nlist.cell()
+        system = hoomd.init.read_snapshot(snap);
+        nl = hoomd.md.nlist.cell();
 
-        potential = typ(nlist=nl, **params)
-        nve = hoomd.md.integrate.nve(group=hoomd.group.all())
-        mode = hoomd.md.integrate.mode_standard(dt=0)
+        potential = typ(nlist=nl, **params);
+        nve = hoomd.md.integrate.nve(group=hoomd.group.all());
+        mode = hoomd.md.integrate.mode_standard(dt=0);
 
         if twoD:
-            vertices = [[2.5, 2.5], [-2.5, 2.5], [-2.5, -2.5], [2.5, -2.5]]
-            potential.setParams('A', vertices, center=False)
+            vertices = [[2.5, 2.5], [-2.5, 2.5], [-2.5, -2.5], [2.5, -2.5]];
+            potential.setParams('A', vertices, center=False);
         else:
-            vertices = [[-2.5, 2.5, 2.5], [-2.5, -2.5, 2.5], [-2.5, -2.5, -2.5], [-2.5, 2.5, -2.5]]
-            faces = [[0, 1, 2, 3]]
-            potential.setParams('A', vertices, faces, center=False)
+            vertices = [[-2.5, 2.5, 2.5], [-2.5, -2.5, 2.5], [-2.5, -2.5, -2.5], [-2.5, 2.5, -2.5]];
+            faces = [[0, 1, 2, 3]];
+            potential.setParams('A', vertices, faces, center=False);
 
-        hoomd.run(1)
+        hoomd.run(1);
 
         for p in system.particles:
-            self.assertAlmostEqual(p.net_energy, 0.5)
+            self.assertAlmostEqual(p.net_energy, 0.5);
 
-        potential.disable()
+        potential.disable();
 
     def setUp(self):
-        hoomd.context.initialize()
+        hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier()
+        hoomd.comm.barrier();
 
 class shape_shape(unittest.TestCase):
 
     def test_potential_wca_2d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=True, radius=.5);
 
     def test_potential_swca_2d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=True, radius=.5);
 
     def test_potential_wca_3d(self):
-        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.WCA, twoD=False, radius=.5);
 
     def test_potential_swca_3d(self):
-        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5)
+        self._test_potential(hoomd.dem.pair.SWCA, twoD=False, radius=.5);
 
     def _test_potential(self, typ, twoD, **params):
-        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3))
-        snap = hoomd.data.make_snapshot(N=4, box=box)
+        box = hoomd.data.boxdim(L=40, dimensions=(2 if twoD else 3));
+        snap = hoomd.data.make_snapshot(N=4, box=box);
 
-        dz = (0 if twoD else 2.5)
-        snap.particles.position[0] = (0, 0, 0)
-        snap.particles.position[1] = (6, 2.5, dz)
-        snap.particles.position[2] = (0, 5 + 2**(1./6), 0)
-        snap.particles.position[3] = (6, 2.5 + 5 + 2**(1./6), dz)
+        dz = (0 if twoD else 2.5);
+        snap.particles.position[0] = (0, 0, 0);
+        snap.particles.position[1] = (6, 2.5, dz);
+        snap.particles.position[2] = (0, 5 + 2**(1./6), 0);
+        snap.particles.position[3] = (6, 2.5 + 5 + 2**(1./6), dz);
 
-        system = hoomd.init.read_snapshot(snap)
-        nl = hoomd.md.nlist.cell()
+        system = hoomd.init.read_snapshot(snap);
+        nl = hoomd.md.nlist.cell();
 
-        potential = typ(nlist=nl, **params)
-        nve = hoomd.md.integrate.nve(group=hoomd.group.all())
-        mode = hoomd.md.integrate.mode_standard(dt=0)
+        potential = typ(nlist=nl, **params);
+        nve = hoomd.md.integrate.nve(group=hoomd.group.all());
+        mode = hoomd.md.integrate.mode_standard(dt=0);
 
         # there is cross-interaction between two of the particles the
         # way they are arranged, so the energies are not all the same
         if twoD:
-            vertices = [[2.5, 2.5], [-2.5, 2.5], [-2.5, -2.5], [2.5, -2.5]]
-            potential.setParams('A', vertices, center=False)
-            expected_energies = [1, 2, 2, 1]
+            vertices = [[2.5, 2.5], [-2.5, 2.5], [-2.5, -2.5], [2.5, -2.5]];
+            potential.setParams('A', vertices, center=False);
+            expected_energies = [1, 2, 2, 1];
         else:
-            vertices = list(itertools.product(*(3*[[-2.5,2.5]])))
-            (vertices, faces) = hoomd.dem.utils.convexHull(vertices)
-            potential.setParams('A', vertices, faces, center=False)
-            expected_energies = [2, 4, 4, 2]
+            vertices = list(itertools.product(*(3*[[-2.5,2.5]])));
+            (vertices, faces) = hoomd.dem.utils.convexHull(vertices);
+            potential.setParams('A', vertices, faces, center=False);
+            expected_energies = [2, 4, 4, 2];
 
-        hoomd.run(1)
+        hoomd.run(1);
 
         for (p, U) in zip(system.particles, expected_energies):
-            self.assertAlmostEqual(p.net_energy, U)
+            self.assertAlmostEqual(p.net_energy, U);
 
-        potential.disable()
+        potential.disable();
 
     def setUp(self):
-        hoomd.context.initialize()
+        hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier()
+        hoomd.comm.barrier();
 
 if __name__ == '__main__':
-    unittest.main(argv = ['test_potentials.py', '-v'])
+    unittest.main(argv = ['test_potentials.py', '-v']);
