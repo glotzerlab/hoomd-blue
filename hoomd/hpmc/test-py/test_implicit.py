@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 from hoomd import *
+from hoomd import deprecated
 from hoomd import hpmc
 import math
 import unittest
@@ -16,7 +17,7 @@ context.initialize()
 class implicit_test_sphere (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
+        self.system = deprecated.init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
 
         self.long = False
         self.num_samples = 0
@@ -120,7 +121,7 @@ class implicit_test_cube(unittest.TestCase):
         L_ini= math.pow(N*self.V_cube/phi_c_ini,1.0/3.0)
         L_target= math.pow(N*self.V_cube/phi_c,1.0/3.0)
 
-        self.system = init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=math.sqrt(2.0))
+        self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=math.sqrt(2.0))
 
         self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
         self.mc.set_params(d=0.1,a=0.15)

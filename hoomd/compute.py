@@ -140,10 +140,11 @@ class thermo(_compute):
     * **kinetic_energy_groupname** - :math:`K` total kinetic energy of all particles in the group (in energy units)
     * **translational_kinetic_energy_groupname** - :math:`K` translational kinetic energy of all particles in the group (in energy units)
     * **rotational_kinetic_energy_groupname** - :math:`K` rotational kinetic energy of all particles in the group (in energy units)
-    * **temperature_groupname** - :math:`T` instantaneous thermal energy of the group (in energy units). Calculated as
+    * **temperature_groupname** - :math:`kT` instantaneous thermal energy of the group (in energy units). Calculated as
+
       .. math::
 
-        T = 2 \cdot \frac{K}{N_{\mathrm{dof}}}
+        kT = 2 \cdot \frac{K}{N_{\mathrm{dof}}}
 
     * **pressure_groupname** - :math:`P` instantaneous pressure of the group (in pressure units). Calculated as
 

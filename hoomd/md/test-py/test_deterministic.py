@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -15,7 +16,7 @@ class determinstic(unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.42, B=0.42)
-        self.s = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        self.s = deprecated.init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         self.assert_(context.current.system_definition);
         self.assert_(context.current.system);
         self.harmonic = md.bond.harmonic();

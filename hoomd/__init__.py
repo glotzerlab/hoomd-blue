@@ -15,6 +15,19 @@ simulations using HOOMD::
     hoomd.md.integrate.mode_standard(dt=0.005)
     hoomd.md.integrate.nvt(group=hoomd.group.all(), T=1.2, tau=0.5)
     hoomd.run(100)
+
+.. rubric:: Stability
+
+:py:mod:`hoomd` is **stable**. When upgrading from version 2.x to 2.y (y > x),
+existing job scripts that follow *documented* interfaces for functions and classes
+will not require any modifications. **Maintainer:** Joshua A. Anderson
+
+.. attention::
+
+    This stability guaruntee only applies to modules in the :py:mod:`hoomd` package.
+    Subpackages (:py:mod:`hoomd.hpmc`, :py:mod:`hoomd.md`, etc...) may or may not
+    have a stable API. The documentation for each subpackage specifies the level of
+    API stability it provides.
 """
 
 # Maintainer: joaander

@@ -3,6 +3,7 @@
 # Maintainer: mphoward
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -14,7 +15,7 @@ class load_balance_tests (unittest.TestCase):
             box = data.boxdim(L=10)
             boxdim = box._getBoxDim()
             comm.decomposition(nx=2,ny=2,nz=2)
-            init.create_random(N=100, phi_p=0.05)
+            deprecated.init.create_random(N=100, phi_p=0.05)
 
     ## Test basic constructor succeeds
     def test_basic(self):

@@ -2,6 +2,7 @@
 # Maintainer: mspells
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -11,7 +12,7 @@ import os
 class pair_gb_tests (unittest.TestCase):
     def setUp(self):
         print
-        system = init.create_random(N=100, phi_p=0.05);
+        system = deprecated.init.create_random(N=100, phi_p=0.05);
         snap = system.take_snapshot(all=True)
         snap.particles.angmom[:] = 1
         system.restore_snapshot(snap)

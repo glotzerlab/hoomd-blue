@@ -3,6 +3,7 @@
 
 from hoomd import *
 from hoomd import md;
+from hoomd import deprecated;
 context.initialize()
 import unittest
 import os
@@ -16,7 +17,7 @@ class bond_harmonic_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.35, B=0.35)
-        self.s=init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        self.s=deprecated.init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
 
         context.current.sorter.set_params(grid=8)
 

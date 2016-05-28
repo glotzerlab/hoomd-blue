@@ -3,6 +3,7 @@
 
 import hoomd;
 import hoomd.md;
+from hoomd import deprecated
 hoomd.context.initialize()
 import unittest
 import os
@@ -12,7 +13,7 @@ import tempfile
 class analyze_log_tests (unittest.TestCase):
     def setUp(self):
         print
-        hoomd.init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
         hoomd.context.current.sorter.set_params(grid=8)
 
@@ -67,12 +68,12 @@ class analyze_log_tests (unittest.TestCase):
 class analyze_log_query_tests (unittest.TestCase):
     def setUp(self):
         print
-        hoomd.init.create_random(N=100, phi_p=0.005);
+        deprecated.init.create_random(N=100, phi_p=0.005);
         nl = hoomd.md.nlist.cell()
         self.pair = hoomd.md.pair.lj(r_cut=2.5, nlist = nl)
         self.pair.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         hoomd.md.integrate.mode_standard(dt=0.005);
-        hoomd.md.integrate.langevin(hoomd.group.all(), seed=1, T=1.0);
+        hoomd.md.integrate.langevin(hoomd.group.all(), seed=1, kT=1.0);
 
         hoomd.context.current.sorter.set_params(grid=8)
 

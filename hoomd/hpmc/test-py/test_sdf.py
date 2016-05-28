@@ -11,6 +11,10 @@ import tempfile
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # this test checks that sdf produces correct results. A baseline script on a known working verison of SDF provides
 # the reference average and error lines. A short simulation is run, sdf computed, and compared to the reference.
 
@@ -126,7 +130,7 @@ err = numpy.array([ 1.21368492,  1.07520243,  1.22496485,  1.07203861,  1.319181
 class sdf_test1 (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = init.create_empty(N=l*l, box=data.boxdim(Lx=Lx, Ly=Ly, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=l*l, box=data.boxdim(Lx=Lx, Ly=Ly, dimensions=2), particle_types=['A'])
 
         # initialize a simple cubic array of particles
         lox = - Lx / 2.0;

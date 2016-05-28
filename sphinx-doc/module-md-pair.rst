@@ -8,12 +8,10 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    md.pair.cgcmm
     md.pair.dipole
     md.pair.dpd
     md.pair.dpdlj
     md.pair.dpd_conservative
-    md.pair.eam
     md.pair.ewald
     md.pair.force_shifted_lj
     md.pair.gauss

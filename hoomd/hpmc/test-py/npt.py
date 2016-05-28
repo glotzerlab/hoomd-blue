@@ -7,6 +7,10 @@ import numpy as np
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 class npt_sanity_checks (unittest.TestCase):
     # This test runs a system at high enough pressure and for enough steps to ensure a dense system.
     # After adequate compression, it confirms at 1000 different steps in the simulation, the NPT
@@ -14,7 +18,7 @@ class npt_sanity_checks (unittest.TestCase):
     def test_prevents_overlaps(self):
         N=64
         L=20
-        system = init.create_empty(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
+        system = create_empty(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
         mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
         npt = hpmc.update.npt(mc, seed=1, P=1000, dLx=0.01, dLy=0.01, dLz=0.01, dxy=0.01, dxz=0.01, dyz=0.01)
         mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
@@ -45,7 +49,7 @@ class npt_sanity_checks (unittest.TestCase):
     # The maximum move displacement is set so that the overlap cannot be removed.
     # It then performs an NPT run and ensures that no volume or shear moves were accepted.
     def test_rejects_overlaps(self):
-        system = init.create_empty(N=2, box=data.boxdim(L=4), particle_types=['A'])
+        system = create_empty(N=2, box=data.boxdim(L=4), particle_types=['A'])
         mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1,max_verts=8)
         npt = hpmc.update.npt(mc, seed=1, P=1000, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.01, dxz=0.01, dyz=0.01)
         mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
@@ -70,7 +74,7 @@ class npt_sanity_checks (unittest.TestCase):
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
     def test_box_inversion(self):
         for i in range(5):
-            system = init.create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
+            system = create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
             mc = hpmc.integrate.sphere(seed=i, d=0.0)
             npt = hpmc.update.npt(mc, seed=1, P=100, dLx=10.0, dLy=10.0, dLz=10.0, dxy=0, dxz=0, dyz=0, move_ratio=1)
             mc.shape_param.set('A', diameter=1.0)
@@ -106,7 +110,7 @@ class npt_thermodynamic_tests (unittest.TestCase):
                 self.i += 1
             def get_volumes(self):
                 return self.volumes[:self.i]
-        system = init.create_empty(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
+        system = create_empty(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
         mc = hpmc.integrate.sphere(seed=1, d=0.0)
         npt = hpmc.update.npt(mc, seed=1, P=N, dLx=0.2, move_ratio=1.0, isotropic=True)
         mc.shape_param.set('A', diameter=0.0)

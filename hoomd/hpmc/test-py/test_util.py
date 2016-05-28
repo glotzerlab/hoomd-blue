@@ -9,6 +9,10 @@ import numpy as np
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 Zr4Al3_pos = """boxMatrix    1.18455 0   4.3983  0.018416    4.5582  0.018416    -4.3983 0   -1.18455
 def A1  "sphere 0.8 ff0000"
 def A2  "sphere 0.8 0000ff"
@@ -173,7 +177,7 @@ class compressor (unittest.TestCase):
                      'relax':1e4}
     # one sphere should compress easily
     def test_1sphere(self):
-        system = init.create_empty(N=1, box=data.boxdim(L=3), particle_types=['A'])
+        system = create_empty(N=1, box=data.boxdim(L=3), particle_types=['A'])
         mc = hpmc.integrate.sphere(seed=1)
         mc.set_params(d=0.1)
         mc.shape_param.set('A', diameter=1.0)
@@ -201,7 +205,7 @@ class compressor (unittest.TestCase):
         self.args['pf_tol'] = 1e-4
         self.args['pmin'] = 5
         self.args['relax'] = 1e3
-        system = init.create_empty(N=2, box=data.boxdim(L=3), particle_types=['A'])
+        system = create_empty(N=2, box=data.boxdim(L=3), particle_types=['A'])
         system.particles[1].position = (0.9,0,0)
         mc = hpmc.integrate.sphere(seed=1, nselect=1)
         mc.set_params(d=0.1)
@@ -228,7 +232,7 @@ class compressor (unittest.TestCase):
         self.args['pf_tol'] = 1e-5
         self.args['pmin'] = 5
         self.args['relax'] = 1e3
-        system = init.create_empty(N=2, box=data.boxdim(L=3), particle_types=['A'])
+        system = create_empty(N=2, box=data.boxdim(L=3), particle_types=['A'])
         system.particles[1].position = (2.0,0,0)
         mc = hpmc.integrate.convex_polyhedron(seed=1,max_verts=8)
         mc.set_params(d=0.1, a=0.1)
@@ -258,7 +262,7 @@ class snapshot (unittest.TestCase):
 
 class tune (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=2, box=data.boxdim(L=4.5), particle_types=['A'])
+        self.system = create_empty(N=2, box=data.boxdim(L=4.5), particle_types=['A'])
         self.system.particles[1].position = (2.0,0,0)
         self.mc = hpmc.integrate.convex_polyhedron(seed=1)
         self.mc.set_params(d=0.1, a=0.1)

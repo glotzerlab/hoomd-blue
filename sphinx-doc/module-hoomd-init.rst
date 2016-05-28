@@ -6,7 +6,6 @@ hoomd.init
 .. autosummary::
     :nosignatures:
 
-    hoomd.init.create_random
     hoomd.init.read_gsd
     hoomd.init.read_snapshot
 

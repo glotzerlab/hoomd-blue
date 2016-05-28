@@ -7,6 +7,10 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # This test ensures that the small box code path is enabled at the correct box sizes and works correctly
 # It performs two tests
 # 1) Initialize a system with known overlaps (or not) and verify that count_overlaps produces the correct result
@@ -27,7 +31,7 @@ context.initialize()
 
 class pair_smallbox2d_test1 (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=1.9, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=1.9, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
@@ -54,7 +58,7 @@ class pair_smallbox2d_test1 (unittest.TestCase):
 
 class pair_smallbox2d_test2 (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=1.2, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=1.2, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.1);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
@@ -109,7 +113,7 @@ class pair_smallbox2d_test3 (unittest.TestCase):
     def setUp(self):
         l = 16
         x = 2
-        self.system = init.create_empty(N=l*l, box=data.boxdim(L=l*x, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=l*l, box=data.boxdim(L=l*x, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);

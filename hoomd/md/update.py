@@ -19,7 +19,7 @@ class rescale_temp(_updater):
     r""" Rescales particle velocities.
 
     Args:
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point (in energy units)
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point (in energy units)
         period (int): Velocities will be rescaled every *period* time steps
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
 
@@ -37,51 +37,51 @@ class rescale_temp(_updater):
 
     Examples::
 
-        update.rescale_temp(T=1.2)
-        rescaler = update.rescale_temp(T=0.5)
-        update.rescale_temp(period=100, T=1.03)
-        update.rescale_temp(period=100, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        update.rescale_temp(kT=1.2)
+        rescaler = update.rescale_temp(kT=0.5)
+        update.rescale_temp(period=100, kT=1.03)
+        update.rescale_temp(period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 
     """
-    def __init__(self, T, period=1, phase=-1):
+    def __init__(self, kT, period=1, phase=-1):
         hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
 
         # create the compute thermo
         thermo = hoomd.compute._get_unique_thermo(group=hoomd.context.current.group_all);
 
         # create the c++ mirror class
-        self.cpp_updater = _md.TempRescaleUpdater(hoomd.context.current.system_definition, thermo.cpp_compute, T.cpp_variant);
+        self.cpp_updater = _md.TempRescaleUpdater(hoomd.context.current.system_definition, thermo.cpp_compute, kT.cpp_variant);
         self.setupUpdater(period, phase);
 
         # store metadta
-        self.T = T
+        self.kT = kT
         self.period = period
-        self.metadata_fields = ['T','period']
+        self.metadata_fields = ['kT','period']
 
-    def set_params(self, T=None):
+    def set_params(self, kT=None):
         R""" Change rescale_temp parameters.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set point (in energy units)
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set point (in energy units)
 
         Examples::
 
-            rescaler.set_params(T=2.0)
+            rescaler.set_params(kT=2.0)
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        if T is not None:
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_updater.setT(T.cpp_variant);
-            self.T = T
+        if kT is not None:
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_updater.setT(kT.cpp_variant);
+            self.kT = kT
 
 class zero_momentum(_updater):
     R""" Zeroes system momentum.

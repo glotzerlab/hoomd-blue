@@ -4,6 +4,12 @@
 """ Molecular Dynamics
 
 Perform Molecular Dynamics simulations with HOOMD-blue.
+
+.. rubric:: Stability
+
+:py:mod:`hoomd.md` is **stable**. When upgrading from version 2.x to 2.y (y > x),
+existing job scripts that follow *documented* interfaces for functions and classes
+will not require any modifications. **Maintainer:** Joshua A. Anderson
 """
 
 from hoomd.md import angle

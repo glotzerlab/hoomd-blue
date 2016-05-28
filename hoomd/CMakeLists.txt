@@ -23,8 +23,6 @@ set(_hoomd_sources Analyzer.cc
                    ForceConstraint.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
-                   HOOMDDumpWriter.cc
-                   HOOMDInitializer.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
                    IMDInterface.cc
@@ -34,14 +32,9 @@ set(_hoomd_sources Analyzer.cc
                    LoadBalancer.cc
                    Logger.cc
                    Messenger.cc
-                   MOL2DumpWriter.cc
-                   MSDAnalyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
-                   PDBDumpWriter.cc
-                   POSDumpWriter.cc
                    Profiler.cc
-                   RandomGenerator.cc
                    SFCPackUpdater.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -184,4 +177,19 @@ endif()
 
 if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
+endif()
+
+option(BUILD_DEPRECATED "Build the deprecated package" on)
+if (BUILD_DEPRECATED)
+    add_subdirectory(deprecated)
+endif()
+
+option(BUILD_CGCMM "Build the cgcmm package" on)
+if (BUILD_CGCMM AND BUILD_MD)
+    add_subdirectory(cgcmm)
+endif()
+
+option(BUILD_METAL "Build the metal package" on)
+if (BUILD_METAL AND BUILD_MD)
+    add_subdirectory(metal)
 endif()

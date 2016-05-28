@@ -43,7 +43,6 @@ set(TEST_LIST
     test_cell_list_stencil
     test_gpu_array
     test_gridshift_correct
-    test_hoomd_xml
     test_index1d
     test_messenger
     test_particle_group

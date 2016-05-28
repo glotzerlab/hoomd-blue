@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -11,7 +12,7 @@ import os
 class nlist_cell_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        deprecated.init.create_random(N=1000, phi_p=0.05);
 
         # directly create a neighbor list
         self.nl = md.nlist.cell()

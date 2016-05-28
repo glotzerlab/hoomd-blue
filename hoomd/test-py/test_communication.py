@@ -3,6 +3,7 @@
 # Maintainer: mphoward
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -288,7 +289,7 @@ class decomposition_tests (unittest.TestCase):
 
     ## Test that balancing fails after initialization
     def test_wrong_order(self):
-        init.create_random(N=100, phi_p=0.05)
+        deprecated.init.create_random(N=100, phi_p=0.05)
         with self.assertRaises(RuntimeError):
             comm.decomposition(y=0.3)
         context.initialize()

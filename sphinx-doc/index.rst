@@ -16,14 +16,23 @@ Welcome to the user documentation for HOOMD-blue!
     mpi
     autotuner
     restartable-jobs
+    varperiod
 
 .. toctree::
    :maxdepth: 3
-   :caption: Python Modules
+   :caption: Stable python packages
 
    package-hoomd
    package-hpmc
    package-md
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Additional python packages
+
+   package-cgcmm
+   package-deprecated
+   package-metal
 
 .. toctree::
    :maxdepth: 3

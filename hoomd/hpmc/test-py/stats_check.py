@@ -7,6 +7,10 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # This test ensures that the small box code path is enabled at the correct box sizes and works correctly
 # It performs two tests
 # 1) Initialize a system with known overlaps (or not) and verify that count_overlaps produces the correct result
@@ -27,7 +31,7 @@ context.initialize()
 #when all particles ignored, make sure no attempted moves are registered by the counter
 class pair_accept_all (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A'])
+        self.system = create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=10);
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=True,ignore_overlaps=True)
@@ -78,7 +82,7 @@ class pair_accept_all (unittest.TestCase):
 #when none of the particles are ignored, make sure that moves that generate overlapping configs are rejected
 class pair_accept_none (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=2, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
+        self.system = create_empty(N=2, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=10);
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=False)
@@ -115,7 +119,7 @@ class pair_accept_none (unittest.TestCase):
 #ignored particles.
 class pair_accept_some(unittest.TestCase):
     def setUp(self) :
-        self.system  = init.create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A','B'])
+        self.system  = create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A','B'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=10,d=1.0);
         self.mc.shape_param.set('A', a=0.5,b=0.5,c=0.5,ignore_statistics=True,ignore_overlaps=True)

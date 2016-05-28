@@ -23,7 +23,7 @@ NVE for another 1000 steps::
 
     all = group.all()
     integrate.mode_standard(dt=0.005)
-    nvt = integrate.nvt(group=all, T=1.2, tau=0.5)
+    nvt = integrate.nvt(group=all, kT=1.2, tau=0.5)
     run(1000)
     nvt.disable()
     integrate.nve(group=all)
@@ -31,12 +31,12 @@ NVE for another 1000 steps::
 
 You can change integrator parameters between runs::
 
-    integrator = integrate.nvt(group=all, T=1.2, tau=0.5)
+    integrator = integrate.nvt(group=all, kT=1.2, tau=0.5)
     run(100)
-    integrator.set_params(T=1.0)
+    integrator.set_params(kT=1.0)
     run(100)
 
-This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0.
+This code snippet runs the first 100 time steps with kT=1.2 and the next 100 with kT=1.0.
 """
 
 from hoomd import _hoomd;
@@ -141,7 +141,7 @@ class nvt(_integration_method):
 
     Args:
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the Nosé-Hoover thermostat. (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the Nosé-Hoover thermostat. (in energy units).
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time units).
 
     :py:class:`nvt` performs constant volume, constant temperature simulations using the Nosé-Hoover thermostat,
@@ -169,19 +169,19 @@ class nvt(_integration_method):
     Examples::
 
         all = group.all()
-        integrate.nvt(group=all, T=1.0, tau=0.5)
-        integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
+        integrate.nvt(group=all, kT=1.0, tau=0.5)
+        integrator = integrate.nvt(group=all, tau=1.0, kT=0.65)
         typeA = group.type('A')
-        integrator = integrate.nvt(group=typeA, tau=1.0, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
-    def __init__(self, group, T, tau):
+    def __init__(self, group, kT, tau):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
 
         # create the compute thermo
         # the NVT integrator uses the ComputeThermo in such a way that ComputeThermo stores half-time step
@@ -197,21 +197,21 @@ class nvt(_integration_method):
 
         # store metadata
         self.group = group
-        self.T = T
+        self.kT = kT
         self.tau = tau
-        self.metadata_fields = ['group', 'T', 'tau']
+        self.metadata_fields = ['group', 'kT', 'tau']
 
         # setup suffix
         suffix = '_' + group.name;
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
         else:
-            self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
 
         self.cpp_method.validateGroup()
 
-    def set_params(self, T=None, tau=None):
+    def set_params(self, kT=None, tau=None):
         R""" Changes parameters of an existing integrator.
 
         Args:
@@ -228,11 +228,11 @@ class nvt(_integration_method):
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_method.setT(T.cpp_variant);
-            self.T = T
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_method.setT(kT.cpp_variant);
+            self.kT = kT
 
         if tau is not None:
             self.cpp_method.setTau(tau);
@@ -243,7 +243,7 @@ class npt(_integration_method):
 
     Args:
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         P (:py:mod:`hoomd.variant` or :py:obj:`float`): Pressure set point for the barostat (in pressure units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
         tauP (float): Coupling constant for the barostat (in time units).
@@ -338,33 +338,33 @@ class npt(_integration_method):
 
     Examples::
 
-        integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
-        integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0)
+        integrate.npt(group=all, kT=1.0, tau=0.5, tauP=1.0, P=2.0)
+        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0)
         # orthorhombic symmetry
-        integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="none")
+        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none")
         # tetragonal symmetry
-        integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="xy")
+        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.npt(group=all, tau=1.0, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
+        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     """
-    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None, rescale_all=None):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, kT=None, tau=None, rescale_all=None):
         hoomd.util.print_status_line();
 
         # check the input
-        if (T is None or tau is None):
+        if (kT is None or tau is None):
             if nph is False:
                 hoomd.context.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
                 raise RuntimeError("Error setting up NPT integration.");
             else:
                 # use dummy values
-                T=1.0
+                kT=1.0
                 tau=1.0
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
         P = hoomd.variant._setup_variant_input(P);
 
         # create the compute thermo for half time steps
@@ -433,9 +433,9 @@ class npt(_integration_method):
             flags |= _md.TwoStepNPTMTK.baroFlags.baro_yz
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, kT.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
         else:
-            self.cpp_method = _md.TwoStepNPTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = _md.TwoStepNPTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, kT.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
@@ -444,7 +444,7 @@ class npt(_integration_method):
 
         # store metadata
         self.group  = group
-        self.T = T
+        self.kT = kT
         self.tau = tau
         self.P = P
         self.tauP = tauP
@@ -459,11 +459,11 @@ class npt(_integration_method):
         self.yz = yz
         self.nph = nph
 
-    def set_params(self, T=None, tau=None, P=None, tauP=None, rescale_all=None):
+    def set_params(self, kT=None, tau=None, P=None, tauP=None, rescale_all=None):
         R""" Changes parameters of an existing integrator.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units)
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units)
             tau (float): New coupling constant (if set) (in time units)
             P (:py:mod:`hoomd.variant` or :py:obj:`float`): New pressure (if set) (in pressure units)
             tauP (float): New barostat coupling constant (if set) (in time units)
@@ -479,11 +479,11 @@ class npt(_integration_method):
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.T = T
-            self.cpp_method.setT(T.cpp_variant);
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.kT = kT
+            self.cpp_method.setT(kT.cpp_variant);
         if tau is not None:
             self.cpp_method.setTau(tau);
             self.tau = tau
@@ -508,7 +508,7 @@ class npt(_integration_method):
         data = _integration_method.get_metadata(self)
         data['group'] = self.group.name
         if not self.nph:
-            data['T'] = self.T
+            data['kT'] = self.kT
             data['tau'] = self.tau
         data['P'] = self.P
         data['tauP'] = self.tauP
@@ -566,7 +566,7 @@ class nph(npt):
 
         # initialize base class
         hoomd.util.quiet_status();
-        npt.__init__(self, nph=True, T=1.0, **params);
+        npt.__init__(self, nph=True, kT=1.0, **params);
         hoomd.util.unquiet_status();
 
 class nve(_integration_method):
@@ -668,7 +668,7 @@ class langevin(_integration_method):
 
     Args:
         group (:py:mod:`hoomd.group`): Group of particles to apply this method to.
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
         seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
         dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
         tally (bool): (optional) If true, the energy exchange between the thermal reservoir and the particles is
@@ -687,14 +687,14 @@ class langevin(_integration_method):
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k_\mathrm{B} T \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all potentials and constraint forces,
     :math:`\gamma` is the drag coefficient, :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}`
     is a uniform random force, and :math:`d` is the dimensionality of the system (2 or 3).  The magnitude of
     the random force is chosen via the fluctuation-dissipation theorem
     to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`T=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
@@ -722,20 +722,20 @@ class langevin(_integration_method):
     Examples::
 
         all = group.all();
-        integrator = integrate.langevin(group=all, T=1.0, seed=5)
-        integrator = integrate.langevin(group=all, T=1.0, dscale=1.5, tally=True)
+        integrator = integrate.langevin(group=all, kT=1.0, seed=5)
+        integrator = integrate.langevin(group=all, kT=1.0, dscale=1.5, tally=True)
         typeA = group.type('A');
-        integrator = integrate.langevin(group=typeA, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        integrator = integrate.langevin(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, T, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
+    def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
 
         # create the compute thermo
         hoomd.compute._get_unique_thermo(group=group);
@@ -756,7 +756,7 @@ class langevin(_integration_method):
 
         self.cpp_method = my_class(hoomd.context.current.system_definition,
                                    group.cpp_group,
-                                   T.cpp_variant,
+                                   kT.cpp_variant,
                                    seed,
                                    use_lambda,
                                    float(dscale),
@@ -770,25 +770,25 @@ class langevin(_integration_method):
 
         # store metadata
         self.group = group
-        self.T = T
+        self.kT = kT
         self.seed = seed
         self.dscale = dscale
         self.noiseless_t = noiseless_t
         self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
+        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
 
-    def set_params(self, T=None, tally=None):
+    def set_params(self, kT=None, tally=None):
         R""" Change langevin integrator parameters.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
             tally (bool): (optional) If true, the energy exchange between the thermal reservoir and the particles is
                                 tracked. Total energy conservation can then be monitored by adding
                                 ``langevin_reservoir_energy_groupname`` to the logged quantities.
 
         Examples::
 
-            integrator.set_params(T=2.0)
+            integrator.set_params(kT=2.0)
             integrator.set_params(tally=False)
 
         """
@@ -796,11 +796,11 @@ class langevin(_integration_method):
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_method.setT(T.cpp_variant);
-            self.T = T
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_method.setT(kT.cpp_variant);
+            self.kT = kT
 
         if tally is not None:
             self.cpp_method.setTally(tally);
@@ -876,7 +876,7 @@ class brownian(_integration_method):
 
     Args:
         group (:py:mod:`hoomd.group`): Group of particles to apply this method to.
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
         seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
         dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
         noiseless_t (bool): If set true, there will be no translational noise (random force)
@@ -891,11 +891,11 @@ class brownian(_integration_method):
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k_\mathrm{B} T \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
 
         \langle \vec{v}(t) \rangle = 0
 
-        \langle |\vec{v}(t)|^2 \rangle = d k_\mathrm{B} T / m
+        \langle |\vec{v}(t)|^2 \rangle = d k T / m
 
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all potentials and constraint forces,
@@ -903,7 +903,7 @@ class brownian(_integration_method):
     is a uniform random force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
     of the system. The magnitude of the random force is chosen via the fluctuation-dissipation theorem
     to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`T=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
@@ -932,20 +932,20 @@ class brownian(_integration_method):
     Examples::
 
         all = group.all();
-        integrator = integrate.brownian(group=all, T=1.0, seed=5)
-        integrator = integrate.brownian(group=all, T=1.0, dscale=1.5)
+        integrator = integrate.brownian(group=all, kT=1.0, seed=5)
+        integrator = integrate.brownian(group=all, kT=1.0, dscale=1.5)
         typeA = group.type('A');
-        integrator = integrate.brownian(group=typeA, T=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        integrator = integrate.brownian(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, T, seed, dscale=False, noiseless_t=False, noiseless_r=False):
+    def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
 
         # create the compute thermo
         hoomd.compute._get_unique_thermo(group=group);
@@ -963,7 +963,7 @@ class brownian(_integration_method):
 
         self.cpp_method = my_class(hoomd.context.current.system_definition,
                                    group.cpp_group,
-                                   T.cpp_variant,
+                                   kT.cpp_variant,
                                    seed,
                                    use_lambda,
                                    float(dscale),
@@ -974,18 +974,18 @@ class brownian(_integration_method):
 
         # store metadata
         self.group = group
-        self.T = T
+        self.kT = kT
         self.seed = seed
         self.dscale = dscale
         self.noiseless_t = noiseless_t
         self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'T', 'seed', 'dscale','noiseless_t','noiseless_r']
+        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
 
-    def set_params(self, T=None):
+    def set_params(self, kT=None):
         R""" Change langevin integrator parameters.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
 
         Examples::
 
@@ -996,11 +996,11 @@ class brownian(_integration_method):
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_method.setT(T.cpp_variant);
-            self.T = T
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_method.setT(kT.cpp_variant);
+            self.kT = kT
 
     def set_gamma(self, a, gamma):
         R""" Set gamma for a particle type.
@@ -1205,7 +1205,7 @@ class berendsen(_integration_method):
 
     Args:
         group (:py:mod:`hoomd.group`): Group to which the Berendsen thermostat will be applied.
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat. (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat. (in energy units).
         tau (float): Time constant of thermostat. (in time units)
 
     :py:class:`berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
@@ -1219,7 +1219,7 @@ class berendsen(_integration_method):
     .. attention::
         :py:class:`berendsen` does not function with MPI parallel simulations.
     """
-    def __init__(self, group, T, tau):
+    def __init__(self, group, kT, tau):
         hoomd.util.print_status_line();
 
         # Error out in MPI simulations
@@ -1232,7 +1232,7 @@ class berendsen(_integration_method):
         _integration_method.__init__(self);
 
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
+        kT = hoomd.variant._setup_variant_input(kT);
 
         # create the compute thermo
         thermo = hoomd.compute._get_unique_thermo(group = group);
@@ -1243,15 +1243,15 @@ class berendsen(_integration_method):
                                                      group.cpp_group,
                                                      thermo.cpp_compute,
                                                      tau,
-                                                     T.cpp_variant);
+                                                     kT.cpp_variant);
         else:
             self.cpp_method = _md.TwoStepBerendsenGPU(hoomd.context.current.system_definition,
                                                         group.cpp_group,
                                                         thermo.cpp_compute,
                                                         tau,
-                                                        T.cpp_variant);
+                                                        kT.cpp_variant);
 
         # store metadata
-        self.T = T
+        self.kT = kT
         self.tau = tau
-        self.metadata_fields = ['T','tau']
+        self.metadata_fields = ['kT','tau']

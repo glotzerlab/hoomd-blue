@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2016 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
-
 R""" Pair potentials.
 
 Generally, pair forces are short range and are summed over all non-bonded particles
@@ -937,149 +935,6 @@ class ewald(pair):
 
         return kappa;
 
-class cgcmm(force._force):
-    R""" CMM coarse-grain model pair potential.
-
-    Args:
-        r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-
-    :py:class:`cgcmm` specifies that a special version of Lennard-Jones pair force
-    should be added to every non-bonded particle pair in the simulation. This potential
-    version is used in the CMM coarse grain model and uses a combination of Lennard-Jones
-    potentials with different exponent pairs between different atom pairs.
-
-    `B. Levine et. al. 2011 <http://dx.doi.org/10.1021/ct2005193>`_ describes the CGCMM implementation details in
-    HOOMD-blue. Cite it if you utilize the CGCMM potential in your work.
-
-    Multiple potential functions can be selected:
-
-    .. math::
-
-        V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                                  \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
-
-        V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
-                                                             \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
-
-        V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                                               \alpha \left( \frac{\sigma}{r} \right)^{4} \right]
-
-    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
-    - exponents, the choice of LJ-exponents, currently supported are 12-6, 9-6, and 12-4.
-
-    We support three keyword variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn).
-
-    Example::
-
-        nl = nlist.cell()
-        cg = pair.cgcmm(r_cut=3.0, nlist=nl)
-        cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6')
-        cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
-        cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
-
-    """
-    def __init__(self, r_cut, nlist):
-        hoomd.util.print_status_line();
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.cgcmm is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
-
-        # initialize the base class
-        force._force.__init__(self);
-
-        # this class extends force, so we need to store the r_cut explicitly as a member
-        # to be used in get_rcut
-        # the authors of this potential also did not incorporate pairwise cutoffs, so we just use
-        # the same number for everything
-        self.r_cut = r_cut
-
-        # setup the coefficent matrix
-        self.pair_coeff = coeff();
-
-        # if no neighbor list is supplied, use the default global neighborlist
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda:self.get_rcut())
-            self.nlist.update_rcut()
-
-        # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.CGCMMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.CGCMMForceComputeGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, r_cut);
-            self.cpp_force.setBlockSize(128);
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-    def get_rcut(self):
-        if not self.log:
-            return None
-
-        # go through the list of only the active particle types in the sim
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        # update the rcut by pair type
-        r_cut_dict = nl.rcut();
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
-
-        return r_cut_dict;
-
-    def update_coeffs(self):
-        # check that the pair coefficents are valid
-        if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
-            hoomd.context.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
-            raise RuntimeError("Error updating pair coefficients");
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-                sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
-                alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
-                exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
-                # we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
-                if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
-                    prefactor = 2.59807621135332
-                    lja = prefactor * epsilon * math.pow(sigma, 12.0);
-                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 4.0);
-                    self.cpp_force.setParams(i, j, lja, 0.0, 0.0, ljb);
-                elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
-                    prefactor = 6.75
-                    lja = prefactor * epsilon * math.pow(sigma, 9.0);
-                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
-                    self.cpp_force.setParams(i, j, 0.0, lja, ljb, 0.0);
-                elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
-                    prefactor = 4.0
-                    lja = prefactor * epsilon * math.pow(sigma, 12.0);
-                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
-                    self.cpp_force.setParams(i, j, lja, 0.0, ljb, 0.0);
-                else:
-                    raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
-
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
     i = int(round((r - rmin)/dr))
@@ -1173,13 +1028,9 @@ class table(force._force):
         # setup the coefficent matrix
         self.pair_coeff = coeff();
 
-        # if no neighbor list is supplied, use the default global neighborlist
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda:self.get_rcut())
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda:self.get_rcut())
-            self.nlist.update_rcut()
+        self.nlist = nlist
+        self.nlist.subscribe(lambda:self.get_rcut())
+        self.nlist.update_rcut()
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1423,7 +1274,7 @@ class dpd(pair):
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
@@ -1480,17 +1331,17 @@ class dpd(pair):
     Example::
 
         nl = nlist.cell()
-        dpd = pair.dpd(r_cut=1.0, nlist=nl, T=1.0)
+        dpd = pair.dpd(r_cut=1.0, nlist=nl, kT=1.0)
         dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
         dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
-        dpd.set_params(T = 1.0)
+        dpd.set_params(kT = 1.0)
         integrate.mode_standard(dt=0.02)
         integrate.nve(group=group.all())
 
     """
-    def __init__(self, r_cut, nlist, T, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1531,27 +1382,27 @@ class dpd(pair):
 
         # set the temperature
         # setup the variant inputs
-        T = hoomd.variant._setup_variant_input(T);
-        self.cpp_force.setT(T.cpp_variant);
+        kT = hoomd.variant._setup_variant_input(kT);
+        self.cpp_force.setT(kT.cpp_variant);
 
-    def set_params(self, T=None):
+    def set_params(self, kT=None):
         R""" Changes parameters.
 
         Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
 
         Example::
 
-            dpd.set_params(T=2.0)
+            dpd.set_params(kT=2.0)
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = variant._setup_variant_input(T);
-            self.cpp_force.setT(T.cpp_variant);
+            kT = variant._setup_variant_input(kT);
+            self.cpp_force.setT(kT.cpp_variant);
 
     def process_coeff(self, coeff):
         a = coeff['A'];
@@ -1648,99 +1499,13 @@ class dpd_conservative(pair):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
 
-class eam(force._force):
-    R""" EAM pair potential.
-
-    Args:
-        file (str): Filename with potential tables in Alloy or FS format
-        type (str): Type of file potential ('Alloy', 'FS')
-        nlist (:py:mod:`hoomd.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-
-    :py:class:`eam` specifies that a EAM (embedded atom method) pair potential should be applied between every
-    non-excluded particle pair in the simulation.
-
-    No coefficients need to be set for :py:class:`eam`. All specifications, including the cutoff radius, form of the
-    potential, etc. are read in from the specified file.
-
-    Particle type names must match those referenced in the EAM potential file.
-
-    Two file formats are supported: *Alloy* and *FS*. They are described in LAMMPS documentation
-    (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
-    and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
-
-    .. attention::
-        EAM is **NOT** supported in MPI parallel simulations.
-
-    .. danger::
-        HOOMD-blue's EAM implementation is known to be broken.
-
-    Example::
-
-        nl = nlist.cell()
-        eam = pair.eam(file='al1.mendelev.eam.fs', type='FS', nlist=nl)
-
-    """
-    def __init__(self, file, type, nlist):
-        c = hoomd.cite.article(cite_key = 'morozov2011',
-                         author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
-                         title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
-                         journal = 'Computer Physics Communications',
-                         volume = 182,
-                         number = 9,
-                         pages = '1974--1978',
-                         year = '2011',
-                         doi = '10.1016/j.cpc.2010.12.026',
-                         feature = 'EAM')
-        hoomd.cite._ensure_global_bib().add(c)
-
-        hoomd.util.print_status_line();
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
-
-        # initialize the base class
-        force._force.__init__(self);
-        # Translate type
-        if(type == 'Alloy'): type_of_file = 0;
-        elif(type == 'FS'): type_of_file = 1;
-        else: raise RuntimeError('Unknown EAM input file type');
-
-        # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file);
-        else:
-            self.cpp_force = _md.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file);
-
-        #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
-        r_cut_new = self.cpp_force.get_r_cut();
-        self.nlist = nlist
-        self.nlist.subscribe(lambda : r_cut_new)
-        self.nlist.update_rcut()
-
-        #Load neighbor list to compute.
-        self.cpp_force.set_neighbor_list(self.nlist);
-        if hoomd.context.exec_conf.isCUDAEnabled():
-            self.nlist.setStorageMode(_md.NeighborList.storageMode.full);
-
-        hoomd.context.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-        self.pair_coeff = coeff();
-
-    def update_coeffs(self):
-        # check that the pair coefficients are valid
-        pass;
-
 class dpdlj(pair):
     R""" Dissipative Particle Dynamics with a LJ conservative force
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
@@ -1805,7 +1570,7 @@ class dpdlj(pair):
     Example::
 
         nl = nlist.cell()
-        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, T=1.0)
+        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, kT=1.0)
         dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
         dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
         dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
@@ -1816,7 +1581,7 @@ class dpdlj(pair):
 
     """
 
-    def __init__(self, r_cut, nlist, T, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1859,10 +1624,10 @@ class dpdlj(pair):
 
         # set the temperature
         # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        self.cpp_force.setT(T.cpp_variant);
+        kT = variant._setup_variant_input(kT);
+        self.cpp_force.setT(kT.cpp_variant);
 
-    def set_params(self, T=None, mode=None):
+    def set_params(self, kT=None, mode=None):
         R""" Changes parameters.
 
         Args:
@@ -1871,18 +1636,18 @@ class dpdlj(pair):
 
         Examples::
 
-            dpdlj.set_params(T=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
-            dpdlj.set_params(T=2.0, mode="shift")
+            dpdlj.set_params(kT=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
+            dpdlj.set_params(kT=2.0, mode="shift")
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
-        if T is not None:
+        if kT is not None:
             # setup the variant inputs
-            T = hoomd.variant._setup_variant_input(T);
-            self.cpp_force.setT(T.cpp_variant);
+            kT = hoomd.variant._setup_variant_input(kT);
+            self.cpp_force.setT(kT.cpp_variant);
 
         if mode is not None:
             if mode == "xplor":

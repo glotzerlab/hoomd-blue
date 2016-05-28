@@ -9,13 +9,17 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # This test tests all possible combinations of the ignore_statistics and ignore_overlaps
 # flag for the convex polyhedron class. The ignore flags for all classes are identical
 # but the most thorough test would run for all integrators.
 #
 class pair_ignore_overlaps_check(unittest.TestCase):
     def setUp(self) :
-        self.system  = init.create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A'])
+        self.system  = create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A'])
         self.mc = hpmc.integrate.convex_polyhedron(seed=10,a=0.1,d=0.1,max_verts=8);
 
         context.current.sorter.set_params(grid=8)

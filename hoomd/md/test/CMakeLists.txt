@@ -5,6 +5,7 @@
 # first, they need the boost unit test framework added as a library
 set(ADDITIONAL_LIBS _hoomd
         _md
+        _deprecated
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         )
 
@@ -49,8 +50,6 @@ enable_testing()
 set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
-    test_cgcmm_angle_force
-    test_cgcmm_force
     test_constraint_sphere
     test_dipole_force
     test_enforce2d_updater

@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMono_FL.h"
 
 #include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"
@@ -65,7 +64,6 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_IntegratorHPMC();
 
     export_hpmc();
-    export_hpmc_fl();
     export_UpdaterBoxNPT();
     export_hpmc_gpu();
     export_sdf();
