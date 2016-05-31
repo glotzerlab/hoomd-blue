@@ -98,6 +98,7 @@ endforeach(test)
 
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
+    test_pair_cgcmm
     )
 
 if (ENABLE_MPI)

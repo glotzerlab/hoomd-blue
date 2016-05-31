@@ -145,6 +145,7 @@ Joseph Berleant, University of Michigan
 Matthew Spellings, Univeristy of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
+ * GTAR file format
 
 James Proctor, University of Michigan
  * Refactor external potential framework

@@ -16,6 +16,7 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
  * Optional:
      * NVIDIA CUDA Toolkit >= 5.0
      * MPI (tested with OpenMPI, MVAPICH, impi)
+     * sqlite3
 
  * Useful developer tools
      * Git >= 1.7.0
