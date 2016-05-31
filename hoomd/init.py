@@ -90,6 +90,7 @@ def create_lattice(unitcell, n):
     read_snapshot(snapshot=snap);
 
     hoomd.util.unquiet_status();
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 
 def read_snapshot(snapshot):
