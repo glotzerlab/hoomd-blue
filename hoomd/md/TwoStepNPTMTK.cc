@@ -47,19 +47,19 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
-		       boost::python::list S,
+                       boost::python::list S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
-    : IntegrationMethodTwoStep(sysdef, group), 
+    : IntegrationMethodTwoStep(sysdef, group),
                             m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
-                            m_ndof(0), 
-                            m_tau(tau), 
-                            m_tauP(tauP), 
-                            m_T(T), 
+                            m_ndof(0),
+                            m_tau(tau),
+                            m_tauP(tauP),
+                            m_T(T),
                             m_S(),
-                            m_couple(couple), 
-                            m_flags(flags), 
+                            m_couple(couple),
+                            m_flags(flags),
                             m_nph(nph),
                             m_rescale_all(false)
     {
@@ -73,12 +73,12 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     if (flags == 0)
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
-   
+
     // Set the stress vector from the python list
     for (int i = 0; i< 6; ++i)
-    {
-	m_S.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
-    }
+        {
+        m_S.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
+        }
 
     bool twod = m_sysdef->getNDimensions()==2;
     m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
@@ -708,8 +708,8 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
         P.xx = m_S[0]->getValue(timestep);
         P.yy = m_S[1]->getValue(timestep);
         P.zz = m_S[2]->getValue(timestep);
-	P.yz = m_S[3]->getValue(timestep);
-	P.xz = m_S[4]->getValue(timestep);
+        P.yz = m_S[3]->getValue(timestep);
+        P.xz = m_S[4]->getValue(timestep);
         P.xy = m_S[5]->getValue(timestep);
         }
 
@@ -835,7 +835,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
         nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
         }
 
-    
+
     // store integrator variables
     setIntegratorVariables(v);
     }
@@ -885,8 +885,8 @@ void export_TwoStepNPTMTK()
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,
-		       boost::python::list,
-		       TwoStepNPTMTK::couplingMode,
+                       boost::python::list,
+                       TwoStepNPTMTK::couplingMode,
                        unsigned int,
                        const bool>())
         .def("setT", &TwoStepNPTMTK::setT)

@@ -40,7 +40,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
-		       boost::python::list S,
+                       boost::python::list S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
@@ -351,7 +351,7 @@ void export_TwoStepNPTMTKGPU()
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,
-		       boost::python::list,
+                       boost::python::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,
                        const bool>())

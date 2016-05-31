@@ -35,7 +35,7 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
-		   boost::python::list S,
+                   boost::python::list S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
