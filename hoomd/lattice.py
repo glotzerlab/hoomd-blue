@@ -4,6 +4,9 @@
 R""" Define lattices.
 
 :py:mod:`hoomd.lattice` provides a general interface to define lattices to initialize systems.
+
+See Also:
+    :py:func:`hoomd.init.create_lattice`.
 """
 
 import numpy
@@ -99,6 +102,46 @@ def _latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
 class unitcell(object):
     R""" Define a unit cell.
 
+    Args:
+        N (int): Number of particles in the unit cell.
+        a1 (list): Lattice vector (3-vector).
+        a2 (list): Lattice vector (3-vector).
+        a3 (list): Lattice vector (3-vector). Set to [0,0,1] in 2D lattices.
+        dimensions (int): Dimensionality of the lattice (2 or 3).
+        position (list): List of particle positions.
+        type_name (list): List of particle type names.
+        mass (list): List of particle masses.
+        charge (list): List of particle charges.
+        diameter (list): List of particle diameters.
+        moment_inertia (list): List of particle moments of inertia.
+        orientation (list): List of particle orientations.
+
+    A unit cell is a box definition (*a1*, *a2*, *a3*, *dimensions*), and particle properties for *N* particles.
+    You do not need to specify all particle properties. Any property omitted will be initialized to defaults (see
+    :py:func:`hoomd.data.make_snapshot`). :py:class:`hoomd.init.create_lattice` initializes the system with many
+    copies of a unit cell.
+
+    :py:class:`unitcell` is a completely generic unit cell representation. See other classes in the :py:mod:`hoomd.lattice`
+    module for convenience wrappers for common lattices.
+
+    Example::
+
+        uc = hoomd.lattice.unitcell(N = 2,
+                                    a1 = [1,0,0],
+                                    a2 = [0.2,1.2,0],
+                                    a3 = [-0.2,0, 1.0],
+                                    dimensions = 3,
+                                    position = [[0,0,0], [0.5, 0.5, 0.5]],
+                                    type_name = ['A', 'B'],
+                                    mass = [1.0, 2.0],
+                                    charge = [0.0, 0.0],
+                                    diameter = [1.0, 1.3],
+                                    moment_inertia = [[1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+                                    orientation = [[0.707, 0, 0, 0.707], [1.0, 0, 0, 0]]);
+
+    Note:
+        *a1*, *a2*, *a3* must define a right handed coordinate system.
+
     """
 
     def __init__(self,
@@ -124,37 +167,51 @@ class unitcell(object):
         if position is None:
             self.position = numpy.array([(0,0,0)] * self.N, dtype=numpy.float64);
         else:
-           self.position = numpy.asarray(position, dtype=numpy.float64);
+            self.position = numpy.asarray(position, dtype=numpy.float64);
+            if len(self.position) != N:
+                raise ValueError("Particle properties must have length N");
 
         if type_name is None:
             self.type_name = ['A'] * self.N
         else:
             self.type_name = type_name;
+            if len(self.type_name) != N:
+                raise ValueError("Particle properties must have length N");
 
         if mass is None:
             self.mass = numpy.array([1.0] * self.N, dtype=numpy.float64);
         else:
             self.mass = numpy.asarray(mass, dtype=numpy.float64);
+            if len(self.mass) != N:
+                raise ValueError("Particle properties must have length N");
 
         if charge is None:
             self.charge = numpy.array([0.0] * self.N, dtype=numpy.float64);
         else:
             self.charge = numpy.asarray(charge, dtype=numpy.float64);
+            if len(self.charge) != N:
+                raise ValueError("Particle properties must have length N");
 
         if diameter is None:
             self.diameter = numpy.array([1.0] * self.N, dtype=numpy.float64);
         else:
             self.diameter = numpy.asarray(diameter, dtype=numpy.float64);
+            if len(self.diameter) != N:
+                raise ValueError("Particle properties must have length N");
 
         if moment_inertia is None:
             self.moment_inertia = numpy.array([(0,0,0)] * self.N, dtype=numpy.float64);
         else:
             self.moment_inertia = numpy.asarray(moment_inertia, dtype=numpy.float64);
+            if len(self.moment_inertia) != N:
+                raise ValueError("Particle properties must have length N");
 
         if orientation is None:
             self.orientation = numpy.array([(1,0,0,0)] * self.N, dtype=numpy.float64);
         else:
             self.orientation = numpy.asarray(orientation, dtype=numpy.float64);
+            if len(self.orientation) != N:
+                raise ValueError("Particle properties must have length N");
 
     def get_type_list(self):
         R""" Get a list of type names in the unit cell.
@@ -354,7 +411,6 @@ def hex(a, type_name='A'):
     """
 
     hoomd.util.print_status_line();
-    return unitcell(N=1,
     return unitcell(N=2,
                     type_name=[type_name, type_name],
                     position=[[0,0,0],[a/2,math.sqrt(3)*a/2,0]],
