@@ -1,5 +1,7 @@
-// SWCAPotential.cc
-// by Matthew Spellings <mspells@umich.edu>
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+// Maintainer: mspells
 
 #ifndef __SWCAPOTENTIAL_CC__
 #define __SWCAPOTENTIAL_CC__
