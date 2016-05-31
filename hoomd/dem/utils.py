@@ -14,8 +14,12 @@ def _polygonNormal(vertices):
     return -_normalize(np.cross(vertices[1] - vertices[0], vertices[0] - vertices[-1]));
 
 def area(vertices, factor=1.):
-    """Returns the signed area of a polygon specified by a set of vertices
-    [(x, y)] or [(x, y, z)], scaled by the given factor.
+    """Computes the signed area of a polygon in 2 or 3D.
+
+    Args:
+        vertices (list): (x, y) or (x, y, z) coordinates for each vertex
+        factor (float): Factor to scale the resulting area by
+
     """
     vertices = np.asarray(vertices);
     shifted = np.roll(vertices, -1, axis=0);
@@ -25,10 +29,13 @@ def area(vertices, factor=1.):
     return np.abs(np.dot(crosses, _polygonNormal(vertices))*factor/2);
 
 def spheroArea(vertices, radius=1., factor=1.):
-    """Returns the area of a spheropolygon with the given vertices and a
-    sphere radius of the given radius, multiplied by the given
-    factor. The list of vertices should be specified in right-handed
-    order.
+    """Computes the area of a spheropolygon.
+
+    Args:
+        vertices (list): List of (x, y) coordinates, in right-handed (counterclockwise) order
+        radius (float): Rounding radius of the disk to expand the polygon by
+        factor (float): Factor to scale the resulting area by
+
     """
     vertices = list(vertices);
 
@@ -74,11 +81,16 @@ def spheroArea(vertices, radius=1., factor=1.):
     return (area(polygonSkeleton) + sphereContribution - adjustment)*factor;
 
 def rmax(vertices, radius=0., factor=1.):
-    """Returns the maximum radius of the vertices after adding the
-    given radius value, scaled by the given factor."""
+    """Compute the maximum distance among a set of vertices
+
+    Args:
+        vertices (list): list of (x, y) or (x, y, z) coordinates
+        factor (float): Factor to scale the result by
+
+    """
     return (np.sqrt(np.max(np.sum(np.asarray(vertices)*vertices, axis=1))) + radius)*factor;
 
-def fanTriangles(vertices, faces=None):
+def _fanTriangles(vertices, faces=None):
     """Create triangles by fanning out from vertices. Returns a
     generator for vertex triplets. If faces is None, assume that
     vertices are planar and indicate a polygon; otherwise, use the
@@ -98,19 +110,29 @@ def fanTriangles(vertices, faces=None):
                 yield tri;
 
 def massProperties(vertices, faces=None, factor=1.):
-    """Returns (mass, center of mass, moment of inertia tensor in (xx,
+    """Compute the mass, center of mass, and inertia tensor of a polygon or polyhedron
+
+    Args:
+        vertices (list): List of (x, y) or (x, y, z) coordinates in 2D or 3D, respectively
+        faces (list): List of vertex indices for 3D polyhedra, or None for 2D. Faces should be in right-hand order.
+        factor (float): Factor to scale the resulting results by
+
+    Returns (mass, center of mass, moment of inertia tensor in (xx,
     xy, xz, yy, yz, zz) order) specified by the given list of vertices
     and faces. Note that the faces must be listed in a consistent
     order so that normals are all pointing in the correct direction
     from the face. If given a list of 2D vertices, return the same but
     for the 2D polygon specified by the vertices.
 
-    All faces should be specified in right-handed order.
+    .. warning::
+        All faces should be specified in right-handed order.
 
-    For details on the 3D case, confer "Polyhedral Mass Properties
-    (Revisited) by David Eberly, available at:
+    The computation for the 3D case follows "Polyhedral Mass
+    Properties (Revisited) by David Eberly, available at:
 
-    http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf"""
+    http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
+
+    """
     vertices = np.array(vertices, dtype=np.float64);
 
     # Specially handle 2D
@@ -142,7 +164,7 @@ def massProperties(vertices, faces=None, factor=1.):
     # order: 1, x, y, z, x^2, y^2, z^2, xy, yz, zx
     intg = np.zeros(10);
 
-    for (v0, v1, v2) in fanTriangles(vertices, faces):
+    for (v0, v1, v2) in _fanTriangles(vertices, faces):
         # (xi, yi, zi) = vi
         abc1 = v1 - v0;
         abc2 = v2 - v0;
@@ -182,10 +204,20 @@ def massProperties(vertices, faces=None, factor=1.):
     return mass*factor, com, moment*factor;
 
 def center(vertices, faces=None):
-    """Returns a list of vertices shifted to have the center of mass of
+    """Centers shapes in 2D or 3D.
+
+    Args:
+        vertices (list): List of (x, y) or (x, y, z) coordinates in 2D or 3D, respectively
+        faces (list): List of vertex indices for 3D polyhedra, or None for 2D. Faces should be in right-hand order.
+
+    Returns a list of vertices shifted to have the center of mass of
     the given points at the origin. Shapes should be specified in
     right-handed order. If the input shape has no mass, return the
     input.
+
+    .. warning::
+        All faces should be specified in right-handed order.
+
     """
     (mass, COM, _) = massProperties(vertices, faces);
     if mass > 1e-6:
@@ -200,9 +232,20 @@ def _negBisector(p1, p2):
     return -_normalize(_normalize(p1) + _normalize(p2));
 
 def convexHull(vertices, tol=1e-6):
-    """Returns an array of vertices and a list of faces (vertex
-    indices) for the convex hull of the given set of vertice. Uses
-    scipy's quickhull wrapper."""
+    """Compute the 3D convex hull of a set of vertices and merge coplanar faces.
+
+    Args:
+        vertices (list): List of (x, y, z) coordinates
+        tol (float): Floating point tolerance for merging coplanar faces
+
+
+    Returns an array of vertices and a list of faces (vertex
+    indices) for the convex hull of the given set of vertice.
+
+    .. note::
+        This method uses scipy's quickhull wrapper and therefore requires scipy.
+
+    """
     from scipy.spatial import cKDTree, ConvexHull;
     from scipy.sparse.csgraph import connected_components;
 
