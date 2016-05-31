@@ -42,7 +42,7 @@ macro(add_script_test_gpu script)
 endmacro()
 
 set(TEST_LIST_CPU
-    npt.py
+    test_boxMC.py
     small-box-2d.py
     small-box-3d.py
     stats_check.py
@@ -78,7 +78,7 @@ set(EXCLUDE_FROM_MPI
     small-box-3d.py
     test_util.py
     ignore_flag.py
-    npt.py
+    test_boxMC.py
     image-list.py
     hoomd.util.py
     max_verts.py
