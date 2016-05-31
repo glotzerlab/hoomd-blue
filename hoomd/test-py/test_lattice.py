@@ -116,5 +116,34 @@ class lattice_bcc_test (unittest.TestCase):
     def tearDown(self):
         context.initialize();
 
+# unit tests for fcc
+class lattice_fcc_test (unittest.TestCase):
+    def test_init(self):
+        sysdef = init.create_lattice(unitcell=lattice.fcc(a=2.0),
+                                     n=1);
+
+        snap = sysdef.take_snapshot();
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.box.dimensions, 3);
+            numpy.testing.assert_allclose(snap.box.Lx, 2.0);
+            numpy.testing.assert_allclose(snap.box.Ly, 2.0);
+            numpy.testing.assert_allclose(snap.box.Lz, 2.0);
+            self.assertEqual(snap.particles.types, ['A']);
+            numpy.testing.assert_allclose(snap.particles.position, [[0,0,0],
+                                                                    [0,-1,-1],
+                                                                    [-1,0,-1],
+                                                                    [-1,-1,0]])
+
+    def test_type(self):
+        sysdef = init.create_lattice(unitcell=lattice.fcc(a=1.0, type_name='B'),
+                                     n=1);
+
+        snap = sysdef.take_snapshot();
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.types, ['B']);
+
+    def tearDown(self):
+        context.initialize();
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

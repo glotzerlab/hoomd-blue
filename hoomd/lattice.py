@@ -346,6 +346,47 @@ def bcc(a, type_name='A'):
                     a3=[0,0,a],
                     dimensions=3);
 
+def fcc(a, type_name='A'):
+    R""" Create a face centered cubic lattice (3D).
+
+    Args:
+        a (float): Lattice constant.
+        type_name (str): Particle type name.
+
+    The face centered cubic unit cell has 4 particles:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        \vec{r}& =& \left(\begin{array}{ccc} 0 & 0 & 0 \\
+                                             0 & \frac{a}{2} & \frac{a}{2} \\
+                                             \frac{a}{2} & 0 & \frac{a}{2} \\
+                                             \frac{a}{2} & \frac{a}{2} & 0\\
+                             \end{array}\right)
+        \end{eqnarray*}
+
+    And the box matrix:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        \mathbf{h}& =& \left(\begin{array}{ccc} a & 0 & 0 \\
+                                                0 & a & 0 \\
+                                                0 & 0 & a \\
+                             \end{array}\right)
+        \end{eqnarray*}
+    """
+    hoomd.util.print_status_line();
+    return unitcell(N=4,
+                    type_name=[type_name]*4,
+                    position=[[0,0,0],[0,a/2,a/2],[a/2,0,a/2],[a/2,a/2,0]],
+                    a1=[a,0,0],
+                    a2=[0,a,0],
+                    a3=[0,0,a],
+                    dimensions=3);
+
 def sq(a, type_name='A'):
     R""" Create a square lattice (2D).
 

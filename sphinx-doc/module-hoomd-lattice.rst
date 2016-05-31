@@ -7,6 +7,7 @@ hoomd.lattice
     :nosignatures:
 
     hoomd.lattice.bcc
+    hoomd.lattice.fcc
     hoomd.lattice.hex
     hoomd.lattice.sc
     hoomd.lattice.sq
