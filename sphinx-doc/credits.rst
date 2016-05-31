@@ -159,6 +159,9 @@ Isass Bruss, Chengyu Dai, University of Michigan
  * force.active
  * update.constraint_ellipsoid
 
+Bryan Vansaders, University of Michigan
+ * Constant stress mode to integrate.npt.
+
 HPMC developers
 ---------------
 
