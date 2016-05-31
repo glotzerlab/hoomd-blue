@@ -21,6 +21,8 @@ set(_hoomd_sources Analyzer.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
+                   GetarDumpWriter.cc
+                   GetarInitializer.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
                    HOOMDMath.cc
@@ -72,6 +74,24 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       ParticleGroup.cu
                       SFCPackUpdaterGPU.cu
                       extern/mgpucontext.cu)
+
+# include libgetar sources directly into _hoomd.so
+get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
+foreach(getar_src ${GETAR_SRCS_REL})
+  list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
+endforeach(getar_src)
+
+# add libgetar-specific defines
+get_property(HOOMD_DEFS DIRECTORY . PROPERTY COMPILE_DEFINITIONS)
+get_property(GETAR_DEFS DIRECTORY ${libgetar_DIR} PROPERTY COMPILE_DEFINITIONS)
+list(REMOVE_ITEM GETAR_DEFS ${HOOMD_DEFS})
+foreach(def ${GETAR_DEFS})
+  add_definitions(-D${def})
+endforeach(def)
+
+# add libgetar-specific libraries
+get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
+list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hoomd_sources} ${_hoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
