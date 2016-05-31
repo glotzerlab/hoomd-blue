@@ -102,7 +102,7 @@ class getar(hoomd.analyze._analyzer):
     as zip and tar) for storing trajectory data efficiently. A more
     thorough description of the format and a description of a python
     API to read and write these files is available at `the libgetar
-    documentation <http://glotzerlab.engin.umich.edu/libgetar/>`_.
+    documentation <http://libgetar.readthedocs.io>`_.
 
     Properties to dump can be given either as a
     :py:class:`getar.DumpProp` object or a name. Supported property

@@ -41,7 +41,7 @@ def read_getar(filename, modes={'any': 'any'}):
     as zip and tar) for storing trajectory data efficiently. A more
     thorough description of the format and a description of a python
     API to read and write these files is available at `the libgetar
-    documentation <http://glotzerlab.engin.umich.edu/libgetar/>`_.
+    documentation <http://libgetar.readthedocs.io>`_.
 
     The **modes** argument is a dictionary. The keys of this
     dictionary should be either property names (see the Supported
