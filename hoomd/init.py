@@ -45,6 +45,20 @@ def create_lattice(unitcell, n):
     When *n* is a single value, the lattice is replicated *n* times in each direction. When *n* is a list, the
     lattice is replicated *n[0]* times in the :math:`\vec{a}_1` direction, *n[1]* times in the :math:`\vec{a}_2`
     direction and *n[2]* times in the :math:`\vec{a}_3` direction.
+
+    Examples::
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=1.0),
+                                  n=[2,4,2]);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.bcc(a=1.0),
+                                  n=10);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.sq(a=1.2),
+                                  n=[100,10]);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.hex(a=1.0),
+                                  n=[100,58]);
     """
     hoomd.util.print_status_line();
 
