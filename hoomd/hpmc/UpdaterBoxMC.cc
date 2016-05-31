@@ -397,6 +397,11 @@ void UpdaterBoxMC::update(unsigned int timestep)
         // Shear change
         update_shear(timestep, rng);
         }
+    else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+        {
+        // Volume conserving aspect change
+        update_aspect(timestep, rng);
+        }
     else
         {
         // Should not reach this point
@@ -639,6 +644,72 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
+void UpdaterBoxMC::update_aspect(unsigned int timestep, Saru& rng)
+    {
+    // We have not established what ensemble this samples:
+    // This is not a thermodynamic updater.
+    // There is also room for improvement in enforcing volume conservation.
+    if (m_prof) m_prof->push("UpdaterBoxMC: update_aspect");
+    // Get updater parameters for current timestep
+    // Get current particle data and box lattice parameters
+    assert(m_pdata);
+    unsigned int Ndim = m_sysdef->getNDimensions();
+    //unsigned int Nglobal = m_pdata->getNGlobal();
+    BoxDim curBox = m_pdata->getGlobalBox();
+    Scalar curL[3];
+    Scalar newL[3]; // Lx, Ly, Lz
+    newL[0] = curL[0] = curBox.getLatticeVector(0).x;
+    newL[1] = curL[1] = curBox.getLatticeVector(1).y;
+    newL[2] = curL[2] = curBox.getLatticeVector(2).z;
+    Scalar newShear[3]; // xy, xz, yz
+    newShear[0] = curBox.getTiltFactorXY();
+    newShear[1] = curBox.getTiltFactorXZ();
+    newShear[2] = curBox.getTiltFactorYZ();
+
+    // Choose an aspect ratio and randomly perturb it
+    unsigned int i = rand_select(rng, Ndim - 1);
+    Scalar dA = Scalar(1.0) + rng.s(Scalar(0.0), m_Aspect_delta);
+    if (rand_select(rng, 1))
+        {
+        dA = Scalar(1.0)/dA;
+        }
+    newL[i] *= dA;
+    Scalar lambda = curL[i] / newL[i];
+    if (Ndim == 3)
+        {
+        lambda = sqrt(lambda);
+        }
+    for (unsigned int j=0; j < Ndim; j++)
+        {
+        if (i != j)
+            {
+            newL[j] = lambda * curL[j];
+            }
+        }
+
+    // Attempt box resize
+    bool trial_success = box_resize_trial(newL[0],
+                                          newL[1],
+                                          newL[2],
+                                          newShear[0],
+                                          newShear[1],
+                                          newShear[2],
+                                          timestep,
+                                          Scalar(1.0),
+                                          rng);
+/* Statistics not yet implemented
+    if (trial_success)
+        {
+        m_count_total.shear_accept_count++;
+        }
+    else
+        {
+        m_count_total.shear_reject_count++;
+        }
+*/
+    if (m_prof) m_prof->pop();
+    }
+
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
     \return The current state of the acceptance counters
 
@@ -672,6 +743,7 @@ void export_UpdaterBoxMC()
     .def("setVolumeMove", &UpdaterBoxMC::setVolumeMove)
     .def("setLengthMove", &UpdaterBoxMC::setLengthMove)
     .def("setShearMove", &UpdaterBoxMC::setShearMove)
+    .def("setAspectMove", &UpdaterBoxMC::setAspectMove)
     .def("printStats", &UpdaterBoxMC::printStats)
     .def("resetStats", &UpdaterBoxMC::resetStats)
     .def("getP", &UpdaterBoxMC::getP)

@@ -655,6 +655,48 @@ class boxMC(_updater):
                                             self.shearReduce,
                                             self.shearWeight);
 
+    ## Enable/disable aspect ratio move and set parameters.
+    # Rescale aspect ratio along a randomly chosen dimension.
+    # \param delta maximum relative change of aspect ratio
+    # \param weight relative weight of this box move type relative to other box move types. 0 disables move type.
+    #
+    # To change the parameters of an existing updater, you must have saved it when it was specified.
+    # \code
+    # box_update.setAspectMove(delta=0.01)
+    # box_update.setAspectMove(delta=0.01, weight=2)
+    # box_update.setAspectMove(delta=0.01, weight=0.15)
+    # \endcode
+    #
+    # \returns None. Returns early if sanity check fails
+    #
+    def setAspectMove(self, delta=None, weight=1.0):
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        noop = True;
+
+        if delta is not None:
+            self.aspectDelta = float(delta)
+            noop = False;
+        else:
+            if not hasattr(self, 'aspectDelta') or self.aspectDelta is None:
+                hoomd.context.msg.warning("update.boxMC: Change in aspect ratio (delta) undefined.")
+                raise ValueError("update.boxMC.setAspectMove NEEDS defined delta!")
+        if weight is not None:
+            self.aspectWeight = float(weight)
+            noop = False;
+        else:
+            if not hasattr(self, 'aspectWeight') or self.aspectWeight is None:
+                hoomd.context.msg.warning("update.boxMC: Aspect weight undefined.")
+                raise ValueError("update.boxMC.setAspectMove NEEDS defined weight.")
+        if noop:
+            hoomd.context.msg.warning("update.boxMC: No parameters changed\n");
+            return;
+
+        if self.aspectDelta is not None and self.aspectWeight is not None:
+            self.cpp_updater.setAspectMove( self.aspectDelta,
+                                            self.aspectWeight);
+
     ## Get boxMC parameters
     # \param timestep Timestep at which to evaluate variants (or the current step if None)
     #

@@ -101,6 +101,17 @@ class UpdaterBoxMC : public Updater
             m_Shear_weight = weight;
             };
 
+        //! Sets parameters
+        /*! \param dA maximum relative aspect ratio change.
+            \param weight relative likelihood of aspect move.
+        */
+        void setAspectMove(Scalar dA,
+                           Scalar weight)
+            {
+            m_Aspect_delta = dA;
+            m_Aspect_weight = weight;
+          };
+
         //! Calculate aspect ratios for use in isotropic volume changes
         void computeAspectRatios()
             {
@@ -186,6 +197,12 @@ class UpdaterBoxMC : public Updater
         */
         void update_shear(unsigned int timestep, Saru& rng);
 
+        //! Perform non-thermodynamic MC move in aspect ratio.
+        /*! \param timestep timestep at which update is being evaluated
+            \param rng psueudo random number generator instance
+        */
+        void update_aspect(unsigned int timestep, Saru& rng);
+
     private:
         boost::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in NPT ensemble
@@ -202,6 +219,9 @@ class UpdaterBoxMC : public Updater
         Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension        Scalar m_Shear_reduce;                            //!< Threshold for lattice reduction
         Scalar m_Shear_weight;                      //!< relative weight of shear moves
         Scalar m_Shear_reduce;                      //!< Tolerance for automatic box lattice reduction
+
+        Scalar m_Aspect_delta;                      //!< Maximum relative aspect ratio change in randomly selected dimension
+        Scalar m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
         boost::signals2::connection m_maxparticlenumberchange_connection;
