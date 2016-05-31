@@ -355,6 +355,7 @@ def hex(a, type_name='A'):
 
     hoomd.util.print_status_line();
     return unitcell(N=1,
+    return unitcell(N=2,
                     type_name=[type_name, type_name],
                     position=[[0,0,0],[a/2,math.sqrt(3)*a/2,0]],
                     a1=[a,0,0],
