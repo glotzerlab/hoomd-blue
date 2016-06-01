@@ -394,7 +394,7 @@ namespace getardump{
                     {
                     stringstream msg;
                     msg << "Error " << result << " in one-shot file: " << strerror(result);
-                    m_exec_conf->msg->error() << msg << endl;
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
                 }
