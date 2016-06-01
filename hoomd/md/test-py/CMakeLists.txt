@@ -99,7 +99,6 @@ endforeach(test)
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
     test_charge_pppm
-    test_pair_cgcmm
     test_constrain_distance
     test_force_active
     test_update_ellipsoid

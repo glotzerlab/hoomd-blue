@@ -22,28 +22,6 @@ if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 add_definitions(-DBOOST_TEST_DYN_LINK)
 endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
-####################################
-## Setup valgrind options
-if (UNIX AND NOT APPLE)
-find_program(VALGRIND valgrind DOC
-    "valgrind executable for advanced regression tests")
-endif (UNIX AND NOT APPLE)
-
-## User gets an option to enable valgrind tests
-if (VALGRIND)
-    option(ENABLE_VALGRIND OFF "Enable running of unit tests through valgrind")
-
-    set(VALGRIND_COMMON_ARGS
-            "--leak-check=full;--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/combined_valgrind.supp;--error-exitcode=1")
-    mark_as_advanced(VALGRIND)
-endif (VALGRIND)
-
-if (ENABLE_VALGRIND)
-    set(DART_TESTING_TIMEOUT 4500 CACHE STRING "Testing timeout" FORCE)
-endif (ENABLE_VALGRIND)
-
-enable_testing()
-
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST

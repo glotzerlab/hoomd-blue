@@ -40,7 +40,7 @@ For more detailed instructions, [see the documentation](http://glotzerlab.engin.
 ## Prerequisites
 
  * Required:
-     * Python >= 2.6
+     * Python >= 2.7
      * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.8.0
@@ -48,6 +48,7 @@ For more detailed instructions, [see the documentation](http://glotzerlab.engin.
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH, impi)
+     * sqlite3
 
 # Job scripts
 
@@ -61,15 +62,16 @@ import hoomd
 from hoomd import md
 hoomd.context.initialize()
 
-# create 100 random particles of name A
-hoomd.init.create_random(N=100, phi_p=0.01, name='A')
+# create a 10x10x10 square lattice of particles with name A
+hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
 # specify Lennard-Jones interactions between particle pairs
-lj = md.pair.lj(r_cut=3.0)
+nl = md.nlist.cell()
+lj = md.pair.lj(r_cut=3.0, nlist=nl)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
 all = hoomd.group.all();
 md.integrate.mode_standard(dt=0.005)
-md.integrate.nvt(group=all, T=1.2, tau=0.5)
+md.integrate.nvt(group=all, kT=1.2, tau=0.5)
 # run 10,000 time steps
 hoomd.run(10e3)
 ```

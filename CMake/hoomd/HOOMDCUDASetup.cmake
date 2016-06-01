@@ -32,6 +32,10 @@ if (ENABLE_CUDA)
     endif (CUDA_TOOLKIT_ROOT_DIR)
     mark_as_advanced(CUDA_VERBOSE_BUILD)
     mark_as_advanced(CUDA_BUILD_EMULATION)
+    mark_as_advanced(CUDA_HOST_COMPILER)
+    mark_as_advanced(CUDA_dl_LIBRARY)
+    mark_as_advanced(CUDA_rt_LIBRARY)
+    mark_as_advanced(THRUST_INCLUDE_DIR)
 
     if (ENABLE_NVTOOLS)
         find_library(CUDA_nvToolsExt_LIBRARY
