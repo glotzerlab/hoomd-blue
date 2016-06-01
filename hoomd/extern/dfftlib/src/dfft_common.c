@@ -34,7 +34,7 @@ void bitrev_init(int n, int *rho)
     n1= n;
     for(j=0; j<n; j++)
         {
-        rem= j; 
+        rem= j;
         val= 0;
         for (k=1; k<n1; k <<= 1)
             {
@@ -314,7 +314,7 @@ int dfft_create_plan_common(dfft_plan *p,
     int *proc_map,
     int device)
     {
-    int s,nump;
+    int nump;
 
     p->comm = comm;
 
@@ -664,7 +664,7 @@ void dfft_destroy_plan_common(dfft_plan p, int device)
             free(p.rev_global[d]);
             free(p.c0[d]);
             free(p.c1[d]);
-            } 
+            }
         free(p.rev_j1);
         free(p.rev_partial);
         free(p.rev_global);

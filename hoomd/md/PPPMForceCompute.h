@@ -15,6 +15,7 @@
 
 #include "hoomd/extern/kiss_fftnd.h"
 
+#include <memory>
 #include <boost/signals2.hpp>
 #include <boost/bind.hpp>
 
@@ -146,8 +147,8 @@ class PPPMForceCompute : public ForceCompute
         #ifdef ENABLE_MPI
         dfft_plan m_dfft_plan_forward;     //!< Distributed FFT for forward transform
         dfft_plan m_dfft_plan_inverse;     //!< Distributed FFT for inverse transform
-        std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_forward; //!< Communicator for charge mesh
-        std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_reverse; //!< Communicator for inv fourier mesh
+        std::unique_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_forward; //!< Communicator for charge mesh
+        std::unique_ptr<CommunicatorGrid<kiss_fft_cpx> > m_grid_comm_reverse; //!< Communicator for inv fourier mesh
         #endif
 
         bool m_kiss_fft_initialized;               //!< True if a local KISS FFT has been set up

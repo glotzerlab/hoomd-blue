@@ -93,6 +93,11 @@ endforeach(def)
 get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
 list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
 
+# quiet some warnings locally on files we can't modify
+if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
+endif()
+
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hoomd_sources} ${_hoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 

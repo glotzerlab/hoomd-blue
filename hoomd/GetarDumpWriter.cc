@@ -697,10 +697,10 @@ namespace getardump{
 
             if(desc.m_highPrecision == false)
                 {
-                float arr[] = {box.x, box.y, box.z,
-                               m_pdata->getGlobalBox().getTiltFactorXY(),
-                               m_pdata->getGlobalBox().getTiltFactorXZ(),
-                               m_pdata->getGlobalBox().getTiltFactorYZ()};
+                float arr[] = {float(box.x), float(box.y), float(box.z),
+                               float(m_pdata->getGlobalBox().getTiltFactorXY()),
+                               float(m_pdata->getGlobalBox().getTiltFactorXZ()),
+                               float(m_pdata->getGlobalBox().getTiltFactorYZ())};
                 writer.writeIndividual<float*, float>(
                     desc.getFormattedPath(timestep), arr, &arr[6], desc.m_compression);
                 }

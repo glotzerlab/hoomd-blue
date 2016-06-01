@@ -39,7 +39,7 @@ struct wall_type{
     SphereWall       Spheres[MAX_N_SWALLS];
     CylinderWall     Cylinders[MAX_N_CWALLS];
     PlaneWall        Planes[MAX_N_PWALLS];
-} __attribute__((aligned(4))); // align according to first member size
+};
 
 //! Applys a wall force from all walls in the field parameter
 /*! \ingroup computes
