@@ -1,6 +1,9 @@
 # Copyright (c) 2009-2016 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+R"""Various helper utilities for geometry.
+"""
+
 from collections import Counter, defaultdict, deque
 from itertools import chain
 import numpy as np
