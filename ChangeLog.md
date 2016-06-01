@@ -41,6 +41,11 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a
   dielectric medium.
 * `force.get_energy` allows querying the potential energy of a particle group for a specific force
+* Dump and initialize commands for the GTAR file format (http://libgetar.readthedocs.io).
+    * GTAR can store trajectory data in zip, tar, sqlite, or bare directories
+    * The current version stores system properties, later versions will be able to capture log, metadata, and other
+      output to reduce the number of files that a job script produces.
+* `integrate.npt` can now apply a constant stress tensor to the simulation box.
 
 *Changes that require job script modifications*
 

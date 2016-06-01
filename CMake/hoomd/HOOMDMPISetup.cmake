@@ -6,6 +6,10 @@ if (ENABLE_MPI)
     # the package is needed
     find_package(MPI REQUIRED)
 
+    mark_as_advanced(MPI_EXTRA_LIBRARY)
+    mark_as_advanced(MPI_LIBRARY)
+    mark_as_advanced(OMPI_INFO)
+
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
     if (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
         if (MPI_LIBRARY MATCHES mpich)

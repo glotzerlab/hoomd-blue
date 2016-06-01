@@ -68,7 +68,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
-                   boost::shared_ptr<Variant> P,
+                   boost::python::list S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
@@ -82,12 +82,18 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
-        //! Update the pressure
-        /*! \param P New pressure to set
-        */
-        virtual void setP(boost::shared_ptr<Variant> P)
+    //! Update the stress components
+    /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
+     */
+    virtual void setS(boost::python::list S)
             {
-            m_P = P;
+            std::vector<boost::shared_ptr<Variant> > swapS;
+            swapS.resize(0);
+            for (int i = 0; i< 6; ++i)
+                   {
+                swapS.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
+                }
+            m_S.swap(swapS);
             }
 
         //! Update the tau value
@@ -151,7 +157,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        boost::shared_ptr<Variant> m_P; //!< Pressure set point
+        std::vector<boost::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
         Scalar m_V;                     //!< Current volume
 
         couplingMode m_couple;          //!< Coupling of diagonal elements
