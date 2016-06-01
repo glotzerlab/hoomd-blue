@@ -489,7 +489,7 @@ CUB 1.4.1 source code is embedded in HOOMD's package and is used for various tas
 Eigen 3.2.5 (http://eigen.tuxfamily.org/) is embedded in HOOMD's package and is made available under the
 Mozilla Public License v.2.0 (http://mozilla.org/MPL/2.0/). Its linear algebra routines are used for dynamic load balancing. Source code is available through the [downloads](http://glotzerlab.engin.umich.edu/hoomd-blue/download.html).
 
-A constrained least-squares problem is solved for dynamic load balancing using <b>BVLSSolver</b>, which is embedded
+A constrained least-squares problem is solved for dynamic load balancing using **BVLSSolver**, which is embedded
 in HOOMD's package and is made available under the following license::
 
     Copyright (c) 2015, Michael P. Howard. All rights reserved.
@@ -518,10 +518,33 @@ in HOOMD's package and is made available under the following license::
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
     OF SUCH DAMAGE.
 
+libgetar is used to read and write GTAR files. Used under the MIT license::
+
+    Copyright (c) 2014-2016 The Regents of the University of Michigan
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
 Libraries
 ---------
 
-HOOMD-blue links to the following libraries, possibly statically or dynamically depending on configuration options chosen at build time
+HOOMD-blue links to the following libraries:
+
  * boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)
  * python - Used under the Python license (http://www.python.org/psf/license/)
- * cuFFT - Used under the same license as the NVIDIA CUDA toolkit
+ * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)
