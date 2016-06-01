@@ -440,7 +440,7 @@ class boxMC(_updater):
     Args:
 
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
+        betaP (float) or (:py:mod:`hoomd.variant`): :math:`\beta p == \frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or inverse volume in 3D) Apply your chosen reduced pressure convention externally.
         frequency (float): Average number of box updates per particle move sweep (not yet implemented)
         seed (int): random number seed for MC box changes
 
@@ -453,13 +453,13 @@ class boxMC(_updater):
     Example::
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        boxMC = hpmc.update.boxMC(mc, P=1.0, seed=9876)
+        boxMC = hpmc.update.boxMC(mc, betaP=1.0, seed=9876)
         boxMC.setVolumeMove(delta=0.01, weight=2.0)
         boxMC.setLengthMove(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, P, frequency=1.0, seed=0):
+    def __init__(self, mc, betaP, frequency=1.0, seed=0):
         hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
@@ -472,7 +472,7 @@ class boxMC(_updater):
             hoomd.context.msg.warning("update.boxMC: Must have a handle to an HPMC integrator.\n");
             return;
 
-        self.P = hoomd.variant._setup_variant_input(P);
+        self.P = hoomd.variant._setup_variant_input(betaP);
 
         if frequency != 1.0:
             hoomd.context.msg.warning("update.boxMC: Variable frequency is not set to 1.0. Settings other than 1.0 not yet supported.")
@@ -722,10 +722,10 @@ class boxMC(_updater):
             mc = hpmc.integrate.shape(..);
             mc.shape_param.set(....);
             P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
+            box_update = hpmc.update.npt(mc, betaP=P, delta = 0.01, period = 10)
             run(100)
             params = box_update.get_params(1000)
-            P = params['P']
+            P = params['betaP']
             params = box_update.get_params()
             delta = params['delta']
 
@@ -738,7 +738,7 @@ class boxMC(_updater):
         #reduce = self.cpp_updater.getReduce()
         #isotropic = self.cpp_updater.getIsotropic()
         ret_val = dict(
-                  P=P.getValue(timestep),
+                  betaP=P.getValue(timestep),
                   #delta=delta,
                   #move_ratio=move_ratio,
                   #reduce=reduce,
@@ -746,7 +746,7 @@ class boxMC(_updater):
                   )
         return ret_val
 
-    def get_P(self, timestep=None):
+    def get_betaP(self, timestep=None):
         R""" Get pressure parameter
 
         Args:
@@ -763,7 +763,7 @@ class boxMC(_updater):
             box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
             run(100)
             P_now = box_update.get_P()
-            P_future = box_update.get_P(1000)
+            P_future = box_update.get_betaP(1000)
 
         """
         if timestep is None:
