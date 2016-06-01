@@ -245,7 +245,7 @@ class npt(_integration_method):
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
-        S (:py:list of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
+        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
         P (:py:mod:`hoomd.variant` or :py:obj:`float`): Isotropic pressure set point for the barostat (in pressure units). Overrides *S* if set.
         tauP (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
@@ -312,6 +312,13 @@ class npt(_integration_method):
     - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
     - Specifing no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
 
+    :py:class:`npt` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
+    stress tensor *S* instead of an isotropic pressure *P*.
+
+    Note:
+        :py:class:`npt` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
+        assume negative values on the diagonal. You need to set these values negative manually in HOOMD.
+
     :py:class:`npt` is an integration method. It must be used with :py:class:`mode_standard`.
 
     :py:class:`npt` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
@@ -346,7 +353,7 @@ class npt(_integration_method):
         # tetragonal symmetry
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
+        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
     def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None):
         hoomd.util.print_status_line();
@@ -498,7 +505,7 @@ class npt(_integration_method):
         Args:
             kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units)
             tau (float): New coupling constant (if set) (in time units)
-            S (:py:list of :py:mod:`hoomd.variant` or :py:obj:`float`): New stress components set point (if set) for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
+            S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): New stress components set point (if set) for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
             P (:py:mod:`hoomd.variant` or :py:obj:`float`): New isotropic pressure set point (if set) for the barostat (in pressure units). Overrides *S* if set.
             tauP (float): New barostat coupling constant (if set) (in time units)
             rescale_all (bool): When True, rescale all particles, not only those in the group
