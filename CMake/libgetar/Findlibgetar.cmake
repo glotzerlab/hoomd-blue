@@ -9,3 +9,8 @@ find_path(LIBGETAR_SRC_DIR
   HINTS ${libgetar_DIR}/src
   DOC "Location of libgetar's src/ directory"
   NO_DEFAULT_PATH)
+
+mark_as_advanced(LIBGETAR_SRC_DIR)
+mark_as_advanced(SQLITE3_INCLUDE_DIR)
+mark_as_advanced(SQLITE3_LIBRARY)
+mark_as_advanced(libgetar_DIR)

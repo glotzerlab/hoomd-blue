@@ -377,6 +377,7 @@ Other option changes take effect at any time. These can be set from within `ccma
     - When set to **OFF**, standard MPI calls will be used
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
+* **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
 
 These options control CUDA compilation:
 
