@@ -263,6 +263,8 @@ class active(_force):
         group (:py:mod:`hoomd.group`): Group for which the force will be set
         orientation_link (bool): When True, particle orientation is coupled to the active force vector. Only
           relevant for non-point-like anisotropic particles.
+        orientation_reverse_link (bool): When True, the active force vector is coupled to particle orientation. Useful for
+          for using a particle's orientation to log the active force vector. Quaternion rotation assumes base vector of (0,0,1).
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
         constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
           such as update.constraint_ellipsoid.
@@ -288,7 +290,7 @@ class active(_force):
         ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
-    def __init__(self, seed, f_lst, group, orientation_link=True, rotation_diff=0, constraint=None):
+    def __init__(self, seed, f_lst, group, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -318,16 +320,17 @@ class active(_force):
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
-                                                      orientation_link, rotation_diff, P, rx, ry, rz);
+                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
         else:
             self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
-                                                         orientation_link, rotation_diff, P, rx, ry, rz);
+                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
 
         # store metadata
         self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
+        self.orientation_reverse_link = orientation_reverse_link
         self.rotation_diff = rotation_diff
         self.constraint = constraint
 

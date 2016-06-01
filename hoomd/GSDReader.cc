@@ -84,7 +84,7 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema in " << name << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version != gsd_make_version(0,1))
+    if (m_handle.header.schema_version >= gsd_make_version(2,0))
         {
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema version in " << name << endl;
         throw runtime_error("Error opening GSD file");
