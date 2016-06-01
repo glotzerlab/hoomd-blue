@@ -433,29 +433,32 @@ class npt(_updater):
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
-## Apply box updates to sample NPT and related ensembles
-#
-# One or more Monte Carlo move types are applied to evolve the simulation box.
-#
-# Pressure inputs to update.boxMC are defined as \f$ \beta P \f$. Conversions from a specific definition of reduced
-# pressure \f$ P^* \f$ are left for the user to perform.
 
 class boxMC(_updater):
-    ## Initialize the box updater.
-    #
-    # \param mc HPMC integrator object for system on which to apply box updates
-    # \param P \f$ \beta P \f$. Apply your chosen reduced pressure convention externally.
-    # \param frequency average number of box updates per particle move sweep (not yet implemented)
-    # \param seed random number seed for MC box changes
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-    # boxMC = hpmc.update.boxMC(mc, P=1.0, seed=9876)
-    # boxMC.setVolumeMove(delta=0.01, weight=2.0)
-    # boxMC.setLengthMove(delta=(0.1,0.1,0.1), weight=4.0)
-    # run(30) # perform approximately 10 volume moves and 20 length moves
-    # ~~~~~~~~~~~~~
+    R""" Apply box updates to sample NPT and related ensembles.
+
+    Args:
+
+        mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
+        P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
+        frequency (float): Average number of box updates per particle move sweep (not yet implemented)
+        seed (int): random number seed for MC box changes
+
+    One or more Monte Carlo move types are applied to evolve the simulation box.
+
+    Pressure inputs to update.boxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
+    pressure :math:`P^*` are left for the user to perform.
+
+
+    Example::
+
+        mc = hpmc.integrate.sphere(seed=415236, d=0.3)
+        boxMC = hpmc.update.boxMC(mc, P=1.0, seed=9876)
+        boxMC.setVolumeMove(delta=0.01, weight=2.0)
+        boxMC.setLengthMove(delta=(0.1,0.1,0.1), weight=4.0)
+        run(30) # perform approximately 10 volume moves and 20 length moves
+
+    """
     def __init__(self, mc, P, frequency=1.0, seed=0):
         hoomd.util.print_status_line();
         # initialize base class
@@ -487,39 +490,39 @@ class boxMC(_updater):
                                                );
         self.setupUpdater(period);
 
-    ## Change updater parameters
-    #
-    # \param P \f$ \beta P \f$. Apply your chosen reduced pressure convention externally.
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # box_update = hpmc.update.boxMC(mc, P=10., seed=123)
-    # box_update.set_params(P=20.)
-    # \endcode
-    #
-    # To change parameters associated with a box update method, call the set method for that update type again.
-    #
-    # \returns None. Returns early if sanity check fails
-    #
     def set_params():
+        R""" Change updater parameters
+
+        Args:
+            P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
+
+        To change the parameters of an existing updater, you must have saved it when it was specified.
+
+            box_update = hpmc.update.boxMC(mc, P=10., seed=123)
+            box_update.set_params(P=20.)
+
+        To change parameters associated with a box update method, call the set method for that update type again.
+        """
         #self.cpp_updater.setParams( self.P.cpp_variant, self.frequency);
         print("not yet implemented")
 
-    ## Enable/disable NpT volume move and set parameters.
-    # Sample the NpT distribution of box volumes by rescaling the box.
-    # \param delta maximum change of the box area (2D) or volume (3D)
-    # \param weight relative weight of this box move type relative to other box move types. 0 disables move type.
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # box_update.setVolumeMove(delta=0.01)
-    # box_update.setVolumeMove(delta=0.01, weight=2)
-    # box_update.setVolumeMove(delta=0.01, weight=0.15)
-    # \endcode
-    #
-    # \returns None. Returns early if sanity check fails
-    #
     def setVolumeMove(self, delta=None, weight=1.0):
+        R""" Enable/disable NpT volume move and set parameters.
+
+        Args:
+            delta (float): maximum change of the box area (2D) or volume (3D)
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables move type.
+
+        Sample the NpT distribution of box volumes by rescaling the box.
+
+        To change the parameters of an existing updater, you must have saved it when it was specified.
+
+        Example::
+            box_update.setVolumeMove(delta=0.01)
+            box_update.setVolumeMove(delta=0.01, weight=2)
+            box_update.setVolumeMove(delta=0.01, weight=0.15)
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -547,23 +550,25 @@ class boxMC(_updater):
             self.cpp_updater.setVolumeMove( self.volumeDelta,
                                             self.volumeWeight);
 
-    ## Enable/disable NpT box dimension move and set parameters.
-    # Sample the NpT distribution of box dimensions by rescaling the plane-to-plane distance of box faces.
-    # \param delta scalar, tuple or list of maximum change of the box thickness for each pair of parallel planes connected by
-    # the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
-    # \param weight relative weight of this box move type relative to other box move types. 0 disables move.
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # box_update.setLengthMove(delta=(0.01, 0.01, 0.0)) # 2D box changes
-    # box_update.setLengthMove(delta=(0.01, 0.01, 0.01), weight=2)
-    # box_update.setLengthMove(delta=0.01, weight=2)
-    # box_update.setLengthMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
-    # \endcode
-    #
-    # \returns None. Returns early if sanity check fails
-    #
     def setLengthMove(self, delta=None, weight=1.0):
+        R""" Enable/disable NpT box dimension move and set parameters.
+
+        Args:
+            delta (scalar), (tuple) or (list): maximum change of the box thickness for each pair of parallel planes connected by
+            the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables move.
+
+        Sample the NpT distribution of box dimensions by rescaling the plane-to-plane distance of box faces.
+
+        To change the parameters of an existing updater, you must have saved it when it was specified.
+
+        Example::
+            box_update.setLengthMove(delta=(0.01, 0.01, 0.0)) # 2D box changes
+            box_update.setLengthMove(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.setLengthMove(delta=0.01, weight=2)
+            box_update.setLengthMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -596,25 +601,26 @@ class boxMC(_updater):
                                             self.lengthDelta[2],
                                             self.lengthWeight);
 
-    ## Enable/disable box shear moves and set parameters.
-    # Sample the NpT distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
-    # (See HOOMD-blue [boxdim](https://codeblue.umich.edu/hoomd-blue/doc/classhoomd__script_1_1data_1_1boxdim.html) documentation)
-    # \param delta tuple or list of maximum change of the box tilt factor xy, xz, yz.
-    # \param reduce Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-    #            Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
-    #            Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
-    #            but which temporarily break detailed balance.
-    # \param weight relative weight of this box move type relative to other box move types. 0 disables.
-    #
-    # \code
-    # box_update.setShearMove(delta=(0.01, 0.00, 0.0)) # 2D box changes
-    # box_update.setShearMove(delta=(0.01, 0.01, 0.01), weight=2)
-    # box_update.setShearMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
-    # \endcode
-    #
-    # \returns None. Returns early if sanity check fails
-    #
     def setShearMove(self,  delta=None, weight=1.0, reduce=0.0):
+        R""" Enable/disable box shear moves and set parameters.
+
+        Args:
+            delta (tuple) or (list): maximum change of the box tilt factor xy, xz, yz.
+            reduce (float): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
+                    Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
+                    Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
+                    but which temporarily break detailed balance.
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables.
+
+        Sample the NpT distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
+        (See HOOMD-blue [boxdim](https://codeblue.umich.edu/hoomd-blue/doc/classhoomd__script_1_1data_1_1boxdim.html) documentation)
+
+        Example::
+            box_update.setShearMove(delta=(0.01, 0.00, 0.0)) # 2D box changes
+            box_update.setShearMove(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.setShearMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -655,21 +661,24 @@ class boxMC(_updater):
                                             self.shearReduce,
                                             self.shearWeight);
 
-    ## Enable/disable aspect ratio move and set parameters.
-    # Rescale aspect ratio along a randomly chosen dimension.
-    # \param delta maximum relative change of aspect ratio
-    # \param weight relative weight of this box move type relative to other box move types. 0 disables move type.
-    #
-    # To change the parameters of an existing updater, you must have saved it when it was specified.
-    # \code
-    # box_update.setAspectMove(delta=0.01)
-    # box_update.setAspectMove(delta=0.01, weight=2)
-    # box_update.setAspectMove(delta=0.01, weight=0.15)
-    # \endcode
-    #
-    # \returns None. Returns early if sanity check fails
-    #
     def setAspectMove(self, delta=None, weight=1.0):
+        R""" Enable/disable aspect ratio move and set parameters.
+
+        Args:
+            delta (float): maximum relative change of aspect ratio
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables move type.
+
+        Rescale aspect ratio along a randomly chosen dimension.
+
+        To change the parameters of an existing updater, you must have saved it when it was specified.
+
+        Example::
+
+            box_update.setAspectMove(delta=0.01)
+            box_update.setAspectMove(delta=0.01, weight=2)
+            box_update.setAspectMove(delta=0.01, weight=0.15)
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -697,27 +706,30 @@ class boxMC(_updater):
             self.cpp_updater.setAspectMove( self.aspectDelta,
                                             self.aspectWeight);
 
-    ## Get boxMC parameters
-    # \param timestep Timestep at which to evaluate variants (or the current step if None)
-    #
-    # \returns Dictionary of parameters values at the current or indicated timestep.
-    # The dictionary contains the keys (P, delta, move_ratio, reduce, isotropic), which mirror the same parameters to
-    # set_params()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-    # box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
-    # run(100)
-    # params = box_update.get_params(1000)
-    # P = params['P']
-    # params = box_update.get_params()
-    # delta = params['delta']
-    # ~~~~~~~~~~~~
-    #
     def get_params(self, timestep=None):
+        R""" Get boxMC parameters
+
+        Args:
+            timestep (int): Timestep at which to evaluate variants (or the current step if None)
+
+        Returns:
+            dictionary of parameters values at the current or indicated timestep.
+            The dictionary contains the keys (P, delta, move_ratio, reduce, isotropic), which mirror the same parameters to
+            set_params()
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+            box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
+            run(100)
+            params = box_update.get_params(1000)
+            P = params['P']
+            params = box_update.get_params()
+            delta = params['delta']
+
+        """
         if timestep is None:
             timestep = hoomd.get_step()
         P = self.cpp_updater.getP()
@@ -734,115 +746,125 @@ class boxMC(_updater):
                   )
         return ret_val
 
-    ## Get pressure parameter
-    # \param timestep Timestep at which to evaluate variants (or the current step if None)
-    #
-    # \returns pressure value at the current or indicated timestep
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-    # box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
-    # run(100)
-    # P_now = box_update.get_P()
-    # P_future = box_update.get_P(1000)
-    # ~~~~~~~~~~~~
-    #
     def get_P(self, timestep=None):
+        R""" Get pressure parameter
+
+        Args:
+            timestep (int): Timestep at which to evaluate variants (or the current step if None)
+
+        Returns:
+            pressure value at the current or indicated timestep
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+            box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
+            run(100)
+            P_now = box_update.get_P()
+            P_future = box_update.get_P(1000)
+
+        """
         if timestep is None:
             timestep = hoomd.get_step()
         P = self.cpp_updater.getP()
         return P.getValue(timestep)
 
-    ## Get delta parameter
-    #
-    # \returns max trial delta change
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-    # box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
-    # run(100)
-    # delta_now = box_update.get_delta()
-    # ~~~~~~~~~~~~
-    #
     def get_delta(self):
+        R""" Get delta parameter
+
+        Returns:
+            max trial delta change
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param.set(....);
+            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+            box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
+            run(100)
+            delta_now = box_update.get_delta()
+
+        """
         #delta = self.cpp_updater.getdelta()
         #return delta
         raise Warning("get_delta not implemented")
         return None
 
-    ## Get move_ratio parameter
-    #
-    # \returns fraction of box moves to attempt as volume changes versus box shearing
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-    # box_update = hpmc.update.npt(mc, P=P, dielta = 0.01, period = 10)
-    # run(100)
-    # ratio_now = box_update.get_move_ratio()
-    # ~~~~~~~~~~~~
-    #
     def get_move_ratio(self):
+        R""" Get move_ratio parameter.
+
+        Returns:
+            fraction of box moves to attempt as volume changes versus box shearing
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param[name].set(....);
+            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
+            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
+            run(100)
+            ratio_now = box_update.get_move_ratio()
+
+        """
         #move_ratio = self.cpp_updater.getMoveRatio()
         #return move_ratio
         raise Warning("get_delta not implemented")
         return None
 
-    ## Get the average acceptance ratio for volume changing moves
-    #
-    # \returns The average volume change acceptance for the last run
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # box_update = hpmc.update.npt(mc, P=10., delta = 0.01, period = 10)
-    # run(100)
-    # v_accept = box_update.get_volume_acceptance()
-    # ~~~~~~~~~~~~
-    #
     def get_volume_acceptance(self):
+        R""" Get the average acceptance ratio for volume changing moves.
+
+        Returns:
+            The average volume change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param[name].set(....);
+            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, period = 10)
+            run(100)
+            v_accept = box_update.get_volume_acceptance()
+
+        """
         counters = self.cpp_updater.getCounters(1);
         return counters.getVolumeAcceptance();
 
-    ## Get the average acceptance ratio for shear changing moves
-    #
-    # \returns The average shear change acceptance for the last run
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # box_update = hpmc.update.boxMC(mc, P=10., delta = 0.01, period = 10)
-    # run(100)
-    # v_accept = box_update.get_shear_acceptance()
-    # ~~~~~~~~~~~~
-    #
     def get_shear_acceptance(self):
+        R"""  Get the average acceptance ratio for shear changing moves.
+
+        Returns:
+           The average shear change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param[name].set(....);
+            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
+            run(100)
+            v_accept = box_update.get_shear_acceptance()
+
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getShearAcceptance();
         counters = self.cpp_updater.getCounters(1);
         return counters.getShearAcceptance();
 
-    ## Enables the updater
-    # \returns nothing
-    # \b Examples:
-    # ~~~~~~~~~~~~
-    # npt_updater.set_params(isotropic=True)
-    # run(1e5)
-    # npt_updater.disable()
-    # update.box_resize(dLy = 10)
-    # npt_updater.enable()
-    # run(1e5)
-    # ~~~~~~~~~~~~
-    # See updater base class documentation for more information
     def enable(self):
+        R""" Enables the updater.
+
+        Example::
+
+            npt_updater.set_params(isotropic=True)
+            run(1e5)
+            npt_updater.disable()
+            update.box_resize(dLy = 10)
+            npt_updater.enable()
+            run(1e5)
+
+        See updater base class documentation for more information
+        """
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
