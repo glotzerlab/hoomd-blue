@@ -228,8 +228,6 @@ def center(vertices, faces=None):
     else:
         return np.asarray(vertices);
 
-center3D = center;
-
 def _negBisector(p1, p2):
     """Return the negative bisector of an angle given by points p1 and p2"""
     return -_normalize(_normalize(p1) + _normalize(p2));
