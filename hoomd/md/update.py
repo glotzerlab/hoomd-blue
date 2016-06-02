@@ -193,10 +193,20 @@ class constraint_ellipsoid(_updater):
         if (r is not None): rx = ry = rz = r
 
         # create the c++ mirror class
-        if not context.exec_conf.isCUDAEnabled():
-            self.cpp_updater = _hoomd.ConstraintEllipsoid(context.current.system_definition, group.cpp_group, P, rx, ry, rz);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_updater = _md.ConstraintEllipsoid(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
         else:
-            self.cpp_updater = _hoomd.ConstraintEllipsoidGPU(context.current.system_definition, group.cpp_group, P, rx, ry, rz);
+            self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
+        
+        
+        # # create the c++ mirror class
+        # if not hoomd.context.exec_conf.isCUDAEnabled():
+        #     self.cpp_updater = _md.Enforce2DUpdater(hoomd.context.current.system_definition);
+        # else:
+        #     self.cpp_updater = _md.Enforce2DUpdaterGPU(hoomd.context.current.system_definition);
+        
+        
+        
 
         self.setupUpdater(period);
 
