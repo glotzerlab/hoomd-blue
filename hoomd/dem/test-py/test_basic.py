@@ -1,22 +1,33 @@
 # Copyright (c) 2009-2016 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-import hoomd
-import hoomd.dem
+import hoomd;
+import hoomd.dem;
+hoomd.context.initialize();
 
-import unittest
+import unittest;
+
+def not_on_mpi(f):
+    def noop(*args, **kwargs):
+        return;
+    if hoomd.comm.get_num_ranks() > 1:
+        return noop;
+    else:
+        return f;
 
 class basic(unittest.TestCase):
 
     def test_set_params_wca_2d(self):
         self._test_set_params(hoomd.dem.pair.WCA, twoD=True, radius=.5);
 
+    @not_on_mpi
     def test_set_params_swca_2d(self):
         self._test_set_params(hoomd.dem.pair.SWCA, twoD=True, radius=.75);
 
     def test_set_params_wca_3d(self):
         self._test_set_params(hoomd.dem.pair.WCA, twoD=False, radius=.5);
 
+    @not_on_mpi
     def test_set_params_swca_3d(self):
         self._test_set_params(hoomd.dem.pair.SWCA, twoD=False, radius=.75);
 
