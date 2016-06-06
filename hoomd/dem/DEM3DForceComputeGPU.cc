@@ -51,6 +51,19 @@ DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(boost::shared
         throw std::runtime_error("Error initializing DEM3DForceComputeGPU");
         }
 
+#if SINGLE_PRECISION
+    int cudaVersion(0);
+    cudaRuntimeGetVersion(&cudaVersion);
+    if (this->exec_conf->dev_prop.major == 5 &&
+        this->exec_conf->dev_prop.minor == 2 &&
+        cudaVersion <= 7050)
+        {
+        this->m_exec_conf->msg->warning() << "3D DEM in single precision is "
+            "known to exhibit a compiler bug with cuda < 8.0 on "
+            "SM 5.2 cards! Undefined behavior may result." << endl;
+        }
+#endif
+
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_3d", this->m_exec_conf));
     }
 
