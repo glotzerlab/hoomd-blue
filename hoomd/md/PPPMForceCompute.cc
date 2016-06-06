@@ -729,7 +729,7 @@ void PPPMForceCompute::assignParticles()
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // ignore if NaN
-        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+        if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z))
             {
             continue;
             }
@@ -1009,7 +1009,7 @@ void PPPMForceCompute::interpolateForces()
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // ignore if NaN
-        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+        if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z))
             {
             continue;
             }
