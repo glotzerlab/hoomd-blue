@@ -93,7 +93,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         }
 
     //Check that all types of atopms in xml file have description in potential file
-    int count_types_set = 0;
+    unsigned int count_types_set = 0;
     for (i = 0; i < m_pdata->getNTypes(); i++)
         {
         if (types_set[i])

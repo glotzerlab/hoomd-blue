@@ -45,7 +45,6 @@ void dfft_redistribute_block_to_cyclic_1d(
 
     /* processor index along current dimension */
     int s = pidx[current_dim];
-    int p = pdim[current_dim];
 
     int ratio = c1/c0;
     int size = ((length/ratio > 1) ? (length/ratio) : 1);
@@ -242,7 +241,7 @@ void dfft_redistribute_cyclic_to_block_1d(int *dim,
             }
         else
             {
-            send = (((j2_new_remote / (c0/c1)) == j2_local) && ((j0_local % c1)==j0_new_remote) ? 1 : 0); 
+            send = (((j2_new_remote / (c0/c1)) == j2_local) && ((j0_local % c1)==j0_new_remote) ? 1 : 0);
             recv = (((j2_new_local / (c0/c1)) == j2_remote) &&  ((j0_remote % c1)==j0_new_local) ? 1 : 0);
 
             if (length*c1 < c0)
@@ -684,7 +683,7 @@ int dfft_execute(cpx_t *h_in, cpx_t *h_out, int dir, dfft_plan p)
     }
 
 int dfft_create_plan(dfft_plan *p,
-    int ndim, int *gdim, int *inembed, int *oembed, 
+    int ndim, int *gdim, int *inembed, int *oembed,
     int *pdim, int *pidx, int row_m,
     int input_cyclic, int output_cyclic,
     MPI_Comm comm,

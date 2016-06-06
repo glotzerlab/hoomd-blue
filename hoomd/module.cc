@@ -12,6 +12,7 @@
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
+#include "GetarInitializer.h"
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
@@ -23,6 +24,7 @@
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "DCDDumpWriter.h"
+#include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
 #include "CallbackAnalyzer.h"
@@ -349,6 +351,7 @@ BOOST_PYTHON_MODULE(_hoomd)
 
     // initializers
     export_GSDReader();
+    getardump::export_GetarInitializer();
 
     // computes
     export_Compute();
@@ -368,6 +371,7 @@ BOOST_PYTHON_MODULE(_hoomd)
     export_Analyzer();
     export_IMDInterface();
     export_DCDDumpWriter();
+    getardump::export_GetarDumpWriter();
     export_GSDDumpWriter();
     export_Logger();
     export_CallbackAnalyzer();

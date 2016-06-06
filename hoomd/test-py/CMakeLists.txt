@@ -61,6 +61,7 @@ find_program(CUDA_MEMCHECK_EXECUTABLE
   ENV CUDA_BIN_PATH
   NO_DEFAULT_PATH
   )
+mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
 
 macro(add_hoomd_script_test_cuda_memcheck test_py)
 # name the test

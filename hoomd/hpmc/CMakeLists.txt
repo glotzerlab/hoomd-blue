@@ -26,6 +26,11 @@ set(_hpmc_cu_sources ComputeFreeVolumeGPU.cu
                      IntegratorHPMCMonoImplicitGPU.cu
                      )
 
+# quiet some warnings locally on files we can't modify
+if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    set_source_files_properties(IntegratorHPMCMonoImplicitGPU.cu PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
+
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hpmc_sources} ${_hpmc_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
