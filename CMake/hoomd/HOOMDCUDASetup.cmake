@@ -83,7 +83,7 @@ if (ENABLE_CUDA)
 if (ENABLE_EMBED_CUDA)
     # determine the directory of the found cuda libs
     get_filename_component(_cuda_libdir ${CUDA_CUDART_LIBRARY} PATH)
-    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcudart.* ${_cuda_libdir}/libcufft.*)
+    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcurand.* ${_cuda_libdir}/libcufft.* ${_cuda_libdir}/libcusolver.* ${_cuda_libdir}/libcusparse.*)
     install(PROGRAMS ${_cuda_libs} DESTINATION ${PYTHON_MODULE_BASE_DIR})
 endif ()
 
