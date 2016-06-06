@@ -460,7 +460,7 @@ void ForceComposite::validateRigidBodies(bool create)
                         snap_out.body[i] = body_tag;
 
                         // set molecule tag
-                        molecule_tag[i] = body_tag;
+                        molecule_tag[i] = nbodies;
 
                         vec3<Scalar> central_pos(snap.pos[i]);
                         quat<Scalar> central_orientation(snap.orientation[i]);

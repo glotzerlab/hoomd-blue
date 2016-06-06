@@ -257,7 +257,7 @@ ensure that all libraries (mpi, boost, python, etc...) are linked from the conda
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
     conda uninstall hoomd
-    conda install boost sphinx git mpich2 numpy cmake
+    conda install boost sphinx git mpich2 numpy cmake pkg-config sqlite
 
 Check the CMake configuration to ensure that it finds python, boost, numpy, and MPI from within the conda installation.
 If any of these library or include files reference directories other than your conda environment, you will need to
