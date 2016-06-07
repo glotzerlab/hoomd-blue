@@ -46,7 +46,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
     * The current version stores system properties, later versions will be able to capture log, metadata, and other
       output to reduce the number of files that a job script produces.
 * `integrate.npt` can now apply a constant stress tensor to the simulation box.
-* Faceted shapes can now be simulated through the `dem` component
+* Faceted shapes can now be simulated through the `dem` component.
 
 *Changes that require job script modifications*
 
