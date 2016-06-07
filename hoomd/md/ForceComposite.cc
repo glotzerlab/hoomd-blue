@@ -460,7 +460,7 @@ void ForceComposite::validateRigidBodies(bool create)
                         snap_out.body[i] = body_tag;
 
                         // set molecule tag
-                        molecule_tag[i] = body_tag;
+                        molecule_tag[i] = nbodies;
 
                         vec3<Scalar> central_pos(snap.pos[i]);
                         quat<Scalar> central_orientation(snap.orientation[i]);
@@ -851,7 +851,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
         if (central_idx == NOT_LOCAL)
             {
-            m_exec_conf->msg->error() << "constrain.rigd(): Missing central particle tag " << central_tag << "!"
+            m_exec_conf->msg->error() << "constrain.rigid(): Missing central particle tag " << central_tag << "!"
                 << std::endl << std::endl;
             throw std::runtime_error("Error updating composite particles.\n");
             }
@@ -887,6 +887,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
         // this runs before the ForceComputes, wrap particle into box
         int3 imgi = img;
+
         box.wrap(updated_pos, imgi);
 
         h_postype.data[iptl] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[iptl].w);
