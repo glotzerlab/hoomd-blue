@@ -166,19 +166,21 @@ if gtar is not None:
             hoomd.util.quiet_status();
 
             for _ in range(10):
-                seed = random.randint(1, 2**32 - 1);
-                sys1 = RandomSystem(seed);
-                if hoomd.comm.get_rank() == 0:
-                    sys1.writeGetar(fname);
+                with hoomd.context.initialize():
+                    seed = random.randint(1, 2**32 - 1);
+                    sys1 = RandomSystem(seed);
+                    if hoomd.comm.get_rank() == 0:
+                        sys1.writeGetar(fname);
 
-                sys2 = RandomSystem(0);
-                system = hoomd.init.read_getar(fname,
-                                               {tuple(sys1.restoreProps): 'any'});
-                sys2.readSystem(system);
-                del system;
-                hoomd.context.initialize();
+                    sys2 = RandomSystem(0);
+                    hoomd.comm.barrier_all();
+                    system = hoomd.init.read_getar(fname,
+                                                   {'any': 'any'});
+                    sys2.readSystem(system);
+                    del system;
 
-                self.assertEqual(sys1, sys2);
+                    if hoomd.comm.get_rank() == 0:
+                        self.assertEqual(sys1, sys2);
 
         def setUp(self):
             hoomd.context.initialize();
@@ -193,7 +195,8 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
+        if hoomd.comm.get_rank() == 0:
+            snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
         vel_prop = hoomd.dump.getar.DumpProp(
@@ -202,6 +205,7 @@ class test_basic_io(unittest.TestCase):
             fname = 'dump.{}'.format(suffix);
             hoomd.dump.getar.immediate(fname, static=['type'],
                                        dynamic=['position', vel_prop]);
+            hoomd.comm.barrier_all();
 
             hoomd.init.restore_getar(fname);
 

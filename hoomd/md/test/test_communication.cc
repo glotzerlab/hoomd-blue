@@ -3408,10 +3408,26 @@ boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<Syste
     }
 #endif
 
+boost::shared_ptr<ExecutionConfiguration> exec_conf;
+
+// test fixture to initialize exec_conf only once
+struct Fx
+    {
+    Fx()
+        {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        }
+    ~Fx()
+        {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
+        }
+    };
+
+BOOST_FIXTURE_TEST_SUITE(cpu_tests, Fx)
+
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     BoxDim box(2.0);
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
@@ -3420,7 +3436,6 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
 //! Tests balanced particle distribution on CPU
 BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3439,26 +3454,26 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,2.0,3.0));
+    test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,2.0,3.0));
     // triclinic box 1
-    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,0.5,0.6,0.8));
+    test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,0.5,0.6,0.8));
     // triclinic box 1
-    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
     // orthorhombic box
-    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,2.0,3.0));
+    test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,2.0,3.0));
     // triclinic box 1
-    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,0.5,0.6,0.8));
+    test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,0.5,0.6,0.8));
     // triclinic box 1
-    test_communicator_balanced_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
@@ -3471,7 +3486,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // test in a cubic box
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3481,7 +3495,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // triclinic box 1
         {
         BoxDim box(1.0,.1,.2,.3);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3491,7 +3504,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // triclinic box 2
         {
         BoxDim box(1.0,-.6,.7,.5);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3509,7 +3521,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // test in a cubic box
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3519,7 +3530,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // triclinic box 1
         {
         BoxDim box(1.0,.1,.2,.3);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3529,7 +3539,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     // triclinic box 2
         {
         BoxDim box(1.0,-.6,.7,.5);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
@@ -3544,7 +3553,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
@@ -3553,7 +3561,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
@@ -3565,7 +3572,6 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
@@ -3574,7 +3580,6 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
@@ -3583,27 +3588,43 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    test_communicator_ghost_fields(communicator_creator_base, exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghost_layer_width(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    test_communicator_ghost_layer_width(communicator_creator_base, exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghosts_per_type(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
 
+BOOST_AUTO_TEST_SUITE_END()
+
 #ifdef ENABLE_CUDA
+
+// test fixture to initialize exec_conf only once
+struct FxGPU
+    {
+    FxGPU()
+        {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        }
+    ~FxGPU()
+        {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
+        }
+    };
+
+BOOST_FIXTURE_TEST_SUITE(gpu_tests, FxGPU)
 
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     BoxDim box(2.0);
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
@@ -3612,7 +3633,6 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
 //! Tests balanced particle distribution on GPU
 BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3631,26 +3651,26 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
     // orthorhombic box
-    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,2.0,3.0));
+    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0));
     // triclinic box 1
-    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,0.5,0.6,0.8));
+    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,0.5,0.6,0.8));
     // triclinic box 2
-    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
-    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
     // orthorhombic box
-    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,2.0,3.0));
+    test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0));
     // triclinic box 1
-    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,0.5,0.6,0.8));
+    test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,0.5,0.6,0.8));
     // triclinic box 1
-    test_communicator_balanced_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-0.5,0.7,0.3));
+    test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
@@ -3663,7 +3683,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // test in a cubic box
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3673,7 +3692,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // triclinic box 1
         {
         BoxDim box(1.0,.1,.2,.3);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3683,7 +3701,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // triclinic box 2
         {
         BoxDim box(1.0,-.6,.7,.5);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3701,7 +3718,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // test in a cubic box
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3711,7 +3727,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // triclinic box 1
         {
         BoxDim box(1.0,.1,.2,.3);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3721,7 +3736,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     // triclinic box 2
         {
         BoxDim box(1.0,-.6,.7,.5);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
@@ -3736,7 +3750,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
@@ -3745,7 +3758,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
@@ -3757,7 +3769,6 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
@@ -3766,7 +3777,6 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
@@ -3775,19 +3785,19 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    test_communicator_ghost_fields(communicator_creator_gpu, exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghost_layer_width(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    test_communicator_ghost_layer_width(communicator_creator_gpu, exec_conf);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test_GPU )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghosts_per_type(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
 
 BOOST_AUTO_TEST_CASE ( communicator_compare_test )
@@ -3795,12 +3805,12 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
 
+    boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    boost::shared_ptr<ExecutionConfiguration> exec_conf_2 = exec_conf;
+
     // uniform case: compare cpu and gpu
         {
         BoxDim box(2.0);
-
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
@@ -3813,9 +3823,6 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.55; fy[0] = 0.45; fz[0] = 0.7;
 
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
@@ -3827,14 +3834,13 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.5; fy[0] = 0.5; fz[0] = 0.5;
 
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        boost::shared_ptr<ExecutionConfiguration> exec_conf_2(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-
         boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
         boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
     }
+BOOST_AUTO_TEST_SUITE_END()
+
 #endif
 
 #endif //ENABLE_MPI

@@ -83,6 +83,7 @@ set(EXCLUDE_FROM_MPI
     hoomd.util.py
     max_verts.py
     create_shapes.py
+    test_sdf.py
    )
 
 set(MPI_ONLY

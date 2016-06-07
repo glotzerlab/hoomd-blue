@@ -59,7 +59,7 @@ class pair_accept_all (unittest.TestCase):
             p.orientation=(1.0,0.0,0.0,0.0)
 
         del p
-        run(1000)
+        run(100)
 
 
         # verify that all moves are accepted and zero overlaps are registered
@@ -158,7 +158,7 @@ class pair_accept_some(unittest.TestCase):
                 p.type=t
 
             del p
-            run(1000)
+            run(100)
 
             # verify that all moves are accepted and zero overlaps are registered
             number_of_overlaps = self.mc.count_overlaps();
