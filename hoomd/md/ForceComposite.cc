@@ -41,6 +41,7 @@ ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
     m_body_charge.resize(m_pdata->getNTypes());
     m_body_diameter.resize(m_pdata->getNTypes());
 
+    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
     }
 
@@ -157,7 +158,18 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
-        m_d_max_changed[body_typeid] = true;
+
+        // make sure central particle will be communicated
+        for (unsigned int i = 0; i < pos.size(); ++i)
+            {
+            Scalar3 r = pos[i];
+            Scalar d = sqrt(dot(r,r));
+
+            if (d > m_d_max[body_typeid])
+                {
+                m_d_max[body_typeid] = d;
+                }
+            }
 
         // also update diameter on constituent particles
         for (unsigned int i = 0; i < type.size(); ++i)
@@ -217,27 +229,17 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = (body_type == type);
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
-                if (h_body_type.data[i] == type)
+                if (h_body_type.data[m_body_idx(body_type,i)] == type)
                     {
-                    is_part_of_body = true;
-                    break;
-                    }
-                }
+                    Scalar3 r = h_body_pos.data[m_body_idx(body_type,i)];
+                    Scalar d = sqrt(dot(r,r));
 
-            if (! is_part_of_body) continue;
-
-            // compute maximum distance to central particle
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-                {
-                Scalar3 r = h_body_pos.data[m_body_idx(body_type,i)];
-                Scalar d = sqrt(dot(r,r));
-
-                if (d > m_d_max[type])
-                    {
-                    m_d_max[type] = d;
+                    if (d > m_d_max[type])
+                        {
+                        m_d_max[type] = d;
+                        }
                     }
                 }
             }
@@ -472,8 +474,6 @@ void ForceComposite::validateRigidBodies(bool create)
 
                         for (unsigned int j = 0; j < n; ++j)
                             {
-                            // position and orientation will be overwritten during integration, no need to set here
-
                             // set type
                             snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
 

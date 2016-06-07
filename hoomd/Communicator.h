@@ -157,13 +157,13 @@ struct ghost_layer_max
         }
     };
 
-//! Perform a sum reduction on the return values of several signals
-struct ghost_layer_add
+//! Perform a minimum reduction on the return values of several signals
+struct rbuff_min
     {
     //! This is needed by boost::signals2
     typedef Scalar result_type;
 
-    //! Max-reduce return values
+    //! Min-reduce return values
     /*! \param first First return value
         \param last Last return value
      */
@@ -179,7 +179,8 @@ struct ghost_layer_add
         while (first != last)
             {
             assert(*first >= Scalar(0.0));
-            return_value += *first;
+            if (*first < return_value)
+                return_value = *first;
             first++;
             }
 
@@ -297,6 +298,16 @@ class Communicator
             return m_ghost_layer_width_requests.connect(subscriber);
             }
 
+        //! Subscribe to list of functions that request a maximum buffer width
+        /*! This method keeps track of all functions that request a maximum buffer width
+         * The actual ghost layer width is chosen from the max over the inputs
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addRBuffRequest(const boost::function<Scalar ()>& subscriber)
+            {
+            return m_rbuff_requests.connect(subscriber);
+            }
+
         //! Subscribe to list of functions that determine the communication flags
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
@@ -381,6 +392,12 @@ class Communicator
         Scalar getGhostLayerMaxWidth() const
             {
             return m_r_ghost_max;
+            }
+
+        //! Get the current maximum ghost layer width
+        Scalar getMinRBuff() const
+            {
+            return m_r_buff_min;
             }
 
         //! Set the ghost communication flags
@@ -620,6 +637,7 @@ class Communicator
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+        Scalar m_r_buff_min;                     //!< Minimum buffer length
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
 
@@ -636,6 +654,9 @@ class Communicator
 
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
+
+        boost::signals2::signal<Scalar (), rbuff_min>
+            m_rbuff_requests;  //!< List of functions that request a maximum buffer length
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication

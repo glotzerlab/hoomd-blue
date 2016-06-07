@@ -1076,6 +1076,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
+            m_r_buff_min(Scalar(0.0)),
             m_ghosts_added(0),
             m_plan(m_exec_conf),
             m_last_flags(0),
@@ -1485,6 +1486,11 @@ void Communicator::migrateParticles()
 
 void Communicator::updateGhostWidth()
     {
+    if (m_rbuff_requests.num_slots())
+        {
+        m_r_buff_min = m_rbuff_requests();
+        }
+
     if (m_ghost_layer_width_requests.num_slots())
         {
         // update the ghost layer width only if subscribers are available
@@ -1495,10 +1501,10 @@ void Communicator::updateGhostWidth()
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
             Scalar r_ghost_i = m_ghost_layer_width_requests(cur_type);
-            h_r_ghost.data[cur_type] = r_ghost_i;
+            h_r_ghost.data[cur_type] = r_ghost_i + m_r_buff_min;
             if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
             }
-        m_r_ghost_max = r_ghost_max;
+        m_r_ghost_max = r_ghost_max + m_r_buff_min;
         }
     }
 
