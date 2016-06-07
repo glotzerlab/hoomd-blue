@@ -238,6 +238,14 @@ The following people contributed to the :py:mod:`hpmc` package.
     * Wall overlap checks
     * Lattice external potential
 
+DEM developers
+--------------
+
+The following people contributed to the :py:mod:`dem` package.
+
+* Matthew Spellings, University of Michigan - Lead developer
+* Ryan Marson, University of Michigan
+
 Source code
 -----------
 

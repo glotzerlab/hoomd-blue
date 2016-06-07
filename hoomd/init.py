@@ -29,6 +29,69 @@ def is_initialized():
     else:
         return True;
 
+def create_lattice(unitcell, n):
+    R""" Create a lattice.
+
+    Args:
+        unitcell (:py:class:`hoomd.lattice.unitcell`): The unit cell of the lattice.
+        n (list): Number of replicates in each direction.
+
+    :py:func:`create_lattice` take a unit cell and replicates it the requested number of times in each direction.
+    The resulting simulation box is commensurate with the given unit cell. A generic :py:class:`hoomd.lattice.unitcell`
+    may have arbitrary vectors :math:`\vec{a}_1`, :math:`\vec{a}_2`, and :math:`\vec{a}_3`. :py:func:`create_lattice`
+    will rotate the unit cell so that :math:`\vec{a}_1` points in the :math:`x` direction and :math:`\vec{a}_2`
+    is in the :math:`xy` plane so that the lattice may be represented as a HOOMD simulation box.
+
+    When *n* is a single value, the lattice is replicated *n* times in each direction. When *n* is a list, the
+    lattice is replicated *n[0]* times in the :math:`\vec{a}_1` direction, *n[1]* times in the :math:`\vec{a}_2`
+    direction and *n[2]* times in the :math:`\vec{a}_3` direction.
+
+    Examples::
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=1.0),
+                                  n=[2,4,2]);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.bcc(a=1.0),
+                                  n=10);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.sq(a=1.2),
+                                  n=[100,10]);
+
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.hex(a=1.0),
+                                  n=[100,58]);
+    """
+    hoomd.util.print_status_line();
+
+    hoomd.context._verify_init();
+
+    # check if initialization has already occured
+    if is_initialized():
+        hoomd.context.msg.error("Cannot initialize more than once\n");
+        raise RuntimeError("Error initializing");
+
+    hoomd.util.quiet_status();
+
+    snap = unitcell.get_snapshot();
+    try:
+        l = len(n);
+    except TypeError:
+        l = snap.box.dimensions;
+        n = [n]*l;
+
+    if l != snap.box.dimensions:
+        hoomd.context.msg.error("n must have length equal to the number of dimensions in the unit cell\n");
+        raise RuntimeError("Error initializing");
+
+    if snap.box.dimensions == 3:
+        snap.replicate(n[0],n[1],n[2])
+    if snap.box.dimensions == 2:
+        snap.replicate(n[0],n[1],1)
+
+    read_snapshot(snapshot=snap);
+
+    hoomd.util.unquiet_status();
+    return hoomd.data.system_data(hoomd.context.current.system_definition);
+
 def read_getar(filename, modes={'any': 'any'}):
     """Initialize a system from a trajectory archive (.tar, .getar,
     .sqlite) file. Returns a HOOMD `system_data` object.
@@ -106,19 +169,20 @@ def read_getar(filename, modes={'any': 'any'}):
     """
     hoomd.util.print_status_line();
 
-    # initialize GPU/CPU execution configuration and MPI early
     hoomd.context._verify_init();
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd.context.current.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     newModes = _parse_getar_modes(modes);
-
     # read in the data
     initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
     snapshot = initializer.initialize(newModes);
+
+    # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
+    snapshot._broadcast(hoomd.context.exec_conf);
 
     try:
         box = snapshot._global_box;
