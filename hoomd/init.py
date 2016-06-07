@@ -173,14 +173,16 @@ def read_getar(filename, modes={'any': 'any'}):
 
     # check if initialization has already occured
     if is_initialized():
-        hoomd.context.current.msg.error("Cannot initialize more than once\n");
+        hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     newModes = _parse_getar_modes(modes);
-
     # read in the data
     initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
     snapshot = initializer.initialize(newModes);
+
+    # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
+    snapshot._broadcast(hoomd.context.exec_conf);
 
     try:
         box = snapshot._global_box;
