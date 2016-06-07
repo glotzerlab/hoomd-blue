@@ -1179,8 +1179,11 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 //! Destructor
 Communicator::~Communicator()
     {
-    m_exec_conf->msg->notice(5) << "Destroying Communicator";
+    m_exec_conf->msg->notice(5) << "Destroying Communicator" << std::endl;
     m_sort_connection.disconnect();
+    m_ghost_particles_removed_connection.disconnect();
+    m_num_type_change_connection.disconnect();
+
     m_bond_connection.disconnect();
     m_angle_connection.disconnect();
     m_dihedral_connection.disconnect();
@@ -2376,6 +2379,9 @@ void Communicator::removeGhostParticleTags()
     // wipe out reverse-lookup tag -> idx for old ghost atoms
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+
+    m_exec_conf->msg->notice(9) << "Communicator: removing " << m_ghosts_added << " ghost particles " << std::endl;
+
     for (unsigned int i = 0; i < m_ghosts_added; i++)
         {
         unsigned int idx = m_pdata->getN() + i;
