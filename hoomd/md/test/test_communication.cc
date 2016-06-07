@@ -3408,7 +3408,6 @@ boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<Syste
     }
 #endif
 
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 boost::shared_ptr<ExecutionConfiguration> exec_conf;
 
 // test fixture to initialize exec_conf only once
@@ -3416,18 +3415,11 @@ struct Fx
     {
     Fx()
         {
-        if (!exec_conf_cpu)
-            {
-            exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-            exec_conf_cpu = exec_conf;
-            }
-        else
-            {
-            exec_conf = exec_conf_cpu;
-            }
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         }
     ~Fx()
         {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
         }
     };
 
@@ -3615,25 +3607,16 @@ BOOST_AUTO_TEST_SUITE_END()
 
 #ifdef ENABLE_CUDA
 
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
-
 // test fixture to initialize exec_conf only once
 struct FxGPU
     {
     FxGPU()
         {
-        if (!exec_conf_gpu)
-            {
-            exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-            exec_conf_gpu = exec_conf;
-            }
-        else
-            {
-            exec_conf = exec_conf_gpu;
-            }
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         }
     ~FxGPU()
         {
+        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
         }
     };
 
