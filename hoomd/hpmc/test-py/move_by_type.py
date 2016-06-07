@@ -71,7 +71,7 @@ class pair_move_some(unittest.TestCase):
             for t,p in zip(['A']*N_a+['B']*(1000-N_a),self.system.particles):
                 p.type=t
 
-            run(250)
+            run(100)
 
             #check that the B particles haven't moved
             for x,y,z,p in zip(xs,ys,zs,self.system.particles):
@@ -148,7 +148,7 @@ class pair_rot_some(unittest.TestCase):
             for t,p in zip(['A']*N_a+['B']*(1000-N_a),self.system.particles):
                 p.type=t
 
-            run(250)
+            run(100)
 
             #check that B orientations are unchanged
             for p in self.system.particles:

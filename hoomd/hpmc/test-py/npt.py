@@ -32,10 +32,10 @@ class npt_sanity_checks (unittest.TestCase):
 
         run(0)
         self.assertEqual(mc.count_overlaps(), 0)
-        run(10000)
+        run(1000)
         overlaps = 0
-        for i in range(1000):
-            run(10, quiet=True)
+        for i in range(100):
+            run(10)
             overlaps += mc.count_overlaps()
         self.assertEqual(overlaps, 0)
         print(system.box)
@@ -49,7 +49,7 @@ class npt_sanity_checks (unittest.TestCase):
     # The maximum move displacement is set so that the overlap cannot be removed.
     # It then performs an NPT run and ensures that no volume or shear moves were accepted.
     def test_rejects_overlaps(self):
-        system = create_empty(N=2, box=data.boxdim(L=4), particle_types=['A'])
+        system = create_empty(N=2, box=data.boxdim(L=100), particle_types=['A'])
         mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1,max_verts=8)
         npt = hpmc.update.npt(mc, seed=1, P=1000, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.01, dxz=0.01, dyz=0.01)
         mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
@@ -91,45 +91,46 @@ class npt_sanity_checks (unittest.TestCase):
             del system
             context.initialize()
 
-class npt_thermodynamic_tests (unittest.TestCase):
-    # This test checks the NPT updater against the ideal gas equation of state
-    def test_ideal_gas(self):
-        N=100
-        L=2.0
-        nsteps = 1e4
-        nsamples = 1e3
-        sample_period = int(nsteps/nsamples)
-        class accumulator:
-            def __init__(self,nsamples,system):
-                self.volumes = np.empty((nsamples),)
-                self.i = 0
-                self.system = system
-            def callback(self,timestep):
-                if self.i < nsamples:
-                    self.volumes[self.i] = self.system.box.get_volume()
-                self.i += 1
-            def get_volumes(self):
-                return self.volumes[:self.i]
-        system = create_empty(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
-        mc = hpmc.integrate.sphere(seed=1, d=0.0)
-        npt = hpmc.update.npt(mc, seed=1, P=N, dLx=0.2, move_ratio=1.0, isotropic=True)
-        mc.shape_param.set('A', diameter=0.0)
+# this test takes far too long to run for a unit test and should be migrated to a validation test suite
+# class npt_thermodynamic_tests (unittest.TestCase):
+#     # This test checks the NPT updater against the ideal gas equation of state
+#     def test_ideal_gas(self):
+#         N=100
+#         L=2.0
+#         nsteps = 1e4
+#         nsamples = 1e3
+#         sample_period = int(nsteps/nsamples)
+#         class accumulator:
+#             def __init__(self,nsamples,system):
+#                 self.volumes = np.empty((nsamples),)
+#                 self.i = 0
+#                 self.system = system
+#             def callback(self,timestep):
+#                 if self.i < nsamples:
+#                     self.volumes[self.i] = self.system.box.get_volume()
+#                 self.i += 1
+#             def get_volumes(self):
+#                 return self.volumes[:self.i]
+#         system = create_empty(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
+#         mc = hpmc.integrate.sphere(seed=1, d=0.0)
+#         npt = hpmc.update.npt(mc, seed=1, P=N, dLx=0.2, move_ratio=1.0, isotropic=True)
+#         mc.shape_param.set('A', diameter=0.0)
 
-        # place particles
-        positions = np.random.random((N,3))*L - 0.5*L
-        for k in range(N):
-            system.particles[k].position = positions[k]
+#         # place particles
+#         positions = np.random.random((N,3))*L - 0.5*L
+#         for k in range(N):
+#             system.particles[k].position = positions[k]
 
-        my_acc = accumulator(nsamples, system)
-        run(1e5, callback_period=sample_period, callback=my_acc.callback)
-        # for beta P == N the ideal gas law says V must be 1.0. We'll grant 10% error
-        self.assertLess(np.abs(my_acc.get_volumes().mean() - 1.0), 0.1)
+#         my_acc = accumulator(nsamples, system)
+#         run(1e5, callback_period=sample_period, callback=my_acc.callback)
+#         # for beta P == N the ideal gas law says V must be 1.0. We'll grant 10% error
+#         self.assertLess(np.abs(my_acc.get_volumes().mean() - 1.0), 0.1)
 
-        del my_acc
-        del npt
-        del mc
-        del system
-        context.initialize()
+#         del my_acc
+#         del npt
+#         del mc
+#         del system
+#         context.initialize()
 
 
 if __name__ == '__main__':

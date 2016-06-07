@@ -274,8 +274,8 @@ class tune (unittest.TestCase):
         target = 0.8
         #tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.0)
         tuner = hpmc.util.tune(self.mc, tunables=['d'], max_val=[2], target=target, gamma=0.0)
-        for i in range(10):
-                    run(1e3)
+        for i in range(5):
+                    run(2e2)
                     tuner.update()
         acceptance = self.mc.get_translate_acceptance()
         print(acceptance)
@@ -288,8 +288,8 @@ class tune (unittest.TestCase):
         target = 0.8
         #tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.0)
         tuner = hpmc.util.tune(self.mc, tunables=['a'], target=target, gamma=0.0)
-        for i in range(10):
-                    run(1e3)
+        for i in range(5):
+                    run(2e2)
                     tuner.update()
         acceptance = self.mc.get_rotate_acceptance()
         self.assertAlmostEqual(acceptance, target, places=1)
@@ -362,8 +362,8 @@ class tune_extreme (unittest.TestCase):
 
         #tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.0)
         tuner = hpmc.util.tune(self.mc, tunables=['d'], target=target, gamma=0.0)
-        for i in range(10):
-                    run(1e3)
+        for i in range(5):
+                    run(2e2)
                     tuner.update()
         d = self.mc.get_d()
         self.assertGreater(d, minimum)
