@@ -31,6 +31,7 @@ hoomd
    module-hoomd-dump
    module-hoomd-group
    module-hoomd-init
+   module-hoomd-lattice
    module-hoomd-meta
    module-hoomd-option
    module-hoomd-update

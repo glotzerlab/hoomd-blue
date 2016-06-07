@@ -167,6 +167,7 @@ set(files analyze.py
           update.py
           util.py
           variant.py
+          lattice.py
     )
 
 install(FILES ${files}
