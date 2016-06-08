@@ -26,7 +26,7 @@ using namespace std;
 
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+SFCPackUpdater::SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdater" << endl;
@@ -596,8 +596,8 @@ void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector<
 
 void export_SFCPackUpdater()
     {
-    class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
-    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    class_<SFCPackUpdater, std::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
+    ("SFCPackUpdater", init< std::shared_ptr<SystemDefinition> >())
     .def("setGrid", &SFCPackUpdater::setGrid)
     ;
     }

@@ -25,12 +25,12 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! initializes the particle data used by the tests
-boost::shared_ptr<SystemDefinition> create_sysdef()
+std::shared_ptr<SystemDefinition> create_sysdef()
     {
     // initialize a box with 10 particles of 4 groups
     BoxDim box(10.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set the types
     // currently, the position is only set on the first 3 particles, intended for use in the total and center of mass
@@ -88,8 +88,8 @@ boost::shared_ptr<SystemDefinition> create_sysdef()
 //! Checks that ParticleGroup can sucessfully initialize
 BOOST_AUTO_TEST_CASE( ParticleGroup_basic_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create an empty group
     ParticleGroup a;
@@ -103,11 +103,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_basic_test )
 //! Test copy and equals operators
 BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create another particle group of all particles
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     ParticleGroup tags_all(sysdef, selector_all);
     // verify it
     BOOST_CHECK_EQUAL_UINT(tags_all.getNumMembers(), pdata->getN());
@@ -148,10 +148,10 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
 //! Checks that ParticleGroup can sucessfully handle particle resorts
 BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    boost::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
     BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
@@ -225,11 +225,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
 //! Checks that ParticleGroup can initialize by particle type
 BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of type 0 and check it
-    boost::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
     ParticleGroup type0(sysdef, selector0);
     BOOST_REQUIRE_EQUAL_UINT(type0.getNumMembers(), 4);
     BOOST_CHECK_EQUAL_UINT(type0.getIndexArray().getNumElements(), 4);
@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(3), 8);
 
     // create a group of type 1 and check it
-    boost::shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
+    std::shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
     ParticleGroup type1(sysdef, selector1);
     BOOST_REQUIRE_EQUAL_UINT(type1.getNumMembers(), 2);
     BOOST_CHECK_EQUAL_UINT(type1.getIndexArray().getNumElements(), 2);
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     BOOST_CHECK_EQUAL_UINT(type1.getMemberTag(1), 6);
 
     // create a group of type 2 and check it
-    boost::shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
+    std::shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
     ParticleGroup type2(sysdef, selector2);
     BOOST_REQUIRE_EQUAL_UINT(type2.getNumMembers(), 2);
     BOOST_CHECK_EQUAL_UINT(type2.getIndexArray().getNumElements(), 2);
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     BOOST_CHECK_EQUAL_UINT(type2.getMemberTag(1), 7);
 
     // create a group of type 3 and check it
-    boost::shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
+    std::shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
     ParticleGroup type3(sysdef, selector3);
     BOOST_REQUIRE_EQUAL_UINT(type3.getNumMembers(), 2);
     BOOST_CHECK_EQUAL_UINT(type3.getIndexArray().getNumElements(), 2);
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     BOOST_CHECK_EQUAL_UINT(type3.getMemberTag(1), 9);
 
     // create a group of all types and check it
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
     ParticleGroup alltypes(sysdef, selector_all);
     BOOST_REQUIRE_EQUAL_UINT(alltypes.getNumMembers(), 10);
     BOOST_CHECK_EQUAL_UINT(alltypes.getIndexArray().getNumElements(), 10);
@@ -275,11 +275,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
 //! Checks that ParticleGroup can initialize to the empty set
 BOOST_AUTO_TEST_CASE( ParticleGroup_empty_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of type 100 and check it
-    boost::shared_ptr<ParticleSelector> selector100(new ParticleSelectorType(sysdef, 100, 100));
+    std::shared_ptr<ParticleSelector> selector100(new ParticleSelectorType(sysdef, 100, 100));
     ParticleGroup empty(sysdef, selector100);
     BOOST_REQUIRE_EQUAL_UINT(empty.getNumMembers(), 0);
     BOOST_CHECK_EQUAL_UINT(empty.getIndexArray().getNumElements(), 0);
@@ -288,11 +288,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_empty_test )
 //! Checks that ParticleGroup can initialize by particle body
 BOOST_AUTO_TEST_CASE( ParticleGroup_body_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of rigid bodies and check it
-    boost::shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
+    std::shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
     ParticleGroup type_true(sysdef, selector_body_true);
     BOOST_REQUIRE_EQUAL_UINT(type_true.getNumMembers(), 4);
     BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(0), 0);
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_body_test )
     BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(3), 3);
 
     // create a group of non rigid particles and check it
-    boost::shared_ptr<ParticleSelector> selector_body_false(new ParticleSelectorRigid(sysdef, false));
+    std::shared_ptr<ParticleSelector> selector_body_false(new ParticleSelectorRigid(sysdef, false));
     ParticleGroup type_false(sysdef, selector_body_false);
     BOOST_REQUIRE_EQUAL_UINT(type_false.getNumMembers(), 6);
     BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(0), 4);
@@ -315,11 +315,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_body_test )
 //! Checks that ParticleGroup can initialize by particle tag
 BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4 and check it
-    boost::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags05(sysdef, selector04);
     BOOST_REQUIRE_EQUAL_UINT(tags05.getNumMembers(), 5);
     BOOST_CHECK_EQUAL_UINT(tags05.getIndexArray().getNumElements(), 5);
@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(4), 4);
 
     // create a group of tags 5-9 and check it
-    boost::shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
+    std::shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
     ParticleGroup tags59(sysdef, selector59);
     BOOST_REQUIRE_EQUAL_UINT(tags59.getNumMembers(), 5);
     BOOST_CHECK_EQUAL_UINT(tags59.getIndexArray().getNumElements(), 5);
@@ -344,11 +344,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
 //! Checks that ParticleGroup can initialize by cuboid
 BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group containing only particle 0
-    boost::shared_ptr<ParticleSelector> selector0(new ParticleSelectorCuboid(sysdef,
+    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorCuboid(sysdef,
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 0.5,  0.5,  0.5)));
     ParticleGroup tags0(sysdef, selector0);
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
     BOOST_CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
 
     // create a group containing particles 0 and 1
-    boost::shared_ptr<ParticleSelector> selector1(new ParticleSelectorCuboid(sysdef,
+    std::shared_ptr<ParticleSelector> selector1(new ParticleSelectorCuboid(sysdef,
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags1(sysdef, selector1);
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
     BOOST_CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
 
     // create a group containing particles 0, 1 and 2
-    boost::shared_ptr<ParticleSelector> selector2(new ParticleSelectorCuboid(sysdef,
+    std::shared_ptr<ParticleSelector> selector2(new ParticleSelectorCuboid(sysdef,
                                                                       make_scalar3(-1.5, -2.5, -3.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags2(sysdef, selector2);
@@ -381,19 +381,19 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
 //! Checks that the ParticleGroup boolean operation work correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4
-    boost::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
-    boost::shared_ptr<ParticleGroup> tags04(new ParticleGroup(sysdef, selector04));
+    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleGroup> tags04(new ParticleGroup(sysdef, selector04));
 
     // create a group of type 0
-    boost::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
-    boost::shared_ptr<ParticleGroup> type0(new ParticleGroup(sysdef, selector0));
+    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    std::shared_ptr<ParticleGroup> type0(new ParticleGroup(sysdef, selector0));
 
     // make a union of the two groups and check it
-    boost::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
+    std::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
     BOOST_REQUIRE_EQUAL_UINT(union_group->getNumMembers(), 7);
     BOOST_CHECK_EQUAL_UINT(union_group->getIndexArray().getNumElements(), 7);
     BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(0), 0);
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(6), 8);
 
     // make a intersection group and test it
-    boost::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
+    std::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
     BOOST_REQUIRE_EQUAL_UINT(intersection_group->getNumMembers(), 2);
     BOOST_CHECK_EQUAL_UINT(intersection_group->getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(intersection_group->getMemberTag(0), 0);
@@ -415,39 +415,39 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
 //! Checks that the ParticleGroup::getTotalMass works correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_total_mass_tests)
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    ParticleGroup group1(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
+    ParticleGroup group1(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
     MY_BOOST_CHECK_CLOSE(group1.getTotalMass(), 1.0, tol);
 
-    ParticleGroup group2(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
+    ParticleGroup group2(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
     MY_BOOST_CHECK_CLOSE(group2.getTotalMass(), 3.0, tol);
 
-    ParticleGroup group3(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
+    ParticleGroup group3(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
     MY_BOOST_CHECK_CLOSE(group3.getTotalMass(), 8.0, tol);
     }
 
 //! Checks that the ParticleGroup::getCenterOfMass works correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_center_of_mass_tests)
     {
-    boost::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     Scalar3 com;
-    ParticleGroup group1(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
+    ParticleGroup group1(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
     com = group1.getCenterOfMass();
     MY_BOOST_CHECK_SMALL(com.x, tol_small);
     MY_BOOST_CHECK_SMALL(com.y, tol_small);
     MY_BOOST_CHECK_SMALL(com.z, tol_small);
 
-    ParticleGroup group2(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
+    ParticleGroup group2(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
     com = group2.getCenterOfMass();
     MY_BOOST_CHECK_CLOSE(com.x, 7.3333333333, tol);
     MY_BOOST_CHECK_CLOSE(com.y, -5.3333333333, tol);
     MY_BOOST_CHECK_CLOSE(com.z, 15.333333333, tol);
 
-    ParticleGroup group3(sysdef, boost::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
+    ParticleGroup group3(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
     com = group3.getCenterOfMass();
     MY_BOOST_CHECK_CLOSE(com.x, 2.125, tol);
     MY_BOOST_CHECK_CLOSE(com.y, -3.25, tol);

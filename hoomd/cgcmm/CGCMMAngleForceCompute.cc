@@ -28,7 +28,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+CGCMMAngleForceCompute::CGCMMAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing CGCMMAngleForceCompute" << endl;
@@ -376,8 +376,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_CGCMMAngleForceCompute()
     {
-    class_<CGCMMAngleForceCompute, boost::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("CGCMMAngleForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<CGCMMAngleForceCompute, std::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("CGCMMAngleForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &CGCMMAngleForceCompute::setParams)
     ;
     }

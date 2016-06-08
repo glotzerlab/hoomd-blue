@@ -27,16 +27,16 @@ using namespace boost;
 */
 
 //! Typedef'd TablePotential factory
-typedef boost::function<boost::shared_ptr<TablePotential> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<NeighborList> nlist,
+typedef boost::function<std::shared_ptr<TablePotential> (std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<NeighborList> nlist,
                                                     unsigned int width)> table_potential_creator;
 
 //! performs some really basic checks on the TablePotential class
-void table_potential_basic_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void table_potential_basic_test(table_potential_creator table_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -44,8 +44,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(7.0), Scalar(0.8)));
-    boost::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    std::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
 
     // first check for proper initialization by seeing if the force and potential come out to be 0
     fc_2->compute(0);
@@ -223,11 +223,11 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     }
 
 //! checks to see if TablePotential correctly handles multiple types
-void table_potential_type_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void table_potential_type_test(table_potential_creator table_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -237,8 +237,8 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
     }
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
-    boost::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
+    std::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
 
     // specify a table to interpolate
     vector<Scalar> V, F;
@@ -305,21 +305,21 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     }
 
 //! TablePotential creator for unit tests
-boost::shared_ptr<TablePotential> base_class_table_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<NeighborList> nlist,
+std::shared_ptr<TablePotential> base_class_table_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<NeighborList> nlist,
                                                     unsigned int width)
     {
-    return boost::shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
+    return std::shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
     }
 
 #ifdef ENABLE_CUDA
 //! TablePotentialGPU creator for unit tests
-boost::shared_ptr<TablePotential> gpu_table_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                             boost::shared_ptr<NeighborList> nlist,
+std::shared_ptr<TablePotential> gpu_table_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                             std::shared_ptr<NeighborList> nlist,
                                              unsigned int width)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<TablePotentialGPU> table(new TablePotentialGPU(sysdef, nlist, width));
+    std::shared_ptr<TablePotentialGPU> table(new TablePotentialGPU(sysdef, nlist, width));
     return table;
     }
 #endif
@@ -329,14 +329,14 @@ boost::shared_ptr<TablePotential> gpu_table_creator(boost::shared_ptr<SystemDefi
 BOOST_AUTO_TEST_CASE( TablePotential_basic )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
-    table_potential_basic_test(table_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    table_potential_basic_test(table_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for type test on CPU
 BOOST_AUTO_TEST_CASE( TablePotential_type )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
-    table_potential_type_test(table_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    table_potential_type_test(table_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -344,13 +344,13 @@ BOOST_AUTO_TEST_CASE( TablePotential_type )
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_basic )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
-    table_potential_basic_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    table_potential_basic_test(table_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for type test on GPU
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
-    table_potential_type_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    table_potential_type_test(table_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

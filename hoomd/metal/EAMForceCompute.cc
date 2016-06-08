@@ -20,7 +20,7 @@ using namespace std;
     \param filename Name of EAM potential file to load
     \param type_of_file Undocumented parameter
 */
-EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
@@ -488,7 +488,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(flops, mem_transfer);
     }
 
-void EAMForceCompute::set_neighbor_list(boost::shared_ptr<NeighborList> nlist)
+void EAMForceCompute::set_neighbor_list(std::shared_ptr<NeighborList> nlist)
     {
     m_nlist = nlist;
     assert(m_nlist);
@@ -499,8 +499,8 @@ Scalar EAMForceCompute::get_r_cut()
     }
 void export_EAMForceCompute()
     {
-    scope in_eam = class_<EAMForceCompute, boost::shared_ptr<EAMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("EAMForceCompute", init< boost::shared_ptr<SystemDefinition>, char*, int>())
+    scope in_eam = class_<EAMForceCompute, std::shared_ptr<EAMForceCompute>, bases<ForceCompute>, boost::noncopyable >
+        ("EAMForceCompute", init< std::shared_ptr<SystemDefinition>, char*, int>())
 
     .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
     .def("get_r_cut", &EAMForceCompute::get_r_cut)

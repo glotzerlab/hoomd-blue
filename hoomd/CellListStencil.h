@@ -42,7 +42,7 @@ class CellListStencil : public Compute
     {
     public:
         //! Constructor
-        CellListStencil(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<CellList> cl);
+        CellListStencil(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<CellList> cl);
 
         //! Destructor
         virtual ~CellListStencil();
@@ -90,7 +90,7 @@ class CellListStencil : public Compute
         virtual bool shouldCompute(unsigned int timestep);
 
     private:
-        boost::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
+        std::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
         std::vector<Scalar> m_rstencil;                 //!< Per-type radius to stencil
 
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types

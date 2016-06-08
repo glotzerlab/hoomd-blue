@@ -52,7 +52,7 @@ class HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+        HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          const std::string &fname,
                          bool wrap_coordinates = false);
 
@@ -63,7 +63,7 @@ class HOOMDInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
+        virtual std::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! simple vec for storing particle data
         struct vec
@@ -197,7 +197,7 @@ class HOOMDInitializer
         std::vector<Scalar4> m_angmom;               //!< Angular momenta
         std::string m_xml_version;                  //!< Version of XML file
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         bool m_wrap;                                     //!< If true, wrap input coordinates into box
     };
 

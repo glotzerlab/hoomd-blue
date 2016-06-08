@@ -32,11 +32,11 @@ class TwoStepNVTMTKGPU : public TwoStepNVTMTK
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
-                      boost::shared_ptr<ComputeThermo> thermo,
+        TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ComputeThermo> thermo,
                       Scalar tau,
-                      boost::shared_ptr<Variant> T,
+                      std::shared_ptr<Variant> T,
                       const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTMTKGPU() {};
 

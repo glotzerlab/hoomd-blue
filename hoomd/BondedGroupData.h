@@ -31,7 +31,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #endif
 
 #include <boost/signals2.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
@@ -224,11 +224,11 @@ class BondedGroupData : boost::noncopyable
             };
 
         //! Constructor for empty BondedGroupData
-        BondedGroupData(boost::shared_ptr<ParticleData> pdata,
+        BondedGroupData(std::shared_ptr<ParticleData> pdata,
             unsigned int n_group_types);
 
         //! Constructor to initialize from a snapshot
-        BondedGroupData(boost::shared_ptr<ParticleData> pdata,
+        BondedGroupData(std::shared_ptr<ParticleData> pdata,
             const Snapshot& snapshot);
 
         virtual ~BondedGroupData();
@@ -554,7 +554,7 @@ class BondedGroupData : boost::noncopyable
         //! Set the profiler
         /*! \param prof The profiler
          */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
             }
@@ -600,8 +600,8 @@ class BondedGroupData : boost::noncopyable
         void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
         #endif
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
-        boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
+        std::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
 
         GPUVector<members_t> m_groups;               //!< List of groups
         GPUVector<typeval_t> m_group_typeval;        //!< List of group types/constraint values
@@ -633,7 +633,7 @@ class BondedGroupData : boost::noncopyable
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
         GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
         bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
-        boost::shared_ptr<Profiler> m_prof;          //!< Profiler
+        std::shared_ptr<Profiler> m_prof;          //!< Profiler
 
     private:
         bool m_groups_dirty;                         //!< Is it necessary to rebuild the lookup-by-index table?

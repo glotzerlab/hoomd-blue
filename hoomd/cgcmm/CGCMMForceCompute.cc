@@ -19,8 +19,8 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters ljX are set to 0.0
 */
-CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                                     boost::shared_ptr<NeighborList> nlist,
+CGCMMForceCompute::CGCMMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<NeighborList> nlist,
                                      Scalar r_cut)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
     {
@@ -349,8 +349,8 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 
 void export_CGCMMForceCompute()
     {
-    class_<CGCMMForceCompute, boost::shared_ptr<CGCMMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("CGCMMForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+    class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("CGCMMForceCompute", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setParams", &CGCMMForceCompute::setParams)
     ;
     }

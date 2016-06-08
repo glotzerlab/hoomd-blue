@@ -26,14 +26,14 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     {
     public:
         //! Constructor
-        UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+        UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
             unsigned int seed,
             unsigned int npartition);
 
     protected:
         boost::random::poisson_distribution<unsigned int, Scalar> m_poisson;   //!< Poisson distribution
-        boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
+        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
@@ -137,9 +137,9 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 */
 template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name)
     {
-    boost::python::class_< UpdaterMuVTImplicit<Shape>, boost::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> >, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-            boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
+    boost::python::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> >, boost::noncopyable >
+          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+            std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
           ;
     }
 
@@ -150,8 +150,8 @@ template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
 template<class Shape>
-UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
+UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
     unsigned int seed,
     unsigned int npartition)
     : UpdaterMuVT<Shape>(sysdef, mc_implicit,seed,npartition), m_mc_implicit(mc_implicit)

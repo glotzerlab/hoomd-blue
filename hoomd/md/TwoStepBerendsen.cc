@@ -26,11 +26,11 @@ using namespace boost::python;
     \param tau Berendsen time constant
     \param T Temperature set point
 */
-TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
-                                   boost::shared_ptr<ComputeThermo> thermo,
+TwoStepBerendsen::TwoStepBerendsen(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
+                                   std::shared_ptr<ComputeThermo> thermo,
                                    Scalar tau,
-                                   boost::shared_ptr<Variant> T)
+                                   std::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
       m_warned_aniso(false)
     {
@@ -149,12 +149,12 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
 void export_Berendsen()
     {
-    class_<TwoStepBerendsen, boost::shared_ptr<TwoStepBerendsen>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-    ("TwoStepBerendsen", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         boost::shared_ptr<ComputeThermo>,
+    class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
+    ("TwoStepBerendsen", init< std::shared_ptr<SystemDefinition>,
+                         std::shared_ptr<ParticleGroup>,
+                         std::shared_ptr<ComputeThermo>,
                          Scalar,
-                         boost::shared_ptr<Variant>
+                         std::shared_ptr<Variant>
                          >())
         .def("setT", &TwoStepBerendsen::setT)
         .def("setTau", &TwoStepBerendsen::setTau)

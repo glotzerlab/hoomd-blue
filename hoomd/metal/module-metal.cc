@@ -27,10 +27,10 @@ BOOST_PYTHON_MODULE(_cgcmm)
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
 
-    register_ptr_to_python< boost::shared_ptr< EAMForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< EAMForceCompute > >();
 
     #ifdef ENABLE_CUDA
-    register_ptr_to_python< boost::shared_ptr< EAMForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< EAMForceComputeGPU > >();
     #endif
 
     #endif

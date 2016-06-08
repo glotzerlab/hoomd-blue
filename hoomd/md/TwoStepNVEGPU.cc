@@ -23,8 +23,8 @@ using namespace std;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
 */
-TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group)
+TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group)
     : TwoStepNVE(sysdef, group)
     {
     // only one GPU is supported
@@ -173,7 +173,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVEGPU()
     {
-    class_<TwoStepNVEGPU, boost::shared_ptr<TwoStepNVEGPU>, bases<TwoStepNVE>, boost::noncopyable>
-        ("TwoStepNVEGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+    class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU>, bases<TwoStepNVE>, boost::noncopyable>
+        ("TwoStepNVEGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         ;
     }

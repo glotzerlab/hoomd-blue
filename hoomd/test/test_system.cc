@@ -34,7 +34,7 @@ class DummyAnalyzer : public Analyzer
     {
     public:
         //! Constructs a named analyzer
-        DummyAnalyzer(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyAnalyzer(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Analyzer(sysdef), m_name(name)
             {
             }
@@ -59,7 +59,7 @@ class DummyUpdater : public Integrator
         // this derives from Integrator so the unit tests can use them in setIntegrator
     public:
         //! Constructs a named analyzer
-        DummyUpdater(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyUpdater(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Integrator(sysdef, 0.0), m_name(name)
             {
             }
@@ -83,7 +83,7 @@ class DummyCompute : public Compute
     {
     public:
         //! Constructs a named analyzer
-        DummyCompute(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyCompute(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Compute(sysdef), m_name(name)
             {
             }
@@ -105,13 +105,13 @@ class DummyCompute : public Compute
 //! Tests the add, get, and set routines in System
 BOOST_AUTO_TEST_CASE( getter_setter_tests )
     {
-    boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
+    std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
 
     cout << "Running getter_setter_tests, expect error messages to be printed to the screen as this tests error checking in System" << endl;
 
     // create two analyzers to test adding
-    boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
-    boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+    std::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
+    std::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
 
     // add them both to a System
     System sys(sysdef, 0);
@@ -191,8 +191,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     // ************ Updaters
     // create two updaters to test adding
-    boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
-    boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
+    std::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
+    std::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
 
     // add them both to a System
     sys.addUpdater(updater1, "updater1", 10, -1);
@@ -271,8 +271,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     // ********* Computes
     // create two updaters to test adding
-    boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
-    boost::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
+    std::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
+    std::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
 
     // add them both to a System
     sys.addCompute(compute1, "compute1");
@@ -331,8 +331,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     BOOST_CHECK(except);
 
     // ************ Integrator
-    boost::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
-    boost::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
+    std::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
+    std::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
 
     sys.setIntegrator(integrator1);
     BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator1);
@@ -356,11 +356,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     #endif
 
     // setup the system to run
-    boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
+    std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
         // create two analyzers to test adding
-    boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
-    boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
-    boost::shared_ptr< Analyzer > analyzer3(new DummyAnalyzer(pdata, "analyzer3"));
+    std::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
+    std::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+    std::shared_ptr< Analyzer > analyzer3(new DummyAnalyzer(pdata, "analyzer3"));
 
     // add them both to a System
     System sys(sysdef, 0);
@@ -371,9 +371,9 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     sys.setAnalyzerPeriodVariable("analyzer3", eval("lambda n: n**2"));
 
     // create two updaters to test adding
-    boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
-    boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
-    boost::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
+    std::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
+    std::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
+    std::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
 
     // add them both to a System
     sys.addUpdater(updater1, "updater1", 5, -1);
@@ -383,15 +383,15 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     sys.setUpdaterPeriodVariable("updater3", eval("lambda n: 0.5 * 10**n"));
 
     // create two updaters to test adding
-    boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
-    boost::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
+    std::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
+    std::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
 
     // add them both to a System
     sys.addCompute(compute1, "compute1");
     sys.addCompute(compute2, "compute2");
 
     // create an integrator and add it to the system
-    boost::shared_ptr< Integrator > integrator(new DummyUpdater(sysdef, "integrator"));
+    std::shared_ptr< Integrator > integrator(new DummyUpdater(sysdef, "integrator"));
     sys.setIntegrator(integrator);
 
     cout << "First run: no profiling, statsPeriod = 10 s" << endl;

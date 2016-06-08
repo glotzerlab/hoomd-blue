@@ -20,7 +20,7 @@
 
 #include <string>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 //! Calls a python functor object
 /*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.
@@ -32,7 +32,7 @@ class CallbackAnalyzer : public Analyzer
     {
     public:
         //! Construct the callback analyzer
-        CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
+        CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
                     boost::python::object callback);
 
         //! Destructor

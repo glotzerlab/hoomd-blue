@@ -28,13 +28,13 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo_group,
-                   boost::shared_ptr<ComputeThermo> thermo_group_t,
+        TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo_group,
+                   std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
-                   boost::shared_ptr<Variant> T,
+                   std::shared_ptr<Variant> T,
                    boost::python::list S,
                    couplingMode couple,
                    unsigned int flags,

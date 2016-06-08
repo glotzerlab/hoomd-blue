@@ -23,7 +23,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TableDihedralForceCompute(sysdef, table_width, log_suffix)
@@ -103,9 +103,9 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableDihedralForceComputeGPU()
     {
-    class_<TableDihedralForceComputeGPU, boost::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute>, boost::noncopyable >
+    class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute>, boost::noncopyable >
     ("TableDihedralForceComputeGPU",
-     init< boost::shared_ptr<SystemDefinition>,
+     init< std::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
     ;

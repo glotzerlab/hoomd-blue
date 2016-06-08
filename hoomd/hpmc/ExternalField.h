@@ -21,7 +21,7 @@ namespace hpmc
 class ExternalField : public Compute
     {
     public:
-        ExternalField(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) {}
+        ExternalField(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) {}
         /*! calculateBoltzmannWeight(unsigned int timestep)
             method used to calculate the boltzmann weight contribution for the
             external field of the entire system. This is used to interface with
@@ -53,7 +53,7 @@ template< class Shape >
 class ExternalFieldMono : public ExternalField
     {
     public:
-        ExternalFieldMono(boost::shared_ptr<SystemDefinition> sysdef) : ExternalField(sysdef) {}
+        ExternalFieldMono(std::shared_ptr<SystemDefinition> sysdef) : ExternalField(sysdef) {}
 
         ~ExternalFieldMono(){}
 
@@ -78,7 +78,7 @@ class ExternalFieldMonoWrap : public ExternalFieldMono<Shape>, public boost::pyt
     {
     public:
         //! Constructor
-        ExternalFieldMonoWrap(boost::shared_ptr<SystemDefinition> sysdef) :  ExternalFieldMono<Shape>(sysdef) { }
+        ExternalFieldMonoWrap(std::shared_ptr<SystemDefinition> sysdef) :  ExternalFieldMono<Shape>(sysdef) { }
         //! wrap the abstract method.
         void compute(unsigned int timestep)
             {
@@ -109,8 +109,8 @@ class ExternalFieldMonoWrap : public ExternalFieldMono<Shape>, public boost::pyt
 template<class Shape>
 void export_ExternalFieldInterface(std::string name)
     {
-    class_< ExternalFieldMonoWrap<Shape>, boost::shared_ptr< ExternalFieldMonoWrap<Shape> >, boost::noncopyable >
-    ((name + "Interface").c_str(), init< boost::shared_ptr<SystemDefinition> >());
+    class_< ExternalFieldMonoWrap<Shape>, std::shared_ptr< ExternalFieldMonoWrap<Shape> >, boost::noncopyable >
+    ((name + "Interface").c_str(), init< std::shared_ptr<SystemDefinition> >());
     }
 
 } // end namespace hpmc

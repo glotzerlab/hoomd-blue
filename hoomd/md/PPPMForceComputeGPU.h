@@ -30,9 +30,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
     {
     public:
         //! Constructor
-        PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
-            boost::shared_ptr<ParticleGroup> group);
+        PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
+            std::shared_ptr<ParticleGroup> group);
         virtual ~PPPMForceComputeGPU();
 
         //! Set autotuner parameters
@@ -94,8 +94,8 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
         #ifdef ENABLE_MPI
         typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
-        boost::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
-        boost::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
 
         dfft_plan m_dfft_plan_forward;     //!< Forward distributed FFT
         dfft_plan m_dfft_plan_inverse;     //!< Forward distributed FFT

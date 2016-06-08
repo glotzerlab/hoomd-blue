@@ -7,7 +7,7 @@
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ConstForceCompute.h
     \brief Declares a class for computing constant forces
@@ -27,8 +27,8 @@ class ConstForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
-        ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
 
         //! Destructor
         ~ConstForceCompute();
@@ -40,7 +40,7 @@ class ConstForceCompute : public ForceCompute
         void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz);
 
         //! Set force for a particle group
-        void setGroupForce(boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        void setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
 
     protected:
 
@@ -57,7 +57,7 @@ class ConstForceCompute : public ForceCompute
         Scalar m_fz; //!< Constant force in z-direction
 
         //! Group of particles to apply force to
-        boost::shared_ptr<ParticleGroup> m_group;
+        std::shared_ptr<ParticleGroup> m_group;
     };
 
 //! Exports the ConstForceComputeClass to python

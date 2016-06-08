@@ -25,8 +25,8 @@ using namespace boost::python;
 
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<ParticleGroup> group,
+FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef,
+                                         std::shared_ptr<ParticleGroup> group,
                                          Scalar dt,
                                          bool reset_and_create_integrator)
     :   IntegratorTwoStep(sysdef, dt),
@@ -51,7 +51,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         {
         reset();
         //createIntegrator();
-        boost::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
+        std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
         addIntegrationMethod(integrator);
         setDeltaT(m_deltaT_set);
         }
@@ -64,9 +64,9 @@ FIREEnergyMinimizer::~FIREEnergyMinimizer()
 
 //void FIREEnergyMinimizer::createIntegrator()
 //    {
-//    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
-//    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
-//    boost::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(m_sysdef, group_all));
+//    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
+//    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
+//    std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(m_sysdef, group_all));
 //    addIntegrationMethod(integrator);
 //    setDeltaT(m_deltaT);
 //    }
@@ -260,8 +260,8 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
 void export_FIREEnergyMinimizer()
     {
-    class_<FIREEnergyMinimizer, boost::shared_ptr<FIREEnergyMinimizer>, bases<IntegratorTwoStep>, boost::noncopyable>
-        ("FIREEnergyMinimizer", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
+    class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer>, bases<IntegratorTwoStep>, boost::noncopyable>
+        ("FIREEnergyMinimizer", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)

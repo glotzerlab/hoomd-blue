@@ -29,12 +29,12 @@ using namespace boost;
     The GSDReader constructor opens the GSD file, initializes an empty snapshot, and reads the file into
     memory (on the root rank).
 */
-GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                      const std::string &name,
                      const uint64_t frame)
     : m_exec_conf(exec_conf), m_timestep(0), m_name(name), m_frame(frame)
     {
-    m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
+    m_snapshot = std::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
 
     #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
@@ -345,7 +345,7 @@ void GSDReader::readTopology()
 
 void export_GSDReader()
     {
-    class_< GSDReader >("GSDReader", init<boost::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
+    class_< GSDReader >("GSDReader", init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     ;

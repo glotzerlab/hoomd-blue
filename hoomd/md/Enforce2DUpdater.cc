@@ -21,7 +21,7 @@ using namespace std;
 
 /*! \param sysdef System to zero the momentum of
 */
-Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+Enforce2DUpdater::Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing Enforce2DUpdater" << endl;
@@ -64,7 +64,7 @@ void Enforce2DUpdater::update(unsigned int timestep)
 
 void export_Enforce2DUpdater()
     {
-    class_<Enforce2DUpdater, boost::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
-    ("Enforce2DUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    class_<Enforce2DUpdater, std::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
+    ("Enforce2DUpdater", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

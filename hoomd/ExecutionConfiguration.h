@@ -12,7 +12,7 @@
 
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
@@ -71,7 +71,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            int gpu_id=-1,
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>(),
+                           std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
                            unsigned int n_ranks = 0);
 
     ~ExecutionConfiguration();
@@ -93,7 +93,7 @@ struct ExecutionConfiguration : boost::noncopyable
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
-    boost::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
+    std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
     bool isCUDAEnabled() const

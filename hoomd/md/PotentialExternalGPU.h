@@ -4,7 +4,7 @@
 
 // Maintainer: jglaser
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
@@ -29,7 +29,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
         //! Constructs the compute
-        PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
                              const std::string& log_suffix="");
 
         //! Set autotuner parameters
@@ -55,7 +55,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     \param sysdef system definition
  */
 template<class evaluator>
-PotentialExternalGPU<evaluator>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
@@ -125,15 +125,15 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 template < class T, class base >
 void export_PotentialExternalGPU(const std::string& name)
     {
-    boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
+    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
+                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< std::shared_ptr<T> >();
     #endif
     }
 

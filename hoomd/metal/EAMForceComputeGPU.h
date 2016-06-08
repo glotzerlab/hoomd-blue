@@ -6,7 +6,7 @@
 #include "EAMForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file EAMForceComputeGPU.h
     \brief Declares the class EAMForceComputeGPU
@@ -26,7 +26,7 @@ class EAMForceComputeGPU : public EAMForceCompute
     {
     public:
         //! Constructs the compute
-        EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+        EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
         //! Destructor
         virtual ~EAMForceComputeGPU();

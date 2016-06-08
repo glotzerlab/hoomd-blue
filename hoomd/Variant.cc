@@ -93,12 +93,12 @@ double VariantLinear::getValue(unsigned int timestep)
 
 void export_Variant()
     {
-    class_<Variant, boost::shared_ptr<Variant> >("Variant", init< >())
+    class_<Variant, std::shared_ptr<Variant> >("Variant", init< >())
     .def("getValue", &Variant::getValue)
     .def("setOffset", &Variant::setOffset);
 
-    class_<VariantConst, boost::shared_ptr<VariantConst>, bases<Variant> >("VariantConst", init< double >());
+    class_<VariantConst, std::shared_ptr<VariantConst>, bases<Variant> >("VariantConst", init< double >());
 
-    class_<VariantLinear, boost::shared_ptr<VariantLinear>, bases<Variant> >("VariantLinear", init< >())
+    class_<VariantLinear, std::shared_ptr<VariantLinear>, bases<Variant> >("VariantLinear", init< >())
     .def("setPoint", &VariantLinear::setPoint);
     }

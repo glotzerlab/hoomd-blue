@@ -29,7 +29,7 @@ class TableDihedralForceComputeGPU : public TableDihedralForceCompute
     {
     public:
         //! Constructs the compute
-        TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int table_width,
                           const std::string& log_suffix="");
 

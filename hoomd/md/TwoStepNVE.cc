@@ -22,8 +22,8 @@ using namespace boost::python;
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
 */
-TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
+TwoStepNVE::TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
                        bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
@@ -341,8 +341,8 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVE()
     {
-    class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, bool >())
+    class_<TwoStepNVE, std::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
+        ("TwoStepNVE", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
         .def("setZeroForce", &TwoStepNVE::setZeroForce)

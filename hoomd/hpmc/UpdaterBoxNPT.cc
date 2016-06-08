@@ -15,9 +15,9 @@ using namespace std;
 namespace hpmc
 {
 
-UpdaterBoxNPT::UpdaterBoxNPT(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMC> mc,
-                             boost::shared_ptr<Variant> P,
+UpdaterBoxNPT::UpdaterBoxNPT(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMC> mc,
+                             std::shared_ptr<Variant> P,
                              Scalar dLx,
                              Scalar dLy,
                              Scalar dLz,
@@ -640,10 +640,10 @@ hpmc_npt_counters_t UpdaterBoxNPT::getCounters(unsigned int mode)
 
 void export_UpdaterBoxNPT()
     {
-    class_< UpdaterBoxNPT, boost::shared_ptr< UpdaterBoxNPT >, bases<Updater>, boost::noncopyable>
-    ("UpdaterBoxNPT", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<IntegratorHPMC>,
-                         boost::shared_ptr<Variant>,
+    class_< UpdaterBoxNPT, std::shared_ptr< UpdaterBoxNPT >, bases<Updater>, boost::noncopyable>
+    ("UpdaterBoxNPT", init< std::shared_ptr<SystemDefinition>,
+                         std::shared_ptr<IntegratorHPMC>,
+                         std::shared_ptr<Variant>,
                          Scalar,
                          Scalar,
                          Scalar,

@@ -28,7 +28,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicAngleForceCompute::HarmonicAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     :  ForceCompute(sysdef), m_K(NULL), m_t_0(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicAngleForceCompute" << endl;
@@ -279,8 +279,8 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceCompute()
     {
-    class_<HarmonicAngleForceCompute, boost::shared_ptr<HarmonicAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("HarmonicAngleForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("HarmonicAngleForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicAngleForceCompute::setParams)
     ;
     }

@@ -58,7 +58,7 @@ class Autotuner
                   unsigned int nsamples,
                   unsigned int period,
                   const std::string& name,
-                  boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+                  std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
         //! Constructor with implicit range
         Autotuner(unsigned int start,
@@ -67,7 +67,7 @@ class Autotuner
                   unsigned int nsamples,
                   unsigned int period,
                   const std::string& name,
-                  boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+                  std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
         //! Destructor
         ~Autotuner();
@@ -191,7 +191,7 @@ class Autotuner
         std::vector< std::vector< float > > m_samples;  //!< Raw sample data for each element
         std::vector< float > m_sample_median;           //!< Current sample median for each element
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
         #ifdef ENABLE_CUDA
         cudaEvent_t m_start;      //!< CUDA event for recording start times

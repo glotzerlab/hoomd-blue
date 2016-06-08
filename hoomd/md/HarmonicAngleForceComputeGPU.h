@@ -7,7 +7,7 @@
 #include "HarmonicAngleForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file HarmonicAngleForceComputeGPU.h
@@ -37,7 +37,7 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~HarmonicAngleForceComputeGPU();
 

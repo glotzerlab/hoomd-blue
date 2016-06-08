@@ -6,7 +6,7 @@
 
 namespace getardump{
 
-    using boost::shared_ptr;
+    using std::shared_ptr;
     using std::auto_ptr;
     using std::endl;
     using std::vector;
@@ -1097,7 +1097,7 @@ namespace getardump{
             .def("getTimestep", &GetarInitializer::getTimestep)
             ;
 
-        // register_ptr_to_python<boost::shared_ptr<GetarInitializer> >();
+        // register_ptr_to_python<std::shared_ptr<GetarInitializer> >();
         }
 
 }

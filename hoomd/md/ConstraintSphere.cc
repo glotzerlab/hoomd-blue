@@ -23,8 +23,8 @@ using namespace std;
     \param P position of the sphere
     \param r radius of the sphere
 */
-ConstraintSphere::ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
+ConstraintSphere::ConstraintSphere(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
                                    Scalar3 P,
                                    Scalar r)
         : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
@@ -187,9 +187,9 @@ void ConstraintSphere::validate()
 
 void export_ConstraintSphere()
     {
-    class_< ConstraintSphere, boost::shared_ptr<ConstraintSphere>, bases<ForceConstraint>, boost::noncopyable >
-    ("ConstraintSphere", init< boost::shared_ptr<SystemDefinition>,
-                                                 boost::shared_ptr<ParticleGroup>,
+    class_< ConstraintSphere, std::shared_ptr<ConstraintSphere>, bases<ForceConstraint>, boost::noncopyable >
+    ("ConstraintSphere", init< std::shared_ptr<SystemDefinition>,
+                                                 std::shared_ptr<ParticleGroup>,
                                                  Scalar3,
                                                  Scalar >())
     .def("setSphere", &ConstraintSphere::setSphere)

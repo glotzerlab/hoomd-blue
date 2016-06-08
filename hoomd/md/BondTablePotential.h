@@ -8,7 +8,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file BondTablePotential.h
     \brief Declares the BondTablePotential class
@@ -52,7 +52,7 @@ class BondTablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute
-        BondTablePotential(boost::shared_ptr<SystemDefinition> sysdef,
+        BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int table_width,
                        const std::string& log_suffix="");
 
@@ -86,7 +86,7 @@ class BondTablePotential : public ForceCompute
         #endif
 
     protected:
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
+        std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table

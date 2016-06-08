@@ -23,7 +23,7 @@ class ForceCompositeGPU : public ForceComposite
     {
     public:
         //! Constructs the compute
-        ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompositeGPU();

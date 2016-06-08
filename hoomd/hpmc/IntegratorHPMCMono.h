@@ -124,7 +124,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                       unsigned int seed);
 
         virtual ~IntegratorHPMCMono()
@@ -149,7 +149,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void setParam(unsigned int typ, const param_type& param);
 
         //! Set the external field for the integrator
-        void setExternalField(boost::shared_ptr< ExternalFieldMono<Shape> > external)
+        void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
             {
             m_external = external;
             this->m_external_base = (ExternalField*)external.get();
@@ -252,7 +252,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
-        boost::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
+        std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
         detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
@@ -292,7 +292,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                                                    unsigned int seed)
             : IntegratorHPMC(sysdef, seed),
               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
@@ -1068,8 +1068,8 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
 */
 template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
     {
-    boost::python::class_< IntegratorHPMCMono<Shape>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    boost::python::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC>, boost::noncopyable >
+          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           ;

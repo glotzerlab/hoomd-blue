@@ -22,7 +22,7 @@ using namespace std;
 
 /*! \param sysdef System to compute angle forces on
 */
-CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : CGCMMAngleForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -149,7 +149,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CGCMMAngleForceComputeGPU()
     {
-    class_<CGCMMAngleForceComputeGPU, boost::shared_ptr<CGCMMAngleForceComputeGPU>, bases<CGCMMAngleForceCompute>, boost::noncopyable >
-    ("CGCMMAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<CGCMMAngleForceComputeGPU, std::shared_ptr<CGCMMAngleForceComputeGPU>, bases<CGCMMAngleForceCompute>, boost::noncopyable >
+    ("CGCMMAngleForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

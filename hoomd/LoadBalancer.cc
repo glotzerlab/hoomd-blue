@@ -30,8 +30,8 @@ using namespace std;
  * \param sysdef System definition
  * \param decomposition Domain decomposition
  */
-LoadBalancer::LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<DomainDecomposition> decomposition)
+LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<DomainDecomposition> decomposition)
         : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
           m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
           m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
@@ -572,8 +572,8 @@ void LoadBalancer::resetStats()
 
 void export_LoadBalancer()
     {
-    class_<LoadBalancer, boost::shared_ptr<LoadBalancer>, bases<Updater>, boost::noncopyable>
-    ("LoadBalancer", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<DomainDecomposition> >())
+    class_<LoadBalancer, std::shared_ptr<LoadBalancer>, bases<Updater>, boost::noncopyable>
+    ("LoadBalancer", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
     .def("enableDimension", &LoadBalancer::enableDimension)
     .def("getTolerance", &LoadBalancer::getTolerance)
     .def("setTolerance", &LoadBalancer::setTolerance)

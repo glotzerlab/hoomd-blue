@@ -25,8 +25,8 @@ using namespace std;
     \param rz radius of the Ellipsoid in the Z direction
     NOTE: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
 */
-ConstraintEllipsoid::ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
+ConstraintEllipsoid::ConstraintEllipsoid(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
                                    Scalar3 P,
                                    Scalar rx,
                                    Scalar ry,
@@ -151,9 +151,9 @@ void ConstraintEllipsoid::validate()
 
 void export_ConstraintEllipsoid()
     {
-    class_< ConstraintEllipsoid, boost::shared_ptr<ConstraintEllipsoid>, bases<Updater>, boost::noncopyable >
-    ("ConstraintEllipsoid", init< boost::shared_ptr<SystemDefinition>,
-                                                 boost::shared_ptr<ParticleGroup>,
+    class_< ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoid>, bases<Updater>, boost::noncopyable >
+    ("ConstraintEllipsoid", init< std::shared_ptr<SystemDefinition>,
+                                                 std::shared_ptr<ParticleGroup>,
                                                  Scalar3,
                                                  Scalar,
                                                  Scalar,

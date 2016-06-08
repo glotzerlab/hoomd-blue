@@ -8,7 +8,7 @@
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Profiler.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
 #define __INTEGRATION_METHOD_TWO_STEP_H__
@@ -102,8 +102,8 @@ class IntegrationMethodTwoStep : boost::noncopyable
     {
     public:
         //! Constructs the integration method and associates it with the system
-        IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<ParticleGroup> group);
+        IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<ParticleGroup> group);
         virtual ~IntegrationMethodTwoStep() {};
 
         //! Abstract method that performs the first step of the integration
@@ -119,7 +119,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
             }
 
         //! Sets the profiler for the integration method to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -163,13 +163,13 @@ class IntegrationMethodTwoStep : boost::noncopyable
         void setDeltaT(Scalar deltaT);
 
         //! Access the group
-        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
+        std::shared_ptr<ParticleGroup> getGroup() { return m_group; }
 
         //! Get whether this restart was valid
         bool isValidRestart() { return m_valid_restart; }
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> query_group);
 
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
@@ -187,7 +187,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(boost::shared_ptr<Communicator> comm)
+        void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             assert(comm);
             m_comm = comm;
@@ -214,14 +214,14 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Compute rotational degrees of freedom
         /*! \param query_group The group of particles to compute rotational DOF for
          */
-        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> query_group);
+        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
-        const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
+        const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
 
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
@@ -249,7 +249,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
 
     protected:
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
 #endif
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables

@@ -28,7 +28,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicDihedralForceCompute" << endl;
@@ -353,8 +353,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceCompute()
     {
-    class_<HarmonicDihedralForceCompute, boost::shared_ptr<HarmonicDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("HarmonicDihedralForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("HarmonicDihedralForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicDihedralForceCompute::setParams)
     ;
     }

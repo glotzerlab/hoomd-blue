@@ -20,7 +20,7 @@ using namespace boost::python;
 #include <fstream>
 #include <stdexcept>
 #include <iomanip>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -35,7 +35,7 @@ using namespace boost;
 
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
-HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart)
+HOOMDDumpWriter::HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart)
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
         m_output_type(false), m_output_bond(false), m_output_angle(false),
@@ -378,7 +378,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_bond)
         {
         f << "<bond num=\"" << bdata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+        std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
         // loop over all bonds and write them out
         for (unsigned int i = 0; i < bdata_snapshot.groups.size(); i++)
@@ -395,7 +395,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_angle)
         {
         f << "<angle num=\"" << adata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+        std::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < adata_snapshot.groups.size(); i++)
@@ -412,7 +412,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_dihedral)
         {
         f << "<dihedral num=\"" << ddata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+        std::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < ddata_snapshot.groups.size(); i++)
@@ -430,7 +430,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_improper)
         {
         f << "<improper num=\"" << idata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
+        std::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < idata_snapshot.groups.size(); i++)
@@ -448,7 +448,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_constraint)
         {
         f << "<constraint num=\"" << cdata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
+        std::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < cdata_snapshot.groups.size(); i++)
@@ -595,8 +595,8 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 void export_HOOMDDumpWriter()
     {
-    class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, bool >())
+    class_<HOOMDDumpWriter, std::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
+    ("HOOMDDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string, bool >())
     .def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
     .def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
     .def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)

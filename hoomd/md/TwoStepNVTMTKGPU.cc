@@ -34,11 +34,11 @@ using namespace std;
     \param T Temperature set point
     \param suffix Suffix to attach to the end of log quantity names
 */
-TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
-                             boost::shared_ptr<ComputeThermo> thermo,
+TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<ComputeThermo> thermo,
                              Scalar tau,
-                             boost::shared_ptr<Variant> T,
+                             std::shared_ptr<Variant> T,
                              const std::string& suffix)
     : TwoStepNVTMTK(sysdef, group, thermo, tau, T, suffix)
     {
@@ -220,12 +220,12 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVTMTKGPU()
     {
-    class_<TwoStepNVTMTKGPU, boost::shared_ptr<TwoStepNVTMTKGPU>, bases<TwoStepNVTMTK>, boost::noncopyable>
-        ("TwoStepNVTMTKGPU", init< boost::shared_ptr<SystemDefinition>,
-                          boost::shared_ptr<ParticleGroup>,
-                          boost::shared_ptr<ComputeThermo>,
+    class_<TwoStepNVTMTKGPU, std::shared_ptr<TwoStepNVTMTKGPU>, bases<TwoStepNVTMTK>, boost::noncopyable>
+        ("TwoStepNVTMTKGPU", init< std::shared_ptr<SystemDefinition>,
+                          std::shared_ptr<ParticleGroup>,
+                          std::shared_ptr<ComputeThermo>,
                           Scalar,
-                          boost::shared_ptr<Variant>,
+                          std::shared_ptr<Variant>,
                           const std::string&
                           >())
         ;

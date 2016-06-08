@@ -22,7 +22,7 @@ using namespace std;
 
 /*! \param sysdef System to compute improper forces on
 */
-HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : HarmonicImproperForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -107,7 +107,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceComputeGPU()
     {
-    class_<HarmonicImproperForceComputeGPU, boost::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
-    ("HarmonicImproperForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<HarmonicImproperForceComputeGPU, std::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
+    ("HarmonicImproperForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -10,7 +10,7 @@
 #include "Index1D.h"
 #include "Compute.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file CellList.h
@@ -97,7 +97,7 @@ class CellList : public Compute
     {
     public:
         //! Construct a cell list
-        CellList(boost::shared_ptr<SystemDefinition> sysdef);
+        CellList(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~CellList();
 

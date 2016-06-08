@@ -44,7 +44,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ForceDistanceConstraintGPU();
 
         //! Set autotuner parameters

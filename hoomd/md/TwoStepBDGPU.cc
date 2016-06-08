@@ -29,9 +29,9 @@ using namespace std;
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
 */
-TwoStepBDGPU::TwoStepBDGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -138,10 +138,10 @@ void TwoStepBDGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepBDGPU()
     {
-    class_<TwoStepBDGPU, boost::shared_ptr<TwoStepBDGPU>, bases<TwoStepBD>, boost::noncopyable>
-        ("TwoStepBDGPU", init< boost::shared_ptr<SystemDefinition>,
-                               boost::shared_ptr<ParticleGroup>,
-                               boost::shared_ptr<Variant>,
+    class_<TwoStepBDGPU, std::shared_ptr<TwoStepBDGPU>, bases<TwoStepBD>, boost::noncopyable>
+        ("TwoStepBDGPU", init< std::shared_ptr<SystemDefinition>,
+                               std::shared_ptr<ParticleGroup>,
+                               std::shared_ptr<Variant>,
                                unsigned int,
                                bool,
                                Scalar,

@@ -12,7 +12,7 @@
 
 #include "hoomd/System.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 
 #include "hoomd/ExecutionConfiguration.h"
@@ -30,7 +30,7 @@
 using namespace std;
 
 template<class LB>
-void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
     // this test needs to be run on eight processors
     int size;
@@ -39,7 +39,7 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box,        // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -50,7 +50,7 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.25)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.75)),false);
@@ -69,13 +69,13 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
     fxs[0] = Scalar(0.5);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.5);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
-    boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
 
-    boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
     lb->setMaxIterations(2);
 
@@ -136,7 +136,7 @@ void test_load_balancer_basic(boost::shared_ptr<ExecutionConfiguration> exec_con
     }
 
 template<class LB>
-void test_load_balancer_multi(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
     // this test needs to be run on eight processors
     int size;
@@ -145,7 +145,7 @@ void test_load_balancer_multi(boost::shared_ptr<ExecutionConfiguration> exec_con
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box,        // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -156,7 +156,7 @@ void test_load_balancer_multi(boost::shared_ptr<ExecutionConfiguration> exec_con
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.1,-0.1,-0.4)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(0.1,-0.2,-0.4)),false);
@@ -174,13 +174,13 @@ void test_load_balancer_multi(boost::shared_ptr<ExecutionConfiguration> exec_con
     std::vector<Scalar> fxs, fys(1), fzs(3);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.25); fzs[1] = Scalar(0.25); fzs[2] = Scalar(0.25);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
-    boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
 
-    boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
     lb->enableDimension(1, false);
     lb->setMaxIterations(100);
@@ -271,7 +271,7 @@ struct ghost_layer_width_request
     };
 
 template<class LB>
-void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
 {
     // this test needs to be run on eight processors
     int size;
@@ -280,7 +280,7 @@ void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_con
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box,        // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -291,7 +291,7 @@ void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_con
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.9)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(0.25,-0.25,0.99)),false);
@@ -310,13 +310,13 @@ void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_con
     fxs[0] = Scalar(0.5);
     fys[0] = Scalar(0.5);
     fzs[0] = Scalar(0.5);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
-    boost::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
 
-    boost::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
     lb->setCommunicator(comm);
 
     // migrate atoms and check placement
@@ -364,7 +364,7 @@ void test_load_balancer_ghost(boost::shared_ptr<ExecutionConfiguration> exec_con
 //! Tests basic particle redistribution
 BOOST_AUTO_TEST_CASE( LoadBalancer_test_basic )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
     test_load_balancer_basic<LoadBalancer>(exec_conf, BoxDim(2.0));
     // triclinic box 1
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_basic )
 //! Tests particle redistribution with multiple domains and specific directions
 BOOST_AUTO_TEST_CASE( LoadBalancer_test_multi )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
     test_load_balancer_multi<LoadBalancer>(exec_conf, BoxDim(2.0));
     // triclinic box 1
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_multi )
 //! Tests particle redistribution with ghost layer width minimum
 BOOST_AUTO_TEST_CASE( LoadBalancer_test_ghost )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
     test_load_balancer_ghost<LoadBalancer>(exec_conf, BoxDim(2.0));
     // triclinic box 1
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_ghost )
 //! Tests basic particle redistribution on the GPU
 BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_basic )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
     test_load_balancer_basic<LoadBalancerGPU>(exec_conf, BoxDim(2.0));
     // triclinic box 1
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_basic )
 //! Tests particle redistribution with multiple domains and specific directions on the GPU
 BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_multi )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
     test_load_balancer_multi<LoadBalancerGPU>(exec_conf, BoxDim(2.0));
     // triclinic box 1
@@ -425,7 +425,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_multi )
 //! Tests particle redistribution with ghost layer width minimum
 BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_ghost )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
     test_load_balancer_ghost<LoadBalancerGPU>(exec_conf, BoxDim(2.0));
     // triclinic box 1

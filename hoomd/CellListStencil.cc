@@ -21,8 +21,8 @@ using namespace boost::python;
  * \param sysdef System definition
  * \param cl Cell list to pair the stencil with
  */
-CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<CellList> cl)
+CellListStencil::CellListStencil(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<CellList> cl)
     : Compute(sysdef), m_cl(cl), m_compute_stencil(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
@@ -186,6 +186,6 @@ bool CellListStencil::shouldCompute(unsigned int timestep)
 
 void export_CellListStencil()
     {
-    class_<CellListStencil, boost::shared_ptr<CellListStencil>, bases<Compute>, boost::noncopyable >
-        ("CellListStencil", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList> >());
+    class_<CellListStencil, std::shared_ptr<CellListStencil>, bases<Compute>, boost::noncopyable >
+        ("CellListStencil", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList> >());
     }

@@ -8,7 +8,7 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "DEM2DForceCompute.h"
 #include "DEM2DForceGPU.cuh"
@@ -37,8 +37,8 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
     {
     public:
         //! Constructs the compute
-        DEM2DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
+        DEM2DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
             Scalar r_cut, Potential potential);
 
         //! Destructor

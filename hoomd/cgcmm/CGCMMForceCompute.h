@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file CGCMMForceCompute.h
     \brief Declares the CGCMMForceCompute class
@@ -38,8 +38,8 @@ class CGCMMForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<NeighborList> nlist,
+        CGCMMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<NeighborList> nlist,
                           Scalar r_cut);
 
         //! Destructor
@@ -55,7 +55,7 @@ class CGCMMForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Scalar m_r_cut;         //!< Cutoff radius beyond which the force is set to 0
         unsigned int m_ntypes;  //!< Rank of the lj12, lj9, lj6, and lj4 parameter matrices.
 

@@ -14,7 +14,7 @@
 
 #include "hoomd/System.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 
 #include "hoomd/md/CommunicatorGrid.h"
@@ -27,10 +27,10 @@
 
 // first test, to ensure that all the ghost cells are updated from the correct neighbors
 template< class CG_uint >
-void test_communicate_grid_basic(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -41,10 +41,10 @@ void test_communicate_grid_basic(boost::shared_ptr<ExecutionConfiguration> exec_
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // initialize domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     pdata->setDomainDecomposition(decomposition);
 
     unsigned int nx = 6;
@@ -245,10 +245,10 @@ void test_communicate_grid_basic(boost::shared_ptr<ExecutionConfiguration> exec_
 
 //! Test to check that all elements are received and updated in correct order
 template<class CG_uint >
-void test_communicate_grid_positions(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicate_grid_positions(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -259,9 +259,9 @@ void test_communicate_grid_positions(boost::shared_ptr<ExecutionConfiguration> e
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     pdata->setDomainDecomposition(decomposition);
 
     unsigned int nx = 6;
@@ -327,14 +327,14 @@ void test_communicate_grid_positions(boost::shared_ptr<ExecutionConfiguration> e
 BOOST_AUTO_TEST_CASE( CommunicateGrid_test_basic )
     {
     test_communicate_grid_basic<CommunicatorGrid<unsigned int> >(
-        boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+        std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Ghost grid exchange positions test
 BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions )
     {
     test_communicate_grid_positions<CommunicatorGrid<unsigned int> >(
-        boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+        std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -343,14 +343,14 @@ BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions )
 BOOST_AUTO_TEST_CASE( CommunicateGrid_test_basic_GPU )
     {
     test_communicate_grid_basic<CommunicatorGridGPU<unsigned int> >(
-        boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+        std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Ghost grid exchange positions test on GPU
 BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions_GPU )
     {
     test_communicate_grid_positions<CommunicatorGridGPU<unsigned int> >(
-        boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+        std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

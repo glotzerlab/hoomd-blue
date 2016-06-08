@@ -20,7 +20,7 @@
 #include "SFCPackUpdaterGPU.cuh"
 #include "GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
@@ -37,7 +37,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     {
     public:
         //! Constructor
-        SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~SFCPackUpdaterGPU();

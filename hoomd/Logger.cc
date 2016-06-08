@@ -34,7 +34,7 @@ using namespace std;
 
     If \a fname is an empty string, no file is output.
 */
-Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
+Logger::Logger(std::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
@@ -89,7 +89,7 @@ Logger::~Logger()
     After the compute is registered, all of the compute's provided log quantities are available for
     logging.
 */
-void Logger::registerCompute(boost::shared_ptr<Compute> compute)
+void Logger::registerCompute(std::shared_ptr<Compute> compute)
     {
     vector< string > provided_quantities = compute->getProvidedLogQuantities();
 
@@ -113,7 +113,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
     After the updater is registered, all of the updater's provided log quantities are available for
     logging.
 */
-void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
+void Logger::registerUpdater(std::shared_ptr<Updater> updater)
     {
     vector< string > provided_quantities = updater->getProvidedLogQuantities();
 
@@ -358,8 +358,8 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 
 void export_Logger()
     {
-    class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
-    ("Logger", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
+    class_<Logger, std::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
+    ("Logger", init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)
     .def("registerCallback", &Logger::registerCallback)

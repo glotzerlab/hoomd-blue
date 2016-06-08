@@ -31,9 +31,9 @@ using namespace std;
     \param suffix Suffix to attach to the end of log quantity names
 
 */
-TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -428,10 +428,10 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepLangevin()
     {
-    class_<TwoStepLangevin, boost::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepLangevin", init< boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ParticleGroup>,
-                            boost::shared_ptr<Variant>,
+    class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
+        ("TwoStepLangevin", init< std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
                             unsigned int,
                             bool,
                             Scalar,

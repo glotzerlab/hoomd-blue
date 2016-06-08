@@ -39,7 +39,7 @@ class NeighborListTree : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                            Scalar r_cut,
                            Scalar r_buff);
 

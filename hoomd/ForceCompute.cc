@@ -22,7 +22,7 @@ using namespace std;
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 using namespace boost;
 
@@ -31,7 +31,7 @@ using namespace boost;
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
+ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
@@ -106,7 +106,7 @@ Scalar ForceCompute::calcEnergySum()
 
 /*! Sums the potential energy of a particle group calculated by the last call to compute() and returns it.
 */
-Scalar ForceCompute::calcEnergyGroup(boost::shared_ptr<ParticleGroup> group)
+Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
     {
     unsigned int group_size = group->getNumMembers();
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
@@ -281,7 +281,7 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     public:
         //! Constructor
         /*! \param sysdef Particle data passed to the base class */
-        ForceComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
+        ForceComputeWrap(std::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
     protected:
         //! Calls the overidden ForceCompute::computeForces()
         /*! \param timestep parameter to pass on to the overidden method
@@ -294,8 +294,8 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
 
 void export_ForceCompute()
     {
-    class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
-    ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_< ForceComputeWrap, std::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
+    ("ForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)

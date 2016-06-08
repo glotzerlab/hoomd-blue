@@ -31,8 +31,8 @@ using namespace std;
     \note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
     delete the neighborlist when done.
 */
-CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                           boost::shared_ptr<NeighborList> nlist,
+CGCMMForceComputeGPU::CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<NeighborList> nlist,
                                            Scalar r_cut)
     : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
@@ -185,8 +185,8 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CGCMMForceComputeGPU()
     {
-    class_<CGCMMForceComputeGPU, boost::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute>, boost::noncopyable >
-    ("CGCMMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+    class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute>, boost::noncopyable >
+    ("CGCMMForceComputeGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }

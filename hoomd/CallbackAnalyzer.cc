@@ -25,7 +25,7 @@ using namespace std;
 /*! \param sysdef SystemDefinition containing the Particle data to analyze
     \param callback A python functor object to be used as callback
 */
-CallbackAnalyzer::CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
+CallbackAnalyzer::CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
                          boost::python::object callback)
     : Analyzer(sysdef), callback(callback)
     {
@@ -48,7 +48,7 @@ void CallbackAnalyzer::analyze(unsigned int timestep)
 
 void export_CallbackAnalyzer()
     {
-    class_<CallbackAnalyzer, boost::shared_ptr<CallbackAnalyzer>, bases<Analyzer>, boost::noncopyable>
-    ("CallbackAnalyzer", init< boost::shared_ptr<SystemDefinition>, boost::python::object>())
+    class_<CallbackAnalyzer, std::shared_ptr<CallbackAnalyzer>, bases<Analyzer>, boost::noncopyable>
+    ("CallbackAnalyzer", init< std::shared_ptr<SystemDefinition>, boost::python::object>())
     ;
     }

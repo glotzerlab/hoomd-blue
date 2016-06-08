@@ -33,7 +33,7 @@ PyObject* walltimeLimitExceptionTypeObj = 0;
     analyzers or integrators. Profiling defaults to disabled and
     statistics are printed every 10 seconds.
 */
-System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
+System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_cur_tps(0),
         m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
         m_profile(false), m_stats_period(10)
@@ -65,7 +65,7 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     can be prevented from running in future runs by removing it (removeAnalyzer()) before
     calling run()
 */
-void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
+void System::addAnalyzer(std::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(analyzer);
@@ -127,7 +127,7 @@ void System::removeAnalyzer(const std::string& name)
 /*! \param name Name of the Analyzer to retrieve
     \returns A shared pointer to the requested Analyzer
 */
-boost::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
+std::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
     {
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
     return i->m_analyzer;
@@ -208,7 +208,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
     can be prevented from running in future runs by removing it (removeUpdater()) before
     calling run()
 */
-void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
+void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(updater);
@@ -249,7 +249,7 @@ void System::removeUpdater(const std::string& name)
 /*! \param name Name of the Updater to retrieve
     \returns A shared pointer to the requested Updater
 */
-boost::shared_ptr<Updater> System::getUpdater(const std::string& name)
+std::shared_ptr<Updater> System::getUpdater(const std::string& name)
     {
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
     return i->m_updater;
@@ -304,13 +304,13 @@ unsigned int System::getUpdaterPeriod(const std::string& name)
     saving to restart files, and to activate profiling. They are never
     directly called by the system.
 */
-void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& name)
+void System::addCompute(std::shared_ptr<Compute> compute, const std::string& name)
     {
     // sanity check
     assert(compute);
 
     // check if the name is unique
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         m_computes[name] = compute;
     else
@@ -326,7 +326,7 @@ void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& n
 void System::removeCompute(const std::string& name)
     {
     // see if the compute exists to be removed
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
         m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
@@ -339,15 +339,15 @@ void System::removeCompute(const std::string& name)
 /*! \param name Name of the compute to access
     \returns A shared pointer to the Compute as provided previosly by addCompute()
 */
-boost::shared_ptr<Compute> System::getCompute(const std::string& name)
+std::shared_ptr<Compute> System::getCompute(const std::string& name)
     {
     // see if the compute even exists first
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
         m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
         throw runtime_error("System: cannot retrieve compute");
-        return boost::shared_ptr<Compute>();
+        return std::shared_ptr<Compute>();
         }
     else
         return m_computes[name];
@@ -357,21 +357,21 @@ boost::shared_ptr<Compute> System::getCompute(const std::string& name)
 
 /*! \param integrator Updater to set as the Integrator for this System
 */
-void System::setIntegrator(boost::shared_ptr<Integrator> integrator)
+void System::setIntegrator(std::shared_ptr<Integrator> integrator)
     {
     m_integrator = integrator;
     }
 
 /*! \returns A shared pointer to the Integrator for this System
 */
-boost::shared_ptr<Integrator> System::getIntegrator()
+std::shared_ptr<Integrator> System::getIntegrator()
     {
     return m_integrator;
     }
 
 #ifdef ENABLE_MPI
 // -------------- Methods for communication
-void System::setCommunicator(boost::shared_ptr<Communicator> comm)
+void System::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     m_comm = comm;
     }
@@ -424,7 +424,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             updater->m_updater->setCommunicator(m_comm);
 
         // Set communicator in all Computes
-        map< string, boost::shared_ptr<Compute> >::iterator compute;
+        map< string, std::shared_ptr<Compute> >::iterator compute;
         for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
             compute->second->setCommunicator(m_comm);
 
@@ -652,7 +652,7 @@ void System::enableProfiler(bool enable)
 /*! \param logger Logger to register computes and updaters with
     All computes and updaters registered with the system are also registerd with the logger.
 */
-void System::registerLogger(boost::shared_ptr<Logger> logger)
+void System::registerLogger(std::shared_ptr<Logger> logger)
     {
     // set the profiler on everything
     if (m_integrator)
@@ -664,7 +664,7 @@ void System::registerLogger(boost::shared_ptr<Logger> logger)
         logger->registerUpdater(updater->m_updater);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         logger->registerCompute(compute->second);
     }
@@ -696,7 +696,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         updater->m_updater->setAutotunerParams(enabled, period);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setAutotunerParams(enabled, period);
 
@@ -711,9 +711,9 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
 void System::setupProfiling()
     {
     if (m_profile)
-        m_profiler = boost::shared_ptr<Profiler>(new Profiler("Simulation"));
+        m_profiler = std::shared_ptr<Profiler>(new Profiler("Simulation"));
     else
-        m_profiler = boost::shared_ptr<Profiler>();
+        m_profiler = std::shared_ptr<Profiler>();
 
     // set the profiler on everything
     if (m_integrator)
@@ -732,7 +732,7 @@ void System::setupProfiling()
         updater->m_updater->setProfiler(m_profiler);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setProfiler(m_profiler);
 
@@ -761,7 +761,7 @@ void System::printStats()
         updater->m_updater->printStats();
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->printStats();
     }
@@ -782,7 +782,7 @@ void System::resetStats()
         updater->m_updater->resetStats();
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->resetStats();
     }
@@ -863,7 +863,7 @@ void export_System()
     {
     walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached");
 
-    class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    class_< System, std::shared_ptr<System>, boost::noncopyable > ("System", init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addAnalyzer", &System::addAnalyzer)
     .def("removeAnalyzer", &System::removeAnalyzer)
     .def("getAnalyzer", &System::getAnalyzer)

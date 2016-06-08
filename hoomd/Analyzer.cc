@@ -18,7 +18,7 @@ using namespace boost::python;
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
-Analyzer::Analyzer(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+Analyzer::Analyzer(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
     m_exec_conf(m_pdata->getExecConf())
     {
     // sanity check
@@ -31,11 +31,11 @@ Analyzer::Analyzer(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef
     This method does not need to be called, as Analyzers will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void Analyzer::setProfiler(boost::shared_ptr<Profiler> prof)
+void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
@@ -47,7 +47,7 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
         //! Forwards construction on to the base class
         /*! \param sysdef parameter to forward to the base class constructor
         */
-        AnalyzerWrap(boost::shared_ptr<SystemDefinition> sysdef) : Analyzer(sysdef) { }
+        AnalyzerWrap(std::shared_ptr<SystemDefinition> sysdef) : Analyzer(sysdef) { }
 
         //! Hanldes pure virtual Analyzer::analyze()
         /*! \param timestep parameter to forward to Analyzer::analyze()
@@ -60,8 +60,8 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
 
 void export_Analyzer()
     {
-    class_<AnalyzerWrap, boost::shared_ptr<AnalyzerWrap>, boost::noncopyable>
-        ("Analyzer", init< boost::shared_ptr<SystemDefinition> >())
+    class_<AnalyzerWrap, std::shared_ptr<AnalyzerWrap>, boost::noncopyable>
+        ("Analyzer", init< std::shared_ptr<SystemDefinition> >())
         .def("analyze", pure_virtual(&Analyzer::analyze))
         .def("setProfiler", &Analyzer::setProfiler)
         ;

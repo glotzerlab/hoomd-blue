@@ -31,11 +31,11 @@ class NeighborListGPUStencil : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar r_cut,
                                Scalar r_buff,
-                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
-                               boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
+                               std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
+                               std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
 
         //! Destructor
         virtual ~NeighborListGPUStencil();
@@ -76,8 +76,8 @@ class NeighborListGPUStencil : public NeighborListGPU
         boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
-        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        std::shared_ptr<CellList> m_cl;   //!< The cell list
+        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
         bool m_override_cell_width;                 //!< Flag to override the cell width
 
         //! Update the stencil radius

@@ -6,7 +6,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -31,7 +31,7 @@ class HarmonicAngleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~HarmonicAngleForceCompute();
@@ -62,7 +62,7 @@ class HarmonicAngleForceCompute : public ForceCompute
         Scalar* m_K;    //!< K parameter for multiple angle tyes
         Scalar* m_t_0;  //!< r_0 parameter for multiple angle types
 
-        boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
+        std::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

@@ -50,13 +50,13 @@ class IntegratorTwoStep : public Integrator
         enum AnisotropicMode {Automatic, Anisotropic, Isotropic};
 
         //! Constructor
-        IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
         //! Destructor
         virtual ~IntegratorTwoStep();
 
         //! Sets the profiler for the compute to use
-        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
+        virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -71,16 +71,16 @@ class IntegratorTwoStep : public Integrator
         virtual void setDeltaT(Scalar deltaT);
 
         //! Add a new integration method to the list that will be run
-        virtual void addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method);
+        virtual void addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method);
 
         //! Remove all integration methods
         virtual void removeAllIntegrationMethods();
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group);
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group);
+        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group);
 
         //! Set the anisotropic mode of the integrator
         virtual void setAnisotropicMode(AnisotropicMode mode);
@@ -92,7 +92,7 @@ class IntegratorTwoStep : public Integrator
         virtual PDataFlags getRequestedPDataFlags();
 
         //! Add a ForceComposite to the list
-        virtual void addForceComposite(boost::shared_ptr<ForceComposite> fc);
+        virtual void addForceComposite(std::shared_ptr<ForceComposite> fc);
 
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
@@ -101,7 +101,7 @@ class IntegratorTwoStep : public Integrator
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 #endif
 
         //! Set autotuner parameters
@@ -110,14 +110,14 @@ class IntegratorTwoStep : public Integrator
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
 
-        std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
+        std::vector< std::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
 
         bool m_first_step;            //!< True before the first call to update()
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
 
-        std::vector< boost::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
+        std::vector< std::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
     };
 
 //! Exports the IntegratorTwoStep class to python

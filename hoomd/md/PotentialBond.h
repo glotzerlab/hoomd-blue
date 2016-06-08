@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -34,7 +34,7 @@ class PotentialBond : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialBond(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string& log_suffix="");
 
         //! Destructor
@@ -56,7 +56,7 @@ class PotentialBond : public ForceCompute
 
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
+        std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
@@ -68,7 +68,7 @@ class PotentialBond : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
@@ -334,14 +334,14 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 */
 template < class T > void export_PotentialBond(const std::string& name)
     {
-    class_<T, boost::shared_ptr<T>, bases<ForceCompute>, boost::noncopyable >
-        (name.c_str(), init< boost::shared_ptr<SystemDefinition>, const std::string& > ())
+    class_<T, std::shared_ptr<T>, bases<ForceCompute>, boost::noncopyable >
+        (name.c_str(), init< std::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< std::shared_ptr<T> >();
     #endif
     }
 

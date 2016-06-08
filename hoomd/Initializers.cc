@@ -39,9 +39,9 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
     }
 
 /*! initialize a snapshot with a cubic crystal */
-boost::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
@@ -117,9 +117,9 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = m_box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;

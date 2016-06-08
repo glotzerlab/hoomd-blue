@@ -15,7 +15,7 @@
 #include "Analyzer.h"
 #include "ConstForceCompute.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __IMD_INTERFACE_H__
 #define __IMD_INTERFACE_H__
@@ -35,11 +35,11 @@ class IMDInterface : public Analyzer
     {
     public:
         //! Constructor
-        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
+        IMDInterface(std::shared_ptr<SystemDefinition> sysdef,
                      int port = 54321,
                      bool pause = false,
                      unsigned int rate=1,
-                     boost::shared_ptr<ConstForceCompute> force = boost::shared_ptr<ConstForceCompute>(),
+                     std::shared_ptr<ConstForceCompute> force = std::shared_ptr<ConstForceCompute>(),
                      float force_scale=1.0);
 
         //! Destructor
@@ -61,7 +61,7 @@ class IMDInterface : public Analyzer
         int m_port;             //!< Port to listen on
         unsigned int m_nglobal; //!< Initial number of particles
 
-        boost::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
+        std::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
         float m_force_scale;                            //!< Factor by which to scale all IMD forces
 
         //! Helper function that reads message headers and dispatches them to the relevant process functions

@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/CellList.h"
 #include "hoomd/Initializers.h"
@@ -35,11 +35,11 @@ using namespace boost;
 
 //! Test the ability of CellList to initialize dimensions
 template <class CL>
-void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation box size 10
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -49,7 +49,7 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     }
 
     // ********* initialize a cell list *********
-    boost::shared_ptr<CellList> cl(new CL(sysdef_3));
+    std::shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->compute(0);
@@ -147,16 +147,16 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
 //! boost test case for cell list dimension test on the CPU
 BOOST_AUTO_TEST_CASE( CellList_dimension )
     {
-    celllist_dimension_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_dimension_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Test the ability of CellList to initialize the adj array
 template <class CL>
-void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation box size 3
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -166,7 +166,7 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     }
 
     // ********* initialize a basic cell list *********
-    boost::shared_ptr<CellList> cl(new CL(sysdef_3));
+    std::shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->compute(0);
@@ -228,16 +228,16 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 //! boost test case for cell list adj test on the CPU
 BOOST_AUTO_TEST_CASE( CellList_adj )
     {
-    celllist_adj_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_adj_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Validate that the cell list itself is computed properly
 template <class CL>
-void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation a non-cubic box
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata->setType(0,1);
@@ -288,7 +288,7 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     pdata->setBody(7,1);
 
     // ********* initialize a cell list *********
-    boost::shared_ptr<CellList> cl(new CL(sysdef));
+    std::shared_ptr<CellList> cl(new CL(sysdef));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->setFlagIndex();
@@ -512,30 +512,30 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 //! boost test case for celllist_small_test
 BOOST_AUTO_TEST_CASE( CellList_small )
     {
-    celllist_small_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_small_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! boost test case for celllist_small_test on the GPU
 BOOST_AUTO_TEST_CASE( CellListGPU_small )
     {
-    celllist_small_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    celllist_small_test<CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 
 //! Validate that the cell list itself can be computed for a large system of particles
 template <class CL>
-void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void celllist_large_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     unsigned int N = 10000;
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // ********* initialize a cell list *********
-    boost::shared_ptr<CellList> cl(new CL(sysdef));
+    std::shared_ptr<CellList> cl(new CL(sysdef));
     cl->setNominalWidth(Scalar(3.0));
     cl->setRadius(1);
     cl->setFlagIndex();
@@ -576,13 +576,13 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 //! boost test case for celllist_large_test
 BOOST_AUTO_TEST_CASE( CellList_large )
     {
-    celllist_large_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_large_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! boost test case for celllist_large_test on the GPU
 BOOST_AUTO_TEST_CASE( CellListGPU_large )
     {
-    celllist_large_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    celllist_large_test<CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

@@ -28,7 +28,7 @@ class TwoStepNVEGPU : public TwoStepNVE
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group);
         virtual ~TwoStepNVEGPU() {};
 
         //! Performs the first step of the integration

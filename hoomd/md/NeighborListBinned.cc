@@ -19,17 +19,17 @@
 using namespace std;
 using namespace boost::python;
 
-NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff,
-                                       boost::shared_ptr<CellList> cl)
+                                       std::shared_ptr<CellList> cl)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
 
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
@@ -235,7 +235,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListBinned()
     {
-    class_<NeighborListBinned, boost::shared_ptr<NeighborListBinned>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
+    class_<NeighborListBinned, std::shared_ptr<NeighborListBinned>, bases<NeighborList>, boost::noncopyable >
+                     ("NeighborListBinned", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                      ;
     }

@@ -6,7 +6,7 @@
 
 #include "FIREEnergyMinimizer.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__
 #define __FIRE_ENERGY_MINIMIZER_GPU_H__
@@ -28,7 +28,7 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar);
+        FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar);
 
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerGPU() {}

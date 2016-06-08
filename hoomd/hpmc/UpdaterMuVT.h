@@ -23,8 +23,8 @@ class UpdaterMuVT : public Updater
     {
     public:
         //! Constructor
-        UpdaterMuVT(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+        UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
             unsigned int seed,
             unsigned int npartition);
         virtual ~UpdaterMuVT();
@@ -38,7 +38,7 @@ class UpdaterMuVT : public Updater
         /*! \param type The type id for which to set the fugacity
          * \param fugacity The value of the fugacity (variant)
          */
-        void setFugacity(unsigned int type, boost::shared_ptr<Variant> fugacity)
+        void setFugacity(unsigned int type, std::shared_ptr<Variant> fugacity)
             {
             assert(type < m_pdata->getNTypes());
             m_fugacity[type] = fugacity;
@@ -137,8 +137,8 @@ class UpdaterMuVT : public Updater
         hpmc_muvt_counters_t getCounters(unsigned int mode=0);
 
     protected:
-        std::vector<boost::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
+        std::vector<std::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
         unsigned int m_seed;                                  //!< RNG seed
         unsigned int m_npartition;                            //!< The number of partitions to use for Gibbs ensemble
         bool m_gibbs;                                         //!< True if we simulate a Gibbs ensemble
@@ -232,8 +232,8 @@ class UpdaterMuVT : public Updater
 */
 template < class Shape > void export_UpdaterMuVT(const std::string& name)
     {
-    boost::python::class_< UpdaterMuVT<Shape>, boost::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+    boost::python::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater>, boost::noncopyable >
+          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
           .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)
@@ -249,14 +249,14 @@ template < class Shape > void export_UpdaterMuVT(const std::string& name)
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
  */
 template<class Shape>
-UpdaterMuVT<Shape>::UpdaterMuVT(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<IntegratorHPMCMono< Shape > > mc,
+UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
     unsigned int seed,
     unsigned int npartition)
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_move_ratio(0.5), m_transfer_ratio(1.0), m_gibbs_other(0)
     {
-    m_fugacity.resize(m_pdata->getNTypes(), boost::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
     m_type_num_change_connection = m_pdata->connectNumTypesChange(boost::bind(&UpdaterMuVT<Shape>::slotNumTypesChange, this));
@@ -406,7 +406,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::slotNumTypesChange()
     {
     // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), boost::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
     }
 

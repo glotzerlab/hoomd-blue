@@ -22,7 +22,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysdef,
+BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int table_width,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_table_width(table_width)
@@ -294,8 +294,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 //! Exports the BondTablePotential class to python
 void export_BondTablePotential()
     {
-    class_<BondTablePotential, boost::shared_ptr<BondTablePotential>, bases<ForceCompute>, boost::noncopyable >
-    ("BondTablePotential", init< boost::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    class_<BondTablePotential, std::shared_ptr<BondTablePotential>, bases<ForceCompute>, boost::noncopyable >
+    ("BondTablePotential", init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &BondTablePotential::setTable)
     ;
     }

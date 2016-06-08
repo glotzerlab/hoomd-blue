@@ -13,7 +13,7 @@
 #endif
 #include "hoomd/Updater.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -30,7 +30,7 @@ class ZeroMomentumUpdater : public Updater
     {
     public:
         //! Constructor
-        ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ZeroMomentumUpdater();
 
         //! Take one timestep forward

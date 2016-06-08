@@ -45,8 +45,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
         //! Construct the pair potential
-        PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
+        PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairDPDThermoGPU() { };
@@ -83,8 +83,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -202,14 +202,14 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
 */
 template < class T, class Base > void export_PotentialPairDPDThermoGPU(const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< std::shared_ptr<T> >();
     #endif
     }
 

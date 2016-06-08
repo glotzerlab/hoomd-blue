@@ -49,12 +49,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg,
+                                               std::shared_ptr<Messenger> _msg,
                                                unsigned int n_ranks)
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
-        msg = boost::shared_ptr<Messenger>(new Messenger());
+        msg = std::shared_ptr<Messenger>(new Messenger());
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
@@ -689,8 +689,8 @@ unsigned int ExecutionConfiguration::getNRanks() const
 
 void export_ExecutionConfiguration()
     {
-    scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
+    scope in_exec_conf = class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
+                         ("ExecutionConfiguration", init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
@@ -719,5 +719,5 @@ void export_ExecutionConfiguration()
     ;
 
     // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
-    implicitly_convertible<boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<const ExecutionConfiguration> >();
+    implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
     }

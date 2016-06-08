@@ -52,9 +52,9 @@ class UpdaterBoxNPT : public Updater
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
         */
-        UpdaterBoxNPT(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<IntegratorHPMC> mc,
-                      boost::shared_ptr<Variant> P,
+        UpdaterBoxNPT(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<IntegratorHPMC> mc,
+                      std::shared_ptr<Variant> P,
                       Scalar dLx,
                       Scalar dLy,
                       Scalar dLz,
@@ -87,7 +87,7 @@ class UpdaterBoxNPT : public Updater
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
         */
-        void setParams(boost::shared_ptr<Variant> P,
+        void setParams(std::shared_ptr<Variant> P,
                        Scalar dLx,
                        Scalar dLy,
                        Scalar dLz,
@@ -138,7 +138,7 @@ class UpdaterBoxNPT : public Updater
         //! Get pressure parameter
         /*! \returns pressure variant object
         */
-        boost::shared_ptr<Variant> getP()
+        std::shared_ptr<Variant> getP()
             {
             return m_P;
             }
@@ -263,8 +263,8 @@ class UpdaterBoxNPT : public Updater
         hpmc_npt_counters_t getCounters(unsigned int mode=0);
 
     private:
-        boost::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
-        boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in NPT ensemble
+        std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
+        std::shared_ptr<Variant> m_P;             //!< Reduced pressure in NPT ensemble
         Scalar m_dLx;                               //!< Amount by which to change lattice vector length during volume-change
         Scalar m_dLy;                               //!< Amount by which to change lattice vector length during volume-change
         Scalar m_dLz;                               //!< Amount by which to change lattice vector length during volume-change

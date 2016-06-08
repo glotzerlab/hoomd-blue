@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <vector>
 
 /*! \file OPLSDihedralForceCompute.h
@@ -31,7 +31,7 @@ class OPLSDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        OPLSDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        OPLSDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~OPLSDihedralForceCompute();
@@ -62,7 +62,7 @@ class OPLSDihedralForceCompute : public ForceCompute
         GPUArray<Scalar4> m_params;
 
         //!< Dihedral data to use in computing dihedrals
-        boost::shared_ptr<DihedralData> m_dihedral_data;
+        std::shared_ptr<DihedralData> m_dihedral_data;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

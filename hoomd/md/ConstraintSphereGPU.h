@@ -24,8 +24,8 @@ class ConstraintSphereGPU : public ConstraintSphere
     {
     public:
         //! Constructs the compute
-        ConstraintSphereGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ParticleGroup> group,
+        ConstraintSphereGPU(std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<ParticleGroup> group,
                             Scalar3 P,
                             Scalar r);
 

@@ -29,7 +29,7 @@ class NeighborListGPUTree : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                             Scalar r_cut,
                             Scalar r_buff);
 

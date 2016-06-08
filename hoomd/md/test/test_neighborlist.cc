@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
@@ -34,12 +34,12 @@ using namespace boost;
 
 //! Performs basic functionality tests on a neighbor list
 template <class NL>
-void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -52,7 +52,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     }
 
     // test construction of the neighborlist
-    boost::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
     nlist_2->setRCutPair(0,0,3.0);
     nlist_2->compute(1);
 
@@ -103,8 +103,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -119,7 +119,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     pdata_6->notifyParticleSort();
     }
 
-    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setRCutPair(0,0,3.0);
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
@@ -231,10 +231,10 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
 
 //! Test neighborlist functionality with particles with different numbers of neighbors
 template <class NL>
-void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     // check that pair cutoffs are set independently
         {
         ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -246,7 +246,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         pdata_3->notifyParticleSort();
         }
 
-    boost::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
     nlist_3->setStorageMode(NeighborList::full);
     nlist_3->setRCutPair(0,0,1.0);
     nlist_3->setRCutPair(1,1,3.0);
@@ -307,8 +307,8 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 
     // check what happens with particle resize by first keeping number below the 8 default, and then bumping over this
     // do this with size 18 so that NeighborListGPU is forced to use kernel call with multiple levels at m_bin_size = 4
-    boost::shared_ptr<SystemDefinition> sysdef_18(new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_18 = sysdef_18->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_18(new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_18 = sysdef_18->getParticleData();
         {
         ArrayHandle<Scalar4> h_pos(pdata_18->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -334,7 +334,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         pdata_18->notifyParticleSort();
         }
 
-    boost::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
+    std::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
     nlist_18->setRCutPair(0,0,1.0);
     nlist_18->setRCutPair(1,1,1.0);
     nlist_18->setRCutPair(0,1,1.0);
@@ -434,10 +434,10 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
 
 //! Test neighborlist functionality with changing types
 template <class NL>
-void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     // test 1: 4 types, but missing two in the middle
         {
         ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -456,7 +456,7 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
         pdata_6->notifyParticleSort();
         }
 
-    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
 
@@ -640,10 +640,10 @@ void neighborlist_type_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
 //! Tests the ability of the neighbor list to exclude particle pairs
 template <class NL>
-void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
@@ -660,7 +660,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     pdata_6->notifyParticleSort();
     }
 
-    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setRCutPair(0,0,3.0);
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->addExclusion(0,1);
@@ -713,10 +713,10 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
 
 //! Tests the ability of the neighbor list to exclude particles from the same body
 template <class NL>
-void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
@@ -734,7 +734,7 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     pdata_6->notifyParticleSort();
     }
 
-    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setRCutPair(0,0,3.0);
     nlist_6->setFilterBody(true);
     nlist_6->setStorageMode(NeighborList::full);
@@ -788,12 +788,12 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
 
 //! Tests the ability of the neighbor list to filter by diameter
 template <class NL>
-void neighborlist_diameter_shift_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -808,7 +808,7 @@ void neighborlist_diameter_shift_tests(boost::shared_ptr<ExecutionConfiguration>
     }
 
     // test construction of the neighborlist
-    boost::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
+    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
     nlist_2->setRCutPair(0,0,1.5);
     nlist_2->compute(1);
     nlist_2->setStorageMode(NeighborList::full);
@@ -854,19 +854,19 @@ void neighborlist_diameter_shift_tests(boost::shared_ptr<ExecutionConfiguration>
 
 //! Test two implementations of NeighborList and verify that the output is identical
 template <class NLA, class NLB>
-void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    boost::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist1->setRCutPair(0,0,3.0);
     nlist1->setStorageMode(NeighborList::full);
 
-    boost::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist2->setRCutPair(0,0,3.0);
     nlist2->setStorageMode(NeighborList::full);
 
@@ -920,15 +920,15 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
 
 //! Test that a NeighborList can successfully exclude a ridiculously large number of particles
 template <class NL>
-void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_large_ex_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    boost::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
     nlist->setRCutPair(0,0,8.0);
     nlist->setStorageMode(NeighborList::full);
 
@@ -964,11 +964,11 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
 
 //! Test that NeighborList can exclude particles correctly when cutoff radius is negative
 template <class NL>
-void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // Initialize a system of 3 particles each having a distinct type
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     // put the particles on top of each other, the worst case scenario for inclusion / exclusion since the distance
     // between them is zero
@@ -980,7 +980,7 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
             }
         }
 
-    boost::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(-1.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(-1.0), Scalar(0.4)));
     // explicitly set the cutoff radius of each pair type to ignore
     for (unsigned int i = 0; i < pdata_3->getNTypes(); ++i)
         {
@@ -1056,42 +1056,42 @@ void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration>
 //! basic test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_basic )
     {
-    neighborlist_basic_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_basic_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! exclusion test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! large exclusion test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_large_ex_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! body filter test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_filter_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! diameter filter test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_diameter_shift_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_particle_asymm_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! type test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_type )
     {
-    neighborlist_type_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_type_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 ////////////////////
@@ -1100,48 +1100,48 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_type )
 //! basic test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_basic )
     {
-    neighborlist_basic_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_basic_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! exclusion test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! large exclusion test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_large_ex_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! body filter test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_filter_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! diameter filter test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_diameter_shift_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_particle_asymm_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! type test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_type )
     {
-    neighborlist_type_tests<NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_type_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for stencil class
 BOOST_AUTO_TEST_CASE( NeighborListStencil_comparison )
     {
-    neighborlist_comparison_test<NeighborListBinned, NeighborListStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_comparison_test<NeighborListBinned, NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 ///////////////
@@ -1150,47 +1150,47 @@ BOOST_AUTO_TEST_CASE( NeighborListStencil_comparison )
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
     {
-    neighborlist_basic_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_basic_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! exclusion test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! large exclusion test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_large_ex_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! body filter test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_filter_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! diameter filter test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListTree_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_diameter_shift_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! particle asymmetry test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_particle_asymm_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! cutoff exclusion test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! type test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_type )
     {
-    neighborlist_type_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_type_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_comparison )
     {
-    neighborlist_comparison_test<NeighborListBinned, NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_comparison_test<NeighborListBinned, NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -1200,47 +1200,47 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_comparison )
 //! basic test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_basic )
     {
-    neighborlist_basic_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_basic_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! exclusion test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_exclusion_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! large exclusion test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_large_ex_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! body filter test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_body_filter_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! diameter filter test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_diameter_shift_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! particle asymmetry test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_particle_asymm_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! cutoff exclusion test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! type test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_type )
     {
-    neighborlist_type_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_type_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
     {
-    neighborlist_comparison_test<NeighborListBinned, NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborListBinned, NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 ///////////////
@@ -1249,52 +1249,52 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
 //! basic test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_basic )
     {
-    neighborlist_basic_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_basic_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! exclusion test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_exclusion )
     {
-    neighborlist_exclusion_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_exclusion_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! large exclusion test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_large_ex )
     {
-    neighborlist_large_ex_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_large_ex_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! body filter test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_body_filter)
     {
-    neighborlist_body_filter_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_body_filter_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! diameter filter test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_diameter_shift )
     {
-    neighborlist_diameter_shift_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_diameter_shift_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! particle asymmetry test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_particle_asymm )
     {
-    neighborlist_particle_asymm_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_particle_asymm_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! cutoff exclusion test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_cutoff_exclude )
     {
-    neighborlist_cutoff_exclude_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_cutoff_exclude_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! type test case for GPUStencil class
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_type )
     {
-    neighborlist_type_tests<NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_type_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUStencil class against Stencil on cpu
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_cpu_comparison )
     {
-    neighborlist_comparison_test<NeighborListStencil, NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborListStencil, NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUStencil class against GPUBinned
 BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_binned_comparison )
     {
-    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUStencil>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 ///////////////
@@ -1303,7 +1303,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUStencil_binned_comparison )
 //! basic test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
@@ -1316,7 +1316,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
 //! exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
@@ -1329,7 +1329,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
 //! large exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
@@ -1342,7 +1342,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
 //! body filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
@@ -1355,7 +1355,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
 //! diameter filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
@@ -1368,7 +1368,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
 //! particle asymmetry test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
@@ -1381,7 +1381,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm )
 //! cutoff exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
@@ -1394,7 +1394,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude )
 //! type test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
@@ -1407,7 +1407,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_type )
 //! comparison test case for GPUTree class with itself
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
@@ -1420,7 +1420,7 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cpu_comparison )
 //! comparison test case for GPUTree class with GPUBinned
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_binned_comparison )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);

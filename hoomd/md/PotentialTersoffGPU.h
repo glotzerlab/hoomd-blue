@@ -38,8 +38,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
         //! Construct the potential
-        PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<NeighborList> nlist,
+        PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<NeighborList> nlist,
                             const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialTersoffGPU();
@@ -64,8 +64,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                                boost::shared_ptr<NeighborList> nlist,
+PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                                std::shared_ptr<NeighborList> nlist,
                                                                 const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
@@ -158,13 +158,13 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
 */
 template < class T, class Base > void export_PotentialTersoffGPU(const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
               ;
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< std::shared_ptr<T> >();
     #endif
     }
 

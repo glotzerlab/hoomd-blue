@@ -40,13 +40,13 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
     \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
-TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo_group,
-                       boost::shared_ptr<ComputeThermo> thermo_group_t,
+TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
                        Scalar tauP,
-                       boost::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> T,
                        boost::python::list S,
                        couplingMode couple,
                        unsigned int flags,
@@ -77,7 +77,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     // Set the stress vector from the python list
     for (int i = 0; i< 6; ++i)
         {
-        m_S.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
+        m_S.push_back(boost::python::extract<std::shared_ptr<Variant>>(S[i]));
         }
 
     bool twod = m_sysdef->getNDimensions()==2;
@@ -877,14 +877,14 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
 
 void export_TwoStepNPTMTK()
     {
-    scope in_npt_mtk = class_<TwoStepNPTMTK, boost::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNPTMTK", init< boost::shared_ptr<SystemDefinition>,
-                       boost::shared_ptr<ParticleGroup>,
-                       boost::shared_ptr<ComputeThermo>,
-                       boost::shared_ptr<ComputeThermo>,
+    scope in_npt_mtk = class_<TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
+        ("TwoStepNPTMTK", init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
+                       std::shared_ptr<ComputeThermo>,
+                       std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
-                       boost::shared_ptr<Variant>,
+                       std::shared_ptr<Variant>,
                        boost::python::list,
                        TwoStepNPTMTK::couplingMode,
                        unsigned int,

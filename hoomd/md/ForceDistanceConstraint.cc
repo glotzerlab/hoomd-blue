@@ -18,7 +18,7 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
@@ -601,8 +601,8 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
 void export_ForceDistanceConstraint()
     {
-    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
+    ("ForceDistanceConstraint", init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

@@ -25,8 +25,8 @@ using namespace std;
     \param P position of the sphere
     \param r radius of the sphere
 */
-ConstraintSphereGPU::ConstraintSphereGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<ParticleGroup> group,
+ConstraintSphereGPU::ConstraintSphereGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                         std::shared_ptr<ParticleGroup> group,
                                          Scalar3 P,
                                          Scalar r)
         : ConstraintSphere(sysdef, group, P, r), m_block_size(256)
@@ -89,9 +89,9 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
 
 void export_ConstraintSphereGPU()
     {
-    class_< ConstraintSphereGPU, boost::shared_ptr<ConstraintSphereGPU>, bases<ConstraintSphere>, boost::noncopyable >
-    ("ConstraintSphereGPU", init< boost::shared_ptr<SystemDefinition>,
-                                  boost::shared_ptr<ParticleGroup>,
+    class_< ConstraintSphereGPU, std::shared_ptr<ConstraintSphereGPU>, bases<ConstraintSphere>, boost::noncopyable >
+    ("ConstraintSphereGPU", init< std::shared_ptr<SystemDefinition>,
+                                  std::shared_ptr<ParticleGroup>,
                                   Scalar3,
                                   Scalar >())
     ;

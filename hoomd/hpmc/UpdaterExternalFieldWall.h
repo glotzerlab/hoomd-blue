@@ -33,9 +33,9 @@ class UpdaterExternalFieldWall : public Updater
             \param move_ratio Probability of attempting wall update move
             \param seed PRNG seed
         */
-        UpdaterExternalFieldWall( boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
-                      boost::shared_ptr< ExternalFieldWall<Shape> > external,
+        UpdaterExternalFieldWall( std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                      std::shared_ptr< ExternalFieldWall<Shape> > external,
                       boost::python::object py_updater,
                       Scalar move_ratio,
                       unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
@@ -168,8 +168,8 @@ class UpdaterExternalFieldWall : public Updater
             }
 
     private:
-        boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
-        boost::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
+        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
+        std::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
         boost::python::object m_py_updater;                       //!< Python call back for external field update
         Scalar m_move_ratio;                                      //!< Ratio of lattice vector length versus shearing move
         unsigned int m_count_accepted_rel;                        //!< Accepted moves count, relative to start of run
@@ -185,8 +185,8 @@ class UpdaterExternalFieldWall : public Updater
 template< class Shape >
 void export_UpdaterExternalFieldWall(std::string name)
     {
-    class_< UpdaterExternalFieldWall<Shape>, boost::shared_ptr< UpdaterExternalFieldWall<Shape> >, bases< Updater >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, boost::shared_ptr< ExternalFieldWall<Shape> >, boost::python::object, Scalar, unsigned int >())
+    class_< UpdaterExternalFieldWall<Shape>, std::shared_ptr< UpdaterExternalFieldWall<Shape> >, bases< Updater >, boost::noncopyable>
+    (name.c_str(), init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, std::shared_ptr< ExternalFieldWall<Shape> >, boost::python::object, Scalar, unsigned int >())
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)

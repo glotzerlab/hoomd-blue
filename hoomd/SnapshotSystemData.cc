@@ -47,7 +47,7 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     }
 
 template <class Real>
-void SnapshotSystemData<Real>::broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void SnapshotSystemData<Real>::broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
     if (exec_conf->getNRanks() > 1)
@@ -63,7 +63,7 @@ template struct SnapshotSystemData<double>;
 
 void export_SnapshotSystemData()
     {
-    class_<SnapshotSystemData<float>, boost::shared_ptr< SnapshotSystemData<float> > >("SnapshotSystemData_float")
+    class_<SnapshotSystemData<float>, std::shared_ptr< SnapshotSystemData<float> > >("SnapshotSystemData_float")
     .def(init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
@@ -77,9 +77,9 @@ void export_SnapshotSystemData()
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
-    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr< const SnapshotSystemData<float> > >();
+    implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr< const SnapshotSystemData<float> > >();
 
-    class_<SnapshotSystemData<double>, boost::shared_ptr< SnapshotSystemData<double> > >("SnapshotSystemData_double")
+    class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >("SnapshotSystemData_double")
     .def(init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
@@ -93,5 +93,5 @@ void export_SnapshotSystemData()
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
 
-    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr< const SnapshotSystemData<double> > >();
+    implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr< const SnapshotSystemData<double> > >();
     }

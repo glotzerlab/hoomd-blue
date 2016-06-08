@@ -12,7 +12,7 @@
 
 #include "hoomd/System.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 
 #include "hoomd/ExecutionConfiguration.h"
@@ -36,20 +36,20 @@ using namespace std;
 using namespace boost;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef boost::function<boost::shared_ptr<Communicator> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
+typedef boost::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
-boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<DomainDecomposition> decomposition);
+std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<DomainDecomposition> decomposition);
 
 #ifdef ENABLE_CUDA
-boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition);
+std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition);
 #endif
 
-void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                const BoxDim& box,
-                               boost::shared_ptr<DomainDecomposition> decomposition)
+                               std::shared_ptr<DomainDecomposition> decomposition)
 {
     // this test needs to be run on eight processors
     int size;
@@ -57,7 +57,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -68,7 +68,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -173,7 +173,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
-void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // this test needs to be run on eight processors
     int size;
@@ -181,7 +181,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -192,7 +192,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -239,7 +239,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::vector<Scalar> cum_frac_x = decomposition->getCumulativeFractions(0);
     MY_BOOST_CHECK_SMALL(cum_frac_x[0], tol);
     MY_BOOST_CHECK_CLOSE(cum_frac_x[1], 0.5, tol);
@@ -366,7 +366,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     }
 
 //! Test particle migration of Communicator
-void test_communicator_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_communicator_migrate(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf,
     BoxDim dest_box)
     {
     // this test needs to be run on eight processors
@@ -376,7 +376,7 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -387,7 +387,7 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)),false);
@@ -403,9 +403,9 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(),2,2,2));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(),2,2,2));
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -620,7 +620,7 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     }
 
 //! Test particle migration of Communicator
-void test_communicator_balanced_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_communicator_balanced_migrate(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf,
     BoxDim dest_box)
     {
     // this test needs to be run on eight processors
@@ -630,7 +630,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -641,7 +641,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.75,0.25)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.75,0.25)),false);
@@ -663,9 +663,9 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     fys[0] = Scalar(0.25);
     fzs[0] = Scalar(0.75);
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -905,9 +905,9 @@ struct ghost_layer_width
 
 //! Test ghost particle communication
 void test_communicator_ghosts(communicator_creator comm_creator,
-                              boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                              std::shared_ptr<ExecutionConfiguration> exec_conf,
                               const BoxDim& dest_box,
-                              boost::shared_ptr<DomainDecomposition> decomposition,
+                              std::shared_ptr<DomainDecomposition> decomposition,
                               Scalar3 origin)
     {
     // this test needs to be run on eight processors
@@ -916,7 +916,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -927,7 +927,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
     BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
@@ -963,8 +963,8 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-//     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+//     std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -1872,9 +1872,9 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 //! Test particle communication for covalently bonded ghosts
 void test_communicator_bond_exchange(communicator_creator comm_creator,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                      const BoxDim& box,
-                                     boost::shared_ptr<DomainDecomposition> decomposition)
+                                     std::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
@@ -1882,7 +1882,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -1893,7 +1893,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
@@ -1909,7 +1909,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     // now bond these particles together, forming a cube
 
-    boost::shared_ptr<BondData> bdata(sysdef->getBondData());
+    std::shared_ptr<BondData> bdata(sysdef->getBondData());
 
     bdata->addBondedGroup(Bond(0,0,1));  // bond 0
     bdata->addBondedGroup(Bond(0,0,2));  // bond 1
@@ -1931,7 +1931,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     bdata->takeSnapshot(bdata_snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
     ghost_layer_width g(0.1);
@@ -2540,9 +2540,9 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
 //! Test particle communication for covalently bonded ghosts
 void test_communicator_bonded_ghosts(communicator_creator comm_creator,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                      const BoxDim& box,
-                                     boost::shared_ptr<DomainDecomposition> decomposition)
+                                     std::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
@@ -2550,7 +2550,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2561,7 +2561,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
@@ -2577,7 +2577,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
     // now bond these particles together, forming a cube
 
-    boost::shared_ptr<BondData> bdata(sysdef->getBondData());
+    std::shared_ptr<BondData> bdata(sysdef->getBondData());
 
     bdata->addBondedGroup(Bond(0,0,1));  // bond type, tag a, tag b
     bdata->addBondedGroup(Bond(0,0,2));
@@ -2599,7 +2599,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     bdata->takeSnapshot(snap_bdata);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // communicate tags, necessary for gpu bond table
     CommFlags flags(0);
@@ -2707,11 +2707,11 @@ CommFlags comm_flag_request(unsigned int timestep)
 
 void test_communicator_compare(communicator_creator comm_creator_1,
                                  communicator_creator comm_creator_2,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_1,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_2,
+                                 std::shared_ptr<ExecutionConfiguration> exec_conf_1,
+                                 std::shared_ptr<ExecutionConfiguration> exec_conf_2,
                                  const BoxDim& box,
-                                 boost::shared_ptr<DomainDecomposition> decomposition_1,
-                                 boost::shared_ptr<DomainDecomposition> decomposition_2)
+                                 std::shared_ptr<DomainDecomposition> decomposition_1,
+                                 std::shared_ptr<DomainDecomposition> decomposition_2)
 
     {
     if (exec_conf_1->getRank() == 0)
@@ -2719,7 +2719,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     unsigned int n = 1000;
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2727,7 +2727,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              0,           // number of dihedral types
                                                              exec_conf_1));
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2736,8 +2736,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              exec_conf_2));
 
-    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     Scalar3 lo = pdata_1->getBox().getLo();
     Scalar3 L = pdata_1->getBox().getL();
@@ -2754,8 +2754,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         }
 
     // setup communicators
-    boost::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
-    boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
+    std::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
+    std::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
     // width of ghost layer
     ghost_layer_width g(0.2);
@@ -2770,21 +2770,21 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     pdata_2->initializeFromSnapshot(snap);
 
     // Create ConstForceComputes
-//    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
-//    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    std::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    std::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    boost::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
+    std::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
 
-    boost::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
-    boost::shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
+    std::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
+    std::shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
 
     Scalar deltaT=0.001;
-    boost::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
-    boost::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
     nve_up_1->addIntegrationMethod(two_step_nve_1);
     nve_up_2->addIntegrationMethod(two_step_nve_2);
 
@@ -2857,7 +2857,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     }
 
 //! Test ghost particle communication
-void test_communicator_ghost_fields(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghost_fields(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -2865,7 +2865,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight + 1 one ptls (1 ptl in ghost layer)
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -2875,7 +2875,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
                                                              exec_conf));
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -2903,8 +2903,8 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3109,7 +3109,7 @@ struct two_type_ghost_layer
     };
 
 //! Test setting the ghost layer width
-void test_communicator_ghost_layer_width(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghost_layer_width(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -3117,7 +3117,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     BOOST_REQUIRE_EQUAL(size,8);
 
     // just create some system
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              2,           // number of particle types
                                                              0,           // number of bond types
@@ -3127,7 +3127,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
                                                              exec_conf));
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -3149,8 +3149,8 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3209,7 +3209,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     }
 
 //! Test per-type ghost layer
-void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
     {
     // this test needs to be run on eight processors
     int size;
@@ -3217,7 +3217,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with fourteen particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
                                                              dest_box, // box dimensions
                                                              2,           // number of particle types
                                                              0,           // number of bond types
@@ -3228,7 +3228,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
 
 
 
-   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+   std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
    BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
@@ -3276,8 +3276,8 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3394,32 +3394,32 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     }
 
 //! Communicator creator for unit tests
-boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<DomainDecomposition> decomposition)
+std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return boost::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
+    return std::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
 #ifdef ENABLE_CUDA
-boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition)
+std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return boost::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
+    return std::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
     }
 #endif
 
-boost::shared_ptr<ExecutionConfiguration> exec_conf;
+std::shared_ptr<ExecutionConfiguration> exec_conf;
 
 // test fixture to initialize exec_conf only once
 struct Fx
     {
     Fx()
         {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         }
     ~Fx()
         {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
+        exec_conf = std::shared_ptr<ExecutionConfiguration>();
         }
     };
 
@@ -3429,7 +3429,7 @@ BOOST_FIXTURE_TEST_SUITE(cpu_tests, Fx)
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
     BoxDim box(2.0);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
@@ -3443,7 +3443,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
 
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
@@ -3489,7 +3489,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 1
@@ -3498,7 +3498,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 2
@@ -3507,7 +3507,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
 
@@ -3524,7 +3524,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3533,7 +3533,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3542,7 +3542,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
@@ -3553,7 +3553,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3561,7 +3561,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
@@ -3572,7 +3572,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3580,7 +3580,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
@@ -3612,11 +3612,11 @@ struct FxGPU
     {
     FxGPU()
         {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         }
     ~FxGPU()
         {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
+        exec_conf = std::shared_ptr<ExecutionConfiguration>();
         }
     };
 
@@ -3626,7 +3626,7 @@ BOOST_FIXTURE_TEST_SUITE(gpu_tests, FxGPU)
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
     BoxDim box(2.0);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
@@ -3640,7 +3640,7 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
 
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
@@ -3686,7 +3686,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 1
@@ -3695,7 +3695,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 2
@@ -3704,7 +3704,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
 
@@ -3721,7 +3721,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3730,7 +3730,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3739,7 +3739,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
@@ -3750,7 +3750,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3758,7 +3758,7 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
@@ -3769,7 +3769,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3777,7 +3777,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
@@ -3805,15 +3805,15 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
 
-    boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    boost::shared_ptr<ExecutionConfiguration> exec_conf_2 = exec_conf;
+    std::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf_2 = exec_conf;
 
     // uniform case: compare cpu and gpu
         {
         BoxDim box(2.0);
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
 
@@ -3823,8 +3823,8 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.55; fy[0] = 0.45; fz[0] = 0.7;
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
 
@@ -3834,8 +3834,8 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.5; fy[0] = 0.5; fz[0] = 0.5;
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
     }

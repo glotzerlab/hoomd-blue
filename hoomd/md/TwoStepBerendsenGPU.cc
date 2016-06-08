@@ -24,11 +24,11 @@ using namespace std;
     \param tau Time constant for Berendsen thermostat
     \param T Set temperature
 */
-TwoStepBerendsenGPU::TwoStepBerendsenGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<ParticleGroup> group,
-                                         boost::shared_ptr<ComputeThermo> thermo,
+TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                         std::shared_ptr<ParticleGroup> group,
+                                         std::shared_ptr<ComputeThermo> thermo,
                                          Scalar tau,
-                                         boost::shared_ptr<Variant> T)
+                                         std::shared_ptr<Variant> T)
     : TwoStepBerendsen(sysdef, group, thermo, tau, T)
     {
     if (!m_exec_conf->isCUDAEnabled())
@@ -122,12 +122,12 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
 
 void export_BerendsenGPU()
     {
-    class_<TwoStepBerendsenGPU, boost::shared_ptr<TwoStepBerendsenGPU>, bases<TwoStepBerendsen>, boost::noncopyable>
-    ("TwoStepBerendsenGPU", init< boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ParticleGroup>,
-                            boost::shared_ptr<ComputeThermo>,
+    class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU>, bases<TwoStepBerendsen>, boost::noncopyable>
+    ("TwoStepBerendsenGPU", init< std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
                             Scalar,
-                            boost::shared_ptr<Variant>
+                            std::shared_ptr<Variant>
                             >())
     ;
     }

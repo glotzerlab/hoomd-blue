@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -32,7 +32,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~HarmonicDihedralForceCompute();
@@ -64,7 +64,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
         Scalar *m_sign;  //!< sign parameter for multiple dihedral types
         Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
 
-        boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
+        std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

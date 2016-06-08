@@ -23,7 +23,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
+BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : BondTablePotential(sysdef, table_width, log_suffix)
@@ -122,9 +122,9 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
 void export_BondTablePotentialGPU()
     {
-    class_<BondTablePotentialGPU, boost::shared_ptr<BondTablePotentialGPU>, bases<BondTablePotential>, boost::noncopyable >
+    class_<BondTablePotentialGPU, std::shared_ptr<BondTablePotentialGPU>, bases<BondTablePotential>, boost::noncopyable >
     ("BondTablePotentialGPU",
-     init< boost::shared_ptr<SystemDefinition>,
+     init< std::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
     ;

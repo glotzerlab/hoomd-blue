@@ -32,7 +32,7 @@ class NeighborListGPU : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
+        NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
             GPUArray<unsigned int> flags(1,exec_conf,true);
@@ -92,7 +92,7 @@ class NeighborListGPU : public NeighborList
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // upon first call, register with Communicator
             if (comm && !m_comm)

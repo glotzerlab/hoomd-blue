@@ -21,7 +21,7 @@ using namespace std;
 
 /*! \param sysdef system to compute the cell list of
 */
-CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
+CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
       m_compute_adj_list(true)
@@ -672,8 +672,8 @@ void CellList::printStats()
 
 void export_CellList()
     {
-    class_<CellList, boost::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
-        ("CellList", init< boost::shared_ptr<SystemDefinition> >())
+    class_<CellList, std::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
+        ("CellList", init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)

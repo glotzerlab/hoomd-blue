@@ -22,7 +22,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableAngleForceComputeGPU::TableAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TableAngleForceCompute(sysdef, table_width, log_suffix)
@@ -101,9 +101,9 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableAngleForceComputeGPU()
     {
-    class_<TableAngleForceComputeGPU, boost::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute>, boost::noncopyable >
+    class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute>, boost::noncopyable >
     ("TableAngleForceComputeGPU",
-     init< boost::shared_ptr<SystemDefinition>,
+     init< std::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
     ;

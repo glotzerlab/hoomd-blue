@@ -29,11 +29,11 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
                                          Scalar r_cut,
                                          Scalar r_buff,
-                                         boost::shared_ptr<CellList> cl,
-                                         boost::shared_ptr<CellListStencil> cls)
+                                         std::shared_ptr<CellList> cl,
+                                         std::shared_ptr<CellListStencil> cls)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true)
     {
@@ -41,11 +41,11 @@ NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sys
 
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     // construct the cell list stencil generator for the current cell list
     if (!m_cls)
-        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
@@ -340,7 +340,7 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListStencil()
     {
-    class_<NeighborListStencil, boost::shared_ptr<NeighborListStencil>, bases<NeighborList>, boost::noncopyable >
-        ("NeighborListStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+    class_<NeighborListStencil, std::shared_ptr<NeighborListStencil>, bases<NeighborList>, boost::noncopyable >
+        ("NeighborListStencil", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListStencil::setCellWidth);
     }

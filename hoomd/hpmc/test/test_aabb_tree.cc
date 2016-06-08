@@ -9,7 +9,7 @@
 #include <boost/bind.hpp>
 #include <boost/python.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 #include "hoomd/VectorMath.h"

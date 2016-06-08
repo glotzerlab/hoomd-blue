@@ -22,7 +22,7 @@ using namespace std;
 
 /*! \param sysdef System to update
 */
-Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
+Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
     // at least one GPU is needed
     if (!m_exec_conf->isCUDAEnabled())
@@ -61,7 +61,7 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
 
 void export_Enforce2DUpdaterGPU()
     {
-    class_<Enforce2DUpdaterGPU, boost::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
-    ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<Enforce2DUpdaterGPU, std::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
+    ("Enforce2DUpdaterGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

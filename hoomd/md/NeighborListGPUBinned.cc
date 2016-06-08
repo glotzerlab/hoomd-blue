@@ -18,15 +18,15 @@ using namespace boost::python;
 #include "hoomd/Communicator.h"
 #endif
 
-NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_cut,
                                              Scalar r_buff,
-                                             boost::shared_ptr<CellList> cl)
+                                             std::shared_ptr<CellList> cl)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_param(0)
     {
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     m_cl->setRadius(1);
     // types are always required now
@@ -193,8 +193,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUBinned()
     {
-    class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
+    class_<NeighborListGPUBinned, std::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
+                     ("NeighborListGPUBinned", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;
     }

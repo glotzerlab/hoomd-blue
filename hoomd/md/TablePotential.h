@@ -9,7 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file TablePotential.h
     \brief Declares the TablePotential class
@@ -60,8 +60,8 @@ class TablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute
-        TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<NeighborList> nlist,
+        TablePotential(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<NeighborList> nlist,
                        unsigned int table_width,
                        const std::string& log_suffix="");
 
@@ -83,7 +83,7 @@ class TablePotential : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
         unsigned int m_ntypes;                      //!< Store the number of particle types
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables

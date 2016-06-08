@@ -9,7 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file TableAngleForceCompute.h
     \brief Declares the TableAngleForceCompute class
@@ -53,7 +53,7 @@ class TableAngleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        TableAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+        TableAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int table_width,
                        const std::string& log_suffix="");
 
@@ -87,7 +87,7 @@ class TableAngleForceCompute : public ForceCompute
 
 
     protected:
-        boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
+        std::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<Scalar2> m_tables;                  //!< Stored V and T tables
         Index2D m_table_value;                      //!< Index table helper

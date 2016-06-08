@@ -22,7 +22,7 @@ using namespace std;
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+Compute::Compute(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
         exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
@@ -46,11 +46,11 @@ double Compute::benchmark(unsigned int num_iters)
     This method does not need to be called, as Computes will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void Compute::setProfiler(boost::shared_ptr<Profiler> prof)
+void Compute::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
@@ -111,7 +111,7 @@ class ComputeWrap : public Compute, public wrapper<Compute>
     public:
         //! Constructor
         /*! \param sysdef Particle data to pass on to the base class */
-        ComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
+        ComputeWrap(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
             {
             }
 
@@ -174,7 +174,7 @@ class ComputeWrap : public Compute, public wrapper<Compute>
 
 void export_Compute()
     {
-    class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<ComputeWrap, std::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< std::shared_ptr<SystemDefinition> >())
     .def("compute", pure_virtual(&Compute::compute))
     .def("benchmark", pure_virtual(&Compute::benchmark))
     .def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)

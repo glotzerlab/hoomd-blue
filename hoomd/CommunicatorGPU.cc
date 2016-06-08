@@ -20,8 +20,8 @@
 #include <functional>
 
 //! Constructor
-CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<DomainDecomposition> decomposition)
+CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition),
       m_max_stages(1),
       m_num_stages(0),
@@ -430,7 +430,7 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
 
 //! Constructor
 template<class group_data>
-CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata)
+CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, std::shared_ptr<group_data> gdata)
     : m_gpu_comm(gpu_comm), m_exec_conf(m_gpu_comm.m_exec_conf), m_gdata(gdata),
       m_ghost_group_begin(m_exec_conf), m_ghost_group_end(m_exec_conf),m_ghost_group_idx_adj(m_exec_conf),
       m_ghost_group_neigh(m_exec_conf), m_ghost_group_plan(m_exec_conf), m_neigh_counts(m_exec_conf)
@@ -517,7 +517,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::overwrite);
 
-            boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+            std::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
             ArrayHandle<unsigned int> d_cart_ranks(decomposition->getCartRanks(), access_location::device, access_mode::read);
 
             Index3D di = decomposition->getDomainIndexer();
@@ -1469,7 +1469,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
         ArrayHandle<Scalar4> d_pos(m_gpu_comm.m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_plan(plans, access_location::device, access_mode::readwrite);
 
-        boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+        std::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
         ArrayHandle<unsigned int> d_cart_ranks_inv(decomposition->getInverseCartRanks(), access_location::device, access_mode::read);
         Index3D di = decomposition->getDomainIndexer();
         uint3 my_pos = decomposition->getGridPos();
@@ -3251,9 +3251,9 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
  //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU()
     {
-    boost::python::class_<CommunicatorGPU, boost::python::bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
-           boost::python::init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
+    boost::python::class_<CommunicatorGPU, boost::python::bases<Communicator>, std::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
+           boost::python::init<std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<DomainDecomposition> >())
             .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;
     }

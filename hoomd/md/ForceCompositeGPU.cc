@@ -17,7 +17,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : ForceComposite(sysdef)
     {
 
@@ -220,7 +220,7 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
 
 void export_ForceCompositeGPU()
     {
-    class_< ForceCompositeGPU, boost::shared_ptr<ForceCompositeGPU>, bases<ForceComposite>, boost::noncopyable >
-    ("ForceCompositeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU>, bases<ForceComposite>, boost::noncopyable >
+    ("ForceCompositeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

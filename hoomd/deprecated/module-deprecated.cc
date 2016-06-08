@@ -32,12 +32,12 @@ BOOST_PYTHON_MODULE(_deprecated)
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr< MSDAnalyzer > >();
-    register_ptr_to_python< boost::shared_ptr< HOOMDDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< POSDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< HOOMDInitializer > >();
-    register_ptr_to_python< boost::shared_ptr< RandomGenerator > >();
-    register_ptr_to_python< boost::shared_ptr< PolymerParticleGenerator > >();
+    register_ptr_to_python< std::shared_ptr< MSDAnalyzer > >();
+    register_ptr_to_python< std::shared_ptr< HOOMDDumpWriter > >();
+    register_ptr_to_python< std::shared_ptr< POSDumpWriter > >();
+    register_ptr_to_python< std::shared_ptr< HOOMDInitializer > >();
+    register_ptr_to_python< std::shared_ptr< RandomGenerator > >();
+    register_ptr_to_python< std::shared_ptr< PolymerParticleGenerator > >();
 
     #ifdef ENABLE_CUDA
     #endif

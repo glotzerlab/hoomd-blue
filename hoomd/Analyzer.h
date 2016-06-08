@@ -18,7 +18,7 @@
 #include "Profiler.h"
 #include "SystemDefinition.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/utility.hpp>
 
 /*! \ingroup hoomd_lib
@@ -56,7 +56,7 @@ class Analyzer : boost::noncopyable
     {
     public:
         //! Constructs the analyzer and associates it with the ParticleData
-        Analyzer(boost::shared_ptr<SystemDefinition> sysdef);
+        Analyzer(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Analyzer() {};
 
         //! Abstract method that performs the analysis
@@ -66,7 +66,7 @@ class Analyzer : boost::noncopyable
         virtual void analyze(unsigned int timestep) = 0;
 
         //! Sets the profiler for the analyzer to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -105,7 +105,7 @@ class Analyzer : boost::noncopyable
             return PDataFlags(0);
             }
 
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
+        std::shared_ptr<const ExecutionConfiguration> getExecConf()
             {
             return m_exec_conf;
             }
@@ -114,22 +114,22 @@ class Analyzer : boost::noncopyable
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
 
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator to use
 #endif
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Export the Analyzer class to python

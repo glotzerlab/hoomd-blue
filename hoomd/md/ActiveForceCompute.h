@@ -6,7 +6,7 @@
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/ParticleGroup.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "hoomd/extern/saruprng.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -32,8 +32,8 @@ class ActiveForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
+        ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
                              int seed, boost::python::list f_lst,
                              bool orientation_link, bool orientation_reverse_link,
                              Scalar rotation_diff,
@@ -58,7 +58,7 @@ class ActiveForceCompute : public ForceCompute
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();
 
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
         bool m_orientationReverseLink;
         Scalar m_rotationDiff;

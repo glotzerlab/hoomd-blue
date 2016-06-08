@@ -97,9 +97,9 @@ void export_lattice()
 void export_walls()
     {
     // export wall structs.
-    class_<SphereWall, boost::shared_ptr<SphereWall> >("sphere_wall_params");
-    class_<CylinderWall, boost::shared_ptr<CylinderWall> >("cylinder_wall_params");
-    class_<PlaneWall, boost::shared_ptr<PlaneWall> >("plane_wall_params", no_init);
+    class_<SphereWall, std::shared_ptr<SphereWall> >("sphere_wall_params");
+    class_<CylinderWall, std::shared_ptr<CylinderWall> >("cylinder_wall_params");
+    class_<PlaneWall, std::shared_ptr<PlaneWall> >("plane_wall_params", no_init);
 
     // export helper functions.
     def("make_sphere_wall", &make_sphere_wall);

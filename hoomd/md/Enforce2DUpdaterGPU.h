@@ -14,7 +14,7 @@
 
 #include "Enforce2DUpdater.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __ENFORCE2DUPDATER_GPU_H__
 #define __ENFORCE2DUPDATER_GPU_H__
@@ -30,7 +30,7 @@ class Enforce2DUpdaterGPU : public Enforce2DUpdater
     {
     public:
         //! Constructor
-        Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

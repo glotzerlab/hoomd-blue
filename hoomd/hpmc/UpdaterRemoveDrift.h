@@ -38,9 +38,9 @@ class RemoveDriftUpdater : public Updater
     {
     public:
         //! Constructor
-        RemoveDriftUpdater( boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
-                            boost::shared_ptr<IntegratorHPMCMono<Shape> > mc
+        RemoveDriftUpdater( std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc
                           ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc)
             {
             }
@@ -91,8 +91,8 @@ class RemoveDriftUpdater : public Updater
             m_mc->invalidateAABBTree();
             }
     protected:
-                boost::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
-                boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
+                std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
+                std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
     };
 
 //! Export the ExampleUpdater class to python
@@ -100,10 +100,10 @@ template <class Shape>
 void export_RemoveDriftUpdater(std::string name)
     {
     using boost::python::class_;
-    class_<RemoveDriftUpdater<Shape>, boost::shared_ptr<RemoveDriftUpdater<Shape> >, bases<Updater>, boost::noncopyable>
-    (name.c_str(), init<    boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ExternalFieldLattice<Shape> >,
-                            boost::shared_ptr<IntegratorHPMCMono<Shape> > >())
+    class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> >, bases<Updater>, boost::noncopyable>
+    (name.c_str(), init<    std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExternalFieldLattice<Shape> >,
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > >())
     ;
     }
 }

@@ -72,20 +72,20 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_shape_params();
     export_muvt();
 
-    class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
-    class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");
-    class_<poly2d_verts, boost::shared_ptr<poly2d_verts> >("poly2d_verts");
-    class_<poly3d_data, boost::shared_ptr<poly3d_data> >("poly3d_data");
-    class_< poly3d_verts<8>, boost::shared_ptr< poly3d_verts<8> > >("poly3d_verts8");
-    class_< poly3d_verts<16>, boost::shared_ptr< poly3d_verts<16> > >("poly3d_verts16");
-    class_< poly3d_verts<32>, boost::shared_ptr< poly3d_verts<32> > >("poly3d_verts32");
-    class_< poly3d_verts<64>, boost::shared_ptr< poly3d_verts<64> > >("poly3d_verts64");
-    class_< poly3d_verts<128>, boost::shared_ptr< poly3d_verts<128> > >("poly3d_verts128");
-    class_<ShapePolyhedron::param_type, boost::shared_ptr<ShapePolyhedron::param_type> >("poly3d_params");
-    class_<faceted_sphere_params, boost::shared_ptr<faceted_sphere_params> >("faceted_sphere_params");
-    class_<sphinx3d_params, boost::shared_ptr<sphinx3d_params> >("sphinx3d_params")
+    class_<sph_params, std::shared_ptr<sph_params> >("sph_params");
+    class_<ell_params, std::shared_ptr<ell_params> >("ell_params");
+    class_<poly2d_verts, std::shared_ptr<poly2d_verts> >("poly2d_verts");
+    class_<poly3d_data, std::shared_ptr<poly3d_data> >("poly3d_data");
+    class_< poly3d_verts<8>, std::shared_ptr< poly3d_verts<8> > >("poly3d_verts8");
+    class_< poly3d_verts<16>, std::shared_ptr< poly3d_verts<16> > >("poly3d_verts16");
+    class_< poly3d_verts<32>, std::shared_ptr< poly3d_verts<32> > >("poly3d_verts32");
+    class_< poly3d_verts<64>, std::shared_ptr< poly3d_verts<64> > >("poly3d_verts64");
+    class_< poly3d_verts<128>, std::shared_ptr< poly3d_verts<128> > >("poly3d_verts128");
+    class_<ShapePolyhedron::param_type, std::shared_ptr<ShapePolyhedron::param_type> >("poly3d_params");
+    class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >("faceted_sphere_params");
+    class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >("sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
-    class_< union_params<ShapeSphere>, boost::shared_ptr< union_params<ShapeSphere> > >("msph_params");
+    class_< union_params<ShapeSphere>, std::shared_ptr< union_params<ShapeSphere> > >("msph_params");
 
     def("make_poly2d_verts", &make_poly2d_verts);
     def("make_poly3d_data", &make_poly3d_data);

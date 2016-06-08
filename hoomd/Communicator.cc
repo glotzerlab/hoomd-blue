@@ -24,7 +24,7 @@ using namespace boost::python;
 #include <vector>
 
 template<class group_data>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata)
+Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
@@ -1051,8 +1051,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
 
 //! Constructor
-Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<DomainDecomposition> decomposition)
+Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf()),
@@ -2478,9 +2478,9 @@ void export_Communicator()
      class_< std::vector<bool> >("std_vector_bool")
     .def(vector_indexing_suite<std::vector<bool> >());
 
-    class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
-           init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
+    class_<Communicator, std::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
+           init<std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<DomainDecomposition> >())
     ;
     }
 #endif // ENABLE_MPI

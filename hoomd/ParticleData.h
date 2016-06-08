@@ -26,7 +26,8 @@
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
 
-#include <boost/shared_ptr.hpp>
+// #include <memory> TODO: adios_boost, remove
+#include <memory>
 #include <boost/signals2.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
@@ -339,18 +340,18 @@ class ParticleData : boost::noncopyable
         ParticleData(unsigned int N,
                      const BoxDim &global_box,
                      unsigned int n_types,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                     boost::shared_ptr<DomainDecomposition> decomposition
-                        = boost::shared_ptr<DomainDecomposition>()
+                     std::shared_ptr<ExecutionConfiguration> exec_conf,
+                     std::shared_ptr<DomainDecomposition> decomposition
+                        = std::shared_ptr<DomainDecomposition>()
                      );
 
         //! Construct using a ParticleDataSnapshot
         template<class Real>
         ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                     boost::shared_ptr<DomainDecomposition> decomposition
-                        = boost::shared_ptr<DomainDecomposition>()
+                     std::shared_ptr<ExecutionConfiguration> exec_conf,
+                     std::shared_ptr<DomainDecomposition> decomposition
+                        = std::shared_ptr<DomainDecomposition>()
                      );
 
         //! Destructor
@@ -373,7 +374,7 @@ class ParticleData : boost::noncopyable
         const BoxDim& getGlobalBox() const;
 
         //! Access the execution configuration
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
+        std::shared_ptr<const ExecutionConfiguration> getExecConf() const
             {
             return m_exec_conf;
             }
@@ -621,7 +622,7 @@ class ParticleData : boost::noncopyable
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof=prof;
             }
@@ -870,7 +871,7 @@ class ParticleData : boost::noncopyable
 
 #ifdef ENABLE_MPI
         //! Set domain decomposition information
-        void setDomainDecomposition(boost::shared_ptr<DomainDecomposition> decomposition)
+        void setDomainDecomposition(std::shared_ptr<DomainDecomposition> decomposition)
             {
             assert(decomposition);
             m_decomposition = decomposition;
@@ -879,7 +880,7 @@ class ParticleData : boost::noncopyable
             }
 
         //! Returns the domain decomin decomposition information
-        boost::shared_ptr<DomainDecomposition> getDomainDecomposition()
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
             {
             return m_decomposition;
             }
@@ -967,9 +968,9 @@ class ParticleData : boost::noncopyable
     private:
         BoxDim m_box;                               //!< The simulation box
         BoxDim m_global_box;                        //!< Global simulation box
-        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
+        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
 
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
@@ -1036,7 +1037,7 @@ class ParticleData : boost::noncopyable
         GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
         GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
-        boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
+        std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)

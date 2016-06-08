@@ -31,12 +31,12 @@ BOOST_PYTHON_MODULE(_cgcmm)
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
 
-    register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< CGCMMForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< CGCMMAngleForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< CGCMMForceCompute > >();
 
     #ifdef ENABLE_CUDA
-    register_ptr_to_python< boost::shared_ptr< CGCMMForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< CGCMMAngleForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< CGCMMForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< CGCMMAngleForceComputeGPU > >();
 
     #endif
 

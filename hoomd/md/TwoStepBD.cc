@@ -32,9 +32,9 @@ using namespace std;
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
 */
-TwoStepBD::TwoStepBD(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -223,10 +223,10 @@ void TwoStepBD::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepBD()
     {
-    class_<TwoStepBD, boost::shared_ptr<TwoStepBD>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepBD", init< boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ParticleGroup>,
-                            boost::shared_ptr<Variant>,
+    class_<TwoStepBD, std::shared_ptr<TwoStepBD>, bases<TwoStepLangevinBase>, boost::noncopyable>
+        ("TwoStepBD", init< std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
                             unsigned int,
                             bool,
                             Scalar,

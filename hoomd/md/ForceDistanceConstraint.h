@@ -35,7 +35,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -61,7 +61,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void assignMoleculeTags();
 
     protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
+        std::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
         GPUVector<double> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
         GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
@@ -121,7 +121,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);

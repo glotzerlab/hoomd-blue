@@ -6,7 +6,7 @@
 
 #include "hoomd/ForceCompute.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ConstExternalFieldDipoleForceCompute.h
     \brief Declares a class for computing external forces on anisotropic particles
@@ -26,7 +26,7 @@ class ConstExternalFieldDipoleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
+        ConstExternalFieldDipoleForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
 
         //! Set the force to a new value
         void setParams(Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);

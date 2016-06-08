@@ -17,7 +17,7 @@
 #include <boost/python.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 using namespace hpmc;
 using namespace hpmc::detail;

@@ -11,7 +11,7 @@
 #include "ParticleGroup.h"
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <fstream>
 
 /*! \file DCDDumpWriter.h
@@ -50,10 +50,10 @@ class DCDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+        DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
                       unsigned int period,
-                      boost::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ParticleGroup> group,
                       bool overwrite=false);
 
         //! Destructor
@@ -84,7 +84,7 @@ class DCDDumpWriter : public Analyzer
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
         unsigned int m_period;              //!< Time step period bewteen writes
-        boost::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
+        std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file

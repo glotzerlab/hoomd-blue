@@ -38,18 +38,18 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo,
+        TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   boost::shared_ptr<Variant> T,
+                   std::shared_ptr<Variant> T,
                    const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTMTK();
 
         //! Update the temperature
         /*! \param T New temperature to set
         */
-        virtual void setT(boost::shared_ptr<Variant> T)
+        virtual void setT(std::shared_ptr<Variant> T)
             {
             m_T = T;
             }
@@ -95,10 +95,10 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
 
 
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
+        std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
-        boost::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::shared_ptr<Variant> m_T; //!< Temperature set point
         std::string m_log_name;         //!< Name of the reservior quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor

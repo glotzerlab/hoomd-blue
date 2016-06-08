@@ -45,9 +45,9 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
     {
     public:
         //! Construct the integrator
-        ComputeFreeVolumeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             boost::shared_ptr<CellList> cl,
+        ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                             std::shared_ptr<CellList> cl,
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
@@ -86,9 +86,9 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
 
 
 template< class Shape >
-ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    boost::shared_ptr<CellList> cl,
+ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                                                    std::shared_ptr<CellList> cl,
                                                     unsigned int seed,
                                                     std::string suffix)
     : ComputeFreeVolume<Shape>(sysdef,mc,cl, seed,suffix)
@@ -299,10 +299,10 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 */
 template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolumeGPU<Shape>, boost::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<IntegratorHPMCMono<Shape> >,
-                boost::shared_ptr<CellList>,
+     boost::python::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> >, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<IntegratorHPMCMono<Shape> >,
+                std::shared_ptr<CellList>,
                 unsigned int,
                 std::string >())
         ;

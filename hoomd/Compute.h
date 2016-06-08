@@ -7,7 +7,7 @@
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/utility.hpp>
 #include <string>
 #include <vector>
@@ -42,7 +42,7 @@
     calculate forces, and calculate temperatures, just to name a few.
 
     For performance and simplicity, each compute is associated with a ParticleData
-    on construction. ParticleData pointers are managed with reference counted boost::shared_ptr.
+    on construction. ParticleData pointers are managed with reference counted std::shared_ptr.
     Since each ParticleData cannot change size, this allows the Compute to preallocate
     any data structures that it may need.
 
@@ -59,7 +59,7 @@ class Compute : boost::noncopyable
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
-        Compute(boost::shared_ptr<SystemDefinition> sysdef);
+        Compute(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Compute() {};
 
         //! Abstract method that performs the computation
@@ -90,7 +90,7 @@ class Compute : boost::noncopyable
             }
 
         //! Sets the profiler for the compute to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -140,21 +140,21 @@ class Compute : boost::noncopyable
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
+        std::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_force_compute;           //!< true if calculation is enforced
 
         //! Simple method for testing if the computation should be run or not

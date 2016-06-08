@@ -7,7 +7,7 @@
 #include "HarmonicImproperForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file HarmonicImproperForceComputeGPU.h
@@ -37,7 +37,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicImproperForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~HarmonicImproperForceComputeGPU();
 

@@ -19,7 +19,7 @@
 
 #include "Updater.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <string>
 #include <vector>
@@ -47,7 +47,7 @@ class LoadBalancer : public Updater
     {
     public:
         //! Constructor
-        LoadBalancer(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<DomainDecomposition> decomposition);
         //! Destructor
         virtual ~LoadBalancer();
 
@@ -110,7 +110,7 @@ class LoadBalancer : public Updater
         virtual void resetStats();
 
     protected:
-        boost::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
+        std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
 

@@ -251,8 +251,8 @@ void NeighborListGPU::buildHeadList()
 
 void export_NeighborListGPU()
     {
-    class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    class_<NeighborListGPU, std::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
+                     ("NeighborListGPU", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }

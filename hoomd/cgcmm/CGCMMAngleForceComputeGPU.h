@@ -7,7 +7,7 @@
 #include "CGCMMAngleForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file HarmonicAngleForceComputeGPU.h
@@ -37,7 +37,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        CGCMMAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~CGCMMAngleForceComputeGPU();
 

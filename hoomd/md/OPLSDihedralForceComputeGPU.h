@@ -29,7 +29,7 @@ class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
     {
     public:
         //! Constructs the compute
-        OPLSDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~OPLSDihedralForceComputeGPU() { }

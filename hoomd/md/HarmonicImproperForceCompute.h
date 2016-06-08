@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -32,7 +32,7 @@ class HarmonicImproperForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~HarmonicImproperForceCompute();
@@ -63,7 +63,7 @@ class HarmonicImproperForceCompute : public ForceCompute
         Scalar *m_K;    //!< K parameter for multiple improper tyes
         Scalar *m_chi;  //!< Chi parameter for multiple impropers
 
-        boost::shared_ptr<ImproperData> m_improper_data;    //!< Improper data to use in computing impropers
+        std::shared_ptr<ImproperData> m_improper_data;    //!< Improper data to use in computing impropers
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

@@ -31,11 +31,11 @@ using namespace boost::python;
     \param T Temperature set point
     \param suffix Suffix to attach to the end of log quantity names
 */
-TwoStepNVTMTK::TwoStepNVTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo,
+TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
-                       boost::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> T,
                        const std::string& suffix)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T), m_exp_thermo_fac(1.0)
     {
@@ -454,12 +454,12 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
 
 void export_TwoStepNVTMTK()
     {
-    class_<TwoStepNVTMTK, boost::shared_ptr<TwoStepNVTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-            ("TwoStepNVTMTK", init< boost::shared_ptr<SystemDefinition>,
-                       boost::shared_ptr<ParticleGroup>,
-                       boost::shared_ptr<ComputeThermo>,
+    class_<TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
+            ("TwoStepNVTMTK", init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
+                       std::shared_ptr<ComputeThermo>,
                        Scalar,
-                       boost::shared_ptr<Variant>,
+                       std::shared_ptr<Variant>,
                        const std::string&
                        >())
         .def("setT", &TwoStepNVTMTK::setT)

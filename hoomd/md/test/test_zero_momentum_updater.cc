@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/ZeroMomentumUpdater.h"
 
@@ -29,8 +29,8 @@ using namespace boost;
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     {
     // create a simple particle data to test with
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     }
 
     // construct the updater and make sure everything is set properly
-    boost::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
+    std::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
 
     // run the updater and check the new temperature
     zerop->update(0);

@@ -21,7 +21,7 @@ using namespace std;
 
 /*! \param sysdef System to zero the momentum of
 */
-ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing ZeroMomentumUpdater" << endl;
@@ -100,7 +100,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 
 void export_ZeroMomentumUpdater()
     {
-    class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
-    ("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
+    ("ZeroMomentumUpdater", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

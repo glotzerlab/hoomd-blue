@@ -6,7 +6,7 @@
 
 #include "ForceCompute.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ForceConstraint.h
     \brief Declares a base class for computing constraint
@@ -27,7 +27,7 @@ class ForceConstraint : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ForceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Return the number of DOF removed by this constraint
         /*! The base class ForceConstraint returns 0, derived classes should override

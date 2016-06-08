@@ -7,7 +7,7 @@
 #include "hoomd/ForceConstraint.h"
 #include "hoomd/ParticleGroup.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ConstraintSphere.h
     \brief Declares a class for computing sphere constraint forces
@@ -27,8 +27,8 @@ class ConstraintSphere : public ForceConstraint
     {
     public:
         //! Constructs the compute
-        ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
+        ConstraintSphere(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<ParticleGroup> group,
                          Scalar3 P,
                          Scalar r);
 
@@ -42,7 +42,7 @@ class ConstraintSphere : public ForceConstraint
         virtual unsigned int getNDOFRemoved();
 
     protected:
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
         Scalar3 m_P;         //!< Position of the sphere
         Scalar m_r;          //!< Radius of the sphere
 

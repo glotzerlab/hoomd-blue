@@ -27,7 +27,7 @@ using namespace std;
 
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar dt)
+FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)
     :   FIREEnergyMinimizer(sysdef, group, dt, false)
     {
 
@@ -61,9 +61,9 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
 
 void FIREEnergyMinimizerGPU::createIntegrator()
     {
-//   boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
-//    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
-    boost::shared_ptr<TwoStepNVEGPU> integrator(new TwoStepNVEGPU(m_sysdef, m_group));
+//   std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
+//    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
+    std::shared_ptr<TwoStepNVEGPU> integrator(new TwoStepNVEGPU(m_sysdef, m_group));
     addIntegrationMethod(integrator);
     setDeltaT(m_deltaT);
     }
@@ -257,7 +257,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
 void export_FIREEnergyMinimizerGPU()
     {
-    class_<FIREEnergyMinimizerGPU, boost::shared_ptr<FIREEnergyMinimizerGPU>,  bases<FIREEnergyMinimizer>, boost::noncopyable>
-        ("FIREEnergyMinimizerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
+    class_<FIREEnergyMinimizerGPU, std::shared_ptr<FIREEnergyMinimizerGPU>,  bases<FIREEnergyMinimizer>, boost::noncopyable>
+        ("FIREEnergyMinimizerGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }

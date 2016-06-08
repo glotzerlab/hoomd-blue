@@ -61,13 +61,13 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             };
 
         //! Constructs the integration method and associates it with the system
-        TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo_group,
-                   boost::shared_ptr<ComputeThermo> thermo_group_t,
+        TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo_group,
+                   std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
-                   boost::shared_ptr<Variant> T,
+                   std::shared_ptr<Variant> T,
                    boost::python::list S,
                    couplingMode couple,
                    unsigned int flags,
@@ -77,7 +77,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Update the temperature
         /*! \param T New temperature to set
         */
-        virtual void setT(boost::shared_ptr<Variant> T)
+        virtual void setT(std::shared_ptr<Variant> T)
             {
             m_T = T;
             }
@@ -87,11 +87,11 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
      */
     virtual void setS(boost::python::list S)
             {
-            std::vector<boost::shared_ptr<Variant> > swapS;
+            std::vector<std::shared_ptr<Variant> > swapS;
             swapS.resize(0);
             for (int i = 0; i< 6; ++i)
                    {
-                swapS.push_back(boost::python::extract<boost::shared_ptr<Variant>>(S[i]));
+                swapS.push_back(boost::python::extract<std::shared_ptr<Variant>>(S[i]));
                 }
             m_S.swap(swapS);
             }
@@ -150,14 +150,14 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
-        boost::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
+        std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
+        std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
-        boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        std::vector<boost::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
+        std::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::vector<std::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
         Scalar m_V;                     //!< Current volume
 
         couplingMode m_couple;          //!< Coupling of diagonal elements

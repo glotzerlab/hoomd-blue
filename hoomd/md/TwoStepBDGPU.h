@@ -26,9 +26,9 @@ class TwoStepBDGPU : public TwoStepBD
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<ParticleGroup> group,
-                     boost::shared_ptr<Variant> T,
+        TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group,
+                     std::shared_ptr<Variant> T,
                      unsigned int seed,
                      bool use_lambda,
                      Scalar lambda,

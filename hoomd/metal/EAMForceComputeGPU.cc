@@ -32,7 +32,7 @@ using namespace std;
     \param filename Name of EAM potential file to load
     \param type_of_file Undocumented parameter
 */
-EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : EAMForceCompute(sysdef, filename, type_of_file)
     {
     #ifndef SINGLE_PRECISION
@@ -155,7 +155,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_EAMForceComputeGPU()
     {
-    class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-        ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
+    class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
+        ("EAMForceComputeGPU", init< std::shared_ptr<SystemDefinition>, char*, int >())
         ;
     }

@@ -33,13 +33,13 @@ using namespace std;
     \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
-TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo_group,
-                       boost::shared_ptr<ComputeThermo> thermo_group_t,
+TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
                        Scalar tauP,
-                       boost::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> T,
                        boost::python::list S,
                        couplingMode couple,
                        unsigned int flags,
@@ -343,14 +343,14 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNPTMTKGPU()
     {
-    class_<TwoStepNPTMTKGPU, boost::shared_ptr<TwoStepNPTMTKGPU>, bases<TwoStepNPTMTK>, boost::noncopyable>
-        ("TwoStepNPTMTKGPU", init< boost::shared_ptr<SystemDefinition>,
-                       boost::shared_ptr<ParticleGroup>,
-                       boost::shared_ptr<ComputeThermo>,
-                       boost::shared_ptr<ComputeThermo>,
+    class_<TwoStepNPTMTKGPU, std::shared_ptr<TwoStepNPTMTKGPU>, bases<TwoStepNPTMTK>, boost::noncopyable>
+        ("TwoStepNPTMTKGPU", init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
+                       std::shared_ptr<ComputeThermo>,
+                       std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
-                       boost::shared_ptr<Variant>,
+                       std::shared_ptr<Variant>,
                        boost::python::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,

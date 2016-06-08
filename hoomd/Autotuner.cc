@@ -32,7 +32,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      unsigned int nsamples,
                      unsigned int period,
                      const std::string& name,
-                     boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+                     std::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
       m_exec_conf(exec_conf), m_mode(mode_median)
@@ -86,7 +86,7 @@ Autotuner::Autotuner(unsigned int start,
                      unsigned int nsamples,
                      unsigned int period,
                      const std::string& name,
-                     boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+                     std::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
       m_exec_conf(exec_conf), m_mode(mode_median)
@@ -357,7 +357,7 @@ unsigned int Autotuner::computeOptimalParameter()
 void export_Autotuner()
     {
     class_<Autotuner, boost::noncopyable>
-    ("Autotuner", init< unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const std::string&, boost::shared_ptr<ExecutionConfiguration> >())
+    ("Autotuner", init< unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const std::string&, std::shared_ptr<ExecutionConfiguration> >())
     .def("getParam", &Autotuner::getParam)
     .def("setEnabled", &Autotuner::setEnabled)
     .def("setMoveRatio", &Autotuner::isComplete)

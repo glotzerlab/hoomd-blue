@@ -28,8 +28,8 @@ class LoadBalancerGPU : public LoadBalancer
     {
     public:
         //! Constructor
-        LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<DomainDecomposition> decomposition);
 
         //! Destructor
         virtual ~LoadBalancerGPU();

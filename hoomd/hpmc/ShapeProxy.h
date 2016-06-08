@@ -489,7 +489,7 @@ class shape_param_proxy // base class to avoid adding the ignore flag logic to e
 protected:
     typedef typename Shape::param_type param_type;
 public:
-    shape_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : m_mc(mc), m_typeid(typendx), m_access(acc) {}
+    shape_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : m_mc(mc), m_typeid(typendx), m_access(acc) {}
     //!Ignore flag for acceptance statistics
     bool getIgnoreStatistics() const
         {
@@ -519,7 +519,7 @@ public:
         }
 
 protected:
-    boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;
+    std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;
     unsigned int m_typeid;
     AccessType m_access;
 };
@@ -534,7 +534,7 @@ protected:
     typedef typename Shape::param_type  param_type;
 public:
     typedef sph_params access_type;
-    sphere_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    sphere_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
     OverlapReal getDiameter()
         {
@@ -553,7 +553,7 @@ protected:
     typedef typename Shape::param_type  param_type;
 public:
     typedef ell_params  access_type;
-    ell_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx, acc) {}
+    ell_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx, acc) {}
 
     OverlapReal getX()
         {
@@ -584,7 +584,7 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef poly2d_verts access_type;
-    poly2d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    poly2d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
     boost::python::list getVerts() const
         {
@@ -610,7 +610,7 @@ protected:
     static const unsigned int max_verts = get_max_verts<param_type>::max_verts;
 public:
     typedef poly3d_verts<max_verts> access_type;
-    poly3d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc) {}
+    poly3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc) {}
 
     boost::python::list getVerts() const
         {
@@ -636,7 +636,7 @@ protected:
     typedef shape_param_proxy<ShapePolyhedron>::param_type param_type;
 public:
     typedef poly3d_data access_type;
-    polyhedron_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    polyhedron_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
     boost::python::list getVerts()
         {
@@ -679,7 +679,7 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef ShapeFacetedSphere::param_type access_type;
-    faceted_sphere_param_proxy(boost::shared_ptr< IntegratorHPMCMono<ShapeFacetedSphere> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    faceted_sphere_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeFacetedSphere> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
@@ -732,7 +732,7 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef ShapeSphinx::param_type access_type;
-    sphinx3d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<ShapeSphinx> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    sphinx3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeSphinx> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
@@ -802,7 +802,7 @@ protected:
     typedef typename get_member_proxy<Shape, ShapeUnionType, access_shape_union_members<ShapeUnionType> >::proxy_type proxy_type;
 public:
     typedef typename ShapeUnionType::param_type access_type;
-    shape_union_param_proxy(boost::shared_ptr< IntegratorHPMCMono< Shape > > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    shape_union_param_proxy(std::shared_ptr< IntegratorHPMCMono< Shape > > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy< Shape, AccessType>(mc,typendx,acc)
         {}
     boost::python::list getPositions()
@@ -832,7 +832,7 @@ public:
         for(size_t i = 0; i < param.N; i++)
             {
             access_shape_union_members<ShapeUnionType> acc(i);
-            boost::shared_ptr< proxy_type > p(new proxy_type(m_mc, m_typeid, acc));
+            std::shared_ptr< proxy_type > p(new proxy_type(m_mc, m_typeid, acc));
             members.append(p);
             }
         return members;
@@ -854,9 +854,9 @@ void export_shape_param_proxy(const std::string& name)
     {
     // export the base class.
     using detail::shape_param_proxy;
-    boost::python::class_<shape_param_proxy<Shape, AccessType>, boost::shared_ptr< shape_param_proxy<Shape, AccessType> > >
+    boost::python::class_<shape_param_proxy<Shape, AccessType>, std::shared_ptr< shape_param_proxy<Shape, AccessType> > >
         (   name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>()
         )
     .add_property("ignore_overlaps", &shape_param_proxy<Shape>::getIgnoreOverlaps, &shape_param_proxy<Shape>::setIgnoreOverlaps)
     .add_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
@@ -873,9 +873,9 @@ void export_sphere_proxy(const std::string& class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, AccessType>(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("diameter", &proxy_class::getDiameter)
     ;
@@ -892,9 +892,9 @@ void export_ell_proxy()
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("a", &proxy_class::getX)
     .add_property("b", &proxy_class::getY)
@@ -913,9 +913,9 @@ void export_poly2d_proxy(std::string class_name, bool sweep_radius_valid)
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
     if (sweep_radius_valid)
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+        boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
             (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+                boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
         .add_property("vertices", &proxy_class::getVerts)
         .add_property("sweep_radius", &proxy_class::getSweepRadius)
@@ -923,9 +923,9 @@ void export_poly2d_proxy(std::string class_name, bool sweep_radius_valid)
         }
     else
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+        boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
             (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+                boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
         .add_property("vertices", &proxy_class::getVerts)
         ;
@@ -944,9 +944,9 @@ void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
     if (sweep_radius_valid)
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+        boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
             (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+                boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
         .add_property("vertices", &proxy_class::getVerts)
         .add_property("sweep_radius", &proxy_class::getSweepRadius)
@@ -954,9 +954,9 @@ void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
         }
     else
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+        boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
             (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+                boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
         .add_property("vertices", &proxy_class::getVerts)
         ;
@@ -973,9 +973,9 @@ void export_polyhedron_proxy(std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("vertices", &proxy_class::getVerts)
     .add_property("faces", &proxy_class::getFaces)
@@ -993,9 +993,9 @@ void export_faceted_sphere_proxy(std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("vertices", &proxy_class::getVerts)
     .add_property("normals", &proxy_class::getNormals)
@@ -1016,9 +1016,9 @@ void export_sphinx_proxy(std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("centers", &proxy_class::getCenters)
     .add_property("diameters", &proxy_class::getDiameters)
@@ -1041,9 +1041,9 @@ void export_shape_union_proxy(std::string class_name, ExportFunction& export_mem
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
     export_member_proxy(member_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
+    boost::python::class_<proxy_class, std::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
         (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
+            boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
     .add_property("centers", &proxy_class::getPositions)
     .add_property("orientations", &proxy_class::getOrientations)

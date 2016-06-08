@@ -115,7 +115,7 @@ void export_tersoff_params()
 }
 
 //! Helper function for converting python wall group structure to wall_type
-wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
+wall_type make_wall_field_params(boost::python::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
     wall_type w;
     w.numSpheres = boost::python::len(walls.attr("spheres"));
@@ -160,7 +160,7 @@ template< class evaluator >
 void export_wall_params_helpers()
     {
     using namespace boost::python;
-    class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
+    class_<typename EvaluatorWalls<evaluator>::param_type , std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
         .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
         .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
         .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
@@ -169,7 +169,7 @@ void export_wall_params_helpers()
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
+    register_ptr_to_python< std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
     #endif
     }
 
@@ -228,7 +228,7 @@ BOOST_PYTHON_MODULE(_md)
     export_ForceDistanceConstraint();
     export_ForceComposite();
     export_PPPMForceCompute();
-    class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
+    class_< wall_type, std::shared_ptr<wall_type> >( "wall_type", init<>());
     def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
@@ -320,63 +320,63 @@ BOOST_PYTHON_MODULE(_md)
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr< TablePotential > >();
-    register_ptr_to_python< boost::shared_ptr< PPPMForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ConstExternalFieldDipoleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListStencil > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListBinned > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< TableDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< TableAngleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ConstraintSphere > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborList > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListTree > >();
-    register_ptr_to_python< boost::shared_ptr< BondTablePotential > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< wall_type > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
-    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBD > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TempRescaleUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsen > >();
-    register_ptr_to_python< boost::shared_ptr< IntegratorTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< IntegrationMethodTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< ZeroMomentumUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
-    register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
-    register_ptr_to_python< boost::shared_ptr< ForceComposite > >();
+    register_ptr_to_python< std::shared_ptr< TablePotential > >();
+    register_ptr_to_python< std::shared_ptr< PPPMForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< ConstExternalFieldDipoleForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< OPLSDihedralForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListStencil > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListBinned > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicDihedralForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< TableDihedralForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< TableAngleForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< ConstraintSphere > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicImproperForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< NeighborList > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListTree > >();
+    register_ptr_to_python< std::shared_ptr< BondTablePotential > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicAngleForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< wall_type > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNVE > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepLangevinBase > >();
+    register_ptr_to_python< std::shared_ptr< Enforce2DUpdater > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepBD > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNVTMTK > >();
+    register_ptr_to_python< std::shared_ptr< TempRescaleUpdater > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNPTMTK > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepBerendsen > >();
+    register_ptr_to_python< std::shared_ptr< IntegratorTwoStep > >();
+    register_ptr_to_python< std::shared_ptr< IntegrationMethodTwoStep > >();
+    register_ptr_to_python< std::shared_ptr< ZeroMomentumUpdater > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepLangevin > >();
+    register_ptr_to_python< std::shared_ptr< MolecularForceCompute > >();
+    register_ptr_to_python< std::shared_ptr< ForceDistanceConstraint > >();
+    register_ptr_to_python< std::shared_ptr< ForceComposite > >();
 
     #ifdef ENABLE_CUDA
-    register_ptr_to_python< boost::shared_ptr< TableAngleForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUStencil > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< PPPMForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TableDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TablePotentialGPU > >();
-    register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
-    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();
-    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTKGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTKGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDGPU > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
-    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
+    register_ptr_to_python< std::shared_ptr< TableAngleForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicAngleForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListGPUStencil > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicImproperForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< PPPMForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< TableDihedralForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListGPU > >();
+    register_ptr_to_python< std::shared_ptr< TablePotentialGPU > >();
+    register_ptr_to_python< std::shared_ptr< BondTablePotentialGPU > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListGPUBinned > >();
+    register_ptr_to_python< std::shared_ptr< NeighborListGPUTree > >();
+    register_ptr_to_python< std::shared_ptr< ForceCompositeGPU > >();
+    register_ptr_to_python< std::shared_ptr< HarmonicDihedralForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< ConstraintSphereGPU > >();
+    register_ptr_to_python< std::shared_ptr< OPLSDihedralForceComputeGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepLangevinGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNVEGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNPTMTKGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepNVTMTKGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepBDGPU > >();
+    register_ptr_to_python< std::shared_ptr< FIREEnergyMinimizerGPU > >();
+    register_ptr_to_python< std::shared_ptr< TwoStepBerendsenGPU > >();
+    register_ptr_to_python< std::shared_ptr< Enforce2DUpdaterGPU > >();
+    register_ptr_to_python< std::shared_ptr< ForceDistanceConstraintGPU > >();
     #endif
 
     #endif

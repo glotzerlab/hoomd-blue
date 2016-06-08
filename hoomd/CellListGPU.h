@@ -27,7 +27,7 @@ class CellListGPU : public CellList
     {
     public:
         //! Construct a cell list
-        CellListGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~CellListGPU() { };
 

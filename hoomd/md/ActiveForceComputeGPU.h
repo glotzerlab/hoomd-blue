@@ -24,8 +24,8 @@ class ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
         //! Constructs the compute
-        ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
+        ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
                              int seed, boost::python::list f_lst,
                              bool orientation_link, bool orientation_reverse_link, Scalar rotation_diff,
                              Scalar3 P,

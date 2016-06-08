@@ -24,8 +24,8 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
-                               boost::shared_ptr<NeighborList> nlist,
+TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<NeighborList> nlist,
                                unsigned int table_width,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
@@ -349,8 +349,8 @@ void TablePotential::computeForces(unsigned int timestep)
 //! Exports the TablePotential class to python
 void export_TablePotential()
     {
-    class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
-    ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int, const std::string& >())
+    class_<TablePotential, std::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
+    ("TablePotential", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;
     }

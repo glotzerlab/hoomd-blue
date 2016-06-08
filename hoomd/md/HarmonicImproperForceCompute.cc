@@ -28,7 +28,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicImproperForceCompute" << endl;
@@ -320,8 +320,8 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceCompute()
     {
-    class_<HarmonicImproperForceCompute, boost::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("HarmonicImproperForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("HarmonicImproperForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;
     }

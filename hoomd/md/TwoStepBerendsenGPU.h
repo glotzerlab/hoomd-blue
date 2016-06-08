@@ -23,11 +23,11 @@ class TwoStepBerendsenGPU : public TwoStepBerendsen
     {
     public:
         //! Cosntructor
-        TwoStepBerendsenGPU(boost::shared_ptr< SystemDefinition > sysdef,
-                            boost::shared_ptr< ParticleGroup > group,
-                            boost::shared_ptr< ComputeThermo > thermo,
+        TwoStepBerendsenGPU(std::shared_ptr< SystemDefinition > sysdef,
+                            std::shared_ptr< ParticleGroup > group,
+                            std::shared_ptr< ComputeThermo > thermo,
                             Scalar tau,
-                            boost::shared_ptr< Variant > T);
+                            std::shared_ptr< Variant > T);
         virtual ~TwoStepBerendsenGPU() {};
 
         //! Performs the first step of the integration

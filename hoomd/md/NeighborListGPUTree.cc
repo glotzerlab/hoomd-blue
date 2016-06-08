@@ -22,7 +22,7 @@ using namespace boost;
 
 using namespace std;
 
-NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
@@ -812,7 +812,7 @@ void NeighborListGPUTree::traverseTree()
 
 void export_NeighborListGPUTree()
     {
-    class_<NeighborListGPUTree, boost::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
+                     ("NeighborListGPUTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
 

@@ -22,7 +22,7 @@ using namespace std;
 
 /*! \param sysdef System to compute bond forces on
 */
-OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : OPLSDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -84,7 +84,7 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceComputeGPU()
     {
-    class_<OPLSDihedralForceComputeGPU, boost::shared_ptr<OPLSDihedralForceComputeGPU>, bases<OPLSDihedralForceCompute>, boost::noncopyable >
-    ("OPLSDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<OPLSDihedralForceComputeGPU, std::shared_ptr<OPLSDihedralForceComputeGPU>, bases<OPLSDihedralForceCompute>, boost::noncopyable >
+    ("OPLSDihedralForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -27,8 +27,8 @@ using namespace std;
     \param rz radius of the Ellipsoid in the Z direction
     NOTE: For the algorithm to work, we must have _rx >= _rz, ry >= _rz, and _rz > 0.
 */
-ConstraintEllipsoidGPU::ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
+ConstraintEllipsoidGPU::ConstraintEllipsoidGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
                                    Scalar3 P,
                                    Scalar rx,
                                    Scalar ry,
@@ -81,9 +81,9 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
 
 void export_ConstraintEllipsoidGPU()
     {
-    class_< ConstraintEllipsoidGPU, boost::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
-    ("ConstraintEllipsoidGPU", init< boost::shared_ptr<SystemDefinition>,
-                                                 boost::shared_ptr<ParticleGroup>,
+    class_< ConstraintEllipsoidGPU, std::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
+    ("ConstraintEllipsoidGPU", init< std::shared_ptr<SystemDefinition>,
+                                                 std::shared_ptr<ParticleGroup>,
                                                  Scalar3,
                                                  Scalar,
                                                  Scalar,

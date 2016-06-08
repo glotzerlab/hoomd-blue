@@ -40,8 +40,8 @@ using namespace std;
 
 template<typename Real, typename Real2, typename Real4, typename Potential>
 DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
-    boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Scalar r_cut, Potential potential)
     : DEM2DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential),
     m_vertices(this->m_pdata->getNTypes(), this->m_exec_conf),

@@ -30,10 +30,10 @@ class NeighborListGPUBinned : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                               Scalar r_cut,
                               Scalar r_buff,
-                              boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+                              std::shared_ptr<CellList> cl = std::shared_ptr<CellList>());
 
         //! Destructor
         virtual ~NeighborListGPUBinned();
@@ -65,7 +65,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+        std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 

@@ -22,7 +22,7 @@ using namespace std;
 
 /*! \param sysdef System to compute bond forces on
 */
-HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : HarmonicDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -109,7 +109,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceComputeGPU()
     {
-    class_<HarmonicDihedralForceComputeGPU, boost::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
-    ("HarmonicDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
+    ("HarmonicDihedralForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

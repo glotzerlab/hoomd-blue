@@ -21,9 +21,9 @@ void export_NF_SWCA_3D()
     typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > SWCA;
     typedef DEM3DForceCompute<Scalar, Scalar4, SWCA> SWCA_DEM_3D;
 
-    class_<SWCA_DEM_3D, boost::shared_ptr<SWCA_DEM_3D>, bases<ForceCompute>, boost::noncopyable >
-        ("SWCADEM3D", init< boost::shared_ptr<SystemDefinition>,
-        boost::shared_ptr<NeighborList>, Scalar, SWCA>())
+    class_<SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D>, bases<ForceCompute>, boost::noncopyable >
+        ("SWCADEM3D", init< std::shared_ptr<SystemDefinition>,
+        std::shared_ptr<NeighborList>, Scalar, SWCA>())
         .def("setParams", &SWCA_DEM_3D::setParams)
         .def("setRcut", &SWCA_DEM_3D::setRcut)
         ;
@@ -31,10 +31,10 @@ void export_NF_SWCA_3D()
 #ifdef ENABLE_CUDA
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, SWCA> SWCA_DEM_3D_GPU;
 
-    class_<SWCA_DEM_3D_GPU, boost::shared_ptr<SWCA_DEM_3D_GPU>,
+    class_<SWCA_DEM_3D_GPU, std::shared_ptr<SWCA_DEM_3D_GPU>,
            bases<SWCA_DEM_3D>, boost::noncopyable >
-        ("SWCADEM3DGPU", init< boost::shared_ptr<SystemDefinition>,
-        boost::shared_ptr<NeighborList>, Scalar, SWCA>())
+        ("SWCADEM3DGPU", init< std::shared_ptr<SystemDefinition>,
+        std::shared_ptr<NeighborList>, Scalar, SWCA>())
         .def("setParams", &SWCA_DEM_3D_GPU::setParams)
         .def("setRcut", &SWCA_DEM_3D_GPU::setRcut)
         .def("setAutotunerParams", &SWCA_DEM_3D_GPU::setAutotunerParams)

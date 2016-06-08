@@ -29,7 +29,7 @@ using namespace std;
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdaterGPU::SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef)
+SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
         : SFCPackUpdater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdaterGPU" << endl;
@@ -240,8 +240,8 @@ void SFCPackUpdaterGPU::applySortOrder()
 
 void export_SFCPackUpdaterGPU()
     {
-    class_<SFCPackUpdaterGPU, bases<SFCPackUpdater>, boost::shared_ptr<SFCPackUpdaterGPU>, boost::noncopyable>
-    ("SFCPackUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<SFCPackUpdaterGPU, bases<SFCPackUpdater>, std::shared_ptr<SFCPackUpdaterGPU>, boost::noncopyable>
+    ("SFCPackUpdaterGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }
 

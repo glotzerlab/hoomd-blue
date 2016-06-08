@@ -24,8 +24,8 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
     {
     public:
         //! Constructs the compute
-        ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
+        ConstraintEllipsoidGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<ParticleGroup> group,
                          Scalar3 P,
                          Scalar rx,
                          Scalar ry,

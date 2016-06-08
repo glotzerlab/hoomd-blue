@@ -27,10 +27,10 @@ class NeighborListBinned : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
                            Scalar r_cut,
                            Scalar r_buff,
-                           boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+                           std::shared_ptr<CellList> cl = std::shared_ptr<CellList>());
 
         //! Destructor
         virtual ~NeighborListBinned();
@@ -45,7 +45,7 @@ class NeighborListBinned : public NeighborList
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+        std::shared_ptr<CellList> m_cl;   //!< The cell list
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

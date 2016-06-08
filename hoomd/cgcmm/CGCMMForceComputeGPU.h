@@ -8,7 +8,7 @@
 #include "hoomd/md/NeighborList.h"
 #include "CGCMMForceGPU.cuh"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file CGCMMForceComputeGPU.h
     \brief Declares the class CGCMMForceComputeGPU
@@ -31,7 +31,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut);
 
         //! Destructor
         virtual ~CGCMMForceComputeGPU();

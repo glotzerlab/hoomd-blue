@@ -79,7 +79,7 @@ struct SphereWall
     OverlapReal          rsq;
     bool            inside;
     vec3<OverlapReal>    origin;
-    boost::shared_ptr<detail::poly3d_verts<1> >    verts;
+    std::shared_ptr<detail::poly3d_verts<1> >    verts;
     };
 
 struct CylinderWall
@@ -124,7 +124,7 @@ struct CylinderWall
     bool            inside;
     vec3<OverlapReal>    origin;         // center of cylinder.
     vec3<OverlapReal>    orientation;    // (normal) vector pointing in direction of long axis of cylinder (sign of vector has no meaning)
-    boost::shared_ptr<detail::poly3d_verts<2> >    verts;
+    std::shared_ptr<detail::poly3d_verts<2> >    verts;
     };
 
 struct PlaneWall
@@ -384,7 +384,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
     {
         using Compute::m_pdata;
     public:
-        ExternalFieldWall(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<IntegratorHPMCMono<Shape> > mc) : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
+        ExternalFieldWall(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<IntegratorHPMCMono<Shape> > mc) : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
           {
           m_box = m_pdata->getGlobalBox();
           //! scale the container walls every time the box changes
@@ -781,7 +781,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         std::vector<std::string>    m_CylinderLogQuantities;
         Scalar                      m_Volume;
     private:
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
         boost::signals2::connection                   m_boxchange_connection; //!< connection to the ParticleData box change signal
         BoxDim                                        m_box; //!< the current box
     };
@@ -789,8 +789,8 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_ExternalFieldWall(const std::string& name)
 {
-    class_< ExternalFieldWall<Shape>, boost::shared_ptr< ExternalFieldWall<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> > >())
+    class_< ExternalFieldWall<Shape>, std::shared_ptr< ExternalFieldWall<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
+    (name.c_str(), init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> > >())
     .def("SetSphereWallParameter", &ExternalFieldWall<Shape>::SetSphereWallParameter)
     .def("SetCylinderWallParameter", &ExternalFieldWall<Shape>::SetCylinderWallParameter)
     .def("SetPlaneWallParameter", &ExternalFieldWall<Shape>::SetPlaneWallParameter)

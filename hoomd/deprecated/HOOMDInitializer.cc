@@ -28,7 +28,7 @@ using namespace boost;
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+HOOMDInitializer::HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     const std::string &fname,
     bool wrap_coordinates)
     : m_timestep(0),
@@ -82,9 +82,9 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the system data */
-boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // we only execute on rank 0
     if (m_exec_conf->getRank()) return snapshot;
@@ -1171,8 +1171,8 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
 
 void export_HOOMDInitializer()
     {
-    class_< HOOMDInitializer >("HOOMDInitializer", init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
-    .def(init<boost::shared_ptr<const ExecutionConfiguration>, const string&, bool>())
+    class_< HOOMDInitializer >("HOOMDInitializer", init<std::shared_ptr<const ExecutionConfiguration>, const string&>())
+    .def(init<std::shared_ptr<const ExecutionConfiguration>, const string&, bool>())
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
     .def("getSnapshot", &HOOMDInitializer::getSnapshot)

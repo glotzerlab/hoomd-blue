@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/python.hpp>
 
 #include "NeighborList.h"
@@ -66,8 +66,8 @@ class AnisoPotentialPair : public ForceCompute
         typedef typename aniso_evaluator::param_type param_type;
 
         //! Construct the pair potential
-        AnisoPotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~AnisoPotentialPair() { };
@@ -108,7 +108,7 @@ class AnisoPotentialPair : public ForceCompute
             }
 
 protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
@@ -125,8 +125,8 @@ protected:
     \param log_suffix Name given to this instance of the force
 */
 template < class aniso_evaluator >
-AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
@@ -451,8 +451,8 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 template < class T > void export_AnisoPotentialPair(const std::string& name)
     {
     boost::python::scope in_aniso_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setShiftMode", &T::setShiftMode)
@@ -465,7 +465,7 @@ template < class T > void export_AnisoPotentialPair(const std::string& name)
 
     // boost 1.60.0 compatibility
     #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
+    register_ptr_to_python< std::shared_ptr<T> >();
     #endif
     }
 

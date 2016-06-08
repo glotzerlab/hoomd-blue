@@ -9,7 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file TableDihedralForceCompute.h
     \brief Declares the TableDihedralForceCompute class
@@ -53,7 +53,7 @@ class TableDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        TableDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+        TableDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int table_width,
                        const std::string& log_suffix="");
 
@@ -85,7 +85,7 @@ class TableDihedralForceCompute : public ForceCompute
         #endif
 
     protected:
-        boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Bond data to use in computing dihedrals
+        std::shared_ptr<DihedralData> m_dihedral_data;    //!< Bond data to use in computing dihedrals
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         Index2D m_table_value;                      //!< Index table helper

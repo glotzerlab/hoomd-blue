@@ -23,7 +23,7 @@ using namespace boost::python;
 using namespace std;
 using namespace hpmc::detail;
 
-NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
@@ -374,7 +374,7 @@ void NeighborListTree::traverseTree()
 
 void export_NeighborListTree()
     {
-    class_<NeighborListTree, boost::shared_ptr<NeighborListTree>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    class_<NeighborListTree, std::shared_ptr<NeighborListTree>, bases<NeighborList>, boost::noncopyable >
+                     ("NeighborListTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

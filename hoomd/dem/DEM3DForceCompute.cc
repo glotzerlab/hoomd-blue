@@ -35,8 +35,8 @@ using namespace std;
 */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
-    boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Real r_cut, Potential potential)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),
       m_evaluator(potential), m_nextFace(0, this->m_exec_conf),

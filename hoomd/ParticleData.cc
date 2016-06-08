@@ -59,7 +59,7 @@ using namespace boost;
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf, boost::shared_ptr<DomainDecomposition> decomposition)
+ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, std::shared_ptr<ExecutionConfiguration> exec_conf, std::shared_ptr<DomainDecomposition> decomposition)
         : m_exec_conf(exec_conf),
           m_nparticles(0),
           m_nghosts(0),
@@ -102,7 +102,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     initializeFromSnapshot(snap);
 
     // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
+    m_prof = std::shared_ptr<Profiler>();
 
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
@@ -132,8 +132,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 template <class Real>
 ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
                            const BoxDim& global_box,
-                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                           boost::shared_ptr<DomainDecomposition> decomposition
+                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                           std::shared_ptr<DomainDecomposition> decomposition
                           )
     : m_exec_conf(exec_conf),
       m_nparticles(0),
@@ -169,7 +169,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     m_external_energy = Scalar(0.0);
 
     // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
+    m_prof = std::shared_ptr<Profiler>();
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
@@ -2318,8 +2318,8 @@ string print_ParticleData(ParticleData *pdata)
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                            const BoxDim& global_box,
-                                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                           boost::shared_ptr<DomainDecomposition> decomposition
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
 template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
@@ -2327,8 +2327,8 @@ template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &s
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            const BoxDim& global_box,
-                                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                           boost::shared_ptr<DomainDecomposition> decomposition
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
 template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
@@ -2336,7 +2336,7 @@ template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &sna
 
 void export_ParticleData()
     {
-    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    class_<ParticleData, std::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
@@ -3099,7 +3099,7 @@ template struct SnapshotParticleData<double>;
 
 void export_SnapshotParticleData()
     {
-    class_<SnapshotParticleData<float>, boost::shared_ptr<SnapshotParticleData<float> > >("SnapshotParticleData_float", init<unsigned int>())
+    class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >("SnapshotParticleData_float", init<unsigned int>())
     .add_property("position", &SnapshotParticleData<float>::getPosNP)
     .add_property("velocity", &SnapshotParticleData<float>::getVelNP)
     .add_property("acceleration", &SnapshotParticleData<float>::getAccelNP)
@@ -3118,7 +3118,7 @@ void export_SnapshotParticleData()
     .def("insert", &SnapshotParticleData<float>::insert)
     ;
 
-    class_<SnapshotParticleData<double>, boost::shared_ptr<SnapshotParticleData<double> > >("SnapshotParticleData_double", init<unsigned int>())
+    class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >("SnapshotParticleData_double", init<unsigned int>())
     .add_property("position", &SnapshotParticleData<double>::getPosNP)
     .add_property("velocity", &SnapshotParticleData<double>::getVelNP)
     .add_property("acceleration", &SnapshotParticleData<double>::getAccelNP)

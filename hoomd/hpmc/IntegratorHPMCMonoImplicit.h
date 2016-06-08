@@ -40,7 +40,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
     {
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoImplicit(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                               unsigned int seed);
         //! Destructor
         virtual ~IntegratorHPMCMonoImplicit();
@@ -209,7 +209,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
     */
 
 template< class Shape >
-IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_rng_initialized(false), m_n_trial(0),
       m_need_initialize_poisson(true)
@@ -1330,8 +1330,8 @@ bool IntegratorHPMCMonoImplicit<Shape>::attemptBoxResize(unsigned int timestep, 
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicit(const std::string& name)
     {
-    boost::python::class_<IntegratorHPMCMonoImplicit<Shape>, boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    boost::python::class_<IntegratorHPMCMonoImplicit<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> >, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setDepletantDensity", &IntegratorHPMCMonoImplicit<Shape>::setDepletantDensity)
         .def("setDepletantType", &IntegratorHPMCMonoImplicit<Shape>::setDepletantType)
         .def("setNTrial", &IntegratorHPMCMonoImplicit<Shape>::setNTrial)

@@ -40,7 +40,7 @@ class MolecularForceCompute : public ForceConstraint
     {
     public:
         //! Constructs the compute
-        MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~MolecularForceCompute();

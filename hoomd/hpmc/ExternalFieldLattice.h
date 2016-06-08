@@ -69,7 +69,7 @@ class LatticeReferenceList
         LatticeReferenceList() : m_N(0) {}
 
         template<class InputIterator >
-        LatticeReferenceList(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        LatticeReferenceList(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             {
             initialize(first, last, pdata, exec_conf);
             }
@@ -77,7 +77,7 @@ class LatticeReferenceList
         ~LatticeReferenceList() {}
 
         template <class InputIterator>
-        void initialize(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        void initialize(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             {
             m_N = std::distance(first, last);
             if( m_N > 0 )
@@ -91,7 +91,7 @@ class LatticeReferenceList
         const GPUArray< ScalarType >& getReferenceArray() { return m_reference; }
 
         template <class InputIterator>
-        void setReferences(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        void setReferences(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
         {
             size_t numPoints = std::distance(first, last);
             if(!numPoints)
@@ -155,7 +155,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
     using ExternalFieldMono<Shape>::m_exec_conf;
     using ExternalFieldMono<Shape>::m_sysdef;
     public:
-        ExternalFieldLattice(  boost::shared_ptr<SystemDefinition> sysdef,
+        ExternalFieldLattice(  std::shared_ptr<SystemDefinition> sysdef,
                                         boost::python::list r0,
                                         Scalar k,
                                         boost::python::list q0,
@@ -489,8 +489,8 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_LatticeField(std::string name)
     {
-    class_<ExternalFieldLattice<Shape>, boost::shared_ptr< ExternalFieldLattice<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::python::list, Scalar, boost::python::list, Scalar, boost::python::list>())
+    class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
+    (name.c_str(), init< std::shared_ptr<SystemDefinition>, boost::python::list, Scalar, boost::python::list, Scalar, boost::python::list>())
     .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
     .def("setParams", &ExternalFieldLattice<Shape>::setParams)
     .def("reset", &ExternalFieldLattice<Shape>::reset)

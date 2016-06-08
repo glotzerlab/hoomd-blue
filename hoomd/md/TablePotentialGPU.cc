@@ -24,8 +24,8 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                     boost::shared_ptr<NeighborList> nlist,
+TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<NeighborList> nlist,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TablePotential(sysdef, nlist, table_width, log_suffix)
@@ -109,10 +109,10 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
 
 void export_TablePotentialGPU()
     {
-    class_<TablePotentialGPU, boost::shared_ptr<TablePotentialGPU>, bases<TablePotential>, boost::noncopyable >
+    class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU>, bases<TablePotential>, boost::noncopyable >
     ("TablePotentialGPU",
-     init< boost::shared_ptr<SystemDefinition>,
-     boost::shared_ptr<NeighborList>,
+     init< std::shared_ptr<SystemDefinition>,
+     std::shared_ptr<NeighborList>,
      unsigned int,
      const std::string& >())
     ;

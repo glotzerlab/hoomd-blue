@@ -28,8 +28,8 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param suffix Suffix to append to all logged quantity names
 */
-ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
+ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
     : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0)
     {
@@ -406,9 +406,9 @@ void ComputeThermo::reduceProperties()
 
 void export_ComputeThermo()
     {
-    class_<ComputeThermo, boost::shared_ptr<ComputeThermo>, bases<Compute>, boost::noncopyable >
-    ("ComputeThermo", init< boost::shared_ptr<SystemDefinition>,
-                      boost::shared_ptr<ParticleGroup>,
+    class_<ComputeThermo, std::shared_ptr<ComputeThermo>, bases<Compute>, boost::noncopyable >
+    ("ComputeThermo", init< std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
                       const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
     .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)

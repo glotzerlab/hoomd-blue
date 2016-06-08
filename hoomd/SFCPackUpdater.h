@@ -15,7 +15,7 @@
 #include "Updater.h"
 #include "GPUVector.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
@@ -50,7 +50,7 @@ class SFCPackUpdater : public Updater
     {
     public:
         //! Constructor
-        SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~SFCPackUpdater();

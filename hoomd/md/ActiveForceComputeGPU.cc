@@ -27,8 +27,8 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
                                         boost::python::list f_lst,
                                         bool orientation_link,
@@ -184,9 +184,9 @@ void ActiveForceComputeGPU::setConstraint()
 
 void export_ActiveForceComputeGPU()
     {
-    class_< ActiveForceComputeGPU, boost::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
-    ("ActiveForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
+    class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
+    ("ActiveForceComputeGPU", init< std::shared_ptr<SystemDefinition>,
+                                    std::shared_ptr<ParticleGroup>,
                                     int,
                                     boost::python::list,
                                     bool,

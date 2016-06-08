@@ -27,8 +27,8 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
                                         boost::python::list f_lst,
                                         bool orientation_link,
@@ -318,9 +318,9 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 
 void export_ActiveForceCompute()
     {
-    class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
+    class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("ActiveForceCompute", init< std::shared_ptr<SystemDefinition>,
+                                    std::shared_ptr<ParticleGroup>,
                                     int,
                                     boost::python::list,
                                     bool,

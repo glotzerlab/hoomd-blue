@@ -9,7 +9,7 @@
 #include "ParticleGroup.h"
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "hoomd/extern/gsd.h"
 
 /*! \file GSDDumpWriter.h
@@ -34,9 +34,9 @@ class GSDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        GSDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+        GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
-                      boost::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ParticleGroup> group,
                       bool overwrite=false,
                       bool truncate=false);
 
@@ -81,7 +81,7 @@ class GSDDumpWriter : public Analyzer
         bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
 
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
 
         //! Write a type mapping out to the file
         void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);

@@ -34,8 +34,8 @@ class CommunicatorGPU : public Communicator
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
-        CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<DomainDecomposition> decomposition);
+        CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods
@@ -105,7 +105,7 @@ class CommunicatorGPU : public Communicator
                 typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
-                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, std::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -136,8 +136,8 @@ class CommunicatorGPU : public Communicator
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
-                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
-                boost::shared_ptr<group_data> m_gdata;                  //!< The group data
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                std::shared_ptr<group_data> m_gdata;                  //!< The group data
 
                 GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
                 GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information

@@ -17,14 +17,14 @@ using namespace boost::python;
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 using namespace std;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param fname_base The base file name to write the output to
 */
-POSDumpWriter::POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname)
+POSDumpWriter::POSDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string fname)
         : Analyzer(sysdef), m_unwrap_rigid(false), m_write_info(false)
     {
     bool is_root = true;
@@ -189,8 +189,8 @@ void POSDumpWriter::analyze(unsigned int timestep)
 
 void export_POSDumpWriter()
     {
-    class_<POSDumpWriter, boost::shared_ptr<POSDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("POSDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
+    class_<POSDumpWriter, std::shared_ptr<POSDumpWriter>, bases<Analyzer>, boost::noncopyable>
+    ("POSDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
         .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
         .def("setAddInfo", &POSDumpWriter::setAddInfo)

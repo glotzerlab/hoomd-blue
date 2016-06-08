@@ -18,7 +18,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
+ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
@@ -898,8 +898,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
 void export_ForceComposite()
     {
-    class_< ForceComposite, boost::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceComposite", init< boost::shared_ptr<SystemDefinition> >())
+    class_< ForceComposite, std::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
+    ("ForceComposite", init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;

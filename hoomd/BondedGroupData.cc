@@ -39,7 +39,7 @@ char name_constraint_data[] = "constraint";
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
-    boost::shared_ptr<ParticleData> pdata,
+    std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
@@ -88,7 +88,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
-    boost::shared_ptr<ParticleData> pdata,
+    std::shared_ptr<ParticleData> pdata,
     const Snapshot& snapshot)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
@@ -1204,9 +1204,9 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
     if (export_struct)
         Group::export_to_python();
 
-    scope outer = class_<T, boost::shared_ptr<T> , boost::noncopyable>(name.c_str(),
-        init<boost::shared_ptr<ParticleData>, unsigned int>())
-        .def(init<boost::shared_ptr<ParticleData>, const typename T::Snapshot& >())
+    scope outer = class_<T, std::shared_ptr<T> , boost::noncopyable>(name.c_str(),
+        init<std::shared_ptr<ParticleData>, unsigned int>())
+        .def(init<std::shared_ptr<ParticleData>, const typename T::Snapshot& >())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("getN", &T::getN)
@@ -1227,7 +1227,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         {
         // has a type mapping
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, boost::shared_ptr<Snapshot> >
+        class_<Snapshot, std::shared_ptr<Snapshot> >
             (snapshot_name.c_str(), init<unsigned int>())
             .add_property("typeid", &Snapshot::getTypeNP)
             .add_property("group", &Snapshot::getBondedTagsNP)
@@ -1238,15 +1238,15 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
 
         // boost 1.60.0 compatibility
         #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< boost::shared_ptr<T> >();
-        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        register_ptr_to_python< std::shared_ptr<T> >();
+        register_ptr_to_python< std::shared_ptr<Snapshot> >();
         #endif
         }
     else
         {
         // has Scalar values
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, boost::shared_ptr<Snapshot> >
+        class_<Snapshot, std::shared_ptr<Snapshot> >
             (snapshot_name.c_str(), init<unsigned int>())
             .add_property("value", &Snapshot::getValueNP)
             .add_property("group", &Snapshot::getBondedTagsNP)
@@ -1256,8 +1256,8 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
 
         // boost 1.60.0 compatibility
         #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< boost::shared_ptr<T> >();
-        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
+        register_ptr_to_python< std::shared_ptr<T> >();
+        register_ptr_to_python< std::shared_ptr<Snapshot> >();
         #endif
         }
    }

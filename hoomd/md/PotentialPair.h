@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include "hoomd/extern/num_util.h"
@@ -89,8 +89,8 @@ class PotentialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Construct the pair potential
-        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPair();
@@ -136,7 +136,7 @@ class PotentialPair : public ForceCompute
                                                     PyObject* tags2);
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
@@ -180,8 +180,8 @@ class PotentialPair : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
@@ -726,8 +726,8 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject
 template < class T > void export_PotentialPair(const std::string& name)
     {
     boost::python::scope in_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)

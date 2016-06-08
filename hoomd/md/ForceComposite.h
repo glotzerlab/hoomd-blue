@@ -30,7 +30,7 @@ class ForceComposite : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceComposite(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceComposite(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceComposite();
@@ -101,7 +101,7 @@ class ForceComposite : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);

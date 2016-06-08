@@ -14,7 +14,7 @@
 
 #include "hoomd/Updater.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <vector>
 
 #ifndef __ENFORCE2DUPDATER_H__
@@ -29,7 +29,7 @@ class Enforce2DUpdater : public Updater
     {
     public:
         //! Constructor
-        Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~Enforce2DUpdater();

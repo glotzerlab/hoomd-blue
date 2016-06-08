@@ -15,7 +15,7 @@
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/Variant.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -32,9 +32,9 @@ class TempRescaleUpdater : public Updater
     {
     public:
         //! Constructor
-        TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ComputeThermo> thermo,
-                           boost::shared_ptr<Variant> tset);
+        TempRescaleUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ComputeThermo> thermo,
+                           std::shared_ptr<Variant> tset);
 
         //! Destructor
         ~TempRescaleUpdater();
@@ -43,11 +43,11 @@ class TempRescaleUpdater : public Updater
         virtual void update(unsigned int timestep);
 
         //! Change the temperature set point
-        void setT(boost::shared_ptr<Variant> T);
+        void setT(std::shared_ptr<Variant> T);
 
     private:
-        boost::shared_ptr<ComputeThermo> m_thermo;  //!< Computes the temperature
-        boost::shared_ptr<Variant> m_tset;          //!< Temperature set point
+        std::shared_ptr<ComputeThermo> m_thermo;  //!< Computes the temperature
+        std::shared_ptr<Variant> m_tset;          //!< Temperature set point
     };
 
 //! Export the TempRescaleUpdater to python

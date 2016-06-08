@@ -29,7 +29,7 @@ using namespace std;
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
+Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -48,7 +48,7 @@ Integrator::~Integrator()
 
 /*! \param fc ForceCompute to add
 */
-void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
+void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
@@ -57,7 +57,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 
 /*! \param fc ForceConstraint to add
 */
-void Integrator::addForceConstraint(boost::shared_ptr<ForceConstraint> fc)
+void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     {
     assert(fc);
     m_constraint_forces.push_back(fc);
@@ -104,7 +104,7 @@ unsigned int Integrator::getNDOFRemoved()
     unsigned int n = 0;
 
     // loop through all constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
         n += (*force_compute)->getNDOFRemoved();
 
@@ -301,7 +301,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
 
@@ -402,7 +402,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -487,7 +487,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // compute all the normal forces first
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
@@ -673,7 +673,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -853,12 +853,12 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     CommFlags flags(0);
 
     // query all forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         flags |= (*force_compute)->getRequestedCommFlags(timestep);
 
     // query all constraints
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         flags |= (*force_constraint)->getRequestedCommFlags(timestep);
 
@@ -866,7 +866,7 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     }
 
 
-void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
+void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // call base class method
     Updater::setCommunicator(comm);
@@ -882,7 +882,7 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
 void Integrator::computeCallback(unsigned int timestep)
     {
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
@@ -893,13 +893,13 @@ bool Integrator::getAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         aniso |= (*force_compute)->isAnisotropic();
 
     // pre-compute all active constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         aniso |= (*force_constraint)->isAnisotropic();
 
@@ -908,8 +908,8 @@ bool Integrator::getAnisotropic()
 
 void export_Integrator()
     {
-    class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
-    ("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
+    class_<Integrator, std::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
+    ("Integrator", init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)

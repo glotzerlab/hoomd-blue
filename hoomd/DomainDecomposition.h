@@ -53,7 +53,7 @@ class DomainDecomposition
          * \param nz Requested number of domains along the z direction (0 == choose default)
          * \param twolevel If true, attempt two level decomposition (default == false)
          */
-        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+        DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                        Scalar3 L,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
@@ -61,7 +61,7 @@ class DomainDecomposition
                        bool twolevel = false);
 
         //! Constructor for fixed fractions
-        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+        DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                             Scalar3 L,
                             const std::vector<Scalar>& fxs,
                             const std::vector<Scalar>& fys,
@@ -198,7 +198,7 @@ class DomainDecomposition
                                            const std::vector<Scalar>& fys,
                                            const std::vector<Scalar>& fzs);
 
-        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator
 
         std::vector<Scalar> m_cum_frac_x;   //!< Cumulative fractions in x below cut plane index

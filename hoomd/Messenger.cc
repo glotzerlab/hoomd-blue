@@ -93,7 +93,7 @@ Messenger::Messenger()
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
 
-    m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
+    m_nullstream = std::shared_ptr<nullstream>(new nullstream());
     m_notice_level = 2;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
@@ -343,8 +343,8 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg) const
 */
 void Messenger::openFile(const std::string& fname)
     {
-    m_file_out = boost::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
     m_notice_stream = m_file_out.get();
@@ -358,12 +358,12 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openPython()
     {
-    m_streambuf_out = boost::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
-    m_streambuf_err = boost::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
+    m_streambuf_out = std::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
+    m_streambuf_err = std::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
-    m_file_err = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_err.get()));
+    m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
+    m_file_err = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_err.get()));
 
     m_err_stream = m_file_err.get();
     m_warning_stream = m_file_err.get();
@@ -380,11 +380,11 @@ void Messenger::openSharedFile()
     {
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
-    m_streambuf_out = boost::shared_ptr< std::streambuf >(new mpi_io((const MPI_Comm&) m_mpi_comm, oss.str()));
+    m_streambuf_out = std::shared_ptr< std::streambuf >(new mpi_io((const MPI_Comm&) m_mpi_comm, oss.str()));
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
     m_notice_stream = m_file_out.get();
@@ -395,8 +395,8 @@ void Messenger::openSharedFile()
 */
 void Messenger::openStd()
     {
-    m_file_out = boost::shared_ptr<std::ostream>();
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>();
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
@@ -463,7 +463,7 @@ void Messenger::releaseSharedMem()
 
 void export_Messenger()
     {
-    class_<Messenger, boost::shared_ptr<Messenger>, boost::noncopyable >
+    class_<Messenger, std::shared_ptr<Messenger>, boost::noncopyable >
          ("Messenger", init< >())
          .def("error", &Messenger::errorStr)
          .def("warning", &Messenger::warningStr)

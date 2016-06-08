@@ -33,7 +33,7 @@ class GSDReader
     {
     public:
         //! Loads in the file and parses the data
-        GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+        GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                   const std::string &name,
                   const uint64_t frame);
 
@@ -55,17 +55,17 @@ class GSDReader
             }
 
         //! initializes a snapshot with the particle data
-        boost::shared_ptr< SnapshotSystemData<float> > getSnapshot() const
+        std::shared_ptr< SnapshotSystemData<float> > getSnapshot() const
             {
             return m_snapshot;
             }
 
     private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         uint64_t m_timestep;                                         //!< Timestep at the selected frame
         std::string m_name;                                          //!< Cached file name
         uint64_t m_frame;                                            //!< Cached frame
-        boost::shared_ptr< SnapshotSystemData<float> > m_snapshot;   //!< The snapshot to read
+        std::shared_ptr< SnapshotSystemData<float> > m_snapshot;   //!< The snapshot to read
         gsd_handle m_handle;                                         //!< Handle to the file
 
         //! Helper function to read a quantity from the file

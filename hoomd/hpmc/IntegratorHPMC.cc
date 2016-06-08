@@ -18,7 +18,7 @@ using namespace std;
 namespace hpmc
 {
 
-IntegratorHPMC::IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int seed)
     : Integrator(sysdef, 0.005), m_seed(seed),  m_move_ratio(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL)
@@ -292,8 +292,8 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
 
 void export_IntegratorHPMC()
     {
-    class_<IntegratorHPMC, boost::shared_ptr< IntegratorHPMC >, bases<Integrator>, boost::noncopyable>
-    ("IntegratorHPMC", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    class_<IntegratorHPMC, std::shared_ptr< IntegratorHPMC >, bases<Integrator>, boost::noncopyable>
+    ("IntegratorHPMC", init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("setD", &IntegratorHPMC::setD)
     .def("setA", &IntegratorHPMC::setA)
     .def("setMoveRatio", &IntegratorHPMC::setMoveRatio)

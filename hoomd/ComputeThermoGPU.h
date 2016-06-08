@@ -25,8 +25,8 @@ class ComputeThermoGPU : public ComputeThermo
     {
     public:
         //! Constructs the compute
-        ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
+        ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<ParticleGroup> group,
                          const std::string& suffix = std::string(""));
         virtual ~ComputeThermoGPU();
 

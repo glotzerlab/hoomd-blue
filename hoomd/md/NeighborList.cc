@@ -36,7 +36,7 @@ using namespace std;
         but the list will not be computed until compute is called.
     \post The storage mode defaults to half
 */
-NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
+NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_rcut_min(_r_cut),
       m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false), m_storage_mode(half),
       m_rcut_changed(true), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
@@ -606,7 +606,7 @@ void NeighborList::countExclusions()
 */
 void NeighborList::addExclusionsFromBonds()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // access bond data by snapshot
     BondData::Snapshot snapshot(bond_data->getNGlobal());
@@ -640,7 +640,7 @@ void NeighborList::addExclusionsFromBonds()
 */
 void NeighborList::addExclusionsFromAngles()
     {
-    boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+    std::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // access angle data by snapshot
     AngleData::Snapshot snapshot(angle_data->getNGlobal());
@@ -673,7 +673,7 @@ void NeighborList::addExclusionsFromAngles()
 */
 void NeighborList::addExclusionsFromDihedrals()
     {
-    boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+    std::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
     // access dihedral data by snapshot
     DihedralData::Snapshot snapshot(dihedral_data->getNGlobal());
@@ -706,7 +706,7 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 void NeighborList::addExclusionsFromConstraints()
     {
-    boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
+    std::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
 
     // access constraint data by snapshot
     ConstraintData::Snapshot snapshot(constraint_data->getNGlobal());
@@ -768,7 +768,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
  */
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
@@ -847,7 +847,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
  */
 void NeighborList::addOneFourExclusionsFromTopology()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
@@ -1397,7 +1397,7 @@ void NeighborList::growExclusionList()
 
 #ifdef ENABLE_MPI
 //! Set the communicator to use
-void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
+void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     if (!m_comm)
         {
@@ -1428,8 +1428,8 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 
 void export_NeighborList()
     {
-    scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
-                     ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    scope in_nlist = class_<NeighborList, std::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
+                     ("NeighborList", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)
                      .def("setRCutPair", &NeighborList::setRCutPair)
                      .def("setRBuff", &NeighborList::setRBuff)

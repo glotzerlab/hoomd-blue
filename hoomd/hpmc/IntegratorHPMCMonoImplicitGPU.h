@@ -40,8 +40,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
     {
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoImplicitGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                              boost::shared_ptr<CellList> cl,
+        IntegratorHPMCMonoImplicitGPU(std::shared_ptr<SystemDefinition> sysdef,
+                              std::shared_ptr<CellList> cl,
                               unsigned int seed);
         //! Destructor
         virtual ~IntegratorHPMCMonoImplicitGPU();
@@ -77,7 +77,7 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
             }
 
     protected:
-        boost::shared_ptr<CellList> m_cl;           //!< Cell list
+        std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep
         Index2D m_cell_set_indexer;           //!< Indexer into the cell set array
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -142,8 +142,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
     */
 
 template< class Shape >
-IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                                   boost::shared_ptr<CellList> cl,
+IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                                   std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
     : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
@@ -886,8 +886,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::string& name)
     {
-     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, boost::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList>, unsigned int >())
+     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> >, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
 

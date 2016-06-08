@@ -37,9 +37,9 @@ class ComputeFreeVolume : public Compute
     {
     public:
         //! Construct the integrator
-        ComputeFreeVolume(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             boost::shared_ptr<CellList> cl,
+        ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                             std::shared_ptr<CellList> cl,
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
@@ -78,8 +78,8 @@ class ComputeFreeVolume : public Compute
         virtual void compute(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
-        boost::shared_ptr<CellList> m_cl;                        //!< The cell list
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
+        std::shared_ptr<CellList> m_cl;                        //!< The cell list
 
         unsigned int m_type;                                     //!< Type of depletant particle to generate
         unsigned int m_n_sample;                                 //!< Number of sampling depletants to generate
@@ -91,9 +91,9 @@ class ComputeFreeVolume : public Compute
 
 
 template< class Shape >
-ComputeFreeVolume< Shape >::ComputeFreeVolume(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    boost::shared_ptr<CellList> cl,
+ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                                                    std::shared_ptr<CellList> cl,
                                                     unsigned int seed,
                                                     std::string suffix)
     : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0), m_seed(seed), m_suffix(suffix)
@@ -295,10 +295,10 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
 */
 template < class Shape > void export_ComputeFreeVolume(const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolume<Shape>, boost::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<IntegratorHPMCMono<Shape> >,
-                boost::shared_ptr<CellList>,
+     boost::python::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute >, boost::noncopyable >
+              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<IntegratorHPMCMono<Shape> >,
+                std::shared_ptr<CellList>,
                 unsigned int,
                 std::string >())
         .def("setNumSamples", &ComputeFreeVolume<Shape>::setNumSamples)

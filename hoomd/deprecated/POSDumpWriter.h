@@ -12,7 +12,7 @@
 
 #include <string>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __POS_DUMP_WRITER_H__
 #define __POS_DUMP_WRITER_H__
@@ -27,7 +27,7 @@ class POSDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname);
+        POSDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string fname);
 
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);

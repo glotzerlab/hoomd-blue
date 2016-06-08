@@ -9,7 +9,7 @@
 #include "hoomd/extern/libgetar/src/GTAR.hpp"
 #include "hoomd/extern/libgetar/src/Record.hpp"
 #include "hoomd/GetarDumpIterators.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <map>
 #include <string>
@@ -18,8 +18,8 @@
 namespace getardump{
 
     typedef SnapshotSystemData<Scalar> SystemSnapshot;
-    boost::shared_ptr<SystemSnapshot> takeSystemSnapshot(
-        boost::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool);
+    std::shared_ptr<SystemSnapshot> takeSystemSnapshot(
+        std::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool);
 
     /// Known operation modes
     enum GetarDumpMode {
@@ -212,7 +212,7 @@ namespace getardump{
             /// :param filename: File name to dump to
             /// :param operationMode: Operation mode
             /// :param offset: Timestep offset
-            GetarDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+            GetarDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                 const std::string &filename, GetarDumpMode operationMode, unsigned int offset=0);
 
             /// Destructor: closes the file and finalizes any IO
@@ -266,7 +266,7 @@ namespace getardump{
 
         private:
             /// File archive interface
-            boost::shared_ptr<gtar::GTAR> m_archive;
+            std::shared_ptr<gtar::GTAR> m_archive;
             /// Stored properties to dump
             PeriodMap m_periods;
             /// Timestep offset
@@ -281,7 +281,7 @@ namespace getardump{
             std::string m_tempName;
 
             /// System snapshot to manipulate
-            boost::shared_ptr<SystemSnapshot> m_systemSnap;
+            std::shared_ptr<SystemSnapshot> m_systemSnap;
             /// Map detailing when we need which snapshots
             NeedSnapshotMap m_neededSnapshots;
         };

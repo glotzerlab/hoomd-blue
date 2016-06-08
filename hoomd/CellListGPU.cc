@@ -18,7 +18,7 @@ using namespace boost::python;
 
 /*! \param sysdef system to compute the cell list of
 */
-CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
+CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
     : CellList(sysdef)
     {
     if (!m_exec_conf->isCUDAEnabled())
@@ -124,7 +124,7 @@ void CellListGPU::computeCellList()
 
 void export_CellListGPU()
     {
-    class_<CellListGPU, boost::shared_ptr<CellListGPU>, bases<CellList>, boost::noncopyable >
-        ("CellListGPU", init< boost::shared_ptr<SystemDefinition> >())
+    class_<CellListGPU, std::shared_ptr<CellListGPU>, bases<CellList>, boost::noncopyable >
+        ("CellListGPU", init< std::shared_ptr<SystemDefinition> >())
         ;
     }

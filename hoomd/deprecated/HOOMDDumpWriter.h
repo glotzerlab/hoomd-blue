@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__
@@ -47,7 +47,7 @@ class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
+        HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
 
         //! Destructor
         ~HOOMDDumpWriter();

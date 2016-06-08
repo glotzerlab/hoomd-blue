@@ -15,7 +15,7 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file ForceCompute.h
@@ -47,7 +47,7 @@ class ForceCompute : public Compute
     {
     public:
         //! Constructs the compute
-        ForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompute();
@@ -76,7 +76,7 @@ class ForceCompute : public Compute
         Scalar calcEnergySum();
 
         //! Sum the potential energy of a group
-        Scalar calcEnergyGroup(boost::shared_ptr<ParticleGroup> group);
+        Scalar calcEnergyGroup(std::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);

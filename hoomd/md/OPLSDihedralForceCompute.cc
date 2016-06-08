@@ -25,7 +25,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-OPLSDihedralForceCompute::OPLSDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+OPLSDihedralForceCompute::OPLSDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
 {
     m_exec_conf->msg->notice(5) << "Constructing OPLSDihedralForceCompute" << endl;
@@ -358,8 +358,8 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceCompute()
     {
-    class_<OPLSDihedralForceCompute, boost::shared_ptr<OPLSDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("OPLSDihedralForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    ("OPLSDihedralForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;
     }

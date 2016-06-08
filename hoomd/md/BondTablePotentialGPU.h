@@ -29,7 +29,7 @@ class BondTablePotentialGPU : public BondTablePotential
     {
     public:
         //! Constructs the compute
-        BondTablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int table_width,
                           const std::string& log_suffix="");
 

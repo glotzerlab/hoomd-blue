@@ -11,7 +11,7 @@
 namespace getardump{
 
     using namespace gtar;
-    using boost::shared_ptr;
+    using std::shared_ptr;
     using std::endl;
     using std::map;
     using std::max;
@@ -279,7 +279,7 @@ namespace getardump{
         return needs[(unsigned int) index];
         }
 
-    GetarDumpWriter::GetarDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+    GetarDumpWriter::GetarDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
         const std::string &filename, GetarDumpMode operationMode, unsigned int offset):
         Analyzer(sysdef), m_archive(), m_periods(), m_offset(offset),
         m_staticRecords(), m_operationMode(operationMode), m_filename(filename),
@@ -896,14 +896,14 @@ namespace getardump{
             .value("MediumCompress", MediumCompress)
             .value("SlowCompress", SlowCompress);
 
-        class_<GetarDumpWriter, boost::shared_ptr<GetarDumpWriter>, bases<Analyzer>, boost::noncopyable>
-            ("GetarDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, GetarDumpMode, unsigned int>())
+        class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter>, bases<Analyzer>, boost::noncopyable>
+            ("GetarDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string, GetarDumpMode, unsigned int>())
             .def("close", &GetarDumpWriter::close)
             .def("getPeriod", &GetarDumpWriter::getPeriod)
             .def("setPeriod", &GetarDumpWriter::setPeriod)
             .def("removeDump", &GetarDumpWriter::removeDump)
             ;
 
-        // register_ptr_to_python<boost::shared_ptr<GetarDumpWriter> >();
+        // register_ptr_to_python<std::shared_ptr<GetarDumpWriter> >();
         }
 }

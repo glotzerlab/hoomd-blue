@@ -7,7 +7,7 @@
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/utility.hpp>
 
 #ifndef __UPDATER_H__
@@ -53,17 +53,17 @@ class Updater : boost::noncopyable
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
-        Updater(boost::shared_ptr<SystemDefinition> sysdef);
+        Updater(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Updater() {};
 
         //! Abstract method that performs the update
         /*! Derived classes will implement this method to perform their specific update
             \param timestep Current time step of the simulation
         */
-        virtual void update(unsigned int timestep) = 0;
+        virtual void update(unsigned int timestep)  {};
 
         //! Sets the profiler for the compute to use
-        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
+        virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -133,25 +133,25 @@ class Updater : boost::noncopyable
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
+        std::shared_ptr<const ExecutionConfiguration> getExecConf()
             {
             return m_exec_conf;
             }
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Export the Updater class to python

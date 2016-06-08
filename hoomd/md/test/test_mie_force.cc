@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -32,11 +32,11 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd MieForceCompute factory
-typedef boost::function<boost::shared_ptr<PotentialPairMie> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                     boost::shared_ptr<NeighborList> nlist)> mieforce_creator;
+typedef boost::function<std::shared_ptr<PotentialPairMie> (std::shared_ptr<SystemDefinition> sysdef,
+                                                     std::shared_ptr<NeighborList> nlist)> mieforce_creator;
 
 //! Test the ability of the mie force compute to actually calucate forces
-void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -46,8 +46,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<Exe
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -56,8 +56,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<Exe
     h_pos.data[1].x = Scalar(pow(27.0/13.0, 1.0/7.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(27.0/13.0 ,1.0/7.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairMie> fc_3 = mie_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborList> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairMie> fc_3 = mie_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -176,21 +176,21 @@ void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<Exe
 
 
 //! Unit test a comparison between 2 MieForceComputes on a "real" system
-void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator mie_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator mie_creator2, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairMie> fc1 = mie_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairMie> fc2 = mie_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairMie> fc1 = mie_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairMie> fc2 = mie_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -256,11 +256,11 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
     }
 
 //! Test the ability of the mie force compute to compute forces with different shift modes
-void mie_force_shift_test(mieforce_creator mie_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     {
@@ -270,16 +270,16 @@ void mie_force_shift_test(mieforce_creator mie_creator, boost::shared_ptr<Execut
     h_pos.data[1].x = Scalar(2.8); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    boost::shared_ptr<NeighborList> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    boost::shared_ptr<PotentialPairMie> fc_no_shift = mie_creator(sysdef_2, nlist_2);
+    std::shared_ptr<NeighborList> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<PotentialPairMie> fc_no_shift = mie_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
     fc_no_shift->setShiftMode(PotentialPairMie::no_shift);
 
-    boost::shared_ptr<PotentialPairMie> fc_shift = mie_creator(sysdef_2, nlist_2);
+    std::shared_ptr<PotentialPairMie> fc_shift = mie_creator(sysdef_2, nlist_2);
     fc_shift->setRcut(0, 0, Scalar(3.0));
     fc_shift->setShiftMode(PotentialPairMie::shift);
 
-    boost::shared_ptr<PotentialPairMie> fc_xplor = mie_creator(sysdef_2, nlist_2);
+    std::shared_ptr<PotentialPairMie> fc_xplor = mie_creator(sysdef_2, nlist_2);
     fc_xplor->setRcut(0, 0, Scalar(3.0));
     fc_xplor->setShiftMode(PotentialPairMie::xplor);
     fc_xplor->setRon(0, 0, Scalar(2.0));
@@ -423,19 +423,19 @@ void mie_force_shift_test(mieforce_creator mie_creator, boost::shared_ptr<Execut
     }
 
 //! MieForceCompute creator for unit tests
-boost::shared_ptr<PotentialPairMie> base_class_mie_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairMie> base_class_mie_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairMie>(new PotentialPairMie(sysdef, nlist));
+    return std::shared_ptr<PotentialPairMie>(new PotentialPairMie(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! MieForceComputeGPU creator for unit tests
-boost::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                          boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                          std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairMieGPU> mie(new PotentialPairMieGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairMieGPU> mie(new PotentialPairMieGPU(sysdef, nlist));
     return mie;
     }
 #endif
@@ -444,14 +444,14 @@ boost::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(boost::shared_ptr<SystemD
 BOOST_AUTO_TEST_CASE( PotentialPairMie_particle )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
-    mie_force_particle_test(mie_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    mie_force_particle_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for shift test on CPU
 BOOST_AUTO_TEST_CASE( PotentialPairMie_shift )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
-    mie_force_shift_test(mie_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    mie_force_shift_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -459,14 +459,14 @@ BOOST_AUTO_TEST_CASE( PotentialPairMie_shift )
 BOOST_AUTO_TEST_CASE( MieForceGPU_particle )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
-    mie_force_particle_test(mie_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    mie_force_particle_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( MieForceGPU_shift )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
-    mie_force_shift_test(mie_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    mie_force_shift_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE( MieForceGPU_shift )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
-    mie_force_comparison_test(mie_creator_base, mie_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    mie_force_comparison_test(mie_creator_base, mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }*/
 
 #endif
