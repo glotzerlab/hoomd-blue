@@ -48,6 +48,10 @@ ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
         valid_params_update.push_back(block_size);
 
     m_tuner_update.reset(new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));
+
+    GPUFlags<unsigned int> flag(m_exec_conf);
+    m_flag.swap(flag);
+    m_flag.resetFlags(0);
     }
 
 ForceCompositeGPU::~ForceCompositeGPU()
@@ -89,6 +93,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     // access rigid body definition
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
     m_tuner_force->begin();
     unsigned int param = m_tuner_force->getParam();
@@ -113,6 +118,9 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                     m_body_idx,
                     d_body_pos.data,
                     d_body_orientation.data,
+                    d_body_len.data,
+                    d_body.data,
+                    m_flag.getDeviceFlags(),
                     d_net_force.data,
                     d_net_torque.data,
                     nmol,
@@ -124,6 +132,14 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    unsigned int flag = m_flag.readFlags();
+    if (flag)
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag-1 << " incomplete"
+            << std::endl << std::endl;
+        throw std::runtime_error("Error computing composite particle forces.\n");
+        }
 
     m_tuner_force->end();
 

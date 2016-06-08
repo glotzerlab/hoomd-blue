@@ -387,7 +387,7 @@ class NeighborList : public Compute
 
             if (rcut_max_i > Scalar(0.0)) // ensure communication is required
                 {
-                Scalar rmax = rcut_max_i;
+                Scalar rmax = rcut_max_i + m_r_buff;
 
                 // diameter shifting requires to communicate a larger rlist
                 if (m_diameter_shift)
@@ -494,7 +494,6 @@ class NeighborList : public Compute
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
         boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
-        boost::signals2::connection m_rbuff_request;              //!< Connection to request maximum buffer length
         #endif
 
         //! Return true if we are supposed to do a distance check in this time step
@@ -527,10 +526,13 @@ class NeighborList : public Compute
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
             {
-            // exclusions require ghost particle tags
             CommFlags flags(0);
+
+            // exclusions require ghost particle tags
             if (m_exclusions_set) flags[comm_flag::tag] = 1;
+
             if (m_filter_body) flags[comm_flag::body] = 1;
+
             return flags;
             }
         #endif

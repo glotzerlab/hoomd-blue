@@ -48,6 +48,9 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Index2D body_indexer,
                                                  Scalar3* d_body_pos,
                                                  Scalar4* d_body_orientation,
+                                                 const unsigned int *d_body_len,
+                                                 const unsigned int *d_body,
+                                                 unsigned int *d_flag,
                                                  Scalar4* d_net_force,
                                                  Scalar4* d_net_torque,
                                                  unsigned int n_mol,
@@ -105,6 +108,12 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
         unsigned int n_windows = mol_len / window_size + 1;
+
+        if (mol_len != d_body_len[body_type[m]] + 1)
+            {
+            // incomplete molecule
+            atomicMax(d_flag, d_body[central_idx[m]] + 1);
+            }
 
         // slide the window throughout the block
         for (unsigned int start = 0; start < n_windows; start++)
@@ -381,6 +390,9 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Index2D body_indexer,
                  Scalar3* d_body_pos,
                  Scalar4* d_body_orientation,
+                 const unsigned int *d_body_len,
+                 const unsigned int *d_body,
+                 unsigned int *d_flag,
                  Scalar4* d_net_force,
                  Scalar4* d_net_torque,
                  unsigned int n_mol,
@@ -438,6 +450,9 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         body_indexer,
         d_body_pos,
         d_body_orientation,
+        d_body_len,
+        d_body,
+        d_flag,
         d_net_force,
         d_net_torque,
         n_mol,
