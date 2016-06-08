@@ -195,8 +195,6 @@ NeighborList::~NeighborList()
         m_comm_flags_request.disconnect();
     if (m_ghost_layer_width_request.connected())
         m_ghost_layer_width_request.disconnect();
-    if (m_rbuff_request.connected())
-        m_rbuff_request.disconnect();
 #endif
 
     m_num_type_change_conn.disconnect();
@@ -1409,7 +1407,6 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
-        m_rbuff_request = comm->addRBuffRequest(bind(&NeighborList::getRBuff, this));
         }
     }
 
