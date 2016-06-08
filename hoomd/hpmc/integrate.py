@@ -227,6 +227,19 @@ class mode_hpmc(_integrator):
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
+    def test_pair_overlap(self, i, j):
+        R"""Return whether two particles are overlapped
+
+        Returns:
+            boolean true if overlapped, false otherwise
+
+        Example:
+            write me!
+
+        """
+        self.update_forces()
+        return self.cpp_integrator.testPairOverlap(i,j);
+
     def count_overlaps(self):
         R""" Count the number of overlaps.
 

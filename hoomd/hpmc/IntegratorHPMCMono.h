@@ -164,6 +164,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Count overlaps with the option to exit early at the first detected overlap
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
 
+        //! Find if a pair of particles overlaps
+        virtual bool testPairOverlap(unsigned int i, unsigned int j);
+
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth()
             {
@@ -238,7 +241,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
 
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
-
+        
     protected:
         GPUArray<param_type> m_params;              //!< Parameters for each particle type
         detail::UpdateOrder m_update_order;         //!< Update order
@@ -1062,6 +1065,60 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
         }
     }
 
+template <class Shape>
+bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int i, unsigned int j)
+    {
+
+    updateImageList();
+
+    unsigned int err_count = 0;
+    bool pair_overlap = false;
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    // access parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    // read in the current position and orientation
+    Scalar4 postype_i = h_postype.data[i];
+    Scalar4 orientation_i = h_orientation.data[i];
+    Shape shape_i(quat<Scalar>(orientation_i), h_params.data[__scalar_as_int(postype_i.w)]);
+    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+    // Loop over all images
+    const unsigned int n_images = m_image_list.size();
+    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+        {
+        vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+
+        // skip i==j in the 0 image
+        if (cur_image == 0 && i == j)
+            {
+            continue;
+            }
+
+        Scalar4 postype_j = h_postype.data[j];
+        Scalar4 orientation_j = h_orientation.data[j];
+
+        // put particles in coordinate system of particle i
+        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+
+        if (h_tag.data[i] <= h_tag.data[j]
+            && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+            && test_overlap(r_ij, shape_i, shape_j, err_count)
+            && test_overlap(-r_ij, shape_j, shape_i, err_count))
+            {
+            pair_overlap = true;
+            }
+        }
+    return pair_overlap;
+    }
+
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -1072,6 +1129,7 @@ template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
           (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
+          .def("testPairOverlap", &IntegratorHPMCMono<Shape>::testPairOverlap)
           ;
     }
 
