@@ -580,7 +580,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         } // end try
     catch (std::exception const & ex)
         {
-        #ifdef ENABLE_MPII
+        #ifdef ENABLE_MPI
         if (m_sysdef->getParticleData()->getDomainDecomposition() && m_exec_conf->msg->isLocked())
             {
             // tear down other ranks in a controlled way, but only if we are the rank that displayed an error
