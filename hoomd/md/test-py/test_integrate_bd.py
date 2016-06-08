@@ -26,19 +26,19 @@ class integrate_brownian_script_tests (unittest.TestCase):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         bd = md.integrate.brownian(all, kT=1.2, seed=52);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_r=True);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.brownian(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True, noiseless_r=True);
-        run(100);
+        run(5);
         bd.disable();
 
     # test set_params
@@ -80,7 +80,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         T=1.8
         gamma=3241;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False);
@@ -104,7 +104,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         T=1.8
         gamma=3241;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False, noiseless_t=True);
@@ -128,7 +128,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         T=1.8
         gamma=3241;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=False, noiseless_t=True);
@@ -152,7 +152,7 @@ class integrate_brownian_diffusion (unittest.TestCase):
         T=1.8
         gamma=3591;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.brownian(group.all(), kT=T, seed=1, dscale=gamma);
