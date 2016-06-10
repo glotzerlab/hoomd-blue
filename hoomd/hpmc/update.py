@@ -506,7 +506,7 @@ class boxMC(_updater):
         #self.cpp_updater.setParams( self.P.cpp_variant, self.frequency);
         print("not yet implemented")
 
-    def setVolumeMove(self, delta=None, weight=1.0):
+    def volume_move(self, delta, weight=1.0):
         R""" Enable/disable NpT volume move and set parameters.
 
         Args:
@@ -518,39 +518,21 @@ class boxMC(_updater):
         To change the parameters of an existing updater, you must have saved it when it was specified.
 
         Example::
-            box_update.setVolumeMove(delta=0.01)
-            box_update.setVolumeMove(delta=0.01, weight=2)
-            box_update.setVolumeMove(delta=0.01, weight=0.15)
+            box_update.volume_move(delta=0.01)
+            box_update.volume_move(delta=0.01, weight=2)
+            box_update.volume_move(delta=0.01, weight=0.15)
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        noop = True;
+        self.volume_delta = float(delta)
+        
+        self.volume_weight = float(weight)
 
-        if delta is not None:
-            self.volumeDelta = float(delta)
-            noop = False;
-        else:
-            if not hasattr(self, 'volumeDelta') or self.volumeDelta is None:
-                hoomd.context.msg.warning("update.boxMC: Change in volume (delta) undefined.")
-                raise ValueError("update.boxMC.setVolumeMove NEEDS defined delta!")
-        if weight is not None:
-            self.volumeWeight = float(weight)
-            noop = False;
-        else:
-            if not hasattr(self, 'volumeWeight') or self.volumeWeight is None:
-                hoomd.context.msg.warning("update.boxMC: Volume weight undefined.")
-                raise ValueError("update.boxMC.setVolumeMove NEEDS defined weight.")
-        if noop:
-            hoomd.context.msg.warning("update.boxMC: No parameters changed\n");
-            return;
+        self.cpp_updater.volume_move(self.volume_delta, self.volume_weight);
 
-        if self.volumeDelta is not None and self.volumeWeight is not None:
-            self.cpp_updater.setVolumeMove( self.volumeDelta,
-                                            self.volumeWeight);
-
-    def setLengthMove(self, delta=None, weight=1.0):
+    def length_move(self, delta, weight=1.0):
         R""" Enable/disable NpT box dimension move and set parameters.
 
         Args:
@@ -563,45 +545,26 @@ class boxMC(_updater):
         To change the parameters of an existing updater, you must have saved it when it was specified.
 
         Example::
-            box_update.setLengthMove(delta=(0.01, 0.01, 0.0)) # 2D box changes
-            box_update.setLengthMove(delta=(0.01, 0.01, 0.01), weight=2)
-            box_update.setLengthMove(delta=0.01, weight=2)
-            box_update.setLengthMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
+            box_update.length_move(delta=(0.01, 0.01, 0.0)) # 2D box changes
+            box_update.length_move(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.length_move(delta=0.01, weight=2)
+            box_update.length_move(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        noop = True;
-
-        if delta is not None:
-            if isinstance(delta, float) or isinstance(delta, int):
-                self.lengthDelta = [float(delta)] * 3
-            else:
-                self.lengthDelta = [ float(d) for d in delta ]
-            noop = False;
+        if isinstance(delta, float) or isinstance(delta, int):
+            self.length_delta = [float(delta)] * 3
         else:
-            if not hasattr(self, 'lengthDelta') or self.lengthDelta is None:
-                hoomd.context.msg.warning("update.boxMC: Change in length (delta) undefined.")
-                raise ValueError("update.boxMC.setLengthMove NEEDS defined delta!")
-        if weight is not None:
-            self.lengthWeight = float(weight)
-            noop = False;
-        else:
-            if not hasattr(self, 'lengthWeight') or self.lengthWeight is None:
-                hoomd.context.msg.warning("update.boxMC: Length weight undefined.")
-                raise ValueError("update.box.setLengthMove NEEDS defined weight!")
-        if noop:
-            hoomd.context.msg.warning("update.boxMC: No parameters changed\n");
-            return;
+            self.length_delta = [ float(d) for d in delta ]
+        
+        self.length_weight = float(weight)
 
-        if self.lengthDelta is not None and self.lengthWeight is not None:
-            self.cpp_updater.setLengthMove( self.lengthDelta[0],
-                                            self.lengthDelta[1],
-                                            self.lengthDelta[2],
-                                            self.lengthWeight);
+        self.cpp_updater.length_move(   self.length_delta[0], self.length_delta[1],
+                                        self.length_delta[2], self.length_weight);
 
-    def setShearMove(self,  delta=None, weight=1.0, reduce=0.0):
+    def shear_move(self,  delta, weight=1.0, reduce=0.0):
         R""" Enable/disable box shear moves and set parameters.
 
         Args:
@@ -616,52 +579,28 @@ class boxMC(_updater):
         (See HOOMD-blue [boxdim](https://codeblue.umich.edu/hoomd-blue/doc/classhoomd__script_1_1data_1_1boxdim.html) documentation)
 
         Example::
-            box_update.setShearMove(delta=(0.01, 0.00, 0.0)) # 2D box changes
-            box_update.setShearMove(delta=(0.01, 0.01, 0.01), weight=2)
-            box_update.setShearMove(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
+            box_update.shear_move(delta=(0.01, 0.00, 0.0)) # 2D box changes
+            box_update.shear_move(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.shear_move(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        noop = True;
-
-        if delta is not None:
-            if isinstance(delta, float) or isinstance(delta, int):
-                self.shearDelta = [float(delta)] * 3
-            else:
-                self.shearDelta = [ float(d) for d in delta ]
-            noop = False;
+        if isinstance(delta, float) or isinstance(delta, int):
+            self.shear_delta = [float(delta)] * 3
         else:
-            if not hasattr(self, 'shearDelta') or self.shearDelta is None:
-                hoomd.context.msg.warning("update.boxMC: Change in Shear (delta) undefined.")
-                raise ValueError("update.boxMC.setShearMove NEEDS defined delta!")
-        if weight is not None:
-            self.shearWeight = float(weight)
-            noop = False;
-        else:
-            if not hasattr(self, 'shearWeight') or self.shearWeight is None:
-                hoomd.context.msg.warning("update.boxMC: Shear weight undefined.")
-                raise ValueError("update.box.setShearMove NEEDS defined weight!")
-        if reduce is not None:
-            self.shearReduce = float(reduce)
-            noop = False;
-        else:
-            if not hasattr(self, 'shearReduce') or self.shearReduce is None:
-                hoomd.context.msg.warning("update.boxMC: Shear weight undefined.")
-                raise ValueError("update.box.setShearMove NEEDS defined reduce!")
-        if noop:
-            hoomd.context.msg.warning("update.boxMC: No parameters changed\n");
-            return;
+            self.shear_delta = [ float(d) for d in delta ]
+        
+        self.shear_weight = float(weight)
+        
+        self.shear_reduce = float(reduce)
 
-        if self.shearDelta is not None and self.shearWeight is not None and self.shearReduce is not None:
-            self.cpp_updater.setShearMove(  self.shearDelta[0],
-                                            self.shearDelta[1],
-                                            self.shearDelta[2],
-                                            self.shearReduce,
-                                            self.shearWeight);
+        self.cpp_updater.shear_move(    self.shear_delta[0], self.shear_delta[1],
+                                        self.shear_delta[2], self.shear_reduce,
+                                        self.shear_weight);
 
-    def setAspectMove(self, delta=None, weight=1.0):
+    def aspect_move(self, delta, weight=1.0):
         R""" Enable/disable aspect ratio move and set parameters.
 
         Args:
@@ -674,37 +613,18 @@ class boxMC(_updater):
 
         Example::
 
-            box_update.setAspectMove(delta=0.01)
-            box_update.setAspectMove(delta=0.01, weight=2)
-            box_update.setAspectMove(delta=0.01, weight=0.15)
+            box_update.aspect_move(delta=0.01)
+            box_update.aspect_move(delta=0.01, weight=2)
+            box_update.aspect_move(delta=0.01, weight=0.15)
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        noop = True;
-
-        if delta is not None:
-            self.aspectDelta = float(delta)
-            noop = False;
-        else:
-            if not hasattr(self, 'aspectDelta') or self.aspectDelta is None:
-                hoomd.context.msg.warning("update.boxMC: Change in aspect ratio (delta) undefined.")
-                raise ValueError("update.boxMC.setAspectMove NEEDS defined delta!")
-        if weight is not None:
-            self.aspectWeight = float(weight)
-            noop = False;
-        else:
-            if not hasattr(self, 'aspectWeight') or self.aspectWeight is None:
-                hoomd.context.msg.warning("update.boxMC: Aspect weight undefined.")
-                raise ValueError("update.boxMC.setAspectMove NEEDS defined weight.")
-        if noop:
-            hoomd.context.msg.warning("update.boxMC: No parameters changed\n");
-            return;
-
-        if self.aspectDelta is not None and self.aspectWeight is not None:
-            self.cpp_updater.setAspectMove( self.aspectDelta,
-                                            self.aspectWeight);
+        self.aspect_delta = float(delta) 
+        self.aspect_weight = float(weight)
+        
+        self.cpp_updater.aspect_move(self.aspect_delta, self.aspect_weight);
 
     def get_params(self, timestep=None):
         R""" Get boxMC parameters

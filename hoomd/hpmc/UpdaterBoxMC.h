@@ -51,7 +51,7 @@ class UpdaterBoxMC : public Updater
         /*! \param delta maximum size of volume change
             \param weight relative likelihood of volume move
         */
-        void setVolumeMove(Scalar delta,
+        void volume_move(Scalar delta,
                            Scalar weight)
             {
             m_Volume_delta = delta;
@@ -66,7 +66,7 @@ class UpdaterBoxMC : public Updater
             \param dLz Extent of length change distribution in third lattice vector for box resize moves
             \param weight relative likelihood of volume move
         */
-        void setLengthMove(Scalar dLx,
+        void length_move(Scalar dLx,
                            Scalar dLy,
                            Scalar dLz,
                            Scalar weight)
@@ -88,7 +88,7 @@ class UpdaterBoxMC : public Updater
                 but which temporarily break detailed balance.
             \param weight relative likelihood of shear move
         */
-        void setShearMove(Scalar dxy,
+        void shear_move(Scalar dxy,
                           Scalar dxz,
                           Scalar dyz,
                           Scalar reduce,
@@ -105,7 +105,7 @@ class UpdaterBoxMC : public Updater
         /*! \param dA maximum relative aspect ratio change.
             \param weight relative likelihood of aspect move.
         */
-        void setAspectMove(Scalar dA,
+        void aspect_move(Scalar dA,
                            Scalar weight)
             {
             m_Aspect_delta = dA;
