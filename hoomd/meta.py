@@ -12,7 +12,7 @@ taken up by other scripts and stored in a database.
 Example::
 
     metadata = meta.dump_metadata()
-    meta.dump_metadata(filename = "metadata.json", overwrite = False, user = {'debug': True}, indent=2)
+    meta.dump_metadata(filename = "metadata.json", user = {'debug': True}, indent=2)
 
 """
 
@@ -20,6 +20,7 @@ import hoomd;
 import json, collections;
 import time
 import datetime
+import copy
 
 from collections import OrderedDict
 
@@ -52,13 +53,12 @@ class _metadata_from_dict:
 
         return data
 
-def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
+def dump_metadata(filename=None,user=None,indent=4):
     R""" Writes simulation metadata into a file.
 
     Args:
         filename (str): The name of the file to write JSON metadata to (optional)
         user (dict): Additional metadata.
-        overwrite (bool): If true, overwrite output file.
         indent (int): The json indentation size
 
     Returns:
@@ -72,8 +72,8 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     Custom metadata can be provided as a dictionary to *user*.
 
     The output is aggregated into a dictionary and written to a
-    JSON file, together with a timestamp. Current metadata is
-    appended to the end of the file.
+    JSON file, together with a timestamp. The file is overwritten if
+    it exists.
     """
     hoomd.util.print_status_line();
 
@@ -89,21 +89,12 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
         else:
             metadata['user'] = _metadata_from_dict(user);
 
-    if not overwrite and filename is not None:
-        try:
-            with open(filename) as f:
-                metadata = json.load(f)
-                hoomd.context.msg.notice(2,"Appending to file {1}." % filename)
-        except Exception:
-            pass
-
     # Generate time stamp
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     metadata['timestamp'] = st
     metadata['context'] = hoomd.context.ExecutionContext()
     metadata['hoomd'] = hoomd.context.HOOMDContext()
-
 
     global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
     global_objs += [hoomd.context.current.integrator];
@@ -115,7 +106,7 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
                 name = name[13:];
             metadata[name] = o
 
-    global_objs = hoomd.context.current.forces;
+    global_objs = copy.copy(hoomd.context.current.forces);
     global_objs += hoomd.context.current.constraint_forces;
     global_objs += hoomd.context.current.integration_methods;
     global_objs += hoomd.context.current.forces

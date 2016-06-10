@@ -38,7 +38,7 @@ class metadata_tests(unittest.TestCase):
         import json, socket
         user = {'my_extra_field': 123}
         tmp = tempfile.NamedTemporaryFile()
-        metadata = meta.dump_metadata(filename = tmp.name, overwrite = False, user = user)
+        metadata = meta.dump_metadata(filename = tmp.name, user = user)
         self.assertEqual(metadata['user']['my_extra_field'], 123)
 
         if comm.get_rank() == 0:
