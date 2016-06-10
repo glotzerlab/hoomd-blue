@@ -19,6 +19,10 @@ message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # Handle user build options
 include (CMake_build_options.cmake)
+
+# setup the install directories
+include (CMake_install_options.cmake)
+
 #################################
 ## setup python library and executable
 # setup MPI support
@@ -44,8 +48,27 @@ include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
 
-# setup the install directories
-include (CMake_install_options.cmake)
+set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
+
+if (UPDATE_SUBMODULES)
+  message(STATUS "Updating git submodules")
+  execute_process(COMMAND git submodule update --init
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+else (UPDATE_SUBMODULES)
+  message(STATUS "Not updating git submodules")
+endif (UPDATE_SUBMODULES)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
+
+find_package(libgetar)
+
+if (libgetar_DIR)
+  set(LIBGETAR_SHARED TRUE)
+  add_subdirectory(${libgetar_DIR} EXCLUDE_FROM_ALL)
+else (libgetar_DIR)
+  message(FATAL_ERROR "Libgetar was not found in hoomd/extern/libgetar. Please "
+                      "pull the libgetar source, i.e. via `git submodule update`.")
+endif (libgetar_DIR)
 
 ################################
 # set up unit tests
@@ -65,4 +88,3 @@ add_subdirectory (hoomd)
 if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
-

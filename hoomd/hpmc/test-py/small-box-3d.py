@@ -85,7 +85,7 @@ class pair_smallbox3d_test2 (unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
 
         analyze.log(filename='small-box-3d.log', quantities=['hpmc_overlap_count'], period=1, overwrite=True);
-        run(500000);
+        run(50000);
 
         # check 3 - verify that trial moves were both accepted and rejected
         count = self.mc.get_counters();

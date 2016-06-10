@@ -526,9 +526,13 @@ class NeighborList : public Compute
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
             {
-            // exclusions require ghost particle tags
             CommFlags flags(0);
+
+            // exclusions require ghost particle tags
             if (m_exclusions_set) flags[comm_flag::tag] = 1;
+
+            if (m_filter_body) flags[comm_flag::body] = 1;
+
             return flags;
             }
         #endif

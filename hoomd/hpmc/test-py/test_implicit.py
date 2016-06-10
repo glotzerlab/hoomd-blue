@@ -21,7 +21,7 @@ class implicit_test_sphere (unittest.TestCase):
 
         self.long = False
         self.num_samples = 0
-        self.steps = 100
+        self.steps = 10
 
         if len(option.get_user()) > 0 and option.get_user()[0]=="long":
             self.long = True
@@ -112,7 +112,7 @@ class implicit_test_cube(unittest.TestCase):
 
         self.long = False
         self.num_samples = 0
-        self.steps = 100
+        self.steps = 10
         if len(option.get_user()) > 0 and option.get_user()[0]=="long":
             self.long = True
             self.num_samples = 10

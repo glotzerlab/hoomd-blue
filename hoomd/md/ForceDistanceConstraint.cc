@@ -232,7 +232,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         Scalar d = m_cdata->getValueByIndex(n);
 
         // check distance violation
-        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d || isnan(dot(rn,rn)))
+        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d || std::isnan(dot(rn,rn)))
             {
             m_constraint_violated.resetFlags(n+1);
             }

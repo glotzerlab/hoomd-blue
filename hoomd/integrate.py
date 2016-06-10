@@ -259,6 +259,6 @@ class _integration_method(hoomd.meta._metadata):
     ## \internal
     # \brief Override get_metadata() to add 'enabled' field
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data

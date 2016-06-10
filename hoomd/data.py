@@ -649,7 +649,7 @@ class boxdim(hoomd.meta._metadata):
         Returns:
             The wrapped vector and the image flags in a tuple.
         """
-        u = _hoomd.make_scalar3(v[0],v[1],v[2])
+        u = _hoomd.make_scalar3(float(v[0]),float(v[1]),float(v[2]))
         i = _hoomd.make_int3(int(img[0]),int(img[1]),int(img[2]))
         c = _hoomd.make_char3(0,0,0)
         self._getBoxDim().wrap(u,i,c)

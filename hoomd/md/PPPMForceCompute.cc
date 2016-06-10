@@ -426,14 +426,14 @@ void PPPMForceCompute::initializeFFT()
     if (! local_fft)
         {
         // ghost cell communicator for charge interpolation
-        m_grid_comm_forward = std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> >(
+        m_grid_comm_forward = std::unique_ptr<CommunicatorGrid<kiss_fft_cpx> >(
             new CommunicatorGrid<kiss_fft_cpx>(m_sysdef,
                make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
                make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),
                m_n_ghost_cells,
                true));
         // ghost cell communicator for force mesh
-        m_grid_comm_reverse = std::auto_ptr<CommunicatorGrid<kiss_fft_cpx> >(
+        m_grid_comm_reverse = std::unique_ptr<CommunicatorGrid<kiss_fft_cpx> >(
             new CommunicatorGrid<kiss_fft_cpx>(m_sysdef,
                make_uint3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z),
                make_uint3(m_grid_dim.x, m_grid_dim.y, m_grid_dim.z),
@@ -729,7 +729,7 @@ void PPPMForceCompute::assignParticles()
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // ignore if NaN
-        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+        if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z))
             {
             continue;
             }
@@ -1009,7 +1009,7 @@ void PPPMForceCompute::interpolateForces()
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // ignore if NaN
-        if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+        if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z))
             {
             continue;
             }

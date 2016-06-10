@@ -25,6 +25,7 @@ Welcome to the user documentation for HOOMD-blue!
    package-hoomd
    package-hpmc
    package-md
+   package-dem
 
 .. toctree::
    :maxdepth: 3
@@ -41,4 +42,3 @@ Welcome to the user documentation for HOOMD-blue!
    license
    credits
    indices
-
