@@ -989,7 +989,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     // slave
                     assert(m_gibbs);
 
-                    unsigned int type, other_type;
+                    unsigned int type=0, other_type=0;
                     #ifdef ENABLE_MPI
                     if (is_root)
                         {

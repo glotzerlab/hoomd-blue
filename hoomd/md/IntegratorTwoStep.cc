@@ -354,6 +354,8 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
         // ForceComposite ensures that any rigid bodies are correctly initialized
 
+        // in the first step, ghost particles are not yet present, so we don't want to update constituent particles
+
         //std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
         //for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
         //    (*force_composite)->updateCompositeParticles(timestep, false);

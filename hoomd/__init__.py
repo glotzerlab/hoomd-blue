@@ -61,6 +61,7 @@ from hoomd import option
 from hoomd import update
 from hoomd import util
 from hoomd import variant
+from hoomd import lattice
 
 from hoomd._hoomd import WalltimeLimitReached;
 

@@ -32,6 +32,10 @@ if (ENABLE_CUDA)
     endif (CUDA_TOOLKIT_ROOT_DIR)
     mark_as_advanced(CUDA_VERBOSE_BUILD)
     mark_as_advanced(CUDA_BUILD_EMULATION)
+    mark_as_advanced(CUDA_HOST_COMPILER)
+    mark_as_advanced(CUDA_dl_LIBRARY)
+    mark_as_advanced(CUDA_rt_LIBRARY)
+    mark_as_advanced(THRUST_INCLUDE_DIR)
 
     if (ENABLE_NVTOOLS)
         find_library(CUDA_nvToolsExt_LIBRARY
@@ -79,7 +83,7 @@ if (ENABLE_CUDA)
 if (ENABLE_EMBED_CUDA)
     # determine the directory of the found cuda libs
     get_filename_component(_cuda_libdir ${CUDA_CUDART_LIBRARY} PATH)
-    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcudart.* ${_cuda_libdir}/libcufft.*)
+    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcurand.* ${_cuda_libdir}/libcufft.* ${_cuda_libdir}/libcusolver.* ${_cuda_libdir}/libcusparse.*)
     install(PROGRAMS ${_cuda_libs} DESTINATION ${PYTHON_MODULE_BASE_DIR})
 endif ()
 

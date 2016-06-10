@@ -63,7 +63,7 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
     if (c_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     if (m_orientationLink == true && m_rotationDiff != 0)
         {
-        throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined. Instead implement rotational diffusion through the integrator.");
+        throw runtime_error("Non-spherical particles and rotational diffusion is ill defined. Instead implement rotational diffusion through the integrator, or if you are working with point particles set orientation_link=False.");
         }
 
     m_activeVec.resize(group_size);

@@ -27,22 +27,22 @@ class integrate_langevin_tests (unittest.TestCase):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         bd = md.integrate.langevin(all, kT=1.2, seed=52);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.langevin(all, kT=1.2, seed=1, dscale=1.0);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.langevin(all, kT=1.2, seed=1, dscale=1.0, tally=True);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.langevin(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.langevin(all, kT=1.2, seed=1, dscale=1.0, noiseless_r=True);
-        run(100);
+        run(5);
         bd.disable();
         bd = md.integrate.langevin(all, kT=1.2, seed=1, dscale=1.0, noiseless_t=True, noiseless_r=True);
-        run(100);
+        run(5);
         bd.disable();
 
     # test set_params
@@ -79,10 +79,10 @@ class integrate_langevin_tests (unittest.TestCase):
         bd = md.integrate.langevin(all, kT=1.2, seed=1);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
-        run(100);
+        run(5);
 
         self.s.particles.types.add('B')
-        run(100);
+        run(5);
 
     def tearDown(self):
         context.initialize();
@@ -103,7 +103,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         kT=1.8
         gamma=1;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.langevin(group.all(), kT=kT, seed=1, dscale=False, noiseless_t=True);
@@ -132,7 +132,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         kT=1.8
         gamma=1;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.langevin(group.all(), kT=kT, seed=1, dscale=False);
@@ -162,7 +162,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         kT=1.8
         gamma=2;
         dt=0.01;
-        steps=10000;
+        steps=5000;
 
         md.integrate.mode_standard(dt=dt);
         bd = md.integrate.langevin(group.all(), kT=kT, seed=1, dscale=gamma);

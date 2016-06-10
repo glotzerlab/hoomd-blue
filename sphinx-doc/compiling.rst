@@ -7,16 +7,15 @@ Software Prerequisites
 HOOMD-blue requires a number of prerequisite software packages and libraries.
 
  * Required:
-     * Python >= 2.6
+     * Python >= 2.7
      * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ Compiler (tested with gcc, clang, intel)
-
+     * C++ 11 capable compiler (tested with gcc >= 4.9, clang 3.5, intel 15)
  * Optional:
-     * NVIDIA CUDA Toolkit >= 5.0
+     * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH, impi)
-
+     * sqlite3
  * Useful developer tools
      * Git >= 1.7.0
      * Doxygen  >= 1.8.5
@@ -258,7 +257,7 @@ ensure that all libraries (mpi, boost, python, etc...) are linked from the conda
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
     conda uninstall hoomd
-    conda install boost sphinx git mpich2 numpy cmake
+    conda install boost sphinx git mpich2 numpy cmake pkg-config sqlite
 
 Check the CMake configuration to ensure that it finds python, boost, numpy, and MPI from within the conda installation.
 If any of these library or include files reference directories other than your conda environment, you will need to
@@ -347,6 +346,11 @@ Other option changes take effect at any time. These can be set from within `ccma
 
 * **CMAKE_INSTALL_PREFIX** - Directory to install the hoomd python module. All files will be under
   ${CMAKE_INSTALL_PREFIX}/hoomd
+* **BUILD_CGCMM** - Enables building the cgcmm component
+* **BUILD_DEPRECATED** - Enables building the deprecated component
+* **BUILD_HPMC** - Enables building the hpmc component.
+* **BUILD_MD** - Enables building the md component
+* **BUILD_METAL** - Enables building the metal component
 * **BUILD_TESTING** - Enables the compilation of unit tests
 * **CMAKE_BUILD_TYPE** - sets the build type (case sensitive)
     * **Debug** - Compiles debug information into the library and executables.
@@ -358,10 +362,12 @@ Other option changes take effect at any time. These can be set from within `ccma
       Recommended for production builds: required for any benchmarking.
 * **ENABLE_CUDA** - Enable compiling of the GPU accelerated computations using CUDA. Defaults *on* if the CUDA toolkit
   is found. Defaults *off* if the CUDA toolkit is not found.
-* **ENABLE_DOXYGEN** - enables the generation of user and developer documentation (Defaults *off*)
+* **ENABLE_DOXYGEN** - enables the generation of developer documentation (Defaults *off*)
 * **SINGLE_PRECISION** - Controls precision
     - When set to **ON**, all calculations are performed in single precision.
     - When set to **OFF**, all calculations are performed in double precision.
+* **ENABLE_HPMC_MIXED_PRECISION** - Controls mixed precision in the hpmc component. When on, single precision is forced
+      in expensive shape overlap checks.
 * **ENABLE_MPI** - Enable multi-processor/GPU simulations using MPI
     - When set to **ON** (default if any MPI library is found automatically by CMake), multi-GPU simulations are supported
     - When set to **OFF**, HOOMD always runs in single-GPU mode
@@ -371,6 +377,7 @@ Other option changes take effect at any time. These can be set from within `ccma
     - When set to **OFF**, standard MPI calls will be used
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
+* **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
 
 These options control CUDA compilation:
 

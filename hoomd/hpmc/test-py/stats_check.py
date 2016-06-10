@@ -59,7 +59,7 @@ class pair_accept_all (unittest.TestCase):
             p.orientation=(1.0,0.0,0.0,0.0)
 
         del p
-        run(1000)
+        run(100)
 
 
         # verify that all moves are accepted and zero overlaps are registered
@@ -158,7 +158,7 @@ class pair_accept_some(unittest.TestCase):
                 p.type=t
 
             del p
-            run(1000)
+            run(100)
 
             # verify that all moves are accepted and zero overlaps are registered
             number_of_overlaps = self.mc.count_overlaps();
@@ -167,7 +167,7 @@ class pair_accept_some(unittest.TestCase):
             #assert the the acceptance prob is within acceptable bounds
             translate_acceptance_prob = self.mc.get_translate_acceptance()
             self.assertGreater(translate_acceptance_prob,prob*0.5)
-            self.assertLess(translate_acceptance_prob,prob*1.5)
+            self.assertLess(translate_acceptance_prob,prob*2.0)
 
             #should be zero, because these are spheres and no rotation moves should be attempted
             rotate_acceptance_prob = self.mc.get_rotate_acceptance()

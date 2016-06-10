@@ -144,7 +144,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
         if (m_unwrap_rigid && snap.body[j] != NO_BODY)
             {
             unsigned int central_ptl_tag = snap.body[j];
-            assert(central_ptl_tag < snap.size());
+            assert(central_ptl_tag < snap.size);
             int body_ix = snap.image[central_ptl_tag].x;
             int body_iy = snap.image[central_ptl_tag].y;
             int body_iz = snap.image[central_ptl_tag].z;
