@@ -354,9 +354,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
         // ForceComposite ensures that any rigid bodies are correctly initialized
 
-        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            (*force_composite)->updateCompositeParticles(timestep, false);
+        // in the first step, ghost particles are not yet present, so we don't want to update constituent particles
+
+        //std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+        //for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        //    (*force_composite)->updateCompositeParticles(timestep, false);
 
 #ifdef ENABLE_MPI
         if (m_comm)
@@ -368,9 +370,9 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             m_comm->communicate(timestep);
 
             // update local constituents of remote composite particles
-            std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-            for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-                (*force_composite)->updateCompositeParticles(timestep+1, true);
+            //std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+            //for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+            //    (*force_composite)->updateCompositeParticles(timestep+1, true);
             }
 #endif
 
