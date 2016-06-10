@@ -3,7 +3,6 @@
 
 from hoomd import *
 from hoomd import deprecated
-from hoomd import md
 import hoomd;
 context.initialize()
 import unittest
@@ -55,16 +54,6 @@ class metadata_tests(unittest.TestCase):
         import socket
         metadata = meta.dump_metadata()
         self.assertEqual(metadata['context']['hostname'], socket.gethostname())
-
-    def test_with_simulation_run(self):
-        nl = md.nlist.cell()
-        lj = md.pair.lj(r_cut=3.0, nlist=nl)
-        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-        md.integrate.mode_standard(dt=0.01)
-        md.integrate.nvt(group=hoomd.group.all(), kT=1.0, tau=1.0)
-        hoomd.run(10)
-        hoomd.meta.dump_metadata()
-
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
