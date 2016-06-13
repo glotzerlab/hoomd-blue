@@ -234,11 +234,31 @@ class mode_hpmc(_integrator):
             boolean true if overlapped, false otherwise
 
         Example:
-            write me!
-
+            mc = hpmc.integrate.shape(...)
+            mc.shape_param.set(...)
+            overlapped = mc.test_pair_overlap(1,2)
         """
+
         self.update_forces()
         return self.cpp_integrator.testPairOverlap(i,j);
+
+    def map_overlaps(self):
+        R""" Build an overlap map of the system
+
+        Returns:
+            List of tuples. True/false value of the i,j entry indicates overlap/non-overlap of the ith and jth particles (by tag)
+
+        Example:
+            mc = hpmc.integrate.shape(...)
+            mc.shape_param.set(...)
+            overlap_map = np.asarray(mc.map_overlaps())
+        """
+    
+        self.update_forces()
+        N = hoomd.context.current.system_definition.getParticleData().getN();
+        overlap_map = self.cpp_integrator.mapOverlaps();
+        return list(zip(*[iter(overlap_map)]*N))
+            
 
     def count_overlaps(self):
         R""" Count the number of overlaps.
