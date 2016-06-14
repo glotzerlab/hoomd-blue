@@ -1309,6 +1309,14 @@ class dpd(pair):
     where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
     and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
 
+    :py:class:`dpd` generates random numbers by hashing together the particle tags in the pair, the user seed,
+    and cthe urrent time step index.
+
+    .. attention::
+
+        Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
+        will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 

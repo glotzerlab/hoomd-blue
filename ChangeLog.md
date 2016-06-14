@@ -67,6 +67,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Moved cgcmm into its own package.
 * Moved eam into the metal package.
 * Integrators now take `kT` arguments for temperature instead of `T` to avoid confusion on the units of temperature.
+* phase defaults to 0 for updaters and analyzers so that restartable jobs are more easily enabled by default.
 
 *Other changes*
 
