@@ -44,7 +44,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
 
-    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot();
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -128,7 +128,7 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         m_prof->push("Analyze MSD");
 
     // take particle data snapshot
-    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(0);
 
     m_pdata->takeSnapshot(snapshot);
 
