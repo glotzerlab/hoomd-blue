@@ -33,7 +33,7 @@ class xml(hoomd.analyze._analyzer):
     If you only need to store a subset of the system, you can save file size and time spent analyzing data by
     specifying a group to write out. :py:class:`dump.xml` will write out all of the particles in *group* in ascending
     tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.xml` will not write the topology fields
-    (bonds, angles, dihedrals, constraints).
+    (bond, angle, dihedral, improper, constraint).
 
     Examples::
 
@@ -74,7 +74,8 @@ class xml(hoomd.analyze._analyzer):
             raise ValueError("a period must be specified with restart=True");
 
         # create the c++ mirror class
-        self.cpp_analyzer = _deprecated.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, group.cpp_group, restart);
+        self.group = group
+        self.cpp_analyzer = _deprecated.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, self.group.cpp_group, restart);
         hoomd.util.quiet_status();
         self.set_params(**params);
         hoomd.util.unquiet_status();
@@ -91,7 +92,6 @@ class xml(hoomd.analyze._analyzer):
             self.enabled = False;
 
         # store metadata
-        self.group = group
         self.filename = filename
         self.period = period
         self.metadata_fields = ['group','filename','period']
@@ -142,7 +142,6 @@ class xml(hoomd.analyze._analyzer):
             inertia (bool): (if set) Set to True/False to enable/disable the output of particle moments of inertia in the xml file
             vizsigma (bool): (if set) Set to a floating point value to include as vizsigma in the xml file
 
-
         Examples::
 
             xml.set_params(type=False)
@@ -150,6 +149,11 @@ class xml(hoomd.analyze._analyzer):
             xml.set_params(type=True, position=True)
             xml.set_params(bond=True)
             xml.set_params(all=True)
+
+        .. attention::
+            The simulation topology (bond, angle, dihedral, improper, constraint) cannot be output when
+            the group for :py:class:`dump.xml` is not :py:class:`hoomd.group.all`. An error will
+            be raised.
         """
 
         hoomd.util.print_status_line();
@@ -161,6 +165,15 @@ class xml(hoomd.analyze._analyzer):
 
         if vis:
             position = mass = diameter = type = body = bond = angle = dihedral = improper = charge = True;
+
+        # validate that
+        if bond or angle or dihedral or improper or constraint:
+            hoomd.util.quiet_status()
+            group_all = hoomd.group.all()
+            hoomd.util.unquiet_status()
+            if self.group != group_all:
+                hoomd.context.msg.error("Cannot output topology when not all particles are dumped!\n")
+                raise ValueError("Cannot output topology when not all particles are dumped!")
 
         if position is not None:
             self.cpp_analyzer.setOutputPosition(position);

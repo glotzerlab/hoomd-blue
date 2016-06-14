@@ -340,6 +340,27 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</mass>" << "\n";
         }
 
+    // If the charge flag is true output the mass of all particles to the file
+    if (m_output_charge)
+        {
+        f <<"<charge num=\"" << N << "\">" << "\n";
+
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
+            {
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar charge = snapshot.charge[tag];
+
+            f << charge << "\n";
+            if (!f.good())
+                {
+                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+
+        f <<"</charge>" << "\n";
+        }
+
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
@@ -404,113 +425,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</body>" << "\n";
         }
 
-    // if the bond flag is true, output the bonds to the xml file
-    if (m_output_bond)
-        {
-        f << "<bond num=\"" << bdata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-
-        // loop over all bonds and write them out
-        for (unsigned int i = 0; i < bdata_snapshot.groups.size(); i++)
-            {
-            BondData::members_t bond = bdata_snapshot.groups[i];
-            unsigned int bond_type = bdata_snapshot.type_id[i];
-            f << bond_data->getNameByType(bond_type) << " " << bond.tag[0] << " " << bond.tag[1] << "\n";
-            }
-
-        f << "</bond>" << "\n";
-        }
-
-    // if the angle flag is true, output the angles to the xml file
-    if (m_output_angle)
-        {
-        f << "<angle num=\"" << adata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
-
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < adata_snapshot.groups.size(); i++)
-            {
-            AngleData::members_t angle = adata_snapshot.groups[i];
-            unsigned int angle_type = adata_snapshot.type_id[i];
-            f << angle_data->getNameByType(angle_type) << " " << angle.tag[0]  << " " << angle.tag[1] << " " << angle.tag[2] << "\n";
-            }
-
-        f << "</angle>" << "\n";
-        }
-
-    // if dihedral is true, write out dihedrals to the xml file
-    if (m_output_dihedral)
-        {
-        f << "<dihedral num=\"" << ddata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
-
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < ddata_snapshot.groups.size(); i++)
-            {
-            DihedralData::members_t dihedral = ddata_snapshot.groups[i];
-            unsigned int dihedral_type = ddata_snapshot.type_id[i];
-            f << dihedral_data->getNameByType(dihedral_type) << " " << dihedral.tag[0]  << " " << dihedral.tag[1] << " "
-            << dihedral.tag[2] << " " << dihedral.tag[3] << "\n";
-            }
-
-        f << "</dihedral>" << "\n";
-        }
-
-    // if improper is true, write out impropers to the xml file
-    if (m_output_improper)
-        {
-        f << "<improper num=\"" << idata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
-
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < idata_snapshot.groups.size(); i++)
-            {
-            ImproperData::members_t improper = idata_snapshot.groups[i];
-            unsigned int improper_type = idata_snapshot.type_id[i];
-            f << improper_data->getNameByType(improper_type) << " " << improper.tag[0]  << " " << improper.tag[1] << " "
-            << improper.tag[2] << " " << improper.tag[3] << "\n";
-            }
-
-        f << "</improper>" << "\n";
-        }
-
-    // if constraint is true, write out constraints to the xml file
-    if (m_output_constraint)
-        {
-        f << "<constraint num=\"" << cdata_snapshot.groups.size() << "\">" << "\n";
-
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < cdata_snapshot.groups.size(); i++)
-            {
-            ConstraintData::members_t constraint = cdata_snapshot.groups[i];
-            Scalar constraint_dist = cdata_snapshot.val[i];
-            f << constraint.tag[0]  << " " << constraint.tag[1] << " " << constraint_dist << "\n";
-            }
-
-        f << "</constraint>" << "\n";
-        }
-
-    // If the charge flag is true output the mass of all particles to the file
-    if (m_output_charge)
-        {
-        f <<"<charge num=\"" << N << "\">" << "\n";
-
-        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
-            {
-            const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar charge = snapshot.charge[tag];
-
-            f << charge << "\n";
-            if (!f.good())
-                {
-                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
-                }
-            }
-
-        f <<"</charge>" << "\n";
-        }
-
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
@@ -552,7 +466,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</angmom>" << "\n";
         }
 
-
     // if the moment_inertia flag is set, write out the principal moments of inertia to the XML file
     if (m_output_moment_inertia)
         {
@@ -574,12 +487,102 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</moment_inertia>" << "\n";
         }
 
+    // only write the topology when the group size is the same as the system size
+    if (N == m_pdata->getNGlobal())
+        {
+        // if the bond flag is true, output the bonds to the xml file
+        if (m_output_bond)
+            {
+            f << "<bond num=\"" << bdata_snapshot.groups.size() << "\">" << "\n";
+            boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+
+            // loop over all bonds and write them out
+            for (unsigned int i = 0; i < bdata_snapshot.groups.size(); i++)
+                {
+                BondData::members_t bond = bdata_snapshot.groups[i];
+                unsigned int bond_type = bdata_snapshot.type_id[i];
+                f << bond_data->getNameByType(bond_type) << " " << bond.tag[0] << " " << bond.tag[1] << "\n";
+                }
+
+            f << "</bond>" << "\n";
+            }
+
+        // if the angle flag is true, output the angles to the xml file
+        if (m_output_angle)
+            {
+            f << "<angle num=\"" << adata_snapshot.groups.size() << "\">" << "\n";
+            boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+
+            // loop over all angles and write them out
+            for (unsigned int i = 0; i < adata_snapshot.groups.size(); i++)
+                {
+                AngleData::members_t angle = adata_snapshot.groups[i];
+                unsigned int angle_type = adata_snapshot.type_id[i];
+                f << angle_data->getNameByType(angle_type) << " " << angle.tag[0]  << " " << angle.tag[1] << " " << angle.tag[2] << "\n";
+                }
+
+            f << "</angle>" << "\n";
+            }
+
+        // if dihedral is true, write out dihedrals to the xml file
+        if (m_output_dihedral)
+            {
+            f << "<dihedral num=\"" << ddata_snapshot.groups.size() << "\">" << "\n";
+            boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+
+            // loop over all angles and write them out
+            for (unsigned int i = 0; i < ddata_snapshot.groups.size(); i++)
+                {
+                DihedralData::members_t dihedral = ddata_snapshot.groups[i];
+                unsigned int dihedral_type = ddata_snapshot.type_id[i];
+                f << dihedral_data->getNameByType(dihedral_type) << " " << dihedral.tag[0]  << " " << dihedral.tag[1] << " "
+                << dihedral.tag[2] << " " << dihedral.tag[3] << "\n";
+                }
+
+            f << "</dihedral>" << "\n";
+            }
+
+        // if improper is true, write out impropers to the xml file
+        if (m_output_improper)
+            {
+            f << "<improper num=\"" << idata_snapshot.groups.size() << "\">" << "\n";
+            boost::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
+
+            // loop over all angles and write them out
+            for (unsigned int i = 0; i < idata_snapshot.groups.size(); i++)
+                {
+                ImproperData::members_t improper = idata_snapshot.groups[i];
+                unsigned int improper_type = idata_snapshot.type_id[i];
+                f << improper_data->getNameByType(improper_type) << " " << improper.tag[0]  << " " << improper.tag[1] << " "
+                << improper.tag[2] << " " << improper.tag[3] << "\n";
+                }
+
+            f << "</improper>" << "\n";
+            }
+
+        // if constraint is true, write out constraints to the xml file
+        if (m_output_constraint)
+            {
+            f << "<constraint num=\"" << cdata_snapshot.groups.size() << "\">" << "\n";
+
+            // loop over all angles and write them out
+            for (unsigned int i = 0; i < cdata_snapshot.groups.size(); i++)
+                {
+                ConstraintData::members_t constraint = cdata_snapshot.groups[i];
+                Scalar constraint_dist = cdata_snapshot.val[i];
+                f << constraint.tag[0]  << " " << constraint.tag[1] << " " << constraint_dist << "\n";
+                }
+
+            f << "</constraint>" << "\n";
+            }
+        }
+
     f << "</configuration>" << "\n";
     f << "</hoomd_xml>" << "\n";
 
     if (!f.good())
         {
-                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
+        m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
         throw runtime_error("Error writting HOOMD dump file");
         }
 

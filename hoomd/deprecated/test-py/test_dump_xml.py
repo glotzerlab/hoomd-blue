@@ -49,6 +49,24 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(all=True);
         xml.set_params(angmom=True);
 
+    def test_group(self):
+        tag = group.tags(tag_min=0,tag_max=1)
+
+        # make sure topology doesn't go out
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", bond=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", angle=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", dihedral=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", improper=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", constraint=True)
+
+        # now this should proceed okay
+        deprecated.dump.xml(group=tag, filename="dump_xml", position=True)
+
     def tearDown(self):
         context.initialize();
 
