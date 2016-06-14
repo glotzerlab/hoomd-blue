@@ -223,7 +223,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f << "<hoomd_xml version=\"1.7\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
-      << "natoms=\"" << m_group->getNumMembersGlobal() << "\" ";
+      << "natoms=\"" << N << "\" ";
     if (m_vizsigma_set)
         f << "vizsigma=\"" << m_vizsigma << "\" ";
     f << ">" << "\n";
