@@ -172,23 +172,23 @@ void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
 void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     {
     // acquire the particle data
-    SnapshotParticleData<Scalar> snapshot();
+    SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
 
-    BondData::Snapshot bdata_snapshot();
+    BondData::Snapshot bdata_snapshot;
     if (m_output_bond) m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
 
-    AngleData::Snapshot adata_snapshot();
+    AngleData::Snapshot adata_snapshot;
     if (m_output_angle) m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
 
-    DihedralData::Snapshot ddata_snapshot();
+    DihedralData::Snapshot ddata_snapshot;
     if (m_output_dihedral) m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
 
-    ImproperData::Snapshot idata_snapshot();
+    ImproperData::Snapshot idata_snapshot;
     if (m_output_improper) m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
 
-    ConstraintData::Snapshot cdata_snapshot();
+    ConstraintData::Snapshot cdata_snapshot;
     if (m_output_constraint) m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
 
 

@@ -44,7 +44,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
 
-    SnapshotParticleData<Scalar> snapshot();
+    SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
 
