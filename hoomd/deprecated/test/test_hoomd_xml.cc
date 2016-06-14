@@ -8,6 +8,7 @@
 #include <math.h>
 #include "hoomd/deprecated/HOOMDDumpWriter.h"
 #include "hoomd/deprecated/HOOMDInitializer.h"
+#include "hoomd/ParticleGroup.h"
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/Filesystem.h"
 
@@ -181,7 +182,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(2.5),1,2));
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
+    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
 
     writer->setOutputPosition(false);
 
@@ -825,7 +828,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
+    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);

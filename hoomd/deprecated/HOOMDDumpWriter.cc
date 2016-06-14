@@ -31,12 +31,16 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param base_fname The base name of the file xml file to output the information
+    \param group ParticleGroup to dump to file
     \param mode_restart Set to true to enable restart writing mode. False writes one XML file per time step.
 
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
-HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart)
-        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
+HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+                                 const std::string& base_fname,
+                                 boost::shared_ptr<ParticleGroup> group,
+                                 bool mode_restart)
+        : Analyzer(sysdef), m_base_fname(base_fname), m_group(group), m_output_position(true),
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
         m_output_type(false), m_output_bond(false), m_output_angle(false),
         m_output_dihedral(false), m_output_improper(false), m_output_constraint(false),
@@ -213,12 +217,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Scalar xz = box.getTiltFactorXZ();
     Scalar yz = box.getTiltFactorYZ();
 
+    // number of members in the group
+    const unsigned int N = m_group->getNumMembersGlobal();
+
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
     f << "<hoomd_xml version=\"1.7\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
-      << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
+      << "natoms=\"" << m_group->getNumMembersGlobal() << "\" ";
     if (m_vizsigma_set)
         f << "vizsigma=\"" << m_vizsigma << "\" ";
     f << ">" << "\n";
@@ -230,10 +237,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {
-        f << "<position num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        f << "<position num=\"" << N << "\">" << "\n";
+
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            vec3<Scalar> pos = snapshot.pos[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            vec3<Scalar> pos = snapshot.pos[tag];
 
             f << pos.x << " " << pos.y << " "<< pos.z << "\n";
 
@@ -243,36 +252,41 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
+
         f <<"</position>" << "\n";
         }
 
     // If the image flag is true, output the image of each particle to the file
     if (m_output_image)
         {
-        f << "<image num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        f << "<image num=\"" << N << "\">" << "\n";
+
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            int3 image = snapshot.image[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            int3 image = snapshot.image[tag];
 
             f << image.x << " " << image.y << " "<< image.z << "\n";
-
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
+
         f <<"</image>" << "\n";
         }
 
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_velocity)
         {
-        f <<"<velocity num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f <<"<velocity num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            vec3<Scalar> vel = snapshot.vel[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            vec3<Scalar> vel = snapshot.vel[tag];
+
             f << vel.x << " " << vel.y << " " << vel.z << "\n";
             if (!f.good())
                 {
@@ -287,11 +301,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_accel)
         {
-        f <<"<acceleration num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f <<"<acceleration num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            vec3<Scalar> accel = snapshot.accel[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            vec3<Scalar> accel = snapshot.accel[tag];
 
             f << accel.x << " " << accel.y << " " << accel.z << "\n";
             if (!f.good())
@@ -307,11 +322,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the mass flag is true output the mass of all particles to the file
     if (m_output_mass)
         {
-        f <<"<mass num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f <<"<mass num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            Scalar mass = snapshot.mass[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar mass = snapshot.mass[tag];
 
             f << mass << "\n";
             if (!f.good())
@@ -327,11 +343,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
-        f <<"<diameter num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f <<"<diameter num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            Scalar diameter = snapshot.diameter[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar diameter = snapshot.diameter[tag];
+
             f << diameter << "\n";
             if (!f.good())
                 {
@@ -346,31 +364,43 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the Type flag is true output the types of all particles to an xml file
     if  (m_output_type)
         {
-        f <<"<type num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        f <<"<type num=\"" << N << "\">" << "\n";
+
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            unsigned int type = snapshot.type[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            unsigned int type = snapshot.type[tag];
+
             f << m_pdata->getNameByType(type) << "\n";
+            if (!f.good())
+                {
+                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
             }
+
         f <<"</type>" << "\n";
         }
 
     // If the body flag is true output the bodies of all particles to an xml file
     if  (m_output_body)
         {
-        f <<"<body num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        f <<"<body num=\"" << N << "\">" << "\n";
+
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            unsigned int body;
-            int out;
-            body = snapshot.body[j];
-            if (body == NO_BODY)
-                out = -1;
-            else
-                out = (int)body;
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            unsigned int body = snapshot.body[tag];
+            int out = (body == NO_BODY) ? -1 : (int)body;
 
             f << out << "\n";
+            if (!f.good())
+                {
+                m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
             }
+
         f <<"</body>" << "\n";
         }
 
@@ -448,7 +478,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_constraint)
         {
         f << "<constraint num=\"" << cdata_snapshot.groups.size() << "\">" << "\n";
-        boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < cdata_snapshot.groups.size(); i++)
@@ -464,11 +493,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the charge flag is true output the mass of all particles to the file
     if (m_output_charge)
         {
-        f <<"<charge num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f <<"<charge num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            Scalar charge = snapshot.charge[j];
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar charge = snapshot.charge[tag];
+
             f << charge << "\n";
             if (!f.good())
                 {
@@ -483,12 +514,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
-        f << "<orientation num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f << "<orientation num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            // use the rtag data to output the particles in the order they were read in
-            Scalar4 orientation = quat_to_scalar4(snapshot.orientation[j]);
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar4 orientation = quat_to_scalar4(snapshot.orientation[tag]);
+
             f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
             if (!f.good())
                 {
@@ -502,12 +534,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the angmom flag is set, write out the angular momentum quaternion to the XML file
     if (m_output_angmom)
         {
-        f << "<angmom num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f << "<angmom num=\"" << N << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            // use the rtag data to output the particles in the order they were read in
-            Scalar4 angmom = quat_to_scalar4(snapshot.angmom[j]);
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar4 angmom = quat_to_scalar4(snapshot.angmom[tag]);
+
             f << angmom.x << " " << angmom.y << " " << angmom.z << " " << angmom.w << "\n";
             if (!f.good())
                 {
@@ -515,6 +548,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
+
         f << "</angmom>" << "\n";
         }
 
@@ -522,20 +556,21 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the moment_inertia flag is set, write out the principal moments of inertia to the XML file
     if (m_output_moment_inertia)
         {
-        f << "<moment_inertia num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        f << "<moment_inertia num=\"" << N << "\">" << "\n";
 
-        for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
+        for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
-            // inertia tensors are stored by tag
-            Scalar3 I = vec_to_scalar3(snapshot.inertia[i]);
-            f << I.x << " " << I.y << " " << I.z << "\n";
+            const unsigned int tag = m_group->getMemberTag(group_idx);
+            Scalar3 I = vec_to_scalar3(snapshot.inertia[tag]);
 
+            f << I.x << " " << I.y << " " << I.z << "\n";
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
+
         f << "</moment_inertia>" << "\n";
         }
 
@@ -596,7 +631,10 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 void export_HOOMDDumpWriter()
     {
     class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, bool >())
+    ("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>,
+                              std::string,
+                              boost::shared_ptr<ParticleGroup>,
+                              bool >())
     .def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
     .def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
     .def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)

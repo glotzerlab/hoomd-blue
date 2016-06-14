@@ -13,6 +13,7 @@
 #endif
 
 #include "hoomd/Analyzer.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <string>
 
@@ -47,7 +48,10 @@ class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
+        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+                        const std::string& base_fname,
+                        boost::shared_ptr<ParticleGroup> group,
+                        bool mode_restart=false);
 
         //! Destructor
         ~HOOMDDumpWriter();
@@ -99,6 +103,8 @@ class HOOMDDumpWriter : public Analyzer
         void writeFile(std::string fname, unsigned int timestep);
     private:
         std::string m_base_fname;   //!< String used to store the file name of the XML file
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Particle group to dump
+
         bool m_output_position;     //!< true if the particle positions should be written
         bool m_output_image;        //!< true if the particle positions should be written
         bool m_output_velocity;     //!< true if the particle velocities should be written

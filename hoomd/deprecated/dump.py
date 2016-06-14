@@ -13,6 +13,7 @@ class xml(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the HOOMD XML format.
 
     Args:
+        group (:py:mod:`hoomd.group`): Group of particles to dump
         filename (str): (optional) Base of the file name
         period (int): (optional) Number of time steps between file dumps
         params: (optional) Any number of parameters that set_params() accepts
@@ -26,15 +27,21 @@ class xml(hoomd.analyze._analyzer):
        an efficient binary format that is easy to access. See :py:class:`hoomd.dump.gsd`.
 
     Every *period* time steps, a new file will be created. The state of the
-    particles at that time step is written to the file in the HOOMD XML format.
+    particles in *group* at that time step is written to the file in the HOOMD XML format.
     All values are written in native HOOMD-blue units, see :ref:`page-units` for more information.
+
+    If you only need to store a subset of the system, you can save file size and time spent analyzing data by
+    specifying a group to write out. :py:class:`dump.xml` will write out all of the particles in *group* in ascending
+    tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.xml` will not write the topology fields
+    (bonds, angles, dihedrals, constraints).
 
     Examples::
 
-        deprecated.dump.xml(filename="atoms.dump", period=1000)
-        xml = deprecated.dump.xml(filename="particles", period=1e5)
-        xml = deprecated.dump.xml(filename="test.xml", vis=True)
-        xml = deprecated.dump.xml(filename="restart.xml", all=True, restart=True, period=10000, phase=0);
+        deprecated.dump.xml(group=group.all(), filename="atoms.dump", period=1000)
+        xml = deprecated.dump.xml(group=group.all(), filename="particles", period=1e5)
+        xml = deprecated.dump.xml(group=group.all(), filename="test.xml", vis=True)
+        xml = deprecated.dump.xml(group=group.all(), filename="restart.xml", all=True, restart=True, period=10000, phase=0);
+        xml = deprecated.dump.xml(group=group.type('A'), filename="A", period=1e3)
 
 
     If period is set and restart is False, a new file will be created every *period* steps. The time step at which
@@ -55,7 +62,7 @@ class xml(hoomd.analyze._analyzer):
     *filename* is written immediately. *time_step* is passed on to write()
 
     """
-    def __init__(self, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
+    def __init__(self, group, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -67,7 +74,7 @@ class xml(hoomd.analyze._analyzer):
             raise ValueError("a period must be specified with restart=True");
 
         # create the c++ mirror class
-        self.cpp_analyzer = _deprecated.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, restart);
+        self.cpp_analyzer = _deprecated.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, group.cpp_group, restart);
         hoomd.util.quiet_status();
         self.set_params(**params);
         hoomd.util.unquiet_status();
@@ -84,9 +91,10 @@ class xml(hoomd.analyze._analyzer):
             self.enabled = False;
 
         # store metadata
+        self.group = group
         self.filename = filename
         self.period = period
-        self.metadata_fields = ['filename','period']
+        self.metadata_fields = ['group','filename','period']
 
     def set_params(self,
                    all=None,
