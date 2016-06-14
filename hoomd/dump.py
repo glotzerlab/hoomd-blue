@@ -52,7 +52,7 @@ class dcd(hoomd.analyze._analyzer):
         * dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
           consistent timeline
     """
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -539,7 +539,7 @@ class gsd(hoomd.analyze._analyzer):
                  group,
                  overwrite=False,
                  truncate=False,
-                 phase=-1,
+                 phase=0,
                  time_step=None,
                  static=['attribute', 'momentum', 'topology']):
         hoomd.util.print_status_line();
