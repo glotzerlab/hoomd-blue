@@ -571,3 +571,14 @@ class gsd(hoomd.analyze._analyzer):
         self.group = group
         self.phase = phase
         self.metadata_fields = ['filename','period','group', 'phase']
+
+    def write_restart(self):
+        """ Write a restart file at the current time step.
+
+        Call :py:meth:`write_restart` at the end of a simulation where are writing a gsd restart file with
+        ``truncate=True`` to ensure that you have the final frame of the simulation written before exiting.
+        See :ref:`restartable-jobs` for examples.
+        """
+
+        time_step = hoomd.context.current.system.getCurrentTimeStep()
+        self.cpp_analyzer.analyze(time_step);
