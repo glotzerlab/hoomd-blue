@@ -109,6 +109,15 @@ class gsd_write_tests (unittest.TestCase):
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
+    # tests write_restart
+    def write_restart(self):
+        g = dump.gsd(filename="test.gsd", group=group.all(), period=1000000, truncate=True, overwrite=True);
+        run(5);
+        g.write_restart();
+        data.gsd_snapshot('test.gsd', frame=0);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+
     # test all static quantities
     def test_all_static(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, static=['attribute', 'property', 'momentum', 'topology'], overwrite=True);

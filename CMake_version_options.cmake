@@ -2,9 +2,11 @@
 
 ################################
 ## Version information
-set(HOOMD_VERSION_MAJOR "1")
-set(HOOMD_VERSION_MINOR "3")
-set(HOOMD_VERSION_PATCH "3")
+set(HOOMD_VERSION_RAW "1.3.3")
+string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
+set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
+set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
+set(HOOMD_VERSION_PATCH ${CMAKE_MATCH_3})
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 
 # users may not have git installed, or this may be a tarball build - set a dummy version if that is the case

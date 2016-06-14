@@ -749,6 +749,14 @@ class langevin(_integration_method):
     to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
+    :py:class:`langevin` generates random numbers by hashing together the particle tag, user seed, and current
+    time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
+    information.
+
+    .. attention::
+        Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
+        will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
@@ -957,6 +965,14 @@ class brownian(_integration_method):
     of the system. The magnitude of the random force is chosen via the fluctuation-dissipation theorem
     to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+
+    :py:class:`brownian` generates random numbers by hashing together the particle tag, user seed, and current
+    time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
+    information.
+
+    .. attention::
+        Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
+        will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,

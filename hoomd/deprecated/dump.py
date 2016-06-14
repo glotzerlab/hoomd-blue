@@ -62,7 +62,7 @@ class xml(hoomd.analyze._analyzer):
     *filename* is written immediately. *time_step* is passed on to write()
 
     """
-    def __init__(self, group, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
+    def __init__(self, group, filename="dump", period=None, time_step=None, phase=0, restart=False, **params):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -298,7 +298,7 @@ class pos(hoomd.analyze._analyzer):
         pos = dump.pos(filename="particles.pos", period=1e5)
 
     """
-    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=0, addInfo=None):
         hoomd.util.print_status_line();
 
         # initialize base class

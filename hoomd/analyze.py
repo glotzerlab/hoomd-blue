@@ -59,7 +59,7 @@ class _analyzer(hoomd.meta._metadata):
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupAnalyzer(self, period, phase=-1):
+    def setupAnalyzer(self, period, phase=0):
         self.phase = phase;
 
         if type(period) == type(1.0):
@@ -213,7 +213,7 @@ class imd(_analyzer):
         analyze.imd(port=54321, rate=100, pause=True)
         imd = analyze.imd(port=12345, rate=1000)
     """
-    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=-1):
+    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -396,7 +396,7 @@ class log(_analyzer):
         to log and in the same order for all runs of hoomd that append to the same log.
     """
 
-    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=-1):
+    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -521,7 +521,7 @@ class callback(_analyzer):
 
         analyze.callback(callback = my_callback, period = 100)
     """
-    def __init__(self, callback, period, phase=-1):
+    def __init__(self, callback, period, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class

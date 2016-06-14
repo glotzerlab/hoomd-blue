@@ -58,7 +58,7 @@ class _updater(hoomd.meta._metadata):
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupUpdater(self, period, phase=-1):
+    def setupUpdater(self, period, phase=0):
         self.phase = phase;
 
         if type(period) == type(1.0):
@@ -302,7 +302,7 @@ class box_resize(_updater):
         update.box_resize(xy = hoomd.variant.linear_interp([(0,0), (1e6, 1)]))
     """
 
-    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=-1, scale_particles=True):
+    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=0, scale_particles=True):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -416,7 +416,7 @@ class balance(_updater):
 
     Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
     """
-    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=-1):
+    def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
