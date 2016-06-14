@@ -96,8 +96,7 @@ class mode_hpmc(_integrator):
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
-           hoomd.context.msg.error("Particle orientations are not normalized\n");
-           raise RuntimeError("Error running integrator");
+           hoomd.context.msg.warning("Particle orientations are not normalized\n");
 
         #make sure all the required parameters for implicit depletant simulations have been supplied
         if self.implicit:
