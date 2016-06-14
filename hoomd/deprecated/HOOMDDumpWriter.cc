@@ -2,13 +2,11 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: mphoward
 
 /*! \file HOOMDDumpWriter.cc
     \brief Defines the HOOMDDumpWriter class
 */
-
-
 
 #include "HOOMDDumpWriter.h"
 #include "hoomd/BondedGroupData.h"

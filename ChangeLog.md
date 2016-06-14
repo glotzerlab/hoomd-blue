@@ -67,6 +67,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Moved cgcmm into its own package.
 * Moved eam into the metal package.
 * Integrators now take `kT` arguments for temperature instead of `T` to avoid confusion on the units of temperature.
+* `dump.xml` (deprecated) requires a particle group, and can dump subsets of particles.
 
 *Other changes*
 

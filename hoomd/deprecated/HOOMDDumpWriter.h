@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: mphoward
 
 /*! \file HOOMDDumpWriter.h
     \brief Declares the HOOMDDumpWriter class
@@ -22,14 +22,14 @@
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__
 
-//! Analyzer for writing out HOOMD  dump files
+//! Analyzer for writing out HOOMD dump files
 /*! HOOMDDumpWriter can be used to write out xml files containing various levels of information
     of the current time step of the simulation. At a minimum, the current time step and box
     dimensions are output. Optionally, particle positions, velocities and types can be included
     in the file.
 
     Usage:<br>
-    Construct a HOOMDDumpWriter, attaching it to a ParticleData and specifying a base file name.
+    Construct a HOOMDDumpWriter, attaching it to a ParticleGroup and specifying a base file name.
     Call analyze(timestep) to output a dump file with the state of the current time step
     of the simulation. It will create base_file.timestep.xml where timestep is a 0-padded
     10 digit number. The 0 padding is so files sorted "alphabetically" will be read in
@@ -37,11 +37,13 @@
 
     To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
     and setOutputType(). Similarly, bonds can be included with setOutputBond().
+    Additional fields are also available by methods of similar names.
 
-    Future versions will include the ability to dump forces on each particle to the file also.
+    For information on the structure of the xml file format, refer to
+    HOOMD's user guide.
 
-    For information on the structure of the xml file format: see \ref page_dev_info
-    Although, HOOMD's  user guide probably has a more up to date documentation on the format.
+    \warning This file format has been deprecated in favor of the GSDDumpWriter.
+
     \ingroup analyzers
 */
 class HOOMDDumpWriter : public Analyzer
