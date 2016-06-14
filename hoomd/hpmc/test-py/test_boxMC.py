@@ -72,24 +72,24 @@ class npt_sanity_checks (unittest.TestCase):
         context.initialize() 
     
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
-#    def test_box_inversion(self):
-#        for i in range(5):
-#            self.system = create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
-#            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
-#            self.npt = hpmc.update.npt(self.mc, seed=1, P=100, dLx=10.0, dLy=10.0, dLz=10.0, dxy=0, dxz=0, dyz=0, move_ratio=1)
-#            self.mc.shape_param.set('A', diameter=1.0)
-#
-#            self.system.particles[0].position = (0,0,0)
-#
-#            for j in range(10):
-#                run(10)
-#                self.assertGreater(self.system.box.get_volume(), 0)
-#                print(self.system.box)
-#
-#            del self.npt
-#            del self.mc
-#            del self.system
-#            context.initialize()
+    def test_box_inversion(self):
+        for i in range(5):
+            self.system = create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
+            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.npt = hpmc.update.npt(self.mc, seed=1, P=100, dLx=10.0, dLy=10.0, dLz=10.0, dxy=0, dxz=0, dyz=0, move_ratio=1)
+            self.mc.shape_param.set('A', diameter=1.0)
+
+            self.system.particles[0].position = (0,0,0)
+
+            for j in range(10):
+                run(10)
+                self.assertGreater(self.system.box.get_volume(), 0)
+                print(self.system.box)
+
+            del self.npt
+            del self.mc
+            del self.system
+            context.initialize()
 
 # This test takes too long to run. Validation tests do not need to be run on every commit.
 # class npt_thermodynamic_tests (unittest.TestCase):
@@ -187,7 +187,7 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.assertGreater(overlaps, 0)
 
         run(100)
-        self.assertEqual(overlaps, mc.count_overlaps())
+        self.assertEqual(overlaps, self.mc.count_overlaps())
         self.assertEqual(self.boxMC.get_volume_acceptance(), 0)
         self.assertEqual(self.boxMC.get_shear_acceptance(), 0)
 
@@ -196,50 +196,73 @@ class boxMC_sanity_checks (unittest.TestCase):
         del self.system
         del self.snapshot
         context.initialize()
-'''
+
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
     def test_VolumeMove_box_inversion(self):
         for i in range(5):
-            snapshot = data.make_snapshot(N=1, box=data.boxdim(L=0.1), particle_types=['A'])
-            snapshot.particles.position[:] = (0,0,0)
-            system = init.read_snapshot(snapshot)
-            mc = hpmc.integrate.sphere(seed=i, d=0.0)
-            boxMC = hpmc.update.boxMC(mc, betaP=100, seed=1)
-            boxMC.setVolumeMove(delta=1.0)
-            mc.shape_param.set('A', diameter=0.0)
+            self.snapshot = data.make_snapshot(N=1, box=data.boxdim(L=0.1), particle_types=['A'])
+            self.snapshot.particles.position[:] = (0,0,0)
+            self.system = init.read_snapshot(self.snapshot)
+            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.boxMC = hpmc.update.boxMC(self.mc, betaP=100, seed=1)
+            self.boxMC.volume_move(delta=1.0)
+            self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
                 run(10)
-                self.assertGreater(system.box.get_volume(), 0)
+                self.assertGreater(self.system.box.get_volume(), 0)
                 #print(system.box)
 
-            del boxMC
-            del mc
-            del system
-            del snapshot
+            del self.boxMC
+            del self.mc
+            del self.system
+            del self.snapshot
             context.initialize()
 
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
     def test_LengthMove_box_inversion(self):
         for i in range(5):
-            snapshot = data.make_snapshot(N=1, box=data.boxdim(L=0.1), particle_types=['A'])
-            snapshot.particles.position[:] = (0,0,0)
-            system = init.read_snapshot(snapshot)
-            mc = hpmc.integrate.sphere(seed=i, d=0.0)
-            boxMC = hpmc.update.boxMC(mc, betaP=100, seed=1)
-            boxMC.setLengthMove(delta=[1.0, 1.0, 1.0])
-            mc.shape_param.set('A', diameter=0.0)
+            self.snapshot = data.make_snapshot(N=1, box=data.boxdim(L=0.1), particle_types=['A'])
+            self.snapshot.particles.position[:] = (0,0,0)
+            self.system = init.read_snapshot(self.snapshot)
+            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.boxMC = hpmc.update.boxMC(self.mc, betaP=100, seed=1)
+            self.boxMC.length_move(delta=[1.0, 1.0, 1.0])
+            self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
                 run(10)
-                self.assertGreater(system.box.get_volume(), 0)
+                self.assertGreater(self.system.box.get_volume(), 0)
                 #print(system.box)
 
-            del boxMC
-            del mc
-            del system
-            del snapshot
+            del self.boxMC
+            del self.mc
+            del self.system
+            del self.snapshot
             context.initialize()
+
+    # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
+    def test_AspectMove_box_inversion(self):
+        for i in range(5):
+            self.snapshot = data.make_snapshot(N=1, box=data.boxdim(L=0.1), particle_types=['A'])
+            self.snapshot.particles.position[:] = (0,0,0)
+            self.system = init.read_snapshot(self.snapshot)
+            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.boxMC = hpmc.update.boxMC(self.mc, betaP=100, seed=1)
+            self.boxMC.aspect_move(delta=1.0)
+            self.mc.shape_param.set('A', diameter=0.0)
+
+            for j in range(10):
+                run(10)
+                self.assertGreater(self.system.box.get_volume(), 0)
+                #print(system.box)
+
+            del self.boxMC
+            del self.mc
+            del self.system
+            del self.snapshot
+            context.initialize()
+
 
 # These tests check the methods for functionality
 class boxMC_test_methods (unittest.TestCase):
@@ -259,19 +282,19 @@ class boxMC_test_methods (unittest.TestCase):
 
     def test_methods_setVolumeMove(self):
         boxMC = self.boxMC
-        boxMC.setVolumeMove(delta=1.0)
-        boxMC.setVolumeMove(delta=1.0, weight=1)
+        boxMC.volume_move(delta=1.0)
+        boxMC.volume_move(delta=1.0, weight=1)
 
     def test_warnings_setVolumeMove(self):
         boxMC = self.boxMC
         success = True
         # Catch all warnings/errors associated with setVolumeMove(self, delta=None, weight=1.0)
-        try:boxMC.setVolumeMove(delta=None)
+        try:boxMC.volume_move(delta=None)
         except ValueError: print('Raised correct error: Volume move undefined.')
         else:
             print('No error detected for VolumeMove delta=None')
             success = False
-        try: boxMC.setVolumeMove(delta = 10.0, weight=None)
+        try: boxMC.volume_move(delta = 10.0, weight=None)
         except ValueError: print('Raised correct error: Volume weight undefined.')
         else:
             print('No error detected for VolumeMove weight=None')
@@ -281,21 +304,21 @@ class boxMC_test_methods (unittest.TestCase):
     def test_methods_setLengthMove(self):
         boxMC = self.boxMC
         # test scalar delta
-        boxMC.setLengthMove(delta=10.0)
+        boxMC.length_move(delta=10.0)
         # test list delta
-        boxMC.setLengthMove(delta=(1,1,1))
-        boxMC.setLengthMove(delta=(1,1,1), weight=2)
+        boxMC.length_move(delta=(1,1,1))
+        boxMC.length_move(delta=(1,1,1), weight=2)
 
     def test_warnings_setLengthMove(self):
         boxMC = self.boxMC
         success = True
         # Catch all warnings/errors associated with setLengthMove(self, delta=None, weight=1.0)
-        try:boxMC.setLengthMove(delta=None)
+        try:boxMC.length_move(delta=None)
         except ValueError: print('Raised correct error: Length move undefined.')
         else:
             print('No error detected for LengthMove delta=None')
             success = False
-        try: boxMC.setLengthMove(delta=10.0, weight=None)
+        try: boxMC.length_move(delta=10.0, weight=None)
         except ValueError: print('Raised correct error: Length weight undefined.')
         else:
             print('No error detected for LengthMove delta=None')
@@ -305,26 +328,26 @@ class boxMC_test_methods (unittest.TestCase):
     def test_methods_setShearMove(self):
         boxMC = self.boxMC
         # test scalar delta
-        boxMC.setShearMove(delta=1.0)
+        boxMC.shear_move(delta=1.0)
         # test list delta
-        boxMC.setShearMove(delta=(1,1,1))
-        boxMC.setShearMove(delta=(1,1,1), weight=2)
+        boxMC.shear_move(delta=(1,1,1))
+        boxMC.shear_move(delta=(1,1,1), weight=2)
 
     def test_methods_setShearMove(self):
         boxMC = self.boxMC
         success = True
         # Catch all warnings/errors associated with setLengthMove(self, delta=None, weight=1.0)
-        try:boxMC.setShearMove(delta=None)
+        try:boxMC.shear_move(delta=None)
         except ValueError: print('Raised correct error: Shear move undefined.')
         else:
             print('No error detected for ShearMove delta=None')
             success = False
-        try: boxMC.setShearMove(delta=10.0, weight=None)
+        try: boxMC.shear_move(delta=10.0, weight=None)
         except ValueError: print('Raised correct error: Shear weight undefined.')
         else:
             print('No error detected for ShearMove weight=None')
             success = False
-        try: boxMC.setShearMove(delta=10.0, reduce=None)
+        try: boxMC.shear_move(delta=10.0, reduce=None)
         except ValueError: print('Raised correct error: Shear reduction undefined.')
         else:
             print('No error detected for ShearMove reduce=None')
@@ -380,7 +403,7 @@ class boxMC_test_methods (unittest.TestCase):
 #         del self.mc
 #         del self.system
 #         context.initialize()
-'''
+
 if __name__ == '__main__':
     # this test works on the CPU only and only on a single rank
     if comm.get_num_ranks() > 1:
