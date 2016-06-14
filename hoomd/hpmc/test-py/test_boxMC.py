@@ -18,78 +18,78 @@ class npt_sanity_checks (unittest.TestCase):
     def test_prevents_overlaps(self):
         N=64
         L=20
-        system = create_empty(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
-        mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
-        npt = hpmc.update.npt(mc, seed=1, P=1000, dLx=0.01, dLy=0.01, dLz=0.01, dxy=0.01, dxz=0.01, dyz=0.01)
-        mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
+        self.system = create_empty(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
+        self.mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
+        self.npt = hpmc.update.npt(self.mc, seed=1, P=1000, dLx=0.01, dLy=0.01, dLz=0.01, dxy=0.01, dxz=0.01, dyz=0.01)
+        self.mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
 
         # place particles
         a = L / 8.
         for k in range(N):
             i = k % 8
             j = k // 8 % 8
-            system.particles[k].position = (i*a - 9.9, j*a - 9.9, 0)
+            self.system.particles[k].position = (i*a - 9.9, j*a - 9.9, 0)
 
         run(0)
-        self.assertEqual(mc.count_overlaps(), 0)
+        self.assertEqual(self.mc.count_overlaps(), 0)
         run(1000)
         overlaps = 0
         for i in range(100):
             run(10, quiet=True)
-            overlaps += mc.count_overlaps()
+            overlaps += self.mc.count_overlaps()
         self.assertEqual(overlaps, 0)
-        print(system.box)
+        print(self.system.box)
 
-        del npt
-        del mc
-        del system
+        del self.npt
+        del self.mc
+        del self.system
         context.initialize()
 
     # This test places two particles that overlap significantly.
     # The maximum move displacement is set so that the overlap cannot be removed.
     # It then performs an NPT run and ensures that no volume or shear moves were accepted.
     def test_rejects_overlaps(self):
-        system = create_empty(N=2, box=data.boxdim(L=100), particle_types=['A'])
-        mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1,max_verts=8)
-        npt = hpmc.update.npt(mc, seed=1, P=1000, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.01, dxz=0.01, dyz=0.01)
-        mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
+        self.system = create_empty(N=2, box=data.boxdim(L=100), particle_types=['A'])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1,max_verts=8)
+        self.npt = hpmc.update.npt(self.mc, seed=1, P=1000, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.01, dxz=0.01, dyz=0.01)
+        self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
                                             (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
 
-        system.particles[1].position = (0.7,0,0)
+        self.system.particles[1].position = (0.7,0,0)
 
         run(0)
-        overlaps = mc.count_overlaps()
+        overlaps = self.mc.count_overlaps()
         self.assertGreater(overlaps, 0)
 
         run(100)
-        self.assertEqual(overlaps, mc.count_overlaps())
-        self.assertEqual(npt.get_volume_acceptance(), 0)
-        self.assertEqual(npt.get_shear_acceptance(), 0)
+        self.assertEqual(overlaps, self.mc.count_overlaps())
+        self.assertEqual(self.npt.get_volume_acceptance(), 0)
+        self.assertEqual(self.npt.get_shear_acceptance(), 0)
 
-        del npt
-        del mc
-        del system
-        context.initialize()
-
+        del self.npt
+        del self.mc
+        del self.system
+        context.initialize() 
+    
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
-    def test_box_inversion(self):
-        for i in range(5):
-            system = create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
-            mc = hpmc.integrate.sphere(seed=i, d=0.0)
-            npt = hpmc.update.npt(mc, seed=1, P=100, dLx=10.0, dLy=10.0, dLz=10.0, dxy=0, dxz=0, dyz=0, move_ratio=1)
-            mc.shape_param.set('A', diameter=1.0)
-
-            system.particles[0].position = (0,0,0)
-
-            for j in range(10):
-                run(10)
-                self.assertGreater(system.box.get_volume(), 0)
-                print(system.box)
-
-            del npt
-            del mc
-            del system
-            context.initialize()
+#    def test_box_inversion(self):
+#        for i in range(5):
+#            self.system = create_empty(N=1, box=data.boxdim(L=4), particle_types=['A'])
+#            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+#            self.npt = hpmc.update.npt(self.mc, seed=1, P=100, dLx=10.0, dLy=10.0, dLz=10.0, dxy=0, dxz=0, dyz=0, move_ratio=1)
+#            self.mc.shape_param.set('A', diameter=1.0)
+#
+#            self.system.particles[0].position = (0,0,0)
+#
+#            for j in range(10):
+#                run(10)
+#                self.assertGreater(self.system.box.get_volume(), 0)
+#                print(self.system.box)
+#
+#            del self.npt
+#            del self.mc
+#            del self.system
+#            context.initialize()
 
 # This test takes too long to run. Validation tests do not need to be run on every commit.
 # class npt_thermodynamic_tests (unittest.TestCase):
@@ -140,63 +140,63 @@ class boxMC_sanity_checks (unittest.TestCase):
     def test_prevents_overlaps(self):
         N=64
         L=20
-        snapshot = data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
-        system = init.read_snapshot(snapshot)
-        mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
-        boxMC = hpmc.update.boxMC(mc, betaP=1000, seed=1)
-        mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
+        self.snapshot = data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
+        self.system = init.read_snapshot(self.snapshot)
+        self.mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
+        self.boxMC = hpmc.update.boxMC(self.mc, betaP=1000, seed=1)
+        self.mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
 
         # place particles
         a = L / 8.
         for k in range(N):
             i = k % 8
             j = k // 8 % 8
-            system.particles[k].position = (i*a - 9.9, j*a - 9.9, 0)
+            self.system.particles[k].position = (i*a - 9.9, j*a - 9.9, 0)
 
         run(0)
-        self.assertEqual(mc.count_overlaps(), 0)
+        self.assertEqual(self.mc.count_overlaps(), 0)
         run(1000)
         overlaps = 0
         for i in range(100):
             run(10, quiet=True)
-            overlaps += mc.count_overlaps()
+            overlaps += self.mc.count_overlaps()
         self.assertEqual(overlaps, 0)
         #print(system.box)
 
-        del boxMC
-        del mc
-        del system
-        del snapshot
+        del self.boxMC
+        del self.mc
+        del self.system
+        del self.snapshot
         context.initialize()
 
     # This test places two particles that overlap significantly.
     # The maximum move displacement is set so that the overlap cannot be removed.
     # It then performs an NPT run and ensures that no volume or shear moves were accepted.
     def test_rejects_overlaps(self):
-        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
-        system = init.read_snapshot(snapshot)
-        mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
-        boxMC = hpmc.update.boxMC(mc, betaP=1000, seed=1)
-        mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
+        self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
+        self.system = init.read_snapshot(self.snapshot)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
+        self.boxMC = hpmc.update.boxMC(self.mc, betaP=1000, seed=1)
+        self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
                                             (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
 
-        system.particles[1].position = (0.7,0,0)
+        self.system.particles[1].position = (0.7,0,0)
 
         run(0)
-        overlaps = mc.count_overlaps()
+        overlaps = self.mc.count_overlaps()
         self.assertGreater(overlaps, 0)
 
         run(100)
         self.assertEqual(overlaps, mc.count_overlaps())
-        self.assertEqual(boxMC.get_volume_acceptance(), 0)
-        self.assertEqual(boxMC.get_shear_acceptance(), 0)
+        self.assertEqual(self.boxMC.get_volume_acceptance(), 0)
+        self.assertEqual(self.boxMC.get_shear_acceptance(), 0)
 
-        del boxMC
-        del mc
-        del system
-        del snapshot
+        del self.boxMC
+        del self.mc
+        del self.system
+        del self.snapshot
         context.initialize()
-
+'''
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
     def test_VolumeMove_box_inversion(self):
         for i in range(5):
@@ -380,7 +380,7 @@ class boxMC_test_methods (unittest.TestCase):
 #         del self.mc
 #         del self.system
 #         context.initialize()
-
+'''
 if __name__ == '__main__':
     # this test works on the CPU only and only on a single rank
     if comm.get_num_ranks() > 1:

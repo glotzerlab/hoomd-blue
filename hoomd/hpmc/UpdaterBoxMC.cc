@@ -59,6 +59,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     result.push_back("hpmc_npt_trial_count");
     result.push_back("hpmc_npt_volume_acceptance");
     result.push_back("hpmc_npt_shear_acceptance");
+    result.push_back("hpmc_npt_aspect_move_acceptance");
     result.push_back("hpmc_npt_move_ratio");
     result.push_back("hpmc_npt_delta");
     result.push_back("hpmc_npt_pressure");
@@ -93,6 +94,13 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
             return 0;
         else
             return counters.getShearAcceptance();
+        }
+    else if (quantity == "hpmc_npt_aspect_acceptance")
+        {
+        if (counters.aspect_reject_count + counters.aspect_accept_count == 0)
+            return 0;
+        else
+            return counters.getAspectAcceptance();
         }
     else if (quantity == "hpmc_npt_move_ratio")
         {
@@ -697,16 +705,15 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, Saru& rng)
                                           timestep,
                                           Scalar(1.0),
                                           rng);
-/* Statistics not yet implemented
     if (trial_success)
         {
-        m_count_total.shear_accept_count++;
+        m_count_total.aspect_accept_count++;
         }
     else
         {
-        m_count_total.shear_reject_count++;
+        m_count_total.aspect_reject_count++;
         }
-*/
+
     if (m_prof) m_prof->pop();
     }
 
@@ -760,8 +767,11 @@ void export_UpdaterBoxMC()
     .def_readwrite("volume_reject_count", &hpmc_npt_counters_t::volume_reject_count)
     .def_readwrite("shear_accept_count", &hpmc_npt_counters_t::shear_accept_count)
     .def_readwrite("shear_reject_count", &hpmc_npt_counters_t::shear_reject_count)
+    .def_readwrite("aspect_accept_count", &hpmc_npt_counters_t::aspect_accept_count)
+    .def_readwrite("aspect_reject_count", &hpmc_npt_counters_t::aspect_reject_count)
     .def("getVolumeAcceptance", &hpmc_npt_counters_t::getVolumeAcceptance)
     .def("getShearAcceptance", &hpmc_npt_counters_t::getShearAcceptance)
+    .def("getAspectAcceptance", &hpmc_npt_counters_t::getAspectAcceptance)
     .def("getNMoves", &hpmc_npt_counters_t::getNMoves)
     ;
     }

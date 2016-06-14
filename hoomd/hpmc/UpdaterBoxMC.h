@@ -146,6 +146,10 @@ class UpdaterBoxMC : public Updater
                 {
                 m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << std::endl;
                 }
+            if (counters.aspect_accept_count + counters.aspect_reject_count > 0)
+                {
+                m_exec_conf->msg->notice(2) << "Average aspect acceptance: " << counters.getAspectAcceptance() << std::endl;
+                }
 
             m_exec_conf->msg->notice(2) << "Total box changes:        " << counters.getNMoves() << std::endl;
             }

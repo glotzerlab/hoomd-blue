@@ -702,7 +702,7 @@ class boxMC(_updater):
             mc = hpmc.integrate.shape(..);
             mc.shape_param.set(....);
             P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, delta = 0.01, period = 10)
+            box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
             run(100)
             delta_now = box_update.get_delta()
 
@@ -723,7 +723,7 @@ class boxMC(_updater):
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
+            box_update = hpmc.update.boxMC(mc, P=P, dLx = 0.01, period = 10)
             run(100)
             ratio_now = box_update.get_move_ratio()
 
@@ -743,7 +743,7 @@ class boxMC(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, period = 10)
+            box_update = hpmc.update.boxMC(mc, P=10., dLx = 0.01, period = 10)
             run(100)
             v_accept = box_update.get_volume_acceptance()
 
@@ -761,7 +761,7 @@ class boxMC(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
+            box_update = hpmc.update.boxMC(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
             run(100)
             v_accept = box_update.get_shear_acceptance()
 
@@ -770,6 +770,26 @@ class boxMC(_updater):
         return counters.getShearAcceptance();
         counters = self.cpp_updater.getCounters(1);
         return counters.getShearAcceptance();
+
+    def get_aspect_acceptance(self):
+        R"""  Get the average acceptance ratio for aspect changing moves.
+
+        Returns:
+            The average aspect change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc_shape_param[name].set(....);
+            box_update = hpmc.update.boxMC(mc, P=10./ dLx = 0.01, dxy=0.01, period = 10)
+            run(100)
+            a_accept = box_update.get_aspect_acceptance()
+
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getAspectAcceptance();
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getAspectAcceptance();
 
     def enable(self):
         R""" Enables the updater.
