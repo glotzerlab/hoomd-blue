@@ -76,8 +76,13 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
     }
 
 //! Initializes the output file for writing
-void DCDDumpWriter::initFileIO()
+void DCDDumpWriter::initFileIO(unsigned int timestep)
     {
+    m_staging_buffer = new float[m_pdata->getNGlobal()];
+    m_is_initialized = true;
+
+    m_nglobal = m_pdata->getNGlobal();
+
     // handle appending to an existing file if it is requested
     if (!m_overwrite && filesystem::exists(m_fname))
         {
@@ -85,8 +90,8 @@ void DCDDumpWriter::initFileIO()
 
         // open the file and get data from the header
         fstream file;
-        file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
-        file.seekp(NFILE_POS);
+        m_file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
+        m_file.seekp(NFILE_POS);
 
         m_num_frames_written = read_int(file);
         m_start_timestep = read_int(file);
@@ -99,7 +104,7 @@ void DCDDumpWriter::initFileIO()
         m_last_written_step = read_int(file);
 
         // check for errors
-        if (!file.good())
+        if (!m_file.good())
             {
             m_exec_conf->msg->error() << "dump.dcd: I/O error while reading DCD header data" << endl;
             throw runtime_error("Error appending to DCD file");
@@ -107,11 +112,15 @@ void DCDDumpWriter::initFileIO()
 
         m_appending = true;
         }
+    else
+        {
+        // open the file and truncate it
+        m_file.open(m_fname.c_str(), ios::trunc | ios::out | ios::binary);
 
-    m_staging_buffer = new float[m_pdata->getNGlobal()];
-    m_is_initialized = true;
-
-    m_nglobal = m_pdata->getNGlobal();
+        // write the file header
+        m_start_timestep = timestep;
+        write_file_header(m_file);
+        }
     }
 
 DCDDumpWriter::~DCDDumpWriter()
@@ -119,7 +128,10 @@ DCDDumpWriter::~DCDDumpWriter()
     m_exec_conf->msg->notice(5) << "Destroying DCDDumpWriter" << endl;
 
     if (m_is_initialized)
+        {
+        m_file.close();
         delete[] m_staging_buffer;
+        }
     }
 
 /*! \param timestep Current time step of the simulation
@@ -147,7 +159,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 #endif
 
     if (! m_is_initialized)
-        initFileIO();
+        initFileIO(timestep);
 
     if (m_nglobal != m_pdata->getNGlobal())
         {
@@ -156,46 +168,27 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         throw std::runtime_error("Error writing DCD file");
         }
 
-    // the file object
-    fstream file;
-
-    // initialize the file on the first frame written
-    if (m_num_frames_written == 0)
+    if (m_appending && timestep <= m_last_written_step)
         {
-        // open the file and truncate it
-        file.open(m_fname.c_str(), ios::trunc | ios::out | ios::binary);
+        m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
 
-        // write the file header
-        m_start_timestep = timestep;
-        write_file_header(file);
+        if (m_prof)
+            m_prof->pop();
+        return;
         }
-    else
-        {
-        if (m_appending && timestep <= m_last_written_step)
-            {
-            m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
 
-            if (m_prof)
-                m_prof->pop();
-            return;
-            }
-
-        // open the file and move the file pointer to the end
-        file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
-
-        // verify the period on subsequent frames
-        if ( (timestep - m_start_timestep) % m_period != 0)
-            m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
-        }
+    // verify the period on subsequent frames
+    if ( (timestep - m_start_timestep) % m_period != 0)
+        m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
 
     // write the data for the current time step
-    write_frame_header(file);
-    write_frame_data(file, snapshot);
+    m_file.seekp(0, std::ios_base::end);
+    write_frame_header(m_file);
+    write_frame_data(m_file, snapshot);
 
     // update the header with the number of frames written
     m_num_frames_written++;
-    write_updated_header(file, timestep);
-    file.close();
+    write_updated_header(m_file, timestep);
 
     if (m_prof)
         m_prof->pop();

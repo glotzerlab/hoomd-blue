@@ -11,6 +11,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 * Angles, dihedrals, and impropers no longer initialize with one default type.
 * Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
 * Data proxies verify input types and vector lengths.
+* dump.dcd no longer generates excessive metadata traffic on lustre file systems
 
 *New features*
 
