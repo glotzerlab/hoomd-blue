@@ -228,7 +228,7 @@ class mode_hpmc(_integrator):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
     def test_pair_overlap(self, i, j):
-        R"""Return whether two particles are overlapped
+        R"""Return true if two particles are overlapped. Takes particle tags
 
         Returns:
             boolean true if overlapped, false otherwise
@@ -255,7 +255,7 @@ class mode_hpmc(_integrator):
         """
     
         self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData().getN();
+        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag();
         overlap_map = self.cpp_integrator.mapOverlaps();
         return list(zip(*[iter(overlap_map)]*N))
             

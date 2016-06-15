@@ -1071,7 +1071,7 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
 /*! Function for testing if two particles overlap
 */
 template <class Shape>
-bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int i, unsigned int j)
+bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int t, unsigned int f)
     {
 
     updateImageList();
@@ -1083,6 +1083,11 @@ bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int i, unsigned int j)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    // set the indices from the given tags
+    unsigned int i = h_rtag.data[t];
+    unsigned int j = h_rtag.data[f];
 
     // access parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -1130,12 +1135,10 @@ bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int i, unsigned int j)
 template <class Shape>
 std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     {
-    unsigned int N = m_pdata->getN();
+    unsigned int N = m_pdata->getMaximumTag();
     std::vector<bool> overlap_map(N*N, false);
 
     m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
-
-    updateImageList();
 
     unsigned int err_count = 0;
 
@@ -1148,12 +1151,13 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // access parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     // Loop over all particles
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < N; i++)
         {
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -1202,7 +1206,7 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
                                 {
-                                overlap_map[j+N*i] = true;
+                                overlap_map[h_tag.data[j]+N*h_tag.data[i]] = true;
                                 }
                             }
                         }
