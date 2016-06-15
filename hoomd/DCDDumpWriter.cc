@@ -133,7 +133,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         m_prof->push("Dump DCD");
 
     // take particle data snapshot
-    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
 
