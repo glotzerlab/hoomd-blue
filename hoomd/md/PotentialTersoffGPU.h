@@ -146,7 +146,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             this->m_pdata->getNTypes(),
                             this->m_tuner->getParam(),
                             this->m_exec_conf->getComputeCapability()/10,
-                            this->m_exec_conf->dev_prop.maxTexture1DLinear),
+                            this->m_exec_conf->dev_prop),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

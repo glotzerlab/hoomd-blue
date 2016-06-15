@@ -17,7 +17,7 @@
 #include "ConstraintSphere.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
-#include "EvaluatorVanDerWaals.h"
+#include "EvaluatorSquareDensity.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
@@ -115,17 +115,6 @@ void export_tersoff_params()
     def("make_tersoff_params", &make_tersoff_params);
 }
 
-void export_vdw_params()
-    {
-    class_<vdw_params>("vdw_params", init<Scalar, Scalar, Scalar, Scalar, Scalar>())
-        .def_readwrite("a", &vdw_params::a)
-        .def_readwrite("b", &vdw_params::b)
-        .def_readwrite("beta", &vdw_params::beta)
-        .def_readwrite("T", &vdw_params::T)
-        .def_readwrite("N", &vdw_params::N)
-        ;
-    }
-
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
@@ -220,11 +209,10 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
-    export_PotentialTersoff<PotentialTripletVanDerWaals> ("PotentialVanDerWaals");
+    export_PotentialTersoff<PotentialTripletSquareDensity> ("PotentialSquareDensity");
     export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
     export_tersoff_params();
-    export_vdw_params();
     export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
@@ -271,7 +259,7 @@ BOOST_PYTHON_MODULE(_md)
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
-    export_PotentialTersoffGPU<PotentialTripletVanDerWaalsGPU, PotentialTripletVanDerWaals> ("PotentialVanDerWaalsGPU");
+    export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> ("PotentialSquareDensityGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>("PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");

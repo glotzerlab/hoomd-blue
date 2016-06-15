@@ -310,6 +310,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
     memset(h_virial.data, 0, sizeof(Scalar)*6*m_virial_pitch);
 
+    unsigned int ntypes = m_pdata->getNTypes();
+
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
@@ -324,15 +326,20 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
         Scalar pei = 0.0;
 
-        // evaluate per-particle terms
-        Scalar phi = 0.0;
-
         Scalar viriali_xx(0.0);
         Scalar viriali_xy(0.0);
         Scalar viriali_xz(0.0);
         Scalar viriali_yy(0.0);
         Scalar viriali_yz(0.0);
         Scalar viriali_zz(0.0);
+
+        Scalar phi_ab[ntypes];
+
+        // reset phi
+        for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+            {
+            phi_ab[typ_b] = Scalar(0.0);
+            }
 
         // all neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -365,17 +372,20 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
                 // evaluate the scalar per-neighbor contribution
                 evaluator eval(rij_sq, rcutsq, param);
-                eval.evalPhi(phi);
+                eval.evalPhi(phi_ab[typej]);
                 }
 
             // self-energy
-            unsigned int typpair_idx = m_typpair_idx(typei,typei);
-            param_type param = h_params.data[typpair_idx];
-            Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            evaluator eval(Scalar(0.0), rcutsq, param);
-            Scalar energy(0.0);
-            eval.evalSelfEnergy(energy, phi);
-            pei += energy;
+            for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+                {
+                unsigned int typpair_idx = m_typpair_idx(typei,typ_b);
+                param_type param = h_params.data[typpair_idx];
+                Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                evaluator eval(Scalar(0.0), rcutsq, param);
+                Scalar energy(0.0);
+                eval.evalSelfEnergy(energy, phi_ab[typ_b]);
+                pei += energy;
+                }
             }
 
         // loop over all of the neighbors of this particle
@@ -475,7 +485,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 Scalar force_divr = Scalar(0.0);
                 Scalar potential_eng = Scalar(0.0);
                 Scalar bij = Scalar(0.0);
-                eval.evalForceij(fR, fA, chi, phi, bij, force_divr, potential_eng);
+                eval.evalForceij(fR, fA, chi, phi_ab[typej], bij, force_divr, potential_eng);
 
                 // add this force to particle i
                 fi += force_divr * dxij;

@@ -36,7 +36,7 @@ struct tersoff_args_t
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _compute_capability,
-                   const unsigned int _max_tex1d_width)
+                   const cudaDeviceProp& _devprop)
                    : d_force(_d_force),
                      N(_N),
                      d_virial(_d_virial),
@@ -53,7 +53,7 @@ struct tersoff_args_t
                      ntypes(_ntypes),
                      block_size(_block_size),
                      compute_capability(_compute_capability),
-                     max_tex1d_width(_max_tex1d_width)
+                     devprop(_devprop)
         {
         };
 
@@ -73,7 +73,7 @@ struct tersoff_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
-    const unsigned int max_tex1d_width;     //!< Maximum width of a linear 1D texture
+    const cudaDeviceProp& devprop;   //!< CUDA device properties
     };
 
 
@@ -161,6 +161,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
 
+    Scalar *s_phi_ab = s_rcutsq + num_typ_parameters;
+
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
         {
@@ -170,7 +172,14 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
             }
         }
+
     __syncthreads();
+
+    for (unsigned int i = 0; i < ntypes; ++i)
+        {
+        // reset phi term
+        s_phi_ab[threadIdx.x*ntypes+i] = Scalar(0.0);
+        }
 
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -196,7 +205,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     Scalar viriali_zz(0.0);
 
     // loop over neighbors to calculate per-particle energy
-    Scalar phi(0.0);
     if (evaluator::hasPerParticleEnergy())
         {
         // prefetch neighbor index
@@ -248,18 +256,22 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             typename evaluator::param_type param = s_params[typpair];
 
             evaluator eval(rij_sq, rcutsq, param);
-            eval.evalPhi(phi);
+            eval.evalPhi(s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)]);
             }
 
         // self-energy
-        unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypei.w));
-        Scalar rcutsq = s_rcutsq[typpair];
-        typename evaluator::param_type param = s_params[typpair];
+        for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+            {
+            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
+            Scalar rcutsq = s_rcutsq[typpair];
+            typename evaluator::param_type param = s_params[typpair];
 
-        evaluator eval(Scalar(0.0), rcutsq, param);
-        Scalar energy(0.0);
-        eval.evalSelfEnergy(energy, phi);
-        forcei.w += energy;
+            evaluator eval(Scalar(0.0), rcutsq, param);
+            Scalar energy(0.0);
+            const Scalar& phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
+            eval.evalSelfEnergy(energy, phi);
+            forcei.w += energy;
+            }
         }
 
     // prefetch neighbor index
@@ -397,6 +409,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             Scalar force_divr = Scalar(0.0);
             Scalar potential_eng = Scalar(0.0);
             Scalar bij = Scalar(0.0);
+            const Scalar& phi = s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)];
             eval.evalForceij(fR, fA, chi, phi, bij, force_divr, potential_eng);
 
             // add the forces and energies to their respective particles
@@ -644,22 +657,26 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
 
     unsigned int run_block_size = 0;
 
+    static unsigned int kernel_shared_bytes = 0;
+
     if (pair_args.compute_virial)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+            if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
                 {
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 1>);
                 max_block_size = attr.maxThreadsPerBlock;
+                kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             else
                 {
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 1>);
                 max_block_size = attr.maxThreadsPerBlock;
+                kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             }
 
@@ -670,26 +687,24 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+            if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
                 {
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 0>);
                 max_block_size = attr.maxThreadsPerBlock;
+                kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             else
                 {
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 0>);
                 max_block_size = attr.maxThreadsPerBlock;
+                kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             }
 
         run_block_size = min(pair_args.block_size, max_block_size);
         }
-
-    // setup the grid to run the kernel
-    dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     // bind to texture
     if (pair_args.compute_capability < 35)
@@ -700,7 +715,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         if (error != cudaSuccess)
             return error;
 
-        if (pair_args.size_nlist <= pair_args.max_tex1d_width)
+        if (pair_args.size_nlist <= (unsigned int) pair_args.devprop.maxTexture1DLinear)
             {
             nlist_tex.normalized = false;
             nlist_tex.filterMode = cudaFilterModePoint;
@@ -711,19 +726,31 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         }
 
     Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
+    unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+
+    while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
+        {
+        run_block_size -= pair_args.devprop.warpSize;
+
+        shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                       * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+        }
+
+    // setup the grid to run the kernel
+    dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // zero the forces
-    gpu_zero_forces_kernel<<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                                            pair_args.d_virial,
-                                                            pair_args.virial_pitch,
-                                                            pair_args.N);
+    gpu_zero_forces_kernel<<<grid, threads>>>(pair_args.d_force,
+                                            pair_args.d_virial,
+                                            pair_args.virial_pitch,
+                                            pair_args.N);
 
     // compute the new forces
     if (!pair_args.compute_virial)
         {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
             {
             gpu_compute_triplet_forces_kernel<evaluator, 1, 0>
               <<<grid, threads, shared_bytes>>>(pair_args.d_force,
@@ -760,7 +787,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         }
     else
         {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > pair_args.max_tex1d_width)
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
             {
             gpu_compute_triplet_forces_kernel<evaluator, 1, 1>
               <<<grid, threads, shared_bytes>>>(pair_args.d_force,

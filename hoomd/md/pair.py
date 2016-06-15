@@ -2394,7 +2394,7 @@ class reaction_field(pair):
 
         return _hoomd.make_scalar2(epsilon, eps_rf);
 
-class van_der_waals(pair):
+class square_density(pair):
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
@@ -2402,36 +2402,22 @@ class van_der_waals(pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`van_der_waals` specifies that the van-der-Waals three-body potential should be applied to every
-    non-bonded particle pair in the simulation.  Despite the fact that the van-derWaals potential accounts
-    for the effects of third bodies, it is included in the pair potentials because the species of the
-    third body is irrelevant. It can thus use type-pair parameters similar to those of the pair potentials.
+    :py:class:`square_density` specifies that the three-body potential should be applied to every
+    non-bonded particle pair in the simulation, that is harmonic in the local density.
 
-    The potential is used as the conservative part of the DPD pair force, and implements the force derived
-    from a local free energy functional with an **excess** free energy function corresponding to the van-der-Waals equation
-    of state, augmented by a cubic term [1].
-
-    Optionally, when :math:`N_m\neq 1`, the potential accounts for the density-dependent correction that
-    arises when :math:`N_m` vdW gas atoms are subsumed into a single, coarse-grained bead [2]. In that case,
-    the vDW parameters :math:`a` and :math:`b` need to be rescaled by factors of :math:`N_m^2` and :math:`N_m`,
-    respectively. Note that that the forces due to this entropy correction are inversely proportional to the
-    local density, which is why coarse-graining requires higher densities [2].
-
-    The excess free energy, i.e. free energy minus the ideal gas contribution, per particle takes the form
+    The self energy per particle takes the form
     .. math::
         :nowrap:
 
         \begin{equation}
-        \Psi^{ex} = -k_B T \ln \left(1-b \rho\right)-\frac12 a\rho-\beta \rho^3 + (N_m - 1) k_B T \frac{1}{\rho}\ln\frac{b \rho}{1-b \rho}
+        \Psi^{ex} = B \rho^2
         \end{equation}
 
     which gives a pair-wise additive, three-body force
 
     .. math::
         \begin{equation}
-        \vec f_{ij} = \left\{\left(\frac{k_B T b}{1- b n_i}-a-\beta n_i^2\left)
-            + \left( \frac{k_B T b}{1-b n_j} - a - \beta n_j^2\right)\right\} w'_{ij} \vec e_{ij}
-            + (N_m - 1) k_B T \left\( \frac{1}{n_i}\frac{1}{1-b n_i} + \frac{1}{n_j}\frac{1}{1-b n_j} \right) w'{ij} \vec e_{ij}
+        \vec f_{ij} = \left\{B n_i^2 + B n_j^2\right\} w'_{ij} \vec e_{ij}
         \end{equation}
 
     Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
@@ -2451,45 +2437,17 @@ class van_der_waals(pair):
 
     The following coefficients must be set per unique pair of particle types:
 
-    - :math:`a` - *A* (in units of energy*volume) - attraction parameter from vdW equation of state
-    - :math:`b` - *B* (in units of volume) - covolume from vdW equation of state
-    - :math:`T` - *T* (in units of temperature*k_B) - the temperature in the vdW equation of state
-    - :math:`beta` - *beta* (in units of energy*volume^2) - controls the cubic term in the vdW free energy
-      - *optional*: defaults to zero
-    - :math:`N_m` - *N* (dimensionless) - number of vdW atoms per CG bead
-      - *optional*: defaults to one
-
-    If this conservative force is combined with a DPD thermostat, the conservative part of the
-    original, i.e. Groot-Warren DPD force pair.dpd, should be set to zero. Note that the limiting
-    case of :math:`b=0` corresponds to a purely repulsive Groot-Warren fluid [3].
-
-    Alternatively, the potential can be used in conjunction with pair.dpd to simulate the repulsive
-    part of the MDPD potential [4]. In that case, :math:`b=a=0`, and :math:`-beta` is the coefficient
-    of the repulsive interaction. The attractive part is handled by pair.dpd with a negative
-    pair coefficient **A**.
-
-    The potential is meant to be used with a one-component liquid. Disable unwanted pair-interactions
-    with :math:`a=b=\beta=0`.
+    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
 
     Example::
 
         nl = nlist.cell()
-        vdw = pair.van_der_waals(r_cut=3.0, nlist=nl)
-        vdw.pair_coeff.set('A', 'A', a=1.9*0.016,b=0.016,beta=0.0024,eps_rf=1.0)
+        sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
+        sqd.pair_coeff.set('A', 'A', B=1.0)
 
     For further details regarding this multibody potential, see
 
-    [1] I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
-    J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
-
-    [2] S. Y. Trofimov, E. L. F. Nies, and M. A. J. Michels,
-    "Thermodynamic consistency in dissipative particle dynamics simulations of strongly nonideal liquids and liquid mixtures,”
-    J. Chem. Phys., vol. 117, no. 20, pp. 9383-9394, 2002.
-
-    [3] R. D. Groot and P. B. Warren, "Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation,"
-    J. Chem. Phys., vol. 107, no. 11, p. 4423, 1997.
-
-    [4] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
+    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
     def __init__(self, r_cut, nlist, name=None):
@@ -2505,20 +2463,18 @@ class van_der_waals(pair):
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialVanDerWaals(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialVanDerWaals;
+            self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensity;
         else:
-            self.cpp_force = _md.PotentialVanDerWaalsGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialVanDerWaalsGPU;
+            self.cpp_force = _md.PotentialSquareDensityGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensityGPU;
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficients
-        self.required_coeffs = ['A','B','beta','T','N']
-        self.pair_coeff.set_default_coeff('beta', 0.0);
-        self.pair_coeff.set_default_coeff('N', 1.0);
+        self.required_coeffs = ['B']
 
     def process_coeff(self, coeff):
-        return _md.vdw_params(coeff['A'],coeff['B'],coeff['beta'],coeff['T'],coeff['N'])
+        return float(coeff['B'])
 
 

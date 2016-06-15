@@ -2,8 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-#ifndef __EVALUATOR_VDW__
-#define __EVALUATOR_VDW__
+#ifndef __EVALUATOR_SQUARE_DENSITY__
+#define __EVALUATOR_SQUARE_DENSITY__
 
 #ifndef NVCC
 #include <string>
@@ -11,19 +11,11 @@
 
 #include "hoomd/HOOMDMath.h"
 
-/*! \file EvaluatorVanDerWaals.h
-    \brief Defines the evaluator class for the three-body VanDerWaals potential
+/*! \file EvaluatorSquareDensity.h
+    \brief Defines the evaluator class for a three-body square density potential
 
-    For a derivation of the potential equations, see
-
-    [1] I. Pagonabarraga and D. Frenkel, "Dissipative particle dynamics for interacting systems,"
-    J. Chem. Phys., vol. 115, no. 11, pp. 5015-5026, 2001.
-
-    For a discussion of the terms arising from coarse-graining, see
-
-    [2] S. Y. Trofimov, E. L. F. Nies, and M. A. J. Michels,
-    "Thermodynamic consistency in dissipative particle dynamics simulations of strongly nonideal liquids and liquid mixtures,"
-    J. Chem. Phys., vol. 117, no. 20, pp. 9383-9394, 2002.
+   see P. Warren, "Vapor-liquid coexistence in many-bod dissipative particle dynamics"
+   Phys. Rev. E 68, p. 066702 (2003)
 */
 
 #ifdef NVCC
@@ -34,42 +26,20 @@
 #define HOSTDEVICE
 #endif
 
-const Scalar eps_vdw(1e-3);
-
-//! Parameter structure for vdW fluids
-struct vdw_params
-    {
-    //! Constructor
-    vdw_params(Scalar _a,
-       Scalar _b,
-       Scalar _beta,
-       Scalar _T,
-       Scalar _N)
-        : a(_a), b(_b), beta(_beta), T(_T), N(_N)
-        { }
-
-    Scalar a;     //!< energy parameter of vdW EOS
-    Scalar b;     //!< covolume of vdW EOS
-    Scalar beta;  //!< Coefficient of cubic term
-    Scalar T;     //!< Temperature
-    Scalar N;     //!< number of real particles per CG bead (default == 1)
-    };
-
-//! Class for evaluating the VanDerWaals three-body potential
-class EvaluatorVanDerWaals
+//! Class for evaluating the SquareDensity three-body potential
+class EvaluatorSquareDensity
     {
     public:
         //! Define the parameter type used by this evaluator
-        typedef vdw_params param_type;
+        typedef Scalar param_type;
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
             \param _rcutsq Squared distance at which the potential goes to zero
             \param _params Per type-pair parameters for this potential
         */
-        DEVICE EvaluatorVanDerWaals(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), a(_params.a), b(_params.b), beta(_params.beta),
-              T(_params.T), N(_params.N)
+        DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), B(_params)
             {
             }
 
@@ -94,7 +64,7 @@ class EvaluatorVanDerWaals
         //! We don't have ik-forces
         DEVICE static bool hasIkForce() { return false; }
 
-        //! The VanDerWaals potential needs the bond angle
+        //! The SquareDensity potential needs the bond angle
         DEVICE static bool needsAngle() { return false; }
 
         //! Set the bond angle value
@@ -155,19 +125,9 @@ class EvaluatorVanDerWaals
                 Scalar rij = fast::sqrt(rij_sq);
                 Scalar fac = Scalar(1.0)-rij/rcut;
 
-                // add self-weight
- //               rho_i += norm; // see discussion in [2]
-
                 // compute the ij force
                 Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
-                force_divr = (T*b/(Scalar(1.0)-b*rho_i)-a-beta*rho_i)*w_prime;
-
-                // guard against numerical errors at low density
-                if (fabs(N-Scalar(1.0)) > eps_vdw)
-                    {
-                    // CG correction
-                    force_divr += (N-Scalar(1.0))*T/rho_i/(Scalar(1.0)-b*rho_i)*w_prime;
-                    }
+                force_divr = B*rho_i*w_prime;
                 }
             }
 
@@ -175,24 +135,8 @@ class EvaluatorVanDerWaals
             {
             Scalar rho_i = phi;
 
-            // add self-interaction
-            Scalar norm(15.0/(2.0*M_PI));
-            Scalar rcut = fast::sqrt(rcutsq);
-            norm /= rcutsq*rcut;
-
-            // add self-weight
-//            rho_i += norm; // see discussion in [2]
-
             // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
-            energy = -T*logf(Scalar(1.0)-b*rho_i)-a*rho_i-Scalar(0.5)*beta*rho_i*rho_i;
-
-
-            // guard against numerical errors at low density
-            if (fabs(N-Scalar(1.0)) > eps_vdw)
-                {
-                // CG correction
-                energy += (N-Scalar(1.0))*T*logf(rho_i/(Scalar(1.0)-b*rho_i));
-                }
+            energy = Scalar(0.5)*B*rho_i*rho_i;
             }
 
         //! Evaluate the forces due to ijk interactions
@@ -221,11 +165,7 @@ class EvaluatorVanDerWaals
         Scalar rij_sq; //!< Stored rij_sq from the constructor
         Scalar rik_sq; //!< Stored rik_sq
         Scalar rcutsq; //!< Stored rcutsq from the constructor
-        Scalar a;      //!< a parameter in vdW EOS
-        Scalar b;      //!< b parameter in vdW EOS
-        Scalar beta;  //!< Coefficient of cubic term
-        Scalar T;      //!< temperature scaling factor for ideal gas
-        Scalar N;      //!< coarse-graining multiplier
+        Scalar B;      //!< repulsion parameter
     };
 
 #endif
