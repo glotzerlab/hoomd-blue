@@ -6,6 +6,7 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
+#include "PotentialPairGPU.cuh"
 
 #include <assert.h>
 
@@ -35,6 +36,7 @@ struct tersoff_args_t
                    const unsigned int _size_nlist,
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
+                   const unsigned int _tpp,
                    const unsigned int _compute_capability,
                    const cudaDeviceProp& _devprop)
                    : d_force(_d_force),
@@ -52,6 +54,7 @@ struct tersoff_args_t
                      size_nlist(_size_nlist),
                      ntypes(_ntypes),
                      block_size(_block_size),
+                     tpp(_tpp),
                      compute_capability(_compute_capability),
                      devprop(_devprop)
         {
@@ -72,16 +75,34 @@ struct tersoff_args_t
     const unsigned int size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
+    const unsigned int tpp;         //!< Threads per particle
     const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
     const cudaDeviceProp& devprop;   //!< CUDA device properties
     };
 
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
+
+#if (__CUDA_ARCH__ >= 300)
+// need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
+// double specialization
+__device__ inline
+double __my_shfl(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl(a.x, srcLane, width);
+    a.y = __shfl(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
+__device__ inline
+float __my_shfl(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl(var, srcLane, width);
+    }
+#endif
 
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
@@ -150,7 +171,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const typename evaluator::param_type *d_params,
                                                   const Scalar *d_rcutsq,
                                                   const Scalar *d_ronsq,
-                                                  const unsigned int ntypes)
+                                                  const unsigned int ntypes,
+                                                  const unsigned int tpp)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -182,7 +204,16 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         }
 
     // start by identifying which particle we are to handle
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int idx;
+    if (gridDim.y > 1)
+        {
+        // if we have blocks in the y-direction, the fermi-workaround is in place
+        idx = (blockIdx.x + blockIdx.y * 65535) * (blockDim.x/tpp) + threadIdx.x/tpp;
+        }
+    else
+        {
+        idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
+        }
 
     if (idx >= N)
         return;
@@ -211,27 +242,33 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         const unsigned int head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
+        unsigned int my_head = d_head_list[idx];
+
         if (use_gmem_nlist)
             {
-            next_j = d_nlist[head_idx];
+            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
             }
         else
             {
-            next_j = texFetchUint(d_nlist, nlist_tex, head_idx);
+            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
             }
 
-        for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+        // loop over neighbors in strided way
+        for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
             cur_j = next_j;
-            if (use_gmem_nlist)
+            if (neigh_idx+tpp < n_neigh)
                 {
-                next_j = d_nlist[head_idx + neigh_idx + 1];
-                }
-            else
-                {
-                next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + 1);
+                if (use_gmem_nlist)
+                    {
+                    next_j = d_nlist[head_idx + neigh_idx + tpp];
+                    }
+                else
+                    {
+                    next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
+                    }
                 }
 
             // read the position of j (MEM TRANSFER: 16 bytes)
@@ -262,15 +299,28 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         // self-energy
         for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
             {
-            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
-            Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+            Scalar phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
 
-            evaluator eval(Scalar(0.0), rcutsq, param);
-            Scalar energy(0.0);
-            const Scalar& phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
-            eval.evalSelfEnergy(energy, phi);
-            forcei.w += energy;
+            #if (__CUDA_ARCH__ >= 300)
+            // reduce in warp
+            phi = warp_reduce(tpp, threadIdx.x % tpp, phi, (Scalar *)0);
+
+            // broadcast into shared mem
+            s_phi_ab[threadIdx.x*ntypes+typ_b] = __my_shfl(phi, 0, tpp);
+            #endif
+
+            if (threadIdx.x % tpp == 0)
+                {
+                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
+                Scalar rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type param = s_params[typpair];
+
+                evaluator eval(Scalar(0.0), rcutsq, param);
+                Scalar energy(0.0);
+
+                eval.evalSelfEnergy(energy, phi);
+                forcei.w += energy;
+                }
             }
         }
 
@@ -278,28 +328,33 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     const unsigned int head_idx = d_head_list[idx];
     unsigned int cur_j = 0;
     unsigned int next_j(0);
+    unsigned int my_head = d_head_list[idx];
+
     if (use_gmem_nlist)
         {
-        next_j = d_nlist[head_idx];
+        next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
         }
     else
         {
-        next_j = texFetchUint(d_nlist, nlist_tex, head_idx);
+        next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
         }
 
-    // loop over neighbors
-    for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+    // loop over neighbors in strided way
+    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
         {
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_j = next_j;
-        if (use_gmem_nlist)
+        if (neigh_idx+tpp < n_neigh)
             {
-            next_j = d_nlist[head_idx + neigh_idx + 1];
-            }
-        else
-            {
-            next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + 1);
+            if (use_gmem_nlist)
+                {
+                next_j = d_nlist[head_idx + neigh_idx + tpp];
+                }
+            else
+                {
+                next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
+                }
             }
 
         // read the position of j (MEM TRANSFER: 16 bytes)
@@ -353,6 +408,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                     {
                     next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
                     }
+
+                // loop over neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current index of k and prefetch the next one
@@ -463,6 +520,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                     {
                     next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
                     }
+
+                // loop over neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current neighbor index and prefetch the next one
@@ -669,6 +728,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 1>);
                 max_block_size = attr.maxThreadsPerBlock;
+                max_block_size &= ~(pair_args.devprop.warpSize - 1);
                 kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             else
@@ -676,6 +736,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 1>);
                 max_block_size = attr.maxThreadsPerBlock;
+                max_block_size &= ~(pair_args.devprop.warpSize - 1);
                 kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             }
@@ -692,6 +753,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 0>);
                 max_block_size = attr.maxThreadsPerBlock;
+                max_block_size &= ~(pair_args.devprop.warpSize - 1);
                 kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             else
@@ -699,6 +761,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                 cudaFuncAttributes attr;
                 cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 0>);
                 max_block_size = attr.maxThreadsPerBlock;
+                max_block_size &= ~(pair_args.devprop.warpSize - 1);
                 kernel_shared_bytes = attr.sharedSizeBytes;
                 }
             }
@@ -737,15 +800,23 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
         }
 
-    // setup the grid to run the kernel
-    dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     // zero the forces
-    gpu_zero_forces_kernel<<<grid, threads>>>(pair_args.d_force,
+    gpu_zero_forces_kernel<<<pair_args.N/run_block_size + 1, run_block_size>>>(pair_args.d_force,
                                             pair_args.d_virial,
                                             pair_args.virial_pitch,
                                             pair_args.N);
+
+    // setup the grid to run the kernel
+    dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
+
+    if (pair_args.compute_capability < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x/65535 + 1;
+        grid.x = 65535;
+        }
+
+    dim3 threads(run_block_size, 1, 1);
 
     // compute the new forces
     if (!pair_args.compute_virial)
@@ -765,7 +836,8 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                 d_params,
                                                 pair_args.d_rcutsq,
                                                 pair_args.d_ronsq,
-                                                pair_args.ntypes);
+                                                pair_args.ntypes,
+                                                pair_args.tpp);
             }
         else
             {
@@ -782,7 +854,8 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                 d_params,
                                                 pair_args.d_rcutsq,
                                                 pair_args.d_ronsq,
-                                                pair_args.ntypes);
+                                                pair_args.ntypes,
+                                                pair_args.tpp);
             }
         }
     else
@@ -802,7 +875,8 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                 d_params,
                                                 pair_args.d_rcutsq,
                                                 pair_args.d_ronsq,
-                                                pair_args.ntypes);
+                                                pair_args.ntypes,
+                                                pair_args.tpp);
             }
         else
             {
@@ -819,7 +893,8 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                 d_params,
                                                 pair_args.d_rcutsq,
                                                 pair_args.d_ronsq,
-                                                pair_args.ntypes);
+                                                pair_args.ntypes,
+                                                pair_args.tpp);
             }
         }
     return cudaSuccess;
