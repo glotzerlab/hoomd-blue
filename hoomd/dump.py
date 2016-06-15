@@ -332,8 +332,8 @@ class getar(hoomd.analyze._analyzer):
                 self._dynamic[prop] = period;
 
         if _register:
-            _analyzer.__init__(self);
-            self.analyzer_name = "dump.getar%d" % (_analyzer.cur_id - 1);
+            hoomd.analyze._analyzer.__init__(self);
+            self.analyzer_name = "dump.getar%d" % (hoomd.analyze._analyzer.cur_id - 1);
 
         for val in self._static:
             if prop.name not in self.known_properties:
