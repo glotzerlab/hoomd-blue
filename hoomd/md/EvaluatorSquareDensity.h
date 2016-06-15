@@ -157,7 +157,7 @@ class EvaluatorSquareDensity
         */
         static std::string getName()
             {
-            return std::string("van_der_waals");
+            return std::string("squared_density");
             }
         #endif
 
