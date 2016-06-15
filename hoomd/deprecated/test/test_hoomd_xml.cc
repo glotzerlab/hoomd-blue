@@ -8,6 +8,7 @@
 #include <math.h>
 #include "hoomd/deprecated/HOOMDDumpWriter.h"
 #include "hoomd/deprecated/HOOMDInitializer.h"
+#include "hoomd/ParticleGroup.h"
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/Filesystem.h"
 
@@ -42,150 +43,198 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     // set some tilt factors
     box.setTiltFactors(Scalar(1.0),Scalar(0.5),Scalar(0.25));
     int n_types = 5;
-    int n_bond_types = 2;
-    int n_angle_types = 1;
-    int n_dihedral_types = 1;
-    int n_improper_types = 1;
+    int n_bond_types = 0;
+    int n_angle_types = 0;
+    int n_dihedral_types = 0;
+    int n_improper_types = 0;
 
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(5, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set recognizable values for the particle
-    {
-    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orient(pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_moments(pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
+        // Dummy particle 0 that we will skip with the particle selector
+        h_pos.data[0].x = Scalar(2.5);
+        h_pos.data[0].y = Scalar(3.5);
+        h_pos.data[0].z = Scalar(-4.5);
 
-    h_pos.data[0].x = Scalar(1.5);
-    h_pos.data[0].y = Scalar(2.5);
-    h_pos.data[0].z = Scalar(-5.5);
+        h_image.data[0].x = -2;
+        h_image.data[0].y = -6;
+        h_image.data[0].z = 5;
 
-    h_image.data[0].x = -1;
-    h_image.data[0].y = -5;
-    h_image.data[0].z = 6;
+        h_vel.data[0].x = Scalar(-2.5);
+        h_vel.data[0].y = Scalar(-11.5);
+        h_vel.data[0].z = Scalar(57.5);
 
-    h_vel.data[0].x = Scalar(-1.5);
-    h_vel.data[0].y = Scalar(-10.5);
-    h_vel.data[0].z = Scalar(56.5);
+        h_accel.data[0].x = Scalar(1.0);
+        h_accel.data[0].y = Scalar(2.0);
+        h_accel.data[0].z = Scalar(3.0);
 
-    h_vel.data[0].w = Scalar(1.5); //mass
+        h_vel.data[0].w = Scalar(10.5); //mass
 
-    h_diameter.data[0] = Scalar(3.5);
+        h_charge.data[0] = 1.0;
 
-    h_pos.data[0].w = __int_as_scalar(3); //type
+        h_diameter.data[0] = Scalar(4.5);
 
-    h_body.data[0] = NO_BODY;
+        h_pos.data[0].w = __int_as_scalar(2); //type
 
-    I = make_scalar3(0, 1, 2);
-    h_moments.data[0] = I;
-    h_angmom.data[0] = make_scalar4(0,1,2,3);
+        h_body.data[0] = 1;
 
-    h_pos.data[1].x = Scalar(1.5);
-    h_pos.data[1].y = Scalar(2.5);
-    h_pos.data[1].z = Scalar(-3.5);
+        h_orient.data[0] = make_scalar4(0,1,2,3);
+        I = make_scalar3(7, 9, 1);
+        h_moments.data[0] = I;
+        h_angmom.data[0] = make_scalar4(0,-1,-2,-3);
 
-    h_image.data[1].x = 10;
-    h_image.data[1].y = 500;
-    h_image.data[1].z = 900;
+        // Group particle 1
+        h_pos.data[1].x = Scalar(1.5);
+        h_pos.data[1].y = Scalar(2.5);
+        h_pos.data[1].z = Scalar(-5.5);
 
-    h_vel.data[1].x = Scalar(-1.5);
-    h_vel.data[1].y = Scalar(-10.5);
-    h_vel.data[1].z = Scalar(5.5);
+        h_image.data[1].x = -1;
+        h_image.data[1].y = -5;
+        h_image.data[1].z = 6;
 
-    h_vel.data[1].w = Scalar(2.5); /// mass
+        h_vel.data[1].x = Scalar(-1.5);
+        h_vel.data[1].y = Scalar(-10.5);
+        h_vel.data[1].z = Scalar(56.5);
 
-    h_diameter.data[1] = Scalar(4.5);
+        h_accel.data[1].x = Scalar(-1.0);
+        h_accel.data[1].y = Scalar(-2.0);
+        h_accel.data[1].z = Scalar(-3.0);
 
-    h_pos.data[1].w = __int_as_scalar(0);
+        h_vel.data[1].w = Scalar(1.5); //mass
 
-    h_body.data[1] = 1;
+        h_charge.data[1] = -1.0;
 
-    I = make_scalar3(5, 4, 3);
-    h_moments.data[1] = I;
-    h_angmom.data[1] = make_scalar4(9,8,7,6);
+        h_diameter.data[1] = Scalar(3.5);
 
-    h_pos.data[2].x = Scalar(-1.5);
-    h_pos.data[2].y = Scalar(2.5);
-    h_pos.data[2].z = Scalar(3.5);
+        h_pos.data[1].w = __int_as_scalar(3); //type
 
-    h_image.data[2].x = 10;
-    h_image.data[2].y = 500;
-    h_image.data[2].z = 900;
+        h_body.data[1] = NO_BODY;
 
-    h_vel.data[2].x = Scalar(-1.5);
-    h_vel.data[2].y = Scalar(-10.5);
-    h_vel.data[2].z = Scalar(5.5);
+        h_orient.data[1] = make_scalar4(3,2,1,0);
+        I = make_scalar3(0, 1, 2);
+        h_moments.data[1] = I;
+        h_angmom.data[1] = make_scalar4(0,1,2,3);
 
-    h_vel.data[2].w = Scalar(2.5);
+        // Group particle 2
+        h_pos.data[2].x = Scalar(1.5);
+        h_pos.data[2].y = Scalar(2.5);
+        h_pos.data[2].z = Scalar(-3.5);
 
-    h_diameter.data[2] = Scalar(4.5);
+        h_image.data[2].x = 10;
+        h_image.data[2].y = 500;
+        h_image.data[2].z = 900;
 
-    h_pos.data[2].w = __int_as_scalar(1);
+        h_vel.data[2].x = Scalar(-1.5);
+        h_vel.data[2].y = Scalar(-10.5);
+        h_vel.data[2].z = Scalar(5.5);
 
-    h_body.data[2] = 1;
+        h_accel.data[2].x = Scalar(-1.5);
+        h_accel.data[2].y = Scalar(-2.5);
+        h_accel.data[2].z = Scalar(-3.5);
 
-    I = make_scalar3(1, 11, 21);
-    h_moments.data[2] = I;
-    h_angmom.data[2] = make_scalar4(1, 2, 3, 4);
+        h_vel.data[2].w = Scalar(2.5); /// mass
 
-    h_pos.data[3].x = Scalar(-1.5);
-    h_pos.data[3].y = Scalar(2.5);
-    h_pos.data[3].z = Scalar(3.5);
+        h_charge.data[2] = 1.5;
 
-    h_image.data[3].x = 105;
-    h_image.data[3].y = 5005;
-    h_image.data[3].z = 9005;
+        h_diameter.data[2] = Scalar(4.5);
 
-    h_vel.data[3].x = Scalar(-1.5);
-    h_vel.data[3].y = Scalar(-10.5);
-    h_vel.data[3].z = Scalar(5.5);
+        h_pos.data[2].w = __int_as_scalar(0);
 
-    h_vel.data[3].w = Scalar(2.5);
+        h_body.data[2] = 1;
 
-    h_diameter.data[3] = Scalar(4.5);
+        h_orient.data[2] = make_scalar4(4,5,6,7);
+        I = make_scalar3(5, 4, 3);
+        h_moments.data[2] = I;
+        h_angmom.data[2] = make_scalar4(9,8,7,6);
 
-    h_pos.data[3].w = __int_as_scalar(1);
+        // Group particle 3
+        h_pos.data[3].x = Scalar(-1.5);
+        h_pos.data[3].y = Scalar(2.5);
+        h_pos.data[3].z = Scalar(3.5);
 
-    h_body.data[3] = 0;
+        h_image.data[3].x = 10;
+        h_image.data[3].y = 500;
+        h_image.data[3].z = 900;
 
-    I = make_scalar3(51,41,31);
-    h_moments.data[3] = I;
-    h_angmom.data[3] = make_scalar4(51,41,31,21);
-    }
+        h_vel.data[3].x = Scalar(-1.5);
+        h_vel.data[3].y = Scalar(-10.5);
+        h_vel.data[3].z = Scalar(5.5);
 
-    // add a few bonds too
-    sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
-    sysdef->getBondData()->addBondedGroup(Bond(1, 1, 0));
+        h_accel.data[3].x = Scalar(4.5);
+        h_accel.data[3].y = Scalar(5.5);
+        h_accel.data[3].z = Scalar(6.5);
 
-    // and angles as well
-    sysdef->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
-    sysdef->getAngleData()->addBondedGroup(Angle(0, 1, 2, 0));
+        h_vel.data[3].w = Scalar(2.5);
 
-    // and a dihedral
-    sysdef->getDihedralData()->addBondedGroup(Dihedral(0, 0, 1, 2, 3));
+        h_charge.data[3] = -1.5;
 
-    // and an improper
-    sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
+        h_diameter.data[3] = Scalar(4.5);
 
-    // and two constraints
-    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(1.5),0,1));
-    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(2.5),1,2));
+        h_pos.data[3].w = __int_as_scalar(1);
+
+        h_body.data[3] = 1;
+
+        h_orient.data[3] = make_scalar4(7,6,5,4);
+        I = make_scalar3(1, 11, 21);
+        h_moments.data[3] = I;
+        h_angmom.data[3] = make_scalar4(1, 2, 3, 4);
+
+        // Group particle 4
+        h_pos.data[4].x = Scalar(-1.5);
+        h_pos.data[4].y = Scalar(2.5);
+        h_pos.data[4].z = Scalar(3.5);
+
+        h_image.data[4].x = 105;
+        h_image.data[4].y = 5005;
+        h_image.data[4].z = 9005;
+
+        h_vel.data[4].x = Scalar(-1.5);
+        h_vel.data[4].y = Scalar(-10.5);
+        h_vel.data[4].z = Scalar(5.5);
+
+        h_accel.data[4].x = Scalar(-7.5);
+        h_accel.data[4].y = Scalar(-8.5);
+        h_accel.data[4].z = Scalar(-9.5);
+
+        h_vel.data[4].w = Scalar(2.5);
+
+        h_charge.data[4] = 2.0;
+
+        h_diameter.data[4] = Scalar(4.5);
+
+        h_pos.data[4].w = __int_as_scalar(1);
+
+        h_body.data[4] = 0;
+
+        h_orient.data[4] = make_scalar4(-1,-2,-3,-4);
+        I = make_scalar3(51,41,31);
+        h_moments.data[4] = I;
+        h_angmom.data[4] = make_scalar4(51,41,31,21);
+        }
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
+    boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,4));
+    boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
 
     writer->setOutputPosition(false);
 
-    // first test
+    // 0. file header
         {
         // make sure the first output file is deleted
 
@@ -225,7 +274,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
 
-    // second test: test position
+    // 1. position
         {
         writer->setOutputPosition(true);
 
@@ -272,168 +321,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         unlink((tmp_path+"/test.0000000010.xml").c_str());
         }
 
-    // third test: test velocity
+    // 2. image
         {
         writer->setOutputPosition(false);
-        writer->setOutputVelocity(true);
+        writer->setOutputImage(true);
 
         // write the file
         writer->analyze(20);
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000020.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<velocity num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 56.5");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</velocity>");
-        f.close();
-        unlink((tmp_path+"/test.0000000020.xml").c_str());
-        }
-
-    // fourth test: the type array
-        {
-        writer->setOutputVelocity(false);
-        writer->setOutputType(true);
-
-        // write the file
-        writer->analyze(30);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000030.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<type num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "D");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "A");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "B");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "B");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</type>");
-        f.close();
-        unlink((tmp_path+"/test.0000000030.xml").c_str());
-        }
-
-    // fifth test: the bond array
-        {
-        writer->setOutputBond(true);
-        writer->setOutputType(false);
-
-        // write the file
-        writer->analyze(40);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000040.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<bond num=\"2\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "bondA 0 1");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "bondB 1 0");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</bond>");
-        f.close();
-        unlink((tmp_path+"/test.0000000040.xml").c_str());
-        }
-
-    // sixth test: the angle array
-        {
-        writer->setOutputBond(false);
-        writer->setOutputAngle(true);
-
-        // write the file
-        writer->analyze(50);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<angle num=\"2\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "angleA 0 1 2");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "angleA 1 2 0");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</angle>");
-        f.close();
-        unlink((tmp_path+"/test.0000000050.xml").c_str());
-        }
-
-    // seventh test: test image
-        {
-        writer->setOutputAngle(false);
-        writer->setOutputImage(true);
-
-        // write the file
-        writer->analyze(60);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -463,19 +360,103 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</image>");
         f.close();
-        unlink((tmp_path+"/test.0000000060.xml").c_str());
+        unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
 
-    // eighth test: test mass
+    // 3. velocity
         {
         writer->setOutputImage(false);
+        writer->setOutputVelocity(true);
+
+        // write the file
+        writer->analyze(30);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000030.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<velocity num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 56.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</velocity>");
+        f.close();
+        unlink((tmp_path+"/test.0000000030.xml").c_str());
+        }
+
+    // 4. acceleration
+        {
+        writer->setOutputVelocity(false);
+        writer->setOutputAccel(true);
+
+        // write the file
+        writer->analyze(40);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000040.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<acceleration num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1 -2 -3");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5 -2.5 -3.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "4.5 5.5 6.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-7.5 -8.5 -9.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</acceleration>");
+        f.close();
+        unlink((tmp_path+"/test.0000000040.xml").c_str());
+        }
+
+    // 5. mass
+        {
+        writer->setOutputAccel(false);
         writer->setOutputMass(true);
 
         // write the file
-        writer->analyze(70);
+        writer->analyze(50);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -505,19 +486,61 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</mass>");
         f.close();
-        unlink((tmp_path+"/test.0000000070.xml").c_str());
+        unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
 
-    // nineth test: test diameter
+    // 6. charge
         {
         writer->setOutputMass(false);
+        writer->setOutputCharge(true);
+
+        // write the file
+        writer->analyze(60);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000060.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<charge num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1.5");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "2");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</charge>");
+        f.close();
+        unlink((tmp_path+"/test.0000000060.xml").c_str());
+        }
+
+    // 7. diameter
+        {
+        writer->setOutputCharge(false);
         writer->setOutputDiameter(true);
 
         // write the file
-        writer->analyze(80);
+        writer->analyze(70);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000070.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -547,80 +570,61 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</diameter>");
         f.close();
+        unlink((tmp_path+"/test.0000000070.xml").c_str());
+        }
+
+    // 8. type
+        {
+        writer->setOutputDiameter(false);
+        writer->setOutputType(true);
+
+        // write the file
+        writer->analyze(80);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000080.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<type num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "D");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "A");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "B");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "B");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</type>");
+        f.close();
         unlink((tmp_path+"/test.0000000080.xml").c_str());
         }
 
-    // tenth test: the dihedral array
+    // 9. body
         {
-        writer->setOutputDiameter(false);
-        writer->setOutputDihedral(true);
+        writer->setOutputType(false);
+        writer->setOutputBody(true);
 
         // write the file
         writer->analyze(90);
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000090.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<dihedral num=\"1\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "dihedralA 0 1 2 3");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</dihedral>");
-        f.close();
-        unlink((tmp_path+"/test.0000000090.xml").c_str());
-        }
-
-
-    // eleventh test: the improper array
-        {
-        writer->setOutputDihedral(false);
-        writer->setOutputImproper(true);
-
-        // write the file
-        writer->analyze(100);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
-        string line;
-        getline(f, line); // <?xml
-        getline(f, line); // <HOOMD_xml
-        getline(f, line); // <Configuration
-        getline(f, line); // <Box
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<improper num=\"1\">");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "improperA 3 2 1 0");
-        BOOST_REQUIRE(!f.bad());
-
-        getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</improper>");
-        f.close();
-        unlink((tmp_path+"/test.0000000100.xml").c_str());
-        }
-
-    // twelfth test: the body array
-        {
-        writer->setOutputImproper(false);
-        writer->setOutputBody(true);
-
-        // write the file
-        writer->analyze(110);
-
-        // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -650,19 +654,61 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</body>");
         f.close();
-        unlink((tmp_path+"/test.0000000110.xml").c_str());
+        unlink((tmp_path+"/test.0000000090.xml").c_str());
         }
 
-    // thirteenth test: the moment_inertia array
+    // 10. orientation
         {
         writer->setOutputBody(false);
+        writer->setOutputOrientation(true);
+
+        // write the file
+        writer->analyze(100);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000100.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<orientation num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "3 2 1 0");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "4 5 6 7");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "7 6 5 4");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1 -2 -3 -4");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</orientation>");
+        f.close();
+        unlink((tmp_path+"/test.0000000100.xml").c_str());
+        }
+
+    // 11. moment of inertia
+        {
+        writer->setOutputOrientation(false);
         writer->setOutputMomentInertia(true);
 
         // write the file
-        writer->analyze(120);
+        writer->analyze(110);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000110.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -692,19 +738,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</moment_inertia>");
         f.close();
-        unlink((tmp_path+"/test.0000000120.xml").c_str());
+        unlink((tmp_path+"/test.0000000110.xml").c_str());
         }
 
-        // fourteenth test: the angmom array
+    // 12. angular momentum
         {
         writer->setOutputMomentInertia(false);
         writer->setOutputAngularMomentum(true);
 
         // write the file
-        writer->analyze(130);
+        writer->analyze(120);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000130.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000120.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -734,19 +780,233 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</angmom>");
         f.close();
-        unlink((tmp_path+"/test.0000000130.xml").c_str());
+        unlink((tmp_path+"/test.0000000120.xml").c_str());
+        }
+    }
+
+//! Tests the ability of HOOMDDumpWriter to write out the system topology
+BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
+    {
+    // temporary directory for files
+    std::string tmp_path = ".";
+
+    // start by creating a single particle system: see it the correct file is written
+    BoxDim box(Scalar(35), Scalar(55), Scalar(125));
+
+    // set some tilt factors
+    box.setTiltFactors(Scalar(1.0),Scalar(0.5),Scalar(0.25));
+    int n_types = 1;
+    int n_bond_types = 2;
+    int n_angle_types = 1;
+    int n_dihedral_types = 1;
+    int n_improper_types = 1;
+
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+
+    // add a few bonds too
+    sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
+    sysdef->getBondData()->addBondedGroup(Bond(1, 1, 0));
+
+    // and angles as well
+    sysdef->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
+    sysdef->getAngleData()->addBondedGroup(Angle(0, 1, 2, 0));
+
+    // and a dihedral
+    sysdef->getDihedralData()->addBondedGroup(Dihedral(0, 0, 1, 2, 3));
+
+    // and an improper
+    sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
+
+    // and two constraints
+    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(1.5),0,1));
+    sysdef->getConstraintData()->addBondedGroup(Constraint(Scalar(2.5),1,2));
+
+    // create the writer
+
+    // 1. if the group is not all, then the xml file should be empty
+        {
+        boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,2));
+        boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+        boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
+        writer->setOutputPosition(false);
+        writer->setOutputBond(true);
+
+        writer->analyze(0);
+
+        // make sure the file was created
+        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000000.xml"));
+
+        // check the output line by line
+        ifstream f((tmp_path+"/test.0000000000.xml").c_str());
+        string line;
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"2\" >");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line,  "</configuration>");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
+        BOOST_REQUIRE(!f.bad());
+        f.close();
+        unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
 
-    // constraint array
+    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
+    writer->setOutputPosition(false);
+    // 1. bonds
         {
-        writer->setOutputConstraint(false);
+        writer->setOutputBond(true);
+
+        // write the file
+        writer->analyze(10);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000010.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<bond num=\"2\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "bondA 0 1");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "bondB 1 0");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</bond>");
+        f.close();
+        unlink((tmp_path+"/test.0000000010.xml").c_str());
+        }
+
+    // 2. angles
+        {
+        writer->setOutputBond(false);
+        writer->setOutputAngle(true);
+
+        // write the file
+        writer->analyze(20);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000020.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<angle num=\"2\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "angleA 0 1 2");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "angleA 1 2 0");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</angle>");
+        f.close();
+        unlink((tmp_path+"/test.0000000020.xml").c_str());
+        }
+
+    // 3. dihedrals
+        {
+        writer->setOutputAngle(false);
+        writer->setOutputDihedral(true);
+
+        // write the file
+        writer->analyze(30);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000030.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<dihedral num=\"1\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "dihedralA 0 1 2 3");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</dihedral>");
+        f.close();
+        unlink((tmp_path+"/test.0000000030.xml").c_str());
+        }
+
+    // 4. impropers
+        {
+        writer->setOutputDihedral(false);
+        writer->setOutputImproper(true);
+
+        // write the file
+        writer->analyze(40);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f((tmp_path+"/test.0000000040.xml").c_str());
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<improper num=\"1\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "improperA 3 2 1 0");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</improper>");
+        f.close();
+        unlink((tmp_path+"/test.0000000040.xml").c_str());
+        }
+
+    // 5. constraints
+        {
+        writer->setOutputImproper(false);
         writer->setOutputConstraint(true);
 
         // write the file
-        writer->analyze(140);
+        writer->analyze(50);
 
         // assume that the first lines tested in the first case are still OK and skip them
-        ifstream f((tmp_path+"/test.0000000140.xml").c_str());
+        ifstream f((tmp_path+"/test.0000000050.xml").c_str());
         string line;
         getline(f, line); // <?xml
         getline(f, line); // <HOOMD_xml
@@ -768,10 +1028,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line);
         BOOST_CHECK_EQUAL(line, "</constraint>");
         f.close();
-        unlink((tmp_path+"/test.0000000140.xml").c_str());
+        unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
-
-
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -825,7 +1083,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test"));
+    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);

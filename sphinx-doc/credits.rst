@@ -125,6 +125,7 @@ Michael P. Howard, Princeton University
  * Per-type MPI ghost layer communication
  * Dynamic load balancing
  * Wall potentials extrapolated mode
+ * XML dump by particle group
 
 James Antonaglia, University of Michigan
  * pair.mie
