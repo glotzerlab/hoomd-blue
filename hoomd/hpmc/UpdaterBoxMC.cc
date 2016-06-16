@@ -138,9 +138,6 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
 */
 inline bool UpdaterBoxMC::is_oversheared()
     {
-#ifdef ENABLE_MPI
-    if (m_comm) return false; // lattice reduction not yet supported in MPI
-#endif
     if (m_Shear_reduce <= 0.5) return false;
 
     const BoxDim curBox = m_pdata->getGlobalBox();
