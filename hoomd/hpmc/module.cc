@@ -17,7 +17,6 @@
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 #include "AnalyzerSDF.h"
-#include "UpdaterBoxNPT.h"
 #include "UpdaterBoxMC.h"
 
 #include "ShapeProxy.h"
@@ -65,7 +64,6 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_IntegratorHPMC();
 
     export_hpmc();
-    export_UpdaterBoxNPT();
     export_UpdaterBoxMC();
     export_hpmc_gpu();
     export_sdf();
