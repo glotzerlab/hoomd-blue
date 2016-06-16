@@ -196,6 +196,19 @@ class boxMC_test_methods (unittest.TestCase):
         self.assertRaises(Exception, boxMC.shear_move, delta=None)
         self.assertRaises(Exception, boxMC.shear_move, delta=10.0, weight=None)
 
+    def test_get_deltas(self):
+        boxMC = self.boxMC
+        delta = tuple([float(n) for n in (0.1, 0.2, 0.3)])
+        boxMC.length_move(delta=delta)
+        self.assertEqual(tuple([float(n) for n in boxMC.get_length_delta()]), delta)
+        boxMC.shear_move(delta=delta)
+        self.assertEqual(tuple([float(n) for n in boxMC.get_shear_delta()]), delta)
+        boxMC.volume_move(delta=0.1)
+        self.assertEqual(boxMC.get_volume_delta(), 0.1)
+        boxMC.aspect_move(delta=0.1)
+        self.assertEqual(boxMC.get_aspect_delta(), 0.1)
+
+
 # This test takes too long to run. Validation tests do not need to be run on every commit.
 # class boxMC_thermodynamic_tests (unittest.TestCase):
 #     # This test checks the BoxMC updater against the ideal gas equation of state

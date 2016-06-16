@@ -208,6 +208,31 @@ class UpdaterBoxMC : public Updater
         */
         void update_aspect(unsigned int timestep, Saru& rng);
 
+        //! Get volume change parameter
+        const Scalar get_volume_delta() const
+            {
+            return m_Volume_delta;
+            }
+
+        //! Get aspect ratio trial parameter
+        const Scalar get_aspect_delta() const
+            {
+            return m_Aspect_delta;
+            }
+
+        //! Get box length trial parameters
+        const std::vector<Scalar> get_length_delta() const
+            {
+            return std::vector<Scalar> (m_Length_delta, m_Length_delta + 3);
+            }
+
+        //! Get box shear trial parameters
+        const std::vector<Scalar> get_shear_delta() const
+            {
+            return std::vector<Scalar> (m_Shear_delta, m_Shear_delta + 3);
+            }
+
+
     private:
         boost::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
