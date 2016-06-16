@@ -660,13 +660,13 @@ class tune(object):
             if type is None:
                 t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
                 self.tunable_map.update({'d'.format(t): {
-                                                     'get': lambda obj: getattr(obj, 'get_d')(t),
-                                                     'acceptance': lambda obj: getattr(obj, 'get_translate_acceptance')(),
+                                                     'get': lambda: getattr(obj, 'get_d')(t),
+                                                     'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
                                                      'maximum': 1.0
                                                       },
                                           'a'.format(t): {
-                                                     'get': lambda obj: getattr(obj, 'get_a')(t),
-                                                     'acceptance': lambda obj: getattr(obj, 'get_rotate_acceptance')(),
+                                                     'get': lambda: getattr(obj, 'get_a')(t),
+                                                     'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
                                                      'maximum': 0.5
                                                       }})
             else:
@@ -674,13 +674,13 @@ class tune(object):
                 map_dict = dict()
                 for t in type_names:
                      self.tunable_map.update({'d'.format(t): {
-                                                 lambda obj: getattr(obj, 'get_d')(type),
-                                                 lambda obj: getattr(obj, 'get_translate_acceptance')(),
-                                                 1.0
+                                                 'get': lambda: getattr(obj, 'get_d')(type),
+                                                 'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                 'maximum': 1.0
                                                  },
                                               'a'.format(t): {
-                                                 'get': lambda obj: getattr(obj, 'get_a')(type),
-                                                 'acceptance': lambda obj: getattr(obj, 'get_rotate_acceptance')(),
+                                                 'get': lambda: getattr(obj, 'get_a')(type),
+                                                 'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
                                                  'maximum': 0.5
                                                  }})
         else:
@@ -692,12 +692,10 @@ class tune(object):
         self.max_scale = float(max_scale)
         self.gamma = float(gamma)
         allowed_tunables = set(self.tunable_map.keys())
-        # list of active tunables; not used internally
-        self.tunables = list()
         # list of maximum values for active tunables; not used internally
         self.maxima = list()
-        # mapping of ratios being tracked to tuples of sources of tunable information
-        self.ratios = dict()
+        # mapping of tunables and acceptance ratios being tracked to information and methods
+        self.tunables = dict()
 
         # map tunable parameters to a tuple defining
         #  (0) lambda expression to retrieve current value
@@ -707,17 +705,10 @@ class tune(object):
         for i in range(len(tunables)):
             item = tunables[i]
             if item in allowed_tunables:
-                getVal = self.tunable_map[item]['get]
-                getRatio = self.tunable_map[item]['acceptance']
+                self.tunables[item] = self.tunable_map[item]
                 if max_val_length != 0:
-                    maximum = max_val[i]
-                else:
-                    maximum = self.tunable_map[item]['maximum']
-                self.tunables.append(item)
-                self.maxima.append(maximum)
-                if not getRatio in self.ratios:
-                    self.ratios[getRatio] = list()
-                self.ratios[getRatio].append((item, getVal, maximum))
+                    self.tunables[item]['maximum'] = max_val[i]
+                self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
 
@@ -727,10 +718,12 @@ class tune(object):
         import hoomd
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
-        # For each of the acceptance rates we are watching...
-        for getRatio in self.ratios:
+        # For each of the tunables we are watching...
+        for tunable in self.tunables:
+            get = self.tunables[tunable]['get']
+            acceptance = self.tunables[tunable]['acceptance']
             target = self.target
-            actual = getRatio(self.obj)
+            actual = acceptance()
             if (actual > 0.0):
                 # find (damped) scale somewhere between 1.0 and actual/target
                 scale = ((1.0 + self.gamma) * actual) / (target + self.gamma * actual)
@@ -739,27 +732,25 @@ class tune(object):
                 scale = 0.1
             if (scale > self.max_scale):
                 scale = self.max_scale
-            # for each of the parameters we are tuning using this acceptance ratio, find new value
-            for q in self.ratios[getRatio]:
-                param_name = q[0]
-                getVal = q[1]
-                max_val = q[2]
-                oldval = getVal(self.obj)
-                if (oldval == 0):
-                    newval = 1e-5
-                    hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
-                else:
-                    newval = float(scale * oldval)
-                    # perform sanity checking on newval
-                    if (newval == 0.0):
-                        newval = float(1e-6)
-                    if (newval > max_val):
-                        newval = max_val
+            # find new value
+            param_name = tunable
+            max_val = self.tunables[tunable]['maximum']
+            oldval = get()
+            if (oldval == 0):
+                newval = 1e-5
+                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
+            else:
+                newval = float(scale * oldval)
+                # perform sanity checking on newval
+                if (newval == 0.0):
+                    newval = float(1e-6)
+                if (newval > max_val):
+                    newval = max_val
 
-                if self.type is None:
-                    newquantities[param_name] = float(newval)
-                else:
-                    newquantities[param_name] = {self.type:float(newval)}
+            if self.type is None:
+                newquantities[param_name] = float(newval)
+            else:
+                newquantities[param_name] = {self.type:float(newval)}
         hoomd.util._disable_status_lines = True;
         self.obj.set_params(**newquantities)
         hoomd.util._disable_status_lines = False;
@@ -784,33 +775,33 @@ class tune_npt(tune):
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         tunable_map = {
                     'dLx': {
-                          'get': lambda obj: getattr(obj, 'get_dLx')(),
-                          'set': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dLx')(),
+                          'acceptance': lambda: getattr(obj, 'get_volume_acceptance')(),
                           'maximum': 1.0
                           },
                     'dLy': {
-                          'get': lambda obj: getattr(obj, 'get_dLy')(),
-                          'acceptance': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dLy')(),
+                          'acceptance': lambda: getattr(obj, 'get_volume_acceptance')(),
                           'maximum': 1.0
                           },
                     'dLz': {
-                          'get': lambda obj: getattr(obj, 'get_dLz')(),
-                          'acceptance': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dLz')(),
+                          'acceptance': lambda: getattr(obj, 'get_volume_acceptance')(),
                           'maximum': 1.0
                           },
                     'dxy': {
-                          'get': lambda obj: getattr(obj, 'get_dxy')(),
-                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dxy')(),
+                          'acceptance': lambda: getattr(obj, 'get_shear_acceptance')(),
                           'maximum': 1.0
                           },
                     'dxz': {
-                          'get': lambda obj: getattr(obj, 'get_dxz')(),
-                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dxz')(),
+                          'acceptance': lambda: getattr(obj, 'get_shear_acceptance')(),
                           'maximum': 1.0
                           },
                     'dyz': {
-                          'get': lambda obj: getattr(obj, 'get_dyz')(),
-                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'get': lambda: getattr(obj, 'get_dyz')(),
+                          'acceptance': lambda: getattr(obj, 'get_shear_acceptance')(),
                           'maximum': 1.0
                           },
                     }
