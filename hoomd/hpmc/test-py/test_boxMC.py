@@ -287,19 +287,8 @@ class boxMC_test_methods (unittest.TestCase):
 
     def test_warnings_setVolumeMove(self):
         boxMC = self.boxMC
-        success = True
-        # Catch all warnings/errors associated with setVolumeMove(self, delta=None, weight=1.0)
-        try:boxMC.volume_move(delta=None)
-        except ValueError: print('Raised correct error: Volume move undefined.')
-        else:
-            print('No error detected for VolumeMove delta=None')
-            success = False
-        try: boxMC.volume_move(delta = 10.0, weight=None)
-        except ValueError: print('Raised correct error: Volume weight undefined.')
-        else:
-            print('No error detected for VolumeMove weight=None')
-            success = False
-        self.assertEqual(success, True)
+        self.assertRaises(Exception, boxMC.volume_move, delta = None)
+        self.assertRaises(Exception, boxMC.volume_move, delta = 10.0, weight=None)
 
     def test_methods_setLengthMove(self):
         boxMC = self.boxMC
@@ -311,19 +300,8 @@ class boxMC_test_methods (unittest.TestCase):
 
     def test_warnings_setLengthMove(self):
         boxMC = self.boxMC
-        success = True
-        # Catch all warnings/errors associated with setLengthMove(self, delta=None, weight=1.0)
-        try:boxMC.length_move(delta=None)
-        except ValueError: print('Raised correct error: Length move undefined.')
-        else:
-            print('No error detected for LengthMove delta=None')
-            success = False
-        try: boxMC.length_move(delta=10.0, weight=None)
-        except ValueError: print('Raised correct error: Length weight undefined.')
-        else:
-            print('No error detected for LengthMove delta=None')
-            success = False
-        self.assertEqual(success, True)
+        self.assertRaises(Exception, boxMC.length_move, delta=None)
+        self.assertRaises(Exception, boxMC.length_move, delta=10.0, weight=None)
 
     def test_methods_setShearMove(self):
         boxMC = self.boxMC
@@ -337,23 +315,8 @@ class boxMC_test_methods (unittest.TestCase):
         boxMC = self.boxMC
         success = True
         # Catch all warnings/errors associated with setLengthMove(self, delta=None, weight=1.0)
-        try:boxMC.shear_move(delta=None)
-        except ValueError: print('Raised correct error: Shear move undefined.')
-        else:
-            print('No error detected for ShearMove delta=None')
-            success = False
-        try: boxMC.shear_move(delta=10.0, weight=None)
-        except ValueError: print('Raised correct error: Shear weight undefined.')
-        else:
-            print('No error detected for ShearMove weight=None')
-            success = False
-        try: boxMC.shear_move(delta=10.0, reduce=None)
-        except ValueError: print('Raised correct error: Shear reduction undefined.')
-        else:
-            print('No error detected for ShearMove reduce=None')
-            success = False
-        import warnings
-        self.assertEqual(success, True)
+        self.assertRaises(Exception, boxMC.shear_move, delta=None)
+        self.assertRaises(Exception, boxMC.shear_move, delta=10.0, weight=None)
 
     def test_methods_get_misc(self):
         boxMC = self.boxMC
