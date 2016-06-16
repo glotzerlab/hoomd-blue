@@ -485,22 +485,6 @@ class boxMC(_updater):
                                                );
         self.setupUpdater(period);
 
-    def set_params():
-        R""" Change updater parameters
-
-        Args:
-            P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
-
-        To change the parameters of an existing updater, you must have saved it when it was specified.
-
-            box_update = hpmc.update.boxMC(mc, P=10., seed=123)
-            box_update.set_params(P=20.)
-
-        To change parameters associated with a box update method, call the set method for that update type again.
-        """
-        #self.cpp_updater.setParams( self.P.cpp_variant, self.frequency);
-        print("not yet implemented")
-
     def volume_move(self, delta, weight=1.0):
         R""" Enable/disable NpT volume move and set parameters.
 
@@ -620,113 +604,6 @@ class boxMC(_updater):
         self.aspect_weight = float(weight)
 
         self.cpp_updater.aspect_move(self.aspect_delta, self.aspect_weight);
-
-    def get_params(self, timestep=None):
-        R""" Get boxMC parameters
-
-        Args:
-            timestep (int): Timestep at which to evaluate variants (or the current step if None)
-
-        Returns:
-            dictionary of parameters values at the current or indicated timestep.
-            The dictionary contains the keys (P, delta, move_ratio, reduce, isotropic), which mirror the same parameters to
-            set_params()
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
-            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, betaP=P, delta = 0.01, period = 10)
-            run(100)
-            params = box_update.get_params(1000)
-            P = params['betaP']
-            params = box_update.get_params()
-            delta = params['delta']
-
-        """
-        if timestep is None:
-            timestep = hoomd.get_step()
-        P = self.cpp_updater.getP()
-        #delta = self.cpp_updater.getDelta()
-        #move_ratio = self.cpp_updater.getMoveRatio()
-        #reduce = self.cpp_updater.getReduce()
-        #isotropic = self.cpp_updater.getIsotropic()
-        ret_val = dict(
-                  betaP=P.getValue(timestep),
-                  #delta=delta,
-                  #move_ratio=move_ratio,
-                  #reduce=reduce,
-                  #isotropic=isotropic
-                  )
-        return ret_val
-
-    def get_betaP(self, timestep=None):
-        R""" Get pressure parameter
-
-        Args:
-            timestep (int): Timestep at which to evaluate variants (or the current step if None)
-
-        Returns:
-            pressure value at the current or indicated timestep
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
-            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
-            run(100)
-            P_now = box_update.get_P()
-            P_future = box_update.get_betaP(1000)
-
-        """
-        if timestep is None:
-            timestep = hoomd.get_step()
-        P = self.cpp_updater.getP()
-        return P.getValue(timestep)
-
-    def get_delta(self):
-        R""" Get delta parameter
-
-        Returns:
-            max trial delta change
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
-            P = variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.boxMC(mc, P=P, delta = 0.01, period = 10)
-            run(100)
-            delta_now = box_update.get_delta()
-
-        """
-        #delta = self.cpp_updater.getdelta()
-        #return delta
-        raise Warning("get_delta not implemented")
-        return None
-
-    def get_move_ratio(self):
-        R""" Get move_ratio parameter.
-
-        Returns:
-            fraction of box moves to attempt as volume changes versus box shearing
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.boxMC(mc, P=P, dLx = 0.01, period = 10)
-            run(100)
-            ratio_now = box_update.get_move_ratio()
-
-        """
-        #move_ratio = self.cpp_updater.getMoveRatio()
-        #return move_ratio
-        raise Warning("get_delta not implemented")
-        return None
 
     def get_volume_acceptance(self):
         R""" Get the average acceptance ratio for volume changing moves.
