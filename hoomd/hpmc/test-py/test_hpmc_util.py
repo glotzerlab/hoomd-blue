@@ -181,7 +181,7 @@ class compressor (unittest.TestCase):
         mc = hpmc.integrate.sphere(seed=1)
         mc.set_params(d=0.1)
         mc.shape_param.set('A', diameter=1.0)
-        npt = hpmc.update.npt(mc, P=5.0, reduce=0.6, seed=1, period=1)
+        npt = hpmc.update.boxmc(mc, P=5.0, reduce=0.6, seed=1)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -210,7 +210,7 @@ class compressor (unittest.TestCase):
         mc = hpmc.integrate.sphere(seed=1, nselect=1)
         mc.set_params(d=0.1)
         mc.shape_param.set('A', diameter=1.0)
-        npt = hpmc.update.npt(mc, P=5.0, reduce=0.6, seed=1, period=1)
+        npt = hpmc.update.boxmc(mc, P=5.0, reduce=0.6, seed=1)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -238,7 +238,7 @@ class compressor (unittest.TestCase):
         mc.set_params(d=0.1, a=0.1)
         mc.shape_param.set('A', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
            (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
-        npt = hpmc.update.npt(mc, P=5.0, reduce=0.6, seed=1, period=1)
+        npt = hpmc.update.boxmc(mc, P=5.0, reduce=0.6, seed=1)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -300,7 +300,7 @@ class tune (unittest.TestCase):
     def test_npt_noshear(self):
         target = 0.5
         self.mc.set_params(d=0.1, a=0.01, move_ratio=0.5)
-        updater = hpmc.update.npt(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1)
+        updater = hpmc.update.boxmc(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=target, gamma=0.0)
         for i in range(5):
             run(5e3)
@@ -313,7 +313,7 @@ class tune (unittest.TestCase):
     def test_npt_shear(self):
         target = 0.5
         self.mc.set_params(d=0.02, a=0.01, move_ratio=0.5)
-        updater = hpmc.update.npt(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.1, dyz=0.1, dxz=0.1, move_ratio=0.5, period=1)
+        updater = hpmc.update.boxmc(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0.1, dyz=0.1, dxz=0.1, move_ratio=0.5, period=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dxy', 'dyz', 'dxz'], target=target, gamma=0.5)
         for i in range(5):
             run(10e3)
@@ -326,7 +326,7 @@ class tune (unittest.TestCase):
     def test_npt_isotropic(self):
         target = 0.5
         self.mc.set_params(d=0.1, a=0.01, move_ratio=0.5)
-        updater = hpmc.update.npt(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1, isotropic=True)
+        updater = hpmc.update.boxmc(self.mc, seed=1, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1, isotropic=True)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx'], target=target, gamma=0.0)
         for i in range(5):
             run(5e3)

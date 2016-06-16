@@ -355,14 +355,12 @@ class compress:
         #
 
         log_values = [
-                    'hpmc_npt_pressure',
+                    'hpmc_boxmc_pressure',
                     'volume',
                     'hpmc_d',
                     'hpmc_a',
-                    'hpmc_npt_dLx',
-                    'hpmc_npt_volume_acceptance',
-                    'hpmc_npt_dxy',
-                    'hpmc_npt_shear_acceptance',
+                    'hpmc_boxmc_volume_acceptance',
+                    'hpmc_boxmc_shear_acceptance',
                     ]
         self.mclog = hoomd.analyze.log(filename=self.log_file, quantities=log_values , period=self.tuner_period, header_prefix='#', overwrite=True)
         self.mclog.disable() # will be enabled and disabled by call to run()

@@ -265,6 +265,38 @@ class boxmc(_updater):
         counters = self.cpp_updater.getCounters(1);
         return counters.getAspectAcceptance();
 
+    def get_aspect_delta(self):
+        R"""Get the current delta parameter for the aspect ratio moves.
+
+        Returns:
+            Maximum aspect ratio move to be attempted.
+        """
+        return self.cpp_updater.get_aspect_delta();
+
+    def get_length_delta(self):
+        R"""Get the current delta parameters for the box edge length moves.
+
+        Returns:
+            (tuple) maximum change in Lx, Ly, Lz.
+        """
+        return self.cpp_updater.get_length_delta();
+
+    def get_volume_delta(self):
+        R"""Get the current delta parameter for the box volume moves.
+
+        Returns:
+            maximum change dV.
+        """
+        return self.cpp_updater.get_volume_delta();
+
+    def get_shear_delta(self):
+        R"""Get the current delta parameters for the box shear moves.
+
+        Returns:
+            (tuple) maximum change in xy, xz, yz.
+        """
+        return self.cpp_updater.get_shear_delta();
+
     def enable(self):
         R""" Enables the updater.
 
