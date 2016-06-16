@@ -34,8 +34,8 @@ class boxmc(_updater):
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
-        boxMC.setVolumeMove(delta=0.01, weight=2.0)
-        boxMC.setLengthMove(delta=(0.1,0.1,0.1), weight=4.0)
+        boxMC.volume_move(delta=0.01, weight=2.0)
+        boxMC.length_move(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
@@ -217,7 +217,7 @@ class boxmc(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, P=10., dLx = 0.01, period = 10)
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
             run(100)
             v_accept = box_update.get_volume_acceptance()
 
@@ -235,9 +235,9 @@ class boxmc(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
             run(100)
-            v_accept = box_update.get_shear_acceptance()
+            s_accept = box_update.get_shear_acceptance()
 
         """
         counters = self.cpp_updater.getCounters(1);
@@ -255,7 +255,7 @@ class boxmc(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc_shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, P=10./ dLx = 0.01, dxy=0.01, period = 10)
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
             run(100)
             a_accept = box_update.get_aspect_acceptance()
 
