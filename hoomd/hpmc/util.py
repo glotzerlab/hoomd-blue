@@ -616,6 +616,7 @@ class tune(object):
         max_scale (float): maximum amount to scale a parameter in a single update
         gamma (float): damping factor (>= 0.0) to keep from scaling parameter values too fast
         type (str): Type name to tune move sizes for
+        tunable_map (dict): For each tunable, provide a dictionary of values and methods to be used by the tuner (see below)
         args: Additional positional arguments
         kwargs: Additional keyword arguments
 
@@ -623,6 +624,13 @@ class tune(object):
     seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
     For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
     of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
+
+    Default tunable_maps are provided but can be modified or extended by setting
+    the following dictionary key/value pairs in the entry for tunable.
+        maximum (float): maximum value of tunable
+        get (lambda): function to call to retrieve curent tunable value
+        acceptance (lambda): function to call to get relevant accemptance rate
+        set (lambda x): function to call to set new value
 
     Note:
         There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
@@ -651,30 +659,30 @@ class tune(object):
             self.tunable_map = dict()
             if type is None:
                 t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
-                self.tunable_map.update({'d'.format(t): (
-                                                     lambda obj: getattr(obj, 'get_d')(t),
-                                                     lambda obj: getattr(obj, 'get_translate_acceptance')(),
-                                                     1.0
-                                                      ),
-                                          'a'.format(t): (
-                                                     lambda obj: getattr(obj, 'get_a')(t),
-                                                     lambda obj: getattr(obj, 'get_rotate_acceptance')(),
-                                                     0.5
-                                                      )})
+                self.tunable_map.update({'d'.format(t): {
+                                                     'get': lambda obj: getattr(obj, 'get_d')(t),
+                                                     'acceptance': lambda obj: getattr(obj, 'get_translate_acceptance')(),
+                                                     'maximum': 1.0
+                                                      },
+                                          'a'.format(t): {
+                                                     'get': lambda obj: getattr(obj, 'get_a')(t),
+                                                     'acceptance': lambda obj: getattr(obj, 'get_rotate_acceptance')(),
+                                                     'maximum': 0.5
+                                                      }})
             else:
                 type_names = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())]
                 map_dict = dict()
                 for t in type_names:
-                     self.tunable_map.update({'d'.format(t): (
+                     self.tunable_map.update({'d'.format(t): {
                                                  lambda obj: getattr(obj, 'get_d')(type),
                                                  lambda obj: getattr(obj, 'get_translate_acceptance')(),
                                                  1.0
-                                                 ),
-                                              'a'.format(t): (
-                                                 lambda obj: getattr(obj, 'get_a')(type),
-                                                 lambda obj: getattr(obj, 'get_rotate_acceptance')(),
-                                                 0.5
-                                                 )})
+                                                 },
+                                              'a'.format(t): {
+                                                 'get': lambda obj: getattr(obj, 'get_a')(type),
+                                                 'acceptance': lambda obj: getattr(obj, 'get_rotate_acceptance')(),
+                                                 'maximum': 0.5
+                                                 }})
         else:
             self.tunable_map=tunable_map
 
@@ -699,12 +707,12 @@ class tune(object):
         for i in range(len(tunables)):
             item = tunables[i]
             if item in allowed_tunables:
-                getVal = self.tunable_map[item][0]
-                getRatio = self.tunable_map[item][1]
+                getVal = self.tunable_map[item]['get]
+                getRatio = self.tunable_map[item]['acceptance']
                 if max_val_length != 0:
                     maximum = max_val[i]
                 else:
-                    maximum = self.tunable_map[item][2]
+                    maximum = self.tunable_map[item]['maximum']
                 self.tunables.append(item)
                 self.maxima.append(maximum)
                 if not getRatio in self.ratios:
@@ -775,35 +783,35 @@ class tune_npt(tune):
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         tunable_map = {
-                    'dLx': (
-                          lambda obj: getattr(obj, 'get_dLx')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dLy': (
-                          lambda obj: getattr(obj, 'get_dLy')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dLz': (
-                          lambda obj: getattr(obj, 'get_dLz')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dxy': (
-                          lambda obj: getattr(obj, 'get_dxy')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
-                    'dxz': (
-                          lambda obj: getattr(obj, 'get_dxz')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
-                    'dyz': (
-                          lambda obj: getattr(obj, 'get_dyz')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
+                    'dLx': {
+                          'get': lambda obj: getattr(obj, 'get_dLx')(),
+                          'set': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'maximum': 1.0
+                          },
+                    'dLy': {
+                          'get': lambda obj: getattr(obj, 'get_dLy')(),
+                          'acceptance': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'maximum': 1.0
+                          },
+                    'dLz': {
+                          'get': lambda obj: getattr(obj, 'get_dLz')(),
+                          'acceptance': lambda obj: getattr(obj, 'get_volume_acceptance')(),
+                          'maximum': 1.0
+                          },
+                    'dxy': {
+                          'get': lambda obj: getattr(obj, 'get_dxy')(),
+                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'maximum': 1.0
+                          },
+                    'dxz': {
+                          'get': lambda obj: getattr(obj, 'get_dxz')(),
+                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'maximum': 1.0
+                          },
+                    'dyz': {
+                          'get': lambda obj: getattr(obj, 'get_dyz')(),
+                          'acceptance': lambda obj: getattr(obj, 'get_shear_acceptance')(),
+                          'maximum': 1.0
+                          },
                     }
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
