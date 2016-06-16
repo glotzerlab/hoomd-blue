@@ -441,7 +441,6 @@ class boxMC(_updater):
 
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
         betaP (float) or (:py:mod:`hoomd.variant`): :math:`\beta p == \frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or inverse volume in 3D) Apply your chosen reduced pressure convention externally.
-        frequency (float): Average number of box updates per particle move sweep (not yet implemented)
         seed (int): random number seed for MC box changes
 
     One or more Monte Carlo move types are applied to evolve the simulation box.
@@ -459,7 +458,7 @@ class boxMC(_updater):
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, betaP, frequency=1.0, seed=0):
+    def __init__(self, mc, betaP, seed=0):
         hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
@@ -474,18 +473,13 @@ class boxMC(_updater):
 
         self.P = hoomd.variant._setup_variant_input(betaP);
 
-        if frequency != 1.0:
-            hoomd.context.msg.warning("update.boxMC: Variable frequency is not set to 1.0. Settings other than 1.0 not yet supported.")
-        else:
-            self.frequency = frequency
-
         self.seed = int(seed)
 
         # create the c++ mirror class
         self.cpp_updater = _hpmc.UpdaterBoxMC(hoomd.context.current.system_definition,
                                                mc.cpp_integrator,
                                                self.P.cpp_variant,
-                                               self.frequency,
+                                               1,
                                                self.seed,
                                                );
         self.setupUpdater(period);
@@ -527,7 +521,7 @@ class boxMC(_updater):
         self.check_initialization();
 
         self.volume_delta = float(delta)
-        
+
         self.volume_weight = float(weight)
 
         self.cpp_updater.volume_move(self.volume_delta, self.volume_weight);
@@ -558,7 +552,7 @@ class boxMC(_updater):
             self.length_delta = [float(delta)] * 3
         else:
             self.length_delta = [ float(d) for d in delta ]
-        
+
         self.length_weight = float(weight)
 
         self.cpp_updater.length_move(   self.length_delta[0], self.length_delta[1],
@@ -591,9 +585,9 @@ class boxMC(_updater):
             self.shear_delta = [float(delta)] * 3
         else:
             self.shear_delta = [ float(d) for d in delta ]
-        
+
         self.shear_weight = float(weight)
-        
+
         self.shear_reduce = float(reduce)
 
         self.cpp_updater.shear_move(    self.shear_delta[0], self.shear_delta[1],
@@ -621,9 +615,9 @@ class boxMC(_updater):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        self.aspect_delta = float(delta) 
+        self.aspect_delta = float(delta)
         self.aspect_weight = float(weight)
-        
+
         self.cpp_updater.aspect_move(self.aspect_delta, self.aspect_weight);
 
     def get_params(self, timestep=None):
