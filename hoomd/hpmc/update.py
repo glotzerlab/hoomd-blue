@@ -15,7 +15,7 @@ from hoomd.update import _updater
 import hoomd
 
 class boxmc(_updater):
-    R""" Apply box updates to sample NPT and related ensembles.
+    R""" Apply box updates to sample isobaric and related ensembles.
 
     Args:
 
@@ -88,13 +88,13 @@ class boxmc(_updater):
                                  'aspect_weight']
 
     def volume_move(self, delta, weight=1.0):
-        R""" Enable/disable NpT volume move and set parameters.
+        R""" Enable/disable isobaric volume move and set parameters.
 
         Args:
             delta (float): maximum change of the box area (2D) or volume (3D)
             weight (float): relative weight of this box move type relative to other box move types. 0 disables move type.
 
-        Sample the NpT distribution of box volumes by rescaling the box.
+        Sample the isobaric distribution of box volumes by rescaling the box.
 
         To change the parameters of an existing updater, you must have saved it when it was specified.
 
@@ -114,14 +114,14 @@ class boxmc(_updater):
         self.cpp_updater.volume_move(self.volume_delta, self.volume_weight);
 
     def length_move(self, delta, weight=1.0):
-        R""" Enable/disable NpT box dimension move and set parameters.
+        R""" Enable/disable isobaric box dimension move and set parameters.
 
         Args:
             delta (scalar), (tuple) or (list): maximum change of the box thickness for each pair of parallel planes connected by
             the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
             weight (float): relative weight of this box move type relative to other box move types. 0 disables move.
 
-        Sample the NpT distribution of box dimensions by rescaling the plane-to-plane distance of box faces.
+        Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces.
 
         To change the parameters of an existing updater, you must have saved it when it was specified.
 
@@ -156,7 +156,7 @@ class boxmc(_updater):
                     but which temporarily break detailed balance.
             weight (float): relative weight of this box move type relative to other box move types. 0 disables.
 
-        Sample the NpT distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
+        Sample the isobaric distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
         (See HOOMD-blue [boxdim](https://codeblue.umich.edu/hoomd-blue/doc/classhoomd__script_1_1data_1_1boxdim.html) documentation)
 
         Example::

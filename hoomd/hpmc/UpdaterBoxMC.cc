@@ -48,6 +48,7 @@ UpdaterBoxMC::~UpdaterBoxMC()
     - hpmc_boxmc_trial_delta (Number of MC box changes attempted during logger interval)
     - hpmc_boxmc_volume_acceptance (Ratio of volume change trials accepted during logger interval)
     - hpmc_boxmc_shear_acceptance (Ratio of shear trials accepted during logger interval)
+    - hpmc_boxmc_aspect_acceptance (Ratio of aspect trials accepted during logger interval)
     - hpmc_boxmc_move_ratio (Ratio of box length trials to total of box length and shear trials over logging period)
     - hpmc_boxmc_pressure (Current value of beta*p parameter for the box updater)
 
@@ -62,7 +63,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     result.push_back("hpmc_boxmc_trial_count");
     result.push_back("hpmc_boxmc_volume_acceptance");
     result.push_back("hpmc_boxmc_shear_acceptance");
-    result.push_back("hpmc_boxmc_aspect_move_acceptance");
+    result.push_back("hpmc_boxmc_aspect_acceptance");
     result.push_back("hpmc_boxmc_move_ratio");
     result.push_back("hpmc_boxmc_delta");
     result.push_back("hpmc_boxmc_pressure");
