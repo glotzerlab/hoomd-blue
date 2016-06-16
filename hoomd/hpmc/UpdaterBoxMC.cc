@@ -45,11 +45,11 @@ UpdaterBoxMC::~UpdaterBoxMC()
     }
 
 /*! hpmc::UpdaterBoxMC provides:
-    - hpmc_npt_trial_delta (Number of NPT box changes attempted during logger interval)
-    - hpmc_npt_volume_acceptance (Ratio of volume change trials accepted during logger interval)
-    - hpmc_npt_shear_acceptance (Ratio of shear trials accepted during logger interval)
-    - hpmc_npt_move_ratio (Ratio of box length trials to total of box length and shear trials over logging period)
-    - hpmc_npt_pressure (Current value of beta*p parameter for the NpT updater)
+    - hpmc_boxmc_trial_delta (Number of MC box changes attempted during logger interval)
+    - hpmc_boxmc_volume_acceptance (Ratio of volume change trials accepted during logger interval)
+    - hpmc_boxmc_shear_acceptance (Ratio of shear trials accepted during logger interval)
+    - hpmc_boxmc_move_ratio (Ratio of box length trials to total of box length and shear trials over logging period)
+    - hpmc_boxmc_pressure (Current value of beta*p parameter for the box updater)
 
     \returns a list of provided quantities
 */
@@ -59,13 +59,13 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     std::vector< std::string > result = Updater::getProvidedLogQuantities();
 
     // then add ours
-    result.push_back("hpmc_npt_trial_count");
-    result.push_back("hpmc_npt_volume_acceptance");
-    result.push_back("hpmc_npt_shear_acceptance");
-    result.push_back("hpmc_npt_aspect_move_acceptance");
-    result.push_back("hpmc_npt_move_ratio");
-    result.push_back("hpmc_npt_delta");
-    result.push_back("hpmc_npt_pressure");
+    result.push_back("hpmc_boxmc_trial_count");
+    result.push_back("hpmc_boxmc_volume_acceptance");
+    result.push_back("hpmc_boxmc_shear_acceptance");
+    result.push_back("hpmc_boxmc_aspect_move_acceptance");
+    result.push_back("hpmc_boxmc_move_ratio");
+    result.push_back("hpmc_boxmc_delta");
+    result.push_back("hpmc_boxmc_pressure");
     return result;
     }
 
@@ -77,41 +77,41 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
 */
 Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    hpmc_npt_counters_t counters = getCounters(1);
+    hpmc_boxmc_counters_t counters = getCounters(1);
 
     // return requested log value
-    if (quantity == "hpmc_npt_trial_count")
+    if (quantity == "hpmc_boxmc_trial_count")
         {
         return counters.getNMoves();
         }
-    else if (quantity == "hpmc_npt_volume_acceptance")
+    else if (quantity == "hpmc_boxmc_volume_acceptance")
         {
         if (counters.volume_reject_count + counters.volume_accept_count == 0)
             return 0;
         else
             return counters.getVolumeAcceptance();
         }
-    else if (quantity == "hpmc_npt_shear_acceptance")
+    else if (quantity == "hpmc_boxmc_shear_acceptance")
         {
         if (counters.shear_reject_count + counters.shear_accept_count == 0)
             return 0;
         else
             return counters.getShearAcceptance();
         }
-    else if (quantity == "hpmc_npt_aspect_acceptance")
+    else if (quantity == "hpmc_boxmc_aspect_acceptance")
         {
         if (counters.aspect_reject_count + counters.aspect_accept_count == 0)
             return 0;
         else
             return counters.getAspectAcceptance();
         }
-    else if (quantity == "hpmc_npt_move_ratio")
+    else if (quantity == "hpmc_boxmc_move_ratio")
         {
         uint64_t total_volume = counters.volume_accept_count + counters.volume_reject_count;
         uint64_t total_shear = counters.shear_accept_count + counters.shear_reject_count;
         return (total_volume) / (total_volume + total_shear);
         }
-    else if (quantity == "hpmc_npt_pressure")
+    else if (quantity == "hpmc_boxmc_pressure")
         {
         return m_P->getValue(timestep);
         }
@@ -170,7 +170,7 @@ inline bool UpdaterBoxMC::is_oversheared()
 inline bool UpdaterBoxMC::remove_overshear()
     {
     bool overshear = false; // initialize return value
-    const Scalar NPT_MAX_SHEAR = Scalar(0.5f); // lattice can be reduced if shearing exceeds this value
+    const Scalar MAX_SHEAR = Scalar(0.5f); // lattice can be reduced if shearing exceeds this value
 
     BoxDim newBox = m_pdata->getGlobalBox();
     Scalar3 x = newBox.getLatticeVector(0);
@@ -183,7 +183,7 @@ inline bool UpdaterBoxMC::remove_overshear()
     // Remove one lattice vector of shear if necessary. Only apply once so image doesn't change more than one.
 
     const Scalar y_x = y.x; // x component of y vector
-    const Scalar max_y_x = x.x * NPT_MAX_SHEAR;
+    const Scalar max_y_x = x.x * MAX_SHEAR;
     if (y_x > max_y_x)
         {
         // Ly * xy_new = Ly * xy_old + sign*Lx --> xy_new = xy_old + sign*Lx/Ly
@@ -199,7 +199,7 @@ inline bool UpdaterBoxMC::remove_overshear()
         }
 
     const Scalar z_x = z.x; // x component of z vector
-    const Scalar max_z_x = x.x * NPT_MAX_SHEAR;
+    const Scalar max_z_x = x.x * MAX_SHEAR;
     if (z_x > max_z_x)
         {
         // Lz * xz_new = Lz * xz_old + sign*Lx --> xz_new = xz_old + sign*Lx/Lz
@@ -218,7 +218,7 @@ inline bool UpdaterBoxMC::remove_overshear()
     // z_y \left| y \right|
     const Scalar z_yy = dot(z,y);
     // MAX_SHEAR * left| y \right| ^2
-    const Scalar max_z_y_2 = dot(y,y) * NPT_MAX_SHEAR;
+    const Scalar max_z_y_2 = dot(y,y) * MAX_SHEAR;
     if (z_yy > max_z_y_2)
         {
         // Lz * xz_new = Lz * xz_old + sign * y.x --> xz_new = = xz_old + sign * y.x / Lz
@@ -337,7 +337,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
             unsigned int N = m_pdata->getN();
             if (N != N_backup)
                 {
-                this->m_exec_conf->msg->error() << "update.npt" << ": Number of particles mismatch when rejecting box resize" << std::endl;
+                this->m_exec_conf->msg->error() << "update.boxmc" << ": Number of particles mismatch when rejecting box resize" << std::endl;
                 throw std::runtime_error("Error resizing box");
                 // note, this error should never appear (because particles are not migrated after a box resize),
                 // but is left here as a sanity check
@@ -724,9 +724,9 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, Saru& rng)
     provides the current value. The parameter *mode* controls whether the returned counts are absolute, relative
     to the start of the run, or relative to the start of the last executed step.
 */
-hpmc_npt_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
+hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
     {
-    hpmc_npt_counters_t result;
+    hpmc_boxmc_counters_t result;
 
     if (mode == 0)
         result = m_count_total;
@@ -762,17 +762,17 @@ void export_UpdaterBoxMC()
     .def("getCounters", &UpdaterBoxMC::getCounters)
     ;
 
-    class_< hpmc_npt_counters_t >("hpmc_npt_counters_t")
-    .def_readwrite("volume_accept_count", &hpmc_npt_counters_t::volume_accept_count)
-    .def_readwrite("volume_reject_count", &hpmc_npt_counters_t::volume_reject_count)
-    .def_readwrite("shear_accept_count", &hpmc_npt_counters_t::shear_accept_count)
-    .def_readwrite("shear_reject_count", &hpmc_npt_counters_t::shear_reject_count)
-    .def_readwrite("aspect_accept_count", &hpmc_npt_counters_t::aspect_accept_count)
-    .def_readwrite("aspect_reject_count", &hpmc_npt_counters_t::aspect_reject_count)
-    .def("getVolumeAcceptance", &hpmc_npt_counters_t::getVolumeAcceptance)
-    .def("getShearAcceptance", &hpmc_npt_counters_t::getShearAcceptance)
-    .def("getAspectAcceptance", &hpmc_npt_counters_t::getAspectAcceptance)
-    .def("getNMoves", &hpmc_npt_counters_t::getNMoves)
+    class_< hpmc_boxmc_counters_t >("hpmc_boxmc_counters_t")
+    .def_readwrite("volume_accept_count", &hpmc_boxmc_counters_t::volume_accept_count)
+    .def_readwrite("volume_reject_count", &hpmc_boxmc_counters_t::volume_reject_count)
+    .def_readwrite("shear_accept_count", &hpmc_boxmc_counters_t::shear_accept_count)
+    .def_readwrite("shear_reject_count", &hpmc_boxmc_counters_t::shear_reject_count)
+    .def_readwrite("aspect_accept_count", &hpmc_boxmc_counters_t::aspect_accept_count)
+    .def_readwrite("aspect_reject_count", &hpmc_boxmc_counters_t::aspect_reject_count)
+    .def("getVolumeAcceptance", &hpmc_boxmc_counters_t::getVolumeAcceptance)
+    .def("getShearAcceptance", &hpmc_boxmc_counters_t::getShearAcceptance)
+    .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
+    .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)
     ;
     }
 

@@ -33,7 +33,7 @@ class UpdaterBoxMC : public Updater
         //! Constructor
         /*! \param sysdef System definition
             \param mc HPMC integrator object
-            \param P Pressure times thermodynamic beta to apply in NPT ensemble
+            \param P Pressure times thermodynamic beta to apply in isobaric ensembles
             \param frequency average number of box updates per particle super-move
             \param seed PRNG seed
 
@@ -133,11 +133,11 @@ class UpdaterBoxMC : public Updater
             return m_P;
             }
 
-        //! Print statistics about the NPT box update steps taken
+        //! Print statistics about the MC box update steps taken
         void printStats()
             {
-            hpmc_npt_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC NPT box change stats:" << std::endl;
+            hpmc_boxmc_counters_t counters = getCounters(1);
+            m_exec_conf->msg->notice(2) << "-- HPMC box change stats:" << std::endl;
 
             if (counters.shear_accept_count + counters.shear_reject_count > 0)
                 {
@@ -182,7 +182,7 @@ class UpdaterBoxMC : public Updater
         virtual void update(unsigned int timestep);
 
         //! Get the current counter values
-        hpmc_npt_counters_t getCounters(unsigned int mode=0);
+        hpmc_boxmc_counters_t getCounters(unsigned int mode=0);
 
         //! Perform box update in NpT box length distribution
         /*! \param timestep timestep at which update is being evaluated
@@ -210,7 +210,7 @@ class UpdaterBoxMC : public Updater
 
     private:
         boost::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
-        boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in NPT ensemble
+        boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
         Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
         Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
@@ -232,9 +232,9 @@ class UpdaterBoxMC : public Updater
         boost::signals2::connection m_maxparticlenumberchange_connection;
                                                     //!< Connection to MaxParticleNumberChange signal
 
-        hpmc_npt_counters_t m_count_total;          //!< Accept/reject total count
-        hpmc_npt_counters_t m_count_run_start;      //!< Count saved at run() start
-        hpmc_npt_counters_t m_count_step_start;     //!< Count saved at the start of the last step
+        hpmc_boxmc_counters_t m_count_total;          //!< Accept/reject total count
+        hpmc_boxmc_counters_t m_count_run_start;      //!< Count saved at run() start
+        hpmc_boxmc_counters_t m_count_step_start;     //!< Count saved at the start of the last step
 
         unsigned int m_seed;                        //!< Seed for pseudo-random number generator
 

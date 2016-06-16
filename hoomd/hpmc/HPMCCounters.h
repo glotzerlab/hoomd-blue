@@ -91,7 +91,7 @@ DEVICE inline hpmc_counters_t operator-(const hpmc_counters_t& a, const hpmc_cou
 
 //! Storage for NPT acceptance counters
 /*! \ingroup hpmc_data_structs */
-struct hpmc_npt_counters_t
+struct hpmc_boxmc_counters_t
     {
     unsigned long long int volume_accept_count;      //!< Count of accepted volume moves
     unsigned long long int volume_reject_count;      //!< Count of rejected volume moves
@@ -100,7 +100,7 @@ struct hpmc_npt_counters_t
     unsigned long long int aspect_accept_count;      //!< Count of accepted aspect moves
     unsigned long long int aspect_reject_count;      //!< Count of rejected aspect moves
     //! Construct a zero set of counters
-    hpmc_npt_counters_t()
+    hpmc_boxmc_counters_t()
         {
         volume_accept_count = 0;
         volume_reject_count = 0;
@@ -153,9 +153,9 @@ struct hpmc_npt_counters_t
     };
 
 //! Take the difference of two sets of counters
-DEVICE inline hpmc_npt_counters_t operator-(const hpmc_npt_counters_t& a, const hpmc_npt_counters_t& b)
+DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, const hpmc_boxmc_counters_t& b)
     {
-    hpmc_npt_counters_t result;
+    hpmc_boxmc_counters_t result;
     result.volume_accept_count = a.volume_accept_count - b.volume_accept_count;
     result.shear_accept_count = a.shear_accept_count - b.shear_accept_count;
     result.aspect_accept_count = a.aspect_accept_count - b.aspect_accept_count;

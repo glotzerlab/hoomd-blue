@@ -14,7 +14,7 @@ import math
 from hoomd.update import _updater
 import hoomd
 
-class boxMC(_updater):
+class boxmc(_updater):
     R""" Apply box updates to sample NPT and related ensembles.
 
     Args:
@@ -27,13 +27,13 @@ class boxMC(_updater):
 
     One or more Monte Carlo move types are applied to evolve the simulation box.
 
-    Pressure inputs to update.boxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
+    Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
     pressure :math:`P^*` are left for the user to perform.
 
     Example::
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        boxMC = hpmc.update.boxMC(mc, betaP=1.0, seed=9876)
+        boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
         boxMC.setVolumeMove(delta=0.01, weight=2.0)
         boxMC.setLengthMove(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
@@ -49,7 +49,7 @@ class boxMC(_updater):
         period = 1
 
         if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.boxMC: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
         self.betaP = hoomd.variant._setup_variant_input(betaP);
@@ -217,7 +217,7 @@ class boxMC(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxMC(mc, P=10., dLx = 0.01, period = 10)
+            box_update = hpmc.update.boxmc(mc, P=10., dLx = 0.01, period = 10)
             run(100)
             v_accept = box_update.get_volume_acceptance()
 
@@ -235,7 +235,7 @@ class boxMC(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxMC(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
+            box_update = hpmc.update.boxmc(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
             run(100)
             v_accept = box_update.get_shear_acceptance()
 
@@ -255,7 +255,7 @@ class boxMC(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc_shape_param[name].set(....);
-            box_update = hpmc.update.boxMC(mc, P=10./ dLx = 0.01, dxy=0.01, period = 10)
+            box_update = hpmc.update.boxmc(mc, P=10./ dLx = 0.01, dxy=0.01, period = 10)
             run(100)
             a_accept = box_update.get_aspect_acceptance()
 
@@ -270,11 +270,11 @@ class boxMC(_updater):
 
         Example::
 
-            npt_updater.set_params(isotropic=True)
+            box_updater.set_params(isotropic=True)
             run(1e5)
-            npt_updater.disable()
+            box_updater.disable()
             update.box_resize(dLy = 10)
-            npt_updater.enable()
+            box_updater.enable()
             run(1e5)
 
         See updater base class documentation for more information
