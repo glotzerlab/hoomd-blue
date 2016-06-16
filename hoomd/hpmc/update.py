@@ -440,14 +440,15 @@ class boxMC(_updater):
     Args:
 
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        betaP (float) or (:py:mod:`hoomd.variant`): :math:`\beta p == \frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or inverse volume in 3D) Apply your chosen reduced pressure convention externally.
+        betaP (float) or (:py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                                                    inverse volume in 3D) Apply your chosen reduced pressure convention
+                                                    externally.
         seed (int): random number seed for MC box changes
 
     One or more Monte Carlo move types are applied to evolve the simulation box.
 
     Pressure inputs to update.boxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
     pressure :math:`P^*` are left for the user to perform.
-
 
     Example::
 
