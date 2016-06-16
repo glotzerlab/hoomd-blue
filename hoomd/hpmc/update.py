@@ -459,7 +459,7 @@ class boxMC(_updater):
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, betaP, seed=0):
+    def __init__(self, mc, betaP, seed):
         hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
@@ -472,18 +472,40 @@ class boxMC(_updater):
             hoomd.context.msg.warning("update.boxMC: Must have a handle to an HPMC integrator.\n");
             return;
 
-        self.P = hoomd.variant._setup_variant_input(betaP);
+        self.betaP = hoomd.variant._setup_variant_input(betaP);
 
         self.seed = int(seed)
 
         # create the c++ mirror class
         self.cpp_updater = _hpmc.UpdaterBoxMC(hoomd.context.current.system_definition,
                                                mc.cpp_integrator,
-                                               self.P.cpp_variant,
+                                               self.betaP.cpp_variant,
                                                1,
                                                self.seed,
                                                );
         self.setupUpdater(period);
+
+        self.volume_delta = None;
+        self.volume_weight = None;
+        self.length_delta = None;
+        self.length_weight = None;
+        self.shear_delta = None;
+        self.shear_weight = None;
+        self.shear_reduce = None;
+        self.aspect_delta = None;
+        self.aspect_weight = None;
+
+        self.metadata_fields = ['betaP',
+                                 'seed',
+                                 'volume_delta',
+                                 'volume_weight',
+                                 'length_delta',
+                                 'length_weight',
+                                 'shear_delta',
+                                 'shear_weight',
+                                 'shear_reduce',
+                                 'aspect_delta',
+                                 'aspect_weight']
 
     def volume_move(self, delta, weight=1.0):
         R""" Enable/disable NpT volume move and set parameters.
@@ -793,9 +815,9 @@ class muvt(_updater):
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         period (int): Number of timesteps between histogram evaluations.
         transfer_types (list): List of type names that are being transfered from/to the reservoir or between boxes (if *None*, all types)
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
@@ -814,7 +836,7 @@ class muvt(_updater):
         update.muvt(mc=mc, period)
 
     """
-    def __init__(self, mc, period=1, transfer_types=None,seed=48123,ngibbs=1):
+    def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
         hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
