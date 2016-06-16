@@ -1135,7 +1135,8 @@ bool IntegratorHPMCMono<Shape>::testPairOverlap(unsigned int t, unsigned int f)
 template <class Shape>
 std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     {
-    unsigned int N = m_pdata->getMaximumTag();
+    unsigned int N = m_pdata->getMaximumTag() + 1;
+
     std::vector<bool> overlap_map(N*N, false);
 
     m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
@@ -1151,7 +1152,6 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // access parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);

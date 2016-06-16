@@ -255,7 +255,7 @@ class mode_hpmc(_integrator):
         """
     
         self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag();
+        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1;
         overlap_map = self.cpp_integrator.mapOverlaps();
         return list(zip(*[iter(overlap_map)]*N))
             
