@@ -441,8 +441,7 @@ class compress:
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                status_lines = hoomd.util._disable_status_lines
-                hoomd.util._disable_status_lines = True
+                hoomd.util.quiet_status()
                 hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
                     hoomd.context.msg.notice(5,"{} overlaps at step {}".format(noverlaps, hoomd.get_step()))
@@ -451,7 +450,7 @@ class compress:
                     Lz *= 1.0+Lscale
                     hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
-                hoomd.util._disable_status_lines = status_lines
+                hoomd.util.unquiet_status()
 
             #randomize the intial configuration
             #intial box, no shear
@@ -647,11 +646,12 @@ class tune(object):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+        import hoomd
+        hoomd.util.quiet_status()
+
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
             raise ValueError("If provided, max_val must be same length as tunables.")
-        #from hoomd import analyze
-        import hoomd
         self.type=type
         #initialize tunable map
 
@@ -715,6 +715,8 @@ class tune(object):
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
 
+        hoomd.util.unquiet_status()
+
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
         """
@@ -754,10 +756,10 @@ class tune(object):
                 newquantities[param_name] = float(newval)
             else:
                 newquantities[param_name] = {self.type:float(newval)}
-        hoomd.util._disable_status_lines = True;
+        hoomd.util.quiet_status();
         for q in newquantities:
             self.tunables[q]['set'](newquantities[q])
-        hoomd.util._disable_status_lines = False;
+        hoomd.util.unquiet_status();
 
 class tune_npt(tune):
     R""" Tune the HPMC NPT Updater.
@@ -777,6 +779,8 @@ class tune_npt(tune):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+        import hoomd
+        hoomd.util.quiet_status()
         tunable_map = {
                     'dLx': {
                           'get': lambda: getattr(obj, 'get_dLx')(),
@@ -809,4 +813,5 @@ class tune_npt(tune):
                           'maximum': 1.0
                           },
                     }
+        hoomd.util.unquiet_status()
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
