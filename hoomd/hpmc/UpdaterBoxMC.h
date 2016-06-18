@@ -42,7 +42,7 @@ class UpdaterBoxMC : public Updater
         UpdaterBoxMC(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<IntegratorHPMC> mc,
                       boost::shared_ptr<Variant> P,
-                      Scalar frequency,
+                      const Scalar frequency,
                       const unsigned int seed);
 
         //! Destructor
@@ -52,8 +52,8 @@ class UpdaterBoxMC : public Updater
         /*! \param delta maximum size of volume change
             \param weight relative likelihood of volume move
         */
-        void volume_move(Scalar delta,
-                           Scalar weight)
+        void volume_move(const Scalar delta,
+                           const float weight)
             {
             m_Volume_delta = delta;
             m_Volume_weight = weight;
@@ -67,10 +67,10 @@ class UpdaterBoxMC : public Updater
             \param dLz Extent of length change distribution in third lattice vector for box resize moves
             \param weight relative likelihood of volume move
         */
-        void length_move(Scalar dLx,
-                           Scalar dLy,
-                           Scalar dLz,
-                           Scalar weight)
+        void length_move(const Scalar dLx,
+                           const Scalar dLy,
+                           const Scalar dLz,
+                           const float weight)
             {
             m_Length_delta[0] = dLx;
             m_Length_delta[1] = dLy;
@@ -89,11 +89,11 @@ class UpdaterBoxMC : public Updater
                 but which temporarily break detailed balance.
             \param weight relative likelihood of shear move
         */
-        void shear_move(Scalar dxy,
-                          Scalar dxz,
-                          Scalar dyz,
-                          Scalar reduce,
-                          Scalar weight)
+        void shear_move(const Scalar dxy,
+                          const Scalar dxz,
+                          const Scalar dyz,
+                          const Scalar reduce,
+                          const float weight)
             {
             m_Shear_delta[0] = dxy;
             m_Shear_delta[1] = dxz;
@@ -106,8 +106,8 @@ class UpdaterBoxMC : public Updater
         /*! \param dA maximum relative aspect ratio change.
             \param weight relative likelihood of aspect move.
         */
-        void aspect_move(Scalar dA,
-                           Scalar weight)
+        void aspect_move(const Scalar dA,
+                           const float weight)
             {
             m_Aspect_delta = dA;
             m_Aspect_weight = weight;
@@ -131,6 +131,12 @@ class UpdaterBoxMC : public Updater
         boost::shared_ptr<Variant> getP()
             {
             return m_P;
+            }
+
+        //! Set pressure parameter
+        void setP(const boost::shared_ptr<Variant>& betaP)
+            {
+            m_P = betaP;
             }
 
         //! Print statistics about the MC box update steps taken
@@ -239,19 +245,19 @@ class UpdaterBoxMC : public Updater
         Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
         Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
-        Scalar m_Volume_weight;                     //!< relative weight of volume moves
+        float m_Volume_weight;                     //!< relative weight of volume moves
         Scalar m_Volume_A1;                         //!< Ratio of Lx to Ly to use in isotropic volume changes
         Scalar m_Volume_A2;                         //!< Ratio of Lx to Lz to use in isotropic volume changes
 
         Scalar m_Length_delta[3];                   //!< Max length change in each dimension
-        Scalar m_Length_weight;                     //!< relative weight of length change moves
+        float m_Length_weight;                     //!< relative weight of length change moves
 
         Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension        Scalar m_Shear_reduce;                            //!< Threshold for lattice reduction
-        Scalar m_Shear_weight;                      //!< relative weight of shear moves
+        float m_Shear_weight;                      //!< relative weight of shear moves
         Scalar m_Shear_reduce;                      //!< Tolerance for automatic box lattice reduction
 
         Scalar m_Aspect_delta;                      //!< Maximum relative aspect ratio change in randomly selected dimension
-        Scalar m_Aspect_weight;                     //!< relative weight of aspect ratio moves
+        float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
         boost::signals2::connection m_maxparticlenumberchange_connection;

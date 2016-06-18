@@ -163,11 +163,6 @@ class boxMC_test_methods (unittest.TestCase):
         boxMC.volume_move(delta=1.0)
         boxMC.volume_move(delta=1.0, weight=1)
 
-    def test_warnings_setVolumeMove(self):
-        boxMC = self.boxMC
-        self.assertRaises(Exception, boxMC.volume_move, delta = None)
-        self.assertRaises(Exception, boxMC.volume_move, delta = 10.0, weight=None)
-
     def test_methods_setLengthMove(self):
         boxMC = self.boxMC
         # test scalar delta
@@ -176,11 +171,6 @@ class boxMC_test_methods (unittest.TestCase):
         boxMC.length_move(delta=(1,1,1))
         boxMC.length_move(delta=(1,1,1), weight=2)
 
-    def test_warnings_setLengthMove(self):
-        boxMC = self.boxMC
-        self.assertRaises(Exception, boxMC.length_move, delta=None)
-        self.assertRaises(Exception, boxMC.length_move, delta=10.0, weight=None)
-
     def test_methods_setShearMove(self):
         boxMC = self.boxMC
         # test scalar delta
@@ -188,13 +178,6 @@ class boxMC_test_methods (unittest.TestCase):
         # test list delta
         boxMC.shear_move(delta=(1,1,1))
         boxMC.shear_move(delta=(1,1,1), weight=2)
-
-    def test_methods_setShearMove(self):
-        boxMC = self.boxMC
-        success = True
-        # Catch all warnings/errors associated with setLengthMove(self, delta=None, weight=1.0)
-        self.assertRaises(Exception, boxMC.shear_move, delta=None)
-        self.assertRaises(Exception, boxMC.shear_move, delta=10.0, weight=None)
 
     def test_get_deltas(self):
         boxMC = self.boxMC

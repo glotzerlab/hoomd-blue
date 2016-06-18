@@ -24,6 +24,9 @@ class boxmc(_updater):
                                                     inverse volume in 3D) Apply your chosen reduced pressure convention
                                                     externally.
         seed (int): random number seed for MC box changes
+        volume_delta (float): If provided, set volume move parameters (see :py:mod:`hoomd.hpmc.boxmc.volume_move`)
+        length_delta (float) or (tuple): If provided, set box length move parameters (see :py:mod:`hoomd.hpmc.boxmc.length_move`)
+        shear_delta (float) or (tuple): If provided, set shear move parameters (see :py:mod:`hoomd.hpmc.boxmc.shear_move`)
 
     One or more Monte Carlo move types are applied to evolve the simulation box.
 
@@ -34,12 +37,13 @@ class boxmc(_updater):
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
+        boxMC.set_betap(2.0)
         boxMC.volume_move(delta=0.01, weight=2.0)
         boxMC.length_move(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, betaP, seed):
+    def __init__(self, mc, betaP, seed, volume_delta=None, length_delta=None, shear_delta=None):
         hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
@@ -67,11 +71,17 @@ class boxmc(_updater):
 
         self.volume_delta = None;
         self.volume_weight = None;
+        if volume_delta is not None:
+            self.volume_move(delta=volume_delta)
         self.length_delta = None;
         self.length_weight = None;
+        if length_delta is not None:
+            self.length_move(delta=length_delta)
         self.shear_delta = None;
         self.shear_weight = None;
         self.shear_reduce = None;
+        if shear_delta is not None:
+            self.shear_move(delta=shear_delta)
         self.aspect_delta = None;
         self.aspect_weight = None;
 
@@ -87,7 +97,18 @@ class boxmc(_updater):
                                  'aspect_delta',
                                  'aspect_weight']
 
-    def volume_move(self, delta, weight=1.0):
+    def set_betap(self, betaP):
+        R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
+
+        Args:
+            betaP (float) or (:py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                inverse volume in 3D) Apply your chosen reduced pressure convention
+                externally.
+        """
+        self.betaP = hoomd.variant._setup_variant_input(betaP)
+        self.cpp_updater.setP(self.betaP.cpp_variant)
+
+    def volume_move(self, delta=None, weight=None):
         R""" Enable/disable isobaric volume move and set parameters.
 
         Args:
@@ -107,13 +128,19 @@ class boxmc(_updater):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        self.volume_delta = float(delta)
+        if weight is not None:
+            self.volume_weight = float(weight)
+        if self.volume_weight is None:
+            self.volume_weight = 1.0
 
-        self.volume_weight = float(weight)
+        if delta is not None:
+            self.volume_delta = float(delta)
+        if self.volume_delta is None:
+            self.volume_delta = 0.0
 
         self.cpp_updater.volume_move(self.volume_delta, self.volume_weight);
 
-    def length_move(self, delta, weight=1.0):
+    def length_move(self, delta=None, weight=None):
         R""" Enable/disable isobaric box dimension move and set parameters.
 
         Args:
@@ -135,17 +162,23 @@ class boxmc(_updater):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        if isinstance(delta, float) or isinstance(delta, int):
-            self.length_delta = [float(delta)] * 3
-        else:
-            self.length_delta = [ float(d) for d in delta ]
+        if weight is not None:
+            self.length_weight = float(weight)
+        if self.length_weight is None:
+            self.length_weight = 1.0
 
-        self.length_weight = float(weight)
+        if delta is not None:
+            if isinstance(delta, float) or isinstance(delta, int):
+                self.length_delta = [float(delta)] * 3
+            else:
+                self.length_delta = [ float(d) for d in delta ]
+        if self.length_delta is None:
+            self.length_delta = [0.0] * 3
 
         self.cpp_updater.length_move(   self.length_delta[0], self.length_delta[1],
                                         self.length_delta[2], self.length_weight);
 
-    def shear_move(self,  delta, weight=1.0, reduce=0.0):
+    def shear_move(self,  delta=None, weight=None, reduce=None):
         R""" Enable/disable box shear moves and set parameters.
 
         Args:
@@ -168,20 +201,29 @@ class boxmc(_updater):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        if isinstance(delta, float) or isinstance(delta, int):
-            self.shear_delta = [float(delta)] * 3
-        else:
-            self.shear_delta = [ float(d) for d in delta ]
+        if weight is not None:
+            self.shear_weight = float(weight)
+        if self.shear_weight is None:
+            self.shear_weight = 1.0
 
-        self.shear_weight = float(weight)
+        if reduce is not None:
+            self.shear_reduce = float(reduce)
+        if self.shear_reduce is None:
+            self.shear_reduce = 0.0
 
-        self.shear_reduce = float(reduce)
+        if delta is not None:
+            if isinstance(delta, float) or isinstance(delta, int):
+                self.shear_delta = [float(delta)] * 3
+            else:
+                self.shear_delta = [ float(d) for d in delta ]
+        if self.shear_delta is None:
+            self.shear_delta = [0.0] * 3
 
         self.cpp_updater.shear_move(    self.shear_delta[0], self.shear_delta[1],
                                         self.shear_delta[2], self.shear_reduce,
                                         self.shear_weight);
 
-    def aspect_move(self, delta, weight=1.0):
+    def aspect_move(self, delta=None, weight=None):
         R""" Enable/disable aspect ratio move and set parameters.
 
         Args:
@@ -202,8 +244,15 @@ class boxmc(_updater):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        self.aspect_delta = float(delta)
-        self.aspect_weight = float(weight)
+        if weight is not None:
+            self.aspect_weight = float(weight)
+        if self.aspect_weight is None:
+            self.aspect_weight = 1.0
+
+        if delta is not None:
+            self.aspect_delta = float(delta)
+        if self.aspect_delta is None:
+            self.aspect_delta = 0.0
 
         self.cpp_updater.aspect_move(self.aspect_delta, self.aspect_weight);
 

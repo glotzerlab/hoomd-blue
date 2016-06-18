@@ -16,12 +16,20 @@ namespace hpmc
 UpdaterBoxMC::UpdaterBoxMC(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<IntegratorHPMC> mc,
                              boost::shared_ptr<Variant> P,
-                             Scalar frequency,
+                             const Scalar frequency,
                              const unsigned int seed)
         : Updater(sysdef),
           m_mc(mc),
           m_P(P),
           m_frequency(frequency),
+          m_Volume_delta(0.0),
+          m_Volume_weight(0.0),
+          m_Length_delta {0.0, 0.0, 0.0},
+          m_Length_weight(0.0),
+          m_Shear_delta {0.0, 0.0, 0.0},
+          m_Shear_weight(0.0),
+          m_Aspect_delta(0.0),
+          m_Aspect_weight(0.0),
           m_seed(seed)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
@@ -385,7 +393,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
-    float range = m_Volume_weight + m_Length_weight + m_Shear_weight;
+    float range = m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
     float move_type_select = rng.f() * range;
     // supposedly Saru::f() returns a float on the interval (0,1]. Need to confirm...
 
@@ -394,27 +402,31 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (move_type_select <= m_Volume_weight)
         {
         // Isotropic volume change
+        m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
     else if (move_type_select <= m_Volume_weight + m_Length_weight)
         {
         // Volume change in distribution of box lengths
+        m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
     else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight)
         {
         // Shear change
+        m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
     else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
         {
         // Volume conserving aspect change
+        m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
         update_aspect(timestep, rng);
         }
     else
         {
         // Should not reach this point
-        m_exec_conf->msg->notice(10) << "UpdaterBoxMC selected an unassigned move type." << std::endl;
+        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << "from range " << range << std::endl;
         }
 
     if (m_prof) m_prof->push("UpdaterBoxMC: examining shear");
@@ -755,6 +767,7 @@ void export_UpdaterBoxMC()
     .def("printStats", &UpdaterBoxMC::printStats)
     .def("resetStats", &UpdaterBoxMC::resetStats)
     .def("getP", &UpdaterBoxMC::getP)
+    .def("setP", &UpdaterBoxMC::setP)
     .def("get_volume_delta", &UpdaterBoxMC::get_volume_delta)
     .def("get_length_delta", &UpdaterBoxMC::get_length_delta)
     .def("get_shear_delta", &UpdaterBoxMC::get_shear_delta)
