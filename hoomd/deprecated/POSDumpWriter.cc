@@ -83,7 +83,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
         info = boost::python::extract<string> (m_add_info(timestep));
         }
 
-    SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snap(0);
 
     // obtain particle data
     m_pdata->takeSnapshot(snap);

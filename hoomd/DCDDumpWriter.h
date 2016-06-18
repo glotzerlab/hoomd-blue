@@ -97,6 +97,7 @@ class DCDDumpWriter : public Analyzer
         unsigned int m_nglobal;             //!< Initial number of particles
 
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
+        std::fstream m_file;                //!< The file object
 
         // helper functions
 
@@ -109,7 +110,7 @@ class DCDDumpWriter : public Analyzer
         //! Updates the file header
         void write_updated_header(std::fstream &file, unsigned int timestep);
         //! Initializes the output file for writing
-        void initFileIO();
+        void initFileIO(unsigned int timestep);
 
     };
 
