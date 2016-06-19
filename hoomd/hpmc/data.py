@@ -330,12 +330,12 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
+        self._keys += ['centers', 'orientations', 'diameter', 'colors','ignores'];
         self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {})\n".format(self.centers, self.orientations, self.diameter);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, ignores = {})\n".format(self.centers, self.orientations, self.diameter, self.ignores);
         ct = 0;
         members = self.members;
         for m in members:
@@ -354,8 +354,11 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, ignore_overlaps=False, ignore_statistics=False, colors=None):
-        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
+    def make_param(self, diameters, centers, ignores=None, ignore_overlaps=False, rigid=True, ignore_statistics=False, colors=None):
+        if ignores is None:
+            ignores = [False for c in centers]
+
+        members = [_hpmc.make_sph_params(float(d)/2.0, False, ignore) for d,ignore in zip(diameters,ignores)];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
@@ -363,5 +366,6 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return self.make_fn(self.ensure_list(members),
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
+                            rigid,
                             ignore_statistics,
                             ignore_overlaps);

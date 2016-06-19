@@ -389,6 +389,7 @@ template<class Shape>
 union_params<Shape> make_union_params(boost::python::list _members,
                                                 boost::python::list positions,
                                                 boost::python::list orientations,
+                                                bool rigid,
                                                 bool ignore_stats,
                                                 bool ignore_ovrlps)
     {
@@ -409,6 +410,7 @@ union_params<Shape> make_union_params(boost::python::list _members,
         }
 
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.rigid = rigid;
 
     hpmc::detail::OBB *obbs;
     int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*result.N);

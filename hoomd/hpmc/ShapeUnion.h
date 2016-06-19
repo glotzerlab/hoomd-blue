@@ -53,6 +53,7 @@ struct union_params : aligned_struct
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                              //   First bit is ignore overlaps, Second bit is ignore statistics
+    unsigned int rigid;                      //!< If 1, ptl is rigid. *All* overlaps between two rigid rigid ptls are checked
     union_gpu_tree_type tree;                //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
@@ -165,7 +166,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             vec3<Scalar> r_ij = vec3<Scalar>(dr) + rotate(b.orientation, b.members.mpos[jshape]) - rotate(a.orientation, a.members.mpos[ishape]);
             Shape shape_j(q_j, params_j);
             unsigned int err =0;
-            if (test_overlap(r_ij, shape_i, shape_j, err))
+            if (((a.members.rigid && b.members.rigid) || !(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps()))
+                && test_overlap(r_ij, shape_i, shape_j, err))
                 {
                 return true;
                 }
