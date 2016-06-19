@@ -104,7 +104,7 @@ class OBBTree
 
         //! Build a tree smartly from a list of OBBs and internal coordinates
         inline void buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-            OverlapReal vertex_radius, unsigned int N);
+            std::vector<std::vector<OverlapReal> >& vertex_radius, unsigned int N);
 
         //! Build a tree from a list of OBBs
         inline void buildTree(OBB *obbs, unsigned int N);
@@ -192,7 +192,7 @@ class OBBTree
 
         //! Build a node of the tree recursively
         inline unsigned int buildNode(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-            OverlapReal vertex_radius, std::vector<unsigned int>& idx, unsigned int start, unsigned int len, unsigned int parent);
+            std::vector<std::vector<OverlapReal> >& vertex_radius, std::vector<unsigned int>& idx, unsigned int start, unsigned int len, unsigned int parent);
 
         //! Allocate a new node
         inline unsigned int allocateNode();
@@ -300,7 +300,7 @@ inline unsigned int OBBTree<node_capacity>::height(unsigned int idx)
 */
 template<unsigned int node_capacity>
 inline void OBBTree<node_capacity>::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-    OverlapReal vertex_radius, unsigned int N)
+    std::vector<std::vector< OverlapReal > >& vertex_radius, unsigned int N)
     {
     init(N);
 
@@ -329,12 +329,15 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, unsigned int N)
 
     // initialize internal coordinates from OBB corners
     std::vector< std::vector<vec3<OverlapReal> > > internal_coordinates;
+    std::vector< std::vector<OverlapReal > > vertex_radius;
     for (unsigned int i = 0; i < N; ++i)
         {
-        internal_coordinates.push_back(obbs[i].getCorners());
+        std::vector<vec3<OverlapReal> > corners = obbs[i].getCorners();
+        internal_coordinates.push_back(corners);
+        vertex_radius.push_back(std::vector<OverlapReal>(corners.size(),0.0));
         }
 
-    m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
+    m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
     updateSkip(m_root);
     }
 
@@ -355,7 +358,7 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, unsigned int N)
 template<unsigned int node_capacity>
 inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
                                        std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-                                       OverlapReal vertex_radius,
+                                       std::vector<std::vector<OverlapReal> >& vertex_radius,
                                        std::vector<unsigned int>& idx,
                                        unsigned int start,
                                        unsigned int len,
@@ -364,17 +367,19 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
     // merge all the OBBs into one, as tightly as possible
     OBB my_obb = obbs[start];
     std::vector<vec3<OverlapReal> > merge_internal_coordinates;
+    std::vector<OverlapReal> merge_vertex_radius;
 
     for (unsigned int i = start; i < start+len; ++i)
         {
         for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
             {
             merge_internal_coordinates.push_back(internal_coordinates[i][j]);
+            merge_vertex_radius.push_back(vertex_radius[i][j]);
             }
         }
 
     // merge internal coordinates
-    my_obb = compute_obb(merge_internal_coordinates, vertex_radius);
+    my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radius);
 
     // handle the case of a leaf node creation
     if (len <= node_capacity)
@@ -430,6 +435,7 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
                 std::swap(obbs[start+i], obbs[start+start_right-1]);
                 std::swap(idx[start+i], idx[start+start_right-1]);
                 std::swap(internal_coordinates[start+i], internal_coordinates[start+start_right-1]);
+                std::swap(vertex_radius[start+i], vertex_radius[start+start_right-1]);
                 start_right--;
                 i--;
                 }

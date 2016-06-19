@@ -217,6 +217,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
         }
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
+    std::vector<std::vector<OverlapReal > > vertex_radius;
 
     // construct bounding box tree
     for (unsigned int i = 0; i < len(face_offs)-1; ++i)
@@ -238,12 +239,13 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
 
             face_vec.push_back(v);
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, result.data.verts.sweep_radius);
+        obbs[i] = hpmc::detail::compute_obb(face_vec, std::vector<OverlapReal>(face_vec.size(),result.data.verts.sweep_radius));
         internal_coordinates.push_back(face_vec);
+        vertex_radius.push_back(std::vector<OverlapReal>(face_vec.size(), result.data.verts.sweep_radius));
         }
 
     ShapePolyhedron::gpu_tree_type::obb_tree_type tree;
-    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
+    tree.buildTree(obbs, internal_coordinates, vertex_radius, len(face_offs)-1);
     result.tree = ShapePolyhedron::gpu_tree_type(tree);
     free(obbs);
 
@@ -420,6 +422,7 @@ union_params<Shape> make_union_params(boost::python::list _members,
         }
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
+    std::vector<std::vector<OverlapReal > > vertex_radius;
 
     // extract member parameters, posistions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
@@ -441,6 +444,17 @@ union_params<Shape> make_union_params(boost::python::list _members,
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
 
         obbs[i] = detail::OBB(dummy.getAABB(pos));
+        if (dummy.hasOrientation())
+            {
+            std::vector<vec3<OverlapReal> > corners = obbs[i].getCorners();
+            internal_coordinates.push_back(corners);
+            vertex_radius.push_back(std::vector<OverlapReal>(corners.size(),0.0));
+            }
+        else
+            {
+            internal_coordinates.push_back(std::vector<vec3<OverlapReal> >(1,pos));
+            vertex_radius.push_back(std::vector<OverlapReal>(1,0.5*dummy.getCircumsphereDiameter()));
+            }
         }
 
     // set the diameter
@@ -448,7 +462,7 @@ union_params<Shape> make_union_params(boost::python::list _members,
 
     // build tree and store GPU accessible version in parameter structure
     detail::union_gpu_tree_type::obb_tree_type tree;
-    tree.buildTree(obbs, result.N);
+    tree.buildTree(obbs, internal_coordinates, vertex_radius, result.N);
     free(obbs);
     result.tree = detail::union_gpu_tree_type(tree);
 
