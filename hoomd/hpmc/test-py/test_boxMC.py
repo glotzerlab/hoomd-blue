@@ -127,8 +127,8 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.aspect_move(delta=1.0)
-            self.mc.shape_param.set('A', diameter=0.0)
+            self.boxMC.aspect_move(delta=0.5)
+            self.mc.shape_param.set('A', diameter=0.05)
 
             for j in range(10):
                 run(10)
