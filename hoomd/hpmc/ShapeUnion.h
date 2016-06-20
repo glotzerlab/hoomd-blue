@@ -37,7 +37,7 @@ const int MAX_MEMBERS=128;
 const unsigned int MAX_UNION_NODES=64;
 
 //! Maximum number of spheres per leaf node
-const unsigned int MAX_UNION_CAPACITY=8;
+const unsigned int MAX_UNION_CAPACITY=6;
 
 typedef GPUTree<MAX_UNION_NODES,MAX_UNION_CAPACITY> union_gpu_tree_type;
 
@@ -147,6 +147,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
+    bool both_rigid = (a.members.rigid && b.members.rigid);
+
     // loop through shape of cur_node_a
     for (unsigned int i= 0; i< detail::union_gpu_tree_type::capacity; i++)
         {
@@ -157,6 +159,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
         vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
+        bool ignore_i = shape_i.ignoreOverlaps();
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
@@ -168,9 +171,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             const quat<Scalar> q_j = b.members.morientation[jshape];
             vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
             Shape shape_j(q_j, params_j);
+            bool ignore_j = shape_j.ignoreOverlaps();
+
             unsigned int err =0;
-            if (((a.members.rigid && b.members.rigid) || !(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps()))
-                && test_overlap(r_ij, shape_i, shape_j, err))
+            if ((both_rigid || !(ignore_i && ignore_j)) && test_overlap(r_ij, shape_i, shape_j, err))
                 {
                 return true;
                 }
