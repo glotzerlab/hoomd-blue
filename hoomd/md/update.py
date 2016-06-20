@@ -196,7 +196,7 @@ class constraint_ellipsoid(_updater):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.ConstraintEllipsoid(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
         else:
-            self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);        
+            self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
 
         self.setupUpdater(period);
 
@@ -207,3 +207,44 @@ class constraint_ellipsoid(_updater):
         self.ry = ry
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
+
+
+class test_flow(_updater):
+    R""" Description.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group for which the update will be set
+
+    :py:class:`test_flow` asdfa
+
+    .. attention::
+        att
+
+    Note:
+        note
+
+
+    Examples::
+
+        #update.constraint_ellipsoid(rx=7, ry=5, rz=3)
+
+    """
+    def __init__(self, group, period=1):
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        _updater.__init__(self);
+
+        # create the c++ mirror class
+        #if not hoomd.context.exec_conf.isCUDAEnabled():
+        self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group, 0, 100, 0, 50);
+
+        self.setupUpdater(period);
+
+        # store metadata
+        # self.group = group
+        # self.P = P
+        # self.rx = rx
+        # self.ry = ry
+        # self.rz = rz
+        # self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']

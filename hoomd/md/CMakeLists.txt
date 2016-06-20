@@ -35,6 +35,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
+		   MuellerPlatheFlow.cc
                    )
 
 if (ENABLE_CUDA)

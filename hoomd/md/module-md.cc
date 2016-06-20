@@ -51,6 +51,7 @@
 #include "TwoStepNVTMTK.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
+#include "MuellerPlatheFlow.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -305,6 +306,7 @@ BOOST_PYTHON_MODULE(_md)
     export_Enforce2DUpdater();
     export_ConstraintEllipsoid();
     export_FIREEnergyMinimizer();
+    export_MuellerPlatheFlow();
 
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();

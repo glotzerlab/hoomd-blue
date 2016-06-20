@@ -34,10 +34,17 @@
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
 #else
 //! Define MPI_DOUBLE as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #endif
+
+typedef struct{
+    Scalar s;
+    int i;
+    }Scalar_Int;
 
 namespace boost
    {
