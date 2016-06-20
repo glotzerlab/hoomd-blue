@@ -54,7 +54,7 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
-        self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
+        self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, volume_delta=0.1, seed=1)
         self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
                                             (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
 
