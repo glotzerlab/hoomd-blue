@@ -142,6 +142,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
+    vec3<Scalar> r_ab = rotate(conj(b.orientation),vec3<Scalar>(dr));
+
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
@@ -152,8 +154,9 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         if (ishape == -1) break;
 
         const mparam_type& params_i = a.members.mparams[ishape];
-        const quat<Scalar> q_i = a.orientation * a.members.morientation[ishape];
+        const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
+        vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
@@ -162,8 +165,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             if (jshape == -1) break;
 
             const mparam_type& params_j = b.members.mparams[jshape];
-            const quat<Scalar> q_j = b.orientation * b.members.morientation[jshape];
-            vec3<Scalar> r_ij = vec3<Scalar>(dr) + rotate(b.orientation, b.members.mpos[jshape]) - rotate(a.orientation, a.members.mpos[ishape]);
+            const quat<Scalar> q_j = b.members.morientation[jshape];
+            vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
             Shape shape_j(q_j, params_j);
             unsigned int err =0;
             if (((a.members.rigid && b.members.rigid) || !(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps()))
