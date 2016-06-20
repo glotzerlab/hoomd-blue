@@ -169,14 +169,17 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
             const mparam_type& params_j = b.members.mparams[jshape];
             const quat<Scalar> q_j = b.members.morientation[jshape];
-            vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
             Shape shape_j(q_j, params_j);
             bool ignore_j = shape_j.ignoreOverlaps();
 
             unsigned int err =0;
-            if ((both_rigid || !(ignore_i && ignore_j)) && test_overlap(r_ij, shape_i, shape_j, err))
+            if ((both_rigid || !(ignore_i && ignore_j)))
                 {
-                return true;
+                vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
+                if (test_overlap(r_ij, shape_i, shape_j, err))
+                    {
+                    return true;
+                    }
                 }
             }
         }
