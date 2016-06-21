@@ -86,7 +86,6 @@ void export_lattice()
     export_LatticeField<ShapeSpheropolyhedron<128> >("ExternalFieldLatticeSpheropolyhedron128");
 
     export_LatticeField<ShapeSpheropolygon>("ExternalFieldLatticeSpheropolygon");
-    export_LatticeField<ShapeSimplePolygon>("ExternalFieldLatticeSimplePolygon");
     export_LatticeField<ShapeEllipsoid>("ExternalFieldLatticeEllipsoid");
     export_LatticeField<ShapeSphinx>("ExternalFieldLatticeSphinx");
     export_LatticeField<ShapeUnion<ShapeSphere> >("ExternalFieldLatticeUnionSphere");
@@ -140,7 +139,6 @@ void export_external_fields()
     export_ExternalFieldInterface<ShapeSpheropolyhedron<128> >("ExternalFieldSpheropolyhedron128");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>("ExternalFieldSpheropolygon");
-    export_ExternalFieldInterface<ShapeSimplePolygon>("ExternalFieldSimplePolygon");
     export_ExternalFieldInterface<ShapeEllipsoid>("ExternalFieldEllipsoid");
     export_ExternalFieldInterface<ShapeSphinx>("ExternalFieldSphinx");
     export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >("ExternalFieldUnionSphere");
@@ -166,7 +164,6 @@ void export_external_fields()
     export_ExternalFieldComposite<ShapeSpheropolyhedron<128> >("ExternalFieldCompositeSpheropolyhedron128");
 
     export_ExternalFieldComposite<ShapeSpheropolygon>("ExternalFieldCompositeSpheropolygon");
-    export_ExternalFieldComposite<ShapeSimplePolygon>("ExternalFieldCompositeSimplePolygon");
     export_ExternalFieldComposite<ShapeEllipsoid>("ExternalFieldCompositeEllipsoid");
     export_ExternalFieldComposite<ShapeSphinx>("ExternalFieldCompositeSphinx");
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeUnionSphere");
@@ -187,7 +184,6 @@ void export_external_fields()
     export_RemoveDriftUpdater<ShapeSpheropolyhedron<128> >("RemoveDriftUpdaterSpheropolyhedron128");
 
     export_RemoveDriftUpdater<ShapeSpheropolygon>("RemoveDriftUpdaterSpheropolygon");
-    export_RemoveDriftUpdater<ShapeSimplePolygon>("RemoveDriftUpdaterSimplePolygon");
     export_RemoveDriftUpdater<ShapeEllipsoid>("RemoveDriftUpdaterEllipsoid");
     export_RemoveDriftUpdater<ShapeSphinx>("RemoveDriftUpdaterSphinx");
     export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >("RemoveDriftUpdaterUnionSphere");

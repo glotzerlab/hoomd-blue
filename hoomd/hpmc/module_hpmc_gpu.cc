@@ -43,7 +43,6 @@ void export_hpmc_gpu()
     {
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphereUnion");
-    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >("IntegratorHPMCMonoGPUSimplePolygon");
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >("IntegratorHPMCMonoGPUPolyhedron");
     export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoGPUConvexPolyhedron8");
     export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoGPUConvexPolyhedron16");
@@ -63,7 +62,6 @@ void export_hpmc_gpu()
     #endif
 
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSimplePolygon >("IntegratorHPMCMonoImplicitGPUSimplePolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >("IntegratorHPMCMonoImplicitGPUPolyhedron");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron8");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron16");
