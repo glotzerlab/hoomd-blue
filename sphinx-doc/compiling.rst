@@ -43,11 +43,11 @@ Put these commands in your ``~/.modules`` file to have a working environment ava
 
 You must specify ``BOOST_ROOT`` manually on the cmake command line. You can select python2 or python3::
 
-    cmake /path/to/hoomd/code -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=$HOME/hoomd-install
+    cmake /path/to/hoomd -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
 To run hoomd on blue waters, set ``PYTHONPATH``, and execute aprun::
 
-    PYTHONPATH=$PYTHONPATH:$HOME/hoomd-install/lib/hoomd/python-module
+    PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
     aprun <aprun parameters> python3 script.py
 
 **OLCF Titan**::
@@ -97,23 +97,24 @@ For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/
     module load scipy
     module load cmake
     module load cuda/7.0
-    module load boost/1.55.0
 
     export CC=`which icc`
     export CXX=`which icpc`
     export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
 
+Comet's boost module includes boost::python, but it is broken so you need to build boost (see :ref:`building-boost`).
+
 .. note::
     The python module on comet provides both python2. You need to force hoomd to build
     against python2::
 
-        cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2`
+        cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
 .. note::
     CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
     with ENABLE_CUDA=off.
 
-.. note::
+.. warning::
     Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
 
 For more information, see: http://www.sdsc.edu/support/user_guides/comet.html
@@ -288,7 +289,7 @@ Run::
 
 to test your build.
 
-.. warning::
+.. attention::
     On a cluster, ``make test`` may need to be run within a job on a compute node.
 
 To install a stable version for general use, run::
@@ -298,7 +299,7 @@ To install a stable version for general use, run::
 
 To run out of your build directory::
 
-    export PYTHONPATH=$PYTHONPATH:/path/to/hoomd-blue/build
+    export PYTHONPATH=$PYTHONPATH:/path/to/hoomd/build
 
 Compiling with MPI enabled
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
