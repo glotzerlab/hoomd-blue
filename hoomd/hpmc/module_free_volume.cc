@@ -34,7 +34,6 @@ namespace hpmc
 //! Export the SDF analyzers
 void export_free_volume()
     {
-    export_ComputeFreeVolume< ShapeConvexPolygon >("ComputeFreeVolumeConvexPolygon");
     export_ComputeFreeVolume< ShapeSimplePolygon >("ComputeFreeVolumeSimplePolygon");
     export_ComputeFreeVolume< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeConvexPolyhedron8");
     export_ComputeFreeVolume< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeConvexPolyhedron16");
@@ -54,7 +53,6 @@ void export_free_volume()
     export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeSphereUnion");
 
     #ifdef ENABLE_CUDA
-    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >("ComputeFreeVolumeGPUConvexPolygon");
     export_ComputeFreeVolumeGPU< ShapeSimplePolygon >("ComputeFreeVolumeGPUSimplePolygon");
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeGPUConvexPolyhedron8");
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeGPUConvexPolyhedron16");

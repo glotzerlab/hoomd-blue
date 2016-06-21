@@ -13,6 +13,7 @@ set(_hpmc_sources   module.cc
                     module_muvt.cc
                     module_sdf.cc
                     module_sphere.cc
+                    module_convex_polygon.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )

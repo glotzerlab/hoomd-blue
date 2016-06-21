@@ -71,7 +71,6 @@ PlaneWall make_plane_wall(boost::python::list norm, boost::python::list origin, 
 
 void export_lattice()
     {
-    export_LatticeField<ShapeConvexPolygon>("ExternalFieldLatticeConvexPolygon");
     export_LatticeField<ShapePolyhedron>("ExternalFieldLatticePolyhedron");
 
     export_LatticeField<ShapeConvexPolyhedron<8> >("ExternalFieldLatticeConvexPolyhedron8");
@@ -126,7 +125,6 @@ void export_walls()
 void export_external_fields()
     {
     // export the external field interfaces.
-    export_ExternalFieldInterface<ShapeConvexPolygon>("ExternalFieldConvexPolygon");
     export_ExternalFieldInterface<ShapePolyhedron>("ExternalFieldPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron<8> >("ExternalFieldConvexPolyhedron8");
@@ -153,7 +151,6 @@ void export_external_fields()
     export_lattice();
 
     //export composite fields
-    export_ExternalFieldComposite<ShapeConvexPolygon>("ExternalFieldCompositeConvexPolygon");
     export_ExternalFieldComposite<ShapePolyhedron>("ExternalFieldCompositePolyhedron");
 
     export_ExternalFieldComposite<ShapeConvexPolyhedron<8> >("ExternalFieldCompositeConvexPolyhedron8");
@@ -175,7 +172,6 @@ void export_external_fields()
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeUnionSphere");
 
     //export drift remover
-    export_RemoveDriftUpdater<ShapeConvexPolygon>("RemoveDriftUpdaterConvexPolygon");
     export_RemoveDriftUpdater<ShapePolyhedron>("RemoveDriftUpdaterPolyhedron");
 
     export_RemoveDriftUpdater<ShapeConvexPolyhedron<8> >("RemoveDriftUpdaterConvexPolyhedron8");

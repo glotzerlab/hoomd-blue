@@ -8,6 +8,7 @@ namespace hpmc
 {
 
 void export_sphere();
+void export_convex_polygon();
 
 void export_hpmc();
 void export_hpmc_gpu();
