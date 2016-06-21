@@ -60,8 +60,7 @@ UpdaterBoxMC::~UpdaterBoxMC()
     - hpmc_boxmc_volume_acceptance (Ratio of volume change trials accepted during logger interval)
     - hpmc_boxmc_shear_acceptance (Ratio of shear trials accepted during logger interval)
     - hpmc_boxmc_aspect_acceptance (Ratio of aspect trials accepted during logger interval)
-    - hpmc_boxmc_move_ratio (Ratio of box length trials to total of box length and shear trials over logging period)
-    - hpmc_boxmc_pressure (Current value of beta*p parameter for the box updater)
+    - hpmc_boxmc_betaP (Current value of beta*p parameter for the box updater)
 
     \returns a list of provided quantities
 */
@@ -75,9 +74,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     result.push_back("hpmc_boxmc_volume_acceptance");
     result.push_back("hpmc_boxmc_shear_acceptance");
     result.push_back("hpmc_boxmc_aspect_acceptance");
-    result.push_back("hpmc_boxmc_move_ratio");
-    result.push_back("hpmc_boxmc_delta");
-    result.push_back("hpmc_boxmc_pressure");
+    result.push_back("hpmc_boxmc_betaP");
     return result;
     }
 
@@ -117,13 +114,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
         else
             return counters.getAspectAcceptance();
         }
-    else if (quantity == "hpmc_boxmc_move_ratio")
-        {
-        uint64_t total_volume = counters.volume_accept_count + counters.volume_reject_count;
-        uint64_t total_shear = counters.shear_accept_count + counters.shear_reject_count;
-        return (total_volume) / (total_volume + total_shear);
-        }
-    else if (quantity == "hpmc_boxmc_pressure")
+    else if (quantity == "hpmc_boxmc_betaP")
         {
         return m_P->getValue(timestep);
         }
