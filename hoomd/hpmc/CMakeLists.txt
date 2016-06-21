@@ -19,6 +19,7 @@ set(_hpmc_sources   module.cc
                     module_polyhedron.cc
                     module_ellipsoid.cc
                     module_faceted_sphere.cc
+                    module_sphinx.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )
