@@ -227,15 +227,15 @@ class UpdaterBoxMC : public Updater
             }
 
         //! Get box length trial parameters
-        const std::vector<Scalar> get_length_delta() const
+        boost::python::tuple get_length_delta() const
             {
-            return std::vector<Scalar> (m_Length_delta, m_Length_delta + sizeof(m_Length_delta) / sizeof(Scalar));
+            return boost::python::make_tuple(m_Length_delta[0], m_Length_delta[1], m_Length_delta[2]);
             }
 
         //! Get box shear trial parameters
-        const std::vector<Scalar> get_shear_delta() const
+        boost::python::tuple get_shear_delta() const
             {
-            return std::vector<Scalar> (m_Shear_delta, m_Shear_delta + sizeof(m_Shear_delta) / sizeof(Scalar));
+            return boost::python::make_tuple(m_Shear_delta[0], m_Shear_delta[1], m_Shear_delta[2]);
             }
 
 
