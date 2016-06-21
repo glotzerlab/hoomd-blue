@@ -38,7 +38,6 @@ namespace hpmc
 //! Export the SDF analyzers
 void export_muvt()
     {
-    export_UpdaterMuVT< ShapeSphere >("UpdaterMuVTSphere");
     export_UpdaterMuVT< ShapeConvexPolygon >("UpdaterMuVTConvexPolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >("UpdaterMuVTSimplePolygon");
     export_UpdaterMuVT< ShapeConvexPolyhedron<8> >("UpdaterMuVTConvexPolyhedron8");
@@ -57,7 +56,6 @@ void export_muvt()
     export_UpdaterMuVT< ShapeFacetedSphere >("UpdaterMuVTFacetedSphere");
     export_UpdaterMuVT< ShapeUnion<ShapeSphere> >("UpdaterMuVTSphereUnion");
 
-    export_UpdaterMuVTImplicit< ShapeSphere >("UpdaterMuVTImplicitSphere");
     export_UpdaterMuVTImplicit< ShapeConvexPolygon >("UpdaterMuVTImplicitConvexPolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon >("UpdaterMuVTImplicitSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeConvexPolyhedron<8> >("UpdaterMuVTImplicitConvexPolyhedron8");

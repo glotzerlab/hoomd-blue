@@ -4,6 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoImplicit.h"
 
 #include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"
@@ -72,6 +73,8 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_shape_params();
     export_muvt();
 
+    export_sphere();
+
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
     class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");
     class_<poly2d_verts, boost::shared_ptr<poly2d_verts> >("poly2d_verts");
@@ -101,6 +104,9 @@ BOOST_PYTHON_MODULE(_hpmc)
     def("make_sphere_union_params", &make_union_params<ShapeSphere>);
     def("make_overlapreal3", &make_overlapreal3);
     def("make_overlapreal4", &make_overlapreal4);
+
+    // export counters
+    export_hpmc_implicit_counters();
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

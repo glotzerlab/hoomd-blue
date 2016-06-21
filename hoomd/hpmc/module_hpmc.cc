@@ -41,7 +41,6 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_hpmc()
     {
-    export_IntegratorHPMCMono< ShapeSphere >("IntegratorHPMCMonoSphere");
     export_IntegratorHPMCMono< ShapeConvexPolygon >("IntegratorHPMCMonoConvexPolygon");
     export_IntegratorHPMCMono< ShapeSimplePolygon >("IntegratorHPMCMonoSimplePolygon");
     export_IntegratorHPMCMono< ShapePolyhedron >("IntegratorHPMCMonoPolyhedron");
@@ -62,7 +61,6 @@ void export_hpmc()
     export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoSphereUnion");
 
     // implicit depletants
-    export_IntegratorHPMCMonoImplicit< ShapeSphere >("IntegratorHPMCMonoImplicitSphere");
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitConvexPolygon");
     export_IntegratorHPMCMonoImplicit< ShapeSimplePolygon >("IntegratorHPMCMonoImplicitSimplePolygon");
     export_IntegratorHPMCMonoImplicit< ShapePolyhedron >("IntegratorHPMCMonoImplicitPolyhedron");
@@ -81,10 +79,6 @@ void export_hpmc()
     export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitFacetedSphere");
     export_IntegratorHPMCMonoImplicit< ShapeSphinx >("IntegratorHPMCMonoImplicitSphinx");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitSphereUnion");
-
-    // export counters
-    export_hpmc_implicit_counters();
-
     }
 
 }

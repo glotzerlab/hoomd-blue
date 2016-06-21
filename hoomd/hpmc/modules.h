@@ -7,6 +7,8 @@
 namespace hpmc
 {
 
+void export_sphere();
+
 void export_hpmc();
 void export_hpmc_gpu();
 void export_hpmc_fl();

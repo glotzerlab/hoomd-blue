@@ -42,7 +42,6 @@ namespace hpmc
 void export_hpmc_gpu()
     {
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeSphere >("IntegratorHPMCMonoGPUSphere");
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphereUnion");
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >("IntegratorHPMCMonoGPUConvexPolygon");
     export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >("IntegratorHPMCMonoGPUSimplePolygon");
@@ -64,7 +63,6 @@ void export_hpmc_gpu()
     export_IntegratorHPMCMonoGPU< ShapeSphinx >("IntegratorHPMCMonoGPUSphinx");
     #endif
 
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >("IntegratorHPMCMonoImplicitGPUSphere");
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitGPUConvexPolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSimplePolygon >("IntegratorHPMCMonoImplicitGPUSimplePolygon");

@@ -71,7 +71,6 @@ PlaneWall make_plane_wall(boost::python::list norm, boost::python::list origin, 
 
 void export_lattice()
     {
-    export_LatticeField<ShapeSphere>("ExternalFieldLatticeSphere");
     export_LatticeField<ShapeConvexPolygon>("ExternalFieldLatticeConvexPolygon");
     export_LatticeField<ShapePolyhedron>("ExternalFieldLatticePolyhedron");
 
@@ -113,16 +112,12 @@ void export_walls()
     export_ExternalFieldWall<ShapeConvexPolyhedron<64> >("WallConvexPolyhedron64");
     export_ExternalFieldWall<ShapeConvexPolyhedron<128> >("WallConvexPolyhedron128");
 
-    export_ExternalFieldWall<ShapeSphere>("WallSphere");
-
     //export the updater
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<8> >("UpdaterExternalFieldWallConvexPolyhedron8");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<16> >("UpdaterExternalFieldWallConvexPolyhedron16");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<32> >("UpdaterExternalFieldWallConvexPolyhedron32");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<64> >("UpdaterExternalFieldWallConvexPolyhedron64");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<128> >("UpdaterExternalFieldWallConvexPolyhedron128");
-
-    export_UpdaterExternalFieldWall<ShapeSphere>("UpdaterExternalFieldWallSphere");
 
     }
 
@@ -131,7 +126,6 @@ void export_walls()
 void export_external_fields()
     {
     // export the external field interfaces.
-    export_ExternalFieldInterface<ShapeSphere>("ExternalFieldSphere");
     export_ExternalFieldInterface<ShapeConvexPolygon>("ExternalFieldConvexPolygon");
     export_ExternalFieldInterface<ShapePolyhedron>("ExternalFieldPolyhedron");
 
@@ -159,7 +153,6 @@ void export_external_fields()
     export_lattice();
 
     //export composite fields
-    export_ExternalFieldComposite<ShapeSphere>("ExternalFieldCompositeSphere");
     export_ExternalFieldComposite<ShapeConvexPolygon>("ExternalFieldCompositeConvexPolygon");
     export_ExternalFieldComposite<ShapePolyhedron>("ExternalFieldCompositePolyhedron");
 
@@ -182,7 +175,6 @@ void export_external_fields()
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeUnionSphere");
 
     //export drift remover
-    export_RemoveDriftUpdater<ShapeSphere>("RemoveDriftUpdaterSphere");
     export_RemoveDriftUpdater<ShapeConvexPolygon>("RemoveDriftUpdaterConvexPolygon");
     export_RemoveDriftUpdater<ShapePolyhedron>("RemoveDriftUpdaterPolyhedron");
 
