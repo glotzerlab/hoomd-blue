@@ -784,46 +784,46 @@ class tune_npt(tune):
         hoomd.util.quiet_status()
         tunable_map = {
                     'dLx': {
-                          'get': lambda: obj.get_length_delta()[0],
+                          'get': lambda: obj.length()['delta'][0],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(x, obj.get_length_delta()[1], obj.get_length_delta()[2]))
+                          'set': lambda x: obj.length(delta=(x, obj.length()['delta'][1], obj.length()['delta'][2]))
                           },
                     'dLy': {
-                          'get': lambda: obj.get_length_delta()[1],
+                          'get': lambda: obj.length()['delta'][1],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(obj.get_length_delta()[0], x, obj.get_length_delta()[2]))
+                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], x, obj.length()['delta'][2]))
                           },
                     'dLz': {
-                          'get': lambda: obj.get_length_delta()[2],
+                          'get': lambda: obj.length()['delta'][2],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(obj.get_length_delta()[0], obj.get_length_delta()[1], x))
+                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], obj.length()['delta'][1], x))
                           },
                     'dV': {
-                          'get': obj.get_volume_delta,
+                          'get': lambda: obj.volume()['delta'],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': obj.volume
+                          'set': lambda x: obj.volume(delta=x)
                           },
                     'dxy': {
-                          'get': lambda: obj.get_shear_delta()[0],
+                          'get': lambda: obj.shear()['delta'][0],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(x, obj.get_shear_delta()[1], obj.get_shear_delta()[2]))
+                          'set': lambda x: obj.shear(delta=(x, obj.shear()['delta'][1], obj.shear()['delta'][2]))
                           },
                     'dxz': {
-                          'get': lambda: obj.get_shear_delta()[1],
+                          'get': lambda: obj.shear()['delta'][1],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(obj.get_shear_delta()[0], x, obj.get_shear_delta()[2]))
+                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], x, obj.shear()['delta'][2]))
                           },
                     'dyz': {
-                          'get': lambda: obj.get_shear_delta()[2],
+                          'get': lambda: obj.shear()['delta'][2],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(obj.get_shear_delta()[0], obj.get_shear_delta()[1], x))
+                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
                           },
                     }
         hoomd.util.unquiet_status()

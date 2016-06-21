@@ -43,7 +43,7 @@ class boxmc(_updater):
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, betaP, seed, volume_delta=None, length_delta=None, shear_delta=None):
+    def __init__(self, mc, betaP, seed):
         hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
@@ -69,21 +69,15 @@ class boxmc(_updater):
                                                );
         self.setupUpdater(period);
 
-        self.volume_delta = None;
-        self.volume_weight = None;
-        if volume_delta is not None:
-            self.volume(delta=volume_delta)
-        self.length_delta = None;
-        self.length_weight = None;
-        if length_delta is not None:
-            self.length(delta=length_delta)
-        self.shear_delta = None;
-        self.shear_weight = None;
-        self.shear_reduce = None;
-        if shear_delta is not None:
-            self.shear(delta=shear_delta)
-        self.aspect_delta = None;
-        self.aspect_weight = None;
+        self.volume_delta = 0.0;
+        self.volume_weight = 0.0;
+        self.length_delta = [0.0, 0.0, 0.0];
+        self.length_weight = 0.0;
+        self.shear_delta = [0.0, 0.0, 0.0];
+        self.shear_weight = 0.0;
+        self.shear_reduce = 0.0;
+        self.aspect_delta = 0.0;
+        self.aspect_weight = 0.0;
 
         self.metadata_fields = ['betaP',
                                  'seed',
@@ -130,15 +124,12 @@ class boxmc(_updater):
 
         if weight is not None:
             self.volume_weight = float(weight)
-        if self.volume_weight is None:
-            self.volume_weight = 1.0
 
         if delta is not None:
             self.volume_delta = float(delta)
-        if self.volume_delta is None:
-            self.volume_delta = 0.0
 
         self.cpp_updater.volume(self.volume_delta, self.volume_weight);
+        return {'delta': self.volume_delta, 'weight': self.volume_weight};
 
     def length(self, delta=None, weight=None):
         R""" Enable/disable isobaric box dimension move and set parameters.
@@ -164,19 +155,16 @@ class boxmc(_updater):
 
         if weight is not None:
             self.length_weight = float(weight)
-        if self.length_weight is None:
-            self.length_weight = 1.0
 
         if delta is not None:
             if isinstance(delta, float) or isinstance(delta, int):
                 self.length_delta = [float(delta)] * 3
             else:
                 self.length_delta = [ float(d) for d in delta ]
-        if self.length_delta is None:
-            self.length_delta = [0.0] * 3
 
         self.cpp_updater.length(   self.length_delta[0], self.length_delta[1],
                                         self.length_delta[2], self.length_weight);
+        return {'delta': self.length_delta, 'weight': self.length_weight};
 
     def shear(self,  delta=None, weight=None, reduce=None):
         R""" Enable/disable box shear moves and set parameters.
@@ -203,25 +191,20 @@ class boxmc(_updater):
 
         if weight is not None:
             self.shear_weight = float(weight)
-        if self.shear_weight is None:
-            self.shear_weight = 1.0
 
         if reduce is not None:
             self.shear_reduce = float(reduce)
-        if self.shear_reduce is None:
-            self.shear_reduce = 0.0
 
         if delta is not None:
             if isinstance(delta, float) or isinstance(delta, int):
                 self.shear_delta = [float(delta)] * 3
             else:
                 self.shear_delta = [ float(d) for d in delta ]
-        if self.shear_delta is None:
-            self.shear_delta = [0.0] * 3
 
         self.cpp_updater.shear(    self.shear_delta[0], self.shear_delta[1],
                                         self.shear_delta[2], self.shear_reduce,
                                         self.shear_weight);
+        return {'delta': self.shear_delta, 'weight': self.shear_weight, 'reduce': self.shear_reduce}
 
     def aspect(self, delta=None, weight=None):
         R""" Enable/disable aspect ratio move and set parameters.
@@ -246,15 +229,12 @@ class boxmc(_updater):
 
         if weight is not None:
             self.aspect_weight = float(weight)
-        if self.aspect_weight is None:
-            self.aspect_weight = 1.0
 
         if delta is not None:
             self.aspect_delta = float(delta)
-        if self.aspect_delta is None:
-            self.aspect_delta = 0.0
 
         self.cpp_updater.aspect(self.aspect_delta, self.aspect_weight);
+        return {'delta': self.aspect_delta, 'weight': self.aspect_weight}
 
     def get_volume_acceptance(self):
         R""" Get the average acceptance ratio for volume changing moves.
@@ -313,38 +293,6 @@ class boxmc(_updater):
         return counters.getAspectAcceptance();
         counters = self.cpp_updater.getCounters(1);
         return counters.getAspectAcceptance();
-
-    def get_aspect_delta(self):
-        R"""Get the current delta parameter for the aspect ratio moves.
-
-        Returns:
-            Maximum aspect ratio move to be attempted.
-        """
-        return self.cpp_updater.get_aspect_delta();
-
-    def get_length_delta(self):
-        R"""Get the current delta parameters for the box edge length moves.
-
-        Returns:
-            (tuple) maximum change in Lx, Ly, Lz.
-        """
-        return self.cpp_updater.get_length_delta();
-
-    def get_volume_delta(self):
-        R"""Get the current delta parameter for the box volume moves.
-
-        Returns:
-            maximum change dV.
-        """
-        return self.cpp_updater.get_volume_delta();
-
-    def get_shear_delta(self):
-        R"""Get the current delta parameters for the box shear moves.
-
-        Returns:
-            (tuple) maximum change in xy, xz, yz.
-        """
-        return self.cpp_updater.get_shear_delta();
 
     def enable(self):
         R""" Enables the updater.

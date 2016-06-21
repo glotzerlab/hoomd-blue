@@ -22,6 +22,7 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
         self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
+        self.boxMC.volume(delta=0.1, weight=1)
         self.mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
 
         # place particles
@@ -54,7 +55,8 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
-        self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, volume_delta=0.1, seed=1)
+        self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
+        self.boxMC.volume(delta=0.1, weight=1)
         self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
                                             (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
 
@@ -83,7 +85,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.volume(delta=1.0)
+            self.boxMC.volume(delta=1.0, weight=1)
             self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
@@ -105,7 +107,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.length(delta=[1.0, 1.0, 1.0])
+            self.boxMC.length(delta=[1.0, 1.0, 1.0], weight=1)
             self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
@@ -127,7 +129,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.aspect(delta=0.5)
+            self.boxMC.aspect(delta=0.5, weight=1)
             self.mc.shape_param.set('A', diameter=0.05)
 
             for j in range(10):
@@ -183,13 +185,13 @@ class boxMC_test_methods (unittest.TestCase):
         boxMC = self.boxMC
         delta = tuple([float(n) for n in (0.1, 0.2, 0.3)])
         boxMC.length(delta=delta)
-        self.assertEqual(tuple([float(n) for n in boxMC.get_length_delta()]), delta)
+        self.assertEqual(tuple([float(n) for n in boxMC.length()['delta']]), delta)
         boxMC.shear(delta=delta)
-        self.assertEqual(tuple([float(n) for n in boxMC.get_shear_delta()]), delta)
+        self.assertEqual(tuple([float(n) for n in boxMC.shear()['delta']]), delta)
         boxMC.volume(delta=0.1)
-        self.assertEqual(boxMC.get_volume_delta(), 0.1)
+        self.assertEqual(boxMC.volume()['delta'], 0.1)
         boxMC.aspect(delta=0.1)
-        self.assertEqual(boxMC.get_aspect_delta(), 0.1)
+        self.assertEqual(boxMC.aspect()['delta'], 0.1)
 
 
 # This test takes too long to run. Validation tests do not need to be run on every commit.
