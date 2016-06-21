@@ -37,11 +37,6 @@ namespace hpmc
 //! Export the SDF analyzers
 void export_sdf()
     {
-    export_AnalyzerSDF< ShapeConvexPolyhedron<8> >("AnalyzerSDFConvexPolyhedron8");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<16> >("AnalyzerSDFConvexPolyhedron16");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<32> >("AnalyzerSDFConvexPolyhedron32");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<64> >("AnalyzerSDFConvexPolyhedron64");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<128> >("AnalyzerSDFConvexPolyhedron128");
     export_AnalyzerSDF< ShapeSpheropolyhedron<8> >("AnalyzerSDFSpheropolyhedron8");
     export_AnalyzerSDF< ShapeSpheropolyhedron<16> >("AnalyzerSDFSpheropolyhedron16");
     export_AnalyzerSDF< ShapeSpheropolyhedron<32> >("AnalyzerSDFSpheropolyhedron32");

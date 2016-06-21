@@ -16,6 +16,11 @@ void export_ellipsoid();
 void export_faceted_sphere();
 void export_sphinx();
 void export_union_sphere();
+void export_convex_polyhedron8();
+void export_convex_polyhedron16();
+void export_convex_polyhedron32();
+void export_convex_polyhedron64();
+void export_convex_polyhedron128();
 
 void export_hpmc();
 void export_hpmc_gpu();

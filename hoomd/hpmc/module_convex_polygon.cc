@@ -50,24 +50,24 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_convex_polygon()
     {
-    export_IntegratorHPMCMono< ShapeConvexPolygon >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeConvexPolygon >("ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeConvexPolygon >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeConvexPolygon >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeConvexPolygon >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapeConvexPolygon >("IntegratorHPMCMonoConvexPolygon");
+    export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitConvexPolygon");
+    export_ComputeFreeVolume< ShapeConvexPolygon >("ComputeFreeVolumeConvexPolygon");
+    export_AnalyzerSDF< ShapeConvexPolygon >("AnalyzerSDFConvexPolygon");
+    export_UpdaterMuVT< ShapeConvexPolygon >("UpdaterMuVTConvexPolygon");
+    export_UpdaterMuVTImplicit< ShapeConvexPolygon >("UpdaterMuVTImplicitConvexPolygon");
 
-    export_ExternalFieldInterface<ShapeConvexPolygon>("ExternalFieldSphere");
-    export_LatticeField<ShapeConvexPolygon>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeConvexPolygon>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeConvexPolygon>("RemoveDriftUpdaterSphere");
-    // export_ExternalFieldWall<ShapeConvexPolygon>("WallSphere");
-    // export_UpdaterExternalFieldWall<ShapeConvexPolygon>("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapeConvexPolygon>("ExternalFieldConvexPolygon");
+    export_LatticeField<ShapeConvexPolygon>("ExternalFieldLatticeConvexPolygon");
+    export_ExternalFieldComposite<ShapeConvexPolygon>("ExternalFieldCompositeConvexPolygon");
+    export_RemoveDriftUpdater<ShapeConvexPolygon>("RemoveDriftUpdaterConvexPolygon");
+    // export_ExternalFieldWall<ShapeConvexPolygon>("WallConvexPolygon");
+    // export_UpdaterExternalFieldWall<ShapeConvexPolygon>("UpdaterExternalFieldWallConvexPolygon");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >("IntegratorHPMCMonoGPUConvexPolygon");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitGPUConvexPolygon");
+    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >("ComputeFreeVolumeGPUConvexPolygon");
     #endif
     }
 

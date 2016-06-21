@@ -41,11 +41,6 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_hpmc()
     {
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoConvexPolyhedron8");
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoConvexPolyhedron16");
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoConvexPolyhedron32");
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<64> >("IntegratorHPMCMonoConvexPolyhedron64");
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<128> >("IntegratorHPMCMonoConvexPolyhedron128");
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<8> >("IntegratorHPMCMonoSpheropolyhedron8");
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<16> >("IntegratorHPMCMonoSpheropolyhedron16");
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoSpheropolyhedron32");
@@ -53,11 +48,6 @@ void export_hpmc()
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoSpheropolyhedron128");
 
     // implicit depletants
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoImplicitConvexPolyhedron8");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoImplicitConvexPolyhedron16");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoImplicitConvexPolyhedron32");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<64> >("IntegratorHPMCMonoImplicitConvexPolyhedron64");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<128> >("IntegratorHPMCMonoImplicitConvexPolyhedron128");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<8> >("IntegratorHPMCMonoImplicitSpheropolyhedron8");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<16> >("IntegratorHPMCMonoImplicitSpheropolyhedron16");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoImplicitSpheropolyhedron32");

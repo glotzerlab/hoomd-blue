@@ -34,11 +34,6 @@ namespace hpmc
 //! Export the SDF analyzers
 void export_free_volume()
     {
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeConvexPolyhedron8");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeConvexPolyhedron16");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<32> >("ComputeFreeVolumeConvexPolyhedron32");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<64> >("ComputeFreeVolumeConvexPolyhedron64");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<128> >("ComputeFreeVolumeConvexPolyhedron128");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<8> >("ComputeFreeVolumeSpheropolyhedron8");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<16> >("ComputeFreeVolumeSpheropolyhedron16");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeSpheropolyhedron32");
@@ -46,11 +41,6 @@ void export_free_volume()
     export_ComputeFreeVolume< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeSpheropolyhedron128");
 
     #ifdef ENABLE_CUDA
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeGPUConvexPolyhedron8");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeGPUConvexPolyhedron16");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<32> >("ComputeFreeVolumeGPUConvexPolyhedron32");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<64> >("ComputeFreeVolumeGPUConvexPolyhedron64");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<128> >("ComputeFreeVolumeGPUConvexPolyhedron128");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<8> >("ComputeFreeVolumeGPUSpheropolyhedron8");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<16> >("ComputeFreeVolumeGPUSpheropolyhedron16");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeGPUSpheropolyhedron32");

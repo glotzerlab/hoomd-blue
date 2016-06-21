@@ -50,24 +50,24 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_faceted_sphere()
     {
-    export_IntegratorHPMCMono< ShapeFacetedSphere >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeFacetedSphere >("ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeFacetedSphere >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeFacetedSphere >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeFacetedSphere >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapeFacetedSphere >("IntegratorHPMCMonoFacetedSphere");
+    export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitFacetedSphere");
+    export_ComputeFreeVolume< ShapeFacetedSphere >("ComputeFreeVolumeFacetedSphere");
+    export_AnalyzerSDF< ShapeFacetedSphere >("AnalyzerSDFFacetedSphere");
+    export_UpdaterMuVT< ShapeFacetedSphere >("UpdaterMuVTFacetedSphere");
+    export_UpdaterMuVTImplicit< ShapeFacetedSphere >("UpdaterMuVTImplicitFacetedSphere");
 
-    export_ExternalFieldInterface<ShapeFacetedSphere>("ExternalFieldSphere");
-    export_LatticeField<ShapeFacetedSphere>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeFacetedSphere>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeFacetedSphere>("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapeFacetedSphere>("WallSphere");
-    export_UpdaterExternalFieldWall<ShapeFacetedSphere>("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapeFacetedSphere>("ExternalFieldFacetedSphere");
+    export_LatticeField<ShapeFacetedSphere>("ExternalFieldLatticeFacetedSphere");
+    export_ExternalFieldComposite<ShapeFacetedSphere>("ExternalFieldCompositeFacetedSphere");
+    export_RemoveDriftUpdater<ShapeFacetedSphere>("RemoveDriftUpdaterFacetedSphere");
+    export_ExternalFieldWall<ShapeFacetedSphere>("WallFacetedSphere");
+    export_UpdaterExternalFieldWall<ShapeFacetedSphere>("UpdaterExternalFieldWallFacetedSphere");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeFacetedSphere >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >("IntegratorHPMCMonoGPUFacetedSphere");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitGPUFacetedSphere");
+    export_ComputeFreeVolumeGPU< ShapeFacetedSphere >("ComputeFreeVolumeGPUFacetedSphere");
     #endif
     }
 

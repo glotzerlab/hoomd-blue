@@ -50,26 +50,26 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_union_sphere()
     {
-    export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeSphere");
-    // export_AnalyzerSDF< ShapeUnion<ShapeSphere> >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeUnion<ShapeSphere> >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere> >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoSphereUnion");
+    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitSphereUnion");
+    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeSphereUnion");
+    // export_AnalyzerSDF< ShapeUnion<ShapeSphere> >("AnalyzerSDFSphereUnion");
+    export_UpdaterMuVT< ShapeUnion<ShapeSphere> >("UpdaterMuVTSphereUnion");
+    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere> >("UpdaterMuVTImplicitSphereUnion");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >("ExternalFieldSphere");
-    export_LatticeField<ShapeUnion<ShapeSphere> >("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapeUnion<ShapeSphere> >("WallSphere");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >("ExternalFieldSphereUnion");
+    export_LatticeField<ShapeUnion<ShapeSphere> >("ExternalFieldLatticeSphereUnion");
+    export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeSphereUnion");
+    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >("RemoveDriftUpdaterSphereUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeSphere> >("WallSphereUnion");
+    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >("UpdaterExternalFieldWallSphereUnion");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphereUnion");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeGPUSphereUnion");
 
     #endif
     #endif

@@ -82,6 +82,11 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_faceted_sphere();
     export_sphinx();
     export_union_sphere();
+    export_convex_polyhedron8();
+    export_convex_polyhedron16();
+    export_convex_polyhedron32();
+    export_convex_polyhedron64();
+    export_convex_polyhedron128();
 
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
     class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");

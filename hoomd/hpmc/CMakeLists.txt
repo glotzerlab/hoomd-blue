@@ -21,6 +21,11 @@ set(_hpmc_sources   module.cc
                     module_faceted_sphere.cc
                     module_sphinx.cc
                     module_union_sphere.cc
+                    module_convex_polyhedron8.cc
+                    module_convex_polyhedron16.cc
+                    module_convex_polyhedron32.cc
+                    module_convex_polyhedron64.cc
+                    module_convex_polyhedron128.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )

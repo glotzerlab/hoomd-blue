@@ -50,24 +50,24 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_polyhedron()
     {
-    export_IntegratorHPMCMono< ShapePolyhedron >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapePolyhedron >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapePolyhedron >("ComputeFreeVolumeSphere");
-    // export_AnalyzerSDF< ShapePolyhedron >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapePolyhedron >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapePolyhedron >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapePolyhedron >("IntegratorHPMCMonoPolyhedron");
+    export_IntegratorHPMCMonoImplicit< ShapePolyhedron >("IntegratorHPMCMonoImplicitPolyhedron");
+    export_ComputeFreeVolume< ShapePolyhedron >("ComputeFreeVolumePolyhedron");
+    // export_AnalyzerSDF< ShapePolyhedron >("AnalyzerSDFPolyhedron");
+    export_UpdaterMuVT< ShapePolyhedron >("UpdaterMuVTPolyhedron");
+    export_UpdaterMuVTImplicit< ShapePolyhedron >("UpdaterMuVTImplicitPolyhedron");
 
-    export_ExternalFieldInterface<ShapePolyhedron>("ExternalFieldSphere");
-    export_LatticeField<ShapePolyhedron>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapePolyhedron>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapePolyhedron>("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapePolyhedron>("WallSphere");
-    export_UpdaterExternalFieldWall<ShapePolyhedron>("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapePolyhedron>("ExternalFieldPolyhedron");
+    export_LatticeField<ShapePolyhedron>("ExternalFieldLatticePolyhedron");
+    export_ExternalFieldComposite<ShapePolyhedron>("ExternalFieldCompositePolyhedron");
+    export_RemoveDriftUpdater<ShapePolyhedron>("RemoveDriftUpdaterPolyhedron");
+    export_ExternalFieldWall<ShapePolyhedron>("WallPolyhedron");
+    export_UpdaterExternalFieldWall<ShapePolyhedron>("UpdaterExternalFieldWallPolyhedron");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapePolyhedron >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapePolyhedron >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapePolyhedron >("IntegratorHPMCMonoGPUPolyhedron");
+    export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >("IntegratorHPMCMonoImplicitGPUPolyhedron");
+    export_ComputeFreeVolumeGPU< ShapePolyhedron >("ComputeFreeVolumeGPUPolyhedron");
     #endif
     }
 

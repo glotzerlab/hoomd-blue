@@ -50,19 +50,19 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_sphinx()
     {
-    export_IntegratorHPMCMono< ShapeSphinx >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeSphinx >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeSphinx >("ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeSphinx >("AnalyzerSDFSphere");
-    // export_UpdaterMuVT< ShapeSphinx >("UpdaterMuVTSphere");
-    // export_UpdaterMuVTImplicit< ShapeSphinx >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapeSphinx >("IntegratorHPMCMonoSphinx");
+    export_IntegratorHPMCMonoImplicit< ShapeSphinx >("IntegratorHPMCMonoImplicitSphinx");
+    export_ComputeFreeVolume< ShapeSphinx >("ComputeFreeVolumeSphinx");
+    export_AnalyzerSDF< ShapeSphinx >("AnalyzerSDFSphinx");
+    // export_UpdaterMuVT< ShapeSphinx >("UpdaterMuVTSphinx");
+    // export_UpdaterMuVTImplicit< ShapeSphinx >("UpdaterMuVTImplicitSphinx");
 
-    export_ExternalFieldInterface<ShapeSphinx>("ExternalFieldSphere");
-    export_LatticeField<ShapeSphinx>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeSphinx>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeSphinx>("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapeSphinx>("WallSphere");
-    export_UpdaterExternalFieldWall<ShapeSphinx>("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapeSphinx>("ExternalFieldSphinx");
+    export_LatticeField<ShapeSphinx>("ExternalFieldLatticeSphinx");
+    export_ExternalFieldComposite<ShapeSphinx>("ExternalFieldCompositeSphinx");
+    export_RemoveDriftUpdater<ShapeSphinx>("RemoveDriftUpdaterSphinx");
+    export_ExternalFieldWall<ShapeSphinx>("WallSphinx");
+    export_UpdaterExternalFieldWall<ShapeSphinx>("UpdaterExternalFieldWallSphinx");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU

@@ -50,24 +50,24 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_ellipsoid()
     {
-    export_IntegratorHPMCMono< ShapeEllipsoid >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeEllipsoid >("ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeEllipsoid >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeEllipsoid >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeEllipsoid >("UpdaterMuVTImplicitSphere");
+    export_IntegratorHPMCMono< ShapeEllipsoid >("IntegratorHPMCMonoEllipsoid");
+    export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >("IntegratorHPMCMonoImplicitEllipsoid");
+    export_ComputeFreeVolume< ShapeEllipsoid >("ComputeFreeVolumeEllipsoid");
+    export_AnalyzerSDF< ShapeEllipsoid >("AnalyzerSDFEllipsoid");
+    export_UpdaterMuVT< ShapeEllipsoid >("UpdaterMuVTEllipsoid");
+    export_UpdaterMuVTImplicit< ShapeEllipsoid >("UpdaterMuVTImplicitEllipsoid");
 
-    export_ExternalFieldInterface<ShapeEllipsoid>("ExternalFieldSphere");
-    export_LatticeField<ShapeEllipsoid>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeEllipsoid>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeEllipsoid>("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapeEllipsoid>("WallSphere");
-    export_UpdaterExternalFieldWall<ShapeEllipsoid>("UpdaterExternalFieldWallSphere");
+    export_ExternalFieldInterface<ShapeEllipsoid>("ExternalFieldEllipsoid");
+    export_LatticeField<ShapeEllipsoid>("ExternalFieldLatticeEllipsoid");
+    export_ExternalFieldComposite<ShapeEllipsoid>("ExternalFieldCompositeEllipsoid");
+    export_RemoveDriftUpdater<ShapeEllipsoid>("RemoveDriftUpdaterEllipsoid");
+    export_ExternalFieldWall<ShapeEllipsoid>("WallEllipsoid");
+    export_UpdaterExternalFieldWall<ShapeEllipsoid>("UpdaterExternalFieldWallEllipsoid");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeEllipsoid >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >("IntegratorHPMCMonoGPUEllipsoid");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >("IntegratorHPMCMonoImplicitGPUEllipsoid");
+    export_ComputeFreeVolumeGPU< ShapeEllipsoid >("ComputeFreeVolumeGPUEllipsoid");
     #endif
     }
 
