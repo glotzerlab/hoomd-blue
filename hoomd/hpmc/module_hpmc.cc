@@ -17,7 +17,6 @@
 #include "ShapeFacetedSphere.h"
 #include "ShapeSphinx.h"
 #include "AnalyzerSDF.h"
-#include "UpdaterBoxNPT.h"
 #include "ShapeUnion.h"
 
 #ifdef ENABLE_CUDA
