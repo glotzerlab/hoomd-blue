@@ -16,6 +16,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
                     module_spheropolygon.cc
+                    module_polyhedron.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )
