@@ -47,7 +47,6 @@ void export_sdf()
     export_AnalyzerSDF< ShapeSpheropolyhedron<32> >("AnalyzerSDFSpheropolyhedron32");
     export_AnalyzerSDF< ShapeSpheropolyhedron<64> >("AnalyzerSDFSpheropolyhedron64");
     export_AnalyzerSDF< ShapeSpheropolyhedron<128> >("AnalyzerSDFSpheropolyhedron128");
-    export_AnalyzerSDF< ShapeFacetedSphere >("AnalyzerSDFFacetedSphere");
     }
 
 }
