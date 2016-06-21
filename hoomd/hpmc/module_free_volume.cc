@@ -44,7 +44,6 @@ void export_free_volume()
     export_ComputeFreeVolume< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeSpheropolyhedron32");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<64> >("ComputeFreeVolumeSpheropolyhedron64");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeSpheropolyhedron128");
-    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeSphereUnion");
 
     #ifdef ENABLE_CUDA
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeGPUConvexPolyhedron8");
@@ -57,7 +56,6 @@ void export_free_volume()
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeGPUSpheropolyhedron32");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<64> >("ComputeFreeVolumeGPUSpheropolyhedron64");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeGPUSpheropolyhedron128");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeGPUSphereUnion");
     #endif
     }
 

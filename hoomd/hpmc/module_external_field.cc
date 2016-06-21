@@ -83,8 +83,6 @@ void export_lattice()
     export_LatticeField<ShapeSpheropolyhedron<32> >("ExternalFieldLatticeSpheropolyhedron32");
     export_LatticeField<ShapeSpheropolyhedron<64> >("ExternalFieldLatticeSpheropolyhedron64");
     export_LatticeField<ShapeSpheropolyhedron<128> >("ExternalFieldLatticeSpheropolyhedron128");
-
-    export_LatticeField<ShapeUnion<ShapeSphere> >("ExternalFieldLatticeUnionSphere");
     }
 
 void export_walls()
@@ -133,8 +131,6 @@ void export_external_fields()
     export_ExternalFieldInterface<ShapeSpheropolyhedron<64> >("ExternalFieldSpheropolyhedron64");
     export_ExternalFieldInterface<ShapeSpheropolyhedron<128> >("ExternalFieldSpheropolyhedron128");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >("ExternalFieldUnionSphere");
-
     // export wall fields
     export_walls();
     //export lattice fields
@@ -154,8 +150,6 @@ void export_external_fields()
     export_ExternalFieldComposite<ShapeSpheropolyhedron<64> >("ExternalFieldCompositeSpheropolyhedron64");
     export_ExternalFieldComposite<ShapeSpheropolyhedron<128> >("ExternalFieldCompositeSpheropolyhedron128");
 
-    export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeUnionSphere");
-
     //export drift remover
 
     export_RemoveDriftUpdater<ShapeConvexPolyhedron<8> >("RemoveDriftUpdaterConvexPolyhedron8");
@@ -169,8 +163,6 @@ void export_external_fields()
     export_RemoveDriftUpdater<ShapeSpheropolyhedron<32> >("RemoveDriftUpdaterSpheropolyhedron32");
     export_RemoveDriftUpdater<ShapeSpheropolyhedron<64> >("RemoveDriftUpdaterSpheropolyhedron64");
     export_RemoveDriftUpdater<ShapeSpheropolyhedron<128> >("RemoveDriftUpdaterSpheropolyhedron128");
-
-    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >("RemoveDriftUpdaterUnionSphere");
     }
 
 } // namespace

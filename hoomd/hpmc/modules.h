@@ -15,6 +15,7 @@ void export_polyhedron();
 void export_ellipsoid();
 void export_faceted_sphere();
 void export_sphinx();
+void export_union_sphere();
 
 void export_hpmc();
 void export_hpmc_gpu();
