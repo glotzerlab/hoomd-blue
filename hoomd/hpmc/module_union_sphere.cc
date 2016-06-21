@@ -65,13 +65,11 @@ void export_union_sphere()
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >("UpdaterExternalFieldWallSphereUnion");
 
     #ifdef ENABLE_CUDA
-    #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphereUnion");
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeGPUSphereUnion");
 
-    #endif
     #endif
     }
 

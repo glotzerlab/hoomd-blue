@@ -65,13 +65,11 @@ void export_convex_polyhedron32()
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<32> >("UpdaterExternalFieldWallConvexPolyhedron32");
 
     #ifdef ENABLE_CUDA
-    #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoGPUConvexPolyhedron32");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron32");
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<32> >("ComputeFreeVolumeGPUConvexPolyhedron32");
 
-    #endif
     #endif
     }
 

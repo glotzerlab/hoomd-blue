@@ -65,13 +65,11 @@ void export_convex_spheropolyhedron128()
     // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron<128> >("UpdaterExternalFieldWallSpheropolyhedron128");
 
     #ifdef ENABLE_CUDA
-    #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoGPUSpheropolyhedron128");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoImplicitGPUSpheropolyhedron128");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeGPUSpheropolyhedron128");
 
-    #endif
     #endif
     }
 

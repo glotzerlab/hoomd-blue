@@ -65,13 +65,11 @@ void export_convex_polyhedron8()
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<8> >("UpdaterExternalFieldWallConvexPolyhedron8");
 
     #ifdef ENABLE_CUDA
-    #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoGPUConvexPolyhedron8");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<8> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron8");
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<8> >("ComputeFreeVolumeGPUConvexPolyhedron8");
 
-    #endif
     #endif
     }
 
