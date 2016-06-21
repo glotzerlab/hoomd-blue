@@ -397,30 +397,36 @@ void UpdaterBoxMC::update(unsigned int timestep)
     // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
     float range = m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
+    if (range == 0.0)
+        {
+        // Attempt to execute with no move types set.
+        m_exec_conf->msg->warning() << "No move types with non-zero weight. UpdaterBoxMC has nothing to do." << std::endl;
+        if (m_prof) m_prof->pop();
+        return;
+        }
     float move_type_select = rng.f() * range;
-    // supposedly Saru::f() returns a float on the interval (0,1]. Need to confirm...
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select < m_Volume_weight)
+    if (move_type_select <= m_Volume_weight)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_Length_weight)
+    else if (move_type_select <= m_Volume_weight + m_Length_weight)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_Length_weight + m_Shear_weight)
+    else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
