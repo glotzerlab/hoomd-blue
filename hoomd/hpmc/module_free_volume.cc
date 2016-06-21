@@ -45,7 +45,6 @@ void export_free_volume()
     export_ComputeFreeVolume< ShapeSpheropolyhedron<64> >("ComputeFreeVolumeSpheropolyhedron64");
     export_ComputeFreeVolume< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeSpheropolyhedron128");
     export_ComputeFreeVolume< ShapeEllipsoid >("ComputeFreeVolumeEllipsoid");
-    export_ComputeFreeVolume< ShapeSpheropolygon >("ComputeFreeVolumeSpheropolygon");
     export_ComputeFreeVolume< ShapePolyhedron >("ComputeFreeVolumePolyhedron");
     export_ComputeFreeVolume< ShapeFacetedSphere >("ComputeFreeVolumeFacetedSphere");
     export_ComputeFreeVolume< ShapeSphinx >("ComputeFreeVolumeSphinx");
@@ -63,7 +62,6 @@ void export_free_volume()
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<64> >("ComputeFreeVolumeGPUSpheropolyhedron64");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<128> >("ComputeFreeVolumeGPUSpheropolyhedron128");
     export_ComputeFreeVolumeGPU< ShapeEllipsoid >("ComputeFreeVolumeGPUEllipsoid");
-    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >("ComputeFreeVolumeGPUSpheropolygon");
     export_ComputeFreeVolumeGPU< ShapePolyhedron >("ComputeFreeVolumeGPUPolyhedron");
     export_ComputeFreeVolumeGPU< ShapeFacetedSphere >("ComputeFreeVolumeGPUFacetedSphere");
     #ifdef ENABLE_SPHINX_GPU

@@ -49,7 +49,6 @@ void export_muvt()
     export_UpdaterMuVT< ShapeSpheropolyhedron<64> >("UpdaterMuVTSpheropolyhedron64");
     export_UpdaterMuVT< ShapeSpheropolyhedron<128> >("UpdaterMuVTSpheropolyhedron128");
     export_UpdaterMuVT< ShapeEllipsoid >("UpdaterMuVTEllipsoid");
-    export_UpdaterMuVT< ShapeSpheropolygon >("UpdaterMuVTSpheropolygon");
     export_UpdaterMuVT< ShapePolyhedron >("UpdaterMuVTPolyhedron");
     export_UpdaterMuVT< ShapeFacetedSphere >("UpdaterMuVTFacetedSphere");
     export_UpdaterMuVT< ShapeUnion<ShapeSphere> >("UpdaterMuVTSphereUnion");
@@ -65,7 +64,6 @@ void export_muvt()
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron<64> >("UpdaterMuVTImplicitSpheropolyhedron64");
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron<128> >("UpdaterMuVTImplicitSpheropolyhedron128");
     export_UpdaterMuVTImplicit< ShapeEllipsoid >("UpdaterMuVTImplicitEllipsoid");
-    export_UpdaterMuVTImplicit< ShapeSpheropolygon >("UpdaterMuVTImplicitSpheropolygon");
     export_UpdaterMuVTImplicit< ShapePolyhedron >("UpdaterMuVTImplicitPolyhedron");
     export_UpdaterMuVTImplicit< ShapeFacetedSphere >("UpdaterMuVTImplicitFacetedSphere");
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere> >("UpdaterMuVTImplicitSphereUnion");

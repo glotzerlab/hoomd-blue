@@ -55,7 +55,6 @@ void export_hpmc_gpu()
     export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron<64> >("IntegratorHPMCMonoGPUSpheropolyhedron64");
     export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoGPUSpheropolyhedron128");
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >("IntegratorHPMCMonoGPUEllipsoid");
-    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >("IntegratorHPMCMonoGPUSpheropolygon");
     export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >("IntegratorHPMCMonoGPUFacetedSphere");
     #ifdef ENABLE_SPHINX_GPU
     export_IntegratorHPMCMonoGPU< ShapeSphinx >("IntegratorHPMCMonoGPUSphinx");
@@ -74,7 +73,6 @@ void export_hpmc_gpu()
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron<64> >("IntegratorHPMCMonoImplicitGPUSpheropolyhedron64");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoImplicitGPUSpheropolyhedron128");
     export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid>("IntegratorHPMCMonoImplicitGPUEllipsoid");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon>("IntegratorHPMCMonoImplicitGPUSpheropolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere>("IntegratorHPMCMonoImplicitGPUFacetedSphere");
     #ifdef ENABLE_SPHINX_GPU
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >("IntegratorHPMCMonoImplicitGPUSphinx");

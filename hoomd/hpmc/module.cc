@@ -76,6 +76,7 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_sphere();
     export_convex_polygon();
     export_simple_polygon();
+    export_spheropolygon();
 
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
     class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");
