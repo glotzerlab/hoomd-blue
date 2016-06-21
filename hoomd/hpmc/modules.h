@@ -22,13 +22,13 @@ void export_convex_polyhedron32();
 void export_convex_polyhedron64();
 void export_convex_polyhedron128();
 
-void export_hpmc();
-void export_hpmc_gpu();
-void export_hpmc_fl();
-void export_sdf();
-void export_free_volume();
+void export_convex_spheropolyhedron8();
+void export_convex_spheropolyhedron16();
+void export_convex_spheropolyhedron32();
+void export_convex_spheropolyhedron64();
+void export_convex_spheropolyhedron128();
+
 void export_external_fields();
-void export_muvt();
 }
 
 #endif // __MODULES__

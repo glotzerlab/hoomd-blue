@@ -64,14 +64,9 @@ BOOST_PYTHON_MODULE(_hpmc)
     {
     export_IntegratorHPMC();
 
-    export_hpmc();
     export_UpdaterBoxMC();
-    export_hpmc_gpu();
-    export_sdf();
     export_external_fields();
-    export_free_volume();
     export_shape_params();
-    export_muvt();
 
     export_sphere();
     export_convex_polygon();
@@ -87,6 +82,11 @@ BOOST_PYTHON_MODULE(_hpmc)
     export_convex_polyhedron32();
     export_convex_polyhedron64();
     export_convex_polyhedron128();
+    export_convex_spheropolyhedron8();
+    export_convex_spheropolyhedron16();
+    export_convex_spheropolyhedron32();
+    export_convex_spheropolyhedron64();
+    export_convex_spheropolyhedron128();
 
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
     class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");

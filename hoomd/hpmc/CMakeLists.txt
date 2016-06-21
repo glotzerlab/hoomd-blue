@@ -7,11 +7,6 @@ endif()
 
 set(_hpmc_sources   module.cc
                     module_external_field.cc
-                    module_free_volume.cc
-                    module_hpmc.cc
-                    module_hpmc_gpu.cc
-                    module_muvt.cc
-                    module_sdf.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
@@ -26,6 +21,11 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron32.cc
                     module_convex_polyhedron64.cc
                     module_convex_polyhedron128.cc
+                    module_convex_spheropolyhedron8.cc
+                    module_convex_spheropolyhedron16.cc
+                    module_convex_spheropolyhedron32.cc
+                    module_convex_spheropolyhedron64.cc
+                    module_convex_spheropolyhedron128.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )

@@ -50,24 +50,24 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_spheropolygon()
     {
-    export_IntegratorHPMCMono< ShapeSpheropolygon >("IntegratorHPMCMonoSphereopolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitSphereopolygon");
-    export_ComputeFreeVolume< ShapeSpheropolygon >("ComputeFreeVolumeSphereopolygon");
-    export_AnalyzerSDF< ShapeSpheropolygon >("AnalyzerSDFSphereopolygon");
-    export_UpdaterMuVT< ShapeSpheropolygon >("UpdaterMuVTSphereopolygon");
-    export_UpdaterMuVTImplicit< ShapeSpheropolygon >("UpdaterMuVTImplicitSphereopolygon");
+    export_IntegratorHPMCMono< ShapeSpheropolygon >("IntegratorHPMCMonoSpheropolygon");
+    export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitSpheropolygon");
+    export_ComputeFreeVolume< ShapeSpheropolygon >("ComputeFreeVolumeSpheropolygon");
+    export_AnalyzerSDF< ShapeSpheropolygon >("AnalyzerSDFSpheropolygon");
+    export_UpdaterMuVT< ShapeSpheropolygon >("UpdaterMuVTSpheropolygon");
+    export_UpdaterMuVTImplicit< ShapeSpheropolygon >("UpdaterMuVTImplicitSpheropolygon");
 
-    export_ExternalFieldInterface<ShapeSpheropolygon>("ExternalFieldSphereopolygon");
-    export_LatticeField<ShapeSpheropolygon>("ExternalFieldLatticeSphereopolygon");
-    export_ExternalFieldComposite<ShapeSpheropolygon>("ExternalFieldCompositeSphereopolygon");
-    export_RemoveDriftUpdater<ShapeSpheropolygon>("RemoveDriftUpdaterSphereopolygon");
-    // export_ExternalFieldWall<ShapeSpheropolygon>("WallSphereopolygon");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolygon>("UpdaterExternalFieldWallSphereopolygon");
+    export_ExternalFieldInterface<ShapeSpheropolygon>("ExternalFieldSpheropolygon");
+    export_LatticeField<ShapeSpheropolygon>("ExternalFieldLatticeSpheropolygon");
+    export_ExternalFieldComposite<ShapeSpheropolygon>("ExternalFieldCompositeSpheropolygon");
+    export_RemoveDriftUpdater<ShapeSpheropolygon>("RemoveDriftUpdaterSpheropolygon");
+    // export_ExternalFieldWall<ShapeSpheropolygon>("WallSpheropolygon");
+    // export_UpdaterExternalFieldWall<ShapeSpheropolygon>("UpdaterExternalFieldWallSpheropolygon");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >("IntegratorHPMCMonoGPUSphereopolygon");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitGPUSphereopolygon");
-    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >("ComputeFreeVolumeGPUSphereopolygon");
+    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >("IntegratorHPMCMonoGPUSpheropolygon");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitGPUSpheropolygon");
+    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >("ComputeFreeVolumeGPUSpheropolygon");
     #endif
     }
 

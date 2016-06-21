@@ -69,15 +69,6 @@ PlaneWall make_plane_wall(boost::python::list norm, boost::python::list origin, 
     return PlaneWall(normal, orig, inside);
     }
 
-void export_lattice()
-    {
-    export_LatticeField<ShapeSpheropolyhedron<8> >("ExternalFieldLatticeSpheropolyhedron8");
-    export_LatticeField<ShapeSpheropolyhedron<16> >("ExternalFieldLatticeSpheropolyhedron16");
-    export_LatticeField<ShapeSpheropolyhedron<32> >("ExternalFieldLatticeSpheropolyhedron32");
-    export_LatticeField<ShapeSpheropolyhedron<64> >("ExternalFieldLatticeSpheropolyhedron64");
-    export_LatticeField<ShapeSpheropolyhedron<128> >("ExternalFieldLatticeSpheropolyhedron128");
-    }
-
 void export_walls()
     {
     // export wall structs.
@@ -89,40 +80,14 @@ void export_walls()
     def("make_sphere_wall", &make_sphere_wall);
     def("make_cylinder_wall", &make_cylinder_wall);
     def("make_plane_wall", &make_plane_wall);
-
-    // export wall class
-    //export the updater
     }
 
 
 //! Export the external field classes to python
 void export_external_fields()
     {
-    // export the external field interfaces.
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<8> >("ExternalFieldSpheropolyhedron8");
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<16> >("ExternalFieldSpheropolyhedron16");
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<32> >("ExternalFieldSpheropolyhedron32");
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<64> >("ExternalFieldSpheropolyhedron64");
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<128> >("ExternalFieldSpheropolyhedron128");
-
     // export wall fields
     export_walls();
-    //export lattice fields
-    export_lattice();
-
-    //export composite fields
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<8> >("ExternalFieldCompositeSpheropolyhedron8");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<16> >("ExternalFieldCompositeSpheropolyhedron16");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<32> >("ExternalFieldCompositeSpheropolyhedron32");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<64> >("ExternalFieldCompositeSpheropolyhedron64");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<128> >("ExternalFieldCompositeSpheropolyhedron128");
-
-    //export drift remover
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<8> >("RemoveDriftUpdaterSpheropolyhedron8");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<16> >("RemoveDriftUpdaterSpheropolyhedron16");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<32> >("RemoveDriftUpdaterSpheropolyhedron32");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<64> >("RemoveDriftUpdaterSpheropolyhedron64");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<128> >("RemoveDriftUpdaterSpheropolyhedron128");
     }
 
 } // namespace
