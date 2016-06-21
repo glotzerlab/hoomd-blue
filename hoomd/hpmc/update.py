@@ -20,18 +20,24 @@ class boxmc(_updater):
     Args:
 
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        betaP (float) or (:py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+        betaP (:py:class:`float` or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
                                                     inverse volume in 3D) Apply your chosen reduced pressure convention
                                                     externally.
         seed (int): random number seed for MC box changes
-        volume_delta (float): If provided, set volume move parameters (see :py:mod:`hoomd.hpmc.boxmc.volume`)
-        length_delta (float) or (tuple): If provided, set box length move parameters (see :py:mod:`hoomd.hpmc.boxmc.length`)
-        shear_delta (float) or (tuple): If provided, set shear move parameters (see :py:mod:`hoomd.hpmc.boxmc.shear`)
 
-    One or more Monte Carlo move types are applied to evolve the simulation box.
+    One or more Monte Carlo move types are applied to evolve the simulation box. By default, no moves are applied.
+    Activate desired move types using the following methods with a non-zero weight:
+
+    - :py:meth:`aspect` - box aspect ratio moves
+    - :py:meth:`length` - change box lengths independently
+    - :py:meth:`shear` - shear the box
+    - :py:meth:`volume` - scale the box lengths uniformly
 
     Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
     pressure :math:`P^*` are left for the user to perform.
+
+    Note:
+        All *delta* and *weight* values for all move types default to 0.
 
     Example::
 
@@ -106,17 +112,22 @@ class boxmc(_updater):
         R""" Enable/disable isobaric volume move and set parameters.
 
         Args:
-            delta (float): maximum change of the box area (2D) or volume (3D)
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables move type.
+            delta (float): maximum change of the box area (2D) or volume (3D).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
 
         Sample the isobaric distribution of box volumes by rescaling the box.
 
-        To change the parameters of an existing updater, you must have saved it when it was specified.
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
+
             box_update.volume(delta=0.01)
             box_update.volume(delta=0.01, weight=2)
             box_update.volume(delta=0.01, weight=0.15)
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
         hoomd.util.print_status_line();
@@ -135,19 +146,28 @@ class boxmc(_updater):
         R""" Enable/disable isobaric box dimension move and set parameters.
 
         Args:
-            delta (scalar), (tuple) or (list): maximum change of the box thickness for each pair of parallel planes connected by
-            the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables move.
+            delta (:py:class:`float` or :py:class:`tuple`): maximum change of the box thickness for each pair of parallel planes
+                                               connected by the corresponding box edges. I.e. maximum change of
+                                               HOOMD-blue box parameters Lx, Ly, Lz. A single float *x* is equivalent to
+                                               (*x*, *x*, *x*).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
 
-        Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces.
+        Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces,
+        Lx, Ly, Lz (see :ref:`boxdim`).
 
-        To change the parameters of an existing updater, you must have saved it when it was specified.
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
+
             box_update.length(delta=(0.01, 0.01, 0.0)) # 2D box changes
             box_update.length(delta=(0.01, 0.01, 0.01), weight=2)
             box_update.length(delta=0.01, weight=2)
             box_update.length(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
         hoomd.util.print_status_line();
@@ -170,20 +190,28 @@ class boxmc(_updater):
         R""" Enable/disable box shear moves and set parameters.
 
         Args:
-            delta (tuple) or (list): maximum change of the box tilt factor xy, xz, yz.
+            delta (tuple): maximum change of the box tilt factor xy, xz, yz.
             reduce (float): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
                     Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
-                    Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
-                    but which temporarily break detailed balance.
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables.
+                    Note that due to precision errors, lattice reduction may introduce small overlaps which can be
+                    resolved, but which temporarily break detailed balance.
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
 
-        Sample the isobaric distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
-        (See HOOMD-blue [boxdim](https://codeblue.umich.edu/hoomd-blue/doc/classhoomd__script_1_1data_1_1boxdim.html) documentation)
+        Sample the distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
+        (see :ref:`boxdim`).
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
+
             box_update.shear(delta=(0.01, 0.00, 0.0)) # 2D box changes
             box_update.shear(delta=(0.01, 0.01, 0.01), weight=2)
             box_update.shear(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta*, *weight*, and *reduce*.
 
         """
         hoomd.util.print_status_line();
@@ -211,17 +239,22 @@ class boxmc(_updater):
 
         Args:
             delta (float): maximum relative change of aspect ratio
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables move type.
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
 
         Rescale aspect ratio along a randomly chosen dimension.
 
-        To change the parameters of an existing updater, you must have saved it when it was specified.
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
 
             box_update.aspect(delta=0.01)
             box_update.aspect(delta=0.01, weight=2)
             box_update.aspect(delta=0.01, weight=0.15)
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta*, and *weight*.
 
         """
         hoomd.util.print_status_line();

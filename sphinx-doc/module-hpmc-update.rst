@@ -8,8 +8,8 @@ hpmc.update
 .. autosummary::
     :nosignatures:
 
-    hpmc.update.muvt
     hpmc.update.boxmc
+    hpmc.update.muvt
     hpmc.update.remove_drift
     hpmc.update.wall
 
