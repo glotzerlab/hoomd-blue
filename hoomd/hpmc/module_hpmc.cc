@@ -51,7 +51,6 @@ void export_hpmc()
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoSpheropolyhedron32");
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<64> >("IntegratorHPMCMonoSpheropolyhedron64");
     export_IntegratorHPMCMono< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoSpheropolyhedron128");
-    export_IntegratorHPMCMono< ShapeEllipsoid >("IntegratorHPMCMonoEllipsoid");
     export_IntegratorHPMCMono< ShapeFacetedSphere >("IntegratorHPMCMonoFacetedSphere");
     export_IntegratorHPMCMono< ShapeSphinx >("IntegratorHPMCMonoSphinx");
     export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoSphereUnion");
@@ -67,7 +66,6 @@ void export_hpmc()
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoImplicitSpheropolyhedron32");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<64> >("IntegratorHPMCMonoImplicitSpheropolyhedron64");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<128> >("IntegratorHPMCMonoImplicitSpheropolyhedron128");
-    export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >("IntegratorHPMCMonoImplicitEllipsoid");
     export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >("IntegratorHPMCMonoImplicitFacetedSphere");
     export_IntegratorHPMCMonoImplicit< ShapeSphinx >("IntegratorHPMCMonoImplicitSphinx");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitSphereUnion");

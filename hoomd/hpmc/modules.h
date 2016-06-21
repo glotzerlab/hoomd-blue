@@ -12,6 +12,7 @@ void export_convex_polygon();
 void export_simple_polygon();
 void export_spheropolygon();
 void export_polyhedron();
+void export_ellipsoid();
 
 void export_hpmc();
 void export_hpmc_gpu();
