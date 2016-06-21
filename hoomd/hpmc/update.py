@@ -14,371 +14,260 @@ import math
 from hoomd.update import _updater
 import hoomd
 
-class npt(_updater):
-    R""" Apply box updates to sample the NPT ensemble.
+class boxmc(_updater):
+    R""" Apply box updates to sample isobaric and related ensembles.
 
     Args:
+
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
-        dLx (float): maximum change of the box length in the first lattice vector direction (in distance units)
-        dLy (float): maximum change of the box length in the second lattice vector direction (in distance units)
-        dLz (float): maximum change of the box length in the third lattice vector direction (in distance units)
-        dxy (float): maximum change of the X-Y tilt factor (dimensionless)
-        dxz (float): maximum change of the X-Z tilt factor (dimensionless)
-        dyz (float): maximum change of the Y-Z tilt factor as a function of time (dimensionless)
-        move_ratio (float): ratio of trial volume change attempts to trial box shearing attempts
-        reduce (int): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-                   Shear of +/- 0.5 cannot be lattice reduced, so set to a value <= 0.5 to disable (default 0).
-                   Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
-                   but which temporarily break detailed balance. Automatic lattice reduction is not supported with MPI.
-        isotropic (bool): Set to true to link dLx, dLy, and dLz. The dLy and dLz parameters are then ignored. To change the box
-                   aspect ratio, either disable the updater or set the isotropic parameter to False during the call to
-                   the hoomd update.box_resize()
+        betaP (:py:class:`float` or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                                                    inverse volume in 3D) Apply your chosen reduced pressure convention
+                                                    externally.
         seed (int): random number seed for MC box changes
-        period (int): The box size will be updated every *period* steps
 
-    Every *period* steps, a lattice vector is rescaled or sheared with Metropolis acceptance criteria.
-    Most trial box changes require updating every particle position at least once and checking the whole system
-    for overlaps. This will slow down simulations a lot if run frequently, but box angles are slow to equilibrate.
+    One or more Monte Carlo move types are applied to evolve the simulation box. By default, no moves are applied.
+    Activate desired move types using the following methods with a non-zero weight:
 
-    Pressure inputs to update.npt are defined as :math:`\beta P`. Conversions from a specific definition of reduced
-    pressure :math:`P^*` are left as an exercise for the user.
+    - :py:meth:`aspect` - box aspect ratio moves
+    - :py:meth:`length` - change box lengths independently
+    - :py:meth:`shear` - shear the box
+    - :py:meth:`volume` - scale the box lengths uniformly
 
-    Examples::
+    Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
+    pressure :math:`P^*` are left for the user to perform.
+
+    Note:
+        All *delta* and *weight* values for all move types default to 0.
+
+    Example::
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        npt = hpmc.update.npt(mc, P=1.0, dLx=0.1, dLy=0.1, dxy=0.1)
+        boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
+        boxMC.set_betap(2.0)
+        boxMC.volume(delta=0.01, weight=2.0)
+        boxMC.length(delta=(0.1,0.1,0.1), weight=4.0)
+        run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
-    def __init__(self, mc, P, seed, dLx=0.0, dLy=0.0, dLz=0.0, dxy=0.0, dxz=0.0, dyz=0.0, move_ratio=0.5, reduce=0.0, isotropic=False, period=1):
+    def __init__(self, mc, betaP, seed):
         hoomd.util.print_status_line();
-
         # initialize base class
         _updater.__init__(self);
 
-        if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.npt: Must have a handle to an HPMC integrator.\n");
-            return;
-        if dLx == 0.0 and dLy == 0.0 and dLz == 0.0 and dxy == 0.0 and dxz == 0.0 and dyz == 0.0:
-            hoomd.context.msg.warning("update.npt: All move size parameters are 0\n");
+        # Updater gets called at every timestep. Whether to perform a move is determined independently
+        # according to frequency parameter.
+        period = 1
 
-        self.P = hoomd.variant._setup_variant_input(P);
-        self.dLx = float(dLx);
-        self.dLy = float(dLy);
-        self.dLz = float(dLz);
-        self.dxy = float(dxy);
-        self.dxz = float(dxz);
-        self.dyz = float(dyz);
-        self.reduce = float(reduce);
-        self.isotropic = bool(isotropic);
-        self.move_ratio = float(move_ratio);
+        if not isinstance(mc, integrate.mode_hpmc):
+            hoomd.context.msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
+            return;
+
+        self.betaP = hoomd.variant._setup_variant_input(betaP);
+
+        self.seed = int(seed)
 
         # create the c++ mirror class
-        self.cpp_updater = _hpmc.UpdaterBoxNPT(hoomd.context.current.system_definition,
+        self.cpp_updater = _hpmc.UpdaterBoxMC(hoomd.context.current.system_definition,
                                                mc.cpp_integrator,
-                                               self.P.cpp_variant,
-                                               self.dLx,
-                                               self.dLy,
-                                               self.dLz,
-                                               self.dxy,
-                                               self.dxz,
-                                               self.dyz,
-                                               self.move_ratio,
-                                               self.reduce,
-                                               self.isotropic,
-                                               int(seed),
+                                               self.betaP.cpp_variant,
+                                               1,
+                                               self.seed,
                                                );
+        self.setupUpdater(period);
 
-        if period is None:
-            self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
-        else:
-            self.setupUpdater(period);
+        self.volume_delta = 0.0;
+        self.volume_weight = 0.0;
+        self.length_delta = [0.0, 0.0, 0.0];
+        self.length_weight = 0.0;
+        self.shear_delta = [0.0, 0.0, 0.0];
+        self.shear_weight = 0.0;
+        self.shear_reduce = 0.0;
+        self.aspect_delta = 0.0;
+        self.aspect_weight = 0.0;
 
-    def set_params(self, P=None, dLx=None, dLy = None, dLz = None, dxy=None, dxz=None, dyz=None, move_ratio=None, reduce=None, isotropic=None):
-        R"""     ## Change npt parameters
+        self.metadata_fields = ['betaP',
+                                 'seed',
+                                 'volume_delta',
+                                 'volume_weight',
+                                 'length_delta',
+                                 'length_weight',
+                                 'shear_delta',
+                                 'shear_weight',
+                                 'shear_reduce',
+                                 'aspect_delta',
+                                 'aspect_weight']
+
+    def set_betap(self, betaP):
+        R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
 
         Args:
-            P (float): :math:`\beta P`. Apply your chosen reduced pressure convention externally.
-            dLx (float): maximum change of the box length in the first lattice vector direction (in distance units)
-            dLy (float): maximum change of the box length in the second lattice vector direction (in distance units)
-            dLz (float): maximum change of the box length in the third lattice vector direction (in distance units)
-            dxy (float): maximum change of the X-Y tilt factor (dimensionless)
-            dxz (float): maximum change of the X-Z tilt factor (dimensionless)
-            dyz (float): maximum change of the Y-Z tilt factor as a function of time (dimensionless)
-            move_ratio (float): ratio of trial volume change attempts to trial box shearing attempts
-            reduce (int): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-                       Shear of +/- 0.5 cannot be lattice reduced, so set to a value <= 0.5 to disable (default 0).
-                       Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
-                       but which temporarily break detailed balance. Automatic lattice reduction is not supported with MPI.
-            isotropic (bool): Set to true to link dLx, dLy, and dLz. The dLy and dLz parameters are then ignored. To change the box
-                       aspect ratio, either disable the updater or set the isotropic parameter to False during the call to
-                       the hoomd update.box_resize()
+            betaP (float) or (:py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                inverse volume in 3D) Apply your chosen reduced pressure convention
+                externally.
+        """
+        self.betaP = hoomd.variant._setup_variant_input(betaP)
+        self.cpp_updater.setP(self.betaP.cpp_variant)
+
+    def volume(self, delta=None, weight=None):
+        R""" Enable/disable isobaric volume move and set parameters.
+
+        Args:
+            delta (float): maximum change of the box area (2D) or volume (3D).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
+
+        Sample the isobaric distribution of box volumes by rescaling the box.
 
         Note:
-            Each parameter given as *None* will be left at its current value.
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
 
-            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, period = 10)
-            box_update.set_params(P=20.)
+            box_update.volume(delta=0.01)
+            box_update.volume(delta=0.01, weight=2)
+            box_update.volume(delta=0.01, weight=0.15)
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        noop = True;
+        if weight is not None:
+            self.volume_weight = float(weight)
 
-        if P is not None:
-            self.P = hoomd.variant._setup_variant_input(P)
-            noop = False;
-        if dLx is not None:
-            self.dLx = float(dLx)
-            noop = False;
-        if dLy is not None:
-            self.dLy = float(dLy)
-            noop = False;
-        if dLz is not None:
-            self.dLz = float(dLz)
-            noop = False;
-        if dxy is not None:
-            self.dxy = float(dxy)
-            noop = False;
-        if dxz is not None:
-            self.dxz = float(dxz)
-            noop = False;
-        if dyz is not None:
-            self.dyz = float(dyz)
-            noop = False;
-        if move_ratio is not None:
-            self.move_ratio = float(move_ratio)
-            noop = False;
+        if delta is not None:
+            self.volume_delta = float(delta)
+
+        self.cpp_updater.volume(self.volume_delta, self.volume_weight);
+        return {'delta': self.volume_delta, 'weight': self.volume_weight};
+
+    def length(self, delta=None, weight=None):
+        R""" Enable/disable isobaric box dimension move and set parameters.
+
+        Args:
+            delta (:py:class:`float` or :py:class:`tuple`): maximum change of the box thickness for each pair of parallel planes
+                                               connected by the corresponding box edges. I.e. maximum change of
+                                               HOOMD-blue box parameters Lx, Ly, Lz. A single float *x* is equivalent to
+                                               (*x*, *x*, *x*).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
+
+        Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces,
+        Lx, Ly, Lz (see :ref:`boxdim`).
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
+
+        Example::
+
+            box_update.length(delta=(0.01, 0.01, 0.0)) # 2D box changes
+            box_update.length(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.length(delta=0.01, weight=2)
+            box_update.length(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if weight is not None:
+            self.length_weight = float(weight)
+
+        if delta is not None:
+            if isinstance(delta, float) or isinstance(delta, int):
+                self.length_delta = [float(delta)] * 3
+            else:
+                self.length_delta = [ float(d) for d in delta ]
+
+        self.cpp_updater.length(   self.length_delta[0], self.length_delta[1],
+                                        self.length_delta[2], self.length_weight);
+        return {'delta': self.length_delta, 'weight': self.length_weight};
+
+    def shear(self,  delta=None, weight=None, reduce=None):
+        R""" Enable/disable box shear moves and set parameters.
+
+        Args:
+            delta (tuple): maximum change of the box tilt factor xy, xz, yz.
+            reduce (float): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
+                    Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
+                    Note that due to precision errors, lattice reduction may introduce small overlaps which can be
+                    resolved, but which temporarily break detailed balance.
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
+
+        Sample the distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
+        (see :ref:`boxdim`).
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
+
+        Example::
+
+            box_update.shear(delta=(0.01, 0.00, 0.0)) # 2D box changes
+            box_update.shear(delta=(0.01, 0.01, 0.01), weight=2)
+            box_update.shear(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta*, *weight*, and *reduce*.
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if weight is not None:
+            self.shear_weight = float(weight)
+
         if reduce is not None:
-            self.reduce = float(reduce)
-            noop = False;
-        if isotropic is not None:
-            self.isotropic = bool(isotropic)
-            noop = False;
-        if noop:
-            hoomd.context.msg.warning("update.npt: No parameters changed\n");
-            return;
+            self.shear_reduce = float(reduce)
 
-        self.cpp_updater.setParams( self.P.cpp_variant,
-                                    self.dLx,
-                                    self.dLy,
-                                    self.dLz,
-                                    self.dxy,
-                                    self.dxz,
-                                    self.dyz,
-                                    self.move_ratio,
-                                    self.reduce,
-                                    self.isotropic);
+        if delta is not None:
+            if isinstance(delta, float) or isinstance(delta, int):
+                self.shear_delta = [float(delta)] * 3
+            else:
+                self.shear_delta = [ float(d) for d in delta ]
 
-    def get_params(self, timestep=None):
-        R""" Get npt parameters.
+        self.cpp_updater.shear(    self.shear_delta[0], self.shear_delta[1],
+                                        self.shear_delta[2], self.shear_reduce,
+                                        self.shear_weight);
+        return {'delta': self.shear_delta, 'weight': self.shear_weight, 'reduce': self.shear_reduce}
+
+    def aspect(self, delta=None, weight=None):
+        R""" Enable/disable aspect ratio move and set parameters.
 
         Args:
-            timestep (int): Timestep at which to evaluate variants (or the current step if None)
+            delta (float): maximum relative change of aspect ratio
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
+                            move type.
 
-        Returns:
-            Dictionary of parameters values at the current or indicated timestep.
-            The dictionary contains the keys (P, dLx, dLy, dLz, dxy, dxz, dyz, move_ratio, reduce, isotropic),
-            which mirror the same parameters to :py:meth:`set_params()`
+        Rescale aspect ratio along a randomly chosen dimension.
 
-        Example:
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
-            run(100)
-            params = box_update.get_params(1000)
-            P = params['P']
-            params = box_update.get_params()
-            dLx = params['dLx']
-
-        """
-        if timestep is None:
-            timestep = get_step()
-        P = self.cpp_updater.getP()
-        dLx = self.cpp_updater.getdLx()
-        dLy = self.cpp_updater.getdLy()
-        dLz = self.cpp_updater.getdLz()
-        dxy = self.cpp_updater.getdxy()
-        dxz = self.cpp_updater.getdxz()
-        dyz = self.cpp_updater.getdyz()
-        move_ratio = self.cpp_updater.getMoveRatio()
-        reduce = self.cpp_updater.getReduce()
-        isotropic = self.cpp_updater.getIsotropic()
-        ret_val = dict(
-                  P=P.getValue(timestep),
-                  dLx=dLx,
-                  dLy=dLy,
-                  dLz=dLz,
-                  dxy=dxy,
-                  dxz=dxz,
-                  dyz=dyz,
-                  move_ratio=move_ratio,
-                  reduce=reduce,
-                  isotropic=isotropic
-                  )
-        return ret_val
-
-    def get_P(self, timestep=None):
-        R""" Get pressure parameter.
-
-        Args:
-            timestep (int): Timestep at which to evaluate variants (or the current step if None)
-
-        Returns:
-            pressure value at the current or indicated timestep
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
 
         Example::
 
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
-            run(100)
-            P_now = box_update.get_P()
-            P_future = box_update.get_P(1000)
-
-        """
-        if timestep is None:
-            timestep = get_step()
-        P = self.cpp_updater.getP()
-        return P.getValue(timestep)
-
-    def get_dLx(self):
-        R""" Get dLx parameter.
+            box_update.aspect(delta=0.01)
+            box_update.aspect(delta=0.01, weight=2)
+            box_update.aspect(delta=0.01, weight=0.15)
 
         Returns:
-            max trial dLx change
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
-            run(100)
-            dLx_now = box_update.get_dLx()
+            A :py:class:`dict` with the current values of *delta*, and *weight*.
 
         """
-        dLx = self.cpp_updater.getdLx()
-        return dLx
+        hoomd.util.print_status_line();
+        self.check_initialization();
 
-    def get_dLy(self):
-        R""" Get dLy parameter.
+        if weight is not None:
+            self.aspect_weight = float(weight)
 
-        Returns:
-            max trial dLy change
+        if delta is not None:
+            self.aspect_delta = float(delta)
 
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLy = 0.01, period = 10)
-            run(100)
-            dLy_now = box_update.get_dLy()
-        """
-        dLy = self.cpp_updater.getdLy()
-        return dLy
-
-    def get_dLz(self):
-        R""" Get dLz parameter.
-
-        Returns:
-            max trial dLz change
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLz = 0.01, period = 10)
-            run(100)
-            dLz_now = box_update.get_dLz()
-
-        """
-        dLz = self.cpp_updater.getdLz()
-        return dLz
-
-    def get_dxy(self):
-        R""" Get dxy parameter.
-
-        Returns:
-            max trial dxy change
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dxy=0.01 period = 10)
-            run(100)
-            dxy_now = box_update.get_dxy()
-
-        """
-        dxy = self.cpp_updater.getdxy()
-        return dxy
-
-    def get_dxz(self):
-        R""" Get dxz parameter.
-
-        Returns:
-            max trial dxz change
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dxz=0.01 period = 10)
-            run(100)
-            dxz_now = box_update.get_dxz()
-
-        """
-        dxz = self.cpp_updater.getdxz()
-        return dxz
-
-    def get_dyz(self):
-        R""" Get dyz parameter.
-
-        Returns:
-            max trial dyz change at the current or indicated timestep
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, dLy=0.01, dyz=0.01 period = 10)
-            run(100)
-            dyz_now = box_update.get_dyz()
-
-        """
-        dyz = self.cpp_updater.getdyz()
-        return dyz
-
-    def get_move_ratio(self):
-        R""" Get move_ratio parameter.
-
-        Returns:
-            fraction of box moves to attempt as volume changes versus box shearing
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            P = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 1e2)])
-            box_update = hpmc.update.npt(mc, P=P, dLx = 0.01, period = 10)
-            run(100)
-            ratio_now = box_update.get_move_ratio()
-
-        """
-        move_ratio = self.cpp_updater.getMoveRatio()
-        return move_ratio
+        self.cpp_updater.aspect(self.aspect_delta, self.aspect_weight);
+        return {'delta': self.aspect_delta, 'weight': self.aspect_weight}
 
     def get_volume_acceptance(self):
         R""" Get the average acceptance ratio for volume changing moves.
@@ -390,7 +279,7 @@ class npt(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, period = 10)
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
             run(100)
             v_accept = box_update.get_volume_acceptance()
 
@@ -408,24 +297,46 @@ class npt(_updater):
 
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
-            box_update = hpmc.update.npt(mc, P=10., dLx = 0.01, dxy=0.01 period = 10)
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
             run(100)
-            v_accept = box_update.get_shear_acceptance()
+            s_accept = box_update.get_shear_acceptance()
 
         """
         counters = self.cpp_updater.getCounters(1);
         return counters.getShearAcceptance();
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getShearAcceptance();
+
+    def get_aspect_acceptance(self):
+        R"""  Get the average acceptance ratio for aspect changing moves.
+
+        Returns:
+            The average aspect change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc_shape_param[name].set(....);
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
+            run(100)
+            a_accept = box_update.get_aspect_acceptance()
+
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getAspectAcceptance();
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getAspectAcceptance();
 
     def enable(self):
         R""" Enables the updater.
 
-        Examples::
+        Example::
 
-            npt_updater.set_params(isotropic=True)
+            box_updater.set_params(isotropic=True)
             run(1e5)
-            npt_updater.disable()
+            box_updater.disable()
             update.box_resize(dLy = 10)
-            npt_updater.enable()
+            box_updater.enable()
             run(1e5)
 
         See updater base class documentation for more information
@@ -546,9 +457,9 @@ class muvt(_updater):
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         period (int): Number of timesteps between histogram evaluations.
         transfer_types (list): List of type names that are being transfered from/to the reservoir or between boxes (if *None*, all types)
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
@@ -567,7 +478,7 @@ class muvt(_updater):
         update.muvt(mc=mc, period)
 
     """
-    def __init__(self, mc, period=1, transfer_types=None,seed=48123,ngibbs=1):
+    def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
         hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
