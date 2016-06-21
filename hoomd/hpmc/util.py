@@ -415,9 +415,9 @@ class compress:
             A3scale=0.0
 
         self.npt_updater.set_betap(pmin)
-        self.npt_updater.length_move(delta=Lscale)
+        self.npt_updater.length(delta=Lscale)
         if allowShearing:
-            self.npt_updater.shear_move(delta=A3scale, reduce=0.6)
+            self.npt_updater.shear(delta=A3scale, reduce=0.6)
 
         #calculate initial packing fraction
         volume = Lx*Ly if dim==2 else Lx*Ly*Lz
@@ -435,9 +435,9 @@ class compress:
                 hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                 # reset tunables
                 self.npt_updater.set_betap(pmin)
-                self.npt_updater.length_move(delta=Lscale)
+                self.npt_updater.length(delta=Lscale)
                 if allowShearing:
-                    self.npt_updater.shear_move(delta=A3scale)
+                    self.npt_updater.shear(delta=A3scale)
                 self.mc.set_params(d=0.1, a=0.01)
 
             noverlaps = self.mc.count_overlaps()
@@ -787,43 +787,43 @@ class tune_npt(tune):
                           'get': lambda: obj.get_length_delta()[0],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length_move(delta=(x, obj.get_length_delta()[1], obj.get_length_delta()[2]))
+                          'set': lambda x: obj.length(delta=(x, obj.get_length_delta()[1], obj.get_length_delta()[2]))
                           },
                     'dLy': {
                           'get': lambda: obj.get_length_delta()[1],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length_move(delta=(obj.get_length_delta()[0], x, obj.get_length_delta()[2]))
+                          'set': lambda x: obj.length(delta=(obj.get_length_delta()[0], x, obj.get_length_delta()[2]))
                           },
                     'dLz': {
                           'get': lambda: obj.get_length_delta()[2],
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.length_move(delta=(obj.get_length_delta()[0], obj.get_length_delta()[1], x))
+                          'set': lambda x: obj.length(delta=(obj.get_length_delta()[0], obj.get_length_delta()[1], x))
                           },
                     'dV': {
                           'get': obj.get_volume_delta,
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
-                          'set': obj.volume_move
+                          'set': obj.volume
                           },
                     'dxy': {
                           'get': lambda: obj.get_shear_delta()[0],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear_move(delta=(x, obj.get_shear_delta()[1], obj.get_shear_delta()[2]))
+                          'set': lambda x: obj.shear(delta=(x, obj.get_shear_delta()[1], obj.get_shear_delta()[2]))
                           },
                     'dxz': {
                           'get': lambda: obj.get_shear_delta()[1],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear_move(delta=(obj.get_shear_delta()[0], x, obj.get_shear_delta()[2]))
+                          'set': lambda x: obj.shear(delta=(obj.get_shear_delta()[0], x, obj.get_shear_delta()[2]))
                           },
                     'dyz': {
                           'get': lambda: obj.get_shear_delta()[2],
                           'acceptance': obj.get_shear_acceptance,
                           'maximum': 1.0,
-                          'set': lambda x: obj.shear_move(delta=(obj.get_shear_delta()[0], obj.get_shear_delta()[1], x))
+                          'set': lambda x: obj.shear(delta=(obj.get_shear_delta()[0], obj.get_shear_delta()[1], x))
                           },
                     }
         hoomd.util.unquiet_status()

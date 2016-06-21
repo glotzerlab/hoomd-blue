@@ -182,7 +182,7 @@ class compressor (unittest.TestCase):
         mc.set_params(d=0.1)
         mc.shape_param.set('A', diameter=1.0)
         npt = hpmc.update.boxmc(mc, betaP=5.0, seed=1, length_delta=0.1, shear_delta=0.1)
-        npt.shear_move(reduce=0.6)
+        npt.shear(reduce=0.6)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -212,7 +212,7 @@ class compressor (unittest.TestCase):
         mc.set_params(d=0.1)
         mc.shape_param.set('A', diameter=1.0)
         npt = hpmc.update.boxmc(mc, betaP=5.0, seed=1, length_delta=0.1, shear_delta=0.1)
-        npt.shear_move(reduce=0.6)
+        npt.shear(reduce=0.6)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -241,7 +241,7 @@ class compressor (unittest.TestCase):
         mc.shape_param.set('A', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
            (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
         npt = hpmc.update.boxmc(mc, betaP=5.0, seed=1, length_delta=0.1, shear_delta=0.1)
-        npt.shear_move(reduce=0.6)
+        npt.shear(reduce=0.6)
         compressor = hpmc.util.compress(mc=mc,
                                         npt_updater=npt,
                                         **self.args)
@@ -304,7 +304,7 @@ class tune (unittest.TestCase):
         target = 0.5
         self.mc.set_params(d=0.1, a=0.01, move_ratio=0.5)
         updater = hpmc.update.boxmc(self.mc, betaP=10.0, seed=1)
-        updater.length_move(delta=(0.01,0.01,0.01))
+        updater.length(delta=(0.01,0.01,0.01))
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=target, gamma=0.0)
         for i in range(5):
             run(1e2)
@@ -320,8 +320,8 @@ class tune (unittest.TestCase):
         target = 0.5
         self.mc.set_params(d=0.02, a=0.01, move_ratio=0.5)
         updater = hpmc.update.boxmc(self.mc, seed=1, betaP=10)
-        updater.length_move(delta=(0.1, 0.1, 0.1))
-        updater.shear_move(delta=(0.1, 0.1, 0.1))
+        updater.length(delta=(0.1, 0.1, 0.1))
+        updater.shear(delta=(0.1, 0.1, 0.1))
         tuner = hpmc.util.tune_npt(updater, tunables=['dxy', 'dyz', 'dxz'], target=target, gamma=0.5)
         for i in range(5):
             run(1e2)
@@ -336,7 +336,7 @@ class tune (unittest.TestCase):
         target = 0.5
         self.mc.set_params(d=0.1, a=0.01, move_ratio=0.5)
         updater = hpmc.update.boxmc(self.mc, seed=1, betaP=10)
-        updater.volume_move(delta=0.1)
+        updater.volume(delta=0.1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dV'], target=target, gamma=0.0)
         for i in range(5):
             run(1e2)

@@ -83,7 +83,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.volume_move(delta=1.0)
+            self.boxMC.volume(delta=1.0)
             self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
@@ -105,7 +105,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.length_move(delta=[1.0, 1.0, 1.0])
+            self.boxMC.length(delta=[1.0, 1.0, 1.0])
             self.mc.shape_param.set('A', diameter=0.0)
 
             for j in range(10):
@@ -127,7 +127,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
-            self.boxMC.aspect_move(delta=0.5)
+            self.boxMC.aspect(delta=0.5)
             self.mc.shape_param.set('A', diameter=0.05)
 
             for j in range(10):
@@ -160,35 +160,35 @@ class boxMC_test_methods (unittest.TestCase):
 
     def test_methods_setVolumeMove(self):
         boxMC = self.boxMC
-        boxMC.volume_move(delta=1.0)
-        boxMC.volume_move(delta=1.0, weight=1)
+        boxMC.volume(delta=1.0)
+        boxMC.volume(delta=1.0, weight=1)
 
     def test_methods_setLengthMove(self):
         boxMC = self.boxMC
         # test scalar delta
-        boxMC.length_move(delta=10.0)
+        boxMC.length(delta=10.0)
         # test list delta
-        boxMC.length_move(delta=(1,1,1))
-        boxMC.length_move(delta=(1,1,1), weight=2)
+        boxMC.length(delta=(1,1,1))
+        boxMC.length(delta=(1,1,1), weight=2)
 
     def test_methods_setShearMove(self):
         boxMC = self.boxMC
         # test scalar delta
-        boxMC.shear_move(delta=1.0)
+        boxMC.shear(delta=1.0)
         # test list delta
-        boxMC.shear_move(delta=(1,1,1))
-        boxMC.shear_move(delta=(1,1,1), weight=2)
+        boxMC.shear(delta=(1,1,1))
+        boxMC.shear(delta=(1,1,1), weight=2)
 
     def test_get_deltas(self):
         boxMC = self.boxMC
         delta = tuple([float(n) for n in (0.1, 0.2, 0.3)])
-        boxMC.length_move(delta=delta)
+        boxMC.length(delta=delta)
         self.assertEqual(tuple([float(n) for n in boxMC.get_length_delta()]), delta)
-        boxMC.shear_move(delta=delta)
+        boxMC.shear(delta=delta)
         self.assertEqual(tuple([float(n) for n in boxMC.get_shear_delta()]), delta)
-        boxMC.volume_move(delta=0.1)
+        boxMC.volume(delta=0.1)
         self.assertEqual(boxMC.get_volume_delta(), 0.1)
-        boxMC.aspect_move(delta=0.1)
+        boxMC.aspect(delta=0.1)
         self.assertEqual(boxMC.get_aspect_delta(), 0.1)
 
 

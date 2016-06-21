@@ -48,11 +48,11 @@ class UpdaterBoxMC : public Updater
         //! Destructor
         virtual ~UpdaterBoxMC();
 
-        //! Sets parameters
+        //! Sets parameters for box volume moves
         /*! \param delta maximum size of volume change
             \param weight relative likelihood of volume move
         */
-        void volume_move(const Scalar delta,
+        void volume(const Scalar delta,
                            const float weight)
             {
             m_Volume_delta = delta;
@@ -61,13 +61,13 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             };
 
-        //! Sets parameters
+        //! Sets parameters for box length moves
         /*! \param dLx Extent of length change distribution in first lattice vector for box resize moves
             \param dLy Extent of length change distribution in second lattice vector for box resize moves
             \param dLz Extent of length change distribution in third lattice vector for box resize moves
             \param weight relative likelihood of volume move
         */
-        void length_move(const Scalar dLx,
+        void length(const Scalar dLx,
                            const Scalar dLy,
                            const Scalar dLz,
                            const float weight)
@@ -79,7 +79,7 @@ class UpdaterBoxMC : public Updater
             };
 
 
-        //! Sets parameters
+        //! Sets parameters for box shear moves
         /*! \param dxy Extent of shear parameter distribution for shear moves in x,y plane
             \param dxz Extent of shear parameter distribution for shear moves in x,z plane
             \param dyz Extent of shear parameter distribution for shear moves in y,z plane
@@ -89,7 +89,7 @@ class UpdaterBoxMC : public Updater
                 but which temporarily break detailed balance.
             \param weight relative likelihood of shear move
         */
-        void shear_move(const Scalar dxy,
+        void shear(const Scalar dxy,
                           const Scalar dxz,
                           const Scalar dyz,
                           const Scalar reduce,
@@ -102,16 +102,16 @@ class UpdaterBoxMC : public Updater
             m_Shear_weight = weight;
             };
 
-        //! Sets parameters
+        //! Sets parameters for box aspect moves
         /*! \param dA maximum relative aspect ratio change.
             \param weight relative likelihood of aspect move.
         */
-        void aspect_move(const Scalar dA,
+        void aspect(const Scalar dA,
                            const float weight)
             {
             m_Aspect_delta = dA;
             m_Aspect_weight = weight;
-          };
+            };
 
         //! Calculate aspect ratios for use in isotropic volume changes
         void computeAspectRatios()
