@@ -12,6 +12,7 @@ try:
 except ImportError:
     np = None
 
+import hoomd
 import sys
 import colorsys as cs
 import re
@@ -271,7 +272,6 @@ class compress:
                  relax=int(1e4),
                  quiet=True,
                  ):
-        import hoomd
 
         # Gather and check arguments
         self.mc = mc
@@ -369,14 +369,12 @@ class compress:
     # \param num_comp_cycles number of compression cycles to run (default 1)
     # \returns tuple of lists of packing fractions and corresponding snapshot objects.
     def run(self, num_comp_cycles=1):
-        import hoomd
         ## construct exponentially growing pressure variant
         # \param num_comp_steps number of steps in pressure variant
         # \param pmin minimum pressure
         # \param pmax maximum pressure
         # \returns P pressure variant for use in NPT updater
         def makePvariant(num_comp_steps, pmin, pmax):
-            import hoomd
             num_points = 101 # number of points defining the curve
             interval = num_comp_steps / num_points
             pressures=np.logspace(np.log10(pmin), np.log10(pmax), num_points)
@@ -539,7 +537,6 @@ class compress:
 class snapshot:
     ## constructor
     def __init__(self):
-        import hoomd
         system = hoomd.data.system_data(hoomd.context.current.system_definition)
         box = system.sysdef.getParticleData().getGlobalBox()
         L = box.getL()
@@ -647,7 +644,6 @@ class tune(object):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        import hoomd
         hoomd.util.quiet_status()
 
         max_val_length = len(max_val)
@@ -721,7 +717,8 @@ class tune(object):
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
         """
-        import hoomd
+        hoomd.util.quiet_status()
+
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
         # For each of the tunables we are watching...
@@ -757,7 +754,7 @@ class tune(object):
                 newquantities[param_name] = float(newval)
             else:
                 newquantities[param_name] = {self.type:float(newval)}
-        hoomd.util.quiet_status();
+        
         for q in newquantities:
             self.tunables[q]['set'](newquantities[q])
         hoomd.util.unquiet_status();
@@ -780,7 +777,6 @@ class tune_npt(tune):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        import hoomd
         hoomd.util.quiet_status()
         tunable_map = {
                     'dLx': {
