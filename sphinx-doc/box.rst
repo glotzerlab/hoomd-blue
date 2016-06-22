@@ -1,3 +1,5 @@
+.. _boxdim:
+
 Periodic boundary conditions
 ============================
 

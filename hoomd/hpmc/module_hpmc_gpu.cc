@@ -17,7 +17,6 @@
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 #include "AnalyzerSDF.h"
-#include "UpdaterBoxNPT.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"

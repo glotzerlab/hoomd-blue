@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: mphoward
 
 /*! \file HOOMDDumpWriter.h
     \brief Declares the HOOMDDumpWriter class
@@ -13,6 +13,7 @@
 #endif
 
 #include "hoomd/Analyzer.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <string>
 
@@ -21,14 +22,14 @@
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__
 
-//! Analyzer for writing out HOOMD  dump files
+//! Analyzer for writing out HOOMD dump files
 /*! HOOMDDumpWriter can be used to write out xml files containing various levels of information
     of the current time step of the simulation. At a minimum, the current time step and box
     dimensions are output. Optionally, particle positions, velocities and types can be included
     in the file.
 
     Usage:<br>
-    Construct a HOOMDDumpWriter, attaching it to a ParticleData and specifying a base file name.
+    Construct a HOOMDDumpWriter, attaching it to a ParticleGroup and specifying a base file name.
     Call analyze(timestep) to output a dump file with the state of the current time step
     of the simulation. It will create base_file.timestep.xml where timestep is a 0-padded
     10 digit number. The 0 padding is so files sorted "alphabetically" will be read in
@@ -36,18 +37,23 @@
 
     To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
     and setOutputType(). Similarly, bonds can be included with setOutputBond().
+    Additional fields are also available by methods of similar names.
 
-    Future versions will include the ability to dump forces on each particle to the file also.
+    For information on the structure of the xml file format, refer to
+    HOOMD's user guide.
 
-    For information on the structure of the xml file format: see \ref page_dev_info
-    Although, HOOMD's  user guide probably has a more up to date documentation on the format.
+    \warning This file format has been deprecated in favor of the GSDDumpWriter.
+
     \ingroup analyzers
 */
 class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart=false);
+        HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                        const std::string& base_fname,
+                        std::shared_ptr<ParticleGroup> group,
+                        bool mode_restart=false);
 
         //! Destructor
         ~HOOMDDumpWriter();
@@ -99,6 +105,8 @@ class HOOMDDumpWriter : public Analyzer
         void writeFile(std::string fname, unsigned int timestep);
     private:
         std::string m_base_fname;   //!< String used to store the file name of the XML file
+        boost::shared_ptr<ParticleGroup> m_group;   //!< Particle group to dump
+
         bool m_output_position;     //!< true if the particle positions should be written
         bool m_output_image;        //!< true if the particle positions should be written
         bool m_output_velocity;     //!< true if the particle velocities should be written

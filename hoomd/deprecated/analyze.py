@@ -70,7 +70,7 @@ class msd(_analyzer):
 
     """
 
-    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=-1):
+    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class

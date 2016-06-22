@@ -192,20 +192,27 @@ bool IntegratorHPMC::checkParticleOrientations()
     // get the orientations data array
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    bool result = true;
 
     // loop through particles and return false if any is out of norm
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         quat<Scalar> o(h_orientation.data[i]);
-        if (fabs(Scalar(1.0) - norm2(o)) > 1e-4)
+        if (fabs(Scalar(1.0) - norm2(o)) > 1e-3)
             {
-            m_exec_conf->msg->notice(3) << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << endl;
-            return false;
+            m_exec_conf->msg->notice(2) << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << endl;
+            result = false;
             }
         }
 
-    // return true if we got through all the particles
-    return true;
+    #ifdef ENABLE_MPI
+    unsigned int result_int = (unsigned int)result;
+    unsigned int result_reduced;
+    MPI_Reduce(&result_int, &result_reduced, 1, MPI_UNSIGNED, MPI_LOR, 0, m_exec_conf->getMPICommunicator());
+    result = bool(result_reduced);
+    #endif
+
+    return result;
     }
 
 /*! Set new box with particle positions scaled from previous box

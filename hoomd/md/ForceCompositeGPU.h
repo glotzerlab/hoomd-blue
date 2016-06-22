@@ -8,6 +8,8 @@
 #include "NeighborList.h"
 #include "hoomd/Autotuner.h"
 
+#include "hoomd/GPUFlags.h"
+
 /*! \file ForceCompositeGPU.h
     \brief Implementation of a rigid body force compute, GPU version
 */
@@ -63,6 +65,8 @@ class ForceCompositeGPU : public ForceComposite
         boost::scoped_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
         boost::scoped_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
         boost::scoped_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+
+        GPUFlags<unsigned int> m_flag;               //!< Flag to read out error condition
     };
 
 //! Exports the ForceCompositeGPU to python

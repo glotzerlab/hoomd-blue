@@ -937,9 +937,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
     {
-    // allocate memory in snapshot
-    snapshot.resize(getNGlobal());
-
     std::map<unsigned int, unsigned int> rtag_map;
 
     for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
@@ -982,6 +979,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
 
         if (m_exec_conf->getRank() == 0)
             {
+            // allocate memory in snapshot
+            snapshot.resize(getNGlobal());
+
             assert(rtag_map_proc.size() == size);
 
             // create single map of all group ranks and indices
@@ -1033,6 +1033,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
     else
     #endif
         {
+        // allocate memory in snapshot
+        snapshot.resize(getNGlobal());
+
         assert(getN() == getNGlobal());
         std::map<unsigned int, unsigned int>::iterator rtag_it;
         // index in snapshot
