@@ -609,7 +609,7 @@ void NeighborList::addExclusionsFromBonds()
     std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // access bond data by snapshot
-    BondData::Snapshot snapshot(bond_data->getNGlobal());
+    BondData::Snapshot snapshot;
     bond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
@@ -643,7 +643,7 @@ void NeighborList::addExclusionsFromAngles()
     std::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // access angle data by snapshot
-    AngleData::Snapshot snapshot(angle_data->getNGlobal());
+    AngleData::Snapshot snapshot;
     angle_data->takeSnapshot(snapshot);
 
     // broadcast global angle list
@@ -676,7 +676,7 @@ void NeighborList::addExclusionsFromDihedrals()
     std::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
     // access dihedral data by snapshot
-    DihedralData::Snapshot snapshot(dihedral_data->getNGlobal());
+    DihedralData::Snapshot snapshot;
     dihedral_data->takeSnapshot(snapshot);
 
     // broadcast global dihedral list
@@ -709,7 +709,7 @@ void NeighborList::addExclusionsFromConstraints()
     std::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
 
     // access constraint data by snapshot
-    ConstraintData::Snapshot snapshot(constraint_data->getNGlobal());
+    ConstraintData::Snapshot snapshot;
     constraint_data->takeSnapshot(snapshot);
 
     // broadcast global constraint list

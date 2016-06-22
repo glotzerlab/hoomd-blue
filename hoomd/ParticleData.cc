@@ -1076,8 +1076,6 @@ template <class Real>
 void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
-    // allocate memory in snapshot
-    snapshot.resize(getNGlobal());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -1187,6 +1185,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
 
         if (rank == root)
             {
+            // allocate memory in snapshot
+            snapshot.resize(getNGlobal());
+
             unsigned int n_ranks = m_exec_conf->getNRanks();
             assert(rtag_map_proc.size() == n_ranks);
 
@@ -1247,6 +1248,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
     else
 #endif
         {
+        // allocate memory in snapshot
+        snapshot.resize(getNGlobal());
+
         assert(m_tag_set.size() == m_nparticles);
         std::set<unsigned int>::const_iterator it = m_tag_set.begin();
 

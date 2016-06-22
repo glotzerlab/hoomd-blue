@@ -56,9 +56,11 @@ benchmarks, select a restart period in time steps::
 Use the phase option
 ^^^^^^^^^^^^^^^^^^^^
 
-Set ``phase=0`` for all analysis routines, file dumps, and updaters you use with period > 1. Without ``phase=0``, these
-routines will start running immediately when a restart job begins::
+Set a a ``phase >= 0`` for all analysis routines, file dumps, and updaters you use with period > 1 (the default is 0).
+With ``phase >= 0``, these routines will continue to run in a restarted job on the correct timesteps as if the job had
+not been restarted.
 
+Do not use, ``phase=-1``, as then these routines will start running immediately when a restart job begins::
 
     dump.dcd(filename="trajectory.dcd", period=1e6, phase=0)
     analyze.log(filename='temperature.log', quantities=['temperature'], period=5000, phase=0)

@@ -14,7 +14,6 @@
 #include "ShapeEllipsoid.h"
 #include "ShapeFacetedSphere.h"
 #include "AnalyzerSDF.h"
-#include "UpdaterBoxNPT.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"

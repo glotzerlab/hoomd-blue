@@ -163,7 +163,7 @@ void GSDDumpWriter::analyze(unsigned int timestep)
 
     // take particle data snapshot
     m_exec_conf->msg->notice(10) << "dump.gsd: taking particle data snapshot" << endl;
-    SnapshotParticleData<float> snapshot(0);
+    SnapshotParticleData<float> snapshot;
     m_pdata->takeSnapshot<float>(snapshot);
 
 #ifdef ENABLE_MPI
@@ -240,19 +240,19 @@ void GSDDumpWriter::analyze(unsigned int timestep)
     // topology is only meaningful if this is the all group
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal() && (m_write_topology || nframes == 0))
         {
-        BondData::Snapshot bdata_snapshot(m_sysdef->getBondData()->getNGlobal());
+        BondData::Snapshot bdata_snapshot;
         m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
 
-        AngleData::Snapshot adata_snapshot(m_sysdef->getAngleData()->getNGlobal());
+        AngleData::Snapshot adata_snapshot;
         m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
 
-        DihedralData::Snapshot ddata_snapshot(m_sysdef->getDihedralData()->getNGlobal());
+        DihedralData::Snapshot ddata_snapshot;
         m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
 
-        ImproperData::Snapshot idata_snapshot(m_sysdef->getImproperData()->getNGlobal());
+        ImproperData::Snapshot idata_snapshot;
         m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
 
-        ConstraintData::Snapshot cdata_snapshot(m_sysdef->getConstraintData()->getNGlobal());
+        ConstraintData::Snapshot cdata_snapshot;
         m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
 
         if (root)
