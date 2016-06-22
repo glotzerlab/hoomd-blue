@@ -17,8 +17,6 @@
 using namespace std;
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
-
 
 /*! \file Initializers.cc
     \brief Defines a few initializers for setting up ParticleData instances
@@ -187,16 +185,16 @@ std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() c
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-void export_SimpleCubicInitializer()
-    {
-    class_< SimpleCubicInitializer >
-        ("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
-    ;
-    }
-
-void export_RandomInitializer()
-    {
-    class_< RandomInitializer >
-        ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
-    ;
-    }
+// void export_SimpleCubicInitializer()
+//     {
+//     class_< SimpleCubicInitializer >
+//         ("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
+//     ;
+//     }
+//
+// void export_RandomInitializer()
+//     {
+//     class_< RandomInitializer >
+//         ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
+//     ;
+//     }

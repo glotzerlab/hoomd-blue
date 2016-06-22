@@ -841,8 +841,8 @@ namespace getardump{
 
     void export_GetarDumpWriter(py::module& m)
         {
-        py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> > getardumpwriter(m,"GetarDumpWriter", py::base<Analyzer>());
-        getardumpwriter.def(py::init< std::shared_ptr<SystemDefinition>, std::string, getardump::GetarDumpMode, unsigned int>())
+        py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter", py::base<Analyzer>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, std::string, getardump::GetarDumpMode, unsigned int>())
             .def("close", &GetarDumpWriter::close)
             .def("getPeriod", &GetarDumpWriter::getPeriod)
             .def("setPeriod", &GetarDumpWriter::setPeriod)
@@ -850,14 +850,14 @@ namespace getardump{
         ;
 
 
-        py::enum_<getardump::GetarDumpMode>(getardumpwriter,"GetarDumpMode")
+        py::enum_<getardump::GetarDumpMode>(m,"GetarDumpMode")
             .value("Overwrite", getardump::Overwrite)
             .value("Append", getardump::Append)
             .value("OneShot", getardump::OneShot)
             .export_values()
         ;
 
-        py::enum_<getardump::Property>(getardumpwriter,"GetarProperty")
+        py::enum_<getardump::Property>(m,"GetarProperty")
             .value("AngleNames", AngleNames)
             .value("AngleTags", AngleTags)
             .value("AngleTypes", AngleTypes)
@@ -895,21 +895,21 @@ namespace getardump{
             .export_values()
         ;
 
-        py::enum_<getardump::Resolution>(getardumpwriter,"GetarResolution")
+        py::enum_<getardump::Resolution>(m,"GetarResolution")
             .value("Text", Text)
             .value("Uniform", Uniform)
             .value("Individual", Individual)
             .export_values()
         ;
 
-        py::enum_<getardump::Behavior>(getardumpwriter,"GetarBehavior")
+        py::enum_<getardump::Behavior>(m,"GetarBehavior")
             .value("Constant", Constant)
             .value("Discrete", Discrete)
             .value("Continuous", Continuous)
             .export_values()
         ;
 
-        py::enum_<getardump::CompressMode>(getardumpwriter,"GetarCompression")
+        py::enum_<getardump::CompressMode>(m,"GetarCompression")
             .value("NoCompress", NoCompress)
             .value("FastCompress", FastCompress)
             .value("MediumCompress", MediumCompress)

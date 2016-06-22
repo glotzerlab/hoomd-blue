@@ -65,11 +65,9 @@
 #include "hoomd/extern/num_util.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
 
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-
-// using namespace boost::python;
+// #include <boost/python.hpp>
 // namespace bnp=boost::python::numeric;
 
 
@@ -272,8 +270,6 @@ void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
 	#endif
 	}
 
-
-PYBIND11_DECLARE_HOLDER_TYPE(Tsharedptr, std::shared_ptr<Tsharedptr>);
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
 	create the hoomd python module and define the exports here.
@@ -293,7 +289,7 @@ PYBIND11_PLUGIN(_hoomd)
 
 	// setup needed for numpy
 	my_import_array();
-	// bnp::array::set_module_and_type("numpy", "ndarray"); TODO: adios_boost, check if we need this anymore??
+	// bnp::array::set_module_and_type("numpy", "ndarray"); //TODO: adios_boost, check if we need this anymore??
 
 	m.def("abort_mpi", abort_mpi);
 	m.def("mpi_barrier_world", mpi_barrier_world);
@@ -314,28 +310,12 @@ PYBIND11_PLUGIN(_hoomd)
 	m.def("cuda_profile_start", &cuda_profile_start);
 	m.def("cuda_profile_stop", &cuda_profile_stop);
 
-	//TODO: adios_boost, rewrite these to something pybind can handle
-	// class_<std::vector<Scalar> >("std_vector_scalar")
-	// .def(vector_indexing_suite<std::vector<Scalar> >())
-	// ;
-	//
-	// class_<std::vector<string> >("std_vector_string")
-	// .def(vector_indexing_suite<std::vector<string> >())
-	// ;
-	//
-	// class_< std::vector<unsigned int> >("std_vector_uint")
-	// .def(vector_indexing_suite<std::vector<unsigned int> >())
-	// ;
-	//
-	// // data structures
-	// class_<std::vector<int> >("std_vector_int")
-	// .def(vector_indexing_suite<std::vector<int> >());
-	//
-	// class_<std::vector<Scalar3> >("std_vector_scalar3")
-	// .def(vector_indexing_suite<std::vector<Scalar3> >());
-	//
-	// class_<std::vector<Scalar4> >("std_vector_scalar4")
-	// .def(vector_indexing_suite<std::vector<Scalar4> >());
+	pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
+	pybind11::bind_vector<string>(m,"std_vector_string");
+	pybind11::bind_vector<unsigned int>(m,"std_vector_uint");
+	pybind11::bind_vector<int>(m,"std_vector_int");
+	pybind11::bind_vector<Scalar3>(m,"std_vector_scalar3");
+	pybind11::bind_vector<Scalar4>(m,"std_vector_scalar4");
 
 	InstallSIGINTHandler();
 

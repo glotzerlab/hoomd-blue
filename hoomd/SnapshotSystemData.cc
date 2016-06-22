@@ -76,7 +76,7 @@ void export_SnapshotSystemData(py::module& m)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
-    py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr< const SnapshotSystemData<float> > >();
+    // py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<const SnapshotSystemData<float> > >();
 
     py::class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >(m,"SnapshotSystemData_double")
     .def(py::init<>())
@@ -92,5 +92,5 @@ void export_SnapshotSystemData(py::module& m)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
 
-    py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr< const SnapshotSystemData<double> > >();
+    // py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<const SnapshotSystemData<double> > >();
     }

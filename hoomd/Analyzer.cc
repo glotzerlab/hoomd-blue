@@ -59,7 +59,7 @@ class AnalyzerWrap: public Analyzer
 
 void export_Analyzer(py::module& m)
     {
-    py::class_<AnalyzerWrap, std::shared_ptr<AnalyzerWrap>, AnalyzerWrap>(m,"Analyzer")
+    py::class_<Analyzer, std::shared_ptr<Analyzer>, AnalyzerWrap>(m,"Analyzer")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)

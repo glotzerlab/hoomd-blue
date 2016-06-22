@@ -1200,7 +1200,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 #endif
 
 template<class T, typename Group>
-    {
     void export_BondedGroupData(py::module& m, std::string name, std::string snapshot_name, bool export_struct)
     {
     // export group structure
@@ -1232,8 +1231,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m, snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property("typeid", &Snapshot::getTypeNP)
-            .def_property("group", &Snapshot::getBondedTagsNP)
+            .def_property_readonly("typeid", &Snapshot::getTypeNP)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
@@ -1251,8 +1250,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m,snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property("value", &Snapshot::getValueNP)
-            .def_property("group", &Snapshot::getBondedTagsNP)
+            .def_property_readonly("value", &Snapshot::getValueNP)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
@@ -1263,7 +1262,6 @@ template<class T, typename Group>
         // register_ptr_to_python< std::shared_ptr<Snapshot> >();
         // #endif
         }
-   }
    }
 
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>

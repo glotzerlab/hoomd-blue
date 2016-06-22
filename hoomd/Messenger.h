@@ -374,6 +374,8 @@ class Messenger
 #endif
     };
 
+PYBIND11_DECLARE_HOLDER_TYPE(Tsharedptr, std::shared_ptr<Tsharedptr>);
+
 //! Exports Messenger to python
 void export_Messenger(pybind11::module& m);
 

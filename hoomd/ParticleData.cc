@@ -34,7 +34,6 @@ namespace py = pybind11;
 #include <boost/bind.hpp>
 
 using namespace boost::signals2;
-using namespace boost;
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -3077,7 +3076,7 @@ py::list SnapshotParticleData<Real>::getTypes()
     py::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(this->str(type_mapping[i]));
+        types.append(py::str(type_mapping[i]));
 
     return types;
     }
@@ -3090,7 +3089,7 @@ void SnapshotParticleData<Real>::setTypes(py::list types)
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        type_mapping[i] = extract<string>(types[i]);
+        type_mapping[i] = py::cast<string>(types[i]);
     }
 
 // instantiate both float and double snapshots
@@ -3101,18 +3100,18 @@ void export_SnapshotParticleData(py::module& m)
     {
     py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >(m,"SnapshotParticleData_float")
     .def(py::init<unsigned int>())
-    .def_property("position", &SnapshotParticleData<float>::getPosNP)
-    .def_property("velocity", &SnapshotParticleData<float>::getVelNP)
-    .def_property("acceleration", &SnapshotParticleData<float>::getAccelNP)
-    .def_property("typeid", &SnapshotParticleData<float>::getTypeNP)
-    .def_property("mass", &SnapshotParticleData<float>::getMassNP)
-    .def_property("charge", &SnapshotParticleData<float>::getChargeNP)
-    .def_property("diameter", &SnapshotParticleData<float>::getDiameterNP)
-    .def_property("image", &SnapshotParticleData<float>::getImageNP)
-    .def_property("body", &SnapshotParticleData<float>::getBodyNP)
-    .def_property("orientation", &SnapshotParticleData<float>::getOrientationNP)
-    .def_property("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
-    .def_property("angmom", &SnapshotParticleData<float>::getAngmomNP)
+    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP, py::return_value_policy::take_ownership)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
@@ -3121,18 +3120,18 @@ void export_SnapshotParticleData(py::module& m)
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
     .def(py::init<unsigned int>())
-    .def_property("position", &SnapshotParticleData<double>::getPosNP)
-    .def_property("velocity", &SnapshotParticleData<double>::getVelNP)
-    .def_property("acceleration", &SnapshotParticleData<double>::getAccelNP)
-    .def_property("typeid", &SnapshotParticleData<double>::getTypeNP)
-    .def_property("mass", &SnapshotParticleData<double>::getMassNP)
-    .def_property("charge", &SnapshotParticleData<double>::getChargeNP)
-    .def_property("diameter", &SnapshotParticleData<double>::getDiameterNP)
-    .def_property("image", &SnapshotParticleData<double>::getImageNP)
-    .def_property("body", &SnapshotParticleData<double>::getBodyNP)
-    .def_property("orientation", &SnapshotParticleData<double>::getOrientationNP)
-    .def_property("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
-    .def_property("angmom", &SnapshotParticleData<double>::getAngmomNP)
+    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP, py::return_value_policy::take_ownership)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)

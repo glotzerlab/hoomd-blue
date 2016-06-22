@@ -70,9 +70,9 @@ class RandomInitializer
         std::string m_type_name;    //!< Name of the particle type created
     };
 
-//! Exports the SimpleCubicInitializer class to python
-void export_SimpleCubicInitializer();
-//! Exports the RandomInitializer class to python
-void export_RandomInitializer();
+// //! Exports the SimpleCubicInitializer class to python
+// void export_SimpleCubicInitializer();
+// //! Exports the RandomInitializer class to python
+// void export_RandomInitializer();
 
 #endif

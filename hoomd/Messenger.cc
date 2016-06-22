@@ -463,7 +463,7 @@ void Messenger::releaseSharedMem()
 
 void export_Messenger(py::module& m)
     {
-    py::class_<Messenger, std::shared_ptr<Messenger> >("Messenger")
+    py::class_<Messenger, std::shared_ptr<Messenger> >(m,"Messenger")
         .def(py::init< >())
         .def("error", &Messenger::errorStr)
         .def("warning", &Messenger::warningStr)

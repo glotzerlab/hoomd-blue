@@ -684,6 +684,7 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
+
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
@@ -716,6 +717,6 @@ void export_ExecutionConfiguration(py::module& m)
         .export_values()
     ;
 
-    // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
-    py::implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
+    // // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
+    // py::implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
     }

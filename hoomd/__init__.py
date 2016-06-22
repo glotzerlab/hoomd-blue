@@ -63,7 +63,7 @@ from hoomd import util
 from hoomd import variant
 from hoomd import lattice
 
-from hoomd._hoomd import WalltimeLimitReached;
+# from hoomd._hoomd import WalltimeLimitReached; TODO: adios_boost, re-enable this with custom exception code
 
 # output the version info on import
 context.msg.notice(1, _hoomd.output_version_info())
