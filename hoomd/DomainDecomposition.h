@@ -20,6 +20,11 @@
 #include <set>
 #include <vector>
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
+
 /*! \ingroup communication
 */
 
@@ -209,7 +214,7 @@ class DomainDecomposition
 
 #ifdef ENABLE_MPI
 //! Export the domain decomposition information
-void export_DomainDecomposition();
+void export_DomainDecomposition(pybind11::module& m);
 #endif
 
 #endif // __DOMAIN_DECOMPOSITION_H

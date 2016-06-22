@@ -20,8 +20,8 @@
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 using namespace std;
 
 // File position of NFILE in DCD header
@@ -409,10 +409,10 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
     write_int(file, timestep);
     }
 
-void export_DCDDumpWriter()
+void export_DCDDumpWriter(py::module& m)
     {
-    class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("DCDDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
+    py::class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)

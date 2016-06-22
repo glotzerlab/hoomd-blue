@@ -8,7 +8,7 @@
 
 #include "CGCMMAngleForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <iostream>
@@ -376,7 +376,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_CGCMMAngleForceCompute()
     {
-    class_<CGCMMAngleForceCompute, std::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<CGCMMAngleForceCompute, std::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute> >
     ("CGCMMAngleForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &CGCMMAngleForceCompute::setParams)
     ;

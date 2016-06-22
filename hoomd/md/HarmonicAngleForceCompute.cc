@@ -8,7 +8,7 @@
 
 #include "HarmonicAngleForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <iostream>
@@ -279,7 +279,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceCompute()
     {
-    class_<HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceCompute>, bases<ForceCompute> >
     ("HarmonicAngleForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicAngleForceCompute::setParams)
     ;

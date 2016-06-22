@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CONSTFORCECOMPUTE_H__
 #define __CONSTFORCECOMPUTE_H__
 
@@ -61,6 +63,6 @@ class ConstForceCompute : public ForceCompute
     };
 
 //! Exports the ConstForceComputeClass to python
-void export_ConstForceCompute();
+void export_ConstForceCompute(pybind11::module& m);
 
 #endif

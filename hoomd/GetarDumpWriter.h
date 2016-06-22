@@ -15,6 +15,10 @@
 #include <string>
 #include <vector>
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace getardump{
 
     typedef SnapshotSystemData<Scalar> SystemSnapshot;
@@ -286,7 +290,7 @@ namespace getardump{
             NeedSnapshotMap m_neededSnapshots;
         };
 
-void export_GetarDumpWriter();
+void export_GetarDumpWriter(pybind11::module& m);
 
 }
 

@@ -14,9 +14,8 @@
 #include <sstream>
 #include <iomanip>
 
-#include <boost/python.hpp>
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
 
 /*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way to reset the clock*/
 ClockSource::ClockSource() : m_start_time(0)
@@ -42,9 +41,11 @@ std::string ClockSource::formatHMS(int64_t t)
     return str.str();
     }
 
-void export_ClockSource()
+#ifndef NVCC
+void export_ClockSource(py::module& m)
     {
-    class_<ClockSource>("ClockSource")
+    py::class_<ClockSource>(m,"ClockSource")
     .def("getTime", &ClockSource::getTime)
     ;
     }
+#endif

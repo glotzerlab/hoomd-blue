@@ -10,11 +10,7 @@
 
 #include "Integrator.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_CUDA
 #include "Integrator.cuh"
@@ -906,10 +902,10 @@ bool Integrator::getAnisotropic()
     return aniso;
     }
 
-void export_Integrator()
+void export_Integrator(py::module& m)
     {
-    class_<Integrator, std::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
-    ("Integrator", init< std::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<Integrator, std::shared_ptr<Integrator> >(m,"Integrator",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)

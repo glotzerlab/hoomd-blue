@@ -11,7 +11,7 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
@@ -812,7 +812,7 @@ void NeighborListGPUTree::traverseTree()
 
 void export_NeighborListGPUTree()
     {
-    class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
+    class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU> >
                      ("NeighborListGPUTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
 

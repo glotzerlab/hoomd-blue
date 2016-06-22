@@ -14,9 +14,7 @@
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
-
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <stdexcept>
 #include <iostream>
@@ -25,7 +23,6 @@ using namespace boost::python;
 #include <algorithm>
 
 using namespace std;
-using namespace boost;
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
@@ -687,37 +684,38 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
-void export_ExecutionConfiguration()
+void export_ExecutionConfiguration(py::module& m)
     {
-    scope in_exec_conf = class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
-                         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
-                         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
-                         .def("getGPUName", &ExecutionConfiguration::getGPUName)
-                         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
-                         .def_readonly("msg", &ExecutionConfiguration::msg)
+    py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
+         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
+         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+         .def("getGPUName", &ExecutionConfiguration::getGPUName)
+         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+         .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
-                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
+         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-                         .def("getPartition", &ExecutionConfiguration::getPartition)
-                         .def("getNRanks", &ExecutionConfiguration::getNRanks)
-                         .def("getRank", &ExecutionConfiguration::getRank)
-                         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-                         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-                         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
-                         .def("barrier", &ExecutionConfiguration::barrier)
-                         .staticmethod("getNRanksGlobal")
-                         .staticmethod("getRankGlobal")
+         .def("getPartition", &ExecutionConfiguration::getPartition)
+         .def("getNRanks", &ExecutionConfiguration::getNRanks)
+         .def("getRank", &ExecutionConfiguration::getRank)
+         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+         .def("barrier", &ExecutionConfiguration::barrier)
+         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
 #endif
-                         ;
+    ;
 
-    enum_<ExecutionConfiguration::executionMode>("executionMode")
-    .value("GPU", ExecutionConfiguration::GPU)
-    .value("CPU", ExecutionConfiguration::CPU)
-    .value("AUTO", ExecutionConfiguration::AUTO)
+    py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")
+        .value("GPU", ExecutionConfiguration::executionMode::GPU)
+        .value("CPU", ExecutionConfiguration::executionMode::CPU)
+        .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
+        .export_values()
     ;
 
     // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
-    implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
+    py::implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
     }

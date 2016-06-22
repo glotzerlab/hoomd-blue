@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 /*! \file ForceDistanceConstraintGPU.cc
@@ -615,7 +615,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
 void export_ForceDistanceConstraintGPU()
     {
-    class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint>, boost::noncopyable >
+    class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint> >
     ("ForceDistanceConstraintGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

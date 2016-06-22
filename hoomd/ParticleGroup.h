@@ -16,6 +16,7 @@
 
 #include <string>
 #include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
@@ -390,6 +391,6 @@ class ParticleGroup
     };
 
 //! Exports the ParticleGroup class to python
-void export_ParticleGroup();
+void export_ParticleGroup(pybind11::module& m);
 
 #endif

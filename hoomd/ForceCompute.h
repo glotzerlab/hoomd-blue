@@ -26,6 +26,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
 
@@ -189,6 +191,8 @@ class ForceCompute : public Compute
     };
 
 //! Exports the ForceCompute class to python
-void export_ForceCompute();
+#ifndef NVCC
+void export_ForceCompute(pybind11::module& m);
+#endif
 
 #endif

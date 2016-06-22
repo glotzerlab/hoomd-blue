@@ -10,7 +10,7 @@
 #include <map>
 #include <string.h>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -898,7 +898,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
 
 void export_ForceComposite()
     {
-    class_< ForceComposite, std::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
+    class_< ForceComposite, std::shared_ptr<ForceComposite>, bases<MolecularForceCompute> >
     ("ForceComposite", init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)

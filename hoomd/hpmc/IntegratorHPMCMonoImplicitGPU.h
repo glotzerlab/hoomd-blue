@@ -13,7 +13,7 @@
 
 #include "hoomd/GPUVector.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file IntegratorHPMCMonoImplicitGPU.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent on the GPU
@@ -886,7 +886,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::string& name)
     {
-     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> >, boost::noncopyable >
+     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> > >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }

@@ -172,7 +172,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 */
 template < class T, class Base > void export_PotentialBondGPU(const std::string& name)
     {
-     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
+     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base> >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string& >())
               ;
 

@@ -4,6 +4,8 @@
 #include "GetarInitializer.h"
 #include <iostream>
 
+namespace py = pybind11;
+
 namespace getardump{
 
     using std::shared_ptr;
@@ -32,21 +34,20 @@ namespace getardump{
             }
         }
 
-    map<set<Record>, string> GetarInitializer::parseModes(dict &pyModes)
+    map<set<Record>, string> GetarInitializer::parseModes(py::dict &pyModes)
         {
         map<set<Record>, string> modes;
 
-        boost::python::list items(pyModes.items());
-        for(unsigned int i(0); i < len(items); ++i)
+        for (auto item : pyModes)
             {
-            tuple pyKey(items[i][0]);
-            string value = extract<string>(items[i][1]);
+            py::tuple pyKey(item.first);
+            string value = py::cast<string>(item.second);
 
             set<Record> key;
 
             for(unsigned int j(0); j < len(pyKey); ++j)
                 {
-                string name = extract<string>(pyKey[j]);
+                string name = py::cast<string>(pyKey[j]);
 
                 if(!insertRecord(name, key))
                     throw runtime_error(string("Can't find the requested property ") + name);
@@ -68,14 +69,14 @@ namespace getardump{
         return modes;
         }
 
-    shared_ptr<SystemSnapshot> GetarInitializer::initializePy(dict &pyModes)
+    shared_ptr<SystemSnapshot> GetarInitializer::initializePy(py::dict &pyModes)
         {
         map<set<Record>, string> modes(parseModes(pyModes));
         return initialize(modes);
         }
 
     void GetarInitializer::restorePy(
-        dict &pyModes, shared_ptr<SystemDefinition> sysdef)
+        py::dict &pyModes, shared_ptr<SystemDefinition> sysdef)
         {
         map<set<Record>, string> modes(parseModes(pyModes));
         restore(sysdef, modes);
@@ -1088,10 +1089,10 @@ namespace getardump{
         return result;
         }
 
-    void export_GetarInitializer()
+    void export_GetarInitializer(py::module& m)
         {
-        class_<GetarInitializer, shared_ptr<GetarInitializer>, boost::noncopyable>
-            ("GetarInitializer", init< shared_ptr<const ExecutionConfiguration>, string>())
+        py::class_<GetarInitializer, shared_ptr<GetarInitializer> >(m,"GetarInitializer")
+            .def(py::init< shared_ptr<const ExecutionConfiguration>, string>())
             .def("initialize", &GetarInitializer::initializePy)
             .def("restore", &GetarInitializer::restorePy)
             .def("getTimestep", &GetarInitializer::getTimestep)

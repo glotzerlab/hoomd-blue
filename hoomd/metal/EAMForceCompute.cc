@@ -3,7 +3,7 @@
 
 #include "EAMForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
 using namespace std;
 using namespace boost;
@@ -499,7 +499,7 @@ Scalar EAMForceCompute::get_r_cut()
     }
 void export_EAMForceCompute()
     {
-    scope in_eam = class_<EAMForceCompute, std::shared_ptr<EAMForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    scope in_eam = class_<EAMForceCompute, std::shared_ptr<EAMForceCompute>, bases<ForceCompute> >
         ("EAMForceCompute", init< std::shared_ptr<SystemDefinition>, char*, int>())
 
     .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)

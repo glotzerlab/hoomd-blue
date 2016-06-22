@@ -17,9 +17,8 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-using namespace boost;
+namespace py = pybind11;
+
 
 #include "hoomd/extern/vmdsock.h"
 #include "hoomd/extern/imd.h"
@@ -481,9 +480,9 @@ void IMDInterface::sendCoords(unsigned int timestep)
         }
     }
 
-void export_IMDInterface()
+void export_IMDInterface(py::module& m)
     {
-    class_<IMDInterface, std::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
-        ("IMDInterface", init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
+    py::class_<IMDInterface, std::shared_ptr<IMDInterface> >(m,"IMDInterface",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
         ;
     }

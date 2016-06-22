@@ -13,7 +13,7 @@
 #include <iomanip>
 
 #include "hoomd/Integrator.h"
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
@@ -1068,7 +1068,7 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
 */
 template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
     {
-    boost::python::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC>, boost::noncopyable >
+    boost::python::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC> >
           (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)

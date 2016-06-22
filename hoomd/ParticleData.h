@@ -26,12 +26,14 @@
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
 
-// #include <memory> TODO: adios_boost, remove
 #include <memory>
 #include <boost/signals2.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
-#include <boost/python.hpp>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
@@ -178,9 +180,9 @@ struct SnapshotParticleData {
     PyObject* getAngmomNP();
 
     //! Get the type names for python
-    boost::python::list getTypes();
+    pybind11::list getTypes();
     //! Set the type names from python
-    void setTypes(boost::python::list types);
+    void setTypes(pybind11::list types);
 
     std::vector< vec3<Real> > pos;             //!< positions
     std::vector< vec3<Real> > vel;             //!< velocities
@@ -1078,12 +1080,14 @@ class ParticleData : boost::noncopyable
         bool inBox(const SnapshotParticleData<Real>& snap);
     };
 
-
+#ifndef NVCC
 //! Exports the BoxDim class to python
-void export_BoxDim();
+void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python
-void export_ParticleData();
+void export_ParticleData(pybind11::module& m);
 //! Export SnapshotParticleData to python
-void export_SnapshotParticleData();
+void export_SnapshotParticleData(pybind11::module& m);
+#endif
+
 
 #endif

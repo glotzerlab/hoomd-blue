@@ -16,13 +16,13 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <stdexcept>
 #include <time.h>
 
 using namespace std;
+namespace py = pybind11;
 
 PyObject* walltimeLimitExceptionTypeObj = 0;
 
@@ -156,7 +156,7 @@ void System::setAnalyzerPeriod(const std::string& name, unsigned int period, int
 /*! \param name Name of the Updater to modify
     \param update_func A python callable function taking one argument that returns an integer value of the next time step to analyze at
 */
-void System::setAnalyzerPeriodVariable(const std::string& name, boost::python::object update_func)
+void System::setAnalyzerPeriodVariable(const std::string& name, py::object update_func)
     {
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
     i->setVariablePeriod(update_func, m_cur_tstep);
@@ -279,7 +279,7 @@ void System::setUpdaterPeriod(const std::string& name, unsigned int period, int 
 /*! \param name Name of the Updater to modify
     \param update_func A python callable function taking one argument that returns an integer value of the next time step to update at
 */
-void System::setUpdaterPeriodVariable(const std::string& name, boost::python::object update_func)
+void System::setUpdaterPeriodVariable(const std::string& name, py::object update_func)
     {
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
     i->setVariablePeriod(update_func, m_cur_tstep);
@@ -396,7 +396,7 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 */
 
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
-                 boost::python::object callback, double limit_hours,
+                 py::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {
     // track if a wall clock timeout ended the run
@@ -521,9 +521,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             // a negative return value indicates immediate end of run.
             if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
                 {
-                boost::python::object rv = callback(m_cur_tstep);
-                extract<int> extracted_rv(rv);
-                if (extracted_rv.check() && extracted_rv() < 0)
+                py::object rv = callback(m_cur_tstep);
+                int extracted_rv = py::cast<int>(rv); //TODO: adios_boost, removed the checking and didn't replace with a try catch, do we need it?
+                if (extracted_rv < 0)
                     {
                     m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
                          << m_cur_tstep << " / " << m_end_tstep << endl;
@@ -638,7 +638,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (timeout_end_run && walltime_stop != NULL)
         {
         PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
-        boost::python::throw_error_already_set();
+        pybind11::error_already_set();
         }
     }
 
@@ -841,29 +841,30 @@ PDataFlags System::determineFlags(unsigned int tstep)
     return flags;
     }
 
-//! Create a custom exception
-PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
+// //! Create a custom exception
+// PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
+//     {
+//     // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
+//
+//     using std::string;
+//     namespace bp = boost::python;
+//
+//     string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
+//     string qualifiedName0 = scopeName + "." + name;
+//     char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
+//
+//     PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
+//     if(!typeObj) bp::throw_error_already_set();
+//     bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
+//     return typeObj;
+//     }
+
+void export_System(py::module& m)
     {
-    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
+    // walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached"); TODO: adios_boost, custom exceptions are not supported by pybind11 and it doesn't sound like they are going to
 
-    using std::string;
-    namespace bp = boost::python;
-
-    string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
-    string qualifiedName0 = scopeName + "." + name;
-    char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
-
-    PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
-    if(!typeObj) bp::throw_error_already_set();
-    bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
-    return typeObj;
-    }
-
-void export_System()
-    {
-    walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached");
-
-    class_< System, std::shared_ptr<System>, boost::noncopyable > ("System", init< std::shared_ptr<SystemDefinition>, unsigned int >())
+    py::class_< System, std::shared_ptr<System> > (m,"System")
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addAnalyzer", &System::addAnalyzer)
     .def("removeAnalyzer", &System::removeAnalyzer)
     .def("getAnalyzer", &System::getAnalyzer)

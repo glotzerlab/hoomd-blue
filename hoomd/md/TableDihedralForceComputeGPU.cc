@@ -6,7 +6,7 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
@@ -103,7 +103,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableDihedralForceComputeGPU()
     {
-    class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute>, boost::noncopyable >
+    class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute> >
     ("TableDihedralForceComputeGPU",
      init< std::shared_ptr<SystemDefinition>,
      unsigned int,

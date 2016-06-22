@@ -232,7 +232,7 @@ class UpdaterMuVT : public Updater
 */
 template < class Shape > void export_UpdaterMuVT(const std::string& name)
     {
-    boost::python::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater>, boost::noncopyable >
+    boost::python::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater> >
           (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)

@@ -9,7 +9,7 @@
 
 #include "ForceCompositeGPU.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
@@ -220,7 +220,7 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
 
 void export_ForceCompositeGPU()
     {
-    class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU>, bases<ForceComposite>, boost::noncopyable >
+    class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU>, bases<ForceComposite> >
     ("ForceCompositeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
 
@@ -44,6 +46,6 @@ class ForceConstraint : public ForceCompute
     };
 
 //! Exports the ForceConstraint to python
-void export_ForceConstraint();
+void export_ForceConstraint(pybind11::module& m);
 
 #endif

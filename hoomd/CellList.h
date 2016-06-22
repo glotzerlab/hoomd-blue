@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <boost/signals2.hpp>
+#include <boost/shared_ptr.hpp>
 
 /*! \file CellList.h
     \brief Declares the CellList class
@@ -20,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CELLLIST_H__
 #define __CELLLIST_H__
@@ -388,6 +391,8 @@ class CellList : public Compute
     };
 
 //! Export the CellList class to python
-void export_CellList();
+#ifndef NVCC
+void export_CellList(pybind11::module& m);
+#endif
 
 #endif

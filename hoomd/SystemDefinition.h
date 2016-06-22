@@ -17,6 +17,8 @@
 #include "BondedGroupData.h"
 
 #include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
@@ -25,6 +27,7 @@
 //! Forward declaration of Communicator
 class Communicator;
 #endif
+
 
 //! Forward declaration of SnapshotSytemData
 template <class Real> struct SnapshotSystemData;
@@ -160,6 +163,6 @@ class SystemDefinition
     };
 
 //! Exports SystemDefinition to python
-void export_SystemDefinition();
+void export_SystemDefinition(pybind11::module& m);
 
 #endif

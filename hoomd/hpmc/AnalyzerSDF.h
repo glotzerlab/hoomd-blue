@@ -10,7 +10,7 @@
 
 
 #include "hoomd/Analyzer.h"
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "hoomd/Filesystem.h"
 #include "IntegratorHPMCMono.h"
 
@@ -463,7 +463,7 @@ int AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
 */
 template < class Shape > void export_AnalyzerSDF(const std::string& name)
     {
-    boost::python::class_< AnalyzerSDF<Shape>, std::shared_ptr< AnalyzerSDF<Shape> >, boost::python::bases<Analyzer>, boost::noncopyable >
+    boost::python::class_< AnalyzerSDF<Shape>, std::shared_ptr< AnalyzerSDF<Shape> >, boost::python::bases<Analyzer> >
           (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
           ;
     }

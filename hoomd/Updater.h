@@ -21,6 +21,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! \ingroup hoomd_lib
     @{
 */
@@ -49,7 +51,7 @@
 
     \ingroup updaters
 */
-class Updater : boost::noncopyable
+class Updater
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
@@ -155,6 +157,6 @@ class Updater : boost::noncopyable
     };
 
 //! Export the Updater class to python
-void export_Updater();
+void export_Updater(pybind11::module& m);
 
 #endif

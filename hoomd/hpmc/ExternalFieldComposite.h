@@ -8,7 +8,7 @@
 /*! \file ExternalField.h
     \brief Declaration of ExternalField base class
 */
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 
 #include "hoomd/Compute.h"

@@ -14,10 +14,6 @@
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include <math.h>
 #include <stdexcept>
 #include <algorithm>
@@ -25,6 +21,7 @@ using namespace boost;
 #include <iostream>
 
 using namespace std;
+namespace py = pybind11;
 
 //! Constructor
 /*! \param sysdef System to perform sorts on
@@ -238,10 +235,10 @@ void SFCPackUpdaterGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
-void export_SFCPackUpdaterGPU()
+void export_SFCPackUpdaterGPU(py::module& m)
     {
-    class_<SFCPackUpdaterGPU, bases<SFCPackUpdater>, std::shared_ptr<SFCPackUpdaterGPU>, boost::noncopyable>
-    ("SFCPackUpdaterGPU", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<SFCPackUpdaterGPU, std::shared_ptr<SFCPackUpdaterGPU> >(m,"SFCPackUpdaterGPU",py::base<SFCPackUpdater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }
 

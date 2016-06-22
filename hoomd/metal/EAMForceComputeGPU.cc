@@ -20,7 +20,7 @@ Moscow group.
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -155,7 +155,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_EAMForceComputeGPU()
     {
-    class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
+    class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute> >
         ("EAMForceComputeGPU", init< std::shared_ptr<SystemDefinition>, char*, int >())
         ;
     }

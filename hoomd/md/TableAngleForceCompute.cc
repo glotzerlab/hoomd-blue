@@ -6,7 +6,7 @@
 
 #include "TableAngleForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <stdexcept>
@@ -331,7 +331,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 //! Exports the TableAngleForceCompute class to python
 void export_TableAngleForceCompute()
     {
-    class_<TableAngleForceCompute, std::shared_ptr<TableAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<TableAngleForceCompute, std::shared_ptr<TableAngleForceCompute>, bases<ForceCompute> >
     ("TableAngleForceCompute", init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableAngleForceCompute::setTable)
     ;

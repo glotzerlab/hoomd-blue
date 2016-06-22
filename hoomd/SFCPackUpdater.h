@@ -19,6 +19,7 @@
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
@@ -98,6 +99,6 @@ class SFCPackUpdater : public Updater
    };
 
 //! Export the SFCPackUpdater class to python
-void export_SFCPackUpdater();
+void export_SFCPackUpdater(pybind11::module& m);
 
 #endif

@@ -12,7 +12,7 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -110,7 +110,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceComputeGPU()
     {
-    class_<HarmonicAngleForceComputeGPU, std::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute>, boost::noncopyable >
+    class_<HarmonicAngleForceComputeGPU, std::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute> >
     ("HarmonicAngleForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

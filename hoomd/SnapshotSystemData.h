@@ -20,6 +20,10 @@
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 /*! \ingroup data_structs
 */
 
@@ -89,6 +93,7 @@ struct SnapshotSystemData {
     };
 
 //! Export SnapshotParticleData to python
-void export_SnapshotSystemData();
+
+void export_SnapshotSystemData(pybind11::module& m);
 
 #endif

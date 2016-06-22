@@ -13,12 +13,12 @@ using namespace std;
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
 
 #include "IntegratorHPMCMono.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include "ComputeFreeVolume.h"
 #include "ComputeFreeVolumeGPU.cuh"
@@ -299,7 +299,7 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 */
 template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> >, boost::noncopyable >
+     boost::python::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> > >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,

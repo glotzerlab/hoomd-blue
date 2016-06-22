@@ -10,14 +10,10 @@
 #include "CachedAllocator.h"
 #endif
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include <algorithm>
 #include <iostream>
 using namespace std;
+namespace py = pybind11;
 
 /*! \file ParticleGroup.cc
     \brief Defines the ParticleGroup and related classes
@@ -770,13 +766,13 @@ void ParticleGroup::rebuildIndexListGPU() const
     }
 #endif
 
-void export_ParticleGroup()
+void export_ParticleGroup(py::module& m)
     {
-    class_<ParticleGroup, std::shared_ptr<ParticleGroup>, boost::noncopyable>
-            ("ParticleGroup", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector>, bool >())
-            .def(init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector> >())
-            .def(init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
-            .def(init<>())
+    py::class_<ParticleGroup, std::shared_ptr<ParticleGroup> >(m,"ParticleGroup")
+            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector>, bool >())
+            .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector> >())
+            .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
+            .def(py::init<>())
             .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
@@ -787,32 +783,32 @@ void export_ParticleGroup()
             .def("updateMemberTags", &ParticleGroup::updateMemberTags)
             ;
 
-    class_<ParticleSelector, std::shared_ptr<ParticleSelector>, boost::noncopyable>
-            ("ParticleSelector", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelector, std::shared_ptr<ParticleSelector> >(m,"ParticleSelector")
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
             .def("isSelected", &ParticleSelector::isSelected)
             ;
 
-    class_<ParticleSelectorAll, std::shared_ptr<ParticleSelectorAll>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorAll", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelectorAll, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
 
-    class_<ParticleSelectorTag, std::shared_ptr<ParticleSelectorTag>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorTag", init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleSelectorTag, std::shared_ptr<ParticleSelectorTag> >(m,"ParticleSelectorTag",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    class_<ParticleSelectorType, std::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorType", init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleSelectorType, std::shared_ptr<ParticleSelectorType> >(m,"ParticleSelectorType",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorRigid", init< std::shared_ptr<SystemDefinition>, bool >())
+    py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    class_<ParticleSelectorCuboid, std::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorCuboid", init< std::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
+    py::class_<ParticleSelectorCuboid, std::shared_ptr<ParticleSelectorCuboid> >(m,"ParticleSelectorCuboid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
 
-    class_<ParticleSelectorRigidCenter, std::shared_ptr<ParticleSelectorRigidCenter>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorRigidCenter", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelectorRigidCenter, std::shared_ptr<ParticleSelectorRigidCenter> >(m,"ParticleSelectorRigidCenter",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

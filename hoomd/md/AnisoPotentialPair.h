@@ -10,7 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
@@ -451,7 +451,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 template < class T > void export_AnisoPotentialPair(const std::string& name)
     {
     boost::python::scope in_aniso_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)

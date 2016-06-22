@@ -14,6 +14,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __COMPUTE_THERMO_GPU_H__
 #define __COMPUTE_THERMO_GPU_H__
 
@@ -47,6 +49,6 @@ class ComputeThermoGPU : public ComputeThermo
     };
 
 //! Exports the ComputeThermoGPU class to python
-void export_ComputeThermoGPU();
+void export_ComputeThermoGPU(pybind11::module& m);
 
 #endif

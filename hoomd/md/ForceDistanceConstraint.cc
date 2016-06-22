@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace Eigen;
 
@@ -601,7 +601,7 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
 void export_ForceDistanceConstraint()
     {
-    class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
+    class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute> >
     ("ForceDistanceConstraint", init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;

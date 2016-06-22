@@ -15,6 +15,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
+
 #ifndef __CELLLISTSTENCIL_H__
 #define __CELLLISTSTENCIL_H__
 
@@ -61,7 +64,7 @@ class CellListStencil : public Compute
             m_rstencil = rstencil;
             requestCompute();
             }
-        
+
         //! Get the computed stencils
         const GPUArray<Scalar4>& getStencils() const
             {
@@ -114,6 +117,9 @@ class CellListStencil : public Compute
     };
 
 //! Exports CellListStencil to python
-void export_CellListStencil();
+#ifndef NVCC
+void export_CellListStencil(pybind11::module& m);
+#endif
+
 
 #endif // __CELLLISTSTENCIL_H__

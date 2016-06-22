@@ -21,6 +21,7 @@
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -164,6 +165,6 @@ class Integrator : public Updater
     };
 
 //! Exports the NVEUpdater class to python
-void export_Integrator();
+void export_Integrator(pybind11::module& m);
 
 #endif

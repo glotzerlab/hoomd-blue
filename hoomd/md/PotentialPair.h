@@ -10,7 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include "hoomd/extern/num_util.h"
 #include <boost/python/stl_iterator.hpp>
@@ -726,7 +726,7 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject
 template < class T > void export_PotentialPair(const std::string& name)
     {
     boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)

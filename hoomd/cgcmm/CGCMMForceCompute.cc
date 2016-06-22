@@ -3,7 +3,7 @@
 
 #include "CGCMMForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 using namespace boost::python;
 #include <stdexcept>
@@ -349,7 +349,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 
 void export_CGCMMForceCompute()
     {
-    class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute>, bases<ForceCompute> >
     ("CGCMMForceCompute", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setParams", &CGCMMForceCompute::setParams)
     ;

@@ -21,6 +21,8 @@
 #endif
 
 using namespace std;
+namespace py = pybind11;
+
 
 //! Names of bonded groups
 char name_bond_data[] = "bond";
@@ -1198,15 +1200,16 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 #endif
 
 template<class T, typename Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct)
+    {
+    void export_BondedGroupData(py::module& m, std::string name, std::string snapshot_name, bool export_struct)
     {
     // export group structure
     if (export_struct)
-        Group::export_to_python();
+        Group::export_to_python(m);
 
-    scope outer = class_<T, std::shared_ptr<T> , boost::noncopyable>(name.c_str(),
-        init<std::shared_ptr<ParticleData>, unsigned int>())
-        .def(init<std::shared_ptr<ParticleData>, const typename T::Snapshot& >())
+    py::class_<T, std::shared_ptr<T> >(m,name.c_str())
+        .def(py::init<std::shared_ptr<ParticleData>, unsigned int>())
+        .def(py::init<std::shared_ptr<ParticleData>, const typename T::Snapshot& >())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("getN", &T::getN)
@@ -1227,39 +1230,40 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         {
         // has a type mapping
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, std::shared_ptr<Snapshot> >
-            (snapshot_name.c_str(), init<unsigned int>())
-            .add_property("typeid", &Snapshot::getTypeNP)
-            .add_property("group", &Snapshot::getBondedTagsNP)
-            .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
+        py::class_<Snapshot, std::shared_ptr<Snapshot> >(m, snapshot_name.c_str())
+            .def(py::init<unsigned int>())
+            .def_property("typeid", &Snapshot::getTypeNP)
+            .def_property("group", &Snapshot::getBondedTagsNP)
+            .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
 
-        // boost 1.60.0 compatibility
-        #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< std::shared_ptr<T> >();
-        register_ptr_to_python< std::shared_ptr<Snapshot> >();
-        #endif
+        // // boost 1.60.0 compatibility TODO: adios_boost, remove if not needed
+        // #if (BOOST_VERSION == 106000)
+        // register_ptr_to_python< std::shared_ptr<T> >();
+        // register_ptr_to_python< std::shared_ptr<Snapshot> >();
+        // #endif
         }
     else
         {
         // has Scalar values
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, std::shared_ptr<Snapshot> >
-            (snapshot_name.c_str(), init<unsigned int>())
-            .add_property("value", &Snapshot::getValueNP)
-            .add_property("group", &Snapshot::getBondedTagsNP)
+        py::class_<Snapshot, std::shared_ptr<Snapshot> >(m,snapshot_name.c_str())
+            .def(py::init<unsigned int>())
+            .def_property("value", &Snapshot::getValueNP)
+            .def_property("group", &Snapshot::getBondedTagsNP)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
 
-        // boost 1.60.0 compatibility
-        #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< std::shared_ptr<T> >();
-        register_ptr_to_python< std::shared_ptr<Snapshot> >();
-        #endif
+        // // boost 1.60.0 compatibility TODO: adios_boost, remove if not needed
+        // #if (BOOST_VERSION == 106000)
+        // register_ptr_to_python< std::shared_ptr<T> >();
+        // register_ptr_to_python< std::shared_ptr<Snapshot> >();
+        // #endif
         }
+   }
    }
 
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
@@ -1342,12 +1346,12 @@ PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::
 /*! \returns A python list of type names
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-boost::python::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
+py::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
     {
-    boost::python::list types;
+    py::list types;
 
     for (unsigned int i = 0; i < this->type_mapping.size(); i++)
-        types.append(str(this->type_mapping[i]));
+        types.append(py::str(this->type_mapping[i]));
 
     return types;
     }
@@ -1355,26 +1359,26 @@ boost::python::list BondedGroupData<group_size, Group, name, has_type_mapping>::
 /*! \param types Python list of type names to set
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(boost::python::list types)
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(py::list types)
     {
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        this->type_mapping[i] = extract<string>(types[i]);
+        this->type_mapping[i] = py::cast<string>(types[i]);
     }
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;
-template void export_BondedGroupData<BondData,Bond>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<BondData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<3, Angle, name_angle_data>;
-template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<AngleData,Angle>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_dihedral_data>;
-template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<DihedralData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_improper_data>;
-template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<ImproperData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<2, Constraint, name_constraint_data, false>;
-template void export_BondedGroupData<ConstraintData,Constraint>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<ConstraintData,Constraint>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);

@@ -5,7 +5,7 @@
 // Maintainer: joaander
 #include "TablePotential.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
@@ -349,7 +349,7 @@ void TablePotential::computeForces(unsigned int timestep)
 //! Exports the TablePotential class to python
 void export_TablePotential()
     {
-    class_<TablePotential, std::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
+    class_<TablePotential, std::shared_ptr<TablePotential>, bases<ForceCompute> >
     ("TablePotential", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;

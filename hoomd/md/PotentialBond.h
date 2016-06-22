@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include "hoomd/ForceCompute.h"
@@ -334,7 +334,7 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 */
 template < class T > void export_PotentialBond(const std::string& name)
     {
-    class_<T, std::shared_ptr<T>, bases<ForceCompute>, boost::noncopyable >
+    class_<T, std::shared_ptr<T>, bases<ForceCompute> >
         (name.c_str(), init< std::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;

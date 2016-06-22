@@ -12,10 +12,7 @@
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -168,10 +165,10 @@ void ComputeThermoGPU::reduceProperties()
 #endif
 
 
-void export_ComputeThermoGPU()
+void export_ComputeThermoGPU(py::module& m)
     {
-    class_<ComputeThermoGPU, std::shared_ptr<ComputeThermoGPU>, bases<ComputeThermo>, boost::noncopyable >
-        ("ComputeThermoGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<ComputeThermoGPU, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU",py::base<ComputeThermo>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
          std::shared_ptr<ParticleGroup>,
          const std::string& >())
         ;

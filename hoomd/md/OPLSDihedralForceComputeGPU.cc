@@ -12,7 +12,7 @@
 
 #include "OPLSDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -84,7 +84,7 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceComputeGPU()
     {
-    class_<OPLSDihedralForceComputeGPU, std::shared_ptr<OPLSDihedralForceComputeGPU>, bases<OPLSDihedralForceCompute>, boost::noncopyable >
+    class_<OPLSDihedralForceComputeGPU, std::shared_ptr<OPLSDihedralForceComputeGPU>, bases<OPLSDihedralForceCompute> >
     ("OPLSDihedralForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -27,6 +27,10 @@
 #include <memory>
 #include <boost/signals2.hpp>
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 #include "Autotuner.h"
 
 /*! \ingroup hoomd_lib
@@ -770,7 +774,7 @@ class Communicator
 
 
 //! Declaration of python export function
-void export_Communicator();
+void export_Communicator(pybind11::module& m);
 
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

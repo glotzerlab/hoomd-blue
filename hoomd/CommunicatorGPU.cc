@@ -15,7 +15,7 @@
 #include "Profiler.h"
 #include "System.h"
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 #include <algorithm>
 #include <functional>
 
@@ -3249,12 +3249,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
     }
 
  //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU()
+void export_CommunicatorGPU(py::module& m)
     {
-    boost::python::class_<CommunicatorGPU, boost::python::bases<Communicator>, std::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
-           boost::python::init<std::shared_ptr<SystemDefinition>,
-                std::shared_ptr<DomainDecomposition> >())
-            .def("setMaxStages",&CommunicatorGPU::setMaxStages)
+    py::class_<CommunicatorGPU, std::shared_ptr<CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+        .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;
     }
 

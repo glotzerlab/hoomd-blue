@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace boost::python;
 

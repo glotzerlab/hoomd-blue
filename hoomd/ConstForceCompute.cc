@@ -7,8 +7,7 @@
 
 #include "ConstForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -151,10 +150,10 @@ void ConstForceCompute::computeForces(unsigned int timestep)
     }
 
 
-void export_ConstForceCompute()
+void export_ConstForceCompute(py::module& m)
     {
-    class_< ConstForceCompute, std::shared_ptr<ConstForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ConstForceCompute", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar >())
+    py::class_< ConstForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute",py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)
     .def("setGroupForce", &ConstForceCompute::setGroupForce)
     ;

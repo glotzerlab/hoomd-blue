@@ -20,7 +20,7 @@
 #include "Updater.h"
 
 #include <memory>
-
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -181,7 +181,7 @@ class LoadBalancer : public Updater
     };
 
 //! Export the LoadBalancer to python
-void export_LoadBalancer();
+void export_LoadBalancer(pybind11::module& m);
 
 #endif // __LOADBALANCER_H__
 #endif // ENABLE_MPI

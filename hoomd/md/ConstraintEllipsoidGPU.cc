@@ -8,7 +8,7 @@
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintEllipsoidGPU.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 using namespace boost::python;
@@ -81,7 +81,7 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
 
 void export_ConstraintEllipsoidGPU()
     {
-    class_< ConstraintEllipsoidGPU, std::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid>, boost::noncopyable >
+    class_< ConstraintEllipsoidGPU, std::shared_ptr<ConstraintEllipsoidGPU>, bases<ConstraintEllipsoid> >
     ("ConstraintEllipsoidGPU", init< std::shared_ptr<SystemDefinition>,
                                                  std::shared_ptr<ParticleGroup>,
                                                  Scalar3,

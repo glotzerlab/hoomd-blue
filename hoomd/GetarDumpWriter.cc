@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <iostream>
 
+namespace py = pybind11;
+
 namespace getardump{
 
     using namespace gtar;
@@ -837,14 +839,25 @@ namespace getardump{
             }
         }
 
-    void export_GetarDumpWriter()
+    void export_GetarDumpWriter(py::module& m)
         {
-        enum_<GetarDumpMode>("GetarDumpMode")
+        py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> > getardumpwriter(m,"GetarDumpWriter", py::base<Analyzer>());
+        getardumpwriter.def(py::init< std::shared_ptr<SystemDefinition>, std::string, getardump::GetarDumpMode, unsigned int>())
+            .def("close", &GetarDumpWriter::close)
+            .def("getPeriod", &GetarDumpWriter::getPeriod)
+            .def("setPeriod", &GetarDumpWriter::setPeriod)
+            .def("removeDump", &GetarDumpWriter::removeDump)
+        ;
+
+
+        py::enum_<getardump::GetarDumpMode>(getardumpwriter,"GetarDumpMode")
             .value("Overwrite", getardump::Overwrite)
             .value("Append", getardump::Append)
-            .value("OneShot", getardump::OneShot);
+            .value("OneShot", getardump::OneShot)
+            .export_values()
+        ;
 
-        enum_<Property>("GetarProperty")
+        py::enum_<getardump::Property>(getardumpwriter,"GetarProperty")
             .value("AngleNames", AngleNames)
             .value("AngleTags", AngleTags)
             .value("AngleTypes", AngleTypes)
@@ -878,30 +891,33 @@ namespace getardump{
             .value("Type", Type)
             .value("TypeNames", TypeNames)
             .value("Velocity", Velocity)
-            .value("Virial", Virial);
+            .value("Virial", Virial)
+            .export_values()
+        ;
 
-        enum_<Resolution>("GetarResolution")
+        py::enum_<getardump::Resolution>(getardumpwriter,"GetarResolution")
             .value("Text", Text)
             .value("Uniform", Uniform)
-            .value("Individual", Individual);
+            .value("Individual", Individual)
+            .export_values()
+        ;
 
-        enum_<Behavior>("GetarBehavior")
+        py::enum_<getardump::Behavior>(getardumpwriter,"GetarBehavior")
             .value("Constant", Constant)
             .value("Discrete", Discrete)
-            .value("Continuous", Continuous);
+            .value("Continuous", Continuous)
+            .export_values()
+        ;
 
-        enum_<CompressMode>("GetarCompression")
+        py::enum_<getardump::CompressMode>(getardumpwriter,"GetarCompression")
             .value("NoCompress", NoCompress)
             .value("FastCompress", FastCompress)
             .value("MediumCompress", MediumCompress)
-            .value("SlowCompress", SlowCompress);
+            .value("SlowCompress", SlowCompress)
+            .export_values()
+        ;
 
-        class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter>, bases<Analyzer>, boost::noncopyable>
-            ("GetarDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string, GetarDumpMode, unsigned int>())
-            .def("close", &GetarDumpWriter::close)
-            .def("getPeriod", &GetarDumpWriter::getPeriod)
-            .def("setPeriod", &GetarDumpWriter::setPeriod)
-            .def("removeDump", &GetarDumpWriter::removeDump)
+
             ;
 
         // register_ptr_to_python<std::shared_ptr<GetarDumpWriter> >();

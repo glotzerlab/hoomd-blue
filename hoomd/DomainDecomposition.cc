@@ -15,7 +15,7 @@
 #include "ParticleData.h"
 
 #include "HOOMDMPI.h"
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <boost/serialization/set.hpp>
 
@@ -25,7 +25,7 @@
 #include <numeric>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b exec_conf->getMPIroot().
@@ -667,16 +667,16 @@ void DomainDecomposition::initializeTwoLevel()
     }
 
 //! Export DomainDecomposition class to python
-void export_DomainDecomposition()
+void export_DomainDecomposition(py::module& m)
     {
-    class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-        init<std::shared_ptr<ExecutionConfiguration>,
+    py::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition> >(m,"DomainDecomposition")
+    .def(py::init<std::shared_ptr<ExecutionConfiguration>,
               Scalar3,
               unsigned int,
               unsigned int,
               unsigned int,
               bool>())
-    .def(init<std::shared_ptr<ExecutionConfiguration>,
+    .def(py::init<std::shared_ptr<ExecutionConfiguration>,
               Scalar3,
               const std::vector<Scalar>&,
               const std::vector<Scalar>&,

@@ -6,7 +6,7 @@
 
 #include "TableAngleForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
@@ -101,7 +101,7 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableAngleForceComputeGPU()
     {
-    class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute>, boost::noncopyable >
+    class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute> >
     ("TableAngleForceComputeGPU",
      init< std::shared_ptr<SystemDefinition>,
      unsigned int,

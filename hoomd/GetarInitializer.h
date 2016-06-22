@@ -15,6 +15,10 @@
 #include <string>
 #include <vector>
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace getardump{
 
     /// Object to use to restore HOOMD system snapshots
@@ -30,12 +34,12 @@ namespace getardump{
 
             /// Python binding to initialize the system from a set of
             /// restoration properties
-            std::shared_ptr<SystemSnapshot> initializePy(boost::python::dict &pyModes);
+            std::shared_ptr<SystemSnapshot> initializePy(pybind11::dict &pyModes);
 
             /// Python binding to restore part of the system from a set of
             /// restoration properties. Values are first taken from the
             /// given system definition.
-            void restorePy(boost::python::dict &pyModes, std::shared_ptr<SystemDefinition> sysdef);
+            void restorePy(pybind11::dict &pyModes, std::shared_ptr<SystemDefinition> sysdef);
 
             /// Grab the greatest timestep from the most recent
             /// restoration or initialization stage
@@ -51,7 +55,7 @@ namespace getardump{
             bool insertRecord(const std::string &name, std::set<gtar::Record> &rec) const;
 
             /// Convert a particular python dict into a std::map
-            std::map<std::set<gtar::Record>, std::string> parseModes(boost::python::dict &pyModes);
+            std::map<std::set<gtar::Record>, std::string> parseModes(pybind11::dict &pyModes);
 
             /// Initialize the system given a set of modes
             std::shared_ptr<SystemSnapshot> initialize(const std::map<std::set<gtar::Record>, std::string> &modes);
@@ -90,8 +94,9 @@ namespace getardump{
             unsigned int m_timestep;
         };
 
-
-void export_GetarInitializer();
+#ifndef NVCC
+void export_GetarInitializer(pybind11::module& m);
+#endif
 
 }
 

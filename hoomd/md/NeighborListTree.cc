@@ -12,7 +12,7 @@
 #include "hoomd/SystemDefinition.h"
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost;
 using namespace boost::python;
 
@@ -374,7 +374,7 @@ void NeighborListTree::traverseTree()
 
 void export_NeighborListTree()
     {
-    class_<NeighborListTree, std::shared_ptr<NeighborListTree>, bases<NeighborList>, boost::noncopyable >
+    class_<NeighborListTree, std::shared_ptr<NeighborListTree>, bases<NeighborList> >
                      ("NeighborListTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

@@ -301,7 +301,7 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
 template < class T, class Base > void export_PotentialPairDPDThermo(const std::string& name)
     {
     boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases< Base >, boost::noncopyable >
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases< Base > >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setSeed", &T::setSeed)
                   .def("setT", &T::setT)

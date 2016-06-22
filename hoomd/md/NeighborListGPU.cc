@@ -11,7 +11,7 @@
 #include "NeighborListGPU.h"
 #include "NeighborListGPU.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #ifdef ENABLE_MPI
@@ -251,7 +251,7 @@ void NeighborListGPU::buildHeadList()
 
 void export_NeighborListGPU()
     {
-    class_<NeighborListGPU, std::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
+    class_<NeighborListGPU, std::shared_ptr<NeighborListGPU>, bases<NeighborList> >
                      ("NeighborListGPU", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;

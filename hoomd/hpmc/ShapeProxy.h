@@ -4,7 +4,7 @@
 #ifndef __SHAPE_PROXY_H__
 #define __SHAPE_PROXY_H__
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -858,8 +858,8 @@ void export_shape_param_proxy(const std::string& name)
         (   name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>()
         )
-    .add_property("ignore_overlaps", &shape_param_proxy<Shape>::getIgnoreOverlaps, &shape_param_proxy<Shape>::setIgnoreOverlaps)
-    .add_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
+    .def_property("ignore_overlaps", &shape_param_proxy<Shape>::getIgnoreOverlaps, &shape_param_proxy<Shape>::setIgnoreOverlaps)
+    .def_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
     ;
     }
 
@@ -877,7 +877,7 @@ void export_sphere_proxy(const std::string& class_name)
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("diameter", &proxy_class::getDiameter)
+    .def_property("diameter", &proxy_class::getDiameter)
     ;
     }
 
@@ -896,9 +896,9 @@ void export_ell_proxy()
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("a", &proxy_class::getX)
-    .add_property("b", &proxy_class::getY)
-    .add_property("c", &proxy_class::getZ)
+    .def_property("a", &proxy_class::getX)
+    .def_property("b", &proxy_class::getY)
+    .def_property("c", &proxy_class::getZ)
     ;
     }
 
@@ -917,8 +917,8 @@ void export_poly2d_proxy(std::string class_name, bool sweep_radius_valid)
             (   class_name.c_str(),
                 boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
-        .add_property("vertices", &proxy_class::getVerts)
-        .add_property("sweep_radius", &proxy_class::getSweepRadius)
+        .def_property("vertices", &proxy_class::getVerts)
+        .def_property("sweep_radius", &proxy_class::getSweepRadius)
         ;
         }
     else
@@ -927,7 +927,7 @@ void export_poly2d_proxy(std::string class_name, bool sweep_radius_valid)
             (   class_name.c_str(),
                 boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
-        .add_property("vertices", &proxy_class::getVerts)
+        .def_property("vertices", &proxy_class::getVerts)
         ;
         }
     }
@@ -948,8 +948,8 @@ void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
             (   class_name.c_str(),
                 boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
-        .add_property("vertices", &proxy_class::getVerts)
-        .add_property("sweep_radius", &proxy_class::getSweepRadius)
+        .def_property("vertices", &proxy_class::getVerts)
+        .def_property("sweep_radius", &proxy_class::getSweepRadius)
         ;
         }
     else
@@ -958,7 +958,7 @@ void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
             (   class_name.c_str(),
                 boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
             )
-        .add_property("vertices", &proxy_class::getVerts)
+        .def_property("vertices", &proxy_class::getVerts)
         ;
         }
     }
@@ -977,9 +977,9 @@ void export_polyhedron_proxy(std::string class_name)
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("vertices", &proxy_class::getVerts)
-    .add_property("faces", &proxy_class::getFaces)
-    .add_property("sweep_radius", &proxy_class::getSweepRadius)
+    .def_property("vertices", &proxy_class::getVerts)
+    .def_property("faces", &proxy_class::getFaces)
+    .def_property("sweep_radius", &proxy_class::getSweepRadius)
     ;
     }
 
@@ -997,11 +997,11 @@ void export_faceted_sphere_proxy(std::string class_name)
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("vertices", &proxy_class::getVerts)
-    .add_property("normals", &proxy_class::getNormals)
-    .add_property("origin", &proxy_class::getOrigin)
-    .add_property("diameter", &proxy_class::getDiameter)
-    .add_property("offsets", &proxy_class::getOffsets)
+    .def_property("vertices", &proxy_class::getVerts)
+    .def_property("normals", &proxy_class::getNormals)
+    .def_property("origin", &proxy_class::getOrigin)
+    .def_property("diameter", &proxy_class::getDiameter)
+    .def_property("offsets", &proxy_class::getOffsets)
     ;
 
     }
@@ -1020,9 +1020,9 @@ void export_sphinx_proxy(std::string class_name)
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("centers", &proxy_class::getCenters)
-    .add_property("diameters", &proxy_class::getDiameters)
-    .add_property("diameter", &proxy_class::getCircumsphereDiameter)
+    .def_property("centers", &proxy_class::getCenters)
+    .def_property("diameters", &proxy_class::getDiameters)
+    .def_property("diameter", &proxy_class::getCircumsphereDiameter)
     ;
 
     }
@@ -1045,10 +1045,10 @@ void export_shape_union_proxy(std::string class_name, ExportFunction& export_mem
         (   class_name.c_str(),
             boost::python::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
         )
-    .add_property("centers", &proxy_class::getPositions)
-    .add_property("orientations", &proxy_class::getOrientations)
-    .add_property("diameter", &proxy_class::getDiameter)
-    .add_property("members", &proxy_class::getMembers)
+    .def_property("centers", &proxy_class::getPositions)
+    .def_property("orientations", &proxy_class::getOrientations)
+    .def_property("diameter", &proxy_class::getDiameter)
+    .def_property("members", &proxy_class::getMembers)
     ;
 
     }

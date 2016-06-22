@@ -11,7 +11,7 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace boost::python;
@@ -1428,7 +1428,7 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 
 void export_NeighborList()
     {
-    scope in_nlist = class_<NeighborList, std::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
+    scope in_nlist = class_<NeighborList, std::shared_ptr<NeighborList>, bases<Compute> >
                      ("NeighborList", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)
                      .def("setRCutPair", &NeighborList::setRCutPair)

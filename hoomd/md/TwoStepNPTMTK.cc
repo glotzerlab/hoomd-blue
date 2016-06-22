@@ -9,7 +9,7 @@
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace std;
 using namespace boost::python;
 

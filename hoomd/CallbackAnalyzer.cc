@@ -16,8 +16,7 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iomanip>
 using namespace std;
@@ -26,7 +25,7 @@ using namespace std;
     \param callback A python functor object to be used as callback
 */
 CallbackAnalyzer::CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
-                         boost::python::object callback)
+                         py::object callback)
     : Analyzer(sysdef), callback(callback)
     {
     m_exec_conf->msg->notice(5) << "Constructing CallbackAnalyzer" << endl;
@@ -46,9 +45,9 @@ void CallbackAnalyzer::analyze(unsigned int timestep)
       callback(timestep);
     }
 
-void export_CallbackAnalyzer()
+void export_CallbackAnalyzer(py::module& m)
     {
-    class_<CallbackAnalyzer, std::shared_ptr<CallbackAnalyzer>, bases<Analyzer>, boost::noncopyable>
-    ("CallbackAnalyzer", init< std::shared_ptr<SystemDefinition>, boost::python::object>())
+    py::class_<CallbackAnalyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, py::object>())
     ;
     }

@@ -16,6 +16,7 @@
 #include "Variant.h"
 
 #include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __BOXRESIZEUPDATER_H__
 #define __BOXRESIZEUPDATER_H__
@@ -58,6 +59,6 @@ class BoxResizeUpdater : public Updater
     };
 
 //! Export the BoxResizeUpdater to python
-void export_BoxResizeUpdater();
+void export_BoxResizeUpdater(pybind11::module& m);
 
 #endif

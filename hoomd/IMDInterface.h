@@ -12,6 +12,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #include "Analyzer.h"
 #include "ConstForceCompute.h"
 
@@ -95,6 +97,6 @@ class IMDInterface : public Analyzer
     };
 
 //! Exports the IMDInterface class to python
-void export_IMDInterface();
+void export_IMDInterface(pybind11::module& m);
 
 #endif

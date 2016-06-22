@@ -8,7 +8,7 @@
 
 #include "HarmonicImproperForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <iostream>
@@ -320,7 +320,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceCompute()
     {
-    class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute> >
     ("HarmonicImproperForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;

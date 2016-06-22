@@ -23,6 +23,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! \ingroup hoomd_lib
     @{
 */
@@ -55,12 +57,12 @@
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class Compute : boost::noncopyable
+class Compute
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
         Compute(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Compute() {};
+        ~Compute() {};
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
@@ -134,13 +136,13 @@ class Compute : boost::noncopyable
          *  been calculated earlier in this timestep)
          * \param timestep current timestep
          */
-        virtual void forceCompute(unsigned int timestep);
+        void forceCompute(unsigned int timestep);
 
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
          */
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
@@ -169,6 +171,8 @@ class Compute : boost::noncopyable
     };
 
 //! Exports the Compute class to python
-void export_Compute();
+#ifndef NVCC
+void export_Compute(pybind11::module& m);
+#endif
 
 #endif

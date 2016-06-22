@@ -11,13 +11,11 @@
 #include "CellList.h"
 #include "Communicator.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
 #include <algorithm>
 
-using namespace boost;
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
+
 
 /*! \param sysdef system to compute the cell list of
 */
@@ -670,17 +668,17 @@ void CellList::printStats()
     }
 
 
-void export_CellList()
+void export_CellList(py::module& m)
     {
-    class_<CellList, std::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
-        ("CellList", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, return_internal_reference<>())
+        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)
         ;

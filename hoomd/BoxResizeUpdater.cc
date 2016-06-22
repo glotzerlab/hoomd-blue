@@ -10,14 +10,12 @@
 
 #include "BoxResizeUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include <math.h>
 #include <iostream>
 #include <stdexcept>
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \param sysdef System definition containing the particle data to set the box size on
     \param Lx length of the x dimension over time
@@ -138,10 +136,10 @@ void BoxResizeUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_BoxResizeUpdater()
+void export_BoxResizeUpdater(py::module& m)
     {
-    class_<BoxResizeUpdater, std::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
-    ("BoxResizeUpdater", init< std::shared_ptr<SystemDefinition>,
+    py::class_<BoxResizeUpdater, std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
      std::shared_ptr<Variant>,
      std::shared_ptr<Variant>,
      std::shared_ptr<Variant>,

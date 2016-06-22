@@ -687,7 +687,7 @@ void PPPMForceComputeGPU::fixExclusions()
 
 void export_PPPMForceComputeGPU()
     {
-    class_<PPPMForceComputeGPU, std::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
+    class_<PPPMForceComputeGPU, std::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute> >
         ("PPPMForceComputeGPU", init< std::shared_ptr<SystemDefinition>,
                                       std::shared_ptr<NeighborList>,
                                       std::shared_ptr<ParticleGroup> >());

@@ -21,7 +21,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
-
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <memory>
 
 #ifndef __LOGGER_H__
@@ -67,7 +67,7 @@ class Logger : public Analyzer
         void registerUpdater(std::shared_ptr<Updater> updater);
 
         //! Register a callback
-        void registerCallback(std::string name, boost::python::object callback);
+        void registerCallback(std::string name, pybind11::object callback);
 
         //! Clears all registered computes and updaters
         void removeAll();
@@ -113,7 +113,7 @@ class Logger : public Analyzer
         //! A map of updaters indexed by logged quantity that they provide
         std::map< std::string, std::shared_ptr<Updater> > m_updater_quantities;
         //! List of callbacks
-        std::map< std::string, boost::python::object > m_callback_quantities;
+        std::map< std::string, pybind11::object > m_callback_quantities;
         //! List of quantities to log
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity
@@ -135,6 +135,6 @@ class Logger : public Analyzer
     };
 
 //! exports the Logger class to python
-void export_Logger();
+void export_Logger(pybind11::module& m);
 
 #endif

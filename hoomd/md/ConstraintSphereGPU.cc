@@ -8,7 +8,7 @@
 #include "ConstraintSphereGPU.h"
 #include "ConstraintSphereGPU.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 using namespace boost::python;
@@ -89,7 +89,7 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
 
 void export_ConstraintSphereGPU()
     {
-    class_< ConstraintSphereGPU, std::shared_ptr<ConstraintSphereGPU>, bases<ConstraintSphere>, boost::noncopyable >
+    class_< ConstraintSphereGPU, std::shared_ptr<ConstraintSphereGPU>, bases<ConstraintSphere> >
     ("ConstraintSphereGPU", init< std::shared_ptr<SystemDefinition>,
                                   std::shared_ptr<ParticleGroup>,
                                   Scalar3,

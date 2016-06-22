@@ -19,7 +19,7 @@
 #include <iterator>
 
 // Include boost.python to do the exporting
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 void export_params();

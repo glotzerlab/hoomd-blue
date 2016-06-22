@@ -18,9 +18,8 @@
 
 #include <string.h>
 #include <stdexcept>
-#include <boost/python.hpp>
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
 
 /*! Constructs the GSDDumpWriter. After construction, settings are set. No file operations are
     attempted until analyze() is called.
@@ -734,10 +733,10 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
-void export_GSDDumpWriter()
+void export_GSDDumpWriter(py::module& m)
     {
-    class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("GSDDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
+    py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)

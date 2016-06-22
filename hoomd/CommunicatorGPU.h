@@ -21,6 +21,11 @@
 #include "GPUFlags.h"
 #include "GPUArray.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
+
 /*! \ingroup communication
 */
 
@@ -285,7 +290,7 @@ class CommunicatorGPU : public Communicator
     };
 
 //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU();
+void export_CommunicatorGPU(pybind11::module& m);
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI

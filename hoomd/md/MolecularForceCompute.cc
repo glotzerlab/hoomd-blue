@@ -9,7 +9,7 @@
 #include <string.h>
 #include <map>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 /*! \file MolecularForceCompute.cc
@@ -151,7 +151,7 @@ void MolecularForceCompute::initMolecules()
 
 void export_MolecularForceCompute()
     {
-    class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute>, bases<ForceConstraint>, boost::noncopyable >
+    class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute>, bases<ForceConstraint> >
     ("MolecularForceCompute", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

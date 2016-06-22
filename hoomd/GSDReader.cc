@@ -17,9 +17,8 @@
 #include <stdexcept>
 using namespace std;
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
-using namespace boost::python;
 using namespace boost;
 
 /*! \param exec_conf The execution configuration
@@ -191,7 +190,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
     std::vector<std::string> type_mapping;
 
     // set the default particle type mapping per the GSD HOOMD Schema
-    if (str(name) == "particles/types")
+    if (std::string(name) == "particles/types")
         type_mapping.push_back("A");
 
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
@@ -343,9 +342,10 @@ void GSDReader::readTopology()
         }
     }
 
-void export_GSDReader()
+void export_GSDReader(py::module& m)
     {
-    class_< GSDReader >("GSDReader", init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
+    py::class_< GSDReader >(m,"GSDReader")
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     ;

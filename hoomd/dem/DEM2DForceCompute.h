@@ -7,7 +7,7 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <iterator>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <memory>
 
 #include "DEMEvaluator.h"

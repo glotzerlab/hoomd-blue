@@ -203,7 +203,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 */
 template < class T, class Base > void export_PotentialPairGPU(const std::string& name)
     {
-     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
+     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base> >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;

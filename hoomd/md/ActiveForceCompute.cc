@@ -7,7 +7,7 @@
 
 #include "ActiveForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
 using namespace boost::python;
 
@@ -318,7 +318,7 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 
 void export_ActiveForceCompute()
     {
-    class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute>, bases<ForceCompute> >
     ("ActiveForceCompute", init< std::shared_ptr<SystemDefinition>,
                                     std::shared_ptr<ParticleGroup>,
                                     int,

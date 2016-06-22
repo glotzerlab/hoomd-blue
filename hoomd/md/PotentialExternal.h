@@ -5,7 +5,7 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include "hoomd/ForceCompute.h"
 
@@ -248,7 +248,7 @@ void PotentialExternal<evaluator>::setField(field_type field)
 template < class T >
 void export_PotentialExternal(const std::string& name)
     {
-    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)

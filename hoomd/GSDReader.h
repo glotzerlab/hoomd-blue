@@ -16,6 +16,10 @@
 #include <string>
 #include "hoomd/extern/gsd.h"
 
+#ifdef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__
 
@@ -80,6 +84,6 @@ class GSDReader
     };
 
 //! Exports GSDReader to python
-void export_GSDReader();
+void export_GSDReader(pybind11::module& m);
 
 #endif

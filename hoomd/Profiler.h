@@ -30,6 +30,8 @@
 #include <iostream>
 #include <cassert>
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Allow score-p instrumentation
 #ifdef SCOREP_USER_ENABLE
 #include <scorep/SCOREP_User.h>
@@ -148,7 +150,10 @@ class Profiler
     };
 
 //! Exports the Profiler class to python
-void export_Profiler();
+#ifndef NVCC
+void export_Profiler(pybind11::module& m);
+#endif
+
 
 //! Output operator for Profiler
 std::ostream& operator<<(std::ostream &o, Profiler& prof);

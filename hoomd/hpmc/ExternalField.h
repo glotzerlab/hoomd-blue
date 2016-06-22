@@ -109,7 +109,7 @@ class ExternalFieldMonoWrap : public ExternalFieldMono<Shape>, public boost::pyt
 template<class Shape>
 void export_ExternalFieldInterface(std::string name)
     {
-    class_< ExternalFieldMonoWrap<Shape>, std::shared_ptr< ExternalFieldMonoWrap<Shape> >, boost::noncopyable >
+    class_< ExternalFieldMonoWrap<Shape>, std::shared_ptr< ExternalFieldMonoWrap<Shape> > >
     ((name + "Interface").c_str(), init< std::shared_ptr<SystemDefinition> >());
     }
 

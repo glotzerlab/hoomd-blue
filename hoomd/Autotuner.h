@@ -19,6 +19,10 @@
 #include <cuda_runtime.h>
 #endif
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 //! Autotuner for low level GPU kernel parameters
 /*! **Overview** <br>
     Autotuner is a helper class that autotunes GPU kernel parameters (such as block size) for performance. It runs an
@@ -203,6 +207,6 @@ class Autotuner
     };
 
 //! Export the Autotuner class to python
-void export_Autotuner();
+void export_Autotuner(pybind11::module& m);
 
 #endif // _AUTOTUNER_H_

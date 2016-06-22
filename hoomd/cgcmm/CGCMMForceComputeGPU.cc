@@ -14,7 +14,7 @@
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -185,7 +185,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CGCMMForceComputeGPU()
     {
-    class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute>, boost::noncopyable >
+    class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute> >
     ("CGCMMForceComputeGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;

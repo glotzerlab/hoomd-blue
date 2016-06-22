@@ -9,7 +9,7 @@
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 using namespace std;
@@ -187,7 +187,7 @@ void ConstraintSphere::validate()
 
 void export_ConstraintSphere()
     {
-    class_< ConstraintSphere, std::shared_ptr<ConstraintSphere>, bases<ForceConstraint>, boost::noncopyable >
+    class_< ConstraintSphere, std::shared_ptr<ConstraintSphere>, bases<ForceConstraint> >
     ("ConstraintSphere", init< std::shared_ptr<SystemDefinition>,
                                                  std::shared_ptr<ParticleGroup>,
                                                  Scalar3,

@@ -7,7 +7,7 @@
 #include "TableDihedralForceCompute.h"
 #include "hoomd/VectorMath.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <stdexcept>
@@ -356,7 +356,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
 //! Exports the TableDihedralForceCompute class to python
 void export_TableDihedralForceCompute()
     {
-    class_<TableDihedralForceCompute, std::shared_ptr<TableDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<TableDihedralForceCompute, std::shared_ptr<TableDihedralForceCompute>, bases<ForceCompute> >
     ("TableDihedralForceCompute", init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableDihedralForceCompute::setTable)
     ;

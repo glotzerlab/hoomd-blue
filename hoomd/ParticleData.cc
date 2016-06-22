@@ -29,8 +29,7 @@
 
 using namespace std;
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <boost/bind.hpp>
 
@@ -2272,18 +2271,18 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
-void export_BoxDim()
+void export_BoxDim(py::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
     Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
     Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const = &BoxDim::makeFraction;
 
-    class_<BoxDim>("BoxDim")
-    .def(init<Scalar>())
-    .def(init<Scalar, Scalar, Scalar>())
-    .def(init<Scalar3>())
-    .def(init<Scalar3, Scalar3, uchar3>())
-    .def(init<Scalar, Scalar, Scalar, Scalar>())
+    py::class_<BoxDim>(m,"BoxDim")
+    .def(py::init<Scalar>())
+    .def(py::init<Scalar, Scalar, Scalar>())
+    .def(py::init<Scalar3>())
+    .def(py::init<Scalar3, Scalar3, uchar3>())
+    .def(py::init<Scalar, Scalar, Scalar, Scalar>())
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)
     .def("getL", &BoxDim::getL)
@@ -2334,11 +2333,12 @@ template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticle
 template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 
-void export_ParticleData()
+void export_ParticleData(py::module& m)
     {
-    class_<ParticleData, std::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
-    .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
-    .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
+    py::class_<ParticleData, std::shared_ptr<ParticleData> >(m,"ParticleData")
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    .def("getGlobalBox", &ParticleData::getGlobalBox, py::return_value_policy::reference_internal)
+    .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("setGlobalBox", &ParticleData::setGlobalBox)
     .def("getN", &ParticleData::getN)
@@ -3072,12 +3072,12 @@ PyObject* SnapshotParticleData<Real>::getAngmomNP()
 /*! \returns A python list of type names
 */
 template <class Real>
-boost::python::list SnapshotParticleData<Real>::getTypes()
+py::list SnapshotParticleData<Real>::getTypes()
     {
-    boost::python::list types;
+    py::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(str(type_mapping[i]));
+        types.append(this->str(type_mapping[i]));
 
     return types;
     }
@@ -3085,7 +3085,7 @@ boost::python::list SnapshotParticleData<Real>::getTypes()
 /*! \param types Python list of type names to set
 */
 template <class Real>
-void SnapshotParticleData<Real>::setTypes(boost::python::list types)
+void SnapshotParticleData<Real>::setTypes(py::list types)
     {
     type_mapping.resize(len(types));
 
@@ -3097,41 +3097,43 @@ void SnapshotParticleData<Real>::setTypes(boost::python::list types)
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
-void export_SnapshotParticleData()
+void export_SnapshotParticleData(py::module& m)
     {
-    class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >("SnapshotParticleData_float", init<unsigned int>())
-    .add_property("position", &SnapshotParticleData<float>::getPosNP)
-    .add_property("velocity", &SnapshotParticleData<float>::getVelNP)
-    .add_property("acceleration", &SnapshotParticleData<float>::getAccelNP)
-    .add_property("typeid", &SnapshotParticleData<float>::getTypeNP)
-    .add_property("mass", &SnapshotParticleData<float>::getMassNP)
-    .add_property("charge", &SnapshotParticleData<float>::getChargeNP)
-    .add_property("diameter", &SnapshotParticleData<float>::getDiameterNP)
-    .add_property("image", &SnapshotParticleData<float>::getImageNP)
-    .add_property("body", &SnapshotParticleData<float>::getBodyNP)
-    .add_property("orientation", &SnapshotParticleData<float>::getOrientationNP)
-    .add_property("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
-    .add_property("angmom", &SnapshotParticleData<float>::getAngmomNP)
-    .add_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
+    py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >(m,"SnapshotParticleData_float")
+    .def(py::init<unsigned int>())
+    .def_property("position", &SnapshotParticleData<float>::getPosNP)
+    .def_property("velocity", &SnapshotParticleData<float>::getVelNP)
+    .def_property("acceleration", &SnapshotParticleData<float>::getAccelNP)
+    .def_property("typeid", &SnapshotParticleData<float>::getTypeNP)
+    .def_property("mass", &SnapshotParticleData<float>::getMassNP)
+    .def_property("charge", &SnapshotParticleData<float>::getChargeNP)
+    .def_property("diameter", &SnapshotParticleData<float>::getDiameterNP)
+    .def_property("image", &SnapshotParticleData<float>::getImageNP)
+    .def_property("body", &SnapshotParticleData<float>::getBodyNP)
+    .def_property("orientation", &SnapshotParticleData<float>::getOrientationNP)
+    .def_property("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
+    .def_property("angmom", &SnapshotParticleData<float>::getAngmomNP)
+    .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
     ;
 
-    class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >("SnapshotParticleData_double", init<unsigned int>())
-    .add_property("position", &SnapshotParticleData<double>::getPosNP)
-    .add_property("velocity", &SnapshotParticleData<double>::getVelNP)
-    .add_property("acceleration", &SnapshotParticleData<double>::getAccelNP)
-    .add_property("typeid", &SnapshotParticleData<double>::getTypeNP)
-    .add_property("mass", &SnapshotParticleData<double>::getMassNP)
-    .add_property("charge", &SnapshotParticleData<double>::getChargeNP)
-    .add_property("diameter", &SnapshotParticleData<double>::getDiameterNP)
-    .add_property("image", &SnapshotParticleData<double>::getImageNP)
-    .add_property("body", &SnapshotParticleData<double>::getBodyNP)
-    .add_property("orientation", &SnapshotParticleData<double>::getOrientationNP)
-    .add_property("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
-    .add_property("angmom", &SnapshotParticleData<double>::getAngmomNP)
-    .add_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
+    py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
+    .def(py::init<unsigned int>())
+    .def_property("position", &SnapshotParticleData<double>::getPosNP)
+    .def_property("velocity", &SnapshotParticleData<double>::getVelNP)
+    .def_property("acceleration", &SnapshotParticleData<double>::getAccelNP)
+    .def_property("typeid", &SnapshotParticleData<double>::getTypeNP)
+    .def_property("mass", &SnapshotParticleData<double>::getMassNP)
+    .def_property("charge", &SnapshotParticleData<double>::getChargeNP)
+    .def_property("diameter", &SnapshotParticleData<double>::getDiameterNP)
+    .def_property("image", &SnapshotParticleData<double>::getImageNP)
+    .def_property("body", &SnapshotParticleData<double>::getBodyNP)
+    .def_property("orientation", &SnapshotParticleData<double>::getOrientationNP)
+    .def_property("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
+    .def_property("angmom", &SnapshotParticleData<double>::getAngmomNP)
+    .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)

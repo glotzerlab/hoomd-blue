@@ -7,7 +7,7 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <boost/random.hpp>
 
@@ -1330,7 +1330,7 @@ bool IntegratorHPMCMonoImplicit<Shape>::attemptBoxResize(unsigned int timestep, 
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicit(const std::string& name)
     {
-    boost::python::class_<IntegratorHPMCMonoImplicit<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> >, boost::noncopyable >
+    boost::python::class_<IntegratorHPMCMonoImplicit<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> > >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setDepletantDensity", &IntegratorHPMCMonoImplicit<Shape>::setDepletantDensity)
         .def("setDepletantType", &IntegratorHPMCMonoImplicit<Shape>::setDepletantType)

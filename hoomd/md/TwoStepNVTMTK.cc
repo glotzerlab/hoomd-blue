@@ -15,7 +15,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace std;
 using namespace boost::python;

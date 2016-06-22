@@ -32,8 +32,9 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
 #include <boost/signals2.hpp>
 #include <memory>
-#include <boost/python.hpp>
-using namespace boost::python;
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 #include <boost/bind.hpp>
 
 #include <stack>
@@ -212,9 +213,9 @@ class BondedGroupData : boost::noncopyable
             //! Get bonded tags as a numpy array
             PyObject* getBondedTagsNP();
             //! Get the type names for python
-            boost::python::list getTypes();
+            pybind11::list getTypes();
             //! Set the type names from python
-            void setTypes(boost::python::list types);
+            void setTypes(pybind11::list types);
 
             std::vector<unsigned int> type_id;             //!< Stores type for each group
             std::vector<Scalar> val;                       //!< Stores constraint value for each group
@@ -683,7 +684,7 @@ class BondedGroupData : boost::noncopyable
 
 //! Exports BondData to python
 template<class T, class Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct=true);
+void export_BondedGroupData(pybind11::module& m, std::string name, std::string snapshot_name, bool export_struct=true);
 
 /*!
  * Typedefs for template instantiations
@@ -734,9 +735,10 @@ struct Bond {
         }
 
     //! This helper function needs to be provided for the templated BondData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Bond>(m,"Bond")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Bond::type)
             .def_readonly("a", &Bond::a)
             .def_readonly("b", &Bond::b)
@@ -797,9 +799,10 @@ struct Angle {
         }
 
     //! This helper function needs to be provided for the templated AngleData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Angle>(m,"Angle")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Angle::type)
             .def_readonly("a", &Angle::a)
             .def_readonly("b", &Angle::b)
@@ -863,9 +866,10 @@ struct Dihedral {
         }
 
     //! This helper function needs to be provided for the templated DihedralData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Dihedral>(m,"Dihedral")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Dihedral::type)
             .def_readonly("a", &Dihedral::a)
             .def_readonly("b", &Dihedral::b)
@@ -941,9 +945,10 @@ struct Constraint {
         }
 
     //! This helper function needs to be provided for the templated ConstraintData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Constraint>("Constraint", init<Scalar, unsigned int, unsigned int>())
+        pybind11::class_<Constraint>(m,"Constraint")
+            .def(pybind11::init<Scalar, unsigned int, unsigned int>())
             .def_readonly("d", &Constraint::d)
             .def_readonly("a", &Constraint::a)
             .def_readonly("b", &Constraint::b)

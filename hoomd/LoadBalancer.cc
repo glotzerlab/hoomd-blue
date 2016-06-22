@@ -14,9 +14,6 @@
 #include "hoomd/extern/BVLSSolver.h"
 #include "hoomd/extern/Eigen/Dense"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -25,6 +22,7 @@ using namespace boost::python;
 #include <limits>
 
 using namespace std;
+namespace py = pybind11;
 
 /*!
  * \param sysdef System definition
@@ -570,10 +568,10 @@ void LoadBalancer::resetStats()
     m_max_max_imbalance = Scalar(1.0);
     }
 
-void export_LoadBalancer()
+void export_LoadBalancer(py::module& m)
     {
-    class_<LoadBalancer, std::shared_ptr<LoadBalancer>, bases<Updater>, boost::noncopyable>
-    ("LoadBalancer", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    py::class_<LoadBalancer, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
     .def("enableDimension", &LoadBalancer::enableDimension)
     .def("getTolerance", &LoadBalancer::getTolerance)
     .def("setTolerance", &LoadBalancer::setTolerance)

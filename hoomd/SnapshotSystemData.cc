@@ -9,9 +9,8 @@
  */
 
 #include "SnapshotSystemData.h"
-#include <boost/python.hpp>
-
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
 template <class Real>
 void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
@@ -61,10 +60,10 @@ void SnapshotSystemData<Real>::broadcast(std::shared_ptr<ExecutionConfiguration>
 template struct SnapshotSystemData<float>;
 template struct SnapshotSystemData<double>;
 
-void export_SnapshotSystemData()
+void export_SnapshotSystemData(py::module& m)
     {
-    class_<SnapshotSystemData<float>, std::shared_ptr< SnapshotSystemData<float> > >("SnapshotSystemData_float")
-    .def(init<>())
+    py::class_<SnapshotSystemData<float>, std::shared_ptr< SnapshotSystemData<float> > >(m,"SnapshotSystemData_float")
+    .def(py::init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
     .def_readwrite("particles", &SnapshotSystemData<float>::particle_data)
@@ -77,10 +76,10 @@ void export_SnapshotSystemData()
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
-    implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr< const SnapshotSystemData<float> > >();
+    py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr< const SnapshotSystemData<float> > >();
 
-    class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >("SnapshotSystemData_double")
-    .def(init<>())
+    py::class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >(m,"SnapshotSystemData_double")
+    .def(py::init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
     .def_readwrite("particles", &SnapshotSystemData<double>::particle_data)
@@ -93,5 +92,5 @@ void export_SnapshotSystemData()
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
 
-    implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr< const SnapshotSystemData<double> > >();
+    py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr< const SnapshotSystemData<double> > >();
     }

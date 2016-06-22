@@ -8,7 +8,7 @@
 
 #include "HarmonicDihedralForceCompute.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <iostream>
@@ -353,7 +353,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceCompute()
     {
-    class_<HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
+    class_<HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceCompute>, bases<ForceCompute> >
     ("HarmonicDihedralForceCompute", init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicDihedralForceCompute::setParams)
     ;

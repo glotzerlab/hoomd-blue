@@ -14,7 +14,7 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace std;
 using namespace boost::python;
@@ -235,7 +235,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListBinned()
     {
-    class_<NeighborListBinned, std::shared_ptr<NeighborListBinned>, bases<NeighborList>, boost::noncopyable >
+    class_<NeighborListBinned, std::shared_ptr<NeighborListBinned>, bases<NeighborList> >
                      ("NeighborListBinned", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                      ;
     }

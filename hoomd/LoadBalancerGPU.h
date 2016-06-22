@@ -22,6 +22,7 @@
 #include "LoadBalancer.h"
 #include "Autotuner.h"
 #include <boost/signals2.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! GPU implementation of dynamic load balancing
 class LoadBalancerGPU : public LoadBalancer
@@ -33,7 +34,7 @@ class LoadBalancerGPU : public LoadBalancer
 
         //! Destructor
         virtual ~LoadBalancerGPU();
-    
+
         //! Set autotuner parameters
         /*!
          * \param enable Enable/disable autotuning
@@ -65,7 +66,7 @@ class LoadBalancerGPU : public LoadBalancer
     };
 
 //! Export the LoadBalancerGPU to python
-void export_LoadBalancerGPU();
+void export_LoadBalancerGPU(pybind11::module& m);
 
 #endif // __LOADBALANCERGPU_H__
 

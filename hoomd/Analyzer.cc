@@ -12,8 +12,7 @@
 
 #include "Analyzer.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
@@ -41,28 +40,28 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
     }
 
 //! Wrapper class to expose pure virtual method to python
-class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
+class AnalyzerWrap: public Analyzer
     {
     public:
         //! Forwards construction on to the base class
         /*! \param sysdef parameter to forward to the base class constructor
         */
-        AnalyzerWrap(std::shared_ptr<SystemDefinition> sysdef) : Analyzer(sysdef) { }
+        using Analyzer::Analyzer;
 
         //! Hanldes pure virtual Analyzer::analyze()
         /*! \param timestep parameter to forward to Analyzer::analyze()
         */
-        void analyze(unsigned int timestep)
+        virtual void analyze(unsigned int timestep)
             {
-            this->get_override("analyze")(timestep);
+            PYBIND11_OVERLOAD_PURE(void,Analyzer,analyze,timestep)
             }
     };
 
-void export_Analyzer()
+void export_Analyzer(py::module& m)
     {
-    class_<AnalyzerWrap, std::shared_ptr<AnalyzerWrap>, boost::noncopyable>
-        ("Analyzer", init< std::shared_ptr<SystemDefinition> >())
-        .def("analyze", pure_virtual(&Analyzer::analyze))
+    py::class_<AnalyzerWrap, std::shared_ptr<AnalyzerWrap>, AnalyzerWrap>(m,"Analyzer")
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
+        .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
         ;
     }

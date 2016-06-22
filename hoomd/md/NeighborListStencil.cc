@@ -14,7 +14,7 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 using namespace std;
@@ -340,7 +340,7 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListStencil()
     {
-    class_<NeighborListStencil, std::shared_ptr<NeighborListStencil>, bases<NeighborList>, boost::noncopyable >
+    class_<NeighborListStencil, std::shared_ptr<NeighborListStencil>, bases<NeighborList> >
         ("NeighborListStencil", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListStencil::setCellWidth);
     }

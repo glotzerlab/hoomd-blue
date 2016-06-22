@@ -7,7 +7,7 @@
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceComputeGPU.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
 using namespace boost::python;
 
@@ -184,7 +184,7 @@ void ActiveForceComputeGPU::setConstraint()
 
 void export_ActiveForceComputeGPU()
     {
-    class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
+    class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute> >
     ("ActiveForceComputeGPU", init< std::shared_ptr<SystemDefinition>,
                                     std::shared_ptr<ParticleGroup>,
                                     int,

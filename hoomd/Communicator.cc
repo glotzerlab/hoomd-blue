@@ -14,12 +14,13 @@
 #include "System.h"
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
 #include <algorithm>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <vector>
 
@@ -2473,14 +2474,12 @@ const BoxDim Communicator::getShiftedBox() const
     }
 
 //! Export Communicator class to python
-void export_Communicator()
+void export_Communicator(py::module& m)
     {
-     class_< std::vector<bool> >("std_vector_bool")
-    .def(vector_indexing_suite<std::vector<bool> >());
+    // py::class_< std::vector<bool> >(m,"std_vector_bool")
+    // .def(std::vector<bool>()); \\TODO: adios_boost, removed boost indexing suite, doesn't seem to do anything if STL is included
 
-    class_<Communicator, std::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
-           init<std::shared_ptr<SystemDefinition>,
-                std::shared_ptr<DomainDecomposition> >())
-    ;
+    py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
     }
 #endif // ENABLE_MPI

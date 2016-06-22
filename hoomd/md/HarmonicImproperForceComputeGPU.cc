@@ -12,7 +12,7 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -107,7 +107,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceComputeGPU()
     {
-    class_<HarmonicImproperForceComputeGPU, std::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
+    class_<HarmonicImproperForceComputeGPU, std::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute> >
     ("HarmonicImproperForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

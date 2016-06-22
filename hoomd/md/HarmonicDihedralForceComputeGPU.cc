@@ -12,7 +12,7 @@
 
 #include "HarmonicDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <boost/bind.hpp>
@@ -109,7 +109,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceComputeGPU()
     {
-    class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
+    class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute> >
     ("HarmonicDihedralForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
     ;
     }

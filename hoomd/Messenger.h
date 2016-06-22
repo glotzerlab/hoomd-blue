@@ -17,11 +17,11 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
@@ -375,6 +375,6 @@ class Messenger
     };
 
 //! Exports Messenger to python
-void export_Messenger();
+void export_Messenger(pybind11::module& m);
 
 #endif // #ifndef __MESSENGER_H__

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include <fstream>
 
@@ -515,7 +515,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 template < class T > void export_PotentialTersoff(const std::string& name)
     {
     boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
+        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)

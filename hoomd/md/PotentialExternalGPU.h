@@ -5,7 +5,7 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -125,7 +125,7 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 template < class T, class base >
 void export_PotentialExternalGPU(const std::string& name)
     {
-    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
+    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<base> >
                   (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)

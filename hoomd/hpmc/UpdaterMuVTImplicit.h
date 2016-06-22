@@ -137,7 +137,7 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 */
 template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name)
     {
-    boost::python::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> >, boost::noncopyable >
+    boost::python::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> > >
           (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
             std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
           ;

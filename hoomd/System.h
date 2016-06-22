@@ -14,7 +14,6 @@
 #include <vector>
 #include <map>
 
-#include <boost/python.hpp>
 
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
@@ -31,6 +30,8 @@ class Communicator;
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.
@@ -80,7 +81,7 @@ class System
         void setAnalyzerPeriod(const std::string& name, unsigned int period, int phase);
 
         //! Change the period of an Analyzer to be variable
-        void setAnalyzerPeriodVariable(const std::string& name, boost::python::object update_func);
+        void setAnalyzerPeriodVariable(const std::string& name, pybind11::object update_func);
 
         //! Get the period of an Analyzer
         unsigned int getAnalyzerPeriod(const std::string& name);
@@ -100,7 +101,7 @@ class System
         void setUpdaterPeriod(const std::string& name, unsigned int period, int phase);
 
         //! Change the period of an Updater to be variable
-        void setUpdaterPeriodVariable(const std::string& name, boost::python::object update_func);
+        void setUpdaterPeriodVariable(const std::string& name, pybind11::object update_func);
 
         //! Get the period of on Updater
         unsigned int getUpdaterPeriod(const std::string& name);
@@ -141,7 +142,7 @@ class System
 
         //! Runs the simulation for a number of time steps
         void run(unsigned int nsteps, unsigned int cb_frequency,
-                 boost::python::object callback, double limit_hours=0.0f,
+                 pybind11::object callback, double limit_hours=0.0f,
                  unsigned int limit_multiple=1);
 
         //! Configures profiling of runs
@@ -210,8 +211,8 @@ class System
                     {
                     if (m_is_variable_period)
                         {
-                        boost::python::object pynext = m_update_func(m_n);
-                        int next = (int)boost::python::extract<float>(pynext) + m_created_tstep;
+                        pybind11::object pynext = m_update_func(m_n);
+                        int next = (int)pybind11::cast<float>(pynext) + m_created_tstep;
 
                         if (next < 0)
                             {
@@ -270,7 +271,7 @@ class System
                 \a n is initialized to 1 when the period func is changed. Each time a new output is made, \a period_func is evaluated to
                 calculate the period to the next time step to make an output. \a n is then incremented by one.
             */
-            void setVariablePeriod(boost::python::object update_func, unsigned int tstep)
+            void setVariablePeriod(pybind11::object update_func, unsigned int tstep)
                 {
                 m_update_func = update_func;
                 m_next_execute_tstep = tstep;
@@ -285,7 +286,7 @@ class System
             bool m_is_variable_period;              //!< True if the variable period should be used
 
             unsigned int m_n;                       //!< Current value of n for the variable period func
-            boost::python::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
+            pybind11::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
             };
 
         std::vector<analyzer_item> m_analyzers; //!< List of analyzers belonging to this System
@@ -317,8 +318,8 @@ class System
                     {
                     if (m_is_variable_period)
                         {
-                        boost::python::object pynext = m_update_func(m_n);
-                        int next = (int)boost::python::extract<float>(pynext) + m_created_tstep;
+                        pybind11::object pynext = m_update_func(m_n);
+                        int next = (int)pybind11::cast<float>(pynext) + m_created_tstep;
 
                         if (next < 0)
                             {
@@ -376,7 +377,7 @@ class System
                 \a n is initialized to 1 when the period func is changed. Each time a new output is made, \a period_func is evaluated to
                 calculate the period to the next time step to make an output. \a n is then incremented by one.
             */
-            void setVariablePeriod(boost::python::object update_func, unsigned int tstep)
+            void setVariablePeriod(pybind11::object update_func, unsigned int tstep)
                 {
                 m_update_func = update_func;
                 m_next_execute_tstep = tstep;
@@ -391,7 +392,7 @@ class System
             bool m_is_variable_period;              //!< True if the variable period should be used
 
             unsigned int m_n;                       //!< Current value of n for the variable period func
-            boost::python::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
+            pybind11::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
             };
 
         std::vector<updater_item> m_updaters;   //!< List of updaters belonging to this System
@@ -445,6 +446,6 @@ class System
     };
 
 //! Exports the System class to python
-void export_System();
+void export_System(pybind11::module& m);
 
 #endif

@@ -19,12 +19,9 @@
 #include <iostream>
 using namespace std;
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <memory>
-#include <boost/bind.hpp>
-using namespace boost;
 
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
@@ -276,26 +273,26 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     }
 
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
-class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
+class ForceComputeWrap : public ForceCompute
     {
     public:
         //! Constructor
         /*! \param sysdef Particle data passed to the base class */
-        ForceComputeWrap(std::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
+        using ForceCompute::ForceCompute;
     protected:
         //! Calls the overidden ForceCompute::computeForces()
         /*! \param timestep parameter to pass on to the overidden method
          */
-        void computeForces(unsigned int timestep)
+        virtual void computeForces(unsigned int timestep)
             {
-            this->get_override("computeForces")(timestep);
+            PYBIND11_OVERLOAD_PURE(void,ForceCompute,computeForces,timestep)
             }
     };
 
-void export_ForceCompute()
+void export_ForceCompute(py::module& m)
     {
-    class_< ForceComputeWrap, std::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
-    ("ForceCompute", init< std::shared_ptr<SystemDefinition> >())
+    py::class_< ForceCompute, std::shared_ptr<ForceCompute>, ForceComputeWrap >(m,"ForceCompute",py::base<Compute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)

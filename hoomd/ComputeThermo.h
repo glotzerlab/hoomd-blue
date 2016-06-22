@@ -20,6 +20,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __COMPUTE_THERMO_H__
 #define __COMPUTE_THERMO_H__
 
@@ -308,6 +310,8 @@ class ComputeThermo : public Compute
     };
 
 //! Exports the ComputeThermo class to python
-void export_ComputeThermo();
+#ifndef NVCC
+void export_ComputeThermo(pybind11::module& m);
+#endif
 
 #endif

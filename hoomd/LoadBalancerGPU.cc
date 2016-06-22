@@ -18,10 +18,8 @@
 using namespace std;
 
 #include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 /*!
  * \param sysdef System definition
@@ -120,10 +118,10 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         }
     }
 
-void export_LoadBalancerGPU()
+void export_LoadBalancerGPU(py::module& m)
     {
-    class_<LoadBalancerGPU, std::shared_ptr<LoadBalancerGPU>, bases<LoadBalancer>, boost::noncopyable>
-    ("LoadBalancerGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    py::class_<LoadBalancerGPU, std::shared_ptr<LoadBalancerGPU> >(m,"LoadBalancerGPU",py::base<LoadBalancer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
     ;
     }
 

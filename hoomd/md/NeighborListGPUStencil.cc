@@ -11,7 +11,7 @@
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUStencil.cuh"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #ifdef ENABLE_MPI
@@ -326,7 +326,7 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUStencil()
     {
-    class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil>, bases<NeighborListGPU>, boost::noncopyable >
+    class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil>, bases<NeighborListGPU> >
         ("NeighborListGPUStencil", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

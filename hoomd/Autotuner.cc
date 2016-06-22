@@ -13,10 +13,9 @@
 #include <algorithm>
 #include <cfloat>
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 using namespace std;
+namespace py = pybind11;
+
 
 /*! \file Autotuner.cc
     \brief Definition of Autotuner
@@ -354,10 +353,10 @@ unsigned int Autotuner::computeOptimalParameter()
     return opt;
     }
 
-void export_Autotuner()
+void export_Autotuner(py::module& m)
     {
-    class_<Autotuner, boost::noncopyable>
-    ("Autotuner", init< unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const std::string&, std::shared_ptr<ExecutionConfiguration> >())
+    py::class_<Autotuner>(m,"Autotuner")
+    .def(py::init< unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const std::string&, std::shared_ptr<ExecutionConfiguration> >())
     .def("getParam", &Autotuner::getParam)
     .def("setEnabled", &Autotuner::setEnabled)
     .def("setMoveRatio", &Autotuner::isComplete)

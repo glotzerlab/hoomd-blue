@@ -15,10 +15,9 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 using namespace std;
-using namespace boost::python;
 
 /*! \post All shared pointers contained in SystemDefinition are NULL
 */
@@ -274,15 +273,16 @@ template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSna
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<double>(std::shared_ptr< SnapshotSystemData<double> > snapshot);
 
-void export_SystemDefinition()
+void export_SystemDefinition(py::module& m)
     {
-    class_<SystemDefinition, std::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
-    .def(init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
-    .def(init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration> >())
-    .def(init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
-    .def(init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration> >())
+    py::class_<SystemDefinition, std::shared_ptr<SystemDefinition> >(m,"SystemDefinition")
+    .def(py::init<>())
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)

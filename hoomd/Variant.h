@@ -15,6 +15,7 @@
 #define __VARIANT_H__
 
 #include <map>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Base type for time varying quantities
 /*! Virtual base class for variables specified to vary over time. The base class provides
@@ -89,6 +90,6 @@ class VariantLinear : public Variant
     };
 
 //! Exports Variant* classes to python
-void export_Variant();
+void export_Variant(pybind11::module& m);
 
 #endif

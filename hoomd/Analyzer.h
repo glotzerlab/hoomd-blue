@@ -12,6 +12,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
@@ -52,7 +54,7 @@
 
     \ingroup analyzers
 */
-class Analyzer : boost::noncopyable
+class Analyzer
     {
     public:
         //! Constructs the analyzer and associates it with the ParticleData
@@ -133,6 +135,6 @@ class Analyzer : boost::noncopyable
     };
 
 //! Export the Analyzer class to python
-void export_Analyzer();
+void export_Analyzer(pybind11::module& m);
 
 #endif

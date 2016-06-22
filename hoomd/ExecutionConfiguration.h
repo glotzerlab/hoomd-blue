@@ -20,7 +20,6 @@
 #include <cuda_runtime.h>
 #endif
 
-
 #include "Messenger.h"
 
 /*! \file ExecutionConfiguration.h
@@ -30,6 +29,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 //! Forward declaration
@@ -56,7 +57,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration : boost::noncopyable
+struct ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode
@@ -256,6 +257,8 @@ private:
 #endif
 
 //! Exports ExecutionConfiguration to python
-void export_ExecutionConfiguration();
+#ifndef NVCC
+void export_ExecutionConfiguration(pybind11::module& m);
+#endif
 
 #endif

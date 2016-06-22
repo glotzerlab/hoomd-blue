@@ -6,8 +6,7 @@
 
 #include "Updater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file Updater.cc
     \brief Defines a base class for all updaters
@@ -38,9 +37,10 @@ void Updater::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
-void export_Updater()
+void export_Updater(py::module& m)
     {
-    class_<Updater, std::shared_ptr<Updater>, boost::noncopyable>("Updater", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<Updater, std::shared_ptr<Updater> >(m,"Updater")
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("update", &Updater::update)
     .def("setProfiler", &Updater::setProfiler)
     ;

@@ -13,7 +13,7 @@
 #include "HOOMDDumpWriter.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost::python;
 
 #include <sstream>

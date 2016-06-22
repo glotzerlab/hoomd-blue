@@ -9,12 +9,12 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
 
 #include "IntegratorHPMCMono.h"
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file ComputeFreeVolume.h
     \brief Defines the template class for an approximate free volume integration
@@ -295,7 +295,7 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
 */
 template < class Shape > void export_ComputeFreeVolume(const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute >, boost::noncopyable >
+     boost::python::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute > >
               (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,

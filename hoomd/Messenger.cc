@@ -19,7 +19,7 @@
 #include <assert.h>
 using namespace std;
 
-using namespace boost::python;
+namespace py = pybind11;
 
 //! A streambuf sink that writes to sys.stdout in python
 class pysys_stdout_streambuf : public std::streambuf
@@ -461,26 +461,26 @@ void Messenger::releaseSharedMem()
 
 #endif
 
-void export_Messenger()
+void export_Messenger(py::module& m)
     {
-    class_<Messenger, std::shared_ptr<Messenger>, boost::noncopyable >
-         ("Messenger", init< >())
-         .def("error", &Messenger::errorStr)
-         .def("warning", &Messenger::warningStr)
-         .def("notice", &Messenger::noticeStr)
-         .def("getNoticeLevel", &Messenger::getNoticeLevel)
-         .def("setNoticeLevel", &Messenger::setNoticeLevel)
-         .def("getErrorPrefix", &Messenger::getErrorPrefix, return_value_policy<copy_const_reference>())
-         .def("setErrorPrefix", &Messenger::setErrorPrefix)
-         .def("getWarningPrefix", &Messenger::getWarningPrefix, return_value_policy<copy_const_reference>())
-         .def("setWarningPrefix", &Messenger::setWarningPrefix)
-         .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
-         .def("setWarningPrefix", &Messenger::setWarningPrefix)
-         .def("openFile", &Messenger::openFile)
-         .def("openPython", &Messenger::openPython)
+    py::class_<Messenger, std::shared_ptr<Messenger> >("Messenger")
+        .def(py::init< >())
+        .def("error", &Messenger::errorStr)
+        .def("warning", &Messenger::warningStr)
+        .def("notice", &Messenger::noticeStr)
+        .def("getNoticeLevel", &Messenger::getNoticeLevel)
+        .def("setNoticeLevel", &Messenger::setNoticeLevel)
+        .def("getErrorPrefix", &Messenger::getErrorPrefix, py::return_value_policy::reference_internal)
+        .def("setErrorPrefix", &Messenger::setErrorPrefix)
+        .def("getWarningPrefix", &Messenger::getWarningPrefix, py::return_value_policy::reference_internal)
+        .def("setWarningPrefix", &Messenger::setWarningPrefix)
+        .def("getNoticePrefix", &Messenger::getNoticePrefix, py::return_value_policy::reference_internal)
+        .def("setWarningPrefix", &Messenger::setWarningPrefix)
+        .def("openFile", &Messenger::openFile)
+        .def("openPython", &Messenger::openPython)
 #ifdef ENABLE_MPI
-         .def("setSharedFile", &Messenger::setSharedFile)
+        .def("setSharedFile", &Messenger::setSharedFile)
 #endif
-         .def("openStd", &Messenger::openStd)
+        .def("openStd", &Messenger::openStd)
          ;
     }

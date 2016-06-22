@@ -8,7 +8,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;
 
@@ -649,11 +649,11 @@ void export_RandomGenerator()
     .def("getSnapshot", &RandomGenerator::getSnapshot)
     ;
 
-    class_< ParticleGeneratorWrap, std::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
+    class_< ParticleGeneratorWrap, std::shared_ptr<ParticleGeneratorWrap> >("ParticleGenerator", init<>())
     // no methods exposed to python
     ;
 
-    class_< PolymerParticleGenerator, std::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< std::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
+    class_< PolymerParticleGenerator, std::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator> >("PolymerParticleGenerator", init< std::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
     // all methods are internal C++ methods
     ;
     }
