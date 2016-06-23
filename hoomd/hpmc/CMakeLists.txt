@@ -30,6 +30,49 @@ set(_hpmc_sources   module.cc
                     IntegratorHPMC.cc
                     )
 
+set(_hpmc_headers
+    AnalyzerSDF.h
+    ComputeFreeVolumeGPU.h
+    ComputeFreeVolume.h
+    ExternalFieldComposite.h
+    ExternalField.h
+    ExternalFieldLattice.h
+    ExternalFieldWall.h
+    GPUTree.h
+    HPMCCounters.h
+    HPMCPrecisionSetup.h
+    IntegratorHPMC.h
+    IntegratorHPMCMonoGPU.h
+    IntegratorHPMCMono.h
+    IntegratorHPMCMonoImplicitGPU.h
+    IntegratorHPMCMonoImplicit.h
+    MinkowskiMath.h
+    modules.h
+    Moves.h
+    OBB.h
+    OBBTree.h
+    ShapeConvexPolygon.h
+    ShapeConvexPolyhedron.h
+    ShapeEllipsoid.h
+    ShapeFacetedSphere.h
+    ShapePolyhedron.h
+    ShapeProxy.h
+    ShapeSimplePolygon.h
+    ShapeSphere.h
+    ShapeSpheropolygon.h
+    ShapeSpheropolyhedron.h
+    ShapeSphinx.h
+    ShapeUnion.h
+    SphinxOverlap.h
+    UpdaterBoxNPT.h
+    UpdaterExternalFieldWall.h
+    UpdaterMuVT.h
+    UpdaterMuVTImplicit.h
+    UpdaterRemoveDrift.h
+    XenoCollide2D.h
+    XenoCollide3D.h
+    )
+
 # if (ENABLE_CUDA)
 # list(APPEND _hpmc_sources
 #                            )
@@ -115,7 +158,28 @@ foreach(file ${files})
     copy_file(${file})
 endforeach()
 
-add_custom_target(copy_hpmc ALL DEPENDS ${files})
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_header file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/hpmc/${file}
+        COMMENT    "Copy hoomd/include/hoomd/hpmc/${file}"
+    )
+ENDMACRO(copy_header)
+
+# install headers in installation target
+install(FILES ${_hpmc_headers}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/hpmc
+       )
+
+# copy headers into build directory
+foreach(file ${_hpmc_headers})
+    copy_header(${file})
+endforeach()
+
+add_custom_target(copy_hpmc ALL DEPENDS ${files} ${_hpmc_headers})
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
