@@ -68,7 +68,7 @@ class Compute
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(unsigned int timestep) = 0;
+        virtual void compute(unsigned int timestep){}
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
@@ -78,18 +78,14 @@ class Compute
             call all of the Compute's printStats functions at the end of a run
             so the user can see useful information
         */
-        virtual void printStats()
-            {
-            }
+        virtual void printStats(){}
 
         //! Reset stat counters
         /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
-        virtual void resetStats()
-            {
-            }
+        virtual void resetStats(){}
 
         //! Sets the profiler for the compute to use
         void setProfiler(std::shared_ptr<Profiler> prof);

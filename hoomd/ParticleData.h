@@ -155,29 +155,29 @@ struct SnapshotParticleData {
         const BoxDim& old_box, const BoxDim& new_box);
 
     //! Get pos as a Python object
-    PyObject* getPosNP();
+    pybind11::handle getPosNP();
     //! Get vel as a Python object
-    PyObject* getVelNP();
+    pybind11::handle getVelNP();
     //! Get accel as a Python object
-    PyObject* getAccelNP();
+    pybind11::handle getAccelNP();
     //! Get type as a Python object
-    PyObject* getTypeNP();
+    pybind11::handle getTypeNP();
     //! Get mass as a Python object
-    PyObject* getMassNP();
+    pybind11::handle getMassNP();
     //! Get charge as a Python object
-    PyObject* getChargeNP();
+    pybind11::handle getChargeNP();
     //! Get diameter as a Python object
-    PyObject* getDiameterNP();
+    pybind11::handle getDiameterNP();
     //! Get image as a Python object
-    PyObject* getImageNP();
+    pybind11::handle getImageNP();
     //! Get body as a Python object
-    PyObject* getBodyNP();
+    pybind11::handle getBodyNP();
     //! Get orientation as a Python object
-    PyObject* getOrientationNP();
+    pybind11::handle getOrientationNP();
     //! Get moment of inertia as a numpy array
-    PyObject* getMomentInertiaNP();
+    pybind11::handle getMomentInertiaNP();
     //! Get angular momentum as a numpy array
-    PyObject* getAngmomNP();
+    pybind11::handle getAngmomNP();
 
     //! Get the type names for python
     pybind11::list getTypes();

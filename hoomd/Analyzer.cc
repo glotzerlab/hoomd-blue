@@ -39,27 +39,9 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
-//! Wrapper class to expose pure virtual method to python
-class AnalyzerWrap: public Analyzer
-    {
-    public:
-        //! Forwards construction on to the base class
-        /*! \param sysdef parameter to forward to the base class constructor
-        */
-        using Analyzer::Analyzer;
-
-        //! Hanldes pure virtual Analyzer::analyze()
-        /*! \param timestep parameter to forward to Analyzer::analyze()
-        */
-        virtual void analyze(unsigned int timestep)
-            {
-            PYBIND11_OVERLOAD_PURE(void,Analyzer,analyze,timestep)
-            }
-    };
-
 void export_Analyzer(py::module& m)
     {
-    py::class_<Analyzer, std::shared_ptr<Analyzer>, AnalyzerWrap>(m,"Analyzer")
+    py::class_<Analyzer, std::shared_ptr<Analyzer>>(m,"Analyzer")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)

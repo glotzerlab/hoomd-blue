@@ -65,7 +65,7 @@ class Analyzer
         /*! Derived classes will implement this method to calculate their results
             \param timestep Current time step of the simulation
             */
-        virtual void analyze(unsigned int timestep) = 0;
+        virtual void analyze(unsigned int timestep){}
 
         //! Sets the profiler for the analyzer to use
         void setProfiler(std::shared_ptr<Profiler> prof);
@@ -76,27 +76,21 @@ class Analyzer
 
             Derived classes should override this to set the parameters of their autotuners.
         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            }
+        virtual void setAutotunerParams(bool enable, unsigned int period){}
 
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Analyzers' printStats functions at the end of a run
             so the user can see useful information
         */
-        virtual void printStats()
-            {
-            }
+        virtual void printStats(){}
 
         //! Reset stat counters
         /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
-        virtual void resetStats()
-            {
-            }
+        virtual void resetStats(){}
 
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional

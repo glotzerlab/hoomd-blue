@@ -65,7 +65,7 @@ class ForceCompute : public Compute
         /*! This method is called in MPI simulations BEFORE the particles are migrated
          * and can be used to overlap computation with communication
          */
-        virtual void preCompute(unsigned int timestep) { }
+        virtual void preCompute(unsigned int timestep){}
         #endif
 
         //! Computes the forces
@@ -187,7 +187,7 @@ class ForceCompute : public Compute
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
         */
-        virtual void computeForces(unsigned int timestep)=0;
+        virtual void computeForces(unsigned int timestep){}
     };
 
 //! Exports the ForceCompute class to python

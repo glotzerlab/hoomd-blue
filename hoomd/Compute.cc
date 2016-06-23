@@ -106,34 +106,10 @@ void Compute::forceCompute(unsigned int timestep)
     }
 
 
-//! Wrapper class for handling virtual methods of Compute in python
-class ComputeWrap : public Compute
-    {
-    public:
-        //! Constructor
-        /*! \param sysdef Particle data to pass on to the base class */
-        using Compute::Compute;
-
-        virtual void compute(unsigned int timestep)
-            {
-            PYBIND11_OVERLOAD_PURE(void,Compute,compute,timestep);
-            }
-
-        virtual double benchmark(unsigned int num_iters)
-            {
-            PYBIND11_OVERLOAD(double,Compute,benchmark,num_iters);
-            }
-
-        virtual void printStats()
-            {
-            PYBIND11_OVERLOAD(void,Compute,printStats,); //no arguments, trailing comma needed for some compilers
-            }
-    };
-
 
 void export_Compute(py::module& m)
     {
-    py::class_<Compute, std::shared_ptr<Compute>, ComputeWrap >(m,"Compute")
+    py::class_<Compute, std::shared_ptr<Compute> >(m,"Compute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &Compute::compute)
     .def("benchmark", &Compute::benchmark)
