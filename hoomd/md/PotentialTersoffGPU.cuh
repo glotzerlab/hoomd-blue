@@ -23,6 +23,7 @@ struct tersoff_args_t
     //! Construct a tersoff_args_t
     tersoff_args_t(Scalar4 *_d_force,
                    const unsigned int _N,
+                   const unsigned int _Nghosts,
                    Scalar * _d_virial,
                    unsigned int _virial_pitch,
                    bool _compute_virial,
@@ -41,6 +42,7 @@ struct tersoff_args_t
                    const cudaDeviceProp& _devprop)
                    : d_force(_d_force),
                      N(_N),
+                     Nghosts(_Nghosts),
                      d_virial(_d_virial),
                      virial_pitch(_virial_pitch),
                      compute_virial(_compute_virial),
@@ -62,6 +64,7 @@ struct tersoff_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     const unsigned int N;            //!< Number of particles
+    const unsigned int Nghosts;      //!< Number of ghost particles
     Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< Pitch for N*6 virial array
     bool compute_virial;             //!< True if we are supposed to compute the virial
@@ -802,7 +805,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
 
 
     // zero the forces
-    gpu_zero_forces_kernel<<<pair_args.N/run_block_size + 1, run_block_size>>>(pair_args.d_force,
+    gpu_zero_forces_kernel<<<(pair_args.N + pair_args.Nghosts)/run_block_size + 1, run_block_size>>>(pair_args.d_force,
                                             pair_args.d_virial,
                                             pair_args.virial_pitch,
                                             pair_args.N);

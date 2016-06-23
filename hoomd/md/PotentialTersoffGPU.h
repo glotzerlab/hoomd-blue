@@ -158,6 +158,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
 
     gpu_cgpf(tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
+                            this->m_pdata->getNGhosts(),
                             d_virial.data,
                             this->m_virial_pitch,
                             compute_virial,

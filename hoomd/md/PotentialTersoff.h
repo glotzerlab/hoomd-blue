@@ -94,6 +94,10 @@ class PotentialTersoff : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        #endif
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -307,7 +311,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     // need to start from a zero force, energy
-    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(h_force.data, 0, sizeof(Scalar4)*(m_pdata->getN()+m_pdata->getNGhosts()));
     memset(h_virial.data, 0, sizeof(Scalar)*6*m_virial_pitch);
 
     unsigned int ntypes = m_pdata->getNTypes();
@@ -349,7 +353,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 {
                 // access the index of neighbor j (MEM TRANSFER: 1 scalar)
                 unsigned int jj = h_nlist.data[head_i + j];
-                assert(jj < m_pdata->getN());
+                assert(jj < m_pdata->getN() + m_pdata->getNGhosts());
 
                 // access the position and type of particle j
                 Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
@@ -393,7 +397,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
             {
             // access the index of neighbor j (MEM TRANSFER: 1 scalar)
             unsigned int jj = h_nlist.data[head_i + j];
-            assert(jj < m_pdata->getN());
+            assert(jj < m_pdata->getN() + m_pdata->getNGhosts());
 
             // access the position and type of particle j
             Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
@@ -669,6 +673,27 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template < class evaluator >
+CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(unsigned int timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    flags |= ForceCompute::getRequestedCommFlags(timestep);
+
+    // enable reverse communication of forces
+    flags[comm_flag::reverse_net_force] = 1;
+
+    // reverse net force requires tags
+    flags[comm_flag::tag] = 1;
+
+    return flags;
+    }
+#endif
+
 
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
