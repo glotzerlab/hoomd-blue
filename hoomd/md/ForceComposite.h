@@ -61,10 +61,8 @@ class ForceComposite : public MolecularForceCompute
 
         //! Update the constituent particles of a composite particle
         /*  Using the position, velocity and orientation of the central particle
-         * \param remote If true, consider remote bodies, otherwise bodies
-         *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Validate or create copies of rigid body constituent particles
         /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles

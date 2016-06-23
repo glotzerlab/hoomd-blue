@@ -810,7 +810,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     based on the body center of mass and particle relative position in each body frame.
 */
 
-void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote)
+void ForceComposite::updateCompositeParticles(unsigned int timestep)
     {
     // access the particle data arrays
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -848,12 +848,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
         // body tag equals tag for central ptl
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
-
-        if ((!remote && central_idx >= m_pdata->getN()))
-            {
-            // only update local composite particles
-            continue;
-            }
 
         if (central_idx == NOT_LOCAL && iptl >= m_pdata->getN())
             continue;

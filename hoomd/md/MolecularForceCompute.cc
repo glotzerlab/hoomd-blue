@@ -34,6 +34,8 @@ void MolecularForceCompute::initMolecules()
     // return early if no molecules are defined
     if (!m_n_molecules_global) return;
 
+    if (m_prof) m_prof->push("init molecules");
+
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
     // construct local molecule table
@@ -147,6 +149,8 @@ void MolecularForceCompute::initMolecules()
             }
         i_mol ++;
         }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_MolecularForceCompute()

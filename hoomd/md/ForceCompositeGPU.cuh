@@ -64,5 +64,4 @@ void gpu_update_composite(unsigned int N,
     const unsigned int *d_molecule_order,
     int3 *d_image,
     const BoxDim box,
-    bool remote,
     unsigned int block_size);

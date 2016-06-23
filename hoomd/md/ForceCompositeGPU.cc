@@ -181,7 +181,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool remote)
+void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
@@ -219,7 +219,6 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
         d_molecule_order.data,
         d_image.data,
         m_pdata->getBox(),
-        remote,
         block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

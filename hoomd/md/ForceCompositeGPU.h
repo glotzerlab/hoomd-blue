@@ -35,7 +35,7 @@ class ForceCompositeGPU : public ForceComposite
          * \param remote If true, consider remote bodies, otherwise bodies
          *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning

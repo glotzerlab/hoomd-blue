@@ -555,8 +555,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     const Scalar4 *d_body_orientation,
     const unsigned int *d_molecule_order,
     int3 *d_image,
-    const BoxDim box,
-    bool remote)
+    const BoxDim box)
     {
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -568,12 +567,6 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     if (central_tag == NO_BODY) return;
 
     unsigned int central_idx = d_rtag[central_tag];
-
-    if (!remote && central_idx >= N)
-        {
-         // only update local composite particles
-        return;
-        }
 
     if (central_idx == NOT_LOCAL && idx >= N) return;
 
@@ -618,7 +611,6 @@ void gpu_update_composite(unsigned int N,
     const unsigned int *d_molecule_order,
     int3 *d_image,
     const BoxDim box,
-    bool remote,
     unsigned int block_size)
     {
     unsigned int run_block_size = block_size;
@@ -648,6 +640,5 @@ void gpu_update_composite(unsigned int N,
         d_body_orientation,
         d_molecule_order,
         d_image,
-        box,
-        remote);
+        box);
     }
