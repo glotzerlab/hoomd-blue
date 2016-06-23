@@ -841,27 +841,26 @@ PDataFlags System::determineFlags(unsigned int tstep)
     return flags;
     }
 
-// //! Create a custom exception
-// PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
-//     {
-//     // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
-//
-//     using std::string;
-//     namespace bp = boost::python;
-//
-//     string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
-//     string qualifiedName0 = scopeName + "." + name;
-//     char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
-//
-//     PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
-//     if(!typeObj) bp::throw_error_already_set();
-//     bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
-//     return typeObj;
-//     }
+//! Create a custom exception
+PyObject* createExceptionClass(py::module& m, const char* name, PyObject* baseTypeObj = PyExc_Exception)
+    {
+    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class, modified by jproc for pybind11
+
+    using std::string;
+
+    string scopeName = py::cast<string>(m.attr("__name__"));
+    string qualifiedName0 = scopeName + "." + name;
+    char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
+
+    PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
+    if(!typeObj) py::error_already_set();
+    m.attr(name) = py::object(typeObj,true);
+    return typeObj;
+    }
 
 void export_System(py::module& m)
     {
-    // walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached"); TODO: adios_boost, custom exceptions are not supported by pybind11 and it doesn't sound like they are going to
+    walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
