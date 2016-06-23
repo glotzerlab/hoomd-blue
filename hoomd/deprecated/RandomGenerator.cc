@@ -8,10 +8,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-using namespace boost::python;
-
+namespace py = pybind11;
 using namespace std;
 
 // windows defines a macro min and max
@@ -613,47 +610,24 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
     return false;
     }
 
-//! Helper class to allow boost.python wrapping of ParticleGenerator
-class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleGenerator>
+
+void export_RandomGenerator(py::module& m)
     {
-    public:
-        //! Calls overidden ParticleGenerator::getNumToGenerate()
-        unsigned int getNumToGenerate()
-            {
-            return this->get_override("getNumToGenerate")();
-            }
-
-        //! Calls overidden ParticleGenerator::generateParticles()
-        /*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
-            \param rnd Random number benerator to use
-            \param start_idx Starting index to generate particles at
-            Derived classes must implement this method. RandomGenerator will
-            call it to generate the particles. Particles should be placed at indices
-            \a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1
-        */
-        void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx)
-            {
-            this->get_override("generateParticle")(particles, rnd, start_idx);
-            }
-    };
-
-
-void export_RandomGenerator()
-    {
-
-    class_< RandomGenerator >("RandomGenerator", init<std::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int, unsigned int>())
-    // virtual methods from ParticleDataInitializer are inherited
+    py::class_< RandomGenerator >(m,"RandomGenerator")
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int, unsigned int>())
     .def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
     .def("addGenerator", &RandomGenerator::addGenerator)
     .def("generate", &RandomGenerator::generate)
     .def("getSnapshot", &RandomGenerator::getSnapshot)
     ;
 
-    class_< ParticleGeneratorWrap, std::shared_ptr<ParticleGeneratorWrap> >("ParticleGenerator", init<>())
+    py::class_< ParticleGenerator, std::shared_ptr<ParticleGenerator> >(m,"ParticleGenerator")
+    .def(py::init<>())
     // no methods exposed to python
     ;
 
-    class_< PolymerParticleGenerator, std::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator> >("PolymerParticleGenerator", init< std::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
+    py::class_< PolymerParticleGenerator, std::shared_ptr<PolymerParticleGenerator> >(m,"PolymerParticleGenerator",py::base<ParticleGenerator>())
+    .def(py::init< std::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
     // all methods are internal C++ methods
     ;
     }

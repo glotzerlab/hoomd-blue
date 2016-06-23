@@ -10,8 +10,7 @@
 
 #include "POSDumpWriter.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iomanip>
 #include <fstream>
@@ -80,7 +79,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info)
         {
-        info = boost::python::extract<string> (m_add_info(timestep));
+        info = py::cast<string> (m_add_info(timestep));
         }
 
     SnapshotParticleData<Scalar> snap(0);
@@ -129,7 +128,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info)
         {
-        string info = boost::python::extract<string> (m_add_info(timestep));
+        string info = py::cast<string> (m_add_info(timestep));
         m_file << info;
         }
 
@@ -187,10 +186,10 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_POSDumpWriter()
+void export_POSDumpWriter(py::module& m)
     {
-    class_<POSDumpWriter, std::shared_ptr<POSDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("POSDumpWriter", init< std::shared_ptr<SystemDefinition>, std::string >())
+    py::class_<POSDumpWriter, std::shared_ptr<POSDumpWriter> >(m,"POSDumpWriter",py::base<Analyzer>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
         .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
         .def("setAddInfo", &POSDumpWriter::setAddInfo)

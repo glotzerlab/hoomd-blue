@@ -21,7 +21,7 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iomanip>
 using namespace std;
@@ -358,10 +358,10 @@ void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData<Sca
     if (m_prof) m_prof->pop();
     }
 
-void export_MSDAnalyzer()
+void export_MSDAnalyzer(py::module& m)
     {
-    class_<MSDAnalyzer, std::shared_ptr<MSDAnalyzer>, bases<Analyzer>, boost::noncopyable>
-    ("MSDAnalyzer", init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
+    py::class_<MSDAnalyzer, std::shared_ptr<MSDAnalyzer> >(m,"MSDAnalyzer",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("setDelimiter", &MSDAnalyzer::setDelimiter)
     .def("addColumn", &MSDAnalyzer::addColumn)
     .def("setR0", &MSDAnalyzer::setR0)

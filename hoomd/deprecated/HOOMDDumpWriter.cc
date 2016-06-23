@@ -11,8 +11,7 @@
 #include "HOOMDDumpWriter.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <sstream>
 #include <fstream>
@@ -25,7 +24,6 @@ using namespace boost::python;
 #endif
 
 using namespace std;
-using namespace boost;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param base_fname The base name of the file xml file to output the information
@@ -629,13 +627,10 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_HOOMDDumpWriter()
+void export_HOOMDDumpWriter(py::module& m)
     {
-    class_<HOOMDDumpWriter, std::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("HOOMDDumpWriter", init< std::shared_ptr<SystemDefinition>,
-                              std::string,
-                              std::shared_ptr<ParticleGroup>,
-                              bool >())
+    py::class_<HOOMDDumpWriter, std::shared_ptr<HOOMDDumpWriter> >(m,"HOOMDDumpWriter",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool >())
     .def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
     .def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
     .def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)

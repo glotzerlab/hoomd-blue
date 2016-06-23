@@ -18,6 +18,7 @@
 #include "hoomd/Analyzer.h"
 #include "hoomd/ParticleGroup.h"
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <string>
 #include <fstream>
 #include <memory>
@@ -112,6 +113,6 @@ class MSDAnalyzer : public Analyzer
     };
 
 //! Exports the MSDAnalyzer class to python
-void export_MSDAnalyzer();
+void export_MSDAnalyzer(pybind11::module& m);
 
 #endif

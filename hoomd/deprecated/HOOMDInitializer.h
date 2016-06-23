@@ -15,14 +15,13 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/extern/xmlParser.h"
-#include "hoomd/BondedGroupData.h"
 
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
@@ -160,7 +159,7 @@ class HOOMDInitializer
         //! Helper function for identifying the improper type id
         unsigned int getImproperTypeId(const std::string& name);
 
-        std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
+        std::map< std::string, std::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
 
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
@@ -202,6 +201,6 @@ class HOOMDInitializer
     };
 
 //! Exports HOOMDInitializer to python
-void export_HOOMDInitializer();
+void export_HOOMDInitializer(pybind11::module& m);
 
 #endif

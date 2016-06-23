@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <boost/random.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __RANDOM_GENERATOR_H__
 #define __RANDOM_GENERATOR_H__
@@ -141,7 +142,7 @@ class ParticleGenerator
             a ParticleGenerator must always generate the same number of particles
             each time it is called.
         */
-        virtual unsigned int getNumToGenerate()=0;
+        virtual unsigned int getNumToGenerate() { return 0; }
 
         //! Actually generate the requested particles
         /*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
@@ -151,7 +152,7 @@ class ParticleGenerator
             call it to generate the particles. Particles should be placed at indices
             \a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1
         */
-        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx)=0;
+        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx) {}
     };
 
 //! Generates random polymers
@@ -261,6 +262,6 @@ class RandomGenerator
     };
 
 //! Exports RandomGenerator and related classes to python
-void export_RandomGenerator();
+void export_RandomGenerator(pybind11::module& m);
 
 #endif

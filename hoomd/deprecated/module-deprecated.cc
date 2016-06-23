@@ -13,34 +13,36 @@
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-using namespace boost::python;
-
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-BOOST_PYTHON_MODULE(_deprecated)
-    {
-    export_MSDAnalyzer();
-    export_HOOMDDumpWriter();
-    export_POSDumpWriter();
-    export_HOOMDInitializer();
-    export_RandomGenerator();
+PYBIND11_PLUGIN(_deprecated)
+	{
+	pybind11::module m("_deprecated");
+
+    export_MSDAnalyzer(m);
+    export_HOOMDDumpWriter(m);
+    export_POSDumpWriter(m);
+    export_HOOMDInitializer(m);
+    export_RandomGenerator(m);
+
+    return m.ptr();
 
 #ifdef ENABLE_CUDA
 #endif
 
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr< MSDAnalyzer > >();
-    register_ptr_to_python< std::shared_ptr< HOOMDDumpWriter > >();
-    register_ptr_to_python< std::shared_ptr< POSDumpWriter > >();
-    register_ptr_to_python< std::shared_ptr< HOOMDInitializer > >();
-    register_ptr_to_python< std::shared_ptr< RandomGenerator > >();
-    register_ptr_to_python< std::shared_ptr< PolymerParticleGenerator > >();
-
-    #ifdef ENABLE_CUDA
-    #endif
-
-    #endif
+    // // boost 1.60.0 compatibility
+    // #if (BOOST_VERSION == 106000)
+    // register_ptr_to_python< std::shared_ptr< MSDAnalyzer > >();
+    // register_ptr_to_python< std::shared_ptr< HOOMDDumpWriter > >();
+    // register_ptr_to_python< std::shared_ptr< POSDumpWriter > >();
+    // register_ptr_to_python< std::shared_ptr< HOOMDInitializer > >();
+    // register_ptr_to_python< std::shared_ptr< RandomGenerator > >();
+    // register_ptr_to_python< std::shared_ptr< PolymerParticleGenerator > >();
+    //
+    // #ifdef ENABLE_CUDA
+    // #endif
+    //
+    // #endif
     }
