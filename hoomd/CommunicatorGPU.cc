@@ -2966,7 +2966,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
             m_nettorque_ghost_sendbuf.resize(n_max);
             }
 
-        if (flags[comm_flag::net_torque])
+        if (flags[comm_flag::net_virial])
             {
             m_netvirial_ghost_sendbuf.resize(6*n_max);
             }

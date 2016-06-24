@@ -238,12 +238,21 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
+            bool is_part_of_body = false;
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
                 if (h_body_type.data[m_body_idx(body_type,i)] == type)
                     {
+                    is_part_of_body = true;
+                    }
+                }
+
+            if (is_part_of_body)
+                {
+                for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                    {
                     Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
+                    Scalar d = Scalar(2.1)*sqrt(dot(dr,dr));
 
                     if (d > m_d_max[type])
                         {
@@ -626,7 +635,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     flags[comm_flag::net_force] = 1;
 
     // request communication of particle torques
-    flags[comm_flag::net_torque] = 1;
+    //flags[comm_flag::net_torque] = 1;
 
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
@@ -828,10 +837,13 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
     // access molecule order
     ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeLengths(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -871,6 +883,22 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
         // body type
         unsigned int type = __scalar_as_int(postype.w);
+
+        unsigned int body_len = h_body_len.data[type];
+        unsigned int mol_idx = h_molecule_idx.data[iptl];
+        if (body_len != h_molecule_len.data[mol_idx])
+            {
+            if (iptl < m_pdata->getN())
+                {
+                // if the molecule is incomplete and has local members, this is an error
+                m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
+                    << std::endl << std::endl;
+                throw std::runtime_error("Error while updating constituent particles.\n");
+                }
+    
+            // otherwise we must ignore it 
+            continue;
+            }
 
         int3 img = h_image.data[central_idx];
 

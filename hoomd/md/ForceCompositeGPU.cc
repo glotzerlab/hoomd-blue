@@ -200,9 +200,12 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
     // access molecule order
     ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_len(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
@@ -216,15 +219,27 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_body_idx,
         d_body_pos.data,
         d_body_orientation.data,
+        d_body_len.data,
         d_molecule_order.data,
+        d_molecule_len.data,
+        d_molecule_idx.data,
         d_image.data,
         m_pdata->getBox(),
-        block_size);
+        block_size,
+        m_flag.getDeviceFlags());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_update->end();
+
+    unsigned int flag = m_flag.readFlags();
+    if (flag)
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag-1 << " incomplete"
+            << std::endl << std::endl;
+        throw std::runtime_error("Error while updating constituent particles");
+        }
 
     if (m_prof)
         m_prof->pop(m_exec_conf);

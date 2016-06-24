@@ -20,7 +20,8 @@
 */
 MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
     : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
-      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf)
+      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
+      m_molecule_idx(m_exec_conf)
     {
     }
 
@@ -129,11 +130,18 @@ void MolecularForceCompute::initMolecules()
 
     // reset molecule order
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order, access_location::host, access_mode::overwrite);
-    memset(h_molecule_order.data, 0, m_pdata->getN() + m_pdata->getNGhosts());
+    memset(h_molecule_order.data, 0, sizeof(unsigned int)*(m_pdata->getN() + m_pdata->getNGhosts()));
+
+    // resize reverse-lookup
+    m_molecule_idx.resize(nptl_local);
 
     // fill molecule list
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    // reset reverse lookup
+    memset(h_molecule_idx.data, 0, sizeof(unsigned int)*nptl_local);
 
     unsigned int i_mol = 0;
     for (std::vector< std::set<unsigned int> >::iterator it_mol = local_molecules_sorted_by_tag.begin();
@@ -145,6 +153,7 @@ void MolecularForceCompute::initMolecules()
             unsigned int ptl_idx = h_rtag.data[*it_tag];
             assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
             h_molecule_list.data[m_molecule_indexer(i_mol, n)] = ptl_idx;
+            h_molecule_idx.data[ptl_idx] = i_mol;
             h_molecule_order.data[ptl_idx] = n;
             }
         i_mol ++;
