@@ -886,7 +886,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
         unsigned int body_len = h_body_len.data[type];
         unsigned int mol_idx = h_molecule_idx.data[iptl];
-        if (body_len != h_molecule_len.data[mol_idx])
+        if (body_len != h_molecule_len.data[mol_idx] - 1)
             {
             if (iptl < m_pdata->getN())
                 {
