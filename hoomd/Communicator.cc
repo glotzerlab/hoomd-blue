@@ -1300,6 +1300,16 @@ void Communicator::communicate(unsigned int timestep)
         finishUpdateGhosts(timestep);
         }
 
+    if (m_compute_callbacks.num_slots() && !has_ghost_particles)
+        { 
+        // initialize ghosts a first time
+        migrateParticles();
+        exchangeGhosts();
+
+        // update particle data now that ghosts are available
+        m_compute_callbacks(timestep);
+        } 
+
     // Check if migration of particles is requested
     if (migrate)
         {
@@ -1313,7 +1323,7 @@ void Communicator::communicate(unsigned int timestep)
         exchangeGhosts();
 
         // update particle data now that ghosts are available
-        m_compute_callbacks(timestep);
+        //m_compute_callbacks(timestep);
         } 
 
     m_is_communicating = false;

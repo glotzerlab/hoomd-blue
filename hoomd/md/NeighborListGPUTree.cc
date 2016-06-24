@@ -421,8 +421,8 @@ void NeighborListGPUTree::calcMortonCodes()
         }
 
 
-    // reset the flag to an invalid particle id before calling the compute
-    m_morton_conditions.resetFlags(-1);
+    // reset the flag to zero before calling the compute
+    m_morton_conditions.resetFlags(0);
 
     m_tuner_morton->begin();
     gpu_nlist_morton_types(d_morton_types.data,
@@ -439,15 +439,16 @@ void NeighborListGPUTree::calcMortonCodes()
     m_tuner_morton->end();
 
     // error check that no local particles are out of bounds
-    const int morton_conditions = m_morton_conditions.readFlags();
-    if (morton_conditions >= 0)
+    const unsigned int morton_conditions = m_morton_conditions.readFlags();
+    if (morton_conditions > 0)
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        Scalar4 post_i = h_pos.data[morton_conditions];
+        Scalar4 post_i = h_pos.data[morton_conditions-1];
         Scalar3 pos_i = make_scalar3(post_i.x, post_i.y, post_i.z);
-        Scalar3 f = box.makeFraction(pos_i, ghost_width);
-        m_exec_conf->msg->error() << "nlist: Particle " << h_tag.data[morton_conditions] << " is out of bounds "
+        Scalar3 f = box.makeFraction(pos_i);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+        m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[morton_conditions-1] << " is out of bounds "
                                   << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
                                   << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
         throw runtime_error("Error updating neighborlist");

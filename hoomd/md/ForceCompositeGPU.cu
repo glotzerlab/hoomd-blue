@@ -585,6 +585,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     unsigned int body_len = d_body_len[body_type];
     unsigned int mol_idx = d_molecule_idx[idx];
+
     if (body_len != d_molecule_len[mol_idx]-1)
         {
         // if a molecule with a local member is incomplete, this is an error
