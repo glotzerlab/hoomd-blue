@@ -133,6 +133,19 @@ option(BUILD_TESTING "Build unit tests" ON)
 if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
+
+     # build the example plugin only if tests are enabled
+     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/example_plugin
+                        COMMAND mkdir ${CMAKE_CURRENT_BINARY_DIR}/example_plugin)
+     add_custom_target(example_plugin_dir DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/example_plugin)
+     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/example_plugin/hoomd/example_plugin/_example_plugin.so
+                        COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/example_plugin -DHOOMD_ROOT=${CMAKE_CURRENT_BINARY_DIR}/hoomd
+                        COMMAND make
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/example_plugin
+                        DEPENDS _hoomd copy_hoomd example_plugin_dir)
+     add_custom_target(example_plugin_build ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/example_plugin/hoomd/example_plugin/_example_plugin.so)
+     set_target_properties(example_plugin_build
+                           PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 endif (BUILD_TESTING)
 
 ################################
