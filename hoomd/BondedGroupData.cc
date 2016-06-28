@@ -1234,8 +1234,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m, snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property_readonly("typeid", &Snapshot::getTypeNP)
-            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
+            .def_property_readonly("typeid", &Snapshot::getTypeNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership) //TODO: adios_boost, check that this actually works, not so sure about the return_value_policy, for here and ParticleData NP array access
             .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
@@ -1253,8 +1253,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m,snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property_readonly("value", &Snapshot::getValueNP)
-            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
+            .def_property_readonly("value", &Snapshot::getValueNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
@@ -1315,20 +1315,20 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
+py::handle BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
     {
     assert(has_type_mapping);
-    return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
+    return py::handle(num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size()));
     }
 
 /*! \returns a numpy array that wraps the value data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
+py::handle BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
     {
     assert(!has_type_mapping);
-    return num_util::makeNumFromData(&(this->val[0]), this->val.size());
+    return py::handle(num_util::makeNumFromData(&(this->val[0]), this->val.size()));
     }
 
 
@@ -1336,12 +1336,12 @@ PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
+py::handle BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
     {
     std::vector<intp> dims(2);
     dims[0] = this->groups.size();
     dims[1] = group_size;
-    return num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims);
+    return py::handle(num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims));
     }
 
 /*! \returns A python list of type names
