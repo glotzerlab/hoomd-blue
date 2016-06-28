@@ -40,15 +40,12 @@ namespace getardump{
 
         for (auto item : pyModes)
             {
-            py::tuple pyKey(item.first);
+            py::tuple pyKey = py::cast<py::tuple>(item.first);
             string value = py::cast<string>(item.second);
-
             set<Record> key;
-
-            for(unsigned int j(0); j < len(pyKey); ++j)
+            for(unsigned int j(0); j < py::len(pyKey); ++j)
                 {
-                string name = py::cast<string>(pyKey[j]);
-
+                string name = pyKey[j].cast<string>();
                 if(!insertRecord(name, key))
                     throw runtime_error(string("Can't find the requested property ") + name);
                 else if(name == "any")
