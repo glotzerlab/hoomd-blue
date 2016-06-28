@@ -16,8 +16,7 @@
 #include "Communicator.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
 
@@ -519,9 +518,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
             // execute python callback, if present and needed
             // a negative return value indicates immediate end of run.
-            if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+            if (!py::detail::PyNone_Check(callback.ptr()) && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
                 {
-                py::object rv = callback(m_cur_tstep);
+                py::object rv = callback.call(m_cur_tstep); //TODO: adios_boost, this really should be rewritten, pybind11 plans to drop call functionality and not sure it works
                 int extracted_rv = py::cast<int>(rv); //TODO: adios_boost, removed the checking and didn't replace with a try catch, do we need it?
                 if (extracted_rv < 0)
                     {
@@ -608,9 +607,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
-    if (callback && (cb_frequency == 0))
+    if (!py::detail::PyNone_Check(callback.ptr()) && (cb_frequency == 0))
         {
-        callback(m_cur_tstep);
+        callback.call(m_cur_tstep); //TODO: adios_boost, this really should be rewritten, pybind11 plans to drop call functionality and not sure it works
         }
 
     // calculate averate TPS
@@ -638,7 +637,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (timeout_end_run && walltime_stop != NULL)
         {
         PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
-        pybind11::error_already_set();
+        py::error_already_set();
         }
     }
 
