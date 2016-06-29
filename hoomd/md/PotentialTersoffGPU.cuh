@@ -253,7 +253,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             }
         else
             {
-            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
+            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, nlist_tex, my_head + threadIdx.x%tpp) : 0;
             }
 
         // loop over neighbors in strided way
@@ -339,7 +339,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         }
     else
         {
-        next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
+        next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, nlist_tex, my_head + threadIdx.x%tpp) : 0;
         }
 
     // loop over neighbors in strided way
@@ -777,7 +777,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         {
         pdata_pos_tex.normalized = false;
         pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * (pair_args.N+pair_args.Nghosts));
         if (error != cudaSuccess)
             return error;
 
@@ -803,12 +803,11 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
         }
 
-
     // zero the forces
     gpu_zero_forces_kernel<<<(pair_args.N + pair_args.Nghosts)/run_block_size + 1, run_block_size>>>(pair_args.d_force,
                                             pair_args.d_virial,
                                             pair_args.virial_pitch,
-                                            pair_args.N);
+                                            pair_args.N + pair_args.Nghosts);
 
     // setup the grid to run the kernel
     dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
