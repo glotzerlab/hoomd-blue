@@ -226,6 +226,24 @@ class mode_hpmc(_integrator):
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
+    def map_overlaps(self):
+        R""" Build an overlap map of the system
+
+        Returns:
+            List of tuples. True/false value of the i,j entry indicates overlap/non-overlap of the ith and jth particles (by tag)
+
+        Example:
+            mc = hpmc.integrate.shape(...)
+            mc.shape_param.set(...)
+            overlap_map = np.asarray(mc.map_overlaps())
+        """
+    
+        self.update_forces()
+        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1;
+        overlap_map = self.cpp_integrator.mapOverlaps();
+        return list(zip(*[iter(overlap_map)]*N))
+            
+
     def count_overlaps(self):
         R""" Count the number of overlaps.
 

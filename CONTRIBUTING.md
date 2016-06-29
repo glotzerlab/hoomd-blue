@@ -83,8 +83,8 @@ ensure that it behaves as intended.
 
 ## Write user documentation
 
-User documentation for the user facing script commands should be documented with doxygen comments. Include examples
-on using the new functionality.
+User documentation for the user facing script commands should be documented with docstrings in napoleon format.
+Include examples on using new functionality.
 
 ## Link new commands into the documentation index
 

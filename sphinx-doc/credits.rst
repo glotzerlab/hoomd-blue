@@ -163,6 +163,7 @@ Isass Bruss, Chengyu Dai, University of Michigan
 
 Bryan Vansaders, University of Michigan
  * Constant stress mode to integrate.npt.
+ * map_overlaps() in hpmc.
 
 HPMC developers
 ---------------
