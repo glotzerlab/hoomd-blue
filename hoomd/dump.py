@@ -11,6 +11,7 @@ each command writes.
 from collections import namedtuple;
 from hoomd import _hoomd
 import hoomd;
+import os;
 import sys;
 
 class dcd(hoomd.analyze._analyzer):
