@@ -252,7 +252,7 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
                     Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = Scalar(2.1)*sqrt(dot(dr,dr));
+                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
 
                     if (d > m_d_max[type])
                         {
