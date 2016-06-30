@@ -401,16 +401,17 @@ void NeighborListGPUTree::calcMortonCodes()
 
     // particle data and where to write it
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::overwrite);
 
     ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::overwrite);
 
     // need a ghost layer width to get the fractional position of particles in the local box
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar ghost_layer_width = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        ghost_layer_width += m_d_max - Scalar(1.0);
+    Scalar ghost_layer_width(0.0);
+    #ifdef ENABLE_MPI
+    if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
+    #endif
 
     Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
     if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
@@ -489,6 +490,10 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+ 
         /*
          * Always allocate at least 4 bytes. In CUB 1.4.1, sorting N < the tile size (which I believe is a thread block)
          * does not require any temporary storage, and tmp_storage_bytes returns 0. But, d_tmp_storage must be not NULL
@@ -512,6 +517,9 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     // we want the sorted data in the real data because the alt is just a tmp holder

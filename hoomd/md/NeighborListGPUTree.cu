@@ -812,7 +812,7 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
             }
         else
             {
-            d_tree_aabbs[2*cur_node].w = __int_as_scalar(-1.0);
+            d_tree_aabbs[2*cur_node].w = __int_as_scalar(-1);
             }
 
         // then, we do an atomicAdd on the lock to see if we need to process the parent AABBs

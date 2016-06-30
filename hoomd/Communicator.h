@@ -295,6 +295,17 @@ class Communicator
             return m_ghost_layer_width_requests.connect(subscriber);
             }
 
+        //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the maximum ghost layer)
+        /*! This method keeps track of all functions that request a minimum ghost layer widht
+         * The actual ghost layer width is chosen from the max over the inputs
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addExtraGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+            {
+            return m_extra_ghost_layer_width_requests.connect(subscriber);
+            }
+
+
         //! Subscribe to list of functions that determine the communication flags
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
@@ -615,6 +626,9 @@ class Communicator
 
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
+
+        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+            m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication

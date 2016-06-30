@@ -215,7 +215,7 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
     }
 
-Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
+Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
     // the default ghost layer is there to ensure that constituent particles are always
     // communicated for every central particle
