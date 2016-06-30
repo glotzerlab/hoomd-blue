@@ -7,11 +7,10 @@
 
 #include "ActiveForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
-using namespace boost::python;
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
@@ -30,7 +29,7 @@ using namespace std;
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        py::list f_lst,
                                         bool orientation_link,
                                         bool orientation_reverse_link,
                                         Scalar rotation_diff,
@@ -51,13 +50,13 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     vector<Scalar3> c_f_lst;
-    boost::python::tuple tmp_force;
+    py::tuple tmp_force;
     for (unsigned int i = 0; i < len(f_lst); i++)
         {
-        tmp_force = extract<boost::python::tuple>(f_lst[i]);
+        tmp_force = py::cast<py::tuple>(f_lst[i]);
         if (len(tmp_force) !=3)
             throw runtime_error("Non-3D force given for ActiveForceCompute");
-        c_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
+        c_f_lst.push_back( make_scalar3(py::cast<Scalar>(tmp_force[0]), py::cast<Scalar>(tmp_force[1]), py::cast<Scalar>(tmp_force[2])));
         }
 
     if (c_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
@@ -316,19 +315,10 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
     }
 
 
-void export_ActiveForceCompute()
+void export_ActiveForceCompute(py::module& m)
     {
-    class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute>, bases<ForceCompute> >
-    ("ActiveForceCompute", init< std::shared_ptr<SystemDefinition>,
-                                    std::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, bool, bool, Scalar,
+                    Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

@@ -13,10 +13,8 @@
 #include "Enforce2DUpdaterGPU.cuh"
 
 #include <boost/bind.hpp>
-using namespace boost;
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -59,9 +57,9 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_Enforce2DUpdaterGPU()
+void export_Enforce2DUpdaterGPU(py::module& m)
     {
-    class_<Enforce2DUpdaterGPU, std::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
-    ("Enforce2DUpdaterGPU", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<Enforce2DUpdaterGPU, std::shared_ptr<Enforce2DUpdaterGPU> >(m, "Enforce2DUpdaterGPU", py::base<Enforce2DUpdater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

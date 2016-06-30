@@ -8,8 +8,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -185,10 +184,10 @@ void IntegrationMethodTwoStep::validateGroup()
     }
 
 
-void export_IntegrationMethodTwoStep()
+void export_IntegrationMethodTwoStep(py::module& m)
     {
-    class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("IntegrationMethodTwoStep", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
+    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)

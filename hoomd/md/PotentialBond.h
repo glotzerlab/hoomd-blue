@@ -2,10 +2,6 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <memory>
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
-
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 
@@ -18,6 +14,8 @@ using namespace boost::python;
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
@@ -332,17 +330,12 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instatiated PotentialBOnd class template.
 */
-template < class T > void export_PotentialBond(const std::string& name)
+template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    class_<T, std::shared_ptr<T>, bases<ForceCompute> >
-        (name.c_str(), init< std::shared_ptr<SystemDefinition>, const std::string& > ())
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(),pybind11::base<ForceCompute>())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
     }
 
 #endif

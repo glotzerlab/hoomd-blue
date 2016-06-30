@@ -23,6 +23,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
@@ -129,6 +131,6 @@ class ForceComposite : public MolecularForceCompute
     };
 
 //! Exports the ForceComposite to python
-void export_ForceComposite();
+void export_ForceComposite(pybind11::module& m);
 
 #endif

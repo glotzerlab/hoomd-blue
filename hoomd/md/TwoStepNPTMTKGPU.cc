@@ -14,8 +14,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepNPTMTKGPU.h
@@ -40,7 +39,42 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauP,
                        std::shared_ptr<Variant> T,
-                       boost::python::list S,
+                       pybind11::list S,
+                       couplingMode couple,
+                       unsigned int flags,
+                       const bool nph)
+
+    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
+    {
+    if (!m_exec_conf->isCUDAEnabled())
+        {
+        m_exec_conf->msg->error() << "Creating a TwoStepNPTMTKGPU with CUDA disabled" << endl;
+        throw std::runtime_error("Error initializing TwoStepNPTMTKGPU");
+        }
+
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
+
+    m_reduction_block_size = 512;
+
+    // this breaks memory scaling (calculate memory requirements from global group size)
+    // unless we reallocate memory with every change of the maximum particle number
+    m_num_blocks = m_group->getNumMembersGlobal() / m_reduction_block_size + 1;
+    GPUArray< Scalar > scratch(m_num_blocks, m_exec_conf);
+    m_scratch.swap(scratch);
+
+    GPUArray< Scalar> temperature(1, m_exec_conf);
+    m_temperature.swap(temperature);
+    }
+
+// TODO, adios_boost this could be replaced if we pass in S differently
+TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
+                       Scalar tau,
+                       Scalar tauP,
+                       std::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
@@ -341,17 +375,17 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     }
 
 
-void export_TwoStepNPTMTKGPU()
+void export_TwoStepNPTMTKGPU(py::module& m)
     {
-    class_<TwoStepNPTMTKGPU, std::shared_ptr<TwoStepNPTMTKGPU>, bases<TwoStepNPTMTK>, boost::noncopyable>
-        ("TwoStepNPTMTKGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepNPTMTKGPU, std::shared_ptr<TwoStepNPTMTKGPU> >(m, "TwoStepNPTMTKGPU", py::base<TwoStepNPTMTK>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,
                        std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       boost::python::list,
+                       pybind11::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,
                        const bool>())

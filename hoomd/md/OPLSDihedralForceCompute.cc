@@ -8,8 +8,7 @@
 
 #include "OPLSDihedralForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <sstream>
@@ -356,10 +355,10 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_OPLSDihedralForceCompute()
+void export_OPLSDihedralForceCompute(py::module& m)
     {
-    class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute>, bases<ForceCompute> >
-    ("OPLSDihedralForceCompute", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;
     }

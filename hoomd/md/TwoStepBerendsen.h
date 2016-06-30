@@ -20,6 +20,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! Implements the Berendsen thermostat \cite Berendsen1984
 */
 class TwoStepBerendsen : public IntegrationMethodTwoStep
@@ -61,6 +63,6 @@ class TwoStepBerendsen : public IntegrationMethodTwoStep
     };
 
 //! Export the Berendsen class to python
-void export_Berendsen();
+void export_Berendsen(pybind11::module& m);
 
 #endif // _BERENDSEN_H_

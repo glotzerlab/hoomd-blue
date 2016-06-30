@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
 
@@ -71,6 +73,6 @@ class HarmonicDihedralForceCompute : public ForceCompute
     };
 
 //! Exports the DihedralForceCompute class to python
-void export_HarmonicDihedralForceCompute();
+void export_HarmonicDihedralForceCompute(pybind11::module& m);
 
 #endif

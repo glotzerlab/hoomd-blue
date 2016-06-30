@@ -8,7 +8,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include <fstream>
 
@@ -28,6 +27,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
@@ -512,20 +513,14 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
 */
-template < class T > void export_PotentialTersoff(const std::string& name)
+template < class T > void export_PotentialTersoff(py::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setRon", &T::setRon)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+        pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+            .def("setParams", &T::setParams)
+            .def("setRcut", &T::setRcut)
+            .def("setRon", &T::setRon)
+        ;
     }
 
 

@@ -6,10 +6,8 @@
 
 #include "BondTablePotentialGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 #include <stdexcept>
 
@@ -120,12 +118,11 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_BondTablePotentialGPU()
+void export_BondTablePotentialGPU(py::module& m)
     {
-    class_<BondTablePotentialGPU, std::shared_ptr<BondTablePotentialGPU>, bases<BondTablePotential> >
-    ("BondTablePotentialGPU",
-     init< std::shared_ptr<SystemDefinition>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<BondTablePotentialGPU, std::shared_ptr<BondTablePotentialGPU> >(m, "BondTablePotentialGPU", py::base<BondTablePotential>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            const std::string& >())
+                            ;
     }

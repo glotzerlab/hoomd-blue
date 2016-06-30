@@ -13,7 +13,6 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include "hoomd/extern/num_util.h"
-#include <boost/python/stl_iterator.hpp>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -126,14 +125,14 @@ class PotentialPair : public ForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
-        //! Calculates the energy between two lists of particles.
-        template< class InputIterator >
-        void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
-                                            InputIterator first2, InputIterator last2,
-                                            Scalar& energy );
-        //! Calculates the energy between two lists of particles.
-        Scalar computeEnergyBetweenSetsPythonList(  PyObject* tags1,
-                                                    PyObject* tags2);
+        // TODO: adios_boost, re-enable this and fix!
+        // //! Calculates the energy between two lists of particles.
+        // void computeEnergyBetweenSets(  pybind11::iterator first1, pybind11::iterator last1,
+        //                                     pybind11::iterator first2, pybind11::iterator last2,
+        //                                     Scalar& energy );
+        // //! Calculates the energy between two lists of particles.
+        // Scalar computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
+        //                                             pybind11::object tags2);
 
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -548,197 +547,196 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
     }
 #endif
 
-
-//! function to compute the energy between two lists of particles.
-//! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
-//! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
-template< class evaluator >
-template< class InputIterator >
-inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
-                                                                    InputIterator first2, InputIterator last2,
-                                                                    Scalar& energy )
-    {
-    // start the profile for this compute
-    if (m_prof) m_prof->push(m_prof_name);
-
-    if( first1 == last1 || first2 == last2 )
-        return;
-
-    energy = Scalar(0.0);
-
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-
-    const BoxDim& box = m_pdata->getGlobalBox();
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-    // for each particle in tags1
-    while (first1 != last1)
-        {
-        unsigned int i = h_rtags.data[*first1]; first1++;
-        if (i >= m_pdata->getN()) // not owned by this processor.
-            continue;
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-
-        // sanity check
-        assert(typei < m_pdata->getNTypes());
-
-        // access diameter and charge (if needed)
-        Scalar di = Scalar(0.0);
-        Scalar qi = Scalar(0.0);
-        if (evaluator::needsDiameter())
-            di = h_diameter.data[i];
-        if (evaluator::needsCharge())
-            qi = h_charge.data[i];
-
-        // loop over all particles in tags2
-        for (InputIterator iter = first2; iter != last2; ++iter)
-            {
-            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_rtags.data[*iter];
-            if (j >= m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor at all
-                continue;
-            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-            Scalar3 dx = pi - pj;
-
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-            assert(typej < m_pdata->getNTypes());
-
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
-            Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
-            if (evaluator::needsCharge())
-                qj = h_charge.data[j];
-
-            // apply periodic boundary conditions
-            dx = box.minImage(dx);
-
-            // calculate r_ij squared (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
-
-            // get parameters for this type pair
-            unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
-            Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            Scalar ronsq = Scalar(0.0);
-            if (m_shift_mode == xplor)
-                ronsq = h_ronsq.data[typpair_idx];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (m_shift_mode == shift)
-                energy_shift = true;
-            else if (m_shift_mode == xplor)
-                {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
-
-            // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
-            evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj);
-
-            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-            if (evaluated)
-                {
-                // modify the potential for xplor shifting
-                if (m_shift_mode == xplor)
-                    {
-                    if (rsq >= ronsq && rsq < rcutsq)
-                        {
-                        // Implement XPLOR smoothing (FLOPS: 16)
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
-
-                        // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv =
-                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-
-                        // make modifications to the old pair energy and force
-                        pair_eng = old_pair_eng * s;
-                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
-                        // But this is verified correct via plotting
-                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                        }
-                    }
-                energy += pair_eng;
-                }
-            }
-        }
-    #ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        {
-        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        }
-    #endif
-
-    if (m_prof) m_prof->pop();
-    }
-
-//! Calculates the energy between two lists of particles.
-template < class evaluator >
-Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject* tags1,
-                                                                        PyObject* tags2 )
-    {
-    Scalar eng = 0.0;
-    num_util::check_contiguous(tags1);
-    num_util::check_rank(tags1, 1);
-    num_util::check_type(tags1, NPY_INT);
-    unsigned int* itags1 = (unsigned int*)num_util::data(tags1);
-
-    num_util::check_contiguous(tags2);
-    num_util::check_rank(tags2, 1);
-    num_util::check_type(tags2, NPY_INT);
-    unsigned int* itags2 = (unsigned int*)num_util::data(tags2);
-    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
-                                itags2, itags2+num_util::size(tags2),
-                                eng);
-    return eng;
-    }
+//
+// //! function to compute the energy between two lists of particles.
+// //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
+// //! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
+// template< class evaluator >
+// inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   pybind11::iterator first1, pybind11::iterator last1,
+//                                                                     pybind11::iterator first2, pybind11::iterator last2,
+//                                                                     Scalar& energy )
+//     {
+//     // start the profile for this compute
+//     if (m_prof) m_prof->push(m_prof_name);
+//
+//     if( first1 == last1 || first2 == last2 )
+//         return;
+//
+//     energy = Scalar(0.0);
+//
+//     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+//     ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
+//     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+//     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+//
+//     const BoxDim& box = m_pdata->getGlobalBox();
+//     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+//     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+//     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+//
+//     // for each particle in tags1
+//     while (first1 != last1)
+//         {
+//         unsigned int i = h_rtags.data[*first1]; first1++;
+//         if (i >= m_pdata->getN()) // not owned by this processor.
+//             continue;
+//         // access the particle's position and type (MEM TRANSFER: 4 scalars)
+//         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+//         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+//
+//         // sanity check
+//         assert(typei < m_pdata->getNTypes());
+//
+//         // access diameter and charge (if needed)
+//         Scalar di = Scalar(0.0);
+//         Scalar qi = Scalar(0.0);
+//         if (evaluator::needsDiameter())
+//             di = h_diameter.data[i];
+//         if (evaluator::needsCharge())
+//             qi = h_charge.data[i];
+//
+//         // loop over all particles in tags2
+//         for (pybind11::iterator iter = first2; iter != last2; ++iter)
+//             {
+//             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+//             unsigned int j = h_rtags.data[*iter];
+//             if (j >= m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor at all
+//                 continue;
+//             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+//             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+//             Scalar3 dx = pi - pj;
+//
+//             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+//             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+//             assert(typej < m_pdata->getNTypes());
+//
+//             // access diameter and charge (if needed)
+//             Scalar dj = Scalar(0.0);
+//             Scalar qj = Scalar(0.0);
+//             if (evaluator::needsDiameter())
+//                 dj = h_diameter.data[j];
+//             if (evaluator::needsCharge())
+//                 qj = h_charge.data[j];
+//
+//             // apply periodic boundary conditions
+//             dx = box.minImage(dx);
+//
+//             // calculate r_ij squared (FLOPS: 5)
+//             Scalar rsq = dot(dx, dx);
+//
+//             // get parameters for this type pair
+//             unsigned int typpair_idx = m_typpair_idx(typei, typej);
+//             param_type param = h_params.data[typpair_idx];
+//             Scalar rcutsq = h_rcutsq.data[typpair_idx];
+//             Scalar ronsq = Scalar(0.0);
+//             if (m_shift_mode == xplor)
+//                 ronsq = h_ronsq.data[typpair_idx];
+//
+//             // design specifies that energies are shifted if
+//             // 1) shift mode is set to shift
+//             // or 2) shift mode is explor and ron > rcut
+//             bool energy_shift = false;
+//             if (m_shift_mode == shift)
+//                 energy_shift = true;
+//             else if (m_shift_mode == xplor)
+//                 {
+//                 if (ronsq > rcutsq)
+//                     energy_shift = true;
+//                 }
+//
+//             // compute the force and potential energy
+//             Scalar force_divr = Scalar(0.0);
+//             Scalar pair_eng = Scalar(0.0);
+//             evaluator eval(rsq, rcutsq, param);
+//             if (evaluator::needsDiameter())
+//                 eval.setDiameter(di, dj);
+//             if (evaluator::needsCharge())
+//                 eval.setCharge(qi, qj);
+//
+//             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+//
+//             if (evaluated)
+//                 {
+//                 // modify the potential for xplor shifting
+//                 if (m_shift_mode == xplor)
+//                     {
+//                     if (rsq >= ronsq && rsq < rcutsq)
+//                         {
+//                         // Implement XPLOR smoothing (FLOPS: 16)
+//                         Scalar old_pair_eng = pair_eng;
+//                         Scalar old_force_divr = force_divr;
+//
+//                         // calculate 1.0 / (xplor denominator)
+//                         Scalar xplor_denom_inv =
+//                             Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+//
+//                         Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+//                         Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+//                                    (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+//                         Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+//
+//                         // make modifications to the old pair energy and force
+//                         pair_eng = old_pair_eng * s;
+//                         // note: I'm not sure why the minus sign needs to be there: my notes have a +
+//                         // But this is verified correct via plotting
+//                         force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+//                         }
+//                     }
+//                 energy += pair_eng;
+//                 }
+//             }
+//         }
+//     #ifdef ENABLE_MPI
+//     if (this->m_pdata->getDomainDecomposition())
+//         {
+//         MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+//         }
+//     #endif
+//
+//     if (m_prof) m_prof->pop();
+//     }
+//
+// //! Calculates the energy between two lists of particles.
+// template < class evaluator >
+// Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
+//                                                                         pybind11::object tags2 )
+//     {
+//     Scalar eng = 0.0;
+//     num_util::check_contiguous(tags1.ptr());
+//     num_util::check_rank(tags1.ptr(), 1);
+//     num_util::check_type(tags1.ptr(), NPY_INT);
+//     unsigned int* itags1 = (unsigned int*)num_util::data(tags1.ptr());
+//
+//     num_util::check_contiguous(tags2.ptr());
+//     num_util::check_rank(tags2.ptr(), 1);
+//     num_util::check_type(tags2.ptr(), NPY_INT);
+//     unsigned int* itags2 = (unsigned int*)num_util::data(tags2.ptr());
+//     computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1.ptr()),
+//                                 itags2, itags2+num_util::size(tags2.ptr()),
+//                                 eng);
+//     return eng;
+//     }
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
 */
-template < class T > void export_PotentialPair(const std::string& name)
+template < class T > void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setRon", &T::setRon)
-                  .def("setShiftMode", &T::setShiftMode)
-                  .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
-                  ;
+    pybind11::class_<T, std::shared_ptr<T> > potentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setParams", &T::setParams)
+        .def("setRcut", &T::setRcut)
+        .def("setRon", &T::setRon)
+        .def("setShiftMode", &T::setShiftMode)
+        // .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
+    ;
 
-    boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
-        .value("no_shift", T::no_shift)
-        .value("shift", T::shift)
-        .value("xplor", T::xplor)
+    pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")
+        .value("no_shift", T::energyShiftMode::no_shift)
+        .value("shift", T::energyShiftMode::shift)
+        .value("xplor", T::energyShiftMode::xplor)
+        .export_values()
     ;
     }
 

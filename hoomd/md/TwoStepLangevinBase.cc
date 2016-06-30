@@ -8,8 +8,7 @@
 
 #include "TwoStepLangevinBase.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepLangevinBase.h
@@ -47,7 +46,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
-        
+
     // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
     GPUVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
@@ -77,10 +76,10 @@ void TwoStepLangevinBase::slotNumTypesChange()
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
     m_gamma_r.resize(m_pdata->getNTypes());
-    
+
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
-    
+
     for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
         {
         h_gamma.data[i] = Scalar(1.0);
@@ -108,11 +107,11 @@ void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
-    
-    
+
+
 /*! \param typ Particle type to set gamma_r (2D rotational noise) for
     \param gamma The gamma_r value to set
-*/    
+*/
 void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
     {
     // check for user errors
@@ -131,10 +130,10 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
     h_gamma_r.data[typ] = gamma_r;
     }
 
-void export_TwoStepLangevinBase()
+void export_TwoStepLangevinBase(py::module& m)
     {
-    class_<TwoStepLangevinBase, std::shared_ptr<TwoStepLangevinBase>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepLangevinBase", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepLangevinBase, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<ParticleGroup>,
                                 std::shared_ptr<Variant>,
                                 unsigned int,

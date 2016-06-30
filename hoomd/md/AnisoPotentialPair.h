@@ -10,7 +10,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
@@ -24,6 +23,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
@@ -448,25 +449,20 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
 */
-template < class T > void export_AnisoPotentialPair(const std::string& name)
+template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_aniso_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setShiftMode", &T::setShiftMode)
-                  ;
-
-    boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
-        .value("no_shift", T::no_shift)
-        .value("shift", T::shift)
+    pybind11::class_<T, std::shared_ptr<T> > anisopotentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setParams", &T::setParams)
+        .def("setRcut", &T::setRcut)
+        .def("setShiftMode", &T::setShiftMode)
     ;
 
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+    pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
+        .value("no_shift", T::energyShiftMode::no_shift)
+        .value("shift", T::energyShiftMode::shift)
+        .export_values()
+    ;
     }
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

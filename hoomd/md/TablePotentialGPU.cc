@@ -7,10 +7,8 @@
 
 #include "TablePotentialGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 #include <stdexcept>
 
 /*! \file TablePotentialGPU.cc
@@ -107,13 +105,12 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_TablePotentialGPU()
+void export_TablePotentialGPU(py::module& m)
     {
-    class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU>, bases<TablePotential> >
-    ("TablePotentialGPU",
-     init< std::shared_ptr<SystemDefinition>,
-     std::shared_ptr<NeighborList>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU", py::base<TablePotential>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                                std::shared_ptr<NeighborList>,
+                                unsigned int,
+                                const std::string& >())
+                                ;
     }

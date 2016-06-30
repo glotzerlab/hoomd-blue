@@ -11,11 +11,12 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
 #include "hoomd/Updater.h"
 
 #include <memory>
-
 #include <vector>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __ZEROMOMENTUMUPDATER_H__
 #define __ZEROMOMENTUMUPDATER_H__
@@ -38,6 +39,6 @@ class ZeroMomentumUpdater : public Updater
     };
 
 //! Export the ZeroMomentumUpdater to python
-void export_ZeroMomentumUpdater();
+void export_ZeroMomentumUpdater(pybind11::module& m);
 
 #endif

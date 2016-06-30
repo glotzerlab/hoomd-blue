@@ -16,10 +16,8 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -218,10 +216,10 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepNVTMTKGPU()
+void export_TwoStepNVTMTKGPU(py::module& m)
     {
-    class_<TwoStepNVTMTKGPU, std::shared_ptr<TwoStepNVTMTKGPU>, bases<TwoStepNVTMTK>, boost::noncopyable>
-        ("TwoStepNVTMTKGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepNVTMTKGPU, std::shared_ptr<TwoStepNVTMTKGPU> >(m, "TwoStepNVTMTKGPU", py:: base<TwoStepNVTMTK>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
                           std::shared_ptr<ParticleGroup>,
                           std::shared_ptr<ComputeThermo>,
                           Scalar,

@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __BONDTABLEPOTENTIALGPU_H__
 #define __BONDTABLEPOTENTIALGPU_H__
 
@@ -48,7 +50,7 @@ class BondTablePotentialGPU : public BondTablePotential
             }
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
@@ -56,6 +58,6 @@ class BondTablePotentialGPU : public BondTablePotential
     };
 
 //! Exports the BondTablePotentialGPU class to python
-void export_BondTablePotentialGPU();
+void export_BondTablePotentialGPU(pybind11::module& m);
 
 #endif

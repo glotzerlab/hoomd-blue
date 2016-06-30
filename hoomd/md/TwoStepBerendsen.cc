@@ -9,9 +9,8 @@
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat
@@ -147,10 +146,10 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
     }
 
-void export_Berendsen()
+void export_Berendsen(py::module& m)
     {
-    class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-    ("TwoStepBerendsen", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<ParticleGroup>,
                          std::shared_ptr<ComputeThermo>,
                          Scalar,

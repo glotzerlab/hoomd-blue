@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -48,6 +50,6 @@ class TwoStepBDGPU : public TwoStepBD
     };
 
 //! Exports the TwoStepBDGPU class to python
-void export_TwoStepBDGPU();
+void export_TwoStepBDGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_BD_GPU_H__

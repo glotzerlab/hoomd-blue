@@ -3,7 +3,7 @@
 
 #include "PPPMForceCompute.h"
 
-using namespace boost::python;
+namespace py = pybind11;
 
 bool is_pow2(unsigned int n)
     {
@@ -1501,11 +1501,10 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-void export_PPPMForceCompute()
+void export_PPPMForceCompute(py::module& m)
     {
-    class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute>, bases<ForceCompute> >
-        ("PPPMForceCompute", init< std::shared_ptr<SystemDefinition>,
-            std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
+    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)

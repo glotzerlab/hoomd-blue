@@ -14,12 +14,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 using namespace std;
-using namespace boost::python;
-
+namespace py = pybind11;
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -338,9 +336,9 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListStencil()
+void export_NeighborListStencil(py::module& m)
     {
-    class_<NeighborListStencil, std::shared_ptr<NeighborListStencil>, bases<NeighborList> >
-        ("NeighborListStencil", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
+    py::class_<NeighborListStencil, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil", py::base<NeighborList>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListStencil::setCellWidth);
     }

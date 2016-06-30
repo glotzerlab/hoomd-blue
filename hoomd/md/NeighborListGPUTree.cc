@@ -11,10 +11,8 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -810,9 +808,8 @@ void NeighborListGPUTree::traverseTree()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUTree()
+void export_NeighborListGPUTree(py::module& m)
     {
-    class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU> >
-                     ("NeighborListGPUTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    py::class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree", py::base<NeighborListGPU>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
-

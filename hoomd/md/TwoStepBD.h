@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps with Brownian dynamics
 /*! Implements Brownian dynamics.
 
@@ -38,7 +40,7 @@ class TwoStepBD : public TwoStepLangevinBase
                     bool noiseless_t,
                     bool noiseless_r
                     );
-        
+
         virtual ~TwoStepBD();
 
         //! Performs the second step of the integration
@@ -46,13 +48,13 @@ class TwoStepBD : public TwoStepLangevinBase
 
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-        
+
     protected:
         bool m_noiseless_t;
         bool m_noiseless_r;
     };
 
 //! Exports the TwoStepLangevin class to python
-void export_TwoStepBD();
+void export_TwoStepBD(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_BD_H__

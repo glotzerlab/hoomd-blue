@@ -8,15 +8,13 @@
 
 #include "HarmonicImproperForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
-
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <math.h>
 
 using namespace std;
+namespace py = pybind11;
 
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
@@ -318,10 +316,10 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_HarmonicImproperForceCompute()
+void export_HarmonicImproperForceCompute(py::module& m)
     {
-    class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute> >
-    ("HarmonicImproperForceCompute", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;
     }

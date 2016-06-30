@@ -10,8 +10,7 @@
 
 #include "Enforce2DUpdater.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -62,9 +61,9 @@ void Enforce2DUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_Enforce2DUpdater()
+void export_Enforce2DUpdater(py::module& m)
     {
-    class_<Enforce2DUpdater, std::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
-    ("Enforce2DUpdater", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<Enforce2DUpdater, std::shared_ptr<Enforce2DUpdater> >(m, "Enforce2DUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

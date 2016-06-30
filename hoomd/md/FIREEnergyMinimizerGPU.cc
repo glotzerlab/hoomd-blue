@@ -10,10 +10,8 @@
 #include "FIREEnergyMinimizerGPU.cuh"
 #include "TwoStepNVEGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -255,9 +253,9 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     }
 
 
-void export_FIREEnergyMinimizerGPU()
+void export_FIREEnergyMinimizerGPU(py::module& m)
     {
-    class_<FIREEnergyMinimizerGPU, std::shared_ptr<FIREEnergyMinimizerGPU>,  bases<FIREEnergyMinimizer>, boost::noncopyable>
-        ("FIREEnergyMinimizerGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
+    py::class_<FIREEnergyMinimizerGPU, std::shared_ptr<FIREEnergyMinimizerGPU> >(m, "FIREEnergyMinimizerGPU", py::base<FIREEnergyMinimizer>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }

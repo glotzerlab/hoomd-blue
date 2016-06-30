@@ -13,7 +13,7 @@
 #endif
 
 #include "hoomd/Updater.h"
-
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <memory>
 #include <vector>
 
@@ -39,6 +39,6 @@ class Enforce2DUpdater : public Updater
     };
 
 //! Export the Enforce2DUpdater to python
-void export_Enforce2DUpdater();
+void export_Enforce2DUpdater(pybind11::module& m);
 
 #endif

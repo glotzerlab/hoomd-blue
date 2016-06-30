@@ -38,6 +38,6 @@ class Enforce2DUpdaterGPU : public Enforce2DUpdater
     };
 
 //! Exports the Enforce2DUpdaterGPU class to python
-void export_Enforce2DUpdaterGPU();
+void export_Enforce2DUpdaterGPU(pybind11::module& m);
 
 #endif

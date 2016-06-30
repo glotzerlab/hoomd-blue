@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __OPLSDIHEDRALFORCECOMPUTE_H__
 #define __OPLSDIHEDRALFORCECOMPUTE_H__
 
@@ -69,6 +71,6 @@ class OPLSDihedralForceCompute : public ForceCompute
     };
 
 //! Exports the DihedralForceCompute class to python
-void export_OPLSDihedralForceCompute();
+void export_OPLSDihedralForceCompute(pybind11::module& m);
 
 #endif

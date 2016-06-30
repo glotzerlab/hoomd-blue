@@ -8,6 +8,7 @@
 #ifdef ENABLE_CUDA
 
 #include <boost/bind.hpp>
+#include <memory>
 
 #include "PotentialTersoff.h"
 #include "PotentialTersoffGPU.cuh"
@@ -56,7 +57,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -156,16 +157,11 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialTersoff<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialTersoffGPU(const std::string& name)
+template < class T, class Base > void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base> >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-              ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    ;
     }
 
 #endif // ENABLE_CUDA

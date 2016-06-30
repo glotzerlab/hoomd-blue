@@ -15,8 +15,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepBD.h
@@ -221,10 +220,10 @@ void TwoStepBD::integrateStepTwo(unsigned int timestep)
     // there is no step 2 in Brownian dynamics.
     }
 
-void export_TwoStepBD()
+void export_TwoStepBD(py::module& m)
     {
-    class_<TwoStepBD, std::shared_ptr<TwoStepBD>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepBD", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepBD, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD", py::base<TwoStepLangevinBase>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             unsigned int,

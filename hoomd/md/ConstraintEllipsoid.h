@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CONSTRAINT_Ellipsoid_H__
 #define __CONSTRAINT_Ellipsoid_H__
 
@@ -52,6 +54,6 @@ class ConstraintEllipsoid : public Updater
     };
 
 //! Exports the ConstraintEllipsoid class to python
-void export_ConstraintEllipsoid();
+void export_ConstraintEllipsoid(pybind11::module& m);
 
 #endif

@@ -20,6 +20,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates the system forward one step with possibly multiple methods
 /*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
     implements most of the things discussed there.
@@ -121,6 +123,6 @@ class IntegratorTwoStep : public Integrator
     };
 
 //! Exports the IntegratorTwoStep class to python
-void export_IntegratorTwoStep();
+void export_IntegratorTwoStep(pybind11::module& m);
 
 #endif // #ifndef __INTEGRATOR_TWO_STEP_H__

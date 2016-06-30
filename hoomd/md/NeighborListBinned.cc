@@ -14,10 +14,9 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
@@ -233,9 +232,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListBinned()
+void export_NeighborListBinned(py::module& m)
     {
-    class_<NeighborListBinned, std::shared_ptr<NeighborListBinned>, bases<NeighborList> >
-                     ("NeighborListBinned", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
+    py::class_<NeighborListBinned, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned", py::base<NeighborList>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                      ;
     }

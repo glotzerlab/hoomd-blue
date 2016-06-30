@@ -12,8 +12,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepLangevin.h
@@ -426,10 +425,10 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_TwoStepLangevin()
+void export_TwoStepLangevin(py::module& m)
     {
-    class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepLangevin", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin", py::base<TwoStepLangevinBase>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             unsigned int,

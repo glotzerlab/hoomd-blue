@@ -11,8 +11,7 @@
 
 #include "TempRescaleUpdater.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -118,10 +117,10 @@ void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
     m_tset = tset;
     }
 
-void export_TempRescaleUpdater()
+void export_TempRescaleUpdater(py::module& m)
     {
-    class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
-    ("TempRescaleUpdater", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ComputeThermo>,
                                  std::shared_ptr<Variant> >())
     .def("setT", &TempRescaleUpdater::setT)

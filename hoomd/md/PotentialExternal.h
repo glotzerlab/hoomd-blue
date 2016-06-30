@@ -5,7 +5,6 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include "hoomd/ForceCompute.h"
 
@@ -16,6 +15,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
@@ -246,18 +247,13 @@ void PotentialExternal<evaluator>::setField(field_type field)
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
 */
 template < class T >
-void export_PotentialExternal(const std::string& name)
+void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<ForceCompute> >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+                  .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
     }
 
 #endif

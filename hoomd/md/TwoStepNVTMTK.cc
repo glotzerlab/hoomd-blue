@@ -15,10 +15,9 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
@@ -452,10 +451,10 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void export_TwoStepNVTMTK()
+void export_TwoStepNVTMTK(py::module& m)
     {
-    class_<TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-            ("TwoStepNVTMTK", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,
                        Scalar,

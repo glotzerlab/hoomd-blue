@@ -6,10 +6,8 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 #include <stdexcept>
 
@@ -101,12 +99,11 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_TableDihedralForceComputeGPU()
+void export_TableDihedralForceComputeGPU(py::module& m)
     {
-    class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute> >
-    ("TableDihedralForceComputeGPU",
-     init< std::shared_ptr<SystemDefinition>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU> >(m, "TableDihedralForceComputeGPU", py::base<TableDihedralForceCompute>())
+     .def(py::init< std::shared_ptr<SystemDefinition>,
+                             unsigned int,
+                             const std::string& >())
+                            ;
     }

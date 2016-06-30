@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface
 
@@ -111,6 +113,6 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
     };
 
 //! Exports the TwoStepNVTMTK class to python
-void export_TwoStepNVTMTK();
+void export_TwoStepNVTMTK(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

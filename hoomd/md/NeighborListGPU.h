@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPU_H__
 #define __NEIGHBORLISTGPU_H__
 
@@ -141,13 +143,13 @@ class NeighborListGPU : public NeighborList
         #endif
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
-        boost::scoped_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
+        std::unique_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
+        std::unique_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
 
         GPUArray<unsigned int> m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
 //! Exports NeighborListGPU to python
-void export_NeighborListGPU();
+void export_NeighborListGPU(pybind11::module& m);
 
 #endif

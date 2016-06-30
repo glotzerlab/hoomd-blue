@@ -7,10 +7,8 @@
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
 using namespace Eigen;
+namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
@@ -599,10 +597,10 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint()
+void export_ForceDistanceConstraint(py::module& m)
     {
-    class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute> >
-    ("ForceDistanceConstraint", init< std::shared_ptr<SystemDefinition> >())
+    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

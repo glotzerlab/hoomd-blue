@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CONSTRAINT_SPHERE_H__
 #define __CONSTRAINT_SPHERE_H__
 
@@ -55,6 +57,6 @@ class ConstraintSphere : public ForceConstraint
     };
 
 //! Exports the ConstraintSphere class to python
-void export_ConstraintSphere();
+void export_ConstraintSphere(pybind11::module& m);
 
 #endif

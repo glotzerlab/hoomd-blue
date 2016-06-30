@@ -56,7 +56,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
@@ -170,16 +170,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialBondGPU(const std::string& name)
+template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base> >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string& >())
-              ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+            ;
     }
 
 #endif // ENABLE_CUDA

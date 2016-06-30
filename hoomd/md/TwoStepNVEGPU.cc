@@ -9,10 +9,8 @@
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -171,9 +169,9 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepNVEGPU()
+void export_TwoStepNVEGPU(py::module& m)
     {
-    class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU>, bases<TwoStepNVE>, boost::noncopyable>
-        ("TwoStepNVEGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
+    py::class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU", py::base<TwoStepNVE>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         ;
     }

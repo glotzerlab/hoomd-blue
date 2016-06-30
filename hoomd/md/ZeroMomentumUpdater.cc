@@ -10,14 +10,12 @@
 
 #include "ZeroMomentumUpdater.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
-
 #include <iostream>
 #include <math.h>
 #include <stdexcept>
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \param sysdef System to zero the momentum of
 */
@@ -98,9 +96,9 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_ZeroMomentumUpdater()
+void export_ZeroMomentumUpdater(py::module& m)
     {
-    class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
-    ("ZeroMomentumUpdater", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

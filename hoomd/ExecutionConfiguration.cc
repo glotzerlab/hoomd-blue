@@ -716,7 +716,4 @@ void export_ExecutionConfiguration(py::module& m)
         .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
         .export_values()
     ;
-
-    // // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
-    // py::implicitly_convertible<std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<const ExecutionConfiguration> >();
     }

@@ -11,10 +11,8 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -136,10 +134,10 @@ void TwoStepBDGPU::integrateStepTwo(unsigned int timestep)
     // there is no step 2
     }
 
-void export_TwoStepBDGPU()
+void export_TwoStepBDGPU(py::module& m)
     {
-    class_<TwoStepBDGPU, std::shared_ptr<TwoStepBDGPU>, bases<TwoStepBD>, boost::noncopyable>
-        ("TwoStepBDGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepBDGPU, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU", py::base<TwoStepBD>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                std::shared_ptr<Variant>,
                                unsigned int,

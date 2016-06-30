@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTSTENCIL_H__
 #define __NEIGHBORLISTSTENCIL_H__
 
@@ -76,6 +78,6 @@ class NeighborListStencil : public NeighborList
     };
 
 //! Exports NeighborListStencil to python
-void export_NeighborListStencil();
+void export_NeighborListStencil(pybind11::module& m);
 
 #endif // __NEIGHBORLISTSTENCIL_H__

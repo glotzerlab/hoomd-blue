@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __HARMONICANGLEFORCECOMPUTE_H__
 #define __HARMONICANGLEFORCECOMPUTE_H__
 
@@ -69,6 +71,6 @@ class HarmonicAngleForceCompute : public ForceCompute
     };
 
 //! Exports the AngleForceCompute class to python
-void export_HarmonicAngleForceCompute();
+void export_HarmonicAngleForceCompute(pybind11::module& m);
 
 #endif

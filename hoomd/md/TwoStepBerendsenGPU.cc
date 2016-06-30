@@ -11,10 +11,8 @@
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepBerendsenGPU.cuh"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 #include<boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -120,10 +118,10 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_BerendsenGPU()
+void export_BerendsenGPU(py::module& m)
     {
-    class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU>, bases<TwoStepBerendsen>, boost::noncopyable>
-    ("TwoStepBerendsenGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU", py::base<TwoStepBerendsen>())
+      .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
                             Scalar,

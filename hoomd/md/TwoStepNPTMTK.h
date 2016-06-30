@@ -19,6 +19,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.
     The update equations are derived from a strictly measure-preserving and
@@ -68,10 +71,23 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
                    Scalar tau,
                    Scalar tauP,
                    std::shared_ptr<Variant> T,
-                   boost::python::list S,
+                   pybind11::list S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
+
+       TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<ParticleGroup> group,
+                  std::shared_ptr<ComputeThermo> thermo_group,
+                  std::shared_ptr<ComputeThermo> thermo_group_t,
+                  Scalar tau,
+                  Scalar tauP,
+                  std::shared_ptr<Variant> T,
+                  std::shared_ptr<Variant> P,
+                  couplingMode couple,
+                  unsigned int flags,
+                  const bool nph=false);
+
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
@@ -85,13 +101,13 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
     //! Update the stress components
     /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
      */
-    virtual void setS(boost::python::list S)
+    virtual void setS(pybind11::list S)
             {
             std::vector<std::shared_ptr<Variant> > swapS;
             swapS.resize(0);
             for (int i = 0; i< 6; ++i)
                    {
-                swapS.push_back(boost::python::extract<std::shared_ptr<Variant>>(S[i]));
+                swapS.push_back(pybind11::cast<std::shared_ptr<Variant>>(S[i]));
                 }
             m_S.swap(swapS);
             }
@@ -186,6 +202,6 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         };
 
 //! Exports the TwoStepNPTMTK class to python
-void export_TwoStepNPTMTK();
+void export_TwoStepNPTMTK(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

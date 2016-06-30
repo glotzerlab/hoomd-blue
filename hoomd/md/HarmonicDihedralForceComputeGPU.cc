@@ -12,11 +12,8 @@
 
 #include "HarmonicDihedralForceComputeGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
-
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -107,9 +104,9 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicDihedralForceComputeGPU()
+void export_HarmonicDihedralForceComputeGPU(py::module& m)
     {
-    class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute> >
-    ("HarmonicDihedralForceComputeGPU", init< std::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU> >(m, "HarmonicDihedralForceComputeGPU", py::base<HarmonicDihedralForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -9,9 +9,8 @@
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
@@ -47,7 +46,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauP,
                        std::shared_ptr<Variant> T,
-                       boost::python::list S,
+                       py::list S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
@@ -77,8 +76,76 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     // Set the stress vector from the python list
     for (int i = 0; i< 6; ++i)
         {
-        m_S.push_back(boost::python::extract<std::shared_ptr<Variant>>(S[i]));
+        m_S.push_back(py::cast<std::shared_ptr<Variant>>(S[i]));
         }
+
+    bool twod = m_sysdef->getNDimensions()==2;
+    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
+
+    // set initial state
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "npt_mtk", 10))
+        {
+        v.type = "npt_mtk";
+        v.variable.resize(10,Scalar(0.0));
+        setValidRestart(false);
+        }
+    else
+        {
+        setValidRestart(true);
+        }
+
+    setIntegratorVariables(v);
+
+    m_log_names.resize(2);
+    m_log_names[0] = "npt_thermostat_energy";
+    m_log_names[1] = "npt_barostat_energy";
+    }
+
+
+// TODO: adios_boost, required to overload simply by test_npt_mtk_integrator's attempting to pass in a variant when the original is expecting a list... somehow boost didn't care....
+TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
+                       Scalar tau,
+                       Scalar tauP,
+                       std::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> P,
+                       couplingMode couple,
+                       unsigned int flags,
+                       const bool nph)
+    : IntegrationMethodTwoStep(sysdef, group),
+                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
+                            m_ndof(0),
+                            m_tau(tau),
+                            m_tauP(tauP),
+                            m_T(T),
+                            m_S(),
+                            m_couple(couple),
+                            m_flags(flags),
+                            m_nph(nph),
+                            m_rescale_all(false)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
+
+    if (m_tau <= 0.0)
+        m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
+    if (m_tauP <= 0.0)
+        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
+
+    if (flags == 0)
+        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
+                                    << endl;
+
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    m_S.push_back(P);
+    m_S.push_back(P);
+    m_S.push_back(P);
+    m_S.push_back(zero_variant);
+    m_S.push_back(zero_variant);
+    m_S.push_back(zero_variant);
 
     bool twod = m_sysdef->getNDimensions()==2;
     m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
@@ -875,17 +942,17 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     setIntegratorVariables(v);
     }
 
-void export_TwoStepNPTMTK()
+void export_TwoStepNPTMTK(py::module& m)
     {
-    scope in_npt_mtk = class_<TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNPTMTK", init< std::shared_ptr<SystemDefinition>,
+    py::class_<TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTK> > twostepnptmtk(m, "TwoStepNPTMTK", py::base<IntegrationMethodTwoStep>());
+        twostepnptmtk.def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,
                        std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       boost::python::list,
+                       py::list,
                        TwoStepNPTMTK::couplingMode,
                        unsigned int,
                        const bool>())
@@ -896,20 +963,22 @@ void export_TwoStepNPTMTK()
         .def("setRescaleAll", &TwoStepNPTMTK::setRescaleAll)
         ;
 
-    enum_<TwoStepNPTMTK::couplingMode>("couplingMode")
+    py::enum_<TwoStepNPTMTK::couplingMode>(twostepnptmtk,"couplingMode")
     .value("couple_none", TwoStepNPTMTK::couple_none)
     .value("couple_xy", TwoStepNPTMTK::couple_xy)
     .value("couple_xz", TwoStepNPTMTK::couple_none)
     .value("couple_yz", TwoStepNPTMTK::couple_yz)
     .value("couple_xyz", TwoStepNPTMTK::couple_xyz)
+    .export_values()
     ;
 
-    enum_<TwoStepNPTMTK::baroFlags>("baroFlags")
+    py::enum_<TwoStepNPTMTK::baroFlags>(twostepnptmtk,"baroFlags")
     .value("baro_x", TwoStepNPTMTK::baro_x)
     .value("baro_y", TwoStepNPTMTK::baro_y)
     .value("baro_z", TwoStepNPTMTK::baro_z)
     .value("baro_xy", TwoStepNPTMTK::baro_xy)
     .value("baro_xz", TwoStepNPTMTK::baro_xz)
     .value("baro_yz", TwoStepNPTMTK::baro_yz)
+    .export_values()
     ;
     }

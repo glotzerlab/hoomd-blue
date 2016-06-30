@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! Implements the Berendsen thermostat on the GPU
 */
 class TwoStepBerendsenGPU : public TwoStepBerendsen
@@ -41,6 +43,6 @@ class TwoStepBerendsenGPU : public TwoStepBerendsen
     };
 
 //! Export the Berendsen GPU class to python
-void export_BerendsenGPU();
+void export_BerendsenGPU(pybind11::module& m);
 
 #endif // __BERENDSEN_GPU_H__

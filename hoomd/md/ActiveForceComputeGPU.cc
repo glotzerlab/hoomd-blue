@@ -7,10 +7,8 @@
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceComputeGPU.cuh"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
-using namespace boost::python;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \file ActiveForceComputeGPU.cc
@@ -30,7 +28,7 @@ using namespace std;
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        pybind11::list f_lst,
                                         bool orientation_link,
                                         bool orientation_reverse_link,
                                         Scalar rotation_diff,
@@ -182,19 +180,19 @@ void ActiveForceComputeGPU::setConstraint()
                                              m_block_size);
     }
 
-void export_ActiveForceComputeGPU()
+void export_ActiveForceComputeGPU(py::module& m)
     {
-    class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute> >
-    ("ActiveForceComputeGPU", init< std::shared_ptr<SystemDefinition>,
-                                    std::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU", py::base<ActiveForceCompute>())
+        .def(py::init<  std::shared_ptr<SystemDefinition>,
+                        std::shared_ptr<ParticleGroup>,
+                        int,
+                        pybind11::list,
+                        bool,
+                        bool,
+                        Scalar,
+                        Scalar3,
+                        Scalar,
+                        Scalar,
+                        Scalar >())
     ;
     }

@@ -8,8 +8,7 @@
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "QuaternionMath.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -96,11 +95,10 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
 
     }
 
-void export_ConstExternalFieldDipoleForceCompute()
+void export_ConstExternalFieldDipoleForceCompute(py::module& m)
     {
-    class_< ConstExternalFieldDipoleForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute>,
-            bases<ForceCompute> >
-    ("ConstExternalFieldDipoleForceCompute", init< std::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
+    py::class_< ConstExternalFieldDipoleForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
     .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams)
     ;
     }

@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTTREE_H__
 #define __NEIGHBORLISTTREE_H__
 
@@ -115,6 +117,6 @@ class NeighborListTree : public NeighborList
     };
 
 //! Exports NeighborListTree to python
-void export_NeighborListTree();
+void export_NeighborListTree(pybind11::module& m);
 
 #endif // __NEIGHBORLISTTREE_H__

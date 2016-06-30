@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __BONDTABLEPOTENTIAL_H__
 #define __BONDTABLEPOTENTIAL_H__
 
@@ -98,6 +100,6 @@ class BondTablePotential : public ForceCompute
     };
 
 //! Exports the TablePotential class to python
-void export_BondTablePotential();
+void export_BondTablePotential(pybind11::module& m);
 
 #endif

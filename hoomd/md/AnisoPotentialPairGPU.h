@@ -24,6 +24,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing anisotropic
     pair potentials, forces and torques.  In the same way as PotentialPair, this class serves as a shell dealing
@@ -69,7 +71,7 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
@@ -194,17 +196,12 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPairGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_AnisoPotentialPairGPU(const std::string& name)
+template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<Base> >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-              .def("setTuningParam",&T::setTuningParam)
+     py::class_<T, std::shared_ptr<T> >(m, name.c_str(), py::base<Base>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+            .def("setTuningParam",&T::setTuningParam)
               ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
     }
 
 #endif // ENABLE_CUDA

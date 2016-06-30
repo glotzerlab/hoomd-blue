@@ -9,8 +9,7 @@
 
 #include <map>
 #include <string.h>
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -905,10 +904,10 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep, bool remote
         }
     }
 
-void export_ForceComposite()
+void export_ForceComposite(py::module& m)
     {
-    class_< ForceComposite, std::shared_ptr<ForceComposite>, bases<MolecularForceCompute> >
-    ("ForceComposite", init< std::shared_ptr<SystemDefinition> >())
+    py::class_< ForceComposite, std::shared_ptr<ForceComposite> >(m, "ForceComposite", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;

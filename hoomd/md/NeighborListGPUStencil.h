@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPUSTENCIL_H__
 #define __NEIGHBORLISTGPUSTENCIL_H__
 
@@ -73,7 +75,7 @@ class NeighborListGPUStencil : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list
@@ -107,6 +109,6 @@ class NeighborListGPUStencil : public NeighborListGPU
     };
 
 //! Exports NeighborListGPUStencil to python
-void export_NeighborListGPUStencil();
+void export_NeighborListGPUStencil(pybind11::module& m);
 
 #endif // __NEIGHBORLISTGPUSTENCIL_H__

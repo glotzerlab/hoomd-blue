@@ -10,8 +10,8 @@
 #include <cuda_runtime.h>
 
 #include <string.h>
+namespace py = pybind11;
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
 /*! \file ForceDistanceConstraintGPU.cc
@@ -613,9 +613,9 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     }
 
-void export_ForceDistanceConstraintGPU()
+void export_ForceDistanceConstraintGPU(py::module& m)
     {
-    class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint> >
-    ("ForceDistanceConstraintGPU", init< std::shared_ptr<SystemDefinition> >())
-    ;
+    py::class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU", py::base<ForceDistanceConstraint>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
+        ;
     }

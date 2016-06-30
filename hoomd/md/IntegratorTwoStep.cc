@@ -11,11 +11,9 @@
 
 #include "IntegratorTwoStep.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <boost/bind.hpp>
-using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -427,10 +425,10 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
             (*method)->setAutotunerParams(enable, period);
     }
 
-void export_IntegratorTwoStep()
+void export_IntegratorTwoStep(py::module& m)
     {
-    class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>
-        ("IntegratorTwoStep", init< std::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep> > integratortwostep(m, "IntegratorTwoStep", py::base<Integrator>());
+    integratortwostep.def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
@@ -438,10 +436,11 @@ void export_IntegratorTwoStep()
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
         ;
 
-    enum_<IntegratorTwoStep::AnisotropicMode>("IntegratorAnisotropicMode")
-        .value("Automatic", IntegratorTwoStep::Automatic)
-        .value("Anisotropic", IntegratorTwoStep::Anisotropic)
-        .value("Isotropic", IntegratorTwoStep::Isotropic)
+    py::enum_<IntegratorTwoStep::AnisotropicMode>(integratortwostep,"IntegratorAnisotropicMode")
+        .value("Automatic", IntegratorTwoStep::AnisotropicMode::Automatic)
+        .value("Anisotropic", IntegratorTwoStep::AnisotropicMode::Anisotropic)
+        .value("Isotropic", IntegratorTwoStep::AnisotropicMode::Isotropic)
+        .export_values()
         ;
 
     }

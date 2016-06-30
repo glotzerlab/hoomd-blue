@@ -298,19 +298,14 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
 */
 
 //NOTE - not sure this boost python export is set up correctly.
-template < class T, class Base > void export_PotentialPairDPDThermo(const std::string& name)
+// TODO adios_boost, remove note?
+template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, std::shared_ptr<T>, boost::python::bases< Base > >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setSeed", &T::setSeed)
-                  .def("setT", &T::setT)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setSeed", &T::setSeed)
+        .def("setT", &T::setT)
+              ;
     }
 
 

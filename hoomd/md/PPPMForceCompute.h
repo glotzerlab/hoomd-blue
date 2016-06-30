@@ -188,6 +188,6 @@ class PPPMForceCompute : public ForceCompute
 
     };
 
-void export_PPPMForceCompute();
+void export_PPPMForceCompute(pybind11::module& m);
 
 #endif

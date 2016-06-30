@@ -26,6 +26,8 @@ class Communicator;
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps
 /*! \b Overview
     A large class of integrators can be implemented in two steps:
@@ -98,7 +100,7 @@ class Communicator;
 
     \ingroup updaters
 */
-class IntegrationMethodTwoStep : boost::noncopyable
+class IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
@@ -257,6 +259,6 @@ class IntegrationMethodTwoStep : boost::noncopyable
     };
 
 //! Exports the IntegrationMethodTwoStep class to python
-void export_IntegrationMethodTwoStep();
+void export_IntegrationMethodTwoStep(pybind11::module& m);
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__

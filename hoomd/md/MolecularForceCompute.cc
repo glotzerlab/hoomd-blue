@@ -9,8 +9,8 @@
 #include <string.h>
 #include <map>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
+namespace py = pybind11;
 
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
@@ -149,9 +149,9 @@ void MolecularForceCompute::initMolecules()
         }
     }
 
-void export_MolecularForceCompute()
+void export_MolecularForceCompute(py::module& m)
     {
-    class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute>, bases<ForceConstraint> >
-    ("MolecularForceCompute", init< std::shared_ptr<SystemDefinition> >())
+    py::class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute> >(m, "MolecularForceCompute", py::base<ForceConstraint>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

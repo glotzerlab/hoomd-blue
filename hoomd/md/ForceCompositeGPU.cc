@@ -9,7 +9,7 @@
 
 #include "ForceCompositeGPU.cuh"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
@@ -234,9 +234,9 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
         m_prof->pop(m_exec_conf);
     }
 
-void export_ForceCompositeGPU()
+void export_ForceCompositeGPU(py::module& m)
     {
-    class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU>, bases<ForceComposite> >
-    ("ForceCompositeGPU", init< std::shared_ptr<SystemDefinition> >())
+    py::class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU", py::base<ForceComposite>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

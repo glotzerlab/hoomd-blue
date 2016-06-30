@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __TABLEDIHEDRALFORCECOMPUTE_H__
 #define __TABLEDIHEDRALFORCECOMPUTE_H__
 
@@ -96,6 +98,6 @@ class TableDihedralForceCompute : public ForceCompute
     };
 
 //! Exports the TablePotential class to python
-void export_TableDihedralForceCompute();
+void export_TableDihedralForceCompute(pybind11::module& m);
 
 #endif

@@ -6,7 +6,7 @@
 #ifdef ENABLE_CUDA
 #include "PPPMForceComputeGPU.cuh"
 
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \param sysdef The system definition
     \param nlist Neighbor list
@@ -685,10 +685,10 @@ void PPPMForceComputeGPU::fixExclusions()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_PPPMForceComputeGPU()
+void export_PPPMForceComputeGPU(py::module& m)
     {
-    class_<PPPMForceComputeGPU, std::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute> >
-        ("PPPMForceComputeGPU", init< std::shared_ptr<SystemDefinition>,
+    py::class_<PPPMForceComputeGPU, std::shared_ptr<PPPMForceComputeGPU> >(m, "PPPMForceComputeGPU", py::base<PPPMForceCompute>())
+                .def(py::init< std::shared_ptr<SystemDefinition>,
                                       std::shared_ptr<NeighborList>,
                                       std::shared_ptr<ParticleGroup> >());
     }

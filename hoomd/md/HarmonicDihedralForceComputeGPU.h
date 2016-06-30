@@ -52,7 +52,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<Scalar4> m_params;           //!< Parameters stored on the GPU (k,sign,m)
 
         //! Actually compute the forces
@@ -60,6 +60,6 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
     };
 
 //! Export the DihedralForceComputeGPU class to python
-void export_HarmonicDihedralForceComputeGPU();
+void export_HarmonicDihedralForceComputeGPU(pybind11::module& m);
 
 #endif

@@ -22,6 +22,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
 
@@ -589,6 +591,6 @@ class NeighborList : public Compute
     };
 
 //! Exports NeighborList to python
-void export_NeighborList();
+void export_NeighborList(pybind11::module& m);
 
 #endif

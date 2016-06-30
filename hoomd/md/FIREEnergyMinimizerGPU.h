@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -56,6 +58,6 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     };
 
 //! Exports the FIREEnergyMinimizerGPU class to python
-void export_FIREEnergyMinimizerGPU();
+void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__

@@ -22,6 +22,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ACTIVEFORCECOMPUTE_H__
 #define __ACTIVEFORCECOMPUTE_H__
 
@@ -34,7 +36,7 @@ class ActiveForceCompute : public ForceCompute
         //! Constructs the compute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, boost::python::list f_lst,
+                             int seed, pybind11::list f_lst,
                              bool orientation_link, bool orientation_reverse_link,
                              Scalar rotation_diff,
                              Scalar3 P,
@@ -74,5 +76,5 @@ class ActiveForceCompute : public ForceCompute
     };
 
 //! Exports the ActiveForceComputeClass to python
-void export_ActiveForceCompute();
+void export_ActiveForceCompute(pybind11::module& m);
 #endif

@@ -11,11 +11,7 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-
-using namespace boost::python;
-
+namespace py = pybind11;
 #include <boost/bind.hpp>
 
 #include <iostream>
@@ -1426,47 +1422,48 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     }
 #endif
 
-void export_NeighborList()
+void export_NeighborList(py::module& m)
     {
-    scope in_nlist = class_<NeighborList, std::shared_ptr<NeighborList>, bases<Compute> >
-                     ("NeighborList", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-                     .def("setRCut", &NeighborList::setRCut)
-                     .def("setRCutPair", &NeighborList::setRCutPair)
-                     .def("setRBuff", &NeighborList::setRBuff)
-                     .def("setEvery", &NeighborList::setEvery)
-                     .def("setStorageMode", &NeighborList::setStorageMode)
-                     .def("addExclusion", &NeighborList::addExclusion)
-                     .def("clearExclusions", &NeighborList::clearExclusions)
-                     .def("countExclusions", &NeighborList::countExclusions)
-                     .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
-                     .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
-                     .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
-                     .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
-                     .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
-                     .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
-                     .def("setFilterBody", &NeighborList::setFilterBody)
-                     .def("getFilterBody", &NeighborList::getFilterBody)
-                     .def("setDiameterShift", &NeighborList::setDiameterShift)
-                     .def("getDiameterShift", &NeighborList::getDiameterShift)
-                     .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
-                     .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
-                     .def("getMaxRCut", &NeighborList::getMaxRCut)
-                     .def("getMinRCut", &NeighborList::getMinRCut)
-                     .def("getMaxRList", &NeighborList::getMaxRList)
-                     .def("getMinRList", &NeighborList::getMinRList)
-                     .def("forceUpdate", &NeighborList::forceUpdate)
-                     .def("estimateNNeigh", &NeighborList::estimateNNeigh)
-                     .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
-                     .def("getNumUpdates", &NeighborList::getNumUpdates)
-                     .def("getNumExclusions", &NeighborList::getNumExclusions)
-                     .def("wantExclusions", &NeighborList::wantExclusions)
+    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+        .def("setRCut", &NeighborList::setRCut)
+        .def("setRCutPair", &NeighborList::setRCutPair)
+        .def("setRBuff", &NeighborList::setRBuff)
+        .def("setEvery", &NeighborList::setEvery)
+        .def("setStorageMode", &NeighborList::setStorageMode)
+        .def("addExclusion", &NeighborList::addExclusion)
+        .def("clearExclusions", &NeighborList::clearExclusions)
+        .def("countExclusions", &NeighborList::countExclusions)
+        .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
+        .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
+        .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
+        .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
+        .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
+        .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
+        .def("setFilterBody", &NeighborList::setFilterBody)
+        .def("getFilterBody", &NeighborList::getFilterBody)
+        .def("setDiameterShift", &NeighborList::setDiameterShift)
+        .def("getDiameterShift", &NeighborList::getDiameterShift)
+        .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
+        .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
+        .def("getMaxRCut", &NeighborList::getMaxRCut)
+        .def("getMinRCut", &NeighborList::getMinRCut)
+        .def("getMaxRList", &NeighborList::getMaxRList)
+        .def("getMinRList", &NeighborList::getMinRList)
+        .def("forceUpdate", &NeighborList::forceUpdate)
+        .def("estimateNNeigh", &NeighborList::estimateNNeigh)
+        .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
+        .def("getNumUpdates", &NeighborList::getNumUpdates)
+        .def("getNumExclusions", &NeighborList::getNumExclusions)
+        .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
-                     .def("setCommunicator", &NeighborList::setCommunicator)
+        .def("setCommunicator", &NeighborList::setCommunicator)
 #endif
                      ;
 
-    enum_<NeighborList::storageMode>("storageMode")
-    .value("half", NeighborList::half)
-    .value("full", NeighborList::full)
+    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+        .value("half", NeighborList::storageMode::half)
+        .value("full", NeighborList::storageMode::full)
+        .export_values()
     ;
     }

@@ -5,7 +5,6 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <memory>
@@ -25,7 +24,6 @@
 
 using namespace std;
 using namespace boost;
-using namespace boost::python;
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants

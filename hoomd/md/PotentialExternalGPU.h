@@ -5,7 +5,6 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -17,6 +16,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
@@ -48,7 +49,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
 
 /*! Constructor
@@ -123,18 +124,13 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     \tparam T Class type to export. \b Must be an instantiated PotentialExternalGPU class template.
 */
 template < class T, class base >
-void export_PotentialExternalGPU(const std::string& name)
+void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_<T, std::shared_ptr<T>, boost::python::bases<base> >
-                  (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
-                  .def("setParams", &T::setParams)
-                  .def("setField", &T::setField)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< std::shared_ptr<T> >();
-    #endif
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<base>())
+                .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
+                .def("setParams", &T::setParams)
+                .def("setField", &T::setField)
+                ;
     }
 
 #endif

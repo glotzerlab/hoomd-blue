@@ -9,8 +9,7 @@
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -185,13 +184,13 @@ void ConstraintSphere::validate()
     }
 
 
-void export_ConstraintSphere()
+void export_ConstraintSphere(py::module& m)
     {
-    class_< ConstraintSphere, std::shared_ptr<ConstraintSphere>, bases<ForceConstraint> >
-    ("ConstraintSphere", init< std::shared_ptr<SystemDefinition>,
-                                                 std::shared_ptr<ParticleGroup>,
-                                                 Scalar3,
-                                                 Scalar >())
+    py::class_< ConstraintSphere, std::shared_ptr<ConstraintSphere> >(m, "ConstraintSphere", py::base<ForceConstraint>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                     std::shared_ptr<ParticleGroup>,
+                     Scalar3,
+                     Scalar >())
     .def("setSphere", &ConstraintSphere::setSphere)
     .def("getNDOFRemoved", &ConstraintSphere::getNDOFRemoved)
     ;

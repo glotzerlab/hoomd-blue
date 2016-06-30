@@ -8,8 +8,7 @@
 #include "ConstraintEllipsoid.h"
 #include "EvaluatorConstraintEllipsoid.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -149,14 +148,9 @@ void ConstraintEllipsoid::validate()
     }
 
 
-void export_ConstraintEllipsoid()
+void export_ConstraintEllipsoid(py::module& m)
     {
-    class_< ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoid>, bases<Updater> >
-    ("ConstraintEllipsoid", init< std::shared_ptr<SystemDefinition>,
-                                                 std::shared_ptr<ParticleGroup>,
-                                                 Scalar3,
-                                                 Scalar,
-                                                 Scalar,
-                                                 Scalar >())
+    py::class_< ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoid> >(m, "ConstraintEllipsoid", py::base<Updater>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

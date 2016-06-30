@@ -11,6 +11,7 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "hoomd/Updater.h"
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/Variant.h"
@@ -51,6 +52,6 @@ class TempRescaleUpdater : public Updater
     };
 
 //! Export the TempRescaleUpdater to python
-void export_TempRescaleUpdater();
+void export_TempRescaleUpdater(pybind11::module& m);
 
 #endif

@@ -7,8 +7,7 @@
 #include "BondTablePotential.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -292,10 +291,10 @@ void BondTablePotential::computeForces(unsigned int timestep)
     }
 
 //! Exports the BondTablePotential class to python
-void export_BondTablePotential()
+void export_BondTablePotential(py::module& m)
     {
-    class_<BondTablePotential, std::shared_ptr<BondTablePotential>, bases<ForceCompute> >
-    ("BondTablePotential", init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    py::class_<BondTablePotential, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &BondTablePotential::setTable)
     ;
     }

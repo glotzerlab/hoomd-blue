@@ -12,9 +12,8 @@
 #include "hoomd/SystemDefinition.h"
 
 #include <boost/bind.hpp>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 using namespace boost;
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -372,9 +371,9 @@ void NeighborListTree::traverseTree()
     if (this->m_prof) this->m_prof->pop();
     }
 
-void export_NeighborListTree()
+void export_NeighborListTree(py::module& m)
     {
-    class_<NeighborListTree, std::shared_ptr<NeighborListTree>, bases<NeighborList> >
-                     ("NeighborListTree", init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListTree, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree", py::base<NeighborList>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

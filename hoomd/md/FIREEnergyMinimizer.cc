@@ -9,10 +9,9 @@
 #include "FIREEnergyMinimizer.h"
 #include "TwoStepNVE.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
@@ -258,10 +257,10 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     }
 
 
-void export_FIREEnergyMinimizer()
+void export_FIREEnergyMinimizer(py::module& m)
     {
-    class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer>, bases<IntegratorTwoStep>, boost::noncopyable>
-        ("FIREEnergyMinimizer", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
+    py::class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer> >(m, "FIREEnergyMinimizer", py::base<IntegratorTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)

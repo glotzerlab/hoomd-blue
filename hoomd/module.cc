@@ -67,10 +67,6 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
 
-// #include <boost/python.hpp>
-// namespace bnp=boost::python::numeric;
-
-
 #include <iostream>
 #include <sstream>
 #include <fstream>
