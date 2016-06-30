@@ -964,21 +964,21 @@ void export_TwoStepNPTMTK(py::module& m)
         ;
 
     py::enum_<TwoStepNPTMTK::couplingMode>(twostepnptmtk,"couplingMode")
-    .value("couple_none", TwoStepNPTMTK::couple_none)
-    .value("couple_xy", TwoStepNPTMTK::couple_xy)
-    .value("couple_xz", TwoStepNPTMTK::couple_none)
-    .value("couple_yz", TwoStepNPTMTK::couple_yz)
-    .value("couple_xyz", TwoStepNPTMTK::couple_xyz)
+    .value("couple_none", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_xy", TwoStepNPTMTK::couplingMode::couple_xy)
+    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_yz", TwoStepNPTMTK::couplingMode::couple_yz)
+    .value("couple_xyz", TwoStepNPTMTK::couplingMode::couple_xyz)
     .export_values()
     ;
 
     py::enum_<TwoStepNPTMTK::baroFlags>(twostepnptmtk,"baroFlags")
-    .value("baro_x", TwoStepNPTMTK::baro_x)
-    .value("baro_y", TwoStepNPTMTK::baro_y)
-    .value("baro_z", TwoStepNPTMTK::baro_z)
-    .value("baro_xy", TwoStepNPTMTK::baro_xy)
-    .value("baro_xz", TwoStepNPTMTK::baro_xz)
-    .value("baro_yz", TwoStepNPTMTK::baro_yz)
+    .value("baro_x", TwoStepNPTMTK::baroFlags::baro_x)
+    .value("baro_y", TwoStepNPTMTK::baroFlags::baro_y)
+    .value("baro_z", TwoStepNPTMTK::baroFlags::baro_z)
+    .value("baro_xy", TwoStepNPTMTK::baroFlags::baro_xy)
+    .value("baro_xz", TwoStepNPTMTK::baroFlags::baro_xz)
+    .value("baro_yz", TwoStepNPTMTK::baroFlags::baro_yz)
     .export_values()
     ;
     }
