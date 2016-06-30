@@ -427,8 +427,8 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
 
 void export_IntegratorTwoStep(py::module& m)
     {
-    py::class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep> > integratortwostep(m, "IntegratorTwoStep", py::base<Integrator>());
-    integratortwostep.def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep", py::base<Integrator>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
@@ -436,7 +436,7 @@ void export_IntegratorTwoStep(py::module& m)
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
         ;
 
-    py::enum_<IntegratorTwoStep::AnisotropicMode>(integratortwostep,"IntegratorAnisotropicMode")
+    py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")
         .value("Automatic", IntegratorTwoStep::AnisotropicMode::Automatic)
         .value("Anisotropic", IntegratorTwoStep::AnisotropicMode::Anisotropic)
         .value("Isotropic", IntegratorTwoStep::AnisotropicMode::Isotropic)
