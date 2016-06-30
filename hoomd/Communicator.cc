@@ -1321,9 +1321,6 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-
-        // update particle data now that ghosts are available
-        //m_compute_callbacks(timestep);
         } 
 
     m_is_communicating = false;

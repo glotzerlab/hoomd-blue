@@ -634,7 +634,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     // request communication of particle forces
     flags[comm_flag::net_force] = 1;
 
-    // request communication of particle torques
+    // request communication of particle torques (not currently used)
     //flags[comm_flag::net_torque] = 1;
 
     // only communicate net virial if needed
