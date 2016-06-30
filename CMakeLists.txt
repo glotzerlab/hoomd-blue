@@ -85,7 +85,6 @@ set(cmake_files CMake/hoomd/HOOMDBoostSetup.cmake
                 CMake/mpi/FindMPI.cmake
                 CMake/git/FindGit.cmake
                 CMake/git/GetGitRevisionDescription.cmake
-                CMake/cmake_install.cmake
                 CMake/CMakeFiles/CMakeDirectoryInformation.cmake
                 CMake/libgetar/Findlibgetar.cmake
                 CMake/thrust/FindThrust.cmake
