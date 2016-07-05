@@ -93,7 +93,13 @@ class _param(object):
         if(type(li) == numpy.ndarray):
             return li.tolist();
         else:
-            return list(li);
+            if not(isinstance(li[0],list)): #TODO: adios_boost, pybind11 seems to somehow know it's a list of tuples instead of a list of lists?
+                list_of_lists=[]
+                for tuple in li:
+                    list_of_lists.append(list(tuple))
+                return list_of_lists
+            else:
+                return list(li);
 
     def get_metadata(self):
         data = {}
