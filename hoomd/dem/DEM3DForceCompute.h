@@ -72,8 +72,8 @@ class DEM3DForceCompute : public ForceCompute
 
         //! Set the vertices for a particle
         virtual void setParams(unsigned int type,
-            const boost::python::list &pyVertices,
-            const boost::python::list &pyFaces);
+            const pybind11::list &pyVertices,
+            const pybind11::list &pyFaces);
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 

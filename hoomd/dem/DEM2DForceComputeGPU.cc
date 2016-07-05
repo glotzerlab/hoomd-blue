@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+
 
 #include <boost/bind.hpp>
 
@@ -69,7 +69,7 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::~DEM2DForceComputeGPU()
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::setParams(unsigned int type,
-    const boost::python::list &vertices)
+    const pybind11::list &vertices)
     {
     DEM2DForceCompute<Real, Real4, Potential>::setParams(type, vertices);
     createGeometry();

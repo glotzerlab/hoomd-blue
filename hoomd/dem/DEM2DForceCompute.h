@@ -51,7 +51,7 @@ class DEM2DForceCompute : public ForceCompute
 
         //! Set the vertices for a particle
         virtual void setParams(unsigned int type,
-            const boost::python::list &vertices);
+            const pybind11::list &vertices);
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 

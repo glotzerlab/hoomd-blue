@@ -21,7 +21,7 @@
 #include <stdexcept>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+
 
 #include <boost/bind.hpp>
 
