@@ -92,14 +92,20 @@ class _param(object):
     def ensure_list(self, li):
         if(type(li) == numpy.ndarray):
             return li.tolist();
-        else:
-            if not(isinstance(li[0],list)): #TODO: adios_boost, pybind11 seems to somehow know it's a list of tuples instead of a list of lists?
+        elif(len(li)==0): #TODO: adios_boost, pybind11 seems to somehow know it's a list of tuples instead of a list of lists?, extra mess needed, this function is overused....
+            return [];
+        elif (isinstance(li[0],str)):
+            return list(li);
+        elif not(isinstance(li[0],list)):
                 list_of_lists=[]
-                for tuple in li:
-                    list_of_lists.append(list(tuple))
+                try:
+                    for tuple in li:
+                        list_of_lists.append(list(tuple))
+                except:
+                    list_of_lists = list(li);
                 return list_of_lists
-            else:
-                return list(li);
+        else:
+            return list(li);
 
     def get_metadata(self):
         data = {}
