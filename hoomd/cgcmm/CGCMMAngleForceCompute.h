@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CGCMMANGLEFORCECOMPUTE_H__
 #define __CGCMMANGLEFORCECOMPUTE_H__
 
@@ -81,6 +83,6 @@ class CGCMMAngleForceCompute : public ForceCompute
     };
 
 //! Exports the BondForceCompute class to python
-void export_CGCMMAngleForceCompute();
+void export_CGCMMAngleForceCompute(pybind11::module& m);
 
 #endif

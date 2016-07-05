@@ -13,9 +13,7 @@
 #include "cuda_runtime.h"
 
 #include <stdexcept>
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <boost/bind.hpp>
 
@@ -146,7 +144,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
 
     // access the particle data
@@ -183,10 +181,10 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
     }
 
-void export_CGCMMForceComputeGPU()
+void export_CGCMMForceComputeGPU(py::module& m)
     {
-    class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute> >
-    ("CGCMMForceComputeGPU", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
+    py::class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU> >(m, "CGCMMForceComputeGPU", py::base<CGCMMForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }

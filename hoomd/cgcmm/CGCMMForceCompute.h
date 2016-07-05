@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CGCMMFORCECOMPUTE_H__
 #define __CGCMMFORCECOMPUTE_H__
 
@@ -79,6 +81,6 @@ class CGCMMForceCompute : public ForceCompute
     };
 
 //! Exports the CGCMMForceCompute class to python
-void export_CGCMMForceCompute();
+void export_CGCMMForceCompute(pybind11::module& m);
 
 #endif

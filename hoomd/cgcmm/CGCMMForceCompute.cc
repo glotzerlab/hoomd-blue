@@ -3,9 +3,8 @@
 
 #include "CGCMMForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 #include <stdexcept>
 
 /*! \file CGCMMForceCompute.cc
@@ -347,10 +346,10 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(flops, mem_transfer);
     }
 
-void export_CGCMMForceCompute()
+void export_CGCMMForceCompute(py::module& m)
     {
-    class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute>, bases<ForceCompute> >
-    ("CGCMMForceCompute", init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
+    py::class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute> >(m, "CGCMMForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setParams", &CGCMMForceCompute::setParams)
     ;
     }
