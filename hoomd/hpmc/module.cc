@@ -58,7 +58,7 @@ using namespace hpmc::detail;
 //! Define the _hpmc python module exports
 PYBIND11_PLUGIN(_hpmc)
     {
-    py::module m("_md");
+    py::module m("_hpmc");
 
     export_IntegratorHPMC(m);
 
