@@ -36,10 +36,7 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,25 +45,25 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_sphere()
+void export_sphere(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSphere >("IntegratorHPMCMonoSphere");
-    export_IntegratorHPMCMonoImplicit< ShapeSphere >("IntegratorHPMCMonoImplicitSphere");
-    export_ComputeFreeVolume< ShapeSphere >("ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeSphere >("AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeSphere >("UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeSphere >("UpdaterMuVTImplicitSphere");
-    export_ExternalFieldInterface<ShapeSphere>("ExternalFieldSphere");
-    export_LatticeField<ShapeSphere>("ExternalFieldLatticeSphere");
-    export_ExternalFieldComposite<ShapeSphere>("ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeSphere>("RemoveDriftUpdaterSphere");
-    export_ExternalFieldWall<ShapeSphere>("WallSphere");
-    export_UpdaterExternalFieldWall<ShapeSphere>("UpdaterExternalFieldWallSphere");
+    export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
+    export_IntegratorHPMCMonoImplicit< ShapeSphere >(m, "IntegratorHPMCMonoImplicitSphere");
+    export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
+    export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
+    export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
+    export_UpdaterMuVTImplicit< ShapeSphere >(m, "UpdaterMuVTImplicitSphere");
+    export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
+    export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
+    export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
+    export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
+    export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
+    export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeSphere >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeSphere >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitGPUSphere");
+    export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeGPUSphere");
     #endif
     }
 

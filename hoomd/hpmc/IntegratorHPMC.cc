@@ -3,8 +3,7 @@
 
 #include "IntegratorHPMC.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
@@ -297,10 +296,10 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_IntegratorHPMC()
+void export_IntegratorHPMC(py::module& m)
     {
-    class_<IntegratorHPMC, std::shared_ptr< IntegratorHPMC >, bases<Integrator>, boost::noncopyable>
-    ("IntegratorHPMC", init< std::shared_ptr<SystemDefinition>, unsigned int >())
+   py::class_<IntegratorHPMC, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC", py::base<Integrator>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("setD", &IntegratorHPMC::setD)
     .def("setA", &IntegratorHPMC::setA)
     .def("setMoveRatio", &IntegratorHPMC::setMoveRatio)
@@ -318,7 +317,7 @@ void export_IntegratorHPMC()
     .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
     ;
 
-    class_< hpmc_counters_t >("hpmc_counters_t")
+   py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
     .def_readwrite("translate_accept_count", &hpmc_counters_t::translate_accept_count)
     .def_readwrite("translate_reject_count", &hpmc_counters_t::translate_reject_count)
     .def_readwrite("rotate_accept_count", &hpmc_counters_t::rotate_accept_count)

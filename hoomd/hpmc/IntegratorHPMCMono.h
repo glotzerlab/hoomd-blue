@@ -13,7 +13,6 @@
 #include <iomanip>
 
 #include "hoomd/Integrator.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
@@ -34,6 +33,10 @@
 #include "ShapeEllipsoid.h"
 #include "ShapeFacetedSphere.h"
 #include "ShapeSphinx.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -241,7 +244,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
 
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
-        
+
     protected:
         GPUArray<param_type> m_params;              //!< Parameters for each particle type
         detail::UpdateOrder m_update_order;         //!< Update order
@@ -1164,10 +1167,10 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC> >
-          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+    pybind11::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str(), pybind11::base<IntegratorHPMC>())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)

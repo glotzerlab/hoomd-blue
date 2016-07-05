@@ -11,6 +11,10 @@
 
 #include <boost/random.hpp>
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 
@@ -135,10 +139,10 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape> will be exported
 */
-template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name)
+template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> > >
-          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+    pybind11::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> > >(m, name.c_str(), pybind11::base<UpdaterMuVT<Shape> >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>,
             std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
           ;
     }

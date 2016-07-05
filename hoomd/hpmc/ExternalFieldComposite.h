@@ -8,8 +8,6 @@
 /*! \file ExternalField.h
     \brief Declaration of ExternalField base class
 */
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
 
 #include "hoomd/Compute.h"
 #include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
@@ -17,7 +15,9 @@
 
 #include "ExternalField.h"
 
-
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -80,10 +80,10 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
 
 template<class Shape>
-void export_ExternalFieldComposite(std::string name)
+void export_ExternalFieldComposite(pybind11::module& m, std::string name)
 {
-    class_<ExternalFieldMonoComposite<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> >, bases< ExternalFieldMono<Shape> >, boost::noncopyable>
-    (name.c_str(), init< std::shared_ptr<SystemDefinition> >())
+   pybind11::class_<ExternalFieldMonoComposite<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal)
     ;
 

@@ -10,6 +10,10 @@
 #include "Moves.h"
 #include "IntegratorHPMCMono.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 
@@ -230,10 +234,10 @@ class UpdaterMuVT : public Updater
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVT<Shape> will be exported
 */
-template < class Shape > void export_UpdaterMuVT(const std::string& name)
+template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater> >
-          (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+    pybind11::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
           .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)

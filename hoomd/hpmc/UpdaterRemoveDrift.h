@@ -20,6 +20,11 @@
 #include "hoomd/Updater.h"
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc {
 // (if you really don't want to include the whole hoomd.h, you can include individual files IF AND ONLY IF
 // hoomd_config.h is included first)
@@ -97,11 +102,11 @@ class RemoveDriftUpdater : public Updater
 
 //! Export the ExampleUpdater class to python
 template <class Shape>
-void export_RemoveDriftUpdater(std::string name)
+void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
     {
-    using boost::python::class_;
-    class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> >, bases<Updater>, boost::noncopyable>
-    (name.c_str(), init<    std::shared_ptr<SystemDefinition>,
+    using pybind11::class_;
+   pybind11::class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExternalFieldLattice<Shape> >,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > >())
     ;

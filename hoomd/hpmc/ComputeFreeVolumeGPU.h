@@ -13,13 +13,8 @@ using namespace std;
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
-
 #include "IntegratorHPMCMono.h"
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
 #include "ComputeFreeVolume.h"
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
@@ -32,6 +27,8 @@ using namespace std;
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -78,8 +75,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
 
         void initializeExcellMem();
     };
@@ -297,10 +294,10 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& name)
+template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> > >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+     pybind11::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str(), pybind11::base< ComputeFreeVolume<Shape> >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,
                 unsigned int,
@@ -313,4 +310,3 @@ template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& nam
 #endif // ENABLE_CUDA
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__
-

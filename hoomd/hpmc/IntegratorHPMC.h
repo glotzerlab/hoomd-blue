@@ -17,7 +17,9 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -314,7 +316,7 @@ class IntegratorHPMC : public Integrator
     };
 
 //! Export the IntegratorHPMC class to python
-void export_IntegratorHPMC();
+void export_IntegratorHPMC(pybind11::module& m);
 
 } // end namespace hpmc
 

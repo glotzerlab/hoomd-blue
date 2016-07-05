@@ -9,12 +9,9 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "HPMCPrecisionSetup.h"
-
 #include "IntegratorHPMCMono.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file ComputeFreeVolume.h
     \brief Defines the template class for an approximate free volume integration
@@ -24,6 +21,9 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 
 namespace hpmc
 {
@@ -293,10 +293,10 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_ComputeFreeVolume(const std::string& name)
+template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute > >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>,
+     pybind11::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> > >(m, name.c_str(), pybind11::base< Compute >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,
                 unsigned int,
@@ -309,4 +309,3 @@ template < class Shape > void export_ComputeFreeVolume(const std::string& name)
 } // end namespace hpmc
 
 #endif // __COMPUTE_FREE_VOLUME__H__
-

@@ -13,8 +13,6 @@
 
 #include "hoomd/GPUVector.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
 /*! \file IntegratorHPMCMonoImplicitGPU.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent on the GPU
     \note This header cannot be compiled by nvcc
@@ -23,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -91,10 +91,10 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
-        boost::scoped_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
-        boost::scoped_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
+        std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
+        std::unique_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
         mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
 
 
@@ -884,10 +884,10 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> > >
-              (name.c_str(), boost::python::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
+     pybind11::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicit<Shape> >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
 
@@ -896,4 +896,3 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::st
 #endif // ENABLE_CUDA
 
 #endif // __HPMC_MONO_IMPLICIT_GPU_H__
-

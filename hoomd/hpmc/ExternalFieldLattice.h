@@ -7,14 +7,16 @@
 /*! \file ExternalField.h
     \brief Declaration of ExternalField base class
 */
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
 
 #include "hoomd/Compute.h"
 #include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
 #include "hoomd/VectorMath.h"
 
 #include "ExternalField.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -24,40 +26,41 @@ the external field will take in a list of either positions or orientations that
 are the reference values. the i-th reference point will correspond to the particle
 with tag i.
 */
-inline void pthon_list_to_vector_scalar3(const boost::python::list& r0, std::vector<Scalar3>& ret, unsigned int ndim)
+inline void pthon_list_to_vector_scalar3(const pybind11::list& r0, std::vector<Scalar3>& ret, unsigned int ndim)
     {
     // validate input type and rank
-    boost::python::ssize_t n = boost::python::len(r0);
+    pybind11::ssize_t n = pybind11::len(r0);
     ret.resize(n);
-    for ( boost::python::ssize_t i=0; i<n; i++)
+    for ( pybind11::ssize_t i=0; i<n; i++)
         {
-        boost::python::ssize_t d = boost::python::len(r0[i]);
+        pybind11::ssize_t d = pybind11::len(r0[i]);
+        pybind11::tuple r0_tuple = pybind11::cast<pybind11::tuple >(r0[i]);
         if( d < ndim )
             {
             throw std::runtime_error("dimension of the list does not match the dimension of the simulation.");
             }
-        Scalar x = boost::python::extract<Scalar>(r0[i][0]), y = boost::python::extract<Scalar>(r0[i][1]), z = 0.0;
+        Scalar x = pybind11::cast<Scalar>(r0_tuple[0]), y = pybind11::cast<Scalar>(r0_tuple[1]), z = 0.0;
         if(d == 3)
             {
-            z = boost::python::extract<Scalar>(r0[i][2]);
+            z = pybind11::cast<Scalar>(r0_tuple[2]);
             }
         ret[i] = make_scalar3(x, y, z);
         }
     }
 
-inline void pthon_list_to_vector_scalar4(const boost::python::list& r0, std::vector<Scalar4>& ret)
+inline void pthon_list_to_vector_scalar4(const pybind11::list& r0, std::vector<Scalar4>& ret)
     {
     // validate input type and rank
-    boost::python::ssize_t n = boost::python::len(r0);
+    pybind11::ssize_t n = pybind11::len(r0);
     ret.resize(n);
-    for ( boost::python::ssize_t i=0; i<n; i++)
+    for ( pybind11::ssize_t i=0; i<n; i++)
         {
-        // boost::python::tuple r0_tuple = boost::python::extract<boost::python::tuple >(r0[i]);
+        pybind11::tuple r0_tuple = pybind11::cast<pybind11::tuple >(r0[i]);
 
-        ret[i] = make_scalar4(  boost::python::extract<Scalar>(r0[i][0]),
-                                boost::python::extract<Scalar>(r0[i][1]),
-                                boost::python::extract<Scalar>(r0[i][2]),
-                                boost::python::extract<Scalar>(r0[i][3]));
+        ret[i] = make_scalar4(  pybind11::cast<Scalar>(r0_tuple[0]),
+                                pybind11::cast<Scalar>(r0_tuple[1]),
+                                pybind11::cast<Scalar>(r0_tuple[2]),
+                                pybind11::cast<Scalar>(r0_tuple[3]));
         }
     }
 
@@ -156,11 +159,11 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
     using ExternalFieldMono<Shape>::m_sysdef;
     public:
         ExternalFieldLattice(  std::shared_ptr<SystemDefinition> sysdef,
-                                        boost::python::list r0,
+                                        pybind11::list r0,
                                         Scalar k,
-                                        boost::python::list q0,
+                                        pybind11::list q0,
                                         Scalar q,
-                                        boost::python::list symRotations
+                                        pybind11::list symRotations
                                     ) : ExternalFieldMono<Shape>(sysdef), m_k(k), m_q(q), m_Energy(0)
             {
             m_ProvidedQuantities.push_back(LATTICE_ENERGY_LOG_NAME);
@@ -302,7 +305,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return fast::exp(old_U-new_U);
             }
 
-        void setReferences(const boost::python::list& r0, const boost::python::list& q0)
+        void setReferences(const pybind11::list& r0, const pybind11::list& q0)
             {
             unsigned int ndim = m_sysdef->getNDimensions();
             std::vector<Scalar3> lattice_positions;
@@ -487,10 +490,10 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
     };
 
 template<class Shape>
-void export_LatticeField(std::string name)
+void export_LatticeField(pybind11::module& m, std::string name)
     {
-    class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
-    (name.c_str(), init< std::shared_ptr<SystemDefinition>, boost::python::list, Scalar, boost::python::list, Scalar, boost::python::list>())
+   pybind11::class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::list, Scalar, pybind11::list, Scalar, pybind11::list>())
     .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
     .def("setParams", &ExternalFieldLattice<Shape>::setParams)
     .def("reset", &ExternalFieldLattice<Shape>::reset)
@@ -499,7 +502,7 @@ void export_LatticeField(std::string name)
     ;
     }
 
-void export_LatticeFields();
+void export_LatticeFields(pybind11::module& m);
 
 } // namespace hpmc
 
