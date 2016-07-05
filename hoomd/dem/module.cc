@@ -42,7 +42,8 @@
     // Export all of the parameter wrapper objects to the python interface
     void export_params(pybind11::module& m)
         {
-        pybind11::class_<NoFriction<Scalar> >(m, "NoFriction");
+        pybind11::class_<NoFriction<Scalar> >(m, "NoFriction")
+            .def(pybind11::init());
 
         typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
         typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > SWCA;
