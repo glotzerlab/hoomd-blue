@@ -46,13 +46,13 @@ class EAMForceComputeGPU : public EAMForceCompute
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
         Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU();
+void export_EAMForceComputeGPU(pybind11::module& m);
 
 #endif

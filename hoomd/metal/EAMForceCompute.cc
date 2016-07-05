@@ -3,18 +3,15 @@
 
 #include "EAMForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <vector>
 using namespace std;
 using namespace boost;
-using namespace boost::python;
 #include <stdexcept>
+namespace py = pybind11;
 
 /*! \file EAMForceCompute.cc
     \brief Defines the EAMForceCompute class
 */
-
-using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
@@ -497,11 +494,10 @@ Scalar EAMForceCompute::get_r_cut()
     {
     return m_r_cut;
     }
-void export_EAMForceCompute()
+void export_EAMForceCompute(py::module& m)
     {
-    scope in_eam = class_<EAMForceCompute, std::shared_ptr<EAMForceCompute>, bases<ForceCompute> >
-        ("EAMForceCompute", init< std::shared_ptr<SystemDefinition>, char*, int>())
-
+    py::class_<EAMForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, char*, int>())
     .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
     .def("get_r_cut", &EAMForceCompute::get_r_cut)
     ;
