@@ -58,7 +58,7 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
     protected:
         GPUArray<Real2> m_vertices;     //!< Vertices for all shapes
         GPUArray<unsigned int> m_num_shape_vertices;    //!< Number of vertices for each shape
-        std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+        boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

@@ -83,11 +83,11 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void fixExclusions();
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
-        std::unique_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
-        std::unique_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
-        std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
-        std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
+        boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
+        boost::scoped_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
+        boost::scoped_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
+        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+        boost::scoped_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
         cufftHandle m_cufft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)

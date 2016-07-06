@@ -53,8 +53,8 @@ class TwoStepNVEGPU : public TwoStepNVE
             }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-        std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+        boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
+        boost::scoped_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
     };
 
 //! Exports the TwoStepNVEGPU class to python

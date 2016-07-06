@@ -66,10 +66,10 @@ class TwoStepNVTMTKGPU : public TwoStepNVTMTK
             }
 
     protected:
-        std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-        std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-        std::unique_ptr<Autotuner> m_tuner_reduce; //!< Autotuner for reduction size (step two)
-        std::unique_ptr<Autotuner> m_tuner_rescale; //!< Autotuner for temperature rescaling (step two)
+        boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
+        boost::scoped_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+        boost::scoped_ptr<Autotuner> m_tuner_reduce; //!< Autotuner for reduction size (step two)
+        boost::scoped_ptr<Autotuner> m_tuner_rescale; //!< Autotuner for temperature rescaling (step two)
 
         GPUVector<Scalar> m_scratch;    //!< Scratch space for reduction of squared velocities
         GPUArray<Scalar> m_temperature; //!< Stores temperature after reduction step

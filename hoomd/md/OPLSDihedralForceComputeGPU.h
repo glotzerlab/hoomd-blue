@@ -48,7 +48,7 @@ class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
             }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         virtual void computeForces(unsigned int timestep);
     };

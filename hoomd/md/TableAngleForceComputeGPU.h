@@ -48,7 +48,7 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
             }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces

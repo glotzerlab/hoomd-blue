@@ -46,7 +46,7 @@ class EAMForceComputeGPU : public EAMForceCompute
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
         Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
+        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

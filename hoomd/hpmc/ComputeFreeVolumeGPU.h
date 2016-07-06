@@ -75,8 +75,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
-        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        boost::scoped_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
+        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
 
         void initializeExcellMem();
     };
