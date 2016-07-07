@@ -31,7 +31,7 @@ class EvaluatorSquareDensity
     {
     public:
         //! Define the parameter type used by this evaluator
-        typedef Scalar param_type;
+        typedef Scalar2 param_type;
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
@@ -39,7 +39,7 @@ class EvaluatorSquareDensity
             \param _params Per type-pair parameters for this potential
         */
         DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), B(_params)
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.x), B(_params.y)
             {
             }
 
@@ -127,7 +127,7 @@ class EvaluatorSquareDensity
 
                 // compute the ij force
                 Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
-                force_divr = B*rho_i*w_prime;
+                force_divr = B*(rho_i-A)*w_prime;
                 }
             }
 
@@ -136,7 +136,7 @@ class EvaluatorSquareDensity
             Scalar rho_i = phi;
 
             // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
-            energy = Scalar(0.5)*B*rho_i*rho_i;
+            energy = Scalar(0.5)*B*(rho_i-A)*(rho_i-A);
             }
 
         //! Evaluate the forces due to ijk interactions
@@ -165,6 +165,7 @@ class EvaluatorSquareDensity
         Scalar rij_sq; //!< Stored rij_sq from the constructor
         Scalar rik_sq; //!< Stored rik_sq
         Scalar rcutsq; //!< Stored rcutsq from the constructor
+        Scalar A;      //!< center of harmonic potential
         Scalar B;      //!< repulsion parameter
     };
 

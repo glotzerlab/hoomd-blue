@@ -19,6 +19,6 @@ cudaError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
 
 //! Compute CG vdW liquid forces on the GPU with EvaluatorSquareDensity
 cudaError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
-                                   const Scalar *d_params);
+                                   const Scalar2 *d_params);
 
 #endif

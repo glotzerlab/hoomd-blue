@@ -2410,14 +2410,14 @@ class square_density(pair):
         :nowrap:
 
         \begin{equation}
-        \Psi^{ex} = B \rho^2
+        \Psi^{ex} = B (\rho - A)^2
         \end{equation}
 
     which gives a pair-wise additive, three-body force
 
     .. math::
         \begin{equation}
-        \vec f_{ij} = \left\{B n_i^2 + B n_j^2\right\} w'_{ij} \vec e_{ij}
+        \vec f_{ij} = \left\{B (n_i - A) + B (n_j - A)\right\} w'_{ij} \vec e_{ij}
         \end{equation}
 
     Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
@@ -2437,6 +2437,7 @@ class square_density(pair):
 
     The following coefficients must be set per unique pair of particle types:
 
+    - :math:`B` - *B* (in units of volume^-1) - mean density (*default*: 0)
     - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
 
     Example::
@@ -2472,9 +2473,10 @@ class square_density(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficients
-        self.required_coeffs = ['B']
+        self.required_coeffs = ['A','B']
+        self.pair_coeff.set_default_coeff('A', 0.0)
 
     def process_coeff(self, coeff):
-        return float(coeff['B'])
+        return _hoomd.make_scalar2(coeff['A'],coeff['B'])
 
 
