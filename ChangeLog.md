@@ -2,6 +2,12 @@
 
 [TOC]
 
+## v2.0.1
+
+*Bug fixes*
+
+* fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC)
+
 ## v2.0.0
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
