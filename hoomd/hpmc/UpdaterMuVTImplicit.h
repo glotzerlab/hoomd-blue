@@ -270,10 +270,10 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             Scalar n_R = m_mc_implicit->getDepletantDensity();
 
             // fix the maximum number of removed depletants at the average number
-            // of depletants in the excluded volume sphere + 1
+            // of depletants in the excluded volume sphere
             unsigned int m = (unsigned int)(V*n_R);
             Saru rng(this->m_seed, timestep,  0x123478d2);
-            unsigned int n_remove = rand_select(rng, m-1);
+            unsigned int n_remove = rand_select(rng, m);
 
             if ((n_free >= n_remove) && (n_remove >= n_overlap))
                 {
@@ -495,7 +495,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
                 // fix the maximum number of inserted depletants at the average number
                 // of depletants in the excluded volume sphere
                 unsigned int m = (unsigned int)(V*n_R);
-                n_insert = rand_select(rng, m-1);
+                n_insert = rand_select(rng, m);
 
                 // getPosition() corrects for grid shift, add it back
                 Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
