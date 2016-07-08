@@ -7,9 +7,10 @@
 
 #include <iostream>
 
-//! Name the unit test module
-UP_TEST(Index1D tests)
 #include "upp11_config.h"
+
+UP_MAIN();
+
 
 #include "hoomd/Index1D.h"
 

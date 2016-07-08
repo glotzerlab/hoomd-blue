@@ -24,9 +24,10 @@
 using namespace std;
 using namespace boost;
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! Name the boost unit test module
 UP_TEST(ImproperForceTests)
-#include "hoomd/test/upp11_config.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<HarmonicImproperForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> improperforce_creator;

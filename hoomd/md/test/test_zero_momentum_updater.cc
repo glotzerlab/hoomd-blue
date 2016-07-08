@@ -16,9 +16,10 @@
 using namespace std;
 using namespace boost;
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! label the boost test module
 UP_TEST(ZeroMomentumUpdaterTests)
-#include "hoomd/test/upp11_config.h"
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class

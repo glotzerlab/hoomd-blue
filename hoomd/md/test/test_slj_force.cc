@@ -26,9 +26,12 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(PotentialPairSLJTests)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 //! Typedef'd PotentialPairSLJ factory
 typedef boost::function<std::shared_ptr<PotentialPairSLJ> (std::shared_ptr<SystemDefinition> sysdef,

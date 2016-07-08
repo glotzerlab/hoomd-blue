@@ -30,9 +30,12 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(PPPMTest)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 //! Typedef'd PPPMForceCompute factory
 

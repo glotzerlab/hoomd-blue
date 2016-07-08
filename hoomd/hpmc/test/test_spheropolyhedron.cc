@@ -1,9 +1,12 @@
 
 #include "hoomd/ExecutionConfiguration.h"
 
-//! Name the unit test module
-UP_TEST(ShapeSpheropolyhedron)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"

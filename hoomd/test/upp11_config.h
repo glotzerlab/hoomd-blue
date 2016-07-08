@@ -20,7 +20,7 @@
 //! Helper macro for checking if two numbers are close
 #define MY_CHECK_CLOSE(a,b,c) UP_ASSERT(abs(a - Scalar(b)) < Scalar(c))
 //! Helper macro for checking if a number is small
-#define MY_CHECK_SMALL(a,c) CHECK_SMALL(abs (a) < Scalar(c))
+#define MY_CHECK_SMALL(a,c) CHECK_SMALL( a, Scalar(c))
 //! Need a simple define for checking two values which are unsigned
 #define CHECK_EQUAL_UINT(a,b) UP_ASSERT_EQUAL(a,(unsigned int)(b))
 

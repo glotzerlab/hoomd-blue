@@ -21,9 +21,10 @@
 using namespace std;
 using namespace boost;
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! label the boost test module
 UP_TEST(TempRescaleUpdaterTests)
-#include "hoomd/test/upp11_config.h"
 
 
 /*! \file temp_rescale_updater_test.cc

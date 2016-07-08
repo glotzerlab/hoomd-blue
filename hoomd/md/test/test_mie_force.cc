@@ -27,9 +27,12 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(PotentialPairMieTests)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 //! Typedef'd MieForceCompute factory
 typedef boost::function<std::shared_ptr<PotentialPairMie> (std::shared_ptr<SystemDefinition> sysdef,

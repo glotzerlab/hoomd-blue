@@ -4,9 +4,12 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-//! Name the unit test module
-UP_TEST(ShapeFacetedSphere)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 #include "hoomd/hpmc/ShapeFacetedSphere.h"
 
 #include <iostream>

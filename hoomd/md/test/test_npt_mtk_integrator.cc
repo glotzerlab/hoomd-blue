@@ -43,9 +43,10 @@ using namespace boost;
     \ingroup unit_tests
 */
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! name the boost unit test module
 UP_TEST(TwoStepNPTMTKTests)
-#include "hoomd/test/upp11_config.h"
 
 typedef struct
     {

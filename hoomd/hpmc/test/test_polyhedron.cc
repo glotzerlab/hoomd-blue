@@ -3,9 +3,12 @@
 #include "hoomd/hpmc/ShapePolyhedron.h"
 #include "hoomd/AABBTree.h"
 
-//! Name the unit test module
-UP_TEST(ShapePolyhedron)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 #include <iostream>
 #include <string>

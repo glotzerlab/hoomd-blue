@@ -7,9 +7,10 @@
 
 #include <iostream>
 
-//! Name the unit test module
-UP_TEST(SystemClassTest)
+
 #include "upp11_config.h"
+UP_MAIN();
+
 
 #include <math.h>
 #include "hoomd/System.h"

@@ -27,9 +27,10 @@ using namespace boost;
     \ingroup unit_tests
 */
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! Name the boost unit test module
 UP_TEST(BondTableForceTests)
-#include "hoomd/test/upp11_config.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<BondTablePotential>  (std::shared_ptr<SystemDefinition> sysdef, unsigned int width)> bondforce_creator;

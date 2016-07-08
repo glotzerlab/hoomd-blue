@@ -4,9 +4,12 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-//! Name the unit test module
-UP_TEST(ShapeSphinx)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 #include "hoomd/hpmc/ShapeSphinx.h"
 

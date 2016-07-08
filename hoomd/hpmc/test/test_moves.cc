@@ -1,9 +1,12 @@
 
 #include "hoomd/ExecutionConfiguration.h"
 
-//! Name the unit test module
-UP_TEST(moves)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 #include "hoomd/extern/saruprng.h"
 #include "hoomd/BoxDim.h"

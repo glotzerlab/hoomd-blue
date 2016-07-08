@@ -26,9 +26,10 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(GPUArrayTests)
+
 #include "upp11_config.h"
+UP_MAIN();
+
 
 //! boost test case for testing the basic operation of GPUArray
 UP_TEST( GPUArray_basic_tests )

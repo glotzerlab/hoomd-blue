@@ -1,6 +1,9 @@
-//! Name the unit test module
-UP_TEST(aabb_tree)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 #include "hoomd/AABBTree.h"
 
 #include <iostream>

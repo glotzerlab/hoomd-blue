@@ -29,9 +29,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(CGCMMForceTests)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
 
 //! Typedef'd CGCMMForceCompute factory
 typedef boost::function<std::shared_ptr<CGCMMForceCompute> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
@@ -575,5 +575,3 @@ UP_TEST( CGCMMForceGPU_compare )
     }
 
 #endif
-
-

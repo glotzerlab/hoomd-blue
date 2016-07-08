@@ -17,9 +17,12 @@
 using namespace std;
 using namespace boost;
 
-//! Name the unit test module
-UP_TEST(TablePotentialTests)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 /*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants

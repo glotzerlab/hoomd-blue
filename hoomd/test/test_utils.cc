@@ -12,9 +12,10 @@
 #include "hoomd/Profiler.h"
 #include "hoomd/Variant.h"
 
-//! Name the unit test module
-UP_TEST(UtilityClassesTests)
+
 #include "upp11_config.h"
+UP_MAIN();
+
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant

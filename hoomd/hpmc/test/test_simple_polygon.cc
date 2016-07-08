@@ -4,9 +4,12 @@
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapeSimplePolygon.h"
 
-//! Name the unit test module
-UP_TEST(ShapeSimplePolygon)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 #include <iostream>
 #include <string>

@@ -5,9 +5,10 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-//! Name the unit test module
-UP_TEST(vec2)
 #include "upp11_config.h"
+
+UP_MAIN();
+
 
 #include <iostream>
 

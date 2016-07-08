@@ -20,9 +20,10 @@
 using namespace std;
 using namespace boost;
 
-//! Name the boost unit test module
-UP_TEST(ParticleGroupTests)
 #include "upp11_config.h"
+
+UP_MAIN();
+
 
 //! initializes the particle data used by the tests
 std::shared_ptr<SystemDefinition> create_sysdef()
@@ -231,7 +232,7 @@ UP_TEST( ParticleGroup_type_test )
     // create a group of type 0 and check it
     std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
     ParticleGroup type0(sysdef, selector0);
-    UP_ASSERT_EQUAL_UINT(type0.getNumMembers(), 4);
+    CHECK_EQUAL_UINT(type0.getNumMembers(), 4);
     CHECK_EQUAL_UINT(type0.getIndexArray().getNumElements(), 4);
 
     CHECK_EQUAL_UINT(type0.getMemberTag(0), 0);
@@ -242,7 +243,7 @@ UP_TEST( ParticleGroup_type_test )
     // create a group of type 1 and check it
     std::shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
     ParticleGroup type1(sysdef, selector1);
-    UP_ASSERT_EQUAL_UINT(type1.getNumMembers(), 2);
+    CHECK_EQUAL_UINT(type1.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type1.getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(type1.getMemberTag(0), 3);
     CHECK_EQUAL_UINT(type1.getMemberTag(1), 6);
@@ -250,7 +251,7 @@ UP_TEST( ParticleGroup_type_test )
     // create a group of type 2 and check it
     std::shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
     ParticleGroup type2(sysdef, selector2);
-    UP_ASSERT_EQUAL_UINT(type2.getNumMembers(), 2);
+    CHECK_EQUAL_UINT(type2.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type2.getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(type2.getMemberTag(0), 1);
     CHECK_EQUAL_UINT(type2.getMemberTag(1), 7);
@@ -258,7 +259,7 @@ UP_TEST( ParticleGroup_type_test )
     // create a group of type 3 and check it
     std::shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
     ParticleGroup type3(sysdef, selector3);
-    UP_ASSERT_EQUAL_UINT(type3.getNumMembers(), 2);
+    CHECK_EQUAL_UINT(type3.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type3.getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(type3.getMemberTag(0), 4);
     CHECK_EQUAL_UINT(type3.getMemberTag(1), 9);
@@ -266,7 +267,7 @@ UP_TEST( ParticleGroup_type_test )
     // create a group of all types and check it
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
     ParticleGroup alltypes(sysdef, selector_all);
-    UP_ASSERT_EQUAL_UINT(alltypes.getNumMembers(), 10);
+    CHECK_EQUAL_UINT(alltypes.getNumMembers(), 10);
     CHECK_EQUAL_UINT(alltypes.getIndexArray().getNumElements(), 10);
     for (unsigned int i = 0; i < 10; i++)
         CHECK_EQUAL_UINT(alltypes.getMemberTag(i), i);
@@ -281,7 +282,7 @@ UP_TEST( ParticleGroup_empty_test )
     // create a group of type 100 and check it
     std::shared_ptr<ParticleSelector> selector100(new ParticleSelectorType(sysdef, 100, 100));
     ParticleGroup empty(sysdef, selector100);
-    UP_ASSERT_EQUAL_UINT(empty.getNumMembers(), 0);
+    CHECK_EQUAL_UINT(empty.getNumMembers(), 0);
     CHECK_EQUAL_UINT(empty.getIndexArray().getNumElements(), 0);
     }
 
@@ -294,7 +295,7 @@ UP_TEST( ParticleGroup_body_test )
     // create a group of rigid bodies and check it
     std::shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
     ParticleGroup type_true(sysdef, selector_body_true);
-    UP_ASSERT_EQUAL_UINT(type_true.getNumMembers(), 4);
+    CHECK_EQUAL_UINT(type_true.getNumMembers(), 4);
     CHECK_EQUAL_UINT(type_true.getMemberTag(0), 0);
     CHECK_EQUAL_UINT(type_true.getMemberTag(1), 1);
     CHECK_EQUAL_UINT(type_true.getMemberTag(2), 2);
@@ -303,7 +304,7 @@ UP_TEST( ParticleGroup_body_test )
     // create a group of non rigid particles and check it
     std::shared_ptr<ParticleSelector> selector_body_false(new ParticleSelectorRigid(sysdef, false));
     ParticleGroup type_false(sysdef, selector_body_false);
-    UP_ASSERT_EQUAL_UINT(type_false.getNumMembers(), 6);
+    CHECK_EQUAL_UINT(type_false.getNumMembers(), 6);
     CHECK_EQUAL_UINT(type_false.getMemberTag(0), 4);
     CHECK_EQUAL_UINT(type_false.getMemberTag(1), 5);
     CHECK_EQUAL_UINT(type_false.getMemberTag(2), 6);
@@ -321,7 +322,7 @@ UP_TEST( ParticleGroup_tag_test )
     // create a group of tags 0-4 and check it
     std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags05(sysdef, selector04);
-    UP_ASSERT_EQUAL_UINT(tags05.getNumMembers(), 5);
+    CHECK_EQUAL_UINT(tags05.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags05.getIndexArray().getNumElements(), 5);
     CHECK_EQUAL_UINT(tags05.getMemberTag(0), 0);
     CHECK_EQUAL_UINT(tags05.getMemberTag(1), 1);
@@ -332,7 +333,7 @@ UP_TEST( ParticleGroup_tag_test )
     // create a group of tags 5-9 and check it
     std::shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
     ParticleGroup tags59(sysdef, selector59);
-    UP_ASSERT_EQUAL_UINT(tags59.getNumMembers(), 5);
+    CHECK_EQUAL_UINT(tags59.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags59.getIndexArray().getNumElements(), 5);
     CHECK_EQUAL_UINT(tags59.getMemberTag(0), 5);
     CHECK_EQUAL_UINT(tags59.getMemberTag(1), 6);
@@ -352,7 +353,7 @@ UP_TEST( ParticleGroup_cuboid_test )
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 0.5,  0.5,  0.5)));
     ParticleGroup tags0(sysdef, selector0);
-    UP_ASSERT_EQUAL_UINT(tags0.getNumMembers(), 1);
+    CHECK_EQUAL_UINT(tags0.getNumMembers(), 1);
     CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
     CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
 
@@ -361,7 +362,7 @@ UP_TEST( ParticleGroup_cuboid_test )
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags1(sysdef, selector1);
-    UP_ASSERT_EQUAL_UINT(tags1.getNumMembers(), 2);
+    CHECK_EQUAL_UINT(tags1.getNumMembers(), 2);
     CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(tags1.getMemberTag(0), 0);
     CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
@@ -371,7 +372,7 @@ UP_TEST( ParticleGroup_cuboid_test )
                                                                       make_scalar3(-1.5, -2.5, -3.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags2(sysdef, selector2);
-    UP_ASSERT_EQUAL_UINT(tags2.getNumMembers(), 3);
+    CHECK_EQUAL_UINT(tags2.getNumMembers(), 3);
     CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
     CHECK_EQUAL_UINT(tags2.getMemberTag(0), 0);
     CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
@@ -394,7 +395,7 @@ UP_TEST( ParticleGroup_boolean_tests)
 
     // make a union of the two groups and check it
     std::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
-    UP_ASSERT_EQUAL_UINT(union_group->getNumMembers(), 7);
+    CHECK_EQUAL_UINT(union_group->getNumMembers(), 7);
     CHECK_EQUAL_UINT(union_group->getIndexArray().getNumElements(), 7);
     CHECK_EQUAL_UINT(union_group->getMemberTag(0), 0);
     CHECK_EQUAL_UINT(union_group->getMemberTag(1), 1);
@@ -406,7 +407,7 @@ UP_TEST( ParticleGroup_boolean_tests)
 
     // make a intersection group and test it
     std::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
-    UP_ASSERT_EQUAL_UINT(intersection_group->getNumMembers(), 2);
+    CHECK_EQUAL_UINT(intersection_group->getNumMembers(), 2);
     CHECK_EQUAL_UINT(intersection_group->getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(intersection_group->getMemberTag(0), 0);
     CHECK_EQUAL_UINT(intersection_group->getMemberTag(1), 2);

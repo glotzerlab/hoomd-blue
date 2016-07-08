@@ -5,8 +5,6 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-//! label the boost test module
-UP_TEST(GridshiftCorrectionTests)
 #include "upp11_config.h"
 
 #include "hoomd/HOOMDMath.h"
@@ -17,7 +15,7 @@ UP_TEST(GridshiftCorrectionTests)
 #include <math.h>
 #include <memory>
 
-
+UP_MAIN();
 /*! \file test_gridshift_correct.cc
     \brief Unit tests for the ParticleData class in response to origin shifts
     \ingroup unit_tests

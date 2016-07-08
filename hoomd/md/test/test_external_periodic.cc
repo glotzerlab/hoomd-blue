@@ -26,9 +26,12 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(PotentialExternalPeriodicTests)
 #include "hoomd/test/upp11_config.h"
+
+UP_MAIN();
+
+
+
 
 //! Typedef'd LJForceCompute factory
 typedef boost::function<std::shared_ptr<PotentialExternalPeriodic> (std::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;

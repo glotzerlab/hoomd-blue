@@ -21,6 +21,7 @@ using namespace boost;
 using namespace std;
 
 #include "hoomd/test/upp11_config.h"
+UP_MAIN();
 
 //! Name the unit test module
 // UP_TEST(XMLReaderWriterTest)

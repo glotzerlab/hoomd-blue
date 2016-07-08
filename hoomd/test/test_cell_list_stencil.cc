@@ -16,14 +16,14 @@ using namespace std;
 #include <memory>
 using namespace boost;
 
+#include "upp11_config.h"
+
 /*! \file test_cell_list_stencil.cc
     \brief Implements unit tests for CellListStencil
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(CellListStencilTests)
-#include "upp11_config.h"
+UP_MAIN();
 
 //! Test the cell list stencil as cell list, stencil radius, and box sizes change
 template <class CL>

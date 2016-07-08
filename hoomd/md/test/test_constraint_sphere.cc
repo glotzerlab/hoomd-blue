@@ -28,9 +28,10 @@ using namespace boost;
     \ingroup unit_tests
 */
 
+#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 //! name the boost unit test module
 UP_TEST(ConstraintSphereTests)
-#include "hoomd/test/upp11_config.h"
 
 //! Typedef'd class factory
 typedef boost::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,

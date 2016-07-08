@@ -20,9 +20,10 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-UP_TEST(MessengerTests)
+
 #include "upp11_config.h"
+UP_MAIN();
+
 
 UP_TEST( Messenger_basic )
     {
