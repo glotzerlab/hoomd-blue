@@ -13,7 +13,7 @@
 
 //! Name the unit test module
 UP_TEST(HelloWorld)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 
 int main(int argc, char** argv)

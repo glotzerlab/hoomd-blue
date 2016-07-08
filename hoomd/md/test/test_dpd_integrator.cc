@@ -36,7 +36,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairDPDThermo)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 
 template <class PP_DPD>

@@ -8,7 +8,7 @@
 UP_TEST(CommunicationTests)
 
 // this has to be included after naming the test module
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 #include "hoomd/System.h"
 

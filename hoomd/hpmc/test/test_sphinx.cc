@@ -6,7 +6,7 @@
 
 //! Name the unit test module
 UP_TEST(ShapeSphinx)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 #include "hoomd/hpmc/ShapeSphinx.h"
 

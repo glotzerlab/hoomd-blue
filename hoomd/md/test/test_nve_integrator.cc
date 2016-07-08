@@ -38,7 +38,7 @@ using namespace boost;
 
 //! name the boost unit test module
 UP_TEST(NVEUpdaterTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,

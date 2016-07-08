@@ -30,7 +30,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairGaussTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Typedef'd PotentialPairGauss factory
 typedef boost::function<std::shared_ptr<PotentialPairGauss> (std::shared_ptr<SystemDefinition> sysdef,

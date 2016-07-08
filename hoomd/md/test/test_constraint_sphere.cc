@@ -30,7 +30,7 @@ using namespace boost;
 
 //! name the boost unit test module
 UP_TEST(ConstraintSphereTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Typedef'd class factory
 typedef boost::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,

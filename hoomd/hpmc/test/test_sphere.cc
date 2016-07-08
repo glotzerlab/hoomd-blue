@@ -6,7 +6,7 @@
 
 //! Name the unit test module
 UP_TEST(ShapeSphere)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 #include "hoomd/hpmc/ShapeSphere.h"
 

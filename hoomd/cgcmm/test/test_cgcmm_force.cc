@@ -31,7 +31,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(CGCMMForceTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Typedef'd CGCMMForceCompute factory
 typedef boost::function<std::shared_ptr<CGCMMForceCompute> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;

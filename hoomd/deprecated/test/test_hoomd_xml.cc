@@ -20,9 +20,10 @@ using namespace boost;
 #include <fstream>
 using namespace std;
 
+#include "hoomd/test/upp11_config.h"
+
 //! Name the unit test module
-UP_TEST(XMLReaderWriterTest)
-#include "../../test/upp11_config.h"
+// UP_TEST(XMLReaderWriterTest)
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader
@@ -1612,5 +1613,3 @@ im_b 5 4 3 2\n\
     // clean up after ourselves
     unlink((tmp_path+"/test_input.xml").c_str());
     }
-
-

@@ -21,6 +21,8 @@
 
 #include <math.h>
 
+#include "upp11_config.h"
+
 using namespace std;
 using namespace boost;
 
@@ -31,7 +33,6 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(CellListTests)
-#include "upp11_config.h"
 
 //! Test the ability of CellList to initialize dimensions
 template <class CL>

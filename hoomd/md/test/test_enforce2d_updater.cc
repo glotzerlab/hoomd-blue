@@ -32,7 +32,7 @@ using namespace boost;
 
 //! label the boost test module
 UP_TEST(Enforce2DUpdaterTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 /*! \file enforce2d_updater_test.cc
     \brief Unit tests for the Enforce2DUpdater class

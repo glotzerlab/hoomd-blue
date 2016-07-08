@@ -23,7 +23,7 @@ using namespace boost;
 
 //! label the boost test module
 UP_TEST(TempRescaleUpdaterTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 
 /*! \file temp_rescale_updater_test.cc

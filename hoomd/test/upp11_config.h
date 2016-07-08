@@ -11,8 +11,8 @@
 */
 
 #include "hoomd/HOOMDMath.h"
-##include <cmath>
-#include "../extern/upp11/upp11.h"
+#include <cmath>
+#include "hoomd/extern/upp11/upp11.h"
 
 // ******** helper macros
 #define CHECK_CLOSE(a,b,c) UPP_ASSERT(abs(a-b) < c)

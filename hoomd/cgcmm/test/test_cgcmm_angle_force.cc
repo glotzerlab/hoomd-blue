@@ -27,7 +27,7 @@ using namespace boost;
 
 //! Name the boost unit test module
 UP_TEST(CGCMMAngleForceTests)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<CGCMMAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> cgcmm_angleforce_creator;
@@ -401,5 +401,3 @@ UP_TEST( CGCMMAngleForceComputeGPU_compare )
     }
 
 #endif
-
-

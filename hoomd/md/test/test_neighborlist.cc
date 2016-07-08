@@ -30,7 +30,7 @@ using namespace boost;
 
 //! Define the name of the boost test module
 UP_TEST(NeighborListTest)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 //! Performs basic functionality tests on a neighbor list
 template <class NL>

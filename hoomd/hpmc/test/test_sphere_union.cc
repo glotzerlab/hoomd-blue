@@ -3,7 +3,7 @@
 
 //! Name the unit test module
 UP_TEST(ShapeSphereUnion)
-#include "../../test/upp11_config.h"
+#include "hoomd/test/upp11_config.h"
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"
