@@ -91,7 +91,7 @@ UP_TEST( construction )
     MY_CHECK_CLOSE(a.members.mpos[0].x, x_i, tol);
     MY_CHECK_CLOSE(a.members.mpos[1].x, x_j, tol);
 
-    UPP_ASSERT(a.hasOrientation());
+    UP_ASSERT(a.hasOrientation());
 
     MY_CHECK_CLOSE(a.getCircumsphereDiameter(), R*2, tol);
     }
@@ -137,11 +137,11 @@ UP_TEST( non_overlap )
     // trivial orientation
     r_a = vec3<Scalar>(0,0,0);
     r_b = vec3<Scalar>(1.01, 0, 0);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 0.51, 0);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
 
     // rotate vertical: pi/2 about y axis
     Scalar alpha = M_PI/2.0;
@@ -150,23 +150,23 @@ UP_TEST( non_overlap )
     a.orientation = o_a;
     b.orientation = o_b;
     r_b = vec3<Scalar>(0.51, 0, 0);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 1.01, 0);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
 
     // 'a' x-axis aligned, 'b' z-axis aligned
     a.orientation = quat<Scalar>();
     r_b = vec3<Scalar>(0.75, 0, 0);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 0, 0.75);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0.76, 0, 0.25);
-    UPP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(!test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(!test_overlap(r_a - r_b, b, a, err_count));
     }
 
 UP_TEST( overlapping_dumbbells )
@@ -210,11 +210,11 @@ UP_TEST( overlapping_dumbbells )
     // trivial orientation
     r_a = vec3<Scalar>(0,0,0);
     r_b = vec3<Scalar>(0.99, 0, 0);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 0.49, 0);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
 
     // rotate vertical: pi/2 about y axis
     Scalar alpha = M_PI/2.0;
@@ -223,21 +223,21 @@ UP_TEST( overlapping_dumbbells )
     a.orientation = o_a;
     b.orientation = o_b;
     r_b = vec3<Scalar>(0.49, 0, 0);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 0, 0.99);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
 
     // 'a' x-axis aligned, 'b' z-axis aligned
     a.orientation = quat<Scalar>();
     r_b = vec3<Scalar>(0.68, 0, 0);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0, 0, 0.68);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
     r_b = vec3<Scalar>(0.74, 0, 0.25);
-    UPP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
-    UPP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
+    UP_ASSERT(test_overlap(r_b - r_a, a, b, err_count));
+    UP_ASSERT(test_overlap(r_a - r_b, b, a, err_count));
     }

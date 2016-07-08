@@ -51,9 +51,9 @@ UP_TEST( BoxDim_basic_test )
     MY_CHECK_CLOSE(b.getL().x,10.0, tol);
     MY_CHECK_CLOSE(b.getL().y,10.0, tol);
     MY_CHECK_CLOSE(b.getL().z,10.0, tol);
-    UPP_ASSERT_EQUAL(b.getPeriodic().x, 1);
-    UPP_ASSERT_EQUAL(b.getPeriodic().y, 1);
-    UPP_ASSERT_EQUAL(b.getPeriodic().z, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().z, 1);
 
     BoxDim c(10.0, 30.0, 50.0);
     MY_CHECK_CLOSE(c.getLo().x,-5.0, tol);
@@ -65,9 +65,9 @@ UP_TEST( BoxDim_basic_test )
     MY_CHECK_CLOSE(c.getL().x,10.0, tol);
     MY_CHECK_CLOSE(c.getL().y,30.0, tol);
     MY_CHECK_CLOSE(c.getL().z,50.0, tol);
-    UPP_ASSERT_EQUAL(c.getPeriodic().x, 1);
-    UPP_ASSERT_EQUAL(c.getPeriodic().y, 1);
-    UPP_ASSERT_EQUAL(c.getPeriodic().z, 1);
+    UP_ASSERT_EQUAL(c.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(c.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(c.getPeriodic().z, 1);
 
     // test for assignment and copy constructor
     c.setPeriodic(make_uchar3(1,0,1));
@@ -81,9 +81,9 @@ UP_TEST( BoxDim_basic_test )
     MY_CHECK_CLOSE(d.getL().x,10.0, tol);
     MY_CHECK_CLOSE(d.getL().y,30.0, tol);
     MY_CHECK_CLOSE(d.getL().z,50.0, tol);
-    UPP_ASSERT_EQUAL(d.getPeriodic().x, 1);
-    UPP_ASSERT_EQUAL(d.getPeriodic().y, 0);
-    UPP_ASSERT_EQUAL(d.getPeriodic().z, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(d.getPeriodic().z, 1);
 
     BoxDim e;
     e = c;
@@ -96,9 +96,9 @@ UP_TEST( BoxDim_basic_test )
     MY_CHECK_CLOSE(e.getL().x,10.0, tol);
     MY_CHECK_CLOSE(e.getL().y,30.0, tol);
     MY_CHECK_CLOSE(e.getL().z,50.0, tol);
-    UPP_ASSERT_EQUAL(d.getPeriodic().x, 1);
-    UPP_ASSERT_EQUAL(d.getPeriodic().y, 0);
-    UPP_ASSERT_EQUAL(d.getPeriodic().z, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(d.getPeriodic().z, 1);
 
     b = b;
     MY_CHECK_CLOSE(b.getLo().x,-5.0, tol);
@@ -110,9 +110,9 @@ UP_TEST( BoxDim_basic_test )
     MY_CHECK_CLOSE(b.getL().x,10.0, tol);
     MY_CHECK_CLOSE(b.getL().y,10.0, tol);
     MY_CHECK_CLOSE(b.getL().z,10.0, tol);
-    UPP_ASSERT_EQUAL(b.getPeriodic().x, 1);
-    UPP_ASSERT_EQUAL(b.getPeriodic().y, 1);
-    UPP_ASSERT_EQUAL(b.getPeriodic().z, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().z, 1);
     }
 
 UP_TEST( BoxDim_functionality_test1 )
@@ -180,9 +180,9 @@ UP_TEST( BoxDim_functionality_test1 )
     MY_CHECK_CLOSE(v.x,1.0, tol);
     MY_CHECK_CLOSE(v.y,-2.0, tol);
     MY_CHECK_CLOSE(v.z,3.0, tol);
-    UPP_ASSERT_EQUAL(image.x, 10);
-    UPP_ASSERT_EQUAL(image.y, 20);
-    UPP_ASSERT_EQUAL(image.z, 30);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     image = make_int3(10,20,30);
     v = make_scalar3(6.0, -7.0, 8.0);
@@ -190,9 +190,9 @@ UP_TEST( BoxDim_functionality_test1 )
     MY_CHECK_CLOSE(v.x,-4.0, tol);
     MY_CHECK_CLOSE(v.y,3.0, tol);
     MY_CHECK_CLOSE(v.z,-2.0, tol);
-    UPP_ASSERT_EQUAL(image.x, 11);
-    UPP_ASSERT_EQUAL(image.y, 19);
-    UPP_ASSERT_EQUAL(image.z, 31);
+    UP_ASSERT_EQUAL(image.x, 11);
+    UP_ASSERT_EQUAL(image.y, 19);
+    UP_ASSERT_EQUAL(image.z, 31);
 
     b.setPeriodic(make_uchar3(1,0,0));
     image = make_int3(10,20,30);
@@ -201,9 +201,9 @@ UP_TEST( BoxDim_functionality_test1 )
     MY_CHECK_CLOSE(v.x,-4.0, tol);
     MY_CHECK_CLOSE(v.y,-7.0, tol);
     MY_CHECK_CLOSE(v.z,8.0, tol);
-    UPP_ASSERT_EQUAL(image.x, 11);
-    UPP_ASSERT_EQUAL(image.y, 20);
-    UPP_ASSERT_EQUAL(image.z, 30);
+    UP_ASSERT_EQUAL(image.x, 11);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     b.setPeriodic(make_uchar3(0,1,0));
     image = make_int3(10,20,30);
@@ -212,9 +212,9 @@ UP_TEST( BoxDim_functionality_test1 )
     MY_CHECK_CLOSE(v.x,6.0, tol);
     MY_CHECK_CLOSE(v.y,3.0, tol);
     MY_CHECK_CLOSE(v.z,8.0, tol);
-    UPP_ASSERT_EQUAL(image.x, 10);
-    UPP_ASSERT_EQUAL(image.y, 19);
-    UPP_ASSERT_EQUAL(image.z, 30);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 19);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     b.setPeriodic(make_uchar3(0,0,1));
     image = make_int3(10,20,30);
@@ -223,9 +223,9 @@ UP_TEST( BoxDim_functionality_test1 )
     MY_CHECK_CLOSE(v.x,6.0, tol);
     MY_CHECK_CLOSE(v.y,-7.0, tol);
     MY_CHECK_CLOSE(v.z,-2.0, tol);
-    UPP_ASSERT_EQUAL(image.x, 10);
-    UPP_ASSERT_EQUAL(image.y, 20);
-    UPP_ASSERT_EQUAL(image.z, 31);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 31);
     }
 
 UP_TEST( BoxDim_triclinic_test )
@@ -353,9 +353,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.x, -1.0 ,tol);
     MY_CHECK_CLOSE(pos.y, -2.5,tol);
     MY_CHECK_CLOSE(pos.z, -2.4,tol);
-    UPP_ASSERT_EQUAL(img.x, 0);
-    UPP_ASSERT_EQUAL(img.y, 0);
-    UPP_ASSERT_EQUAL(img.z, 1);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 1);
 
     pos = make_scalar3(-1.0,-2.0,-2.6);
     img = make_int3(0,0,0);
@@ -364,9 +364,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.x, 1.0 ,tol);
     MY_CHECK_CLOSE(pos.y, 2.5,tol);
     MY_CHECK_CLOSE(pos.z, 2.4,tol);
-    UPP_ASSERT_EQUAL(img.x, 0);
-    UPP_ASSERT_EQUAL(img.y, 0);
-    UPP_ASSERT_EQUAL(img.z, -1);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, -1);
 
     // along y direction
     pos = make_scalar3(1.0,4.0,1.5);
@@ -377,9 +377,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.y, -1.0,tol);
     MY_CHECK_CLOSE(pos.z, 1.5,tol);
 
-    UPP_ASSERT_EQUAL(img.x, 0);
-    UPP_ASSERT_EQUAL(img.y, 1);
-    UPP_ASSERT_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 1);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-1.0,-4.0,-1.5);
     img = make_int3(0,0,0);
@@ -389,9 +389,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.y, 1.0, tol);
     MY_CHECK_CLOSE(pos.z, -1.5, tol);
 
-    UPP_ASSERT_EQUAL(img.x, 0);
-    UPP_ASSERT_EQUAL(img.y, -1);
-    UPP_ASSERT_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, -1);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     // along x direction
     pos = make_scalar3(4.2,1.5, 1.0);
@@ -402,9 +402,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.y, 1.5, tol);
     MY_CHECK_CLOSE(pos.z, 1.0, tol);
 
-    UPP_ASSERT_EQUAL(img.x, 1);
-    UPP_ASSERT_EQUAL(img.y, 0);
-    UPP_ASSERT_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 1);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-5.0,-1.5, 1.0);
     img = make_int3(0,0,0);
@@ -414,9 +414,9 @@ UP_TEST( BoxDim_triclinic_test )
     MY_CHECK_CLOSE(pos.y, -1.5, tol);
     MY_CHECK_CLOSE(pos.z, 1.0, tol);
 
-    UPP_ASSERT_EQUAL(img.x, -1);
-    UPP_ASSERT_EQUAL(img.y, 0);
-    UPP_ASSERT_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, -1);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 0);
     }
 
 //! Test operation of the particle data class
@@ -447,7 +447,7 @@ UP_TEST( ParticleData_test )
     MY_CHECK_CLOSE(d.getHi().z,2.5, tol);
 
     // make sure that getN is working
-    UPP_ASSERT(a.getN() == 1);
+    UP_ASSERT(a.getN() == 1);
 
     // Test the ability to acquire data
     {
@@ -462,15 +462,15 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::readwrite);
 
     // begin by verifying that the defaults the class adversizes are set
-    UPP_ASSERT(a.getPositions().getNumElements() == 1);
-    UPP_ASSERT(a.getVelocities().getNumElements() == 1);
-    UPP_ASSERT(a.getAccelerations().getNumElements() == 1);
-    UPP_ASSERT(a.getImages().getNumElements() == 1);
-    UPP_ASSERT(a.getCharges().getNumElements() == 1);
-    UPP_ASSERT(a.getDiameters().getNumElements() == 1);
-    UPP_ASSERT(a.getTags().getNumElements() == 1);
-    UPP_ASSERT(a.getRTags().getNumElements() == 1);
-    UPP_ASSERT(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getPositions().getNumElements() == 1);
+    UP_ASSERT(a.getVelocities().getNumElements() == 1);
+    UP_ASSERT(a.getAccelerations().getNumElements() == 1);
+    UP_ASSERT(a.getImages().getNumElements() == 1);
+    UP_ASSERT(a.getCharges().getNumElements() == 1);
+    UP_ASSERT(a.getDiameters().getNumElements() == 1);
+    UP_ASSERT(a.getTags().getNumElements() == 1);
+    UP_ASSERT(a.getRTags().getNumElements() == 1);
+    UP_ASSERT(a.getBodies().getNumElements() == 1);
 
 
     MY_CHECK_CLOSE(h_pos.data[0].x, 0.0, tol);
@@ -485,13 +485,13 @@ UP_TEST( ParticleData_test )
     MY_CHECK_CLOSE(h_charge.data[0], 0.0, tol);
     MY_CHECK_CLOSE(h_vel.data[0].w, 1.0, tol); // mass
     MY_CHECK_CLOSE(h_diameter.data[0], 1.0, tol);
-    UPP_ASSERT_EQUAL(h_image.data[0].x, 0);
-    UPP_ASSERT_EQUAL(h_image.data[0].y, 0);
-    UPP_ASSERT_EQUAL(h_image.data[0].z, 0);
-    UPP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 0); //type
-    UPP_ASSERT(h_rtag.data[0] == 0);
-    UPP_ASSERT(h_tag.data[0] == 0);
-    UPP_ASSERT(h_body.data[0] == NO_BODY);
+    UP_ASSERT_EQUAL(h_image.data[0].x, 0);
+    UP_ASSERT_EQUAL(h_image.data[0].y, 0);
+    UP_ASSERT_EQUAL(h_image.data[0].z, 0);
+    UP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 0); //type
+    UP_ASSERT(h_rtag.data[0] == 0);
+    UP_ASSERT(h_tag.data[0] == 0);
+    UP_ASSERT(h_body.data[0] == NO_BODY);
 
     // set some new values for testing
     h_pos.data[0].x = 1.0;
@@ -526,15 +526,15 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::read);
 
-    UPP_ASSERT(a.getPositions().getNumElements() == 1);
-    UPP_ASSERT(a.getVelocities().getNumElements() == 1);
-    UPP_ASSERT(a.getAccelerations().getNumElements() == 1);
-    UPP_ASSERT(a.getImages().getNumElements() == 1);
-    UPP_ASSERT(a.getCharges().getNumElements() == 1);
-    UPP_ASSERT(a.getDiameters().getNumElements() == 1);
-    UPP_ASSERT(a.getTags().getNumElements() == 1);
-    UPP_ASSERT(a.getRTags().getNumElements() == 1);
-    UPP_ASSERT(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getPositions().getNumElements() == 1);
+    UP_ASSERT(a.getVelocities().getNumElements() == 1);
+    UP_ASSERT(a.getAccelerations().getNumElements() == 1);
+    UP_ASSERT(a.getImages().getNumElements() == 1);
+    UP_ASSERT(a.getCharges().getNumElements() == 1);
+    UP_ASSERT(a.getDiameters().getNumElements() == 1);
+    UP_ASSERT(a.getTags().getNumElements() == 1);
+    UP_ASSERT(a.getRTags().getNumElements() == 1);
+    UP_ASSERT(a.getBodies().getNumElements() == 1);
 
     MY_CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
     MY_CHECK_CLOSE(h_pos.data[0].y, 2.0, tol);
@@ -548,13 +548,13 @@ UP_TEST( ParticleData_test )
     MY_CHECK_CLOSE(h_charge.data[0],24.0, tol);
     MY_CHECK_CLOSE(h_vel.data[0].w,25.0, tol); // mass
     MY_CHECK_CLOSE(h_diameter.data[0],26.0, tol);
-    UPP_ASSERT_EQUAL(h_image.data[0].x,27);
-    UPP_ASSERT_EQUAL(h_image.data[0].y,28);
-    UPP_ASSERT_EQUAL(h_image.data[0].z,29);
-    UPP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 1); //type
-    UPP_ASSERT(h_rtag.data[0] == 0);
-    UPP_ASSERT(h_tag.data[0] == 0);
-    UPP_ASSERT(h_body.data[0] == 0);
+    UP_ASSERT_EQUAL(h_image.data[0].x,27);
+    UP_ASSERT_EQUAL(h_image.data[0].y,28);
+    UP_ASSERT_EQUAL(h_image.data[0].z,29);
+    UP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 1); //type
+    UP_ASSERT(h_rtag.data[0] == 0);
+    UP_ASSERT(h_tag.data[0] == 0);
+    UP_ASSERT(h_body.data[0] == 0);
 
     }
     // finally, lets check a larger ParticleData for correctness of the initialization
@@ -572,15 +572,15 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_body(b.getBodies(), access_location::host, access_mode::read);
 
     // begin by verifying that the defaults the class adversizes are set
-    UPP_ASSERT(b.getPositions().getNumElements() == N);
-    UPP_ASSERT(b.getVelocities().getNumElements() == N);
-    UPP_ASSERT(b.getAccelerations().getNumElements() == N);
-    UPP_ASSERT(b.getImages().getNumElements() == N);
-    UPP_ASSERT(b.getCharges().getNumElements() == N);
-    UPP_ASSERT(b.getDiameters().getNumElements() == N);
-    UPP_ASSERT(b.getTags().getNumElements() == N);
-    UPP_ASSERT(b.getRTags().getNumElements() == N);
-    UPP_ASSERT(b.getBodies().getNumElements() == N);
+    UP_ASSERT(b.getPositions().getNumElements() == N);
+    UP_ASSERT(b.getVelocities().getNumElements() == N);
+    UP_ASSERT(b.getAccelerations().getNumElements() == N);
+    UP_ASSERT(b.getImages().getNumElements() == N);
+    UP_ASSERT(b.getCharges().getNumElements() == N);
+    UP_ASSERT(b.getDiameters().getNumElements() == N);
+    UP_ASSERT(b.getTags().getNumElements() == N);
+    UP_ASSERT(b.getRTags().getNumElements() == N);
+    UP_ASSERT(b.getBodies().getNumElements() == N);
 
 
     for (unsigned int i = 0; i < N; i++)
@@ -597,13 +597,13 @@ UP_TEST( ParticleData_test )
         MY_CHECK_CLOSE(h_charge.data[i], 0.0, tol);
         MY_CHECK_CLOSE(h_vel.data[i].w, 1.0, tol); // mass
         MY_CHECK_CLOSE(h_diameter.data[i], 1.0, tol);
-        UPP_ASSERT_EQUAL(h_image.data[i].x, 0);
-        UPP_ASSERT_EQUAL(h_image.data[i].y, 0);
-        UPP_ASSERT_EQUAL(h_image.data[i].z, 0);
-        UPP_ASSERT(__scalar_as_int(h_pos.data[i].w) == 0); //type
-        UPP_ASSERT(h_rtag.data[i] == i);
-        UPP_ASSERT(h_tag.data[i] == i);
-        UPP_ASSERT(h_body.data[i] == NO_BODY);
+        UP_ASSERT_EQUAL(h_image.data[i].x, 0);
+        UP_ASSERT_EQUAL(h_image.data[i].y, 0);
+        UP_ASSERT_EQUAL(h_image.data[i].z, 0);
+        UP_ASSERT(__scalar_as_int(h_pos.data[i].w) == 0); //type
+        UP_ASSERT(h_rtag.data[i] == i);
+        UP_ASSERT(h_tag.data[i] == i);
+        UP_ASSERT(h_body.data[i] == NO_BODY);
         }
 
     }
@@ -611,11 +611,11 @@ UP_TEST( ParticleData_test )
     // check that new types can be added
     ParticleData pdata_type_test(123, box, 1, exec_conf);
 
-    UPP_ASSERT(pdata_type_test.getNTypes()==1);
-    UPP_ASSERT(pdata_type_test.addType("test")==1);
-    UPP_ASSERT(pdata_type_test.getNTypes()==2);
-    UPP_ASSERT(pdata_type_test.getNameByType(1) == "test");
-    UPP_ASSERT(pdata_type_test.getTypeByName("test") == 1);
+    UP_ASSERT(pdata_type_test.getNTypes()==1);
+    UP_ASSERT(pdata_type_test.addType("test")==1);
+    UP_ASSERT(pdata_type_test.getNTypes()==2);
+    UP_ASSERT(pdata_type_test.getNameByType(1) == "test");
+    UP_ASSERT(pdata_type_test.getTypeByName("test") == 1);
     }
 
 //! Tests the RandomParticleInitializer class
@@ -628,8 +628,8 @@ UP_TEST( Random_test )
     std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
 
-    UPP_ASSERT_EQUAL(pdata.getNameByType(0), "ABC");
-    UPP_ASSERT_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
+    UP_ASSERT_EQUAL(pdata.getNameByType(0), "ABC");
+    UP_ASSERT_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
 
     {
     ArrayHandle<Scalar4> h_pos(pdata.getPositions(), access_location::host, access_mode::read);
@@ -639,9 +639,9 @@ UP_TEST( Random_test )
     Scalar L = box.getL().x;
     for (unsigned int i = 0; i < pdata.getN(); i++)
         {
-        UPP_ASSERT(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
-        UPP_ASSERT(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
-        UPP_ASSERT(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
+        UP_ASSERT(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
+        UP_ASSERT(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
+        UP_ASSERT(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
 
         for (unsigned int j = 0; j < pdata.getN(); j++)
             {
@@ -668,7 +668,7 @@ UP_TEST( Random_test )
                 dz -= L;
 
             Scalar dr2 = dx*dx + dy*dy + dz*dz;
-            UPP_ASSERT(dr2 >= min_dist*min_dist);
+            UP_ASSERT(dr2 >= min_dist*min_dist);
             }
         }
 

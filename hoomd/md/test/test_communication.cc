@@ -54,7 +54,7 @@ void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -112,24 +112,24 @@ void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
     // check that every domain has exactly one particle
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle ended up in the domain to where it belongs
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // check that the positions have been transferred correctly
     Scalar3 pos = pdata->getPosition(0);
@@ -178,7 +178,7 @@ void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> 
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -258,24 +258,24 @@ void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> 
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UPP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
     // check that every domain has exactly one particle
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle ended up in the domain to where it belongs
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // check that the positions have been transferred correctly
     Scalar3 pos = pdata->getPosition(0);
@@ -372,7 +372,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
@@ -415,17 +415,17 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     comm->migrateParticles();
 
     // check that every domain has exactly one particle
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle stayed where it was
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.1,-0.5,-0.5)),false);
@@ -448,14 +448,14 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     comm->migrateParticles();
 
     // check that every particle has ended up in the right domain
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
 
     // check positions
     Scalar3 pos = pdata->getPosition(0);
@@ -534,40 +534,40 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         }
 
     // check that every particle has ended up in the right domain
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
 
     // check positions (taking into account that particles should have been wrapped)
     pos = pdata->getPosition(0);
@@ -626,7 +626,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
@@ -675,17 +675,17 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
     comm->migrateParticles();
 
     // check that every domain has exactly one particle
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle stayed where it was
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3( 0.51,-0.751,0.251)),false);
@@ -705,27 +705,27 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.51,-0.751,0.251)),false);
 
     // validate that placing the particle would send it to the ranks that we expect
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(0)), 1);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(1)), 2);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(2)), 3);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(3)), 4);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(4)), 5);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
-    UPP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(0)), 1);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(1)), 2);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(2)), 3);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(3)), 4);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(4)), 5);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
 
     // migrate atoms
     comm->migrateParticles();
 
     // check that every particle has ended up in the right domain
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
 
     // check positions
     Scalar3 pos = pdata->getPosition(0);
@@ -804,40 +804,40 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         }
 
     // check that every particle has ended up in the right domain
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
-    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
 
     // check positions (taking into account that particles should have been wrapped)
     pos = pdata->getPosition(0);
@@ -913,7 +913,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
@@ -978,33 +978,33 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 6);
+            UP_ASSERT_EQUAL(pdata->getN(), 6);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 4);
+            UP_ASSERT_EQUAL(pdata->getN(), 4);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -1024,48 +1024,48 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         switch (exec_conf->getRank())
             {
             case 0:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.05 + origin.x,tol);
                 CHECK_CLOSE(cmp.y, -0.5,tol);
                 CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
             case 1:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.02 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.5, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
@@ -1073,45 +1073,45 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
                 break;
             case 2:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 6);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 6);
 
                 rtag = h_global_rtag.data[9];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.05 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,  0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1119,31 +1119,31 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
                 break;
             case 3:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1151,24 +1151,24 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
                 break;
             case 4:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1176,17 +1176,17 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 5:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1194,24 +1194,24 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 6:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1219,17 +1219,17 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 7:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
@@ -1242,7 +1242,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // this should reset the number of ghost particles
     comm->migrateParticles();
 
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     //
     // check handling of periodic boundary conditions
@@ -1274,28 +1274,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 7);
+            UP_ASSERT_EQUAL(pdata->getN(), 7);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         }
 
@@ -1311,10 +1311,10 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         switch (exec_conf->getRank())
             {
             case 0:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -1.01, tol);
                 CHECK_CLOSE(cmp.y, -1.001, tol);
@@ -1322,31 +1322,31 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 1:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 CHECK_CLOSE(cmp.y, -0.95, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,  1.03, tol);
                 CHECK_CLOSE(cmp.y, -0.99, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.003, tol);
                 CHECK_CLOSE(cmp.y,-0.998, tol);
                 CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.04, tol);
                 CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
@@ -1354,7 +1354,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.99, tol);
                 CHECK_CLOSE(cmp.y,-1.001, tol);
@@ -1362,51 +1362,51 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 2:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 7);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 7);
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 CHECK_CLOSE(cmp.y,  1.05, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[9];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y,  1.04, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y,  -0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,-0.97, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.97, tol);
                 CHECK_CLOSE(cmp.y,  1.01, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.997, tol);
                 CHECK_CLOSE(cmp.y,  1.002, tol);
                 CHECK_CLOSE(cmp.z, -0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.96, tol);
                 CHECK_CLOSE(cmp.y, -0.005+origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -1.01, tol);
                 CHECK_CLOSE(cmp.y, 0.999, tol);
@@ -1414,38 +1414,38 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                break;
 
             case 3:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
                 CHECK_CLOSE(cmp.y,  1.05, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,  1.03, tol);
                 CHECK_CLOSE(cmp.y,  1.01, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.003, tol);
                 CHECK_CLOSE(cmp.y, 1.002, tol);
                 CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.04, tol);
                 CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
                 CHECK_CLOSE(cmp.z,-0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.99, tol);
                 CHECK_CLOSE(cmp.y, 0.999, tol);
@@ -1453,31 +1453,31 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 4:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,  1.03, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.997, tol);
                 CHECK_CLOSE(cmp.y,-0.998, tol);
                 CHECK_CLOSE(cmp.z, 1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.099, tol);
                 CHECK_CLOSE(cmp.y, -1.02, tol);
                 CHECK_CLOSE(cmp.z,  0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.01, tol);
                 CHECK_CLOSE(cmp.y,-1.001, tol);
@@ -1485,24 +1485,24 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 5:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,1.003, tol);
                 CHECK_CLOSE(cmp.y,-0.998, tol);
                 CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,0.901, tol);
                 CHECK_CLOSE(cmp.y,-1.02, tol);
                 CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,0.99, tol);
                 CHECK_CLOSE(cmp.y,-1.001, tol);
@@ -1510,31 +1510,31 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 6:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.5, tol);
                 CHECK_CLOSE(cmp.y,-0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,1.03, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.997, tol);
                 CHECK_CLOSE(cmp.y,1.002, tol);
                 CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.099, tol);
                 CHECK_CLOSE(cmp.y,0.98, tol);
                 CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.01, tol);
                 CHECK_CLOSE(cmp.y,0.999, tol);
@@ -1542,10 +1542,10 @@ void test_communicator_ghosts(communicator_creator comm_creator,
                 break;
 
             case 7:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,1.003, tol);
                 CHECK_CLOSE(cmp.y,1.002, tol);
@@ -1642,7 +1642,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             {
             case 0:
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -1.15, tol);
                 CHECK_CLOSE(cmp.y, -0.999, tol);
@@ -1651,28 +1651,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 1:
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.12, tol);
                 CHECK_CLOSE(cmp.y, -1.05, tol);
                 CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,  1.19, tol);
                 CHECK_CLOSE(cmp.y, -0.92, tol);
                 CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.98,  tol);
                 CHECK_CLOSE(cmp.y,-1.05, tol);
                 CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.11, tol);
                 CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
@@ -1680,7 +1680,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.85, tol);
                 CHECK_CLOSE(cmp.y,-0.999, tol);
@@ -1689,49 +1689,49 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 2:
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.12, tol);
                 CHECK_CLOSE(cmp.y,  0.95, tol);
                 CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[9];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.03+origin.x, tol);
                 CHECK_CLOSE(cmp.y,  0.91, tol);
                 CHECK_CLOSE(cmp.z, -0.3, tol);
 
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.11, tol);
                 CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,-1.02, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.81, tol);
                 CHECK_CLOSE(cmp.y,  1.08, tol);
                 CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -1.02, tol);
                 CHECK_CLOSE(cmp.y,  0.95, tol);
                 CHECK_CLOSE(cmp.z, -1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.89, tol);
                 CHECK_CLOSE(cmp.y,  0.005+origin.y, tol);
                 CHECK_CLOSE(cmp.z, -0.99, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -1.15, tol);
                 CHECK_CLOSE(cmp.y, 1.001, tol);
@@ -1740,35 +1740,35 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 3:
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -.12, tol);
                 CHECK_CLOSE(cmp.y, 0.95, tol);
                 CHECK_CLOSE(cmp.z,-0.6, tol);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,  1.19, tol);
                 CHECK_CLOSE(cmp.y,  1.08, tol);
                 CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.98, tol);
                 CHECK_CLOSE(cmp.y, 0.95, tol);
                 CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 1.11, tol);
                 CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
                 CHECK_CLOSE(cmp.z,-0.99, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.85, tol);
                 CHECK_CLOSE(cmp.y, 1.001, tol);
@@ -1777,28 +1777,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 4:
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.11, tol);
                 CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,  0.98, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.02, tol);
                 CHECK_CLOSE(cmp.y,-1.05, tol);
                 CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.877, tol);
                 CHECK_CLOSE(cmp.y,-0.879, tol);
                 CHECK_CLOSE(cmp.z,  0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.15, tol);
                 CHECK_CLOSE(cmp.y,-0.999, tol);
@@ -1807,21 +1807,21 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 5:
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,0.98, tol);
                 CHECK_CLOSE(cmp.y,-1.05, tol);
                 CHECK_CLOSE(cmp.z,0.900, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,1.123, tol);
                 CHECK_CLOSE(cmp.y,-0.879, tol);
                 CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,0.85, tol);
                 CHECK_CLOSE(cmp.y,-0.999, tol);
@@ -1830,28 +1830,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 6:
                 rtag = h_global_rtag.data[10];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.11, tol);
                 CHECK_CLOSE(cmp.y, 0.01+origin.y, tol);
                 CHECK_CLOSE(cmp.z,0.98, tol);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.02, tol);
                 CHECK_CLOSE(cmp.y, 0.95, tol);
                 CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-0.877, tol);
                 CHECK_CLOSE(cmp.y,1.121, tol);
                 CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,-1.15, tol);
                 CHECK_CLOSE(cmp.y,1.001, tol);
@@ -1860,7 +1860,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
             case 7:
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x,0.980, tol);
                 CHECK_CLOSE(cmp.y,0.950, tol);
@@ -1879,7 +1879,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -1946,24 +1946,24 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     bdata->initializeFromSnapshot(bdata_snap);
 
     // we should have one particle
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // and zero ghost particles
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
 
     // check global number of bonds
-    UPP_ASSERT_EQUAL(bdata->getNGlobal(), 12);
+    UP_ASSERT_EQUAL(bdata->getNGlobal(), 12);
 
     // every domain should have three bonds
-    UPP_ASSERT_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // exchange ghost particles
     comm->migrateParticles();
 
     // check that nothing has changed
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
-    UPP_ASSERT_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // now move particle 0 to box 1
     pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4),false);
@@ -1975,297 +1975,297 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
         {
         case 0:
             // box 0 should have zero particles and 0 bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 0);
-            UPP_ASSERT_EQUAL(bdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(bdata->getN(), 0);
 
                 {
                 // we should not own any bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should have two particles and 5 bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
-            UPP_ASSERT_EQUAL(bdata->getN(), 5);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(bdata->getN(), 5);
 
                 {
                 // we should own bonds 0-4
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[1] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[2] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[3] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[4] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[0]],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[0],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[1],1);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[0]],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[1],1);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
                 }
             break;
         case 2:
             // box 2 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[6] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
                 }
             break;
         case 3:
             // box 3 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
                 }
             break;
          case 4:
             // box 4 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[9] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
                 }
             break;
          case 5:
             // box 5 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
                 }
             break;
         case 6:
             // box 6 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         case 7:
             // box 7 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
 
-                UPP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
-                UPP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         }
@@ -2276,8 +2276,8 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     comm->migrateParticles();
 
     // check that old state has been restored
-    UPP_ASSERT_EQUAL(pdata->getN(), 1);
-    UPP_ASSERT_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // swap ptl 0 and 1
     pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4),false);
@@ -2288,49 +2288,49 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     switch(exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own three bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[4] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should own three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[1] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[2] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
@@ -2348,188 +2348,188 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     switch(exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should have three bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[4] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
 
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
                 }
             break;
         case 2:
             // box 2 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[6] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 3:
             // box 3 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 4:
             // box 4 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[9] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 5:
             // box 5 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 6:
             // box 6 should own three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[1] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[2] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
 
         case 7:
             // box 7 should have three bonds
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
-            UPP_ASSERT_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                UPP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[7] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                UPP_ASSERT(h_rtag.data[10] < bdata->getN());
-                UPP_ASSERT(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 }
             break;
@@ -2547,7 +2547,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -2618,7 +2618,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     bdata->initializeFromSnapshot(snap_bdata);
 
     // we should have zero ghost particles
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
 
     // migrate particles (to initialize bond rank table)
     comm->migrateParticles();
@@ -2632,7 +2632,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         ArrayHandle<unsigned int> h_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL(h_n_bonds.data[0],3);
+        UP_ASSERT_EQUAL(h_n_bonds.data[0],3);
         unsigned int pitch = bdata->getGPUTableIndexer().getW();
 
         unsigned int sorted_tags[3];
@@ -2649,44 +2649,44 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         switch (rank)
             {
             case 0:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 1);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 2);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 4);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 2);
+                UP_ASSERT_EQUAL(sorted_tags[2], 4);
                 break;
             case 1:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 0);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 3);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 5);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 3);
+                UP_ASSERT_EQUAL(sorted_tags[2], 5);
                 break;
             case 2:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 0);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 3);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 3);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             case 3:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 1);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 2);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 2);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 4:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 0);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 5);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 5);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             case 5:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 1);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 4);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 4);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 6:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 2);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 4);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 2);
+                UP_ASSERT_EQUAL(sorted_tags[1], 4);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 7:
-                UPP_ASSERT_EQUAL(sorted_tags[0], 3);
-                UPP_ASSERT_EQUAL(sorted_tags[1], 5);
-                UPP_ASSERT_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 3);
+                UP_ASSERT_EQUAL(sorted_tags[1], 5);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             }
         }
@@ -2816,7 +2816,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         if (! (step % 100)) exec_conf_1->msg->notice(1) << "Step " << step << std::endl;
 
         // both communicators should replicate the same number of ghosts
-        UPP_ASSERT_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
+        UP_ASSERT_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
 
             {
             ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
@@ -2834,7 +2834,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                     has_ghost_2 = true;
 
                 //  particle is either in both systems' ghost layers or in none
-                UPP_ASSERT((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
+                UP_ASSERT((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
 
                 if (has_ghost_1 && has_ghost_2)
                     {
@@ -2846,7 +2846,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                 }
             }
        // error out on first time step where test fails
-       UPP_ASSERT(!err);
+       UP_ASSERT(!err);
 
        nve_up_1->update(step);
        nve_up_2->update(step);
@@ -2862,7 +2862,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight + 1 one ptls (1 ptl in ghost layer)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
@@ -2918,33 +2918,33 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -2975,14 +2975,14 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
         switch (exec_conf->getRank())
             {
             case 0:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
 
             case 1:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol);
                 CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
                 CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
@@ -3006,7 +3006,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
             case 5:
             case 6:
             case 7:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }
@@ -3035,10 +3035,10 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
         switch (exec_conf->getRank())
             {
             case 1:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol);
                 CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
                 CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
@@ -3064,7 +3064,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
             case 5:
             case 6:
             case 7:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }
@@ -3114,7 +3114,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, std:
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // just create some system
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
@@ -3214,7 +3214,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    UPP_ASSERT_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with fourteen particles
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
@@ -3291,33 +3291,33 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
     switch (exec_conf->getRank())
         {
         case 0:
-            UPP_ASSERT_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 1:
-            UPP_ASSERT_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 2:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            UPP_ASSERT_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 5:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            UPP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    UPP_ASSERT_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -3337,10 +3337,10 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
         switch (exec_conf->getRank())
             {
             case 0:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[12];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.5,tol);
                 CHECK_CLOSE(cmp.y, -0.5,tol);
@@ -3348,46 +3348,46 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
 
                 break;
             case 1:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[8];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.02, tol);
                 CHECK_CLOSE(cmp.y, -0.5, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[9];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, -0.03, tol);
                 CHECK_CLOSE(cmp.y, -0.5, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
                 break;
             case 2:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 3:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[11];
-                UPP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
                 CHECK_CLOSE(cmp.x, 0.5, tol);
                 CHECK_CLOSE(cmp.y, -0.12, tol);
                 CHECK_CLOSE(cmp.z, -0.5, tol);
                 break;
             case 4:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 5:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 6:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 7:
-                UPP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }

@@ -237,17 +237,17 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, std::shared_ptr<
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(pdata_6->getImages(), access_location::host, access_mode::read);
     MY_CHECK_CLOSE(h_pos.data[0].x, 9.9, tol);
-    UPP_ASSERT_EQUAL(h_image.data[0].x, -1);
+    UP_ASSERT_EQUAL(h_image.data[0].x, -1);
     MY_CHECK_CLOSE(h_pos.data[1].x, -9.8, tol);
-    UPP_ASSERT_EQUAL(h_image.data[1].x, 1);
+    UP_ASSERT_EQUAL(h_image.data[1].x, 1);
     MY_CHECK_CLOSE(h_pos.data[2].y, 19.9, tol);
-    UPP_ASSERT_EQUAL(h_image.data[2].y, -1);
+    UP_ASSERT_EQUAL(h_image.data[2].y, -1);
     MY_CHECK_CLOSE(h_pos.data[3].y, -19.8, tol);
-    UPP_ASSERT_EQUAL(h_image.data[3].y, 1);
+    UP_ASSERT_EQUAL(h_image.data[3].y, 1);
     MY_CHECK_CLOSE(h_pos.data[4].z, 29.9, tol);
-    UPP_ASSERT_EQUAL(h_image.data[4].z, -1);
+    UP_ASSERT_EQUAL(h_image.data[4].z, -1);
     MY_CHECK_CLOSE(h_pos.data[5].z, -29.8, tol);
-    UPP_ASSERT_EQUAL(h_image.data[5].z, 1);
+    UP_ASSERT_EQUAL(h_image.data[5].z, 1);
     }
     }
 

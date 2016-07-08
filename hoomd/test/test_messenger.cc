@@ -29,17 +29,17 @@ UP_TEST( Messenger_basic )
     Messenger msg;
 
     // check that the default streams are set as documented
-    UPP_ASSERT_EQUAL(&(msg.error()), &cerr);
-    UPP_ASSERT_EQUAL(&(msg.warning()), &cerr);
-    UPP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)2);
-    UPP_ASSERT_EQUAL(&(msg.notice(0)), &cout);
-    UPP_ASSERT_EQUAL(&(msg.notice(1)), &cout);
-    UPP_ASSERT_EQUAL(&(msg.notice(2)), &cout);
-    UPP_ASSERT_EQUAL(&(msg.notice(3)), &(msg.getNullStream()));
+    UP_ASSERT_EQUAL(&(msg.error()), &cerr);
+    UP_ASSERT_EQUAL(&(msg.warning()), &cerr);
+    UP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)2);
+    UP_ASSERT_EQUAL(&(msg.notice(0)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(1)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(2)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(3)), &(msg.getNullStream()));
     cout << endl;
 
     msg.setNoticeLevel(10);
-    UPP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)10);
+    UP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)10);
     }
 
 
@@ -80,35 +80,35 @@ UP_TEST( Messenger_prefix )
 
     // check that set/get work on prefixes
     msg.setErrorPrefix("err");
-    UPP_ASSERT_EQUAL(msg.getErrorPrefix(), string("err"));
+    UP_ASSERT_EQUAL(msg.getErrorPrefix(), string("err"));
     msg.setWarningPrefix("warn");
-    UPP_ASSERT_EQUAL(msg.getWarningPrefix(), string("warn"));
+    UP_ASSERT_EQUAL(msg.getWarningPrefix(), string("warn"));
     msg.setNoticePrefix("note");
-    UPP_ASSERT_EQUAL(msg.getNoticePrefix(), string("note"));
+    UP_ASSERT_EQUAL(msg.getNoticePrefix(), string("note"));
 
     ostringstream strm;
     // check that the prefixes are used properly
     msg.setErrorStream(strm);
     msg.error() << "message";
-    UPP_ASSERT_EQUAL(strm.str(), string("err: message"));
+    UP_ASSERT_EQUAL(strm.str(), string("err: message"));
 
     strm.str("");
     msg.setWarningStream(strm);
     msg.warning() << "message";
-    UPP_ASSERT_EQUAL(strm.str(), string("warn: message"));
+    UP_ASSERT_EQUAL(strm.str(), string("warn: message"));
 
     strm.str("");
     msg.setNoticeStream(strm);
     msg.notice(1) << "message";
-    UPP_ASSERT_EQUAL(strm.str(), string("message"));
+    UP_ASSERT_EQUAL(strm.str(), string("message"));
 
     strm.str("");
     msg.setNoticeStream(strm);
     msg.notice(5) << "message";
-    UPP_ASSERT_EQUAL(strm.str(), string(""));
+    UP_ASSERT_EQUAL(strm.str(), string(""));
     msg.setNoticeLevel(5);
     msg.notice(5) << "message";
-    UPP_ASSERT_EQUAL(strm.str(), string("note(5): message"));
+    UP_ASSERT_EQUAL(strm.str(), string("note(5): message"));
 
     // try copying a messenger and make sure that it still works
     strm.str("");
@@ -119,7 +119,7 @@ UP_TEST( Messenger_prefix )
     msg2.notice(1) << "3" << endl;
     msg2.notice(5) << "4" << endl;
     msg2.notice(6) << "5" << endl;
-    UPP_ASSERT_EQUAL(strm.str(), string("err: 1\nwarn: 2\n3\nnote(5): 4\n"));
+    UP_ASSERT_EQUAL(strm.str(), string("err: 1\nwarn: 2\n3\nnote(5): 4\n"));
     }
 
 UP_TEST( Messenger_file )
@@ -148,27 +148,27 @@ UP_TEST( Messenger_file )
         }
 
     // make sure the file was created
-    UPP_ASSERT(filesystem::exists("test_messenger_output"));
+    UP_ASSERT(filesystem::exists("test_messenger_output"));
 
     // read in the file and make sure correct data was written
     ifstream f("test_messenger_output");
     string line;
 
     getline(f, line);
-    UPP_ASSERT_EQUAL(line, "err: Error 1");
-    UPP_ASSERT(!f.bad());
+    UP_ASSERT_EQUAL(line, "err: Error 1");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    UPP_ASSERT_EQUAL(line, "warn: Warning 2");
-    UPP_ASSERT(!f.bad());
+    UP_ASSERT_EQUAL(line, "warn: Warning 2");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    UPP_ASSERT_EQUAL(line, "Notice 3");
-    UPP_ASSERT(!f.bad());
+    UP_ASSERT_EQUAL(line, "Notice 3");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    UPP_ASSERT_EQUAL(line, "note(5): Notice 4");
-    UPP_ASSERT(!f.bad());
+    UP_ASSERT_EQUAL(line, "note(5): Notice 4");
+    UP_ASSERT(!f.bad());
     f.close();
 
     unlink("test_messenger_output");

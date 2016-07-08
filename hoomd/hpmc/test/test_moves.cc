@@ -45,10 +45,10 @@ UP_TEST( rand_rotate_3d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        UPP_ASSERT(fabs(delta.s) > 0);
-        UPP_ASSERT(fabs(delta.v.x) > 0);
-        UPP_ASSERT(fabs(delta.v.y) > 0);
-        UPP_ASSERT(fabs(delta.v.z) > 0);
+        UP_ASSERT(fabs(delta.s) > 0);
+        UP_ASSERT(fabs(delta.v.x) > 0);
+        UP_ASSERT(fabs(delta.v.y) > 0);
+        UP_ASSERT(fabs(delta.v.z) > 0);
 
         // check that it is a valid rotation
         MY_CHECK_CLOSE(norm2(a), 1, tol);
@@ -72,16 +72,16 @@ UP_TEST( rand_rotate_2d )
         // check that the angle coordinate moved and that the 0 components stayed 0
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        UPP_ASSERT(fabs(delta.s) > 0);
+        UP_ASSERT(fabs(delta.s) > 0);
         MY_CHECK_SMALL(o.v.x, tol_small);
         MY_CHECK_SMALL(o.v.y, tol_small);
-        UPP_ASSERT(fabs(delta.v.z) > 0);
+        UP_ASSERT(fabs(delta.v.z) > 0);
 
         // check that it is a valid rotation
         MY_CHECK_CLOSE(norm2(o), 1, tol);
 
         // check that the angle of the rotation is not too big
-        UPP_ASSERT( (acos(prev.s)*2.0 - acos(o.s)*2.0) <= a);
+        UP_ASSERT( (acos(prev.s)*2.0 - acos(o.s)*2.0) <= a);
         }
     }
 
@@ -102,12 +102,12 @@ UP_TEST( rand_translate_3d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        UPP_ASSERT(fabs(delta.x) > 0);
-        UPP_ASSERT(fabs(delta.y) > 0);
-        UPP_ASSERT(fabs(delta.z) > 0);
+        UP_ASSERT(fabs(delta.x) > 0);
+        UP_ASSERT(fabs(delta.y) > 0);
+        UP_ASSERT(fabs(delta.z) > 0);
 
         // check that the move distance is appropriate
-        UPP_ASSERT(sqrt(dot(delta,delta)) <= d);
+        UP_ASSERT(sqrt(dot(delta,delta)) <= d);
         }
     }
 
@@ -128,12 +128,12 @@ UP_TEST( rand_translate_2d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        UPP_ASSERT(fabs(delta.x) > 0);
-        UPP_ASSERT(fabs(delta.y) > 0);
-        UPP_ASSERT(delta.z == 0);
+        UP_ASSERT(fabs(delta.x) > 0);
+        UP_ASSERT(fabs(delta.y) > 0);
+        UP_ASSERT(delta.z == 0);
 
         // check that the move distance is appropriate
-        UPP_ASSERT(sqrt(dot(delta,delta)) <= d);
+        UP_ASSERT(sqrt(dot(delta,delta)) <= d);
         }
     }
 
@@ -195,7 +195,7 @@ void test_update_order(const unsigned int max)
         else
             {
             cout << "invalid count: " << o[0] << endl;
-            UPP_ASSERT(false);
+            UP_ASSERT(false);
             }
         }
 

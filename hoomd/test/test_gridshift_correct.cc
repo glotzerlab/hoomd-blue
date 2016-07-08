@@ -67,13 +67,13 @@ UP_TEST( ParticleDataGridShiftGetMethods )
     MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
 
     // compute a shift that will shift the image of the box
     Scalar3 shift_img = make_scalar3(10.5,10.125,10.75);
@@ -104,13 +104,13 @@ UP_TEST( ParticleDataGridShiftGetMethods )
     MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     pimg = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
     }
 
 UP_TEST( ParticleDataGridShiftSetMethods )
@@ -156,13 +156,13 @@ UP_TEST( ParticleDataGridShiftSetMethods )
     MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(1);
-    UPP_ASSERT_EQUAL(pimg.x, 0);
-    UPP_ASSERT_EQUAL(pimg.y, 0);
-    UPP_ASSERT_EQUAL(pimg.z, 0);
+    UP_ASSERT_EQUAL(pimg.x, 0);
+    UP_ASSERT_EQUAL(pimg.y, 0);
+    UP_ASSERT_EQUAL(pimg.z, 0);
 
 
     //OK, now we set the positions using the particle data proxy
@@ -188,12 +188,12 @@ UP_TEST( ParticleDataGridShiftSetMethods )
     pdata->setImage(1,new_img1);
 
     int3 ret_img0 = pdata->getImage(0);
-    UPP_ASSERT_EQUAL(ret_img0.x-new_img0.x, 0);
-    UPP_ASSERT_EQUAL(ret_img0.y-new_img0.y, 0);
-    UPP_ASSERT_EQUAL(ret_img0.z-new_img0.z, 0);
+    UP_ASSERT_EQUAL(ret_img0.x-new_img0.x, 0);
+    UP_ASSERT_EQUAL(ret_img0.y-new_img0.y, 0);
+    UP_ASSERT_EQUAL(ret_img0.z-new_img0.z, 0);
 
     int3 ret_img1 = pdata->getImage(1);
-    UPP_ASSERT_EQUAL(ret_img1.x-new_img1.x, 0);
-    UPP_ASSERT_EQUAL(ret_img1.y-new_img1.y, 0);
-    UPP_ASSERT_EQUAL(ret_img1.z-new_img1.z, 0);
+    UP_ASSERT_EQUAL(ret_img1.x-new_img1.x, 0);
+    UP_ASSERT_EQUAL(ret_img1.y-new_img1.y, 0);
+    UP_ASSERT_EQUAL(ret_img1.z-new_img1.z, 0);
     }

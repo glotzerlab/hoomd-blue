@@ -32,7 +32,7 @@ using namespace std;
     ClockSource c1;
     int64_t t = c1.getTime();
     // c.getTime() should read 0, but we can't expect it to be exact, so allow a tolerance
-    UPP_ASSERT(abs(int(t)) <= 1000000);
+    UP_ASSERT(abs(int(t)) <= 1000000);
 
     // test timing a whole second
     ClockSource c2;
@@ -40,7 +40,7 @@ using namespace std;
     Sleep(1000);
     int64_t t2 = c2.getTime();
 
-    UPP_ASSERT(abs(int(t2 - t1 - int64_t(1000000000))) <= 20000000);*/
+    UP_ASSERT(abs(int(t2 - t1 - int64_t(1000000000))) <= 20000000);*/
 
 // unfortunately, testing of microsecond timing with a sleep routine is out of the question
 // the following test code tests the ability of the timer to read nearby values
@@ -60,19 +60,19 @@ for (int i = 0; i < 100; i++)
 /*  c1 = c2;
     t1 = c1.getTime();
     t2 = c2.getTime();
-    UPP_ASSERT(abs(int(t1-t2)) <= 1000000);
+    UP_ASSERT(abs(int(t1-t2)) <= 1000000);
     // copy constructor
     ClockSource c3(c1);
     t1 = c1.getTime();
     t2 = c3.getTime();
-    UPP_ASSERT(abs(int(t1-t2)) <= 1000000);
+    UP_ASSERT(abs(int(t1-t2)) <= 1000000);
 
     // test the ability of the clock source to format values
-    UPP_ASSERT_EQUAL(ClockSource::formatHMS(0), string("00:00:00"));
-    UPP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)), string("00:00:01"));
-    UPP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(11)), string("00:00:11"));
-    UPP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(65)), string("00:01:05"));
-    UPP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(3678)), string("01:01:18"));
+    UP_ASSERT_EQUAL(ClockSource::formatHMS(0), string("00:00:00"));
+    UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)), string("00:00:01"));
+    UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(11)), string("00:00:11"));
+    UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(65)), string("00:01:05"));
+    UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(3678)), string("01:01:18"));
     }*/
 
 //! perform some simple checks on the profiler code
@@ -81,38 +81,38 @@ UP_TEST(Profiler_test)
     // ProfileDataElem tests
     // constructor test
     ProfileDataElem p;
-    UPP_ASSERT(p.getChildElapsedTime() == 0);
-    UPP_ASSERT(p.getTotalFlopCount() == 0);
-    UPP_ASSERT(p.getTotalMemByteCount() == 0);
+    UP_ASSERT(p.getChildElapsedTime() == 0);
+    UP_ASSERT(p.getTotalFlopCount() == 0);
+    UP_ASSERT(p.getTotalMemByteCount() == 0);
 
     // build up a tree and test its getTotal members
     p.m_elapsed_time = 1;
     p.m_flop_count = 2;
     p.m_mem_byte_count = 3;
-    UPP_ASSERT(p.getChildElapsedTime() == 0);
-    UPP_ASSERT(p.getTotalFlopCount() == 2);
-    UPP_ASSERT(p.getTotalMemByteCount() == 3);
+    UP_ASSERT(p.getChildElapsedTime() == 0);
+    UP_ASSERT(p.getTotalFlopCount() == 2);
+    UP_ASSERT(p.getTotalMemByteCount() == 3);
 
     p.m_children["A"].m_elapsed_time = 4;
     p.m_children["A"].m_flop_count = 5;
     p.m_children["A"].m_mem_byte_count = 6;
-    UPP_ASSERT(p.getChildElapsedTime() == 4);
-    UPP_ASSERT(p.getTotalFlopCount() == 7);
-    UPP_ASSERT(p.getTotalMemByteCount() == 9);
+    UP_ASSERT(p.getChildElapsedTime() == 4);
+    UP_ASSERT(p.getTotalFlopCount() == 7);
+    UP_ASSERT(p.getTotalMemByteCount() == 9);
 
     p.m_children["B"].m_elapsed_time = 7;
     p.m_children["B"].m_flop_count = 8;
     p.m_children["B"].m_mem_byte_count = 9;
-    UPP_ASSERT(p.getChildElapsedTime() == 4+7);
-    UPP_ASSERT(p.getTotalFlopCount() == 7+8);
-    UPP_ASSERT(p.getTotalMemByteCount() == 9+9);
+    UP_ASSERT(p.getChildElapsedTime() == 4+7);
+    UP_ASSERT(p.getTotalFlopCount() == 7+8);
+    UP_ASSERT(p.getTotalMemByteCount() == 9+9);
 
     p.m_children["A"].m_children["C"].m_elapsed_time = 10;
     p.m_children["A"].m_children["C"].m_flop_count = 11;
     p.m_children["A"].m_children["C"].m_mem_byte_count = 12;
-    UPP_ASSERT(p.getChildElapsedTime() == 4+7);
-    UPP_ASSERT(p.getTotalFlopCount() == 7+8+11);
-    UPP_ASSERT(p.getTotalMemByteCount() == 9+9+12);
+    UP_ASSERT(p.getChildElapsedTime() == 4+7);
+    UP_ASSERT(p.getTotalFlopCount() == 7+8+11);
+    UP_ASSERT(p.getTotalMemByteCount() == 9+9+12);
 
     Profiler prof("Main");
     prof.push("Loading");
@@ -150,11 +150,11 @@ UP_TEST(Profiler_test)
 UP_TEST(Variant_test)
     {
     Variant v;
-    UPP_ASSERT_EQUAL(v.getValue(0), 0.0);
-    UPP_ASSERT_EQUAL(v.getValue(100000), 0.0);
+    UP_ASSERT_EQUAL(v.getValue(0), 0.0);
+    UP_ASSERT_EQUAL(v.getValue(100000), 0.0);
     v.setOffset(1000);
-    UPP_ASSERT_EQUAL(v.getValue(0), 0.0);
-    UPP_ASSERT_EQUAL(v.getValue(100000), 0.0);
+    UP_ASSERT_EQUAL(v.getValue(0), 0.0);
+    UP_ASSERT_EQUAL(v.getValue(100000), 0.0);
     }
 
 //! perform some simple checks on the variant types
@@ -162,11 +162,11 @@ UP_TEST(VariantConst_test)
     {
     double val = 10.5;
     VariantConst v(val);
-    UPP_ASSERT_EQUAL(v.getValue(0), val);
-    UPP_ASSERT_EQUAL(v.getValue(100000), val);
+    UP_ASSERT_EQUAL(v.getValue(0), val);
+    UP_ASSERT_EQUAL(v.getValue(100000), val);
     v.setOffset(1000);
-    UPP_ASSERT_EQUAL(v.getValue(0), val);
-    UPP_ASSERT_EQUAL(v.getValue(100000), val);
+    UP_ASSERT_EQUAL(v.getValue(0), val);
+    UP_ASSERT_EQUAL(v.getValue(100000), val);
     }
 
 //! perform some simple checks on the variant types
@@ -175,13 +175,13 @@ UP_TEST(VariantLinear_test1)
     double val = 10.5;
     VariantLinear v;
     v.setPoint(500, val);
-    UPP_ASSERT_EQUAL(v.getValue(0), val);
-    UPP_ASSERT_EQUAL(v.getValue(500), val);
-    UPP_ASSERT_EQUAL(v.getValue(100000), val);
+    UP_ASSERT_EQUAL(v.getValue(0), val);
+    UP_ASSERT_EQUAL(v.getValue(500), val);
+    UP_ASSERT_EQUAL(v.getValue(100000), val);
     v.setOffset(1000);
-    UPP_ASSERT_EQUAL(v.getValue(0), val);
-    UPP_ASSERT_EQUAL(v.getValue(500), val);
-    UPP_ASSERT_EQUAL(v.getValue(100000), val);
+    UP_ASSERT_EQUAL(v.getValue(0), val);
+    UP_ASSERT_EQUAL(v.getValue(500), val);
+    UP_ASSERT_EQUAL(v.getValue(100000), val);
     }
 
 //! perform some simple checks on the variant types

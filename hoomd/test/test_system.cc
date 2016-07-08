@@ -128,11 +128,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // check the get method
-    UPP_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
-    UPP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
+    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -142,11 +142,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    UPP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
-    UPP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
     except = false;
     try
         {
@@ -156,16 +156,16 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     sys.setAnalyzerPeriod("analyzer1", 15, -1);
     sys.setAnalyzerPeriod("analyzer2", 8, -1);
-    UPP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
-    UPP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
 
     // remove the analyzers 1 by one and make sure they don't exist
     sys.removeAnalyzer("analyzer1");
-    UPP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -175,7 +175,7 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     sys.removeAnalyzer("analyzer2");
     except = false;
@@ -187,7 +187,7 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // ************ Updaters
     // create two updaters to test adding
@@ -208,11 +208,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // check the get method
-    UPP_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
-    UPP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
+    UP_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
+    UP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -222,11 +222,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    UPP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
-    UPP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
     except = false;
     try
         {
@@ -236,16 +236,16 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     sys.setUpdaterPeriod("updater1", 15, -1);
     sys.setUpdaterPeriod("updater2", 8, -1);
-    UPP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
-    UPP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
 
     // remove the updaters 1 by one and make sure they don't exist
     sys.removeUpdater("updater1");
-    UPP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
+    UP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -255,7 +255,7 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     sys.removeUpdater("updater2");
     except = false;
@@ -267,7 +267,7 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // ********* Computes
     // create two updaters to test adding
@@ -288,11 +288,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // check the get method
-    UPP_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
-    UPP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
+    UP_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
+    UP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -302,11 +302,11 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // remove the computes 1 by one and make sure they don't exist
     sys.removeCompute("compute1");
-    UPP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
+    UP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -316,7 +316,7 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     sys.removeCompute("compute2");
     except = false;
@@ -328,16 +328,16 @@ UP_TEST( getter_setter_tests )
         {
         except = true;
         }
-    UPP_ASSERT(except);
+    UP_ASSERT(except);
 
     // ************ Integrator
     std::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
     std::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
 
     sys.setIntegrator(integrator1);
-    UPP_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
+    UP_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
     sys.setIntegrator(integrator2);
-    UPP_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
+    UP_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
     }
 
 

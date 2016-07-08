@@ -125,7 +125,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
         total_deviation += fabs(pdata->getPosition(i).z);
 
     //make sure the deviation is large (should be >> tol)
-    UPP_ASSERT(total_deviation > tol);
+    UP_ASSERT(total_deviation > tol);
 
     // re-initialize the initial state
     for (unsigned int i=0; i<10; i++)

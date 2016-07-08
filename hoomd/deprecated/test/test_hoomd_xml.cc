@@ -243,34 +243,34 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         writer->analyze(0);
 
         // make sure the file was created
-        UPP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000000.xml").c_str());
         string line;
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"4\" >");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"4\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</configuration>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</hoomd_xml>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
@@ -283,7 +283,7 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         writer->analyze(10);
 
         // make sure the file was created
-        UPP_ASSERT(filesystem::exists(tmp_path+"/test.0000000010.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000010.xml"));
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000010.xml").c_str());
@@ -294,27 +294,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<position num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<position num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1.5 2.5 -5.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 -5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1.5 2.5 -3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 -3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</position>");
+        UP_ASSERT_EQUAL(line, "</position>");
 
         getline(f, line); // </configuration
         getline(f, line); // </HOOMD_xml
@@ -339,27 +339,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<image num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<image num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1 -5 6");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -5 6");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "10 500 900");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 500 900");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "10 500 900");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 500 900");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "105 5005 9005");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "105 5005 9005");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</image>");
+        UP_ASSERT_EQUAL(line, "</image>");
         f.close();
         unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
@@ -381,27 +381,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<velocity num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<velocity num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 -10.5 56.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 56.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</velocity>");
+        UP_ASSERT_EQUAL(line, "</velocity>");
         f.close();
         unlink((tmp_path+"/test.0000000030.xml").c_str());
         }
@@ -423,27 +423,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<acceleration num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<acceleration num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1 -2 -3");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -2 -3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5 -2.5 -3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -2.5 -3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-7.5 -8.5 -9.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-7.5 -8.5 -9.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</acceleration>");
+        UP_ASSERT_EQUAL(line, "</acceleration>");
         f.close();
         unlink((tmp_path+"/test.0000000040.xml").c_str());
         }
@@ -465,27 +465,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<mass num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<mass num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "2.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "2.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "2.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</mass>");
+        UP_ASSERT_EQUAL(line, "</mass>");
         f.close();
         unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
@@ -507,27 +507,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<charge num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<charge num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "2");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</charge>");
+        UP_ASSERT_EQUAL(line, "</charge>");
         f.close();
         unlink((tmp_path+"/test.0000000060.xml").c_str());
         }
@@ -549,27 +549,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<diameter num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<diameter num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</diameter>");
+        UP_ASSERT_EQUAL(line, "</diameter>");
         f.close();
         unlink((tmp_path+"/test.0000000070.xml").c_str());
         }
@@ -591,27 +591,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<type num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<type num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "D");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "D");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "A");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "A");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "B");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "B");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "B");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "B");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</type>");
+        UP_ASSERT_EQUAL(line, "</type>");
         f.close();
         unlink((tmp_path+"/test.0000000080.xml").c_str());
         }
@@ -633,27 +633,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<body num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<body num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</body>");
+        UP_ASSERT_EQUAL(line, "</body>");
         f.close();
         unlink((tmp_path+"/test.0000000090.xml").c_str());
         }
@@ -675,27 +675,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<orientation num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<orientation num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "3 2 1 0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "3 2 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4 5 6 7");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4 5 6 7");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "7 6 5 4");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "7 6 5 4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-1 -2 -3 -4");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -2 -3 -4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</orientation>");
+        UP_ASSERT_EQUAL(line, "</orientation>");
         f.close();
         unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
@@ -717,27 +717,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<moment_inertia num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<moment_inertia num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0 1 2");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "5 4 3");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "5 4 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1 11 21");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 11 21");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "51 41 31");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "51 41 31");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</moment_inertia>");
+        UP_ASSERT_EQUAL(line, "</moment_inertia>");
         f.close();
         unlink((tmp_path+"/test.0000000110.xml").c_str());
         }
@@ -759,27 +759,27 @@ UP_TEST( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<angmom num=\"4\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<angmom num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0 1 2 3");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 2 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "9 8 7 6");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "9 8 7 6");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1 2 3 4");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 2 3 4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "51 41 31 21");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "51 41 31 21");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</angmom>");
+        UP_ASSERT_EQUAL(line, "</angmom>");
         f.close();
         unlink((tmp_path+"/test.0000000120.xml").c_str());
         }
@@ -835,34 +835,34 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         writer->analyze(0);
 
         // make sure the file was created
-        UPP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000000.xml").c_str());
         string line;
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"2\" >");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"2\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</configuration>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</hoomd_xml>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
@@ -887,19 +887,19 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<bond num=\"2\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<bond num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "bondA 0 1");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "bondA 0 1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "bondB 1 0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "bondB 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</bond>");
+        UP_ASSERT_EQUAL(line, "</bond>");
         f.close();
         unlink((tmp_path+"/test.0000000010.xml").c_str());
         }
@@ -921,19 +921,19 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<angle num=\"2\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<angle num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "angleA 0 1 2");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "angleA 0 1 2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "angleA 1 2 0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "angleA 1 2 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</angle>");
+        UP_ASSERT_EQUAL(line, "</angle>");
         f.close();
         unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
@@ -955,15 +955,15 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<dihedral num=\"1\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<dihedral num=\"1\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "dihedralA 0 1 2 3");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "dihedralA 0 1 2 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</dihedral>");
+        UP_ASSERT_EQUAL(line, "</dihedral>");
         f.close();
         unlink((tmp_path+"/test.0000000030.xml").c_str());
         }
@@ -985,15 +985,15 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<improper num=\"1\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<improper num=\"1\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "improperA 3 2 1 0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "improperA 3 2 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</improper>");
+        UP_ASSERT_EQUAL(line, "</improper>");
         f.close();
         unlink((tmp_path+"/test.0000000040.xml").c_str());
         }
@@ -1015,19 +1015,19 @@ UP_TEST( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<constraint num=\"2\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<constraint num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0 1 1.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1 2 2.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 2 2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</constraint>");
+        UP_ASSERT_EQUAL(line, "</constraint>");
         f.close();
         unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
@@ -1100,164 +1100,164 @@ UP_TEST( HOOMDDumpWriter_tag_test )
         writer->analyze(100);
 
         // make sure the file was created
-        UPP_ASSERT(filesystem::exists(tmp_path+"/test.0000000100.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000100.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\" natoms=\"6\" >");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\" natoms=\"6\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\" xy=\"0\" xz=\"0\" yz=\"0\"/>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\" xy=\"0\" xz=\"0\" yz=\"0\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<position num=\"6\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<position num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         // check all the positions
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0.5 1.5 2.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0.5 1.5 2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "1.5 2.5 3.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "2.5 3.5 4.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5 3.5 4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "3.5 4.5 5.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "3.5 4.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "5.5 6.5 7.5");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "5.5 6.5 7.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</position>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</position>");
+        UP_ASSERT(!f.bad());
 
         // check all the images
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<image num=\"6\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<image num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-10 -11 50");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-10 -11 50");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-9 -10 51");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-9 -10 51");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-8 -9 52");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-8 -9 52");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-7 -8 53");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-7 -8 53");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-6 -7 54");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-6 -7 54");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "-5 -6 55");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "-5 -6 55");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</image>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</image>");
+        UP_ASSERT(!f.bad());
 
         // check all velocities
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<velocity num=\"6\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<velocity num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "0 0 0");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 0 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "10 11 12");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 11 12");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "20 22 24");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "20 22 24");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "30 33 36");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "30 33 36");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "40 44 48");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "40 44 48");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "50 55 60");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "50 55 60");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</velocity>");
+        UP_ASSERT_EQUAL(line, "</velocity>");
 
         // check all types
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "<type num=\"6\">");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "<type num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "C");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "C");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "D");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "D");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "E");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "E");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "F");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "F");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "G");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "G");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "H");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line, "H");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line, "</type>");
+        UP_ASSERT_EQUAL(line, "</type>");
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</configuration>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        UPP_ASSERT_EQUAL(line,  "</hoomd_xml>");
-        UPP_ASSERT(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
@@ -1391,10 +1391,10 @@ im_b 5 4 3 2\n\
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // verify all parameters
-    UPP_ASSERT_EQUAL(init.getTimeStep(), (unsigned int)150000000);
-    UPP_ASSERT_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
-    UPP_ASSERT_EQUAL(pdata->getN(), (unsigned int)6);
-    UPP_ASSERT_EQUAL(pdata->getNTypes(), (unsigned int)6);
+    UP_ASSERT_EQUAL(init.getTimeStep(), (unsigned int)150000000);
+    UP_ASSERT_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
+    UP_ASSERT_EQUAL(pdata->getN(), (unsigned int)6);
+    UP_ASSERT_EQUAL(pdata->getNTypes(), (unsigned int)6);
     MY_CHECK_CLOSE(pdata->getGlobalBox().getL().x, 20.05, tol);
     MY_CHECK_CLOSE(pdata->getGlobalBox().getL().y, 32.12345, tol);
     MY_CHECK_CLOSE(pdata->getGlobalBox().getL().z, 45.098, tol);
@@ -1421,9 +1421,9 @@ im_b 5 4 3 2\n\
         MY_CHECK_CLOSE(h_pos.data[i].y, Scalar(i) + Scalar(2.567890), tol);
         MY_CHECK_CLOSE(h_pos.data[i].z, Scalar(i) + Scalar(3.45), tol);
 
-        UPP_ASSERT_EQUAL(h_image.data[i].x, 10 + i);
-        UPP_ASSERT_EQUAL(h_image.data[i].y, 20 + i);
-        UPP_ASSERT_EQUAL(h_image.data[i].z, 30 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].x, 10 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].y, 20 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].z, 30 + i);
 
         MY_CHECK_CLOSE(h_vel.data[i].x, Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
         MY_CHECK_CLOSE(h_vel.data[i].y, Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
@@ -1435,15 +1435,15 @@ im_b 5 4 3 2\n\
 
         MY_CHECK_CLOSE(h_charge.data[i], Scalar(i)*Scalar(10.0), tol);
 
-        UPP_ASSERT_EQUAL(h_body.data[i], (unsigned int)(i-1));
+        UP_ASSERT_EQUAL(h_body.data[i], (unsigned int)(i-1));
 
         // checking that the type is correct becomes tricky because types are identified by
         // string
         ostringstream type_name;
         type_name << 5-i;   // the expected type is the integer 5-i
-        UPP_ASSERT_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
-        UPP_ASSERT_EQUAL(h_tag.data[i], (unsigned int)i);
-        UPP_ASSERT_EQUAL(h_rtag.data[i], (unsigned int)i);
+        UP_ASSERT_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
+        UP_ASSERT_EQUAL(h_tag.data[i], (unsigned int)i);
+        UP_ASSERT_EQUAL(h_rtag.data[i], (unsigned int)i);
 
         // check the moment_inertia values
         Scalar3 I;
@@ -1466,148 +1466,148 @@ im_b 5 4 3 2\n\
     std::shared_ptr<BondData> bond_data = sysdef->getBondData();
 
     // 4 bonds should have been read in
-    UPP_ASSERT_EQUAL(bond_data->getN(), (unsigned int)4);
+    UP_ASSERT_EQUAL(bond_data->getN(), (unsigned int)4);
 
     // check that the types have been named properly
-    UPP_ASSERT_EQUAL(bond_data->getNTypes(), (unsigned int)3);
-    UPP_ASSERT_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
-    UPP_ASSERT_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
-    UPP_ASSERT_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
+    UP_ASSERT_EQUAL(bond_data->getNTypes(), (unsigned int)3);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
 
-    UPP_ASSERT_EQUAL(bond_data->getNameByType(0), string("bond_a"));
-    UPP_ASSERT_EQUAL(bond_data->getNameByType(1), string("bond_b"));
-    UPP_ASSERT_EQUAL(bond_data->getNameByType(2), string("bond_c"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(0), string("bond_a"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(1), string("bond_b"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(2), string("bond_c"));
 
     // verify each bond
     Bond b = bond_data-> getGroupByTag(0);
-    UPP_ASSERT_EQUAL(b.a, (unsigned int)0);
-    UPP_ASSERT_EQUAL(b.b, (unsigned int)1);
-    UPP_ASSERT_EQUAL(b.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)0);
 
     b = bond_data-> getGroupByTag(1);
-    UPP_ASSERT_EQUAL(b.a, (unsigned int)1);
-    UPP_ASSERT_EQUAL(b.b, (unsigned int)2);
-    UPP_ASSERT_EQUAL(b.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)1);
 
     b = bond_data-> getGroupByTag(2);
-    UPP_ASSERT_EQUAL(b.a, (unsigned int)2);
-    UPP_ASSERT_EQUAL(b.b, (unsigned int)3);
-    UPP_ASSERT_EQUAL(b.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)3);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)0);
 
     b = bond_data-> getGroupByTag(3);
-    UPP_ASSERT_EQUAL(b.a, (unsigned int)3);
-    UPP_ASSERT_EQUAL(b.b, (unsigned int)4);
-    UPP_ASSERT_EQUAL(b.type, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)3);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)4);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)2);
 
     // check the angles
     std::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
 
     // 3 angles should have been read in
-    UPP_ASSERT_EQUAL(angle_data->getN(), (unsigned int)3);
+    UP_ASSERT_EQUAL(angle_data->getN(), (unsigned int)3);
 
     // check that the types have been named properly
-    UPP_ASSERT_EQUAL(angle_data->getNTypes(), (unsigned int)2);
-    UPP_ASSERT_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
-    UPP_ASSERT_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(angle_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
 
-    UPP_ASSERT_EQUAL(angle_data->getNameByType(0), string("angle_a"));
-    UPP_ASSERT_EQUAL(angle_data->getNameByType(1), string("angle_b"));
+    UP_ASSERT_EQUAL(angle_data->getNameByType(0), string("angle_a"));
+    UP_ASSERT_EQUAL(angle_data->getNameByType(1), string("angle_b"));
 
     // verify each angle
     Angle a = angle_data->getGroupByTag(0);
-    UPP_ASSERT_EQUAL(a.a, (unsigned int)0);
-    UPP_ASSERT_EQUAL(a.b, (unsigned int)1);
-    UPP_ASSERT_EQUAL(a.c, (unsigned int)2);
-    UPP_ASSERT_EQUAL(a.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)0);
 
     a = angle_data->getGroupByTag(1);
-    UPP_ASSERT_EQUAL(a.a, (unsigned int)1);
-    UPP_ASSERT_EQUAL(a.b, (unsigned int)2);
-    UPP_ASSERT_EQUAL(a.c, (unsigned int)3);
-    UPP_ASSERT_EQUAL(a.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)1);
 
     a = angle_data->getGroupByTag(2);
-    UPP_ASSERT_EQUAL(a.a, (unsigned int)2);
-    UPP_ASSERT_EQUAL(a.b, (unsigned int)3);
-    UPP_ASSERT_EQUAL(a.c, (unsigned int)4);
-    UPP_ASSERT_EQUAL(a.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)3);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)4);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)0);
 
     // check the dihedrals
     std::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
 
     // 2 dihedrals should have been read in
-    UPP_ASSERT_EQUAL(dihedral_data->getN(), (unsigned int)2);
+    UP_ASSERT_EQUAL(dihedral_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    UPP_ASSERT_EQUAL(dihedral_data->getNTypes(), (unsigned int)2);
-    UPP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
-    UPP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(dihedral_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
 
-    UPP_ASSERT_EQUAL(dihedral_data->getNameByType(0), string("di_a"));
-    UPP_ASSERT_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
+    UP_ASSERT_EQUAL(dihedral_data->getNameByType(0), string("di_a"));
+    UP_ASSERT_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
 
     // verify each dihedral
     Dihedral d = dihedral_data->getGroupByTag(0);
-    UPP_ASSERT_EQUAL(d.a, (unsigned int)0);
-    UPP_ASSERT_EQUAL(d.b, (unsigned int)1);
-    UPP_ASSERT_EQUAL(d.c, (unsigned int)2);
-    UPP_ASSERT_EQUAL(d.d, (unsigned int)3);
-    UPP_ASSERT_EQUAL(d.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)0);
 
     d = dihedral_data->getGroupByTag(1);
-    UPP_ASSERT_EQUAL(d.a, (unsigned int)1);
-    UPP_ASSERT_EQUAL(d.b, (unsigned int)2);
-    UPP_ASSERT_EQUAL(d.c, (unsigned int)3);
-    UPP_ASSERT_EQUAL(d.d, (unsigned int)4);
-    UPP_ASSERT_EQUAL(d.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)4);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)1);
 
 
     // check the impropers
     std::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
 
     // 2 dihedrals should have been read in
-    UPP_ASSERT_EQUAL(improper_data->getN(), (unsigned int)2);
+    UP_ASSERT_EQUAL(improper_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    UPP_ASSERT_EQUAL(improper_data->getNTypes(), (unsigned int)2);
-    UPP_ASSERT_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
-    UPP_ASSERT_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(improper_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
 
-    UPP_ASSERT_EQUAL(improper_data->getNameByType(0), string("im_a"));
-    UPP_ASSERT_EQUAL(improper_data->getNameByType(1), string("im_b"));
+    UP_ASSERT_EQUAL(improper_data->getNameByType(0), string("im_a"));
+    UP_ASSERT_EQUAL(improper_data->getNameByType(1), string("im_b"));
 
     // verify each dihedral
     d = improper_data->getGroupByTag(0);
-    UPP_ASSERT_EQUAL(d.a, (unsigned int)3);
-    UPP_ASSERT_EQUAL(d.b, (unsigned int)2);
-    UPP_ASSERT_EQUAL(d.c, (unsigned int)1);
-    UPP_ASSERT_EQUAL(d.d, (unsigned int)0);
-    UPP_ASSERT_EQUAL(d.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)0);
 
     d = improper_data->getGroupByTag(1);
-    UPP_ASSERT_EQUAL(d.a, (unsigned int)5);
-    UPP_ASSERT_EQUAL(d.b, (unsigned int)4);
-    UPP_ASSERT_EQUAL(d.c, (unsigned int)3);
-    UPP_ASSERT_EQUAL(d.d, (unsigned int)2);
-    UPP_ASSERT_EQUAL(d.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)5);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)4);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)1);
 
     // check the constraints
     std::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
 
     // 2 dihedrals should have been read in
-    UPP_ASSERT_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);
+    UP_ASSERT_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);
 
     // verify each dihedral
     Constraint c = constraint_data->getGroupByTag(0);
-    UPP_ASSERT_EQUAL(c.a, (unsigned int)0);
-    UPP_ASSERT_EQUAL(c.b, (unsigned int)1);
-    UPP_ASSERT_EQUAL(c.d, Scalar(1.5));
+    UP_ASSERT_EQUAL(c.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(c.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(c.d, Scalar(1.5));
 
     // verify each dihedral
     c = constraint_data->getGroupByTag(1);
-    UPP_ASSERT_EQUAL(c.a, (unsigned int)1);
-    UPP_ASSERT_EQUAL(c.b, (unsigned int)2);
-    UPP_ASSERT_EQUAL(c.d, Scalar(2.5));
+    UP_ASSERT_EQUAL(c.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(c.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(c.d, Scalar(2.5));
 
 
     // clean up after ourselves

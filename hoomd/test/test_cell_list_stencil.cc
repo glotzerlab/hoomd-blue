@@ -114,7 +114,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     // the first type has fewer than 344 cells (some corners get skipped), the second type has exactly 125 cells
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(), access_location::host, access_mode::read);
-        UPP_ASSERT(h_nstencil.data[0] < 344);
+        UP_ASSERT(h_nstencil.data[0] < 344);
         CHECK_EQUAL_UINT(h_nstencil.data[1], 125);
         }
 

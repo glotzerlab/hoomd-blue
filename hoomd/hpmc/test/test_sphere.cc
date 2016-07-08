@@ -41,7 +41,7 @@ UP_TEST( construction )
 
     MY_CHECK_CLOSE(a.params.radius, par.radius, tol);
 
-    UPP_ASSERT(!a.hasOrientation());
+    UP_ASSERT(!a.hasOrientation());
 
     MY_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
     }
@@ -65,23 +65,23 @@ UP_TEST( overlap_sphere)
     par.radius = 1.75;
     ShapeSphere b(o, par);
     r_j = vec3<Scalar>(5,-2,-1);
-    UPP_ASSERT(!test_overlap(r_j - r_i, a,b,err_count));
-    UPP_ASSERT(!test_overlap(r_i - r_j, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_j - r_i, a,b,err_count));
+    UP_ASSERT(!test_overlap(r_i - r_j, b,a,err_count));
 
     ShapeSphere c(o, par);
     r_j = vec3<Scalar>(3.9,2,3);
-    UPP_ASSERT(test_overlap(r_j - r_i, a,c,err_count));
-    UPP_ASSERT(test_overlap(r_i - r_j, c,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,c,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, c,a,err_count));
 
     ShapeSphere d(o, par);
     r_j = vec3<Scalar>(1,-0.8,3);
-    UPP_ASSERT(test_overlap(r_j - r_i, a,d,err_count));
-    UPP_ASSERT(test_overlap(r_i - r_j, d,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,d,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, d,a,err_count));
 
     ShapeSphere e(o, par);
     r_j = vec3<Scalar>(1,2,0.1);
-    UPP_ASSERT(test_overlap(r_j - r_i, a,e,err_count));
-    UPP_ASSERT(test_overlap(r_i - r_j, e,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,e,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, e,a,err_count));
     }
 
 UP_TEST( overlap_boundaries )
@@ -100,13 +100,13 @@ UP_TEST( overlap_boundaries )
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
     ShapeSphere a(o, par);
     ShapeSphere b(o, par);
-    UPP_ASSERT(!test_overlap(rij,a,b,err_count));
-    UPP_ASSERT(!test_overlap(-rij,b,a,err_count));
+    UP_ASSERT(!test_overlap(rij,a,b,err_count));
+    UP_ASSERT(!test_overlap(-rij,b,a,err_count));
 
     vec3<Scalar> pos_c(-9.1,0,0);
     rij = pos_c - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
     ShapeSphere c(o, par);
-    UPP_ASSERT(test_overlap(rij,a,c,err_count));
-    UPP_ASSERT(test_overlap(-rij,c,a,err_count));
+    UP_ASSERT(test_overlap(rij,a,c,err_count));
+    UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }

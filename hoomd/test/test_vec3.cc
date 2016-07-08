@@ -257,12 +257,12 @@ UP_TEST( comparison )
     vec3<Scalar> c(.1,1.1,2.1);
 
     // test equality
-    UPP_ASSERT(a==b);
-    UPP_ASSERT(!(a==c));
+    UP_ASSERT(a==b);
+    UP_ASSERT(!(a==c));
 
     // test inequality
-    UPP_ASSERT(!(a!=b));
-    UPP_ASSERT(a!=c);
+    UP_ASSERT(!(a!=b));
+    UP_ASSERT(a!=c);
     }
 
 UP_TEST( test_swap )
@@ -274,6 +274,6 @@ UP_TEST( test_swap )
 
     // test swap
     a.swap(b);
-    UPP_ASSERT(a==d);
-    UPP_ASSERT(b==c);
+    UP_ASSERT(a==d);
+    UP_ASSERT(b==c);
     }

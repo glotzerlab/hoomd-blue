@@ -42,19 +42,19 @@ UP_TEST( basic )
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(2,2,0), vec3<Scalar>(2.1, 2.1, 0.1)));
-    UPP_ASSERT(in(0, hits));
+    UP_ASSERT(in(0, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.5,3,0), vec3<Scalar>(0.6, 3.1, 0.1)));
-    UPP_ASSERT(in(1, hits));
+    UP_ASSERT(in(1, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.5,0.5,0), vec3<Scalar>(0.6, 0.6, 0.1)));
-    UPP_ASSERT(in(2, hits));
+    UP_ASSERT(in(2, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.9,0.9,0), vec3<Scalar>(1.1, 1.1, 0.1)));
-    UPP_ASSERT_EQUAL(hits.size(), 3);
+    UP_ASSERT_EQUAL(hits.size(), 3);
     }
 
 
@@ -83,7 +83,7 @@ UP_TEST( bigger )
         {
         hits.clear();
         tree.query(hits, AABB(points[i], Scalar(0.01)));
-        UPP_ASSERT(in(i, hits));
+        UP_ASSERT(in(i, hits));
         }
 
     // now move all the points with the update method and ensure that they are still found
@@ -98,6 +98,6 @@ UP_TEST( bigger )
         {
         hits.clear();
         tree.query(hits, AABB(points[i], Scalar(0.01)));
-        UPP_ASSERT(in(i, hits));
+        UP_ASSERT(in(i, hits));
         }
     }

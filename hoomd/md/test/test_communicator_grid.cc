@@ -108,9 +108,9 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                         {
                         // check inner ghost cells
                         if (x == 1 || x == nx-2 || y == 1 || y==ny-2 || z ==1 || z==nz-2)
-                            UPP_ASSERT_EQUAL(val, rank);
+                            UP_ASSERT_EQUAL(val, rank);
                         else
-                            UPP_ASSERT_EQUAL(val,0);
+                            UP_ASSERT_EQUAL(val,0);
 
                         continue;
                         }
@@ -134,7 +134,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                         grid_idx.z +=(int) didx.getD();
 
                     unsigned int neighbor_rank = didx(grid_idx.x,grid_idx.y,grid_idx.z);
-                    UPP_ASSERT_EQUAL(val, neighbor_rank);
+                    UP_ASSERT_EQUAL(val, neighbor_rank);
                     }
         } //end ArrayHandle scope
 
@@ -221,7 +221,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                     // inner cells
                     if (! count.x && ! count.y && ! count.z)
                         {
-                        UPP_ASSERT_EQUAL(val,0);
+                        UP_ASSERT_EQUAL(val,0);
                         continue;
                         }
 
@@ -237,7 +237,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                                     sum += didx(grid_idx_2.x,grid_idx_2.y,grid_idx_2.z);
                                 }
 
-                    UPP_ASSERT_EQUAL(val, sum);
+                    UP_ASSERT_EQUAL(val, sum);
                     }
         } //end ArrayHandle scope
 
@@ -318,7 +318,7 @@ void test_communicate_grid_positions(std::shared_ptr<ExecutionConfiguration> exe
 
                     unsigned int compare_val = compare_xyz.x +
                         embed.x * (compare_xyz.y + embed.y*compare_xyz.z);
-                    UPP_ASSERT_EQUAL(compare_val, val);
+                    UP_ASSERT_EQUAL(compare_val, val);
                     }
         }
     }

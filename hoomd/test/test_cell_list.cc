@@ -174,11 +174,11 @@ void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // verify the indexer
     Index3D ci = cl->getCellIndexer();
-    UPP_ASSERT_EQUAL_UINT(ci.getNumElements(), 3*3*3);
+    UP_ASSERT_EQUAL_UINT(ci.getNumElements(), 3*3*3);
 
     Index2D adji = cl->getCellAdjIndexer();
-    UPP_ASSERT_EQUAL_UINT(adji.getNumElements(), 3*3*3*27);
-    UPP_ASSERT_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 3*3*3*27);
+    UP_ASSERT_EQUAL_UINT(adji.getNumElements(), 3*3*3*27);
+    UP_ASSERT_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 3*3*3*27);
 
     // verify all the cell adj values
     // note that in a 3x3x3 box, ALL cells should have adj from 0-26
@@ -190,7 +190,7 @@ void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
             for (unsigned int offset = 0; offset < 27; offset++)
                 {
                 unsigned int adjidx = h_cell_adj.data[adji(offset, cidx)];
-                UPP_ASSERT_EQUAL(adjidx, offset);
+                UP_ASSERT_EQUAL(adjidx, offset);
                 }
             }
         }
@@ -204,11 +204,11 @@ void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // verify the indexer
     ci = cl->getCellIndexer();
-    UPP_ASSERT_EQUAL_UINT(ci.getNumElements(), 5*5*5);
+    UP_ASSERT_EQUAL_UINT(ci.getNumElements(), 5*5*5);
 
     adji = cl->getCellAdjIndexer();
-    UPP_ASSERT_EQUAL_UINT(adji.getNumElements(), 5*5*5*125);
-    UPP_ASSERT_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*125);
+    UP_ASSERT_EQUAL_UINT(adji.getNumElements(), 5*5*5*125);
+    UP_ASSERT_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*125);
 
     // verify all the cell adj values
     // note that in a 5x5x5 box, ALL cells should have adj from 0-124
@@ -220,7 +220,7 @@ void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
             for (unsigned int offset = 0; offset < 125; offset++)
                 {
                 unsigned int adjidx = h_cell_adj.data[adji(offset, cidx)];
-                UPP_ASSERT_EQUAL(adjidx, offset);
+                UP_ASSERT_EQUAL(adjidx, offset);
                 }
             }
         }
@@ -297,13 +297,13 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // verify the indexers
     Index3D ci = cl->getCellIndexer();
-    UPP_ASSERT_EQUAL_UINT(ci.getNumElements(), 3*5*7);
-    UPP_ASSERT_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 3*5*7);
+    UP_ASSERT_EQUAL_UINT(ci.getNumElements(), 3*5*7);
+    UP_ASSERT_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 3*5*7);
 
     Index2D cli = cl->getCellListIndexer();
-    UPP_ASSERT_EQUAL_UINT(cli.getNumElements(), 3*5*7*cl->getNmax());
-    UPP_ASSERT_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3*5*7*cl->getNmax());
-    UPP_ASSERT_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
+    UP_ASSERT_EQUAL_UINT(cli.getNumElements(), 3*5*7*cl->getNmax());
+    UP_ASSERT_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3*5*7*cl->getNmax());
+    UP_ASSERT_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
 
     // verify the cell contents
         {
@@ -313,35 +313,35 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
 
         // verify cell 2,2,3
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(2,2,3))];
         MY_CHECK_CLOSE(val.x, 1.0f, tol);
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.w), 1);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.w), 1);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(0,2,3))];
         MY_CHECK_CLOSE(val.x, -1.0f, tol);
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.w), 2);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.w), 2);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
         MY_CHECK_CLOSE(val.x, 0.25f, tol);
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, 3.0f, tol_small);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.w), 6);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.w), 6);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,0))];
         MY_CHECK_CLOSE(val.x, -0.25f, tol);
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, -3.0f, tol_small);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.w), 7);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.w), 7);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(1,2,3))];
@@ -360,10 +360,10 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
                       fabs(val.y - 0.25f) < tol &&
                       fabs(val.z - 0.0f) < tol);
                 }
-            UPP_ASSERT(ok);
+            UP_ASSERT(ok);
             }
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(2,4,3))];
@@ -382,7 +382,7 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
                       fabs(val.y - 2.25f) < tol &&
                       fabs(val.z - 0.0f) < tol);
                 }
-            UPP_ASSERT(ok);
+            UP_ASSERT(ok);
             }
         }
 
@@ -395,7 +395,7 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     ci = cl->getCellIndexer();
     cli = cl->getCellListIndexer();
 
-    UPP_ASSERT_EQUAL_UINT(cl->getTDBArray().getNumElements(), 3*5*7*cl->getNmax());
+    UP_ASSERT_EQUAL_UINT(cl->getTDBArray().getNumElements(), 3*5*7*cl->getNmax());
 
         {
         ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
@@ -405,51 +405,51 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         Scalar4 val;
 
         // verify cell 2,2,3
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(2,2,3))];
         MY_CHECK_CLOSE(val.x, 1.0f, tol);
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
         MY_CHECK_CLOSE(val.w, 2.0f, tol);
         val = h_tdb.data[cli(0, ci(2,2,3))];
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.x), 2);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 2);
         MY_CHECK_CLOSE(val.y, 1.0f, tol);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.z), 3);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 3);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(0,2,3))];
         MY_CHECK_CLOSE(val.x, -1.0f, tol);
         MY_CHECK_SMALL(val.y, tol_small);
         MY_CHECK_SMALL(val.z, tol_small);
         MY_CHECK_CLOSE(val.w, 3.0f, tol);
         val = h_tdb.data[cli(0, ci(0,2,3))];
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
         MY_CHECK_CLOSE(val.y, 1.5f, tol);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
         MY_CHECK_CLOSE(val.x, 0.25f, tol);
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, 3.0f, tol_small);
         MY_CHECK_CLOSE(val.w, 7.0f, tol);
         val = h_tdb.data[cli(0, ci(1,0,6))];
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 3);
         MY_CHECK_CLOSE(val.y, 3.5f, tol);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 0);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,0))];
         MY_CHECK_CLOSE(val.x, -0.25f, tol);
         MY_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_CHECK_CLOSE(val.z, -3.0f, tol_small);
         MY_CHECK_CLOSE(val.w, 8.0f, tol);
         val = h_tdb.data[cli(0, ci(1,0,0))];
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.x), 0);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.x), 0);
         MY_CHECK_CLOSE(val.y, 4.0f, tol);
-        UPP_ASSERT_EQUAL(__scalar_as_int(val.z), 1);
+        UP_ASSERT_EQUAL(__scalar_as_int(val.z), 1);
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(1,2,3))];
@@ -476,10 +476,10 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
                       __scalar_as_int(val_tdb.z) == 2);
 
                 }
-            UPP_ASSERT(ok);
+            UP_ASSERT(ok);
             }
 
-        UPP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
+        UP_ASSERT_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(2,4,3))];
@@ -505,7 +505,7 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
                       fabs(val_tdb.y - 3.0f) < tol &&
                       __scalar_as_int(val_tdb.z) == 3);
                 }
-            UPP_ASSERT(ok);
+            UP_ASSERT(ok);
             }
         }
     }
@@ -571,7 +571,7 @@ void celllist_large_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     for (unsigned int p = 0; p < N; p++)
-        UPP_ASSERT(present[p]);
+        UP_ASSERT(present[p]);
     }
 
 //! boost test case for celllist_large_test

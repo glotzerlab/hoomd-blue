@@ -73,7 +73,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[0], 1);
         // since this is a half list, only 0 stores 1 as a neighbor
         CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
@@ -89,10 +89,10 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_2->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
         }
 
@@ -130,12 +130,12 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
         // check for right number of nbrs
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 1);
 
         // populate the neighbor list as a collection for fast compare
         vector<unsigned int> nbrs(6, 0);
@@ -147,7 +147,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
 
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
     // swap the order of the particles around to look for subtle directional bugs
@@ -172,12 +172,12 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
         // check for right number of nbrs
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 1);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 1);
 
         // populate the neighbor list as a collection for fast compare
         vector<unsigned int> nbrs(6, 0);
@@ -189,7 +189,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
 
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
     // one last test, we should check that more than one neighbor can be generated
@@ -212,7 +212,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 3);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 3);
 
         vector<unsigned int> nbrs(3,0);
         for (unsigned int i=0; i < 3; ++i)
@@ -225,7 +225,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
         // the answer we expect
         unsigned int check_nbrs[] = {1, 4, 5};
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 3);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 3);
         }
     }
 
@@ -258,13 +258,13 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 0);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
 
     // now change the cutoff so that 2 is neighbors with 0 but not 1
@@ -275,18 +275,18 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
         vector<unsigned int> nbrs(2, 0);
         nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
         nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {1,2};
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 0);
         }
 
@@ -298,11 +298,11 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 2);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 2);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 2);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 2);
         }
 
     // check what happens with particle resize by first keeping number below the 8 default, and then bumping over this
@@ -347,7 +347,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
 
         // 6x16 + 12x8 = 192
-        UPP_ASSERT(nlist_18->getNListArray().getPitch() >= 192);
+        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 192);
         CHECK_EQUAL_UINT(h_head_list.data[17],176);
 
         for (unsigned int i=0; i < 18; ++i)
@@ -358,7 +358,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
                 for (unsigned int j=0; j < 14; ++j)
                     {
                     // not the ones far away
-                    UPP_ASSERT(h_nlist.data[j] != 3 && h_nlist.data[j] != 16 && h_nlist.data[j] != 17);
+                    UP_ASSERT(h_nlist.data[j] != 3 && h_nlist.data[j] != 16 && h_nlist.data[j] != 17);
                     }
                 }
             else if (i == 3 || i >= 16)
@@ -389,7 +389,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
 
         // 6x24 + 12x8 = 240
-        UPP_ASSERT(nlist_18->getNListArray().getPitch() >= 240);
+        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 240);
         CHECK_EQUAL_UINT(h_head_list.data[17],216);
 
         for (unsigned int i=0; i < 18; ++i)
@@ -400,7 +400,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
                 }
             else
                 {
-                UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[i], 7);
+                UP_ASSERT_EQUAL_UINT(h_n_neigh.data[i], 7);
                 }
             }
         }
@@ -422,7 +422,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
 
         // 18x24 = 432
-        UPP_ASSERT(nlist_18->getNListArray().getPitch() >= 432);
+        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 432);
         CHECK_EQUAL_UINT(h_head_list.data[17],408);
 
         for (unsigned int i=0; i < 18; ++i)
@@ -493,7 +493,7 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
             }
         }
 
@@ -534,7 +534,7 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
             }
         }
 
@@ -576,7 +576,7 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
             }
         }
 
@@ -633,7 +633,7 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
             }
         }
     }
@@ -674,35 +674,35 @@ void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_c
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
-//         UPP_ASSERT(nli.getW() >= 6);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
+//         UP_ASSERT(nli.getW() >= 6);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 1], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 1], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 1], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 1], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 2], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 5);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 5);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 2], 2);
@@ -745,39 +745,39 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
-//         UPP_ASSERT(nli.getW() >= 6);
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 5);
+//         UP_ASSERT(nli.getW() >= 6);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 5);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 1], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 2], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 3], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 4], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 1], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 2], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[3], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 1], 2);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 2], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 4);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[4], 4);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 2], 3);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 3], 5);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 5);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[5], 5);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 0], 0);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 2], 2);
@@ -833,20 +833,20 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_2->getHeadList(), access_location::host, access_mode::read);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[0], 2);
             {
             vector<unsigned int> nbrs(2, 0);
             nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
             nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
             sort(nbrs.begin(), nbrs.end());
             unsigned int check_nbrs[] = {1,2};
-            UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
             }
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
 
-        UPP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
+        UP_ASSERT_EQUAL_UINT(h_n_neigh.data[2], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 0);
         }
     }
@@ -899,8 +899,8 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        UPP_ASSERT_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
-        UPP_ASSERT_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
+        UP_ASSERT_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
+        UP_ASSERT_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
 
         tmp_list1.resize(h_n_neigh1.data[i]);
         tmp_list2.resize(h_n_neigh1.data[i]);
@@ -914,7 +914,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         sort(tmp_list1.begin(), tmp_list1.end());
         sort(tmp_list2.begin(), tmp_list2.end());
 
-        UPP_ASSERT_EQUAL_COLLECTIONS(tmp_list1.begin(), tmp_list1.end(), tmp_list2.begin(), tmp_list2.end());
+        UP_ASSERT_EQUAL_COLLECTIONS(tmp_list1.begin(), tmp_list1.end(), tmp_list2.begin(), tmp_list2.end());
         }
     }
 
@@ -1022,7 +1022,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         nbrs[1] = h_nlist.data[h_head_list.data[1] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {0,2};
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
         }
 
     // turn A-C on and B-C off with things very close to the < 0.0 criterion as a pathological case
@@ -1046,7 +1046,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {1,2};
-        UPP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
         }
     }
 
