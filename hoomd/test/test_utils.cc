@@ -14,7 +14,7 @@
 
 //! Name the unit test module
 UP_TEST(UtilityClassesTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant

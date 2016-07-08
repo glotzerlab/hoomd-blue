@@ -22,7 +22,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(MessengerTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 UP_TEST( Messenger_basic )
     {

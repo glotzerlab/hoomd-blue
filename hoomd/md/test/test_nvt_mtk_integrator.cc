@@ -35,7 +35,7 @@ using namespace boost;
 
 //! name the boost unit test module
 UP_TEST(NVTUpdaterTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 
 //! Typedef'd NVTUpdator class factory

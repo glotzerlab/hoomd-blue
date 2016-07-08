@@ -7,7 +7,7 @@
 
 //! Name the unit test module
 UP_TEST(rotmat2)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 #include <iostream>
 

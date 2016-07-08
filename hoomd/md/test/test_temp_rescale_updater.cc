@@ -23,7 +23,7 @@ using namespace boost;
 
 //! label the boost test module
 UP_TEST(TempRescaleUpdaterTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 
 /*! \file temp_rescale_updater_test.cc

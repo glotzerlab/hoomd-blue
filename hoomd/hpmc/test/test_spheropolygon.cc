@@ -3,7 +3,7 @@
 
 //! Name the unit test module
 UP_TEST(ShapeSpheropolygon)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"

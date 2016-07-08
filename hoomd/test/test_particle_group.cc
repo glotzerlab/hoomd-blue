@@ -22,7 +22,7 @@ using namespace boost;
 
 //! Name the boost unit test module
 UP_TEST(ParticleGroupTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 //! initializes the particle data used by the tests
 std::shared_ptr<SystemDefinition> create_sysdef()

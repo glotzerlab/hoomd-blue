@@ -9,7 +9,7 @@
 
 //! Name the unit test module
 UP_TEST(Index1D tests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 #include "hoomd/Index1D.h"
 

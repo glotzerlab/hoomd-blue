@@ -9,7 +9,7 @@
 
 //! Name the unit test module
 UP_TEST(SystemClassTest)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 #include <math.h>
 #include "hoomd/System.h"

@@ -34,7 +34,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairGBTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 typedef boost::function<std::shared_ptr<AnisoPotentialPairGB> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> gbforce_creator;

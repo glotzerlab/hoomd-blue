@@ -25,7 +25,7 @@ using namespace boost;
 
 //! Name the boost unit test module
 UP_TEST(ParticleDataTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 //! Perform some basic tests on the boxdim structure
 UP_TEST( BoxDim_basic_test )

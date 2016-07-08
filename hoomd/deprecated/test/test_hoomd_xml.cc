@@ -22,7 +22,7 @@ using namespace std;
 
 //! Name the unit test module
 UP_TEST(XMLReaderWriterTest)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader

@@ -32,7 +32,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PPPMTest)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef'd PPPMForceCompute factory
 

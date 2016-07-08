@@ -23,7 +23,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(CellListStencilTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 //! Test the cell list stencil as cell list, stencil radius, and box sizes change
 template <class CL>

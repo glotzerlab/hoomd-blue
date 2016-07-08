@@ -31,7 +31,7 @@ using namespace boost;
 
 //! name the boost unit test module
 UP_SUITE_BEGIN(Berendsen_UpdaterTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Apply the thermostat to 1000 particles in an ideal gas
 template <class Berendsen>

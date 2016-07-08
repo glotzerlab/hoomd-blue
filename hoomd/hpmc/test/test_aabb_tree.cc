@@ -1,6 +1,6 @@
 //! Name the unit test module
 UP_TEST(aabb_tree)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 #include "hoomd/AABBTree.h"
 
 #include <iostream>

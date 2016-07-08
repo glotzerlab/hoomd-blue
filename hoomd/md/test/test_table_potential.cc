@@ -19,7 +19,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(TablePotentialTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 /*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants

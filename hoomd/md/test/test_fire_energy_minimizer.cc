@@ -27,7 +27,7 @@ using namespace boost;
 
 //! name the boost unit test module
 UP_TEST(EnergyMinimizerTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef'd FIREEnergyMinimizer class factory
 typedef boost::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;

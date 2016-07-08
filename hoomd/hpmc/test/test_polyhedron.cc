@@ -5,7 +5,7 @@
 
 //! Name the unit test module
 UP_TEST(ShapePolyhedron)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 #include <iostream>
 #include <string>

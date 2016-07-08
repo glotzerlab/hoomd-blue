@@ -29,7 +29,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairEwaldTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef'd PotentialPairEwald factory
 typedef boost::function<std::shared_ptr<PotentialPairEwald> (std::shared_ptr<SystemDefinition> sysdef,

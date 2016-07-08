@@ -28,7 +28,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(GPUArrayTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 //! boost test case for testing the basic operation of GPUArray
 UP_TEST( GPUArray_basic_tests )

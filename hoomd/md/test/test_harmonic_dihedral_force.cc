@@ -26,7 +26,7 @@ using namespace boost;
 
 //! Name the boost unit test module
 UP_TEST(DihedralForceTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<HarmonicDihedralForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;

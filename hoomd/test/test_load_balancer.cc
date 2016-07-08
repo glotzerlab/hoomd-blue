@@ -8,7 +8,7 @@
 UP_TEST(LoadBalancerTests)
 
 // this has to be included after naming the test module
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 #include "hoomd/System.h"
 

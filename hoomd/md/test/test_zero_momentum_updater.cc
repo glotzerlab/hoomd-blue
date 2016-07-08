@@ -18,7 +18,7 @@ using namespace boost;
 
 //! label the boost test module
 UP_TEST(ZeroMomentumUpdaterTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class

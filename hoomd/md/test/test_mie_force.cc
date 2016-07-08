@@ -29,7 +29,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairMieTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef'd MieForceCompute factory
 typedef boost::function<std::shared_ptr<PotentialPairMie> (std::shared_ptr<SystemDefinition> sysdef,

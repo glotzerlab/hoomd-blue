@@ -29,7 +29,7 @@ using namespace boost;
 
 //! Name the unit test module
 UP_TEST(PotentialPairForceShiftedLJTests)
-#include "boost_utf_configure.h"
+#include "../../test/upp11_config.h"
 
 //! Typedef'd LJForceCompute factory
 typedef boost::function<std::shared_ptr<PotentialPairForceShiftedLJ> (std::shared_ptr<SystemDefinition> sysdef,

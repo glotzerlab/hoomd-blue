@@ -7,7 +7,7 @@
 
 //! label the boost test module
 UP_TEST(GridshiftCorrectionTests)
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
