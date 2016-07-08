@@ -34,7 +34,7 @@ using namespace boost;
 */
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE NVTUpdaterTests
+UP_TEST(NVTUpdaterTests)
 #include "boost_utf_configure.h"
 
 
@@ -178,11 +178,11 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
-        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
     avg_T /= n_measure_steps;
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T, T_tol);
     }
 
 void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
@@ -305,15 +305,15 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
-        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
     avg_T /= n_measure_steps;
     avg_T_trans /= n_measure_steps;
     avg_T_rot /= n_measure_steps;
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_trans, T_tol);
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T_trans, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
     }
 
 
@@ -396,17 +396,17 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
 
         }
@@ -416,32 +416,32 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTK
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_test )
+UP_TEST( TwoStepNVTMTK_basic_test )
     {
     test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTK
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_aniso_test )
+UP_TEST( TwoStepNVTMTK_basic_aniso_test )
     {
     test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 #ifdef ENABLE_CUDA
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_test )
+UP_TEST( TwoStepNVTMTKGPU_basic_test )
     {
     test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_aniso_test )
+UP_TEST( TwoStepNVTMTKGPU_basic_aniso_test )
     {
     test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_comparison_tests)
+UP_TEST( TwoStepNVTMTKGPU_comparison_tests)
     {
     twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4, _5);
     twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4, _5);

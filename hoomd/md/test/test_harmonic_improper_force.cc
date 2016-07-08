@@ -25,7 +25,7 @@ using namespace std;
 using namespace boost;
 
 //! Name the boost unit test module
-#define BOOST_TEST_MODULE ImproperForceTests
+UP_TEST(ImproperForceTests)
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
@@ -81,16 +81,16 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
     // check that the force is correct, it should be 0 since we haven't created any impropers yet
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+0], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[1*pitch+0], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[2*pitch+0], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[3*pitch+0], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[4*pitch+0], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[5*pitch+0], tol);
+    MY_CHECK_SMALL(h_force_1.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].w, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+0], tol);
+    MY_CHECK_SMALL(h_virial_1.data[1*pitch+0], tol);
+    MY_CHECK_SMALL(h_virial_1.data[2*pitch+0], tol);
+    MY_CHECK_SMALL(h_virial_1.data[3*pitch+0], tol);
+    MY_CHECK_SMALL(h_virial_1.data[4*pitch+0], tol);
+    MY_CHECK_SMALL(h_virial_1.data[5*pitch+0], tol);
     }
 
     // add an impropers and check again
@@ -112,35 +112,35 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 0.5*0.0246093274, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -0.5*0.178418, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -0.5*0.221484, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_2.data[0].x, 0.5*0.0246093274, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].y, -0.5*0.178418, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].z, -0.5*0.221484, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+0]
                         +h_virial_2.data[3*pitch+0]
                         +h_virial_2.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].x, 0.5*0.108934, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].y, 0.5*0.109425 , tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].z, 0.5*0.047247, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_2.data[1].x, 0.5*0.108934, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].y, 0.5*0.109425 , tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].z, 0.5*0.047247, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+1]
                         +h_virial_2.data[3*pitch+1]
                         +h_virial_2.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -0.5*0.092712, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].y, 0.5*0.068413, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].z, 0.5*0.144409, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_2.data[2].x, -0.5*0.092712, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].y, 0.5*0.068413, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].z, 0.5*0.144409, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+2]
                         +h_virial_2.data[3*pitch+2]
                         +h_virial_2.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].x, -0.5*0.040832, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].y, 0.5*0.000579173, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].z, 0.5*0.029827416, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_2.data[3].x, -0.5*0.040832, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].y, 0.5*0.000579173, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].z, 0.5*0.029827416, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+3]
                         +h_virial_2.data[3*pitch+3]
                         +h_virial_2.data[5*pitch+3], tol);
     }
@@ -175,19 +175,19 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, 0.5*0.0246093274, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.5*0.178418, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.5*0.221484, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, 0.5*0.0246093274, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].y, -0.5*0.178418, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].z, -0.5*0.221484, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 0.5*0.108934, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, 0.5*0.109425 , tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, 0.5*0.047247, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, 0.5*0.158927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_3.data[0].x, 0.5*0.108934, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].y, 0.5*0.109425 , tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].z, 0.5*0.047247, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].w, 0.5*0.158927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+0]
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
     }
@@ -239,35 +239,35 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
      Virial: 1 = -0.000001  2 = -0.000001  3 = -0.000001 4 = -0.000001
     */
 
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].y, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].z, 0.5*0.275672,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.5*0.412477, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+0]
+    MY_CHECK_SMALL(h_force_4.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_4.data[0].y, tol);
+    MY_CHECK_CLOSE(h_force_4.data[0].z, 0.5*0.275672,tol);
+    MY_CHECK_CLOSE(h_force_4.data[0].w, 0.5*0.412477, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+0]
                         +h_virial_4.data[3*pitch+0]
                         +h_virial_4.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.5*0.150230, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 0.5*0.070010,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].z, 0.5*0.148276,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.5*0.412477, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_4.data[1].x, -0.5*0.150230, tol);
+    MY_CHECK_CLOSE(h_force_4.data[1].y, 0.5*0.070010,tol);
+    MY_CHECK_CLOSE(h_force_4.data[1].z, 0.5*0.148276,tol);
+    MY_CHECK_CLOSE(h_force_4.data[1].w, 0.5*0.412477, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+1]
                         +h_virial_4.data[3*pitch+1]
                         +h_virial_4.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.5*0.272530,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.5*0.127004, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].z, -0.5*0.599490,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].w, 0.5*0.412477, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_4.data[2].x, 0.5*0.272530,tol);
+    MY_CHECK_CLOSE(h_force_4.data[2].y, -0.5*0.127004, tol);
+    MY_CHECK_CLOSE(h_force_4.data[2].z, -0.5*0.599490,tol);
+    MY_CHECK_CLOSE(h_force_4.data[2].w, 0.5*0.412477, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+2]
                         +h_virial_4.data[3*pitch+2]
                         +h_virial_4.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].x, -0.5*0.122300,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.5*0.056994, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, 0.5*0.175541,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].w, 0.5*0.412477, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_4.data[3].x, -0.5*0.122300,tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].y, 0.5*0.056994, tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].z, 0.5*0.175541,tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].w, 0.5*0.412477, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+3]
                         +h_virial_4.data[3*pitch+3]
                         +h_virial_4.data[5*pitch+3], tol);
 
@@ -284,35 +284,35 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
      Energy: 5 = 0.208441  6 = 0.208441  7 = 0.208441 8 = 0.208441
 
     */
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].x, -0.5*0.124166,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, 0.5*0.124166,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[4].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].w, 0.5*0.208441, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+4]
+    MY_CHECK_CLOSE(h_force_4.data[4].x, -0.5*0.124166,tol);
+    MY_CHECK_CLOSE(h_force_4.data[4].y, 0.5*0.124166,tol);
+    MY_CHECK_SMALL(h_force_4.data[4].z, tol);
+    MY_CHECK_CLOSE(h_force_4.data[4].w, 0.5*0.208441, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+4]
                         +h_virial_4.data[3*pitch+4]
                         +h_virial_4.data[5*pitch+4], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].x, -0.5*0.155688,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 0.5*0.155688,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].z, 0.5*0.599688,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.5*0.208441, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+5]
+    MY_CHECK_CLOSE(h_force_4.data[5].x, -0.5*0.155688,tol);
+    MY_CHECK_CLOSE(h_force_4.data[5].y, 0.5*0.155688,tol);
+    MY_CHECK_CLOSE(h_force_4.data[5].z, 0.5*0.599688,tol);
+    MY_CHECK_CLOSE(h_force_4.data[5].w, 0.5*0.208441, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+5]
                         +h_virial_4.data[3*pitch+5]
                         +h_virial_4.data[5*pitch+5], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[6].x, -0.5*0.279854,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[6].y, 0.5*0.279854,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[6].z, 0.5*0.599688,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[6].w, 0.5*0.208441, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+6]
+    MY_CHECK_CLOSE(h_force_4.data[6].x, -0.5*0.279854,tol);
+    MY_CHECK_CLOSE(h_force_4.data[6].y, 0.5*0.279854,tol);
+    MY_CHECK_CLOSE(h_force_4.data[6].z, 0.5*0.599688,tol);
+    MY_CHECK_CLOSE(h_force_4.data[6].w, 0.5*0.208441, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+6]
                         +h_virial_4.data[3*pitch+6]
                         +h_virial_4.data[5*pitch+6], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[7].x, 0.5*0.559709,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[7].y, -0.5*0.559709,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[7].z, -0.5*1.199376,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[7].w, 0.5*0.208441, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+7]
+    MY_CHECK_CLOSE(h_force_4.data[7].x, 0.5*0.559709,tol);
+    MY_CHECK_CLOSE(h_force_4.data[7].y, -0.5*0.559709,tol);
+    MY_CHECK_CLOSE(h_force_4.data[7].z, -0.5*1.199376,tol);
+    MY_CHECK_CLOSE(h_force_4.data[7].w, 0.5*0.208441, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*pitch+7]
                         +h_virial_4.data[3*pitch+7]
                         +h_virial_4.data[5*pitch+7], tol);
 
@@ -361,19 +361,19 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, 0.5*0.304428, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, 0.5*0.0141169504,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].z, -0.5*0.504949928,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.5*1.285859, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_5.data[0].x, 0.5*0.304428, tol);
+    MY_CHECK_CLOSE(h_force_5.data[0].y, 0.5*0.0141169504,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[0].z, -0.5*0.504949928,tol);
+    MY_CHECK_CLOSE(h_force_5.data[0].w, 0.5*1.285859, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*pitch+0]
                         +h_virial_5.data[3*pitch+0]
                         +h_virial_5.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, -0.5*0.00688943266, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, 0.5*0.013229,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].z, -0.5*0.274493,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.5*1.285859, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_5.data[1].x, -0.5*0.00688943266, loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[1].y, 0.5*0.013229,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[1].z, -0.5*0.274493,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[1].w, 0.5*1.285859, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*pitch+1]
                         +h_virial_5.data[3*pitch+1]
                         +h_virial_5.data[5*pitch+1], tol);
 
@@ -388,27 +388,27 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
      Energy: 5 = 0.397447
 
     */
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].x, -0.5*0.175244, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.5*0.158713,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].z, 0.5*0.622154,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].w, 0.5*0.888413, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_5.data[2].x, -0.5*0.175244, loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[2].y, -0.5*0.158713,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[2].z, 0.5*0.622154,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[2].w, 0.5*0.888413, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*pitch+2]
                         +h_virial_5.data[3*pitch+2]
                         +h_virial_5.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, -0.5*0.035541, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -0.5*0.035200,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].z, 0.5*0.134787,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.5*1.285859, loose_tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_5.data[3].x, -0.5*0.035541, loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[3].y, -0.5*0.035200,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[3].z, 0.5*0.134787,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[3].w, 0.5*1.285859, loose_tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*pitch+3]
                         +h_virial_5.data[3*pitch+3]
                         +h_virial_5.data[5*pitch+3], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[4].x, -0.5*0.086752, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[4].y, 0.5*0.166564,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[4].z, 0.5*0.022509,loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[4].w, 0.5*0.397447, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+4]
+    MY_CHECK_CLOSE(h_force_5.data[4].x, -0.5*0.086752, tol);
+    MY_CHECK_CLOSE(h_force_5.data[4].y, 0.5*0.166564,tol);
+    MY_CHECK_CLOSE(h_force_5.data[4].z, 0.5*0.022509,loose_tol);
+    MY_CHECK_CLOSE(h_force_5.data[4].w, 0.5*0.397447, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*pitch+4]
                         +h_virial_5.data[3*pitch+4]
                         +h_virial_5.data[5*pitch+4], tol);
     }
@@ -475,8 +475,8 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
         }
     deltaf2 /= double(sysdef->getParticleData()->getN());
     deltape2 /= double(sysdef->getParticleData()->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
     }
     }
 
@@ -495,24 +495,24 @@ std::shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(std::shared_ptr<Sys
 #endif
 
 //! boost test case for improper forces on the CPU
-BOOST_AUTO_TEST_CASE( HarmonicImproperForceCompute_basic )
+UP_TEST( HarmonicImproperForceCompute_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+    printf(" IN UP_TEST: CPU \n");
     improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
     improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! boost test case for improper forces on the GPU
-BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_basic )
+UP_TEST( HarmonicImproperForceComputeGPU_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+    printf(" IN UP_TEST: GPU \n");
     improperforce_creator tf_creator = bind(gpu_tf_creator, _1);
     improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
-BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_compare )
+UP_TEST( HarmonicImproperForceComputeGPU_compare )
     {
     improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     improperforce_creator tf_creator = bind(base_class_tf_creator, _1);

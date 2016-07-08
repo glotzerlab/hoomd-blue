@@ -30,7 +30,7 @@ using namespace boost;
 */
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE Berendsen_UpdaterTests
+UP_SUITE_BEGIN(Berendsen_UpdaterTests)
 #include "boost_utf_configure.h"
 
 //! Apply the thermostat to 1000 particles in an ideal gas
@@ -91,7 +91,7 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     AvgT /= Scalar(5000.0/10.0);
 
-    MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
+    MY_CHECK_CLOSE(AvgT, 2.0, 1);
 
     // Resetting the Temperature to 1.0
     two_step_berendsen->setT(T_variant2);
@@ -109,18 +109,18 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     AvgT /= Scalar(5000.0/10.0);
 
-    MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+    MY_CHECK_CLOSE(AvgT, 1.0, 1);
     }
 
 //! extended LJ-liquid test for the base class
-BOOST_AUTO_TEST_CASE( TwoStepBerendsen_LJ_tests )
+UP_TEST( TwoStepBerendsen_LJ_tests )
     {
     berend_updater_lj_tests<TwoStepBerendsen>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! extended LJ-liquid test for the GPU class
-BOOST_AUTO_TEST_CASE( TwoStepBerendsenGPU_LJ_tests )
+UP_TEST( TwoStepBerendsenGPU_LJ_tests )
     {
     berend_updater_lj_tests<TwoStepBerendsenGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }

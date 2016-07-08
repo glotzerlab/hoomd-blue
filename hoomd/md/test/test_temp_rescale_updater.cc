@@ -22,7 +22,7 @@ using namespace std;
 using namespace boost;
 
 //! label the boost test module
-#define BOOST_TEST_MODULE TempRescaleUpdaterTests
+UP_TEST(TempRescaleUpdaterTests)
 #include "boost_utf_configure.h"
 
 
@@ -32,7 +32,7 @@ using namespace boost;
 */
 
 //! boost test case to verify proper operation of ComputeThermo
-BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
+UP_TEST( ComputeThermo_basic )
     {
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
@@ -57,12 +57,12 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
-    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
+    MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
 
 #ifdef ENABLE_CUDA
 //! boost test case to verify proper operation of ComputeThermoGPU
-BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
+UP_TEST( ComputeThermoGPU_basic )
     {
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
@@ -86,12 +86,12 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
-    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
+    MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
 #endif
 
 //! boost test case to verify proper operation of TempRescaleUpdater
-BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
+UP_TEST( TempRescaleUpdater_basic )
     {
     // create a simple particle data to test with
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
@@ -121,13 +121,13 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     // run the updater and check the new temperature
     rescaler->update(0);
     tc->compute(1);
-    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
+    MY_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
 
     // check that the setT method works
     std::shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
     rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);
-    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 2.0, tol);
+    MY_CHECK_CLOSE(tc->getTemperature(), 2.0, tol);
     }
 

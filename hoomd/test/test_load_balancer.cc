@@ -5,7 +5,7 @@
 #ifdef ENABLE_MPI
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE LoadBalancerTests
+UP_TEST(LoadBalancerTests)
 
 // this has to be included after naming the test module
 #include "boost_utf_configure.h"
@@ -35,7 +35,7 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UPP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
@@ -82,14 +82,14 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // migrate atoms
     comm->migrateParticles();
     const Index3D& di = decomposition->getDomainIndexer();
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
 
     // adjust the domain boundaries
     for (unsigned int t=0; t < 10; ++t)
@@ -98,15 +98,15 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
         }
 
     // each rank should own one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(0,1,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(0,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(0,0,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(1,1,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(1,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(0,1,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(0,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(0,0,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(1,1,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(1,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(1,0,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
 
     // flip the particle signs and see if the domains can realign correctly
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.25,0.25,-0.25)),false);
@@ -124,15 +124,15 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
         lb->update(t);
         }
     // each rank should own one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(1,0,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(1,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(1,1,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(0,0,0));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(0,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(0,1,0));
+    UPP_ASSERT_EQUAL(pdata->getN(), 1);
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(1,0,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(1,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(1,1,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(0,0,0));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(0,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(0,1,0));
     }
 
 template<class LB>
@@ -141,7 +141,7 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UPP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
@@ -188,14 +188,14 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // migrate atoms and check placement
     comm->migrateParticles();
     const Index3D& di = decomposition->getDomainIndexer();
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(0,0,2));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(0,0,2));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(0,0,3));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(0,0,3));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(0,0,3));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(0,0,2));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(0,0,2));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(0,0,3));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(0,0,3));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(0,0,3));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
 
     // balance particles along z only
     lb->update(0);
@@ -203,49 +203,49 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
         uint3 grid_pos = decomposition->getGridPos();
         if (grid_pos.y == 0)
             {
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UPP_ASSERT_EQUAL(pdata->getN(), 2);
             }
         else
             {
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            UPP_ASSERT_EQUAL(pdata->getN(), 0);
             }
 
         // check that fractional cuts lie in the right ranges
         vector<Scalar> frac_y = decomposition->getCumulativeFractions(1);
-        MY_BOOST_CHECK_CLOSE(frac_y[1], 0.5, tol);
+        MY_CHECK_CLOSE(frac_y[1], 0.5, tol);
         vector<Scalar> frac_z = decomposition->getCumulativeFractions(2);
-        BOOST_CHECK(frac_z[1] > 0.3 && frac_z[1] <= 0.6);
-        BOOST_CHECK(frac_z[2] > 0.6 && frac_z[2] <= 0.775);
-        BOOST_CHECK(frac_z[3] > 0.775 && frac_z[3] <= 0.95);
+        UPP_ASSERT(frac_z[1] > 0.3 && frac_z[1] <= 0.6);
+        UPP_ASSERT(frac_z[2] > 0.6 && frac_z[2] <= 0.775);
+        UPP_ASSERT(frac_z[3] > 0.775 && frac_z[3] <= 0.95);
 
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(0,0,0));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(0,0,0));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(0,0,1));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(0,0,2));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(0,0,2));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(0,0,3));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(0,0,0));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(0,0,0));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(0,0,1));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(0,0,2));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(0,0,2));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(0,0,3));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
         }
 
     // turn on balancing along y and check that this balances now
     lb->enableDimension(1, true);
     lb->update(10);
         {
-        BOOST_CHECK_EQUAL(pdata->getN(), 1);
+        UPP_ASSERT_EQUAL(pdata->getN(), 1);
 
         // check that fractional cuts lie in the right ranges
         vector<Scalar> frac_y = decomposition->getCumulativeFractions(1);
-        BOOST_CHECK(frac_y[1] > 0.4 && frac_y[1] <= 0.45);
+        UPP_ASSERT(frac_y[1] > 0.4 && frac_y[1] <= 0.45);
 
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(0,1,0));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(0,0,0));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(0,1,1));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(0,1,2));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(0,0,2));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(0,1,3));
-        BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(0,1,0));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(0,0,0));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(0,1,1));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(0,1,2));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(0,0,2));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(0,1,3));
+        UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(0,0,3));
         }
     }
 
@@ -276,7 +276,7 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UPP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
     BoxDim ref_box = BoxDim(2.0);
@@ -322,14 +322,14 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
     // migrate atoms and check placement
     comm->migrateParticles();
     const Index3D& di = decomposition->getDomainIndexer();
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
 
     // add a ghost layer subscriber and exchange ghosts
     ghost_layer_width_request g(Scalar(0.05));
@@ -345,24 +345,24 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
     uint3 grid_pos = decomposition->getGridPos();
     if (grid_pos.z == 1) // top layer has 2 each because (x,y) balanced out
         {
-        BOOST_CHECK_EQUAL(pdata->getN(), 2);
+        UPP_ASSERT_EQUAL(pdata->getN(), 2);
         }
     else // bottom layer has none
         {
-        BOOST_CHECK_EQUAL(pdata->getN(), 0);
+        UPP_ASSERT_EQUAL(pdata->getN(), 0);
         }
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), di(0,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), di(0,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), di(1,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), di(1,1,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(0), di(0,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(1), di(0,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(2), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(3), di(0,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(4), di(1,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(5), di(1,1,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(6), di(1,0,1));
+    UPP_ASSERT_EQUAL(pdata->getOwnerRank(7), di(1,0,1));
     }
 
 //! Tests basic particle redistribution
-BOOST_AUTO_TEST_CASE( LoadBalancer_test_basic )
+UP_TEST( LoadBalancer_test_basic )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -374,7 +374,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_basic )
     }
 
 //! Tests particle redistribution with multiple domains and specific directions
-BOOST_AUTO_TEST_CASE( LoadBalancer_test_multi )
+UP_TEST( LoadBalancer_test_multi )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_multi )
     }
 
 //! Tests particle redistribution with ghost layer width minimum
-BOOST_AUTO_TEST_CASE( LoadBalancer_test_ghost )
+UP_TEST( LoadBalancer_test_ghost )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancer_test_ghost )
 
 #ifdef ENABLE_CUDA
 //! Tests basic particle redistribution on the GPU
-BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_basic )
+UP_TEST( LoadBalancerGPU_test_basic )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_basic )
     }
 
 //! Tests particle redistribution with multiple domains and specific directions on the GPU
-BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_multi )
+UP_TEST( LoadBalancerGPU_test_multi )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
@@ -423,7 +423,7 @@ BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_multi )
     }
 
 //! Tests particle redistribution with ghost layer width minimum
-BOOST_AUTO_TEST_CASE( LoadBalancerGPU_test_ghost )
+UP_TEST( LoadBalancerGPU_test_ghost )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box

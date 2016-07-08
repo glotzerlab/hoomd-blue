@@ -27,7 +27,7 @@ using namespace boost;
 */
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE PotentialExternalPeriodicTests
+UP_TEST(PotentialExternalPeriodicTests)
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
@@ -67,28 +67,28 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator, std::s
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -0.180137, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.0338307, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -0.180137, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, -0.0338307, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+0]
                         +h_virial_1.data[3*pitch+0]
                         +h_virial_1.data[5*pitch+0], tol_small);
 
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, 0.189752, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.024571, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_1.data[1].x, 0.189752, tol);
+    MY_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, -0.024571, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+1]
                         +h_virial_1.data[3*pitch+1]
                         +h_virial_1.data[5*pitch+1], tol_small);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 0.115629, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, -0.0640261, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_1.data[2].x, 0.115629, tol);
+    MY_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[2].w, -0.0640261, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+2]
                         +h_virial_1.data[3*pitch+2]
                         +h_virial_1.data[5*pitch+2], tol_small);
     }
@@ -153,14 +153,14 @@ void periodic_force_comparison_test(periodicforce_creator periodic_creator1, per
     deltape2 /= double(pdata->getN());
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] /= double(pdata->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 #endif
@@ -183,7 +183,7 @@ std::shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(std::shared_ptr<
 #endif
 
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( PotentialExternalPeriodic_particle )
+UP_TEST( PotentialExternalPeriodic_particle )
     {
     periodicforce_creator periodic_creator_base = bind(base_class_periodic_creator, _1);
     periodic_force_particle_test(periodic_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE( PotentialExternalPeriodic_particle )
 
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( PotentialExternalLamellaGPU_particle )
+UP_TEST( PotentialExternalLamellaGPU_particle )
     {
     periodicforce_creator periodic_creator_gpu = bind(gpu_periodic_creator, _1);
     periodic_force_particle_test(periodic_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE( PotentialExternalLamellaGPU_particle )
 
 /*
 //! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
+UP_TEST( LJForceGPU_compare )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);

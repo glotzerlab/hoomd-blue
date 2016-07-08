@@ -5,7 +5,7 @@
 #ifdef ENABLE_MPI
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE CommunicatorGridTests
+UP_TEST(CommunicatorGridTests)
 
 #include <boost/test/unit_test.hpp>
 
@@ -108,9 +108,9 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                         {
                         // check inner ghost cells
                         if (x == 1 || x == nx-2 || y == 1 || y==ny-2 || z ==1 || z==nz-2)
-                            BOOST_CHECK_EQUAL(val, rank);
+                            UPP_ASSERT_EQUAL(val, rank);
                         else
-                            BOOST_CHECK_EQUAL(val,0);
+                            UPP_ASSERT_EQUAL(val,0);
 
                         continue;
                         }
@@ -134,7 +134,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                         grid_idx.z +=(int) didx.getD();
 
                     unsigned int neighbor_rank = didx(grid_idx.x,grid_idx.y,grid_idx.z);
-                    BOOST_CHECK_EQUAL(val, neighbor_rank);
+                    UPP_ASSERT_EQUAL(val, neighbor_rank);
                     }
         } //end ArrayHandle scope
 
@@ -221,7 +221,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                     // inner cells
                     if (! count.x && ! count.y && ! count.z)
                         {
-                        BOOST_CHECK_EQUAL(val,0);
+                        UPP_ASSERT_EQUAL(val,0);
                         continue;
                         }
 
@@ -237,7 +237,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                                     sum += didx(grid_idx_2.x,grid_idx_2.y,grid_idx_2.z);
                                 }
 
-                    BOOST_CHECK_EQUAL(val, sum);
+                    UPP_ASSERT_EQUAL(val, sum);
                     }
         } //end ArrayHandle scope
 
@@ -318,20 +318,20 @@ void test_communicate_grid_positions(std::shared_ptr<ExecutionConfiguration> exe
 
                     unsigned int compare_val = compare_xyz.x +
                         embed.x * (compare_xyz.y + embed.y*compare_xyz.z);
-                    BOOST_CHECK_EQUAL(compare_val, val);
+                    UPP_ASSERT_EQUAL(compare_val, val);
                     }
         }
     }
 
 //! Basic ghost grid exchange test
-BOOST_AUTO_TEST_CASE( CommunicateGrid_test_basic )
+UP_TEST( CommunicateGrid_test_basic )
     {
     test_communicate_grid_basic<CommunicatorGrid<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Ghost grid exchange positions test
-BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions )
+UP_TEST( CommunicateGrid_test_positions )
     {
     test_communicate_grid_positions<CommunicatorGrid<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -340,14 +340,14 @@ BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions )
 
 #ifdef ENABLE_CUDA
 //! Basic ghost grid exchange test on GPU
-BOOST_AUTO_TEST_CASE( CommunicateGrid_test_basic_GPU )
+UP_TEST( CommunicateGrid_test_basic_GPU )
     {
     test_communicate_grid_basic<CommunicatorGridGPU<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Ghost grid exchange positions test on GPU
-BOOST_AUTO_TEST_CASE( CommunicateGrid_test_positions_GPU )
+UP_TEST( CommunicateGrid_test_positions_GPU )
     {
     test_communicate_grid_positions<CommunicatorGridGPU<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

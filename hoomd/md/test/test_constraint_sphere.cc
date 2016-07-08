@@ -29,7 +29,7 @@ using namespace boost;
 */
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE ConstraintSphereTests
+UP_TEST(ConstraintSphereTests)
 #include "boost_utf_configure.h"
 
 //! Typedef'd class factory
@@ -91,7 +91,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
             V.z = pos.z - P.z;
 
             Scalar current_r = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
-            MY_BOOST_CHECK_CLOSE(current_r, r, loose_tol);
+            MY_CHECK_CLOSE(current_r, r, loose_tol);
             }
 
         }
@@ -119,7 +119,7 @@ std::shared_ptr<ConstraintSphere> gpu_cs_creator(std::shared_ptr<SystemDefinitio
 #endif
 
 //! Basic test for the base class
-BOOST_AUTO_TEST_CASE( BDUpdater_tests )
+UP_TEST( BDUpdater_tests )
     {
     cs_creator_t cs_creator = bind(base_class_cs_creator, _1, _2, _3, _4);
     constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 
 #ifdef ENABLE_CUDA
 //! Basic test for the GPU class
-BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
+UP_TEST( BDUpdaterGPU_tests )
     {
     cs_creator_t cs_creator = bind(gpu_cs_creator, _1, _2, _3, _4);
     constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

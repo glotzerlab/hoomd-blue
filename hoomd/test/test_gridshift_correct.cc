@@ -6,7 +6,7 @@
 #include "hoomd/ExecutionConfiguration.h"
 
 //! label the boost test module
-#define BOOST_TEST_MODULE GridshiftCorrectionTests
+UP_TEST(GridshiftCorrectionTests)
 #include "boost_utf_configure.h"
 
 #include "hoomd/HOOMDMath.h"
@@ -24,7 +24,7 @@
 */
 
 //! boost test case to verify proper operation of ZeroMomentumUpdater
-BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
+UP_TEST( ParticleDataGridShiftGetMethods )
     {
     // create a simple particle data to test with
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
@@ -58,22 +58,22 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
 
     // check that the particle positions are still the original ones
     Scalar3 pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
 
     // compute a shift that will shift the image of the box
     Scalar3 shift_img = make_scalar3(10.5,10.125,10.75);
@@ -95,25 +95,25 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
 
     // check that the particle positions are still the original ones
     pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     pimg = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
     }
 
-BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
+UP_TEST( ParticleDataGridShiftSetMethods )
     {
     // create a simple particle data to test with
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
@@ -147,22 +147,22 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
 
     // check that the particle positions are still the original ones
     Scalar3 pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
-    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
     pimg = pdata->getImage(1);
-    BOOST_CHECK_EQUAL(pimg.x, 0);
-    BOOST_CHECK_EQUAL(pimg.y, 0);
-    BOOST_CHECK_EQUAL(pimg.z, 0);
+    UPP_ASSERT_EQUAL(pimg.x, 0);
+    UPP_ASSERT_EQUAL(pimg.y, 0);
+    UPP_ASSERT_EQUAL(pimg.z, 0);
 
 
     //OK, now we set the positions using the particle data proxy
@@ -172,14 +172,14 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
     pdata->setPosition(1,new_pos1);
 
     Scalar3 ret_pos0 = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(ret_pos0.x-new_pos0.x, tol_small);
-    MY_BOOST_CHECK_SMALL(ret_pos0.y-new_pos0.y, tol_small);
-    MY_BOOST_CHECK_SMALL(ret_pos0.z-new_pos0.z, tol_small);
+    MY_CHECK_SMALL(ret_pos0.x-new_pos0.x, tol_small);
+    MY_CHECK_SMALL(ret_pos0.y-new_pos0.y, tol_small);
+    MY_CHECK_SMALL(ret_pos0.z-new_pos0.z, tol_small);
 
     Scalar3 ret_pos1 = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(ret_pos1.x-new_pos1.x, tol_small);
-    MY_BOOST_CHECK_SMALL(ret_pos1.y-new_pos1.y, tol_small);
-    MY_BOOST_CHECK_SMALL(ret_pos1.z-new_pos1.z, tol_small);
+    MY_CHECK_SMALL(ret_pos1.x-new_pos1.x, tol_small);
+    MY_CHECK_SMALL(ret_pos1.y-new_pos1.y, tol_small);
+    MY_CHECK_SMALL(ret_pos1.z-new_pos1.z, tol_small);
 
     //OK, now do the same with the images
     int3 new_img0 = make_int3(1,-5,7);
@@ -188,12 +188,12 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
     pdata->setImage(1,new_img1);
 
     int3 ret_img0 = pdata->getImage(0);
-    BOOST_CHECK_EQUAL(ret_img0.x-new_img0.x, 0);
-    BOOST_CHECK_EQUAL(ret_img0.y-new_img0.y, 0);
-    BOOST_CHECK_EQUAL(ret_img0.z-new_img0.z, 0);
+    UPP_ASSERT_EQUAL(ret_img0.x-new_img0.x, 0);
+    UPP_ASSERT_EQUAL(ret_img0.y-new_img0.y, 0);
+    UPP_ASSERT_EQUAL(ret_img0.z-new_img0.z, 0);
 
     int3 ret_img1 = pdata->getImage(1);
-    BOOST_CHECK_EQUAL(ret_img1.x-new_img1.x, 0);
-    BOOST_CHECK_EQUAL(ret_img1.y-new_img1.y, 0);
-    BOOST_CHECK_EQUAL(ret_img1.z-new_img1.z, 0);
+    UPP_ASSERT_EQUAL(ret_img1.x-new_img1.x, 0);
+    UPP_ASSERT_EQUAL(ret_img1.y-new_img1.y, 0);
+    UPP_ASSERT_EQUAL(ret_img1.z-new_img1.z, 0);
     }

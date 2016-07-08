@@ -44,7 +44,7 @@ using namespace boost;
 */
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE TwoStepNPTMTKTests
+UP_TEST(TwoStepNPTMTKTests)
 #include "boost_utf_configure.h"
 
 typedef struct
@@ -259,7 +259,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
                 thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
-                MY_BOOST_CHECK_CLOSE(H_ref,H,H_tol);
+                MY_CHECK_CLOSE(H_ref,H,H_tol);
 
                 /*
                 box = pdata->getBox();
@@ -278,7 +278,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
-        MY_BOOST_CHECK_CLOSE(H_ref,H_final,H_tol);
+        MY_CHECK_CLOSE(H_ref,H_final,H_tol);
 
         avrPxx /= Scalar(count);
         avrPxy /= Scalar(count);
@@ -290,28 +290,28 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
         Scalar rough_tol = 2.0;
         if (i_mode == 0) // cubic
-            MY_BOOST_CHECK_CLOSE(avrP, P, rough_tol);
+            MY_CHECK_CLOSE(avrP, P, rough_tol);
         else if (i_mode == 1) // orthorhombic
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_CHECK_CLOSE(avrPzz, P, rough_tol);
             }
         else if (i_mode == 2) // tetragonal
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
             }
        else if (mode == 3) // triclinic
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPxy,rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPxz,rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPyz,rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_CHECK_CLOSE(avrPzz, P, rough_tol);
+            MY_CHECK_SMALL(avrPxy,rough_tol);
+            MY_CHECK_SMALL(avrPxz,rough_tol);
+            MY_CHECK_SMALL(avrPyz,rough_tol);
             }
-        MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
+        MY_CHECK_CLOSE(T0, avrT, rough_tol);
         offs+=timestep;
         }
     }
@@ -503,14 +503,14 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
-    MY_BOOST_CHECK_CLOSE(H_ref,H_final,tol);
+    MY_CHECK_CLOSE(H_ref,H_final,tol);
 
     avrPxx /= Scalar(count);
     avrPyy /= Scalar(count);
     avrPzz /= Scalar(count);
     Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
     Scalar rough_tol = 2.0;
-    MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
+    MY_CHECK_CLOSE(P, avrP, rough_tol);
     }
 
 //! Basic functionality test of a generic TwoStepNPTMTK for anisotropic pair potential
@@ -735,7 +735,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P*volume << std::endl;
                 std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy << " rot KE: " << rotational_ke << std::endl;
-                MY_BOOST_CHECK_CLOSE(H_ref,H,H_tol);
+                MY_CHECK_CLOSE(H_ref,H,H_tol);
 
                 /*
                 box = pdata->getBox();
@@ -754,7 +754,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
-        MY_BOOST_CHECK_CLOSE(H_ref,H_final,H_tol);
+        MY_CHECK_CLOSE(H_ref,H_final,H_tol);
 
         avrPxx /= Scalar(count);
         avrPxy /= Scalar(count);
@@ -766,28 +766,28 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
         Scalar rough_tol = 5.0;
         if (i_mode == 0) // cubic
-            MY_BOOST_CHECK_CLOSE(avrP, P, rough_tol);
+            MY_CHECK_CLOSE(avrP, P, rough_tol);
         else if (i_mode == 1) // orthorhombic
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_CHECK_CLOSE(avrPzz, P, rough_tol);
             }
         else if (i_mode == 2) // tetragonal
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
             }
        else if (mode == 3) // triclinic
             {
-            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
-            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPxy,rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPxz,rough_tol);
-            MY_BOOST_CHECK_SMALL(avrPyz,rough_tol);
+            MY_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_CHECK_CLOSE(avrPzz, P, rough_tol);
+            MY_CHECK_SMALL(avrPxy,rough_tol);
+            MY_CHECK_SMALL(avrPxz,rough_tol);
+            MY_CHECK_SMALL(avrPyz,rough_tol);
             }
-        MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
+        MY_CHECK_CLOSE(T0, avrT, rough_tol);
         offs+=timestep;
         }
     }
@@ -849,7 +849,7 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
 #endif
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
+UP_TEST( TwoStepNPTMTK_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
@@ -857,7 +857,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
     }
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_aniso )
+UP_TEST( TwoStepNPTMTK_aniso )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
@@ -865,7 +865,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_aniso )
     }
 
 //! boost test case for NPH integration
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_cubic_NPH )
+UP_TEST( TwoStepNPTMTK_cubic_NPH )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_nph_creator, _1);
     nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -873,20 +873,20 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_cubic_NPH )
 
 #ifdef ENABLE_CUDA
 //! boost test case for GPU integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_tests )
+UP_TEST( TwoStepNPTMTKGPU_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);
     npt_mtk_updater_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for GPU integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_aniso )
+UP_TEST( TwoStepNPTMTKGPU_aniso )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);
     npt_mtk_updater_aniso(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_cubic_NPH)
+UP_TEST( TwoStepNPTMTKGPU_cubic_NPH)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_nph_creator, _1);
     nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

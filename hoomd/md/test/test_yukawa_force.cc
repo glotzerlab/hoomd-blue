@@ -28,7 +28,7 @@ using namespace boost;
 */
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairYukawaTests
+UP_TEST(PotentialPairYukawaTests)
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairYukawa factory
@@ -74,27 +74,27 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -1.009813410413, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.63113338150813/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -1.009813410413, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, 0.63113338150813/2.0, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
                                        +h_virial_1.data[3*pitch+0]
                                        +h_virial_1.data[5*pitch+0]), 0.16830223506884, tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.63113338150813, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
+    MY_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, 0.63113338150813, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
                                        +h_virial_1.data[3*pitch+1]
                                        +h_virial_1.data[5*pitch+1]), 2.0* 0.16830223506884, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 1.009813410413, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.63113338150813/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_1.data[2].x, 1.009813410413, tol);
+    MY_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[2].w, 0.63113338150813/2.0, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+2]
                                        +h_virial_1.data[3*pitch+2]
                                        +h_virial_1.data[5*pitch+2]), 0.16830223506884, tol);
     }
@@ -124,8 +124,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 1.009813410413, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -1.009813410413, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].x, 1.009813410413, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].x, -1.009813410413, tol);
     }
     }
 
@@ -197,14 +197,14 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] /= double(pdata->getN());
 
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
@@ -227,7 +227,7 @@ std::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(std::shared_ptr<Syste
 #endif
 
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( YukawaForce_particle )
+UP_TEST( YukawaForce_particle )
     {
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
     yukawa_force_particle_test(yukawa_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -235,14 +235,14 @@ BOOST_AUTO_TEST_CASE( YukawaForce_particle )
 
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( YukawaForceGPU_particle )
+UP_TEST( YukawaForceGPU_particle )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
     yukawa_force_particle_test(yukawa_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( YukawaForceGPU_compare )
+UP_TEST( YukawaForceGPU_compare )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);

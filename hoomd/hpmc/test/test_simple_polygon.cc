@@ -5,7 +5,7 @@
 #include "hoomd/hpmc/ShapeSimplePolygon.h"
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE ShapeSimplePolygon
+UP_TEST(ShapeSimplePolygon)
 #include "boost_utf_configure.h"
 
 #include <iostream>
@@ -90,7 +90,7 @@ poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist)
 //////////// Convex tests
 // The tests below are copied and pasted from the convex tests, the simple polygon test should pass all of them
 
-BOOST_AUTO_TEST_CASE( construction )
+UP_TEST( construction )
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
@@ -102,24 +102,24 @@ BOOST_AUTO_TEST_CASE( construction )
 
     ShapeSimplePolygon a(o, verts);
 
-    MY_BOOST_CHECK_CLOSE(a.orientation.s, o.s, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
+    MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
+    MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
+    MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
+    MY_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
 
-    BOOST_REQUIRE_EQUAL(a.verts.N, verts.N);
+    UPP_ASSERT_EQUAL(a.verts.N, verts.N);
     for (unsigned int i = 0; i < verts.N; i++)
         {
-        MY_BOOST_CHECK_CLOSE(a.verts.x[i], verts.x[i], tol);
-        MY_BOOST_CHECK_CLOSE(a.verts.y[i], verts.y[i], tol);
+        MY_CHECK_CLOSE(a.verts.x[i], verts.x[i], tol);
+        MY_CHECK_CLOSE(a.verts.y[i], verts.y[i], tol);
         }
 
-    BOOST_CHECK(a.hasOrientation());
+    UPP_ASSERT(a.hasOrientation());
 
-    MY_BOOST_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
+    MY_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
     }
 
-BOOST_AUTO_TEST_CASE( overlap_square_no_rot )
+UP_TEST( overlap_square_no_rot )
     {
     // first set of simple overlap checks is two squares at unit orientation
     vec3<Scalar> r_ij;
@@ -139,63 +139,63 @@ BOOST_AUTO_TEST_CASE( overlap_square_no_rot )
     // first test, separate squares by a large distance
     ShapeSimplePolygon b(o, verts);
     r_ij = vec3<Scalar>(10,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // next test, set them close, but not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.1,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.1,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,1.1,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,-1.1,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // now test them close, but slightly offset and not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.1,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.1,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,1.1,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.1,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // and finally, make them overlap slightly in each direction
     r_ij = vec3<Scalar>(0.9,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.9,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,0.9,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-0.9,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
 
 
-BOOST_AUTO_TEST_CASE( overlap_square_rot1 )
+UP_TEST( overlap_square_rot1 )
     {
     // second set of simple overlap checks is two squares, with one rotated by 45 degrees
     vec3<Scalar> r_ij;
@@ -218,62 +218,62 @@ BOOST_AUTO_TEST_CASE( overlap_square_rot1 )
     // first test, separate squares by a large distance
     ShapeSimplePolygon b(o_b, verts);
     r_ij = vec3<Scalar>(10,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // next test, set them close, but not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,-1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // now test them close, but slightly offset and not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.3,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.3,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // and finally, make them overlap slightly in each direction
     r_ij = vec3<Scalar>(1.2,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.2,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,1.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_square_rot2 )
+UP_TEST( overlap_square_rot2 )
     {
     // third set of simple overlap checks is two squares, with the other one rotated by 45 degrees
     vec3<Scalar> r_ij;
@@ -296,62 +296,62 @@ BOOST_AUTO_TEST_CASE( overlap_square_rot2 )
     // first test, separate squares by a large distance
     ShapeSimplePolygon b(o_a, verts);
     r_ij = vec3<Scalar>(10,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // next test, set them close, but not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,-1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // now test them close, but slightly offset and not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.3,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.3,0.2,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // and finally, make them overlap slightly in each direction
     r_ij = vec3<Scalar>(1.2,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.2,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,1.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_square_tri )
+UP_TEST( overlap_square_tri )
     {
     // and now a more complicated test, a square and a triangle - both rotated
     vec3<Scalar> r_ij;
@@ -381,46 +381,46 @@ BOOST_AUTO_TEST_CASE( overlap_square_tri )
     // first test, separate squares by a large distance
     ShapeSimplePolygon b(o_b, verts_b);
     r_ij = vec3<Scalar>(10,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // next test, set them close, but not overlapping - from all four sides
     r_ij = vec3<Scalar>(1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-1.3,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0,-1.3,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // and finally, make them overlap slightly in each direction
     r_ij = vec3<Scalar>(1.2,0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.7,-0.2,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(0.4,1.1,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     r_ij = vec3<Scalar>(-0.2,-1.2,0);
     //write_two_polys("test.gle", a, b);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_concave_norot )
+UP_TEST( overlap_concave_norot )
     {
     // test two concave darts
     vec3<Scalar> r_ij;
@@ -444,28 +444,28 @@ BOOST_AUTO_TEST_CASE( overlap_concave_norot )
     // first test, one shape inside the concavity in the other, but not overlapping
     ShapeSimplePolygon b(o_b, verts_a);
     r_ij = vec3<Scalar>(0.6,0,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // now set them to just overlap
     // this tests the vertex in object test
     r_ij = vec3<Scalar>(0.49,0,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     // move so one is under the other
     r_ij = vec3<Scalar>(0,1.1,0);
-    BOOST_CHECK(!test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(!test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
 
     // adjust so that the wings overlap without any vertices inside either the other shape
     // this tests the edge edge checks
     r_ij = vec3<Scalar>(0,0.9,0);
-    BOOST_CHECK(test_overlap(r_ij,a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij,b,a,err_count));
+    UPP_ASSERT(test_overlap(r_ij,a,b,err_count));
+    UPP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( no_overlap_bug )
+UP_TEST( no_overlap_bug )
     {
     // exhibit bug
     vec3<Scalar> r_ij;
@@ -518,11 +518,11 @@ BOOST_AUTO_TEST_CASE( no_overlap_bug )
     cout << o_j.s << ' ' << o_j.v.x << ' ' << o_j.v.y << ' ' << o_j.v.z << '\n';
     cout << "eof\n";
 
-    BOOST_CHECK(!test_overlap(r_ij, i, j, err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, j, i, err_count));
+    UPP_ASSERT(!test_overlap(r_ij, i, j, err_count));
+    UPP_ASSERT(!test_overlap(-r_ij, j, i, err_count));
     }
 
-BOOST_AUTO_TEST_CASE( no_overlap_bug2 )
+UP_TEST( no_overlap_bug2 )
     {
     // exhibit bug
     vec3<Scalar> r_ij;
@@ -572,12 +572,12 @@ BOOST_AUTO_TEST_CASE( no_overlap_bug2 )
     cout << o_j.s << ' ' << o_j.v.x << ' ' << o_j.v.y << ' ' << o_j.v.z << '\n';
     cout << "eof\n";
 
-    BOOST_CHECK(!test_overlap(r_ij, i, j, err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, j, i, err_count));
+    UPP_ASSERT(!test_overlap(r_ij, i, j, err_count));
+    UPP_ASSERT(!test_overlap(-r_ij, j, i, err_count));
     }
 
 
-BOOST_AUTO_TEST_CASE( no_overlap_bug3 )
+UP_TEST( no_overlap_bug3 )
     {
     // exhibit bug
     vec3<Scalar> r_ij;
@@ -627,12 +627,12 @@ BOOST_AUTO_TEST_CASE( no_overlap_bug3 )
     cout << o_j.s << ' ' << o_j.v.x << ' ' << o_j.v.y << ' ' << o_j.v.z << '\n';
     cout << "eof\n";
 
-    BOOST_CHECK(!test_overlap(r_ij, i, j, err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, j, i, err_count));
+    UPP_ASSERT(!test_overlap(r_ij, i, j, err_count));
+    UPP_ASSERT(!test_overlap(-r_ij, j, i, err_count));
     }
 
 
-/*BOOST_AUTO_TEST_CASE( visual )
+/*UP_TEST( visual )
     {
     // place these randomly and draw them with GLE colored red if they overlap
     BoxDim box(100);

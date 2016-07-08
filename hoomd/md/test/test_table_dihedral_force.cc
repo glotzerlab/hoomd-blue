@@ -25,7 +25,7 @@ using namespace std;
 using namespace boost;
 
 //! Name the boost unit test module
-#define BOOST_TEST_MODULE DihedralForceTests
+UP_TEST(DihedralForceTests)
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
@@ -80,16 +80,16 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
     // check that the force is correct, it should be 0 since we haven't created any dihedrals yet
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[1*pitch], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[2*pitch], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[3*pitch], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[4*pitch], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[5*pitch], tol);
+    MY_CHECK_SMALL(h_force_1.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].w, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[1*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[2*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[3*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[4*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[5*pitch], tol);
     }
 
     // add an dihedrals and check again
@@ -103,35 +103,35 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -115.167, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, 172.75, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_2.data[0].x, -115.167, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].z, 172.75, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+0]
                         +h_virial_2.data[3*pitch+0]
                         +h_virial_2.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].x, -103.841, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].y, -30.2526, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].z, 186.014, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_2.data[1].x, -103.841, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].y, -30.2526, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].z, 186.014, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+1]
                         +h_virial_2.data[3*pitch+1]
                         +h_virial_2.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 314.247, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].y, 49.3005, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].z, -520.672, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_2.data[2].x, 314.247, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].y, 49.3005, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].z, -520.672, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+2]
                         +h_virial_2.data[3*pitch+2]
                         +h_virial_2.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].x, -95.2396, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].y, -19.0479, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].z, 161.907, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[3].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_2.data[3].x, -95.2396, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].y, -19.0479, loose_tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].z, 161.907, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+3]
                         +h_virial_2.data[3*pitch+3]
                         +h_virial_2.data[5*pitch+3], tol);
     }
@@ -159,35 +159,35 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -115.167, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, 172.75, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, -115.167, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].z, 172.75, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -103.841, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -30.2526, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, 186.014, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_3.data[0].x, -103.841, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].y, -30.2526, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].z, 186.014, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+0]
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].x, 314.247, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 49.3005, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, -520.672, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_3.data[2].x, 314.247, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].y, 49.3005, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].z, -520.672, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+2]
                         +h_virial_3.data[3*pitch+2]
                         +h_virial_3.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].x, -95.2396, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -19.0479, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].z, 161.907, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_3.data[3].x, -95.2396, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].y, -19.0479, loose_tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].z, 161.907, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+3]
                         +h_virial_3.data[3*pitch+3]
                         +h_virial_3.data[5*pitch+3], tol);
     }
@@ -217,35 +217,35 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -115.167, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, 172.75, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, -115.167, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].z, 172.75, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -103.841, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -30.2526, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, 186.014, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_3.data[0].x, -103.841, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].y, -30.2526, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].z, 186.014, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+0]
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].x, 314.247, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 49.3005, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, -520.672, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_3.data[2].x, 314.247, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].y, 49.3005, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].z, -520.672, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+2]
                         +h_virial_3.data[3*pitch+2]
                         +h_virial_3.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].x, -95.2396, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -19.0479, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].z, 161.907, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].w, 0.25*137.347, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_3.data[3].x, -95.2396, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].y, -19.0479, loose_tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].z, 161.907, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].w, 0.25*137.347, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+3]
                         +h_virial_3.data[3*pitch+3]
                         +h_virial_3.data[5*pitch+3], tol);
     }
@@ -264,35 +264,35 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -118.035, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -118.035, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.25*94.9927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, -118.035, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].z, -118.035, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].w, 0.25*94.9927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -14.53, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -105.217, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, -84.6746, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, 0.25*94.9927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_3.data[0].x, -14.53, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].y, -105.217, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].z, -84.6746, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].w, 0.25*94.9927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+0]
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].x, 194.568, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 187.887, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, 319.826, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, 0.25*94.9927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_3.data[2].x, 194.568, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].y, 187.887, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].z, 319.826, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].w, 0.25*94.9927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+2]
                         +h_virial_3.data[3*pitch+2]
                         +h_virial_3.data[5*pitch+2], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].x, -62.0028, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -82.6704, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].z, -117.116, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].w, 0.25*94.9927, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_3.data[3].x, -62.0028, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].y, -82.6704, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].z, -117.116, tol);
+    MY_CHECK_CLOSE(h_force_3.data[3].w, 0.25*94.9927, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*pitch+3]
                         +h_virial_3.data[3*pitch+3]
                         +h_virial_3.data[5*pitch+3], tol);
     }
@@ -364,14 +364,14 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] /= double(N);
 
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
@@ -391,24 +391,24 @@ std::shared_ptr<TableDihedralForceCompute> gpu_tf_creator(std::shared_ptr<System
 #endif
 
 //! boost test case for dihedral forces on the CPU
-BOOST_AUTO_TEST_CASE( TableDihedralForceCompute_basic )
+UP_TEST( TableDihedralForceCompute_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+    printf(" IN UP_TEST: CPU \n");
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1,_2);
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! boost test case for dihedral forces on the GPU
-BOOST_AUTO_TEST_CASE( TableDihedralForceComputeGPU_basic )
+UP_TEST( TableDihedralForceComputeGPU_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+    printf(" IN UP_TEST: GPU \n");
     dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1,_2);
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #if 0
 //! boost test case for comparing bond GPU and CPU BondForceComputes
-BOOST_AUTO_TEST_CASE( TableDihedralForceComputeGPU_compare )
+UP_TEST( TableDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);

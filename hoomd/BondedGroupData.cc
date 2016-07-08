@@ -1240,12 +1240,6 @@ template<class T, typename Group>
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
-
-        // // boost 1.60.0 compatibility TODO: adios_boost, remove if not needed
-        // #if (BOOST_VERSION == 106000)
-        // register_ptr_to_python< std::shared_ptr<T> >();
-        // register_ptr_to_python< std::shared_ptr<Snapshot> >();
-        // #endif
         }
     else
         {
@@ -1258,12 +1252,6 @@ template<class T, typename Group>
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
-
-        // // boost 1.60.0 compatibility TODO: adios_boost, remove if not needed
-        // #if (BOOST_VERSION == 106000)
-        // register_ptr_to_python< std::shared_ptr<T> >();
-        // register_ptr_to_python< std::shared_ptr<Snapshot> >();
-        // #endif
         }
    }
 

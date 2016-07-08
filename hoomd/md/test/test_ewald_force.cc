@@ -28,7 +28,7 @@ using namespace boost;
 */
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairEwaldTests
+UP_TEST(PotentialPairEwaldTests)
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairEwald factory
@@ -73,27 +73,27 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_3->getVirialArray().getPitch();
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
-    MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].w, 0.4795001222/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch]
+    MY_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
+    MY_CHECK_SMALL(h_force.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force.data[0].w, 0.4795001222/2.0, tol);
+    MY_CHECK_CLOSE(h_virial.data[0*pitch]
                         +h_virial.data[3*pitch]
                         +h_virial.data[5*pitch], 0.9188914117/2.0, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].x, 0.9188914117*2.0, tol);
-    MY_BOOST_CHECK_SMALL(h_force.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[1].z, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[1].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force.data[1].x, 0.9188914117*2.0, tol);
+    MY_CHECK_SMALL(h_force.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force.data[1].z, tol_small);
+    MY_CHECK_SMALL(h_force.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_virial.data[0*pitch+1]
                         +h_virial.data[3*pitch+1]
                         +h_virial.data[5*pitch+1], tol_small);
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[2].x, -0.9188914117, tol);
-    MY_BOOST_CHECK_SMALL(h_force.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[2].w, -0.4795001222/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force.data[2].x, -0.9188914117, tol);
+    MY_CHECK_SMALL(h_force.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force.data[2].w, -0.4795001222/2.0, tol);
+    MY_CHECK_CLOSE(h_virial.data[0*pitch+2]
                         +h_virial.data[3*pitch+2]
                         +h_virial.data[5*pitch+2], -0.9188914117/2.0, tol);
     }
@@ -123,8 +123,8 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr
     ArrayHandle<Scalar4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.9188914117, tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[2].x, 0.9188914117, tol);
+    MY_CHECK_CLOSE(h_force.data[0].x, 0.9188914117, tol);
+    MY_CHECK_CLOSE(h_force.data[2].x, 0.9188914117, tol);
     }
     }
 
@@ -186,30 +186,30 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
             deltav2[j] += double(h_virial1.data[j*pitch+i] - h_virial2.data[j*pitch+i]) * double(h_virial1.data[j*pitch+i] - h_virial2.data[j*pitch+i]);
 
         // also check that each individual calculation is somewhat close
-        BOOST_CHECK_CLOSE(h_force1.data[i].x, h_force2.data[i].x, loose_tol);
-        BOOST_CHECK_CLOSE(h_force1.data[i].y, h_force2.data[i].y, loose_tol);
-        BOOST_CHECK_CLOSE(h_force1.data[i].z, h_force2.data[i].z, loose_tol);
-        BOOST_CHECK_CLOSE(h_force1.data[i].w, h_force2.data[i].w, loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[0*pitch+i], h_virial2.data[0*pitch+i], loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[1*pitch+i], h_virial2.data[1*pitch+i], loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[2*pitch+i], h_virial2.data[2*pitch+i], loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[3*pitch+i], h_virial2.data[3*pitch+i], loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[4*pitch+i], h_virial2.data[4*pitch+i], loose_tol);
-        BOOST_CHECK_CLOSE(h_virial1.data[5*pitch+i], h_virial2.data[5*pitch+i], loose_tol);
+        CHECK_CLOSE(h_force1.data[i].x, h_force2.data[i].x, loose_tol);
+        CHECK_CLOSE(h_force1.data[i].y, h_force2.data[i].y, loose_tol);
+        CHECK_CLOSE(h_force1.data[i].z, h_force2.data[i].z, loose_tol);
+        CHECK_CLOSE(h_force1.data[i].w, h_force2.data[i].w, loose_tol);
+        CHECK_CLOSE(h_virial1.data[0*pitch+i], h_virial2.data[0*pitch+i], loose_tol);
+        CHECK_CLOSE(h_virial1.data[1*pitch+i], h_virial2.data[1*pitch+i], loose_tol);
+        CHECK_CLOSE(h_virial1.data[2*pitch+i], h_virial2.data[2*pitch+i], loose_tol);
+        CHECK_CLOSE(h_virial1.data[3*pitch+i], h_virial2.data[3*pitch+i], loose_tol);
+        CHECK_CLOSE(h_virial1.data[4*pitch+i], h_virial2.data[4*pitch+i], loose_tol);
+        CHECK_CLOSE(h_virial1.data[5*pitch+i], h_virial2.data[5*pitch+i], loose_tol);
         }
     deltaf2 /= double(pdata->getN());
     deltape2 /= double(pdata->getN());
     for (unsigned int i = 0; i < 6; i++)
         deltav2[i] /= double(pdata->getN());
 
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
 
 //! PotentialPairEwald creator for unit tests
@@ -231,7 +231,7 @@ std::shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(std::shared_ptr<SystemD
 #endif
 
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( EwaldForce_particle )
+UP_TEST( EwaldForce_particle )
     {
     ewaldforce_creator ewald_creator_base = bind(base_class_ewald_creator, _1, _2);
     ewald_force_particle_test(ewald_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -239,14 +239,14 @@ BOOST_AUTO_TEST_CASE( EwaldForce_particle )
 
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( EwaldForceGPU_particle )
+UP_TEST( EwaldForceGPU_particle )
     {
     ewaldforce_creator ewald_creator_gpu = bind(gpu_ewald_creator, _1, _2);
     ewald_force_particle_test(ewald_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( EwaldForceGPU_compare )
+UP_TEST( EwaldForceGPU_compare )
     {
     ewaldforce_creator ewald_creator_gpu = bind(gpu_ewald_creator, _1, _2);
     ewaldforce_creator ewald_creator_base = bind(base_class_ewald_creator, _1, _2);

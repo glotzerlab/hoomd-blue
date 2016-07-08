@@ -12,7 +12,7 @@
 #include <memory>
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE HelloWorld
+UP_TEST(HelloWorld)
 #include "boost_utf_configure.h"
 
 
@@ -20,3 +20,5 @@ int main(int argc, char** argv)
     {
     std::cout<<"Hello"<<std::endl;
     }
+
+
