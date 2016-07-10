@@ -139,7 +139,7 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 
 
         //! Get the random number of depletants
-        virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V);
+        virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local);
 
     };
 
@@ -213,7 +213,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
         if (nonzero)
             {
             // generate random depletant number
-            unsigned int n_dep = getNumDepletants(timestep, V);
+            unsigned int n_dep = getNumDepletants(timestep, V, false);
 
             unsigned int tmp = 0;
 
@@ -261,7 +261,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
         if (nonzero)
             {
             // generate random depletant number
-            unsigned int n_dep = getNumDepletants(timestep, V);
+            unsigned int n_dep = getNumDepletants(timestep, V, false);
 
             // count depletants overlapping with new config (but ignore overlap in old one)
             unsigned int n_free = 0;
@@ -343,7 +343,7 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
     Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
     // generate random depletant number
-    unsigned int n_dep = getNumDepletants(timestep, V);
+    unsigned int n_dep = getNumDepletants(timestep, V, false);
 
     // count depletants overlapping with new config (but ignore overlaps with old one)
     unsigned int tmp_free = 0;
@@ -506,7 +506,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
                 // try inserting depletants in new configuration (where particle is removed)
 
                 // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V);
+                unsigned int n_dep = getNumDepletants(timestep, V, false);
                 unsigned int n_overlap = countDepletantOverlaps(timestep, n_dep, delta, pos);
                 unsigned int n_free = n_dep - n_overlap;
 
@@ -1385,7 +1385,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
 
 //! Get a poisson-distributed number of depletants
 template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,  Scalar V)
+unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,  Scalar V, bool local)
     {
     // parameter for Poisson distribution
     Scalar lambda = this->m_mc_implicit->getDepletantDensity()*V;
@@ -1400,7 +1400,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
         std::vector<unsigned int> seed_seq(4);
         seed_seq[0] = this->m_seed;
         seed_seq[1] = timestep;
-        seed_seq[2] = this->m_exec_conf->getRank();
+        seed_seq[2] = local ? this->m_exec_conf->getRank() : 0;
         #ifdef ENABLE_MPI
         seed_seq[3] = this->m_exec_conf->getPartition();
         #else
@@ -1452,7 +1452,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
         #endif
 
         // draw number from Poisson distribution (using old box)
-        unsigned int n = getNumDepletants(timestep, old_local_box.getVolume());
+        unsigned int n = getNumDepletants(timestep, old_local_box.getVolume(), true);
 
         // Depletant type
         unsigned int type_d = m_mc_implicit->getDepletantType();
