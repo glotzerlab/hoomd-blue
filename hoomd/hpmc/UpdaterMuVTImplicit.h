@@ -271,16 +271,13 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
 
             // fix the maximum number of removed depletants at the average number
             // of depletants in the excluded volume sphere
-            unsigned int m = (unsigned int)(V*n_R);
-            Saru rng(this->m_seed, timestep,  0x123478d2);
-            unsigned int n_remove = rand_select(rng, m);
-
-            if ((n_free >= n_remove) && (n_remove >= n_overlap))
+            unsigned int m = (unsigned int)(V*n_R) + 1;
+            if (n_free < m)
                 {
                 // compute acceptance probability for GC cluster move
                 // according to Vink and Horbach JCP 2004
-//                lnboltzmann -= log((Scalar)m);
-                for (unsigned int np = n_free; np > n_free-n_remove; np--)
+                lnboltzmann -= log((Scalar)m);
+                for (unsigned int np = n_free; np > 0; np--)
                     {
                     lnboltzmann += log((Scalar)np/(V*n_R));
                     }
@@ -494,8 +491,11 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
 
                 // fix the maximum number of inserted depletants at the average number
                 // of depletants in the excluded volume sphere
-                unsigned int m = (unsigned int)(V*n_R);
-                n_insert = rand_select(rng, m);
+                unsigned int m = (unsigned int)(V*n_R)+1;
+                if (m > 0)
+                    {
+                    n_insert = rand_select(rng, m-1);
+                    }
 
                 // getPosition() corrects for grid shift, add it back
                 Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
@@ -512,12 +512,16 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
 
                 nonzero = moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag,  1, lnb, false);
 
-                // compute acceptance probability for GC cluster move
-                // according to Vink and Horbach JCP 2004
-                //lnboltzmann += log((Scalar)m);
-                for (unsigned int np = n_free+n_insert; np > n_free; np--)
+                if (nonzero)
                     {
-                    lnboltzmann += log((V*n_R)/(Scalar)np);
+                    // compute acceptance probability for GC cluster move
+                    // according to Vink and Horbach JCP 2004
+                    lnboltzmann += log((Scalar)m);
+                    for (unsigned int np = n_free+n_insert; np > n_free; np--)
+                        {
+                        lnboltzmann += log((V*n_R)/(Scalar)np);
+                        }
+
                     }
                 }
             }
@@ -1113,6 +1117,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
 
     // update the image list
     const std::vector<vec3<Scalar> >&image_list = this->m_mc->updateImageList();
+
+    n_free = 0;
 
     if (is_local)
         {
