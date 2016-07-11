@@ -201,9 +201,9 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
     Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
 
+    #ifdef ENABLE_MPI
     unsigned int n_overlap = 0;
 
-    #ifdef ENABLE_MPI
     // number of depletants to insert
     unsigned int n_insert = 0;
 
@@ -265,7 +265,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
 
             // count depletants overlapping with new config (but ignore overlap in old one)
             unsigned int n_free = 0;
-            n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
+            countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
 
             Scalar n_R = m_mc_implicit->getDepletantDensity();
 
