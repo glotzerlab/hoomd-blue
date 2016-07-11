@@ -37,6 +37,146 @@ def _get_sized_entry(base, max_n):
 
     return _hpmc.__dict__["{0}{1}".format(base, size)];
 
+class interaction_matrix:
+    R""" Define pairwise interaction matrix
+
+    All shapes use :py:class:`overlap_matrix` to define the interaction matrix between different
+    pairs of particles indexed by type. The set of pair coefficients is a symmetric
+    matrix defined over all possible pairs of particle types.
+
+    By default, all elements of the interaction matrix are 1, that means that overlaps
+    are checked between all pairs of types. To disable overlap checking for a specific
+    type pair, set the coefficient for that pair to 0.
+
+    There are two ways to set the coefficients for a particular type pair.
+    The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
+
+    The second method is to build the :py:class:`overlap_matrix` class first and then assign it to the
+    integrator. There are some advantages to this method in that you could specify a
+    complicated set of pair coefficients in a separate python file and import it into
+    your job script.
+
+    Example (**int_matrix.py**)::
+
+        from hoomd import hpmc
+        my_matrix = hpmc.integrate.overlap_matrix();
+        my_matrix.set('A', 'A', 0)
+        my_matrix.set('A', 'B', 1)
+        my_matrix.set('B', 'B', 1)
+
+    Example job script::
+
+        from hoomd import hpmc
+        import int_matrix
+
+        .....
+        mc = hpmc.integrate.some_shape(arguments...)
+        mc.overlap_checks = int_matrix.my_matrix
+
+    """
+
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+
+    ## \internal
+    # \brief Return a compact representation of the pair coefficients
+    def get_metadata(self):
+        # return list for easy serialization
+        l = []
+        for (a,b) in self.values:
+            item = OrderedDict()
+            item['typei'] = a
+            item['typej'] = b
+            item['check_overlaps'] = self.values[(a,b)]
+            l.append(item)
+        return l
+
+    ## \var values
+    # \internal
+    # \brief Contains the matrix of set values in a dictionary
+
+    def set(self, a, b, check_overlaps):
+        R""" Sets parameters for one type pair.
+
+        Args:
+            a (str): First particle type in the pair (or a list of type names)
+            b (str): Second particle type in the pair (or a list of type names)
+            check_overlaps: Set to True to check overlaps for this pair, False otherwise
+
+        By default, all interaction matrix elements are set to 'True'.
+
+        It is not an error, to specify matrix elements for particle types that do not exist in the simulation.
+
+        There is no need to specify matrix elements for both pairs 'A', 'B' and 'B', 'A'. Specifying
+        only one is sufficient.
+
+        To set the same elements between many particle types, provide a list of type names instead of a single
+        one. All pairs between the two lists will be set to the same parameters.
+
+        Examples::
+
+            interaction_matrix.set('A', 'A', False);
+            interaction_matrix.set('B', 'B', False);
+            interaction_matrix.set('A', 'B', True);
+            interaction_matrix.set(['A', 'B', 'C', 'D'], 'F', True);
+            interaction_matrix.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
+
+
+        """
+        hoomd.util.print_status_line();
+
+        # listify the inputs
+        if isinstance(a, str):
+            a = [a];
+        if isinstance(b, str):
+            b = [b];
+
+        for ai in a:
+            for bi in b:
+                self.set_single(ai, bi, check_overlaps);
+
+    ## \internal
+    # \brief Sets a single parameter
+    def set_single(self, a, b, check_overlaps):
+        a = str(a);
+        b = str(b);
+
+        # create the pair if it hasn't been created it
+        if (not (a,b) in self.values) and (not (b,a) in self.values):
+            self.values[(a,b)] = {};
+
+        # Find the pair to update
+        if (a,b) in self.values:
+            cur_pair = (a,b);
+        elif (b,a) in self.values:
+            cur_pair = (b,a);
+        else:
+            hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
+            raise RuntimeError("Error setting matrix elements");
+
+        self.values[cur_pair] = bool(check_overlaps)
+
+    ## \internal
+    # \brief Try to get a single pair coefficient
+    # \detail
+    # \param a First name in the type pair
+    # \param b Second name in the type pair
+    def get(self,a,b):
+        if (a,b) in self.values:
+            cur_pair = (a,b);
+        elif (b,a) in self.values:
+            cur_pair = (b,a);
+        else:
+            return None
+
+        return self.values[cur_pair];
+
+
 class mode_hpmc(_integrator):
     R""" Base class HPMC integrator.
 
@@ -56,7 +196,10 @@ class mode_hpmc(_integrator):
         # setup the shape parameters
         self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
 
-        #initialize list to check fl params
+        # setup interaction matrix
+        self.overlap_checks = interaction_matrix()
+
+        #initialize list to check implicit params
         if self.implicit:
             self.implicit_params=list()
 
@@ -74,6 +217,10 @@ class mode_hpmc(_integrator):
         for key in self.shape_param.keys():
             shape_dict[key] = self.shape_param[key].get_metadata();
         data['shape_param'] = shape_dict;
+        overlap_checks_dict = {};
+        for key in self.overlap_cheks.keys():
+            overlap_checks_dict[key] = self.overlap_checks[key].get_metadata();
+        data['overlap_checks'] = overlap_checks_dict
         return data
 
     ## \internal
@@ -93,6 +240,15 @@ class mode_hpmc(_integrator):
             if not self.shape_param[name].is_set:
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
+
+        # set overlap matrix on C++ side
+        for (i,type_i) in enumerate(type_names):
+            for (j,type_j) in enumerate(type_names):
+                check = self.overlap_checks.get(type_i, type_j)
+                if check is None:
+                    hoomd.context.msg.error("Interaction matrix element ({},{}) not set!\n".format(type_i, type_j))
+                    raise RuntimeError("Error running integrator");
+                self.cpp_integrator.setOverlapChecks(i,j,check)
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
@@ -162,6 +318,17 @@ class mode_hpmc(_integrator):
             type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if not type_name in self.shape_param.keys(): # only add new keys
                 self.shape_param.update({ type_name: shape_param_type(self, i) });
+
+        # setup the interaction matrix elements
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        for i in range(0,ntypes):
+            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            for j in range(0,ntypes):
+                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
+                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
+                    # by default, perform overlap checks
+                    self.overlap_checks.set(type_name_i, type_name_j, True)
+
 
     def set_params(self,
                    d=None,

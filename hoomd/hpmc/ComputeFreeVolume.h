@@ -146,8 +146,11 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         const BoxDim& box = m_pdata->getBox();
 
-        // access parameters
+        // access parameters and interaction matrix
         ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
         // generate n_sample random test depletants in the global box
         unsigned int n_sample = m_n_sample;
@@ -208,9 +211,10 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                if (!(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[overlap_idx(m_type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                     && test_overlap(r_ij, shape_i, shape_j, err_count))
                                     {
