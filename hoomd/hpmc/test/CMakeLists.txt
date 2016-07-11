@@ -24,7 +24,6 @@ set(TEST_LIST
     test_ellipsoid
     test_faceted_sphere
     test_moves
-    test_name
     test_polyhedron
     test_simple_polygon
     test_sphere

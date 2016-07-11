@@ -61,7 +61,7 @@ UP_TEST( construction )
         MY_CHECK_CLOSE(a.spheres.diameter[i], data.diameter[i], tol);
         }
 
-    UP_ASSERT_EQUAL(a.spheres.center, data.center);
+    MY_ASSERT_EQUAL(a.spheres.center, data.center);
     for (unsigned int i = 0; i < data.N; i++)
         {
         MY_CHECK_CLOSE(a.spheres.center[i].x, data.center[i].x,tol);
