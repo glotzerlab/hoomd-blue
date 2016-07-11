@@ -92,7 +92,7 @@ class interaction_matrix:
             item = OrderedDict()
             item['typei'] = a
             item['typej'] = b
-            item['check_overlaps'] = self.values[(a,b)]
+            item['enable'] = self.values[(a,b)]
             l.append(item)
         return l
 
@@ -100,13 +100,13 @@ class interaction_matrix:
     # \internal
     # \brief Contains the matrix of set values in a dictionary
 
-    def set(self, a, b, check_overlaps):
+    def set(self, a, b, enable):
         R""" Sets parameters for one type pair.
 
         Args:
             a (str): First particle type in the pair (or a list of type names)
             b (str): Second particle type in the pair (or a list of type names)
-            check_overlaps: Set to True to check overlaps for this pair, False otherwise
+            enable: Set to True to enable overlap checks for this pair, False otherwise
 
         By default, all interaction matrix elements are set to 'True'.
 
@@ -138,17 +138,17 @@ class interaction_matrix:
 
         for ai in a:
             for bi in b:
-                self.set_single(ai, bi, check_overlaps);
+                self.set_single(ai, bi, enable);
 
     ## \internal
     # \brief Sets a single parameter
-    def set_single(self, a, b, check_overlaps):
+    def set_single(self, a, b, enable):
         a = str(a);
         b = str(b);
 
         # create the pair if it hasn't been created it
         if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = bool(check_overlaps);
+            self.values[(a,b)] = bool(enable);
         else:
             # Find the pair to update
             if (a,b) in self.values:
@@ -159,7 +159,7 @@ class interaction_matrix:
                 hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
                 raise RuntimeError("Error setting matrix elements");
 
-            self.values[cur_pair] = bool(check_overlaps)
+            self.values[cur_pair] = bool(enable)
 
     ## \internal
     # \brief Try to get a single pair coefficient
