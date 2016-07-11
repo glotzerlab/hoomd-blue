@@ -108,6 +108,18 @@ class _param(object):
 
     def set(self, **params):
         self.is_set = True;
+
+        # backwards compatbility
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        if 'ignore_overlaps' in params:
+            hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n" \
+                +"Setting overlap checks for type pair ({}, {}) to {}\n".format(type_names[self.typid],type_names[self.typid],'False' if params['ignore_overlaps'] else 'True'))
+            hoomd.util.quiet_status()
+            self.mc.overlap_checks.set(type_names[self.typid], type_names[self.typid], not params['ignore_overlaps'])
+            hoomd.util.unquiet_status()
+            # remove key
+            params.pop('ignore_overlaps',None)
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
@@ -251,7 +263,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         face_offs.append(offs)
 
         if sweep_radius < 0.0:
-            globals.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
 
         return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
