@@ -15,7 +15,7 @@
 #include "hoomd/extern/upp11/upp11.h"
 
 // ******** helper macros
-#define CHECK_CLOSE(a,b,c) UP_ASSERT(abs(a-b) < c)
+#define CHECK_CLOSE(a,b,c) UP_ASSERT((abs(a-b) <= (c * abs(a))) && (abs(a-b) <= (c * abs(b))))
 #define CHECK_SMALL(a,c) UP_ASSERT(abs(a) < c)
 //! Helper macro for checking if two numbers are close
 #define MY_CHECK_CLOSE(a,b,c) UP_ASSERT(abs(a - Scalar(b)) < Scalar(c))
@@ -23,6 +23,8 @@
 #define MY_CHECK_SMALL(a,c) CHECK_SMALL( a, Scalar(c))
 //! Need a simple define for checking two values which are unsigned
 #define CHECK_EQUAL_UINT(a,b) UP_ASSERT_EQUAL(a,(unsigned int)(b))
+
+#define MY_ASSERT_EQUAL(a,b) UP_ASSERT(a == b)
 
 //! Tolerance setting for near-zero comparisons
 const Scalar tol_small = Scalar(1e-3);

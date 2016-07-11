@@ -132,8 +132,8 @@ UP_TEST( getter_setter_tests )
     UP_ASSERT(except);
 
     // check the get method
-    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
-    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -166,7 +166,7 @@ UP_TEST( getter_setter_tests )
 
     // remove the analyzers 1 by one and make sure they don't exist
     sys.removeAnalyzer("analyzer1");
-    UP_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -212,8 +212,8 @@ UP_TEST( getter_setter_tests )
     UP_ASSERT(except);
 
     // check the get method
-    UP_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
-    UP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -246,7 +246,7 @@ UP_TEST( getter_setter_tests )
 
     // remove the updaters 1 by one and make sure they don't exist
     sys.removeUpdater("updater1");
-    UP_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -292,8 +292,8 @@ UP_TEST( getter_setter_tests )
     UP_ASSERT(except);
 
     // check the get method
-    UP_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
-    UP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -307,7 +307,7 @@ UP_TEST( getter_setter_tests )
 
     // remove the computes 1 by one and make sure they don't exist
     sys.removeCompute("compute1");
-    UP_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -336,9 +336,9 @@ UP_TEST( getter_setter_tests )
     std::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
 
     sys.setIntegrator(integrator1);
-    UP_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
     sys.setIntegrator(integrator2);
-    UP_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
     }
 
 
