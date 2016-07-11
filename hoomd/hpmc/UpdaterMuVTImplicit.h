@@ -446,7 +446,6 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
     // only if the particle to be removed actually exists
     if (tag != UINT_MAX)
         {
-        #ifdef ENABLE_MPI
         // old type
         unsigned int type = this->m_pdata->getType(tag);
 
@@ -468,6 +467,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         Scalar delta = d_dep + d_colloid_old;
         Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
+        #ifdef ENABLE_MPI
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
