@@ -336,8 +336,9 @@ class mode_hpmc(_integrator):
                 type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
+                    hoomd.util.quiet_status()
                     self.overlap_checks.set(type_name_i, type_name_j, True)
-
+                    hoomd.util.unquiet_status()
 
     def set_params(self,
                    d=None,
