@@ -256,7 +256,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
-
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
     protected:
@@ -379,6 +378,12 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // re-allocate the parameter storage
     m_params.resize(m_pdata->getNTypes());
+
+    // skip the reallocation if the number of types does not change
+    // this keeps old potential coefficients when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if (m_pdata->getNTypes() == m_overlap_idx.getW())
+        return;
 
     // re-allocate overlap interaction matrix
     m_overlap_idx = Index2D(m_pdata->getNTypes());
@@ -829,7 +834,7 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     // need to scope this because updateCellWidth will access it
         {
         // update the parameter for this type
-        m_exec_conf->msg->notice(10) << "setParam : " << typ << std::endl;
+        m_exec_conf->msg->notice(7) << "setParam : " << typ << std::endl;
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
         h_params.data[typ] = param;
         }
@@ -856,9 +861,10 @@ void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int
         }
 
     // update the parameter for this type
-    m_exec_conf->msg->notice(10) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
+    m_exec_conf->msg->notice(7) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
     h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
+    h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
     }
 
 //! Calculate a list of box images within interaction range of the simulation box, innermost first

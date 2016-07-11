@@ -148,18 +148,18 @@ class interaction_matrix:
 
         # create the pair if it hasn't been created it
         if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = {};
-
-        # Find the pair to update
-        if (a,b) in self.values:
-            cur_pair = (a,b);
-        elif (b,a) in self.values:
-            cur_pair = (b,a);
+            self.values[(a,b)] = bool(check_overlaps);
         else:
-            hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
-            raise RuntimeError("Error setting matrix elements");
+            # Find the pair to update
+            if (a,b) in self.values:
+                cur_pair = (a,b);
+            elif (b,a) in self.values:
+                cur_pair = (b,a);
+            else:
+                hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
+                raise RuntimeError("Error setting matrix elements");
 
-        self.values[cur_pair] = bool(check_overlaps)
+            self.values[cur_pair] = bool(check_overlaps)
 
     ## \internal
     # \brief Try to get a single pair coefficient
