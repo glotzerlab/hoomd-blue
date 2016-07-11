@@ -60,9 +60,9 @@ class interaction_matrix:
 
         from hoomd import hpmc
         my_matrix = hpmc.integrate.overlap_matrix();
-        my_matrix.set('A', 'A', 0)
-        my_matrix.set('A', 'B', 1)
-        my_matrix.set('B', 'B', 1)
+        my_matrix.set('A', 'A', enable=False)
+        my_matrix.set('A', 'B', eanble=True)
+        my_matrix.set('B', 'B', enable=False)
 
     Example job script::
 
