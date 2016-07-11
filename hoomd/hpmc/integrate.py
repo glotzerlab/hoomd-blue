@@ -89,7 +89,7 @@ class interaction_matrix:
         # return list for easy serialization
         l = []
         for (a,b) in self.values:
-            item = OrderedDict()
+            item = dict()
             item['typei'] = a
             item['typej'] = b
             item['enable'] = self.values[(a,b)]
@@ -217,10 +217,7 @@ class mode_hpmc(_integrator):
         for key in self.shape_param.keys():
             shape_dict[key] = self.shape_param[key].get_metadata();
         data['shape_param'] = shape_dict;
-        overlap_checks_dict = {};
-        for key in self.overlap_cheks.keys():
-            overlap_checks_dict[key] = self.overlap_checks[key].get_metadata();
-        data['overlap_checks'] = overlap_checks_dict
+        data['overlap_checks'] = self.overlap_checks.get_metadata()
         return data
 
     ## \internal
