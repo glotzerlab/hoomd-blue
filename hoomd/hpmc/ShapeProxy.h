@@ -98,10 +98,10 @@ unsigned int make_ignore_flag(bool stats, bool ovrlps)
     }
 
 //! Helper function to build ell_params from python
-ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ignore_stats, bool ignore_ovrlps)
+ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ignore_stats)
     {
     ell_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.x=x;
     result.y=y;
     result.z=z;
@@ -109,23 +109,23 @@ ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ign
     }
 //
 //! Helper function to build sph_params from python
-sph_params make_sph_params(OverlapReal radius, bool ignore_stats, bool ignore_ovrlps)
+sph_params make_sph_params(OverlapReal radius, bool ignore_stats)
     {
     sph_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.radius=radius;
     return result;
     }
 
 //! Helper function to build poly2d_verts from python
-poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats, bool ignore_ovrlps)
+poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats)
     {
     if (len(verts) > MAX_POLY2D_VERTS)
         throw std::runtime_error("Too many polygon vertices");
 
     poly2d_verts result;
     result.N = len(verts);
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.sweep_radius = sweep_radius;
 
     // extract the verts from the python list and compute the radius on the way
@@ -151,7 +151,7 @@ poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radi
 
 //! Helper function to build poly3d_data from python
 inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,boost::python::list face_verts,
-                             boost::python::list face_offs, OverlapReal R, bool ignore_stats, bool ignore_ovrlps)
+                             boost::python::list face_offs, OverlapReal R, bool ignore_stats)
     {
     if (len(verts) > MAX_POLY3D_VERTS)
         throw std::runtime_error("Too many polyhedron vertices");
@@ -165,7 +165,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
     // rounding radius
 
     ShapePolyhedron::param_type result;
-    result.data.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.data.ignore = ignore_stats;
     result.data.verts.N = len(verts);
     result.data.verts.sweep_radius = R;
     result.data.n_faces = len(face_offs)-1;
@@ -255,7 +255,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
 
 //! Helper function to build poly3d_verts from python
 template<unsigned int max_verts>
-poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats, bool ignore_ovrlps)
+poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats)
     {
     if (len(verts) > max_verts)
         throw std::runtime_error("Too many polygon vertices");
@@ -263,7 +263,7 @@ poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal
     poly3d_verts<max_verts> result;
     result.N = len(verts);
     result.sweep_radius = sweep_radius;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
 
     // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
@@ -290,7 +290,7 @@ poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal
 
 //! Helper function to build faceted_sphere_params from python
 faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::python::list offsets,
-    boost::python::list vertices, Scalar diameter, boost::python::tuple origin, bool ignore_stats, bool ignore_ovrlps)
+    boost::python::list vertices, Scalar diameter, boost::python::tuple origin, bool ignore_stats)
     {
     if (len(normals) > MAX_SPHERE_FACETS)
         throw std::runtime_error("Too many face normals");
@@ -302,7 +302,7 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
         throw std::runtime_error("Number of normals unequal number of offsets");
 
     faceted_sphere_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.N = len(normals);
 
     // extract the normals from the python list
@@ -318,7 +318,7 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
         }
 
     // extract the vertices from the python list
-    result.verts=make_poly3d_verts<MAX_FPOLY3D_VERTS>(vertices, 0.0, false, false);
+    result.verts=make_poly3d_verts<MAX_FPOLY3D_VERTS>(vertices, 0.0, false);
 
     // set the diameter
     result.diameter = diameter;
@@ -353,7 +353,7 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
     }
 
 //! Helper function to build sphinx3d_verts from python
-sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::python::list centers, bool ignore_stats, bool ignore_ovrlps)
+sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::python::list centers, bool ignore_stats)
     {
     if (len(centers) > MAX_SPHERE_CENTERS)
         throw std::runtime_error("Too many spheres");
@@ -365,7 +365,7 @@ sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::pytho
         throw std::runtime_error("Number of centers not equal to number of diameters");
         }
 
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
 
     // extract the centers from the python list and compute the radius on the way
     OverlapReal radius = OverlapReal(0.0);
@@ -389,8 +389,7 @@ template<class Shape>
 union_params<Shape> make_union_params(boost::python::list _members,
                                                 boost::python::list positions,
                                                 boost::python::list orientations,
-                                                bool ignore_stats,
-                                                bool ignore_ovrlps)
+                                                bool ignore_stats)
     {
     union_params<Shape> result;
 
@@ -408,7 +407,7 @@ union_params<Shape> make_union_params(boost::python::list _members,
         throw std::runtime_error("Number of member orientations not equal to number of members");
         }
 
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
 
     hpmc::detail::OBB *obbs;
     int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*result.N);
@@ -858,7 +857,6 @@ void export_shape_param_proxy(const std::string& name)
         (   name.c_str(),
             boost::python::init<boost::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>()
         )
-    .add_property("ignore_overlaps", &shape_param_proxy<Shape>::getIgnoreOverlaps, &shape_param_proxy<Shape>::setIgnoreOverlaps)
     .add_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
     ;
     }
