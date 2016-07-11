@@ -30,8 +30,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! Define the name of the boost test module
-UP_TEST(NeighborListTest)
 
 //! Performs basic functionality tests on a neighbor list
 template <class NL>
@@ -138,17 +136,16 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         CHECK_EQUAL_UINT(h_n_neigh.data[4], 1);
         CHECK_EQUAL_UINT(h_n_neigh.data[5], 1);
 
-        // populate the neighbor list as a collection for fast compare
-        vector<unsigned int> nbrs(6, 0);
-        for (unsigned int i=0; i < 6; ++i)
-            {
-            nbrs[i] = h_nlist.data[h_head_list.data[i]];
-            }
-
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
 
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
+        // TODO: adios_boost, does this work? collections method isn't supported
+        // populate the neighbor list as a collection for fast compare
+        for (unsigned int i=0; i < 6; ++i)
+            {
+            UP_ASSERT_EQUAL(h_nlist.data[h_head_list.data[i]],check_nbrs[i]);
+            }
+
         }
 
     // swap the order of the particles around to look for subtle directional bugs
@@ -180,17 +177,14 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         CHECK_EQUAL_UINT(h_n_neigh.data[4], 1);
         CHECK_EQUAL_UINT(h_n_neigh.data[5], 1);
 
-        // populate the neighbor list as a collection for fast compare
-        vector<unsigned int> nbrs(6, 0);
-        for (unsigned int i=0; i < 6; ++i)
-            {
-            nbrs[i] = h_nlist.data[h_head_list.data[i]];
-            }
-
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
 
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
+        for (unsigned int i=0; i < 6; ++i)
+            {
+            UP_ASSERT_EQUAL(h_nlist.data[h_head_list.data[i]],check_nbrs[i]);
+            }
+
         }
 
     // one last test, we should check that more than one neighbor can be generated
@@ -226,7 +220,11 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
         // the answer we expect
         unsigned int check_nbrs[] = {1, 4, 5};
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 3);
+
+        for (unsigned int i=0; i < 3; ++i)
+            {
+            UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+            }
         }
     }
 
@@ -282,7 +280,11 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {1,2};
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+
+        for (unsigned int i=0; i < 2; ++i)
+            {
+            UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+            }
 
         CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
@@ -494,7 +496,11 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+
+            for (unsigned int i=0; i < 5; ++i)
+                {
+                UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+                }
             }
         }
 
@@ -535,7 +541,11 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+
+            for (unsigned int i=0; i < 5; ++i)
+                {
+                UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+                }
             }
         }
 
@@ -577,7 +587,11 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+
+            for (unsigned int i=0; i < 5; ++i)
+                {
+                UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+                }
             }
         }
 
@@ -634,7 +648,11 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
                     }
                 }
             sort(check_nbrs.begin(), check_nbrs.end());
-            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs.begin(), check_nbrs.end());
+
+            for (unsigned int i=0; i < 4; ++i)
+                {
+                UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+                }
             }
         }
     }
@@ -841,7 +859,10 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
             nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
             sort(nbrs.begin(), nbrs.end());
             unsigned int check_nbrs[] = {1,2};
-            UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+            for (unsigned int i=0; i < 2; ++i)
+                {
+                UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+                }
             }
 
         CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
@@ -903,9 +924,6 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         UP_ASSERT_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
         UP_ASSERT_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
 
-        tmp_list1.resize(h_n_neigh1.data[i]);
-        tmp_list2.resize(h_n_neigh1.data[i]);
-
         for (unsigned int j = 0; j < h_n_neigh1.data[i]; j++)
             {
             tmp_list1[j] = h_nlist1.data[h_head_list1.data[i] + j];
@@ -915,7 +933,10 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         sort(tmp_list1.begin(), tmp_list1.end());
         sort(tmp_list2.begin(), tmp_list2.end());
 
-        UP_ASSERT_EQUAL_COLLECTIONS(tmp_list1.begin(), tmp_list1.end(), tmp_list2.begin(), tmp_list2.end());
+        for (unsigned int k=0; k < h_n_neigh1.data[i]; ++k)
+            {
+            UP_ASSERT_EQUAL(tmp_list1[k],tmp_list2[k]);
+            }
         }
     }
 
@@ -1023,7 +1044,11 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         nbrs[1] = h_nlist.data[h_head_list.data[1] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {0,2};
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+
+        for (unsigned int i=0; i < 2; ++i)
+            {
+            UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+            }
         }
 
     // turn A-C on and B-C off with things very close to the < 0.0 criterion as a pathological case
@@ -1047,7 +1072,11 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
         sort(nbrs.begin(), nbrs.end());
         unsigned int check_nbrs[] = {1,2};
-        UP_ASSERT_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+
+        for (unsigned int i=0; i < 2; ++i)
+            {
+            UP_ASSERT_EQUAL(nbrs[i],check_nbrs[i]);
+            }
         }
     }
 
