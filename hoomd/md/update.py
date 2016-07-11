@@ -43,7 +43,7 @@ class rescale_temp(_updater):
         update.rescale_temp(period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 
     """
-    def __init__(self, kT, period=1, phase=-1):
+    def __init__(self, kT, period=1, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -99,7 +99,7 @@ class zero_momentum(_updater):
         zeroer= update.zero_momentum(period=10)
 
     """
-    def __init__(self, period=1, phase=-1):
+    def __init__(self, period=1, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class

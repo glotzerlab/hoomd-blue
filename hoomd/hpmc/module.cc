@@ -4,6 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoImplicit.h"
 
 #include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"
@@ -17,7 +18,7 @@
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 #include "AnalyzerSDF.h"
-#include "UpdaterBoxNPT.h"
+#include "UpdaterBoxMC.h"
 
 #include "ShapeProxy.h"
 
@@ -63,14 +64,29 @@ BOOST_PYTHON_MODULE(_hpmc)
     {
     export_IntegratorHPMC();
 
-    export_hpmc();
-    export_UpdaterBoxNPT();
-    export_hpmc_gpu();
-    export_sdf();
+    export_UpdaterBoxMC();
     export_external_fields();
-    export_free_volume();
     export_shape_params();
-    export_muvt();
+
+    export_sphere();
+    export_convex_polygon();
+    export_simple_polygon();
+    export_spheropolygon();
+    export_polyhedron();
+    export_ellipsoid();
+    export_faceted_sphere();
+    export_sphinx();
+    export_union_sphere();
+    export_convex_polyhedron8();
+    export_convex_polyhedron16();
+    export_convex_polyhedron32();
+    export_convex_polyhedron64();
+    export_convex_polyhedron128();
+    export_convex_spheropolyhedron8();
+    export_convex_spheropolyhedron16();
+    export_convex_spheropolyhedron32();
+    export_convex_spheropolyhedron64();
+    export_convex_spheropolyhedron128();
 
     class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
     class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");
@@ -101,6 +117,9 @@ BOOST_PYTHON_MODULE(_hpmc)
     def("make_sphere_union_params", &make_union_params<ShapeSphere>);
     def("make_overlapreal3", &make_overlapreal3);
     def("make_overlapreal4", &make_overlapreal4);
+
+    // export counters
+    export_hpmc_implicit_counters();
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

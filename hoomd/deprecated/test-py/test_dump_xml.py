@@ -18,27 +18,27 @@ class dmp_xml_tests (unittest.TestCase):
 
     # tests basic creation of the dump
     def test(self):
-        deprecated.dump.xml(filename="dump_xml", period=100);
+        deprecated.dump.xml(group=group.all(), filename="dump_xml", period=100);
         run(102);
 
     # tests with phase
     def test(self):
-        deprecated.dump.xml(filename="dump_xml", period=100, phase=0);
+        deprecated.dump.xml(group=group.all(), filename="dump_xml", period=100, phase=0);
         run(102);
 
     # test variable period
     def test_variable(self):
-        deprecated.dump.xml(filename="dump_xml", period=lambda n: n*100);
+        deprecated.dump.xml(group=group.all(), filename="dump_xml", period=lambda n: n*100);
         run(102);
 
     # test with restart
     def test_restart(self):
-        deprecated.dump.xml(filename="restart.xml", period=100, restart=True).write_restart();
+        deprecated.dump.xml(group=group.all(), filename="restart.xml", period=100, restart=True).write_restart();
         run(102);
 
     # test set_params
     def test_set_params(self):
-        xml = deprecated.dump.xml(filename="dump_xml", period=100);
+        xml = deprecated.dump.xml(group=group.all(), filename="dump_xml", period=100);
         xml.set_params(position=True);
         xml.set_params(velocity=True);
         xml.set_params(mass=False);
@@ -48,6 +48,24 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(image=True);
         xml.set_params(all=True);
         xml.set_params(angmom=True);
+
+    def test_group(self):
+        tag = group.tags(tag_min=0,tag_max=1)
+
+        # make sure topology doesn't go out
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", bond=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", angle=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", dihedral=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", improper=True)
+        with self.assertRaises(ValueError):
+            deprecated.dump.xml(group=tag, filename="dump_xml", constraint=True)
+
+        # now this should proceed okay
+        deprecated.dump.xml(group=tag, filename="dump_xml", position=True)
 
     def tearDown(self):
         context.initialize();

@@ -41,6 +41,7 @@ ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
     m_body_charge.resize(m_pdata->getNTypes());
     m_body_diameter.resize(m_pdata->getNTypes());
 
+    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
     }
 
@@ -157,7 +158,24 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
-        m_d_max_changed[body_typeid] = true;
+
+        // make sure central particle will be communicated
+        m_d_max[body_typeid] = Scalar(0.0);
+
+        for (unsigned int i = 0; i < pos.size(); ++i)
+            {
+            Scalar3 dr = pos[i];
+
+            // it would suffice to pull in central particles within R=|dr| from the boundary
+            // however, to account for boundary cases where it is exactly at R, we still
+            // need to update local constituent particles, so multiply by two to be safe
+            Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
+
+            if (d > m_d_max[body_typeid])
+                {
+                m_d_max[body_typeid] = d;
+                }
+            }
 
         // also update diameter on constituent particles
         for (unsigned int i = 0; i < type.size(); ++i)
@@ -201,6 +219,9 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
     {
     // the default ghost layer is there to ensure that constituent particles are always
     // communicated for every central particle
+
+    // central particle may stick out a particle radius from the boundary, therefore constituent
+    // particles can be found within 2*R
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -217,35 +238,25 @@ Scalar ForceComposite::requestGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = (body_type == type);
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
-                if (h_body_type.data[i] == type)
+                if (h_body_type.data[m_body_idx(body_type,i)] == type)
                     {
-                    is_part_of_body = true;
-                    break;
-                    }
-                }
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
 
-            if (! is_part_of_body) continue;
-
-            // compute maximum distance to central particle
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-                {
-                Scalar3 r = h_body_pos.data[m_body_idx(body_type,i)];
-                Scalar d = sqrt(dot(r,r));
-
-                if (d > m_d_max[type])
-                    {
-                    m_d_max[type] = d;
+                    if (d > m_d_max[type])
+                        {
+                        m_d_max[type] = d;
+                        }
                     }
                 }
             }
 
+        m_d_max_changed[type] = false;
+
         m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
             << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
-
-        m_d_max_changed[type] = false;
         }
 
     return m_d_max[type];
@@ -472,8 +483,6 @@ void ForceComposite::validateRigidBodies(bool create)
 
                         for (unsigned int j = 0; j < n; ++j)
                             {
-                            // position and orientation will be overwritten during integration, no need to set here
-
                             // set type
                             snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
 
@@ -714,7 +723,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         if (len != h_body_len.data[type] + 1)
             {
-            m_exec_conf->msg->error() << "constrain.rigd(): Composite particle with body tag " << central_tag << " incomplete"
+            m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
                 << std::endl << std::endl;
             throw std::runtime_error("Error computing composite particle forces.\n");
             }
