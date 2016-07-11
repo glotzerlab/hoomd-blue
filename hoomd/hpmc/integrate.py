@@ -40,7 +40,7 @@ def _get_sized_entry(base, max_n):
 class interaction_matrix:
     R""" Define pairwise interaction matrix
 
-    All shapes use :py:class:`overlap_matrix` to define the interaction matrix between different
+    All shapes use :py:class:`interaction_matrix` to define the interaction matrix between different
     pairs of particles indexed by type. The set of pair coefficients is a symmetric
     matrix defined over all possible pairs of particle types.
 
@@ -51,7 +51,7 @@ class interaction_matrix:
     There are two ways to set the coefficients for a particular type pair.
     The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
 
-    The second method is to build the :py:class:`overlap_matrix` class first and then assign it to the
+    The second method is to build the :py:class:`interaction_matrix` class first and then assign it to the
     integrator. There are some advantages to this method in that you could specify a
     complicated set of pair coefficients in a separate python file and import it into
     your job script.
@@ -59,7 +59,7 @@ class interaction_matrix:
     Example (**int_matrix.py**)::
 
         from hoomd import hpmc
-        my_matrix = hpmc.integrate.overlap_matrix();
+        my_matrix = hpmc.integrate.interaction_matrix();
         my_matrix.set('A', 'A', enable=False)
         my_matrix.set('A', 'B', eanble=True)
         my_matrix.set('B', 'B', enable=False)
