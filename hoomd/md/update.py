@@ -210,8 +210,11 @@ class constraint_ellipsoid(_updater):
 
 
 class test_flow(_updater):
-    R""" Description.
+    R""" Updater class for a shear flow according
+    to an algorithm published by Mueller Plathe.
 
+    The simulation box is divided in a number of slabs.
+    Two distinct slabs of those are chosen. The max
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
 

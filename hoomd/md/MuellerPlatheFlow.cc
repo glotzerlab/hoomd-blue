@@ -14,23 +14,36 @@ const Scalar INVALID_VEL = FLT_MAX; //should be ok, even for double.
 //! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
 
 MuellerPlatheFlow::MuellerPlatheFlow(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<ParticleGroup> group,
-                                         const unsigned int direction,
-                                         const unsigned int N_slabs,
-                                         const unsigned int min_slab,
-                                         const unsigned int max_slab)
-    :Updater(sysdef), m_group(group)
+                                     boost::shared_ptr<ParticleGroup> group,
+                                     boost::shared_ptr<Variant> flow_target,
+                                     const unsigned int slab_direction,
+                                     const unsigned int flow_direction,
+                                     const unsigned int N_slabs,
+                                     const unsigned int min_slab,
+                                     const unsigned int max_slab)
+    :Updater(sysdef), m_group(group), m_flow_target(flow_target)
+    ,m_flow_epsilon(1e-1)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
     {
-    switch(direction)
+    assert(m_flow_target);
+    switch(slab_direction)
         {
-        case 0: m_direction = X; break;
-        case 1: m_direction = Y; break;
-        case 2: m_direction = Z; break;
+        case 0: m_slab_direction = X; break;
+        case 1: m_slab_direction = Y; break;
+        case 2: m_slab_direction = Z; break;
         default:
-        throw runtime_error("ERROR: invalid direction.");
+        throw runtime_error("ERROR: invalid slab direction.");
         }
+    switch(flow_direction)
+        {
+        case 0: m_flow_direction = X; break;
+        case 1: m_flow_direction = Y; break;
+        case 2: m_flow_direction = Z; break;
+        default:
+        throw runtime_error("ERROR: invalid slow direction.");
+        }
+
     m_last_max_vel.s = -INVALID_VEL;
     m_last_max_vel.i = INVALID_TAG;
     m_last_min_vel.s = INVALID_VEL;
@@ -52,30 +65,69 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
 
 void MuellerPlatheFlow::update(unsigned int timestep)
     {
-    m_last_max_vel.s = -INVALID_VEL;
-    m_last_max_vel.i = INVALID_TAG;
-    m_last_min_vel.s = INVALID_VEL;
-    m_last_max_vel.i = INVALID_TAG;
-    search_min_max_velocity();
+
+    while( fabs( m_flow_target->getValue(timestep) -
+                 this->summed_exchanged_momentum()/(timestep+1)) > this->get_flow_epsilon())
+        {
+        if( m_flow_target->getValue(timestep)*
+            this->summed_exchanged_momentum() < 0)
+            {
+            this->swap_min_max_slab();
+            }
+
+        m_last_max_vel.s = -INVALID_VEL;
+        m_last_max_vel.i = INVALID_TAG;
+        m_last_min_vel.s = INVALID_VEL;
+        m_last_max_vel.i = INVALID_TAG;
+        search_min_max_velocity();
 #ifdef ENABLE_MPI
-    mpi_exchange_velocity();
+        mpi_exchange_velocity();
 
 #endif//ENABLE_MPI
-    if( m_last_max_vel.s == -INVALID_VEL || static_cast<unsigned int>(m_last_max_vel.i) == INVALID_TAG
-     || m_last_min_vel.s == -INVALID_VEL || static_cast<unsigned int>(m_last_min_vel.i) == INVALID_TAG)
-        {
-        m_exec_conf->msg->warning() << "WARNING: at time "<<timestep
-                                   <<"  MuellerPlatheFlow could not find a min/max pair."
-                                   <<" This could cause infinite loops."<<endl;
+        if( m_last_max_vel.s == -INVALID_VEL
+            || static_cast<unsigned int>(m_last_max_vel.i) == INVALID_TAG
+            || m_last_min_vel.s == -INVALID_VEL
+            || static_cast<unsigned int>(m_last_min_vel.i) == INVALID_TAG)
+            {
+            m_exec_conf->msg->warning() << "WARNING: at time "<<timestep
+                                            <<"  MuellerPlatheFlow could not find a min/max pair."
+                                        <<" This could cause infinite loops."<<endl;
+            }
+        else
+            {
+            update_min_max_velocity();
+            }
+        stringstream s;
+        s<<this->summed_exchanged_momentum()<<endl;
+        m_exec_conf->msg->collectiveNoticeStr(0,s.str());
         }
-    else
-        {
-        update_min_max_velocity();
-        }
-    stringstream s;
-    s<<this->summed_exchanged_momentum()<<endl;
-    m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
+
+void MuellerPlatheFlow::swap_min_max_slab(void)
+    {
+    std::swap( m_max_slab, m_min_slab);
+//     const unsigned int old_max_slab = this->get_max_slab();
+//     m_max_slab = this->get_min_slab();
+//     m_min_slab = old_max_slab;
+
+    std::swap( m_last_max_vel, m_last_min_vel);
+//     const Scalar_Int old_max_vel = m_last_max_vel;
+//     m_last_max_vel = m_last_min_vel;
+//     m_last_min_vel = old_max_vel;
+
+    std::swap( m_has_max_slab, m_has_min_slab);
+//     const bool old_max_bool = m_has_max_slab;
+//     m_has_max_slab = m_has_min_slab;
+//     m_has_min_slab = old_max_bool;
+
+#ifdef ENABLE_MPI
+    std::swap( m_max_swap, m_min_swap);
+//     const struct MPI_SWAP old_max_swap = m_max_swap;
+//     m_max_swap = m_min_swap;
+//     m_min_swap = old_max_swap;
+#endif//ENABLE_MPI
+    }
+
 
 void MuellerPlatheFlow::set_min_slab(const unsigned int min_slab)
     {
@@ -112,8 +164,8 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
 
         const uint3 grid = dec->getGridPartition();
         const uint3 pos = dec->getGridPos();
-        const unsigned int my_grid = m_direction == X ? grid.x :( m_direction == Y ? grid.y : grid.z);
-        const unsigned int my_pos = m_direction == X ? pos.x :( m_direction == Y ? pos.y : pos.z);
+        const unsigned int my_grid = m_slab_direction == X ? grid.x :( m_slab_direction == Y ? grid.y : grid.z);
+        const unsigned int my_pos = m_slab_direction == X ? pos.x :( m_slab_direction == Y ? pos.y : pos.z);
         if( m_N_slabs % my_grid != 0)
             {
             m_exec_conf->msg->warning()<<"MuellerPlatheFlow::N_slabs does is divideable "
@@ -160,7 +212,7 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
         if( j < m_pdata->getN() )
             {
             unsigned int index;
-            switch(m_direction)
+            switch(m_slab_direction)
                 {
                 case X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
                     break;
@@ -175,7 +227,7 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             if( index == this->get_max_slab() || index == this->get_min_slab())
                 {
                 Scalar vel;
-                switch(m_direction)
+                switch(m_flow_direction)
                     {
                     case X: vel = h_vel.data[j].x;break;
                     case Y: vel = h_vel.data[j].y;break;
@@ -209,7 +261,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
         //Swap the particles the new velocities.
         if( min_idx < Ntotal)
             {
-            switch(m_direction)
+            switch(m_flow_direction)
                 {
                 case X: h_vel.data[min_idx].x = m_last_max_vel.s; break;
                 case Y: h_vel.data[min_idx].y = m_last_max_vel.s; break;
@@ -217,14 +269,15 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
                 }
             }
         if( max_idx < Ntotal)
-            switch(m_direction)
+            switch(m_flow_direction)
                 {
                 case X: h_vel.data[max_idx].x = m_last_min_vel.s;
                 case Y: h_vel.data[max_idx].y = m_last_min_vel.s;
                 case Z: h_vel.data[max_idx].z = m_last_min_vel.s;
                 }
         }
-    m_exchanged_momentum += m_last_max_vel.s - m_last_min_vel.s;
+    const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
+    m_exchanged_momentum += sign * (m_last_max_vel.s - m_last_min_vel.s);
     }
 
 #ifdef ENABLE_MPI
@@ -312,9 +365,28 @@ void export_MuellerPlatheFlow()
     class_< MuellerPlatheFlow, boost::shared_ptr<MuellerPlatheFlow>, bases<Updater>, boost::noncopyable >
         ("MuellerPlatheFlow", init< boost::shared_ptr<SystemDefinition>,
          boost::shared_ptr<ParticleGroup>,
+         boost::shared_ptr<Variant>,
+         const unsigned int,
          const unsigned int,
          const unsigned int,
          const unsigned int,
          const unsigned int >())
-    ;
+        .def("getNSlabs",&MuellerPlatheFlow::get_N_slabs)
+        .def("getMinSlab",&MuellerPlatheFlow::get_min_slab)
+        .def("getMaxSlab",&MuellerPlatheFlow::get_max_slab)
+        .def("setMinSlab",&MuellerPlatheFlow::set_min_slab)
+        .def("setMaxSlab",&MuellerPlatheFlow::set_max_slab)
+        .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
+        .def("hasMinSlab",&MuellerPlatheFlow::has_min_slab)
+        .def("hasMaxSlab",&MuellerPlatheFlow::has_max_slab)
+        .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
+        .def("getFlowEpsilon",&MuellerPlatheFlow::get_flow_epsilon)
+        .def("setFlowEpsilon",&MuellerPlatheFlow::set_flow_epsilon)
+        ;
+    enum_<Direction>("Direction")
+        .value("X",X)
+        .value("Y",Y)
+        .value("Z",Z)
+        .export_values()
+        ;
     }

@@ -3,6 +3,8 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
+#include "hoomd/Variant.h"
+
 #include <cfloat>
 #include <boost/shared_ptr.hpp>
 
@@ -45,11 +47,13 @@ class MuellerPlatheFlow : public Updater
         //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
         //! If it is not, the number is rescaled and the user is informed.
         MuellerPlatheFlow(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ParticleGroup> group,
-                            const unsigned int direction,
-                            const unsigned int N_slabs,
-                            const unsigned int min_slab,
-                            const unsigned int max_slab);
+                          boost::shared_ptr<ParticleGroup> group,
+                          boost::shared_ptr<Variant> flow_target,
+                          const unsigned int slab_direction,
+                          const unsigned int flow_direction,
+                          const unsigned int N_slabs,
+                          const unsigned int min_slab,
+                          const unsigned int max_slab);
 
         //! Destructor
         virtual ~MuellerPlatheFlow(void);
@@ -64,6 +68,10 @@ class MuellerPlatheFlow : public Updater
 
         void set_min_slab(const unsigned int slab_id);
         void set_max_slab(const unsigned int slab_id);
+        //! Swap min and max slab for a reverse flow.
+        //! More efficient than separate calls of set_min_slab() and set_max_slab(),
+        //! especailly in MPI runs.
+        void swap_min_max_slab(void);
 
         //! Determine, whether this part of the domain decomposition
         //! has particles in the min slab.
@@ -74,6 +82,10 @@ class MuellerPlatheFlow : public Updater
 
         //! Call function, if the domain decomposition has changed.
         void update_domain_decomposition(void);
+        //! Get the ignored variance between flow target and summed flow.
+        Scalar get_flow_epsilon(void)const{return m_flow_epsilon;}
+        //! Get the ignored variance between flow target and summed flow.
+        void set_flow_epsilon(const Scalar flow_epsilon){m_flow_epsilon=flow_epsilon;}
     protected:
         //! Group of particles, which are searched for the velocity exchange
         boost::shared_ptr<ParticleGroup> m_group;
@@ -86,7 +98,10 @@ class MuellerPlatheFlow : public Updater
         //!Temporary variables to store last found max vel;
         Scalar_Int m_last_max_vel;
     private:
-        enum Direction m_direction;
+        boost::shared_ptr<Variant> m_flow_target;
+        Scalar m_flow_epsilon;
+        enum Direction m_slab_direction;
+        enum Direction m_flow_direction;
         unsigned int m_N_slabs;
         unsigned int m_min_slab;
         unsigned int m_max_slab;
