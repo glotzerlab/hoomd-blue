@@ -114,7 +114,6 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
-// TODO: adios_boost, rework this into something much cleaner
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(py::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {

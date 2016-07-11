@@ -7,7 +7,7 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/random.hpp>
+#include <random>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -157,7 +157,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
         hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
-        std::vector<boost::random::poisson_distribution<unsigned int, Scalar> > m_poisson;   //!< Poisson distribution
+        std::vector<std::poisson_distribution<unsigned int> > m_poisson;   //!< Poisson distribution
         std::vector<Scalar> m_lambda;                            //!< Poisson distribution parameters per type
         Scalar m_d_dep;                                          //!< Depletant circumsphere diameter
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
@@ -307,7 +307,7 @@ void IntegratorHPMCMonoImplicit< Shape >::initializePoissonDistribution()
             // guard against invalid parameters
             continue;
             }
-        m_poisson[i_type] = boost::random::poisson_distribution<unsigned int, Scalar>(lambda);
+        m_poisson[i_type] = std::poisson_distribution<unsigned int>(lambda);
         }
     }
 
@@ -393,10 +393,10 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     seed_seq[0] = this->m_seed;
     seed_seq[1] = timestep;
     seed_seq[2] = this->m_exec_conf->getRank();
-    boost::random::seed_seq seed(seed_seq.begin(), seed_seq.end());
+    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
 
     // RNG for poisson distribution
-    boost::random::mt19937 rng_poisson(seed);
+    std::mt19937 rng_poisson(seed);
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC implicit");
 

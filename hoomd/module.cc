@@ -285,7 +285,6 @@ PYBIND11_PLUGIN(_hoomd)
 
 	// setup needed for numpy
 	my_import_array();
-	// bnp::array::set_module_and_type("numpy", "ndarray"); //TODO: adios_boost, check if we need this anymore??
 
 	m.def("abort_mpi", abort_mpi);
 	m.def("mpi_barrier_world", mpi_barrier_world);
