@@ -23,8 +23,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! label the boost test module
-UP_TEST(TempRescaleUpdaterTests)
 
 
 /*! \file temp_rescale_updater_test.cc
@@ -131,4 +129,3 @@ UP_TEST( TempRescaleUpdater_basic )
     tc->compute(2);
     MY_CHECK_CLOSE(tc->getTemperature(), 2.0, tol);
     }
-

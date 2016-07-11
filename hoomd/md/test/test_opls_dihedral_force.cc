@@ -26,8 +26,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! Name the boost unit test module
-UP_TEST(OPLSDihedralForceTests)
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<OPLSDihedralForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;

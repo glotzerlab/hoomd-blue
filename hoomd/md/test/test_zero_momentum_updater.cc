@@ -18,8 +18,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! label the boost test module
-UP_TEST(ZeroMomentumUpdaterTests)
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class
@@ -77,4 +75,3 @@ UP_TEST( ZeroMomentumUpdater_basic )
     MY_CHECK_SMALL(avg_py, tol_small);
     MY_CHECK_SMALL(avg_pz, tol_small);
     }
-

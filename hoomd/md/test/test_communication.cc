@@ -4,9 +4,6 @@
 
 #ifdef ENABLE_MPI
 
-//! name the boost unit test module
-UP_TEST(CommunicationTests)
-
 // this has to be included after naming the test module
 #include "hoomd/test/upp11_config.h"
 
@@ -33,7 +30,6 @@ UP_TEST(CommunicationTests)
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 using namespace std;
-using namespace boost;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,

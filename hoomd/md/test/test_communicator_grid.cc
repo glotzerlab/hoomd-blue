@@ -87,7 +87,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
                 for (unsigned int z = 0; z < nz; z++)
                     {
                     unsigned int val = h_grid.data[x+embed.x*(y+embed.y*z)];
-                    // check outer ghost cells 
+                    // check outer ghost cells
                     int3 neighbor_dir = make_int3(0,0,0);
                     if (x == 0)
                         neighbor_dir.x = -1;

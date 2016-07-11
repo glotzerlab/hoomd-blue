@@ -18,8 +18,9 @@
 
 #include "hoomd/Initializers.h"
 
+#include "hoomd/test/upp11_config.h"
+
 using namespace std;
-using namespace boost;
 
 /*! \file harmonic_bond_force_test.cc
     \brief Implements unit tests for BondTablePotential and
@@ -27,10 +28,7 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-#include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! Name the boost unit test module
-UP_TEST(BondTableForceTests)
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<BondTablePotential>  (std::shared_ptr<SystemDefinition> sysdef, unsigned int width)> bondforce_creator;

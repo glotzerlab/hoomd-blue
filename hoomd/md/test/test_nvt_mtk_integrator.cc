@@ -35,8 +35,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! name the boost unit test module
-UP_TEST(NVTUpdaterTests)
 
 
 //! Typedef'd NVTUpdator class factory

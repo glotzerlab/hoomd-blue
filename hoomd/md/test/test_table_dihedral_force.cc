@@ -26,8 +26,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! Name the boost unit test module
-UP_TEST(DihedralForceTests)
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<TableDihedralForceCompute>  (std::shared_ptr<SystemDefinition> sysdef,unsigned int width)> dihedralforce_creator;

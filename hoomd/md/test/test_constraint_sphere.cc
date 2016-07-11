@@ -30,8 +30,6 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 UP_MAIN();
-//! name the boost unit test module
-UP_TEST(ConstraintSphereTests)
 
 //! Typedef'd class factory
 typedef boost::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,
@@ -134,4 +132,3 @@ UP_TEST( BDUpdaterGPU_tests )
     constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-

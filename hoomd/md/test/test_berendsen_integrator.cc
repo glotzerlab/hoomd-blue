@@ -6,7 +6,6 @@
 #include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
-
 #include <memory>
 
 #include "hoomd/md/IntegratorTwoStep.h"
@@ -20,18 +19,16 @@
 #include "hoomd/Initializers.h"
 
 #include <math.h>
+#include "hoomd/test/upp11_config.h"
 
 using namespace std;
-using namespace boost;
 
 /*! \file test_berendsen_updater.cc
     \brief Implements unit tests for TwoStepBerendsen and descendants
     \ingroup unit_tests
 */
 
-//! name the boost unit test module
-UP_SUITE_BEGIN(Berendsen_UpdaterTests)
-#include "hoomd/test/upp11_config.h"
+UP_MAIN();
 
 //! Apply the thermostat to 1000 particles in an ideal gas
 template <class Berendsen>
@@ -125,4 +122,3 @@ UP_TEST( TwoStepBerendsenGPU_LJ_tests )
     berend_updater_lj_tests<TwoStepBerendsenGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-
