@@ -492,10 +492,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
                 // fix the maximum number of inserted depletants at the average number
                 // of depletants in the excluded volume sphere
                 unsigned int m = (unsigned int)(V*n_R)+1;
-                if (m > 0)
-                    {
-                    n_insert = rand_select(rng, m-1);
-                    }
+                n_insert = rand_select(rng, m-1);
 
                 // getPosition() corrects for grid shift, add it back
                 Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
