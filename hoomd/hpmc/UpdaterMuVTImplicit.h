@@ -9,7 +9,7 @@
 #include "ComputeFreeVolume.h"
 #include "Moves.h"
 
-#include <boost/random.hpp>
+#include <random>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -36,7 +36,7 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
             unsigned int npartition);
 
     protected:
-        boost::random::poisson_distribution<unsigned int, Scalar> m_poisson;   //!< Poisson distribution
+        std::poisson_distribution<unsigned int> m_poisson;   //!< Poisson distribution
         std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
@@ -1243,8 +1243,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
     unsigned int n = 0;
     if (lambda>Scalar(0.0))
         {
-        boost::random::poisson_distribution<unsigned int, Scalar> poisson =
-            boost::random::poisson_distribution<unsigned int, Scalar>(lambda);
+        std::poisson_distribution<unsigned int> poisson =
+            std::poisson_distribution<unsigned int>(lambda);
 
         // combine four seeds
         std::vector<unsigned int> seed_seq(4);
@@ -1256,10 +1256,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
         #else
         seed_seq[3] = 0;
         #endif
-        boost::random::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
 
         // RNG for poisson distribution
-        boost::random::mt19937 rng_poisson(seed);
+        std::mt19937 rng_poisson(seed);
 
         n = poisson(rng_poisson);
         }
