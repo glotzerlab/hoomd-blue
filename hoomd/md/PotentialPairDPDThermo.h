@@ -296,9 +296,6 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-
-//NOTE - not sure this boost python export is set up correctly.
-// TODO adios_boost, remove note?
 template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())

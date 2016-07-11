@@ -92,7 +92,7 @@ class _param(object):
     def ensure_list(self, li):
         if(type(li) == numpy.ndarray):
             return li.tolist();
-        elif(len(li)==0): #TODO: adios_boost, pybind11 seems to somehow know it's a list of tuples instead of a list of lists?, extra mess needed, this function is overused....
+        elif(len(li)==0):
             return [];
         elif (isinstance(li[0],str)):
             return list(li);

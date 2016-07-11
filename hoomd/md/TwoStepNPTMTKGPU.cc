@@ -66,7 +66,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_temperature.swap(temperature);
     }
 
-// TODO, adios_boost this could be replaced if we pass in S differently
+// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
 TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        std::shared_ptr<ComputeThermo> thermo_group,

@@ -18,8 +18,6 @@
 #include <string>
 #include <iostream>
 
-// using namespace boost::python; //TODO: adios_boost
-
 /*! \file system_test.cc
     \brief Unit tests for System
     \ingroup unit_tests

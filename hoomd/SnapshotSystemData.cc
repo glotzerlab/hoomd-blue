@@ -76,8 +76,6 @@ void export_SnapshotSystemData(py::module& m)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
-    //TODO: adios_boost, py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<const SnapshotSystemData<float> > >();
-
     py::class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >(m,"SnapshotSystemData_double")
     .def(py::init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
@@ -91,6 +89,4 @@ void export_SnapshotSystemData(py::module& m)
     .def("replicate", &SnapshotSystemData<double>::replicate)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
-
-    // py::implicitly_convertible<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<const SnapshotSystemData<double> > >();
     }

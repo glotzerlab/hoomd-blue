@@ -104,7 +104,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 
-// TODO: adios_boost, required to overload simply by test_npt_mtk_integrator's attempting to pass in a variant when the original is expecting a list... somehow boost didn't care....
+// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
 TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        std::shared_ptr<ComputeThermo> thermo_group,

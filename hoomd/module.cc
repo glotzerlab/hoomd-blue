@@ -285,7 +285,6 @@ PYBIND11_PLUGIN(_hoomd)
 
 	// setup needed for numpy
 	my_import_array();
-	// bnp::array::set_module_and_type("numpy", "ndarray"); //TODO: adios_boost, check if we need this anymore??
 
 	m.def("abort_mpi", abort_mpi);
 	m.def("mpi_barrier_world", mpi_barrier_world);
@@ -388,66 +387,6 @@ PYBIND11_PLUGIN(_hoomd)
 
 	// messenger
 	export_Messenger(m);
-	//
-	// // boost 1.60.0 compatibility
-	// // #if (BOOST_VERSION == 106000)
-	// register_ptr_to_python< std::shared_ptr< IMDInterface > >();
-	// register_ptr_to_python< std::shared_ptr< DCDDumpWriter > >();
-	// register_ptr_to_python< std::shared_ptr< Logger > >();
-	// register_ptr_to_python< std::shared_ptr< CallbackAnalyzer > >();
-	// register_ptr_to_python< std::shared_ptr< DomainDecomposition > >();
-	// register_ptr_to_python< std::shared_ptr< CellList > >();
-	// register_ptr_to_python< std::shared_ptr< CellListStencil > >();
-	// register_ptr_to_python< std::shared_ptr< ForceConstraint > >();
-	// register_ptr_to_python< std::shared_ptr< ConstForceCompute > >();
-	// register_ptr_to_python< std::shared_ptr< ExecutionConfiguration > >();
-	// register_ptr_to_python< std::shared_ptr< SystemDefinition > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleData > >();
-	// register_ptr_to_python< std::shared_ptr< SnapshotParticleData<float> > >();
-	// register_ptr_to_python< std::shared_ptr< SnapshotParticleData<double> > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleGroup > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelector > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelectorAll > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelectorTag > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelectorType > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelectorRigid > >();
-	// register_ptr_to_python< std::shared_ptr< ParticleSelectorCuboid > >();
-	// register_ptr_to_python< std::shared_ptr< SnapshotSystemData<float> > >();
-	// register_ptr_to_python< std::shared_ptr< SnapshotSystemData<double> > >();
-	// register_ptr_to_python< std::shared_ptr< System > >();
-	// register_ptr_to_python< std::shared_ptr< Integrator > >();
-	// register_ptr_to_python< std::shared_ptr< SFCPackUpdater > >();
-	// register_ptr_to_python< std::shared_ptr< double2 > >();
-	// register_ptr_to_python< std::shared_ptr< double3 > >();
-	// register_ptr_to_python< std::shared_ptr< double4 > >();
-	// register_ptr_to_python< std::shared_ptr< float2 > >();
-	// register_ptr_to_python< std::shared_ptr< float3 > >();
-	// register_ptr_to_python< std::shared_ptr< float4 > >();
-	// register_ptr_to_python< std::shared_ptr< uint2 > >();
-	// register_ptr_to_python< std::shared_ptr< uint3 > >();
-	// register_ptr_to_python< std::shared_ptr< uint4 > >();
-	// register_ptr_to_python< std::shared_ptr< int2 > >();
-	// register_ptr_to_python< std::shared_ptr< int3 > >();
-	// register_ptr_to_python< std::shared_ptr< int4 > >();
-	// register_ptr_to_python< std::shared_ptr< char3 > >();
-	// register_ptr_to_python< std::shared_ptr< Variant > >();
-	// register_ptr_to_python< std::shared_ptr< VariantConst > >();
-	// register_ptr_to_python< std::shared_ptr< VariantLinear > >();
-	// register_ptr_to_python< std::shared_ptr< Messenger > >();
-	//
-	// #ifdef ENABLE_CUDA
-	// #ifdef ENABLE_MPI
-	// register_ptr_to_python< std::shared_ptr< LoadBalancerGPU > >();
-	// register_ptr_to_python< std::shared_ptr< CommunicatorGPU > >();
-	// #endif
-	// register_ptr_to_python< std::shared_ptr< CellListGPU > >();
-	// #endif
-	//
-	// #ifdef ENABLE_MPI
-	// register_ptr_to_python< std::shared_ptr< Communicator > >();
-	// register_ptr_to_python< std::shared_ptr< LoadBalancer > >();
-	// #endif
-	// // #endif
 
 	return m.ptr();
 	}
