@@ -6,6 +6,11 @@
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 
+*New packages*
+
+* `dem` - simulate faceted shapes with dynamics
+* `hpmc` - hard particle Monte Carlo of a variety of shape classes.
+
 *Bug fixes*
 
 * Angles, dihedrals, and impropers no longer initialize with one default type.
