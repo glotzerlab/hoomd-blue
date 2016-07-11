@@ -345,7 +345,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return data;
 
     def make_param(self, diameters, centers, ignore_statistics=False, colors=None):
-        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
+        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
