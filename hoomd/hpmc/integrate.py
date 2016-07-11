@@ -241,6 +241,16 @@ class mode_hpmc(_integrator):
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
+        # setup new interaction matrix elements to default
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        for i in range(0,ntypes):
+            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            for j in range(0,ntypes):
+                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
+                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
+                    # by default, perform overlap checks
+                    self.overlap_checks.set(type_name_i, type_name_j, True)
+
         # set overlap matrix on C++ side
         for (i,type_i) in enumerate(type_names):
             for (j,type_j) in enumerate(type_names):

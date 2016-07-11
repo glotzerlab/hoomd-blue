@@ -27,8 +27,7 @@ namespace hpmc{
 namespace detail{
 
 // make these global constants in one of the shape headers.
-#define IGNORE_OVRLP 0x0001
-#define IGNORE_STATS 0x0002
+#define IGNORE_STATS 0x0001
 
 template<class param_type>
 inline boost::python::list poly2d_verts_to_python(param_type& param)
@@ -496,25 +495,11 @@ public:
         return (m_access(h_params.data[m_typeid]).ignore & IGNORE_STATS);
         }
 
-    //!Ignore flag for overlaps
-    bool getIgnoreOverlaps() const
-        {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return (m_access(h_params.data[m_typeid]).ignore & IGNORE_OVRLP);
-        }
-
     void setIgnoreStatistics(bool stat)
         {
         ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
         if(stat)    m_access(h_params.data[m_typeid]).ignore |= IGNORE_STATS;
         else        m_access(h_params.data[m_typeid]).ignore &= ~IGNORE_STATS;
-        }
-
-    void setIgnoreOverlaps(bool ovrlps)
-        {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        if(ovrlps)  m_access(h_params.data[m_typeid]).ignore |= IGNORE_OVRLP;
-        else        m_access(h_params.data[m_typeid]).ignore &= ~IGNORE_OVRLP;
         }
 
 protected:
