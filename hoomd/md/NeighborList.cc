@@ -1404,6 +1404,8 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
         }
+
+    Compute::setCommunicator(comm);
     }
 
 //! Returns true if the particle migration criterium is fulfilled
