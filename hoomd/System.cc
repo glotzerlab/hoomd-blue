@@ -612,7 +612,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // execute python callback, if present and needed
     if (callback != py::none() && (cb_frequency == 0))
         {
-        callback.call(m_cur_tstep); //TODO: adios_boost, this really should be rewritten, pybind11 plans to drop call functionality and not sure it works
+        callback(m_cur_tstep);
         }
 
     // calculate averate TPS
