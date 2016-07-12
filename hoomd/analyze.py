@@ -519,7 +519,12 @@ class log(_analyzer):
         logger during the simulation. A disabled logger can be re-enabled
         with :py:meth:`enable()`.
         """
-        super(_analyzer, self).disable()
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.disable(self)
+        hoomd.util.unquiet_status()
+
         hoomd.context.current.loggers.remove(self)
 
     def enable(self):
@@ -531,7 +536,12 @@ class log(_analyzer):
 
         See :py:meth:`disable()`.
         """
-        super(_analyzer, self).enable()
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.enable(self)
+        hoomd.util.unquiet_status()
+
         hoomd.context.current.loggers.append(self)
 
 class callback(_analyzer):

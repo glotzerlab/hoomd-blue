@@ -218,7 +218,12 @@ class thermo(_compute):
 
         A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
         """
-        super(_compute, self).disable()
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.disable(self)
+        hoomd.util.unquiet_status()
+
         hoomd.context.current.thermos.remove(self)
 
     def enable(self):
@@ -230,7 +235,12 @@ class thermo(_compute):
 
         See :py:meth:`disable()`.
         """
-        super(_compute, self).enable()
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.enable(self)
+        hoomd.util.unquiet_status()
+
         hoomd.context.current.thermo.append(self)
 
 ## \internal
