@@ -62,7 +62,7 @@ class Compute
     public:
         //! Constructs the compute and associates it with the ParticleData
         Compute(std::shared_ptr<SystemDefinition> sysdef);
-        ~Compute() {};
+        virtual ~Compute() {};
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
@@ -138,7 +138,7 @@ class Compute
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
          */
-        void setCommunicator(std::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
