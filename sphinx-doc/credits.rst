@@ -126,6 +126,7 @@ Michael P. Howard, Princeton University
  * Dynamic load balancing
  * Wall potentials extrapolated mode
  * XML dump by particle group
+ * Fix references when disabling/enabling objects
 
 James Antonaglia, University of Michigan
  * pair.mie

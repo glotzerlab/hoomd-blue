@@ -258,7 +258,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
@@ -293,7 +293,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
@@ -326,7 +326,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel

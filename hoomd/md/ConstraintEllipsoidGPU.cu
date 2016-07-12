@@ -86,7 +86,7 @@ cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_gr
     assert(d_group_members);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
