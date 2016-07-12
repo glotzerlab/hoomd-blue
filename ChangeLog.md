@@ -7,6 +7,7 @@
 *Bug fixes*
 
 * References to disabled analyzers, computes, updaters, etc. are properly freed from the simulation context.
+* Fix a bug where `init.read_gsd` ignored the `restart` argument.
 
 ## v2.0.0
 

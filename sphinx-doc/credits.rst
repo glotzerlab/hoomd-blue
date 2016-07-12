@@ -165,6 +165,9 @@ Bryan Vansaders, University of Michigan
  * Constant stress mode to integrate.npt.
  * map_overlaps() in hpmc.
 
+Vyas Ramasubramani, University of Michigan
+ * init.read_gsd bug fixes
+
 HPMC developers
 ---------------
 
