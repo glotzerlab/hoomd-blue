@@ -2947,129 +2947,129 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getPosNP()
+py::object SnapshotParticleData<Real>::getPosNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return py::handle(num_util::makeNumFromData((Real*)&pos[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&pos[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getVelNP()
+py::object SnapshotParticleData<Real>::getVelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return py::handle(num_util::makeNumFromData((Real*)&vel[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&vel[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getAccelNP()
+py::object SnapshotParticleData<Real>::getAccelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return py::handle(num_util::makeNumFromData((Real*)&accel[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&accel[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the type data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getTypeNP()
+py::object SnapshotParticleData<Real>::getTypeNP()
     {
-    return py::handle(num_util::makeNumFromData(&type[0], type.size()));
+    return py::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
 /*! \returns a numpy array that wraps the mass data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getMassNP()
+py::object SnapshotParticleData<Real>::getMassNP()
     {
-    return py::handle(num_util::makeNumFromData(&mass[0], mass.size()));
+    return py::object(num_util::makeNumFromData(&mass[0], mass.size()), false);
     }
 
 /*! \returns a numpy array that wraps the charge data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getChargeNP()
+py::object SnapshotParticleData<Real>::getChargeNP()
     {
-    return py::handle(num_util::makeNumFromData(&charge[0], charge.size()));
+    return py::object(num_util::makeNumFromData(&charge[0], charge.size()), false);
     }
 
 /*! \returns a numpy array that wraps the diameter data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getDiameterNP()
+py::object SnapshotParticleData<Real>::getDiameterNP()
     {
-    return py::handle(num_util::makeNumFromData(&diameter[0], diameter.size()));
+    return py::object(num_util::makeNumFromData(&diameter[0], diameter.size()), false);
     }
 
 /*! \returns a numpy array that wraps the image data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getImageNP()
+py::object SnapshotParticleData<Real>::getImageNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return py::handle(num_util::makeNumFromData((int*)&image[0], dims));
+    return py::object(num_util::makeNumFromData((int*)&image[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the body data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getBodyNP()
+py::object SnapshotParticleData<Real>::getBodyNP()
     {
-    return py::handle(num_util::makeNumFromData(&body[0], body.size()));
+    return py::object(num_util::makeNumFromData(&body[0], body.size()), false);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getOrientationNP()
+py::object SnapshotParticleData<Real>::getOrientationNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 4;
-    return py::handle(num_util::makeNumFromData((Real*)&orientation[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&orientation[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the moment of inertia data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getMomentInertiaNP()
+py::object SnapshotParticleData<Real>::getMomentInertiaNP()
     {
     std::vector<intp> dims(2);
     dims[0] = inertia.size();
     dims[1] = 3;
-    return py::handle(num_util::makeNumFromData((Real*)&inertia[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&inertia[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the angular momentum data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::handle SnapshotParticleData<Real>::getAngmomNP()
+py::object SnapshotParticleData<Real>::getAngmomNP()
     {
     std::vector<intp> dims(2);
     dims[0] = angmom.size();
     dims[1] = 4;
-    return py::handle(num_util::makeNumFromData((Real*)&angmom[0], dims));
+    return py::object(num_util::makeNumFromData((Real*)&angmom[0], dims), false);
     }
 
 /*! \returns A python list of type names

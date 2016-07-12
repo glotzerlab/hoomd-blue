@@ -206,12 +206,12 @@ class BondedGroupData : boost::noncopyable
             void replicate(unsigned int n, unsigned int old_n_particles);
 
             //! Get type as a numpy array
-            pybind11::handle getTypeNP();
+            pybind11::object getTypeNP();
             //! Get value as a numpy array
-            pybind11::handle getValueNP();
+            pybind11::object getValueNP();
 
             //! Get bonded tags as a numpy array
-            pybind11::handle getBondedTagsNP();
+            pybind11::object getBondedTagsNP();
             //! Get the type names for python
             pybind11::list getTypes();
             //! Set the type names from python
