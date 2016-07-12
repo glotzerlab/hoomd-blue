@@ -518,15 +518,18 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
             // execute python callback, if present and needed
             // a negative return value indicates immediate end of run.
-            if (!py::detail::PyNone_Check(callback.ptr()) && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+            if (callback != py::none() && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
                 {
-                py::object rv = callback.call(m_cur_tstep); //TODO: adios_boost, this really should be rewritten, pybind11 plans to drop call functionality and not sure it works
-                int extracted_rv = py::cast<int>(rv); //TODO: adios_boost, removed the checking and didn't replace with a try catch, do we need it?
-                if (extracted_rv < 0)
+                py::object rv = callback(m_cur_tstep);
+                if (rv != py::none())
                     {
-                    m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
-                         << m_cur_tstep << " / " << m_end_tstep << endl;
-                    break;
+                    int extracted_rv = py::cast<int>(rv);
+                    if (extracted_rv < 0)
+                        {
+                        m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
+                             << m_cur_tstep << " / " << m_end_tstep << endl;
+                        break;
+                        }
                     }
                 }
 
@@ -607,7 +610,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
-    if (!py::detail::PyNone_Check(callback.ptr()) && (cb_frequency == 0))
+    if (callback != py::none() && (cb_frequency == 0))
         {
         callback.call(m_cur_tstep); //TODO: adios_boost, this really should be rewritten, pybind11 plans to drop call functionality and not sure it works
         }
