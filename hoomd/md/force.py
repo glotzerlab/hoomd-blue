@@ -111,6 +111,7 @@ class _force(hoomd.meta._metadata):
         # remove the compute from the system if it is not going to be logged
         if not log:
             hoomd.context.current.system.removeCompute(self.force_name);
+            hoomd.context.current.forces.remove(self)
 
     def enable(self):
         R""" Enable the force.
@@ -132,6 +133,7 @@ class _force(hoomd.meta._metadata):
         # add the compute back to the system if it was removed
         if not self.log:
             hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+            hoomd.context.current.forces.append(self)
 
         self.enabled = True;
         self.log = True;

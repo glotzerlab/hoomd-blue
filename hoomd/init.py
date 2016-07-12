@@ -287,8 +287,10 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
-
-    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
+    if restart is not None and os.path.exists(restart):
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, frame);
+    else:
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
     snapshot = reader.getSnapshot();
     if time_step is None:
         time_step = reader.getTimeStep();
