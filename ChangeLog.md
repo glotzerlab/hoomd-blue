@@ -6,6 +6,7 @@
 
 *Bug fixes*
 
+* fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC)
 * References to disabled analyzers, computes, updaters, etc. are properly freed from the simulation context.
 * Fix a bug where `init.read_gsd` ignored the `restart` argument.
 
