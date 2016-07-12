@@ -277,7 +277,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
     // bind the tables texture on pre sm35 arches

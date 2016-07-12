@@ -30,11 +30,12 @@ HPMC implements hard particle Monte Carlo in HOOMD-blue. It supports:
     - General polyhedra (:py:class:`integrate.polyhedron`)
 - Execution:
     - Canonical hard particle MC on a single CPU core
-    - Parallel updates on many CPU cores using MPI
     - Parallel update scheme on a single GPU
-    - Frenkel-Ladd free energy determination on a single CPU core
+    - Parallel updates on many CPU cores / GPUs using MPI
+    - Frenkel-Ladd free energy determination
 - Analysis:
     - Scale distribution function for pressure determination in NVT (:py:class:`analyze.sdf`)
+    - Free volume (:py:class:`compute.free_volume`)
 - File I/O:
     - Loose integration with pos_writer
 

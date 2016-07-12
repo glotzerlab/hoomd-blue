@@ -120,6 +120,7 @@ class _analyzer(hoomd.meta._metadata):
 
         self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
         hoomd.context.current.system.removeAnalyzer(self.analyzer_name);
+        hoomd.context.current.analyzers.remove(self)
         self.enabled = False;
 
     def enable(self):
@@ -140,6 +141,7 @@ class _analyzer(hoomd.meta._metadata):
             return;
 
         hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
+        hoomd.context.current.analyzers.append(self)
         self.enabled = True;
 
     def set_period(self, period):
@@ -503,6 +505,44 @@ class log(_analyzer):
 
         # re-register all computes and updater
         hoomd.context.current.system.registerLogger(self.cpp_analyzer);
+
+    def disable(self):
+        R""" Disable the logger.
+
+        Examples::
+
+            logger.disable()
+
+
+        Executing the disable command will remove the logger from the system.
+        Any :py:func:`hoomd.run()` command executed after disabling the logger will not use that
+        logger during the simulation. A disabled logger can be re-enabled
+        with :py:meth:`enable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.disable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.remove(self)
+
+    def enable(self):
+        R""" Enables the logger
+
+        Examples::
+
+            logger.enable()
+
+        See :py:meth:`disable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.enable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.append(self)
 
 class callback(_analyzer):
     R""" Callback analyzer.
