@@ -26,7 +26,13 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
     if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
-        set(_common_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas -Wno-c++14-extensions")
+        set(_common_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas")
+
+        include(CheckCXXCompilerFlag)
+        check_cxx_compiler_flag("-Wno-c++14-extensions" HAS_WCPP14_EXTENSIONS)
+        if (HAS_WCPP14_EXTENSIONS)
+            set(_common_options "${_common_options} -Wno-c++14-extensions")
+        endif()
 
         # default flags for g++
         set(CMAKE_C_FLAGS_DEBUG "${_common_options} -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
