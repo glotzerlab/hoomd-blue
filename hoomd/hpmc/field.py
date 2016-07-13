@@ -108,18 +108,9 @@ class lattice_field(_external):
             hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
-        if type(position) == numpy.ndarray:
-            position = position.tolist();
-        else:
-            position = list(position);
-
-        if type(orientation) == numpy.ndarray:
-            orientation = orientation.tolist();
-        else:
-            orientation = list(orientation);
-
         self.compute_name = "lattice_field"
-        self.cpp_compute = cls(hoomd.context.current.system_definition, position, k, orientation, q, symmetry);
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute = cls(hoomd.context.current.system_definition, enlist(position), float(k), enlist(orientation), float(q), enlist(symmetry));
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
         if not composite:
             mc.set_external(self);
@@ -140,17 +131,8 @@ class lattice_field(_external):
         """
         import numpy
         hoomd.util.print_status_line();
-        if type(position) == numpy.ndarray:
-            position = position.tolist();
-        else:
-            position = list(position);
-
-        if type(orientation) == numpy.ndarray:
-            orientation = orientation.tolist();
-        else:
-            orientation = list(orientation);
-
-        self.cpp_compute.setReferences(position, orientation);
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute.setReferences(enlist(position), enlist(orientation));
 
     def set_params(self, k, q):
         R""" Set the translational and rotational spring constants.
@@ -193,6 +175,18 @@ class lattice_field(_external):
         if timestep == None:
             timestep = hoomd.context.current.system.getCurrentTimeStep();
         self.cpp_compute.reset(timestep);
+
+    def get_energy(self):
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getEnergy(timestep);
+
+    def get_average_energy(self):
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getAvgEnergy(timestep);
+
+    def get_sigma_energy(self):
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getSigma(timestep);
 
 class external_field_composite(_external):
     R""" Manage multiple external fields.

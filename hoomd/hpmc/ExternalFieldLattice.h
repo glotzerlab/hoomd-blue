@@ -34,7 +34,7 @@ inline void pthon_list_to_vector_scalar3(const pybind11::list& r0, std::vector<S
     for ( pybind11::ssize_t i=0; i<n; i++)
         {
         pybind11::ssize_t d = pybind11::len(r0[i]);
-        pybind11::tuple r0_tuple = pybind11::cast<pybind11::tuple >(r0[i]);
+        pybind11::list r0_tuple = pybind11::cast<pybind11::list >(r0[i]);
         if( d < ndim )
             {
             throw std::runtime_error("dimension of the list does not match the dimension of the simulation.");
@@ -55,7 +55,7 @@ inline void pthon_list_to_vector_scalar4(const pybind11::list& r0, std::vector<S
     ret.resize(n);
     for ( pybind11::ssize_t i=0; i<n; i++)
         {
-        pybind11::tuple r0_tuple = pybind11::cast<pybind11::tuple >(r0[i]);
+        pybind11::list r0_tuple = pybind11::cast<pybind11::list >(r0[i]);
 
         ret[i] = make_scalar4(  pybind11::cast<Scalar>(r0_tuple[0]),
                                 pybind11::cast<Scalar>(r0_tuple[1]),
@@ -403,6 +403,28 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
             m_num_samples = 0;
             }
+        Scalar getEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            return m_Energy;
+        }
+        Scalar getAvgEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            return m_EnergySum/double(m_num_samples);
+        }
+        Scalar getSigma(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            Scalar first_moment = m_EnergySum/double(m_num_samples);
+            Scalar second_moment = m_EnergySqSum/double(m_num_samples);
+            return sqrt(second_moment - (first_moment*first_moment));
+        }
+
 
     protected:
 
@@ -499,6 +521,9 @@ void export_LatticeField(pybind11::module& m, std::string name)
     .def("reset", &ExternalFieldLattice<Shape>::reset)
     .def("clearPositions", &ExternalFieldLattice<Shape>::clearPositions)
     .def("clearOrientations", &ExternalFieldLattice<Shape>::clearOrientations)
+    .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy)
+    .def("getAvgEnergy", &ExternalFieldLattice<Shape>::getAvgEnergy)
+    .def("getSigma", &ExternalFieldLattice<Shape>::getSigma)
     ;
     }
 

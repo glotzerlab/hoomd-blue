@@ -832,11 +832,11 @@ public:
         return orient;
         }
 
-    std::vector<std::shared_ptr< proxy_type > > getMembers() //TODO: adios_boost, is this working? Used to return a py::list of shared_ptr...
+    std::vector< std::shared_ptr< proxy_type > > getMembers() //TODO: adios_boost, is this working? Used to return a py::list of shared_ptr...
         {
         ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
         access_type& param = m_access(h_params.data[m_typeid]);
-        std::vector<std::shared_ptr< proxy_type > > members;
+        std::vector< std::shared_ptr< proxy_type > > members;
         for(size_t i = 0; i < param.N; i++)
             {
             access_shape_union_members<ShapeUnionType> acc(i);

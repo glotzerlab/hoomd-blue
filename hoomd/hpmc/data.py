@@ -89,23 +89,11 @@ class _param(object):
     def __init__(self, mc, typid):
         self.__dict__.update(dict(_keys=['ignore_statistics', 'ignore_overlaps'], mc=mc, typid=typid, make_fn=None, is_set=False));
 
-    def ensure_list(self, li):
-        if(type(li) == numpy.ndarray):
-            return li.tolist();
-        elif(len(li)==0):
-            return [];
-        elif (isinstance(li[0],str)):
-            return list(li);
-        elif not(isinstance(li[0],list)):
-                list_of_lists=[]
-                try:
-                    for tuple in li:
-                        list_of_lists.append(list(tuple))
-                except:
-                    list_of_lists = list(li);
-                return list_of_lists
-        else:
-            return list(li);
+    @classmethod
+    def ensure_list(cls, li):
+        # this will be slow if called many times but it is more robust.
+        ai = numpy.array(li);
+        return ai.tolist();
 
     def get_metadata(self):
         data = {}
