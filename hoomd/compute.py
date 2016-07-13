@@ -85,6 +85,7 @@ class _compute:
             return;
 
         hoomd.context.current.system.removeCompute(self.compute_name);
+        hoomd.context.current.computes.remove(self)
         self.enabled = False;
 
     def enable(self):
@@ -105,6 +106,7 @@ class _compute:
             return;
 
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+        hoomd.context.current.computes.append(self)
         self.enabled = True;
 
 # set default counter
@@ -203,6 +205,43 @@ class thermo(_compute):
         self.group = group;
         # add ourselves to the list of compute thermos specified so far
         hoomd.context.current.thermos.append(self);
+
+    def disable(self):
+        R""" Disables the thermo.
+
+        Examples::
+
+            my_thermo.disable()
+
+        Executing the disable command will remove the thermo compute from the system. Any :py:meth:`hoomd.run()` command
+        executed after disabling a thermo compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+
+        A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.disable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.thermos.remove(self)
+
+    def enable(self):
+        R""" Enables the thermo compute.
+
+        Examples::
+
+            my_thermo.enable()
+
+        See :py:meth:`disable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.enable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.thermo.append(self)
 
 ## \internal
 # \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new

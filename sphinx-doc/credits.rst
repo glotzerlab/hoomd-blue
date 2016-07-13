@@ -126,6 +126,7 @@ Michael P. Howard, Princeton University
  * Dynamic load balancing
  * Wall potentials extrapolated mode
  * XML dump by particle group
+ * Fix references when disabling/enabling objects
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -163,6 +164,9 @@ Isass Bruss, Chengyu Dai, University of Michigan
 Bryan Vansaders, University of Michigan
  * Constant stress mode to integrate.npt.
  * map_overlaps() in hpmc.
+
+Vyas Ramasubramani, University of Michigan
+ * init.read_gsd bug fixes
 
 HPMC developers
 ---------------
