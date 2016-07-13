@@ -17,8 +17,8 @@
     create the hoomd python module and define the exports here.
 */
 PYBIND11_PLUGIN(_cgcmm)
-	{
-	pybind11::module m("_cgcmm");
+    {
+    pybind11::module m("_cgcmm");
     export_CGCMMAngleForceCompute(m);
     export_CGCMMForceCompute(m);
 

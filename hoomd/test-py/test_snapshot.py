@@ -7,6 +7,7 @@ import hoomd;
 context.initialize()
 import unittest
 import os
+import sys
 import numpy
 
 # unit tests for init.take_snapshot and init.restore_snapshot
@@ -166,24 +167,39 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(snapshot.particles.N, 9)
             self.assertEqual(snapshot.particles.position.shape, (9,3));
             self.assertEqual(snapshot.particles.position.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.position), 1);
+
             self.assertEqual(snapshot.particles.velocity.shape, (9,3));
             self.assertEqual(snapshot.particles.velocity.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.velocity), 1);
+
             self.assertEqual(snapshot.particles.acceleration.shape, (9,3));
             self.assertEqual(snapshot.particles.acceleration.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.acceleration), 1);
+
             self.assertEqual(snapshot.particles.typeid.shape, (9,));
             self.assertEqual(snapshot.particles.typeid.dtype, numpy.uint32);
+            self.assertEqual(sys.getrefcount(snapshot.particles.typeid), 1);
+
             self.assertEqual(snapshot.particles.mass.shape, (9,));
             self.assertEqual(snapshot.particles.mass.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.mass), 1);
+
             self.assertEqual(snapshot.particles.charge.shape, (9,));
             self.assertEqual(snapshot.particles.charge.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.charge), 1);
+
             self.assertEqual(snapshot.particles.diameter.shape, (9,));
             self.assertEqual(snapshot.particles.diameter.dtype, float_type);
+            self.assertEqual(sys.getrefcount(snapshot.particles.diameter), 1);
 
             self.assertEqual(snapshot.particles.image.shape, (9,3));
             self.assertEqual(snapshot.particles.image.dtype, numpy.int32);
+            self.assertEqual(sys.getrefcount(snapshot.particles.image), 1);
 
             self.assertEqual(snapshot.particles.body.shape, (9,));
             self.assertEqual(snapshot.particles.body.dtype, numpy.uint32);
+            self.assertEqual(sys.getrefcount(snapshot.particles.body), 1);
 
             self.assertEqual(snapshot.particles.types, ["A", "B"]);
 
@@ -202,8 +218,12 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(snapshot.bonds.N, 6);
             self.assertEqual(snapshot.bonds.typeid.shape, (6,));
             self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
+            self.assertEqual(sys.getrefcount(snapshot.bonds.typeid), 1);
+
             self.assertEqual(snapshot.bonds.group.shape, (6,2));
             self.assertEqual(snapshot.bonds.group.dtype, numpy.uint32);
+            self.assertEqual(sys.getrefcount(snapshot.bonds.group), 1);
+
             self.assertEqual(snapshot.bonds.types, ['polymer']);
 
             self.assertEqual(list(snapshot.bonds.group[0]), [0,1]);
@@ -217,8 +237,11 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(snapshot.constraints.N, 3)
             self.assertEqual(snapshot.constraints.value.shape, (3,))
             self.assertTrue(snapshot.constraints.value.dtype == numpy.float32 or snapshot.constraints.value.dtype == numpy.float64)
+            self.assertEqual(sys.getrefcount(snapshot.constraints.value), 1);
+
             self.assertEqual(snapshot.constraints.group.shape, (3,2))
             self.assertEqual(snapshot.constraints.group.dtype, numpy.uint32)
+            self.assertEqual(sys.getrefcount(snapshot.constraints.group), 1);
 
             self.assertEqual(list(snapshot.constraints.group[0]), [0,1])
             self.assertEqual(list(snapshot.constraints.group[1]), [0,2])

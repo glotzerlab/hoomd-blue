@@ -327,7 +327,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
         throw std::runtime_error("Error changing NeighborList parameters");
         }
 
-	// stash the potential rcuts, r_list will be computed on next forced update
+    // stash the potential rcuts, r_list will be computed on next forced update
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
@@ -354,12 +354,12 @@ void NeighborList::setRBuff(Scalar r_buff)
     }
 
 void NeighborList::updateRList()
-	{
-	// only need a read on the real cutoff
-	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    {
+    // only need a read on the real cutoff
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
-	// now we need to read and write on the r_list
-	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
+    // now we need to read and write on the r_list
+    ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
 
     // update the maximum cutoff of all those set so far
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);
@@ -399,7 +399,7 @@ void NeighborList::updateRList()
 
     // rcut has been updated to the latest values now
     m_rcut_changed = false;
-	}
+    }
 
 /*! \returns an estimate of the number of neighbors per particle
     This mean-field estimate may be very bad dending on how clustered particles are.
@@ -1404,6 +1404,8 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
         }
+
+    Compute::setCommunicator(comm);
     }
 
 //! Returns true if the particle migration criterium is fulfilled

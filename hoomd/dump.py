@@ -11,6 +11,7 @@ each command writes.
 from collections import namedtuple;
 from hoomd import _hoomd
 import hoomd;
+import os;
 import sys;
 
 class dcd(hoomd.analyze._analyzer):
@@ -195,12 +196,6 @@ class getar(hoomd.analyze._analyzer):
                         'angle_type': _hoomd.GetarProperty.AngleTypes,
                         'angular_momentum': _hoomd.GetarProperty.AngularMomentum,
                         'body': _hoomd.GetarProperty.Body,
-                        # 'body_angular_momentum': _hoomd.GetarProperty.BodyAngularMomentum,
-                        # 'body_center_of_mass': _hoomd.GetarProperty.BodyCOM,
-                        # 'body_image': _hoomd.GetarProperty.BodyImage,
-                        # 'body_moment_inertia': _hoomd.GetarProperty.BodyMomentInertia,
-                        # 'body_orientation': _hoomd.GetarProperty.BodyOrientation,
-                        # 'body_velocity': _hoomd.GetarProperty.BodyVelocity,
                         'bond_type_names': _hoomd.GetarProperty.BondNames,
                         'bond_tag': _hoomd.GetarProperty.BondTags,
                         'bond_type': _hoomd.GetarProperty.BondTypes,
@@ -231,12 +226,6 @@ class getar(hoomd.analyze._analyzer):
                          'angle_type': _hoomd.GetarResolution.Individual,
                          'angular_momentum': _hoomd.GetarResolution.Individual,
                          'body': _hoomd.GetarResolution.Individual,
-                         # 'body_angular_momentum': _hoomd.GetarResolution.Individual,
-                         # 'body_center_of_mass': _hoomd.GetarResolution.Individual,
-                         # 'body_image': _hoomd.GetarResolution.Individual,
-                         # 'body_moment_inertia': _hoomd.GetarResolution.Individual,
-                         # 'body_orientation': _hoomd.GetarResolution.Individual,
-                         # 'body_velocity': _hoomd.GetarResolution.Individual,
                          'bond_type_names': _hoomd.GetarResolution.Text,
                          'bond_tag': _hoomd.GetarResolution.Individual,
                          'bond_type': _hoomd.GetarResolution.Individual,

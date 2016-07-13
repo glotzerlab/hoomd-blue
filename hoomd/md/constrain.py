@@ -114,6 +114,7 @@ class _constraint_force(hoomd.meta._metadata):
 
         # remove the compute from the system
         hoomd.context.current.system.removeCompute(self.force_name);
+        hoomd.context.current.constraint_forces.remove(self)
 
     def enable(self):
         R""" Enable the force.
@@ -134,6 +135,7 @@ class _constraint_force(hoomd.meta._metadata):
 
         # add the compute back to the system
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.constraint_forces.append(self)
 
         self.enabled = True;
 

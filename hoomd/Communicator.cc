@@ -2476,9 +2476,6 @@ const BoxDim Communicator::getShiftedBox() const
 //! Export Communicator class to python
 void export_Communicator(py::module& m)
     {
-    // py::class_< std::vector<bool> >(m,"std_vector_bool")
-    // .def(std::vector<bool>()); \\TODO: adios_boost, removed boost indexing suite, doesn't seem to do anything if STL is included
-
     py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
     .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
     }

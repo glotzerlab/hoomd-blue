@@ -513,7 +513,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
 */
-template < class T > void export_PotentialTersoff(py::module& m, const std::string& name)
+template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
         pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
