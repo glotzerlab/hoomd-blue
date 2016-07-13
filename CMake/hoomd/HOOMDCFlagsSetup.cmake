@@ -26,16 +26,18 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
     if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
-        # default flags for g++
-        set(CMAKE_C_FLAGS_DEBUG "-march=${GCC_ARCH} -g -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
-        set(CMAKE_C_FLAGS_MINSIZEREL "-march=${GCC_ARCH} -Os -Wall -Wno-unknown-pragmas -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-        set(CMAKE_C_FLAGS_RELEASE "-march=${GCC_ARCH} -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-        set(CMAKE_C_FLAGS_RELWITHDEBINFO "-march=${GCC_ARCH} -g -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+        set(_common_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas -Wno-c++14-extensions")
 
-        set(CMAKE_CXX_FLAGS_DEBUG "-march=${GCC_ARCH} -g -Wall -Wno-unknown-pragmas -std=c++11" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
-        set(CMAKE_CXX_FLAGS_MINSIZEREL "-march=${GCC_ARCH} -Os -Wall -Wno-unknown-pragmas -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-march=${GCC_ARCH} -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas -std=c++11" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-march=${GCC_ARCH} -g -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas -std=c++11" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+        # default flags for g++
+        set(CMAKE_C_FLAGS_DEBUG "${_common_options} -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+        set(CMAKE_C_FLAGS_MINSIZEREL "${_common_options} -Os -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+        set(CMAKE_C_FLAGS_RELEASE "${_common_options} -O3 -funroll-loops -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+        set(CMAKE_C_FLAGS_RELWITHDEBINFO "${_common_options} -g -O3 -funroll-loops -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+
+        set(CMAKE_CXX_FLAGS_DEBUG "${_common_options} -g -std=c++11" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+        set(CMAKE_CXX_FLAGS_MINSIZEREL "${_common_options} -Os -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "${_common_options} -O3 -funroll-loops -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${_common_options} -g -O3 -funroll-loops -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 
     elseif(CMAKE_CXX_COMPILER MATCHES "icpc")
         # default flags for intel
