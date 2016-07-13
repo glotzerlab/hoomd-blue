@@ -604,7 +604,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
             {
             if (m_prof)
                 m_prof->pop();
-	    return;
+        return;
             }
 #endif
         if (rename(tmp_file.c_str(), m_base_fname.c_str()) != 0)

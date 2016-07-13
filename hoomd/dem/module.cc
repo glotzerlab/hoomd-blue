@@ -19,37 +19,37 @@
 #include <iterator>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-    void export_params(pybind11::module& m);
+void export_params(pybind11::module& m);
 
-    void export_NF_WCA_2D(pybind11::module& m);
-    void export_NF_WCA_3D(pybind11::module& m);
-    void export_NF_SWCA_3D(pybind11::module& m);
-    void export_NF_SWCA_2D(pybind11::module& m);
+void export_NF_WCA_2D(pybind11::module& m);
+void export_NF_WCA_3D(pybind11::module& m);
+void export_NF_SWCA_3D(pybind11::module& m);
+void export_NF_SWCA_2D(pybind11::module& m);
 
-    PYBIND11_PLUGIN(_dem)
-    	{
-    	pybind11::module m("_dem");
+PYBIND11_PLUGIN(_dem)
+    {
+    pybind11::module m("_dem");
 
-        export_params(m);
-        export_NF_WCA_2D(m);
-        export_NF_WCA_3D(m);
-        export_NF_SWCA_2D(m);
-        export_NF_SWCA_3D(m);
+    export_params(m);
+    export_NF_WCA_2D(m);
+    export_NF_WCA_3D(m);
+    export_NF_SWCA_2D(m);
+    export_NF_SWCA_3D(m);
 
-        return m.ptr();
-        }
+    return m.ptr();
+    }
 
-    // Export all of the parameter wrapper objects to the python interface
-    void export_params(pybind11::module& m)
-        {
-        pybind11::class_<NoFriction<Scalar> >(m, "NoFriction")
-            .def(pybind11::init());
+// Export all of the parameter wrapper objects to the python interface
+void export_params(pybind11::module& m)
+    {
+    pybind11::class_<NoFriction<Scalar> >(m, "NoFriction")
+        .def(pybind11::init());
 
-        typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
-        typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > SWCA;
+    typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
+    typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > SWCA;
 
-        pybind11::class_<WCA>(m, "WCAPotential")
-            .def(pybind11::init<Scalar, NoFriction<Scalar> >());
-        pybind11::class_<SWCA>(m, "SWCAPotential")
-            .def(pybind11::init<Scalar, NoFriction<Scalar> >());
-        }
+    pybind11::class_<WCA>(m, "WCAPotential")
+        .def(pybind11::init<Scalar, NoFriction<Scalar> >());
+    pybind11::class_<SWCA>(m, "SWCAPotential")
+        .def(pybind11::init<Scalar, NoFriction<Scalar> >());
+    }

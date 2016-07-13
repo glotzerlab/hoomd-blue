@@ -180,21 +180,3 @@ std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() c
     pdata.type_mapping.push_back(m_type_name);
     return snapshot;
     }
-
-/////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-
-
-// void export_SimpleCubicInitializer()
-//     {
-//     class_< SimpleCubicInitializer >
-//         ("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
-//     ;
-//     }
-//
-// void export_RandomInitializer()
-//     {
-//     class_< RandomInitializer >
-//         ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
-//     ;
-//     }
