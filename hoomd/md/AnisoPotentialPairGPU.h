@@ -198,8 +198,8 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
 */
 template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-     py::class_<T, std::shared_ptr<T> >(m, name.c_str(), py::base<Base>())
-            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
             .def("setTuningParam",&T::setTuningParam)
               ;
     }
