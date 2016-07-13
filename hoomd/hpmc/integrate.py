@@ -61,7 +61,7 @@ class interaction_matrix:
         from hoomd import hpmc
         my_matrix = hpmc.integrate.interaction_matrix();
         my_matrix.set('A', 'A', enable=False)
-        my_matrix.set('A', 'B', eanble=True)
+        my_matrix.set('A', 'B', enable=True)
         my_matrix.set('B', 'B', enable=False)
 
     Example job script::
