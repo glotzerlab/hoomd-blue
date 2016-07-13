@@ -238,8 +238,31 @@ class mode_hpmc(_integrator):
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
-        # setup new interaction matrix elements to default
+        # backwards compatibility
+        if not hasattr(self,'has_printed_warning'):
+            self.has_printed_warning = False
+
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        first_warning = False
+        for (i,type_i) in enumerate(type_names):
+            if hasattr(self.shape_param[type_i],'ignore_overlaps') and self.shape_param[type_i].ignore_overlaps is not None:
+                if not self.has_printed_warning and not first_warning:
+                    hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n")
+                    first_warning = True
+                for (j, type_j) in enumerate(type_names):
+                    if hasattr(self.shape_param[type_j],'ignore_overlaps') and self.shape_param[type_j].ignore_overlaps is not None:
+                        enable = not (self.shape_param[type_i].ignore_overlaps and self.shape_param[type_j].ignore_overlaps)
+                        if not self.has_printed_warning:
+                            hoomd.context.msg.warning("Setting overlap checks for type pair ({}, {}) to {}\n".format(type_i,type_j, enable))
+
+                        hoomd.util.quiet_status()
+                        self.overlap_checks.set(type_i, type_j, enable)
+                        hoomd.util.unquiet_status()
+
+        self.has_printed_warning = True
+
+        # setup new interaction matrix elements to default
         for i in range(0,ntypes):
             type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             for j in range(0,ntypes):

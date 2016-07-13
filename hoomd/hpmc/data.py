@@ -87,7 +87,7 @@ class param_dict(dict):
 
 class _param(object):
     def __init__(self, mc, typid):
-        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False));
+        self.__dict__.update(dict(_keys=['ignore_statistics','ignore_overlaps'], mc=mc, typid=typid, make_fn=None, is_set=False));
 
     def ensure_list(self, li):
         if(type(li) == numpy.ndarray):
@@ -110,16 +110,12 @@ class _param(object):
         self.is_set = True;
 
         # backwards compatbility
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if 'ignore_overlaps' in params:
-            hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n" \
-                +"Setting overlap checks for type pair ({}, {}) to {}\n".format(type_names[self.typid],type_names[self.typid],'False' if params['ignore_overlaps'] else 'True'))
-            hoomd.util.quiet_status()
-            self.mc.overlap_checks.set(type_names[self.typid], type_names[self.typid], not params['ignore_overlaps'])
-            hoomd.util.unquiet_status()
-            # remove key
+            # ugly workaround
+            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
+            # do not pass to C++
             params.pop('ignore_overlaps',None)
+
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
