@@ -374,6 +374,8 @@ class Messenger
 #endif
     };
 
+// This pybind11 code needs to be called before any export functions.
+// It is in Messenger.h because this is the first include file in the chain.
 PYBIND11_DECLARE_HOLDER_TYPE(Tsharedptr, std::shared_ptr<Tsharedptr>);
 
 //! Exports Messenger to python
