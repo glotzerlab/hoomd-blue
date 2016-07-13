@@ -11,7 +11,6 @@
 
 #ifndef NVCC
 #include <string>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
 #include "QuaternionMath.h"
@@ -53,10 +52,6 @@
 #define _EXP(x) expf( (x) )
 #else
 #define _EXP(x) exp( (x) )
-#endif
-
-#ifndef NVCC
-namespace py = pybind11;
 #endif
 
 class EvaluatorPairDipole
