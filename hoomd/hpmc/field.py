@@ -177,14 +177,42 @@ class lattice_field(_external):
         self.cpp_compute.reset(timestep);
 
     def get_energy(self):
+        R""" Get the current energy of the lattice field.
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            run(20000)
+            eng = lattice.get_energy()
+        """
+        hoomd.util.print_status_line();
         timestep = hoomd.context.current.system.getCurrentTimeStep();
         return self.cpp_compute.getEnergy(timestep);
 
     def get_average_energy(self):
+        R""" Get the average energy per particle of the lattice field.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            avg_eng = lattice.get_average_energy() //  should be about 1.5kT
+
+        """
+        hoomd.util.print_status_line();
         timestep = hoomd.context.current.system.getCurrentTimeStep();
         return self.cpp_compute.getAvgEnergy(timestep);
 
     def get_sigma_energy(self):
+        R""" Gives the standard deviation of the average energy per particle of the lattice field.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            sig_eng = lattice.get_sigma_energy()
+
+        """
+        hoomd.util.print_status_line();
         timestep = hoomd.context.current.system.getCurrentTimeStep();
         return self.cpp_compute.getSigma(timestep);
 

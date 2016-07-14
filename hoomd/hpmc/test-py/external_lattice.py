@@ -43,7 +43,7 @@ class external_field_lattice(unittest.TestCase):
             tuner = hpmc.util.tune(obj=self.mc, tunables=['d', 'a'], max_val=[0.1, 0.5]);
             hoomd.util.quiet_status();
             for _ in range(100):
-                # print(self.lattice.get_energy(), self.lattice.get_average_energy());
+                print(self.lattice.get_energy(), self.lattice.get_average_energy());
                 self.lattice.reset();
                 hoomd.run(100, quiet=True);
                 tuner.update()
@@ -51,22 +51,23 @@ class external_field_lattice(unittest.TestCase):
             self.lattice.reset();
             hoomd.run(20000, quiet=True);
             snap = self.system.take_snapshot(particles=True);
-            diff = (np.array(latticep) - snap.particles.position[:]);
-            box = self.system.box;
-            for i in range(diff.shape[0]):
-                diff[i] = box.min_image(diff[i]);
-            diff = np.array(diff).flatten();
-            if len(latticeq) == len(latticep):
-                diffq = (np.array(latticeq) - snap.particles.orientation[:]).flatten();
-                leng = kalt*diff.dot(diff) + qalt*diffq.dot(diffq);
-            else:
-                leng = kalt*diff.dot(diff);
-            eng=self.lattice.get_energy();
-            # print(eng, leng, self.lattice.get_average_energy());
-            # print(abs(leng-eng)/eng, self.lattice.get_average_energy());
-            self.assertLess(abs(leng-eng)/eng, 0.001); # the difference is <0.1%.
-            # print(abs(self.lattice.get_average_energy()-uein), self.lattice.get_sigma_energy())
-            self.assertLess(abs(self.lattice.get_average_energy()-uein), self.lattice.get_sigma_energy());
+            if hoomd.comm.get_rank() == 0:
+                diff = (np.array(latticep) - snap.particles.position[:]);
+                box = self.system.box;
+                for i in range(diff.shape[0]):
+                    diff[i] = box.min_image(diff[i]);
+                diff = np.array(diff).flatten();
+                if len(latticeq) == len(latticep):
+                    diffq = (np.array(latticeq) - snap.particles.orientation[:]).flatten();
+                    leng = kalt*diff.dot(diff) + qalt*diffq.dot(diffq);
+                else:
+                    leng = kalt*diff.dot(diff);
+                eng=self.lattice.get_energy();
+                # print(eng, leng, self.lattice.get_average_energy());
+                # print(abs(leng-eng)/eng, self.lattice.get_average_energy());
+                self.assertLess(abs(leng-eng)/eng, 0.001); # the difference is <0.1%.
+                # print(abs(self.lattice.get_average_energy()-uein), self.lattice.get_sigma_energy())
+                self.assertLess(abs(self.lattice.get_average_energy()-uein), self.lattice.get_sigma_energy());
 
 
     def test_lattice(self):
@@ -89,10 +90,14 @@ class external_field_lattice(unittest.TestCase):
         self.system.replicate(nx=8, ny=8, nz=1);
 
         self.snapshot2d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
-        lattice2d = self.snapshot2d.particles.position[:];
+        lattice2d = [];
+        if hoomd.comm.get_rank() == 0:
+            lattice2d = self.snapshot2d.particles.position[:];
+
         self.snapshot2d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        self.snapshot2d_s.particles.position[:] = self.snapshot2d.particles.position[:]+dx2d;
-        self.snapshot2d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
+        if hoomd.comm.get_rank() == 0:
+            self.snapshot2d_s.particles.position[:] = self.snapshot2d.particles.position[:]+dx2d;
+            self.snapshot2d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system
         context.initialize();
 
@@ -100,10 +105,13 @@ class external_field_lattice(unittest.TestCase):
         self.system = init.read_snapshot(bccuc.get_snapshot());
         self.system.replicate(nx=4, ny=4, nz=4);
         self.snapshot3d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
-        lattice3d = self.snapshot3d.particles.position[:];
+        lattice3d = [];
+        if hoomd.comm.get_rank() == 0:
+            lattice3d = self.snapshot3d.particles.position[:];
         self.snapshot3d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        self.snapshot3d_s.particles.position[:] = self.snapshot3d.particles.position[:]+dx3d;
-        self.snapshot3d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
+        if hoomd.comm.get_rank() == 0:
+            self.snapshot3d_s.particles.position[:] = self.snapshot3d.particles.position[:]+dx3d;
+            self.snapshot3d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system
         context.initialize();
 
