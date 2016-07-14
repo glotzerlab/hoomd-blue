@@ -265,19 +265,32 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
 
             // count depletants overlapping with new config (but ignore overlap in old one)
             unsigned int n_free = 0;
-            countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
+            unsigned int n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
 
             Scalar n_R = m_mc_implicit->getDepletantDensity();
 
             // fix the maximum number of removed depletants at the average number
             // of depletants in the excluded volume sphere
             unsigned int m = (unsigned int)(V*n_R) + 1;
-            if (n_free < m)
+            Saru rng(this->m_seed, timestep,  0x2138af32);
+            unsigned int n_remove = rand_select(rng, m-1);
+
+            if (n_free >= n_remove && n_remove >= n_overlap)
                 {
+                // compute combinatorial factor
+                for (unsigned int np = n_free; np > n_free - n_overlap; np--)
+                    {
+                    lnboltzmann -= log(np);
+                    }
+                for (unsigned int np = n_remove; np > n_remove - n_overlap; np--)
+                    {
+                    lnboltzmann += log(np);
+                    }
+
                 // compute acceptance probability for GC cluster move
                 // according to Vink and Horbach JCP 2004
-                lnboltzmann -= log((Scalar)m);
-                for (unsigned int np = n_free; np > 0; np--)
+                //lnboltzmann -= log((Scalar)m);
+                for (unsigned int np = n_free; np > n_free - n_remove; np--)
                     {
                     lnboltzmann += log((Scalar)np/(V*n_R));
                     }
@@ -513,12 +526,11 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
                     {
                     // compute acceptance probability for GC cluster move
                     // according to Vink and Horbach JCP 2004
-                    lnboltzmann += log((Scalar)m);
+                    //lnboltzmann += log((Scalar)m);
                     for (unsigned int np = n_free+n_insert; np > n_free; np--)
                         {
                         lnboltzmann += log((V*n_R)/(Scalar)np);
                         }
-
                     }
                 }
             }
