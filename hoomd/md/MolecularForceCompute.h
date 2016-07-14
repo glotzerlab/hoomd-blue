@@ -95,6 +95,14 @@ class MolecularForceCompute : public ForceConstraint
             return m_molecule_order;
             }
 
+        //! Return reverse lookup array
+        const GPUVector<unsigned int>& getMoleculeIndex()
+            {
+            checkParticlesSorted();
+            
+            return m_molecule_idx;
+            }
+
     protected:
         GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
@@ -103,6 +111,7 @@ class MolecularForceCompute : public ForceConstraint
         GPUVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
         GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
         GPUVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
+        GPUVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 

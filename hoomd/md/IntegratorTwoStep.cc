@@ -33,6 +33,11 @@ IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
 IntegratorTwoStep::~IntegratorTwoStep()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
+
+    if (m_comm_callback_connection.connected())
+        {
+        m_comm_callback_connection.disconnect();
+        }
     }
 
 /*! \param prof The profiler to set
@@ -113,24 +118,21 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
-    // slave any constituents of local composite particles
-    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeParticles(timestep+1, false);
-
 #ifdef ENABLE_MPI
     if (m_comm)
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
-        m_comm->communicate(timestep+1);
 
-        // update local constituents of remote composite particles
-        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            (*force_composite)->updateCompositeParticles(timestep+1, true);
+        // also updates rigid bodies after ghost updating
+        m_comm->communicate(timestep+1);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep+1);
+        }
 
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -352,14 +354,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_first_step = false;
         m_prepared = true;
 
-        // ForceComposite ensures that any rigid bodies are correctly initialized
-
-        // in the first step, ghost particles are not yet present, so we don't want to update constituent particles
-
-        //std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-        //for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        //    (*force_composite)->updateCompositeParticles(timestep, false);
-
 #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -368,11 +362,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
             // perform communication
             m_comm->communicate(timestep);
-
-            // update local constituents of remote composite particles
-            //std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-            //for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            //    (*force_composite)->updateCompositeParticles(timestep+1, true);
             }
 #endif
 
@@ -411,9 +400,24 @@ void IntegratorTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
             (*method)->setCommunicator(comm);
 
+    if (comm && !m_comm)
+        {
+        // on the first time setting the Communicator, connect our compute callback
+        m_comm_callback_connection = comm->addComputeCallback(boost::bind(&IntegratorTwoStep::updateRigidBodies, this, _1));
+        }
+
     Integrator::setCommunicator(comm);
     }
 #endif
+
+//! Updates the rigid body constituent particles
+void IntegratorTwoStep::updateRigidBodies(unsigned int timestep)
+    {
+    // slave any constituents of local composite particles
+    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
+    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeParticles(timestep);
+    }
 
 /*! \param enable Enable/disable autotuning
     \param period period (approximate) in time steps when returning occurs

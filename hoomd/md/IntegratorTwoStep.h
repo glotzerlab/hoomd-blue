@@ -104,6 +104,9 @@ class IntegratorTwoStep : public Integrator
         virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
 #endif
 
+        //! Updates the rigid body constituent particles
+        virtual void updateRigidBodies(unsigned int timestep);
+
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
     protected:
@@ -116,6 +119,7 @@ class IntegratorTwoStep : public Integrator
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
+        boost::signals2::connection m_comm_callback_connection; //!< Connection to communicator for update of rigid bodies
 
         std::vector< boost::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
     };

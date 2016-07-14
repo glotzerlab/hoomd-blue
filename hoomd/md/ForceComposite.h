@@ -61,10 +61,8 @@ class ForceComposite : public MolecularForceCompute
 
         //! Update the constituent particles of a composite particle
         /*  Using the position, velocity and orientation of the central particle
-         * \param remote If true, consider remote bodies, otherwise bodies
-         *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Validate or create copies of rigid body constituent particles
         /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
@@ -97,7 +95,7 @@ class ForceComposite : public MolecularForceCompute
             }
 
         //! Return the requested minimum ghost layer width
-        virtual Scalar requestGhostLayerWidth(unsigned int type);
+        virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
@@ -109,8 +107,8 @@ class ForceComposite : public MolecularForceCompute
             if (!m_comm_ghost_layer_connection.connected())
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceComposite::requestGhostLayerWidth, this, _1));
+                m_comm_ghost_layer_connection = m_comm->addExtraGhostLayerWidthRequest(
+                    boost::bind(&ForceComposite::requestExtraGhostLayerWidth, this, _1));
                 }
            }
         #endif
