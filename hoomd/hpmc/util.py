@@ -707,7 +707,7 @@ class tune(object):
                 if max_val_length != 0:
                     self.tunables[item]['maximum'] = max_val[i]
                 if not 'set' in self.tunable_map[item]:
-                    self.tunable_map[item]['set'] = lambda x: obj.set_params(**{item: x})
+                    self.tunable_map[item]['set'] = lambda x, name=item: obj.set_params(**{name : x} )
                 self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
