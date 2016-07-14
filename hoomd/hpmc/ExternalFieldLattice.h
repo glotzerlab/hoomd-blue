@@ -193,8 +193,6 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 m_symmetry.push_back(identity);
                 }
-
-
             reset(0); // initializes all of the energy logging parameters.
             }
 
@@ -478,6 +476,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
             m_num_samples = 0;
             }
+
         Scalar getEnergy(unsigned int timestep)
         {
             compute(timestep);
@@ -515,7 +514,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             Scalar3 t = vec_to_scalar3(position - origin);
             box.wrap(t, dummy);
             vec3<Scalar> shifted_pos(t);
-            vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - shifted_pos)));
+            vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
             return m_k*dot(dr,dr);
             }
 

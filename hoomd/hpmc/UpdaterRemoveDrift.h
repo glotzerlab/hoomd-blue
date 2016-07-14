@@ -57,8 +57,8 @@ class RemoveDriftUpdater : public Updater
             ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            const BoxDim& box = this->m_pdata->getBox();
-
+            const BoxDim& box = this->m_pdata->getGlobalBox();
+            vec3<Scalar> origin(this->m_pdata->getOrigin());
             vec3<Scalar> rshift;
             rshift.x=rshift.y=rshift.z=0.0f;
 
@@ -67,7 +67,7 @@ class RemoveDriftUpdater : public Updater
                 unsigned int tag_i = h_tag.data[i];
                 // read in the current position and orientation
                 Scalar4 postype_i = h_postype.data[i];
-                vec3<Scalar> dr = vec3<Scalar>(postype_i) - vec3<Scalar>(h_r0.data[tag_i]);
+                vec3<Scalar> dr = vec3<Scalar>(postype_i) - vec3<Scalar>(h_r0.data[tag_i]) - origin;
                 rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
                 }
 

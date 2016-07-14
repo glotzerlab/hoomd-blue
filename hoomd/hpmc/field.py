@@ -177,7 +177,8 @@ class lattice_field(_external):
         self.cpp_compute.reset(timestep);
 
     def get_energy(self):
-        R""" Get the current energy of the lattice field.
+        R"""    Get the current energy of the lattice field.
+                This is a collective call and must be called on all ranks.
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
             lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
@@ -189,7 +190,8 @@ class lattice_field(_external):
         return self.cpp_compute.getEnergy(timestep);
 
     def get_average_energy(self):
-        R""" Get the average energy per particle of the lattice field.
+        R"""    Get the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
 
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
@@ -203,7 +205,8 @@ class lattice_field(_external):
         return self.cpp_compute.getAvgEnergy(timestep);
 
     def get_sigma_energy(self):
-        R""" Gives the standard deviation of the average energy per particle of the lattice field.
+        R"""    Gives the standard deviation of the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
 
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
