@@ -11,6 +11,17 @@ model rotation about chemical bonds.
 By themselves, dihedrals that have been specified in an input file do nothing. Only when you
 specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the
 listed particles.
+
+Important:
+There are multiple conventions pertaining to the dihedral angle (phi) in the literature. HOOMD
+utilizes the convention shown in the following figure, where vectors are defined from the central
+particles to the outer particles. These vectors correspond to a stretched state (phi=180 deg)
+when they are anti-parallel and a compact state (phi=0 deg) when they are parallel.
+
+.. image:: dihedral-angle-definition.png
+    :width: 400 px
+    :align: center
+    :alt: Dihedral angle definition
 """
 
 from hoomd import _hoomd

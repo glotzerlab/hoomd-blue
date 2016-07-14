@@ -168,6 +168,9 @@ Bryan Vansaders, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * init.read_gsd bug fixes
 
+Nathan Horst
+ * Language and figure clarifying the dihedral angle definition.
+
 HPMC developers
 ---------------
 
