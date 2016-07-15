@@ -434,13 +434,14 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         lnboltzmann += lnb;
         }
 
-    // zero overlapping depletants after removal
-    unsigned int n_overlap = 0;
-
     // number of depletants to insert
     unsigned int n_insert = 0;
 
     #ifdef ENABLE_MPI
+
+    // zero overlapping depletants after removal
+    unsigned int n_overlap = 0;
+
     if (this->m_gibbs)
         {
         unsigned int other = this->m_gibbs_other;

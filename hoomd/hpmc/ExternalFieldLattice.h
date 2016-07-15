@@ -311,8 +311,9 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             std::vector<Scalar> pbuffer;
             std::vector<Scalar4> lattice_orientations;
             std::vector<Scalar> qbuffer;
-            unsigned int psz = 0, qsz = 0;
             #ifdef ENABLE_MPI
+            unsigned int psz = 0, qsz = 0;
+
             if ( this->m_exec_conf->isRoot() )
                 {
                 python_list_to_vector_scalar3(r0, lattice_positions, ndim);
