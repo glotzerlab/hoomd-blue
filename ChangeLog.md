@@ -6,9 +6,12 @@
 
 *Bug fixes*
 
-* fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC)
+* Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
 * References to disabled analyzers, computes, updaters, etc. are properly freed from the simulation context.
 * Fix a bug where `init.read_gsd` ignored the `restart` argument.
+* Report an error when HPMC kernels run out of memory.
+* Fix ghost layer when using rigid constraints in MPI runs.
+* Clarify definition of the dihedral angle.
 
 ## v2.0.0
 
