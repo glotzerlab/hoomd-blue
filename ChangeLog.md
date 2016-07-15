@@ -4,6 +4,8 @@
 
 ## v2.0.1
 
+Released 2016/07/15
+
 *Bug fixes*
 
 * Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
@@ -14,6 +16,8 @@
 * Clarify definition of the dihedral angle.
 
 ## v2.0.0
+
+Released 2016/06/22
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 
