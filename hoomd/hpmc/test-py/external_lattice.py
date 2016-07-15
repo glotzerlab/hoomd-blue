@@ -43,9 +43,9 @@ class external_field_lattice(unittest.TestCase):
             self.lattice.set_params(k=kalt, q=qalt);
             self.mc.set_params(d=d, a=a);
 
-            hoomd.run(20000, quiet=True);
+            hoomd.run(5000, quiet=True);
             self.lattice.reset();
-            hoomd.run(20000, quiet=True);
+            hoomd.run(5000, quiet=True);
 
             snap = self.system.take_snapshot(particles=True);
             eng=self.lattice.get_energy();
