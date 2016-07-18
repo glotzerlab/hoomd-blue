@@ -65,10 +65,21 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
 
 void MuellerPlatheFlow::update(unsigned int timestep)
     {
-
+    const BoxDim&box= m_pdata->getBox();
+    double area;
+    switch(m_slab_direction)
+      {
+      case X: area = box.getL().y * box.getL().z;
+      case Y: area = box.getL().x * box.getL().z;
+      case Z: area = box.getL().y * box.getL().x;
+      }
+    unsigned int counter = 0;
+    const unsigned int max_iteration = 100;
     while( fabs( m_flow_target->getValue(timestep) -
-                 this->summed_exchanged_momentum()/(timestep+1)) > this->get_flow_epsilon())
+                 this->summed_exchanged_momentum()/area ) > this->get_flow_epsilon()
+           && counter < max_iteration)
         {
+        counter++;
         if( m_flow_target->getValue(timestep)*
             this->summed_exchanged_momentum() < 0)
             {
@@ -97,10 +108,18 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             {
             update_min_max_velocity();
             }
-        stringstream s;
-        s<<this->summed_exchanged_momentum()<<endl;
-        m_exec_conf->msg->collectiveNoticeStr(0,s.str());
+        // stringstream s;
+        // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
+        // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
         }
+    if(counter >= max_iteration)
+      {
+        stringstream s;
+        s<<" After "<<counter<<" MuellerPlatheFlow could not achieve the target: "
+         <<m_flow_target->getValue(timestep)<<" only "
+         <<this->summed_exchanged_momentum()/area<<" could be achieved."<<endl;
+        m_exec_conf->msg->warning()<<s.str();
+      }
     }
 
 void MuellerPlatheFlow::swap_min_max_slab(void)
@@ -382,11 +401,5 @@ void export_MuellerPlatheFlow()
         .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         .def("getFlowEpsilon",&MuellerPlatheFlow::get_flow_epsilon)
         .def("setFlowEpsilon",&MuellerPlatheFlow::set_flow_epsilon)
-        ;
-    enum_<Direction>("Direction")
-        .value("X",X)
-        .value("Y",Y)
-        .value("Z",Z)
-        .export_values()
         ;
     }
