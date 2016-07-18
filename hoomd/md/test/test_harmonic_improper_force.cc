@@ -22,7 +22,7 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -493,7 +493,7 @@ std::shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(std::shared_ptr<Sys
     }
 #endif
 
-//! boost test case for improper forces on the CPU
+//! test case for improper forces on the CPU
 UP_TEST( HarmonicImproperForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -502,7 +502,7 @@ UP_TEST( HarmonicImproperForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for improper forces on the GPU
+//! test case for improper forces on the GPU
 UP_TEST( HarmonicImproperForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -510,7 +510,7 @@ UP_TEST( HarmonicImproperForceComputeGPU_basic )
     improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( HarmonicImproperForceComputeGPU_compare )
     {
     improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);

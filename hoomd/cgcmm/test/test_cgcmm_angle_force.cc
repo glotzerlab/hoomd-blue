@@ -23,7 +23,7 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -373,7 +373,7 @@ std::shared_ptr<CGCMMAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDef
     }
 #endif
 
-//! boost test case for angle forces on the CPU
+//! test case for angle forces on the CPU
 UP_TEST( CGCMMAngleForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -382,7 +382,7 @@ UP_TEST( CGCMMAngleForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for angle forces on the GPU
+//! test case for angle forces on the GPU
 UP_TEST( CGCMMAngleForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -391,7 +391,7 @@ UP_TEST( CGCMMAngleForceComputeGPU_basic )
     }
 
 
-//! boost test case for comparing angle GPU and CPU AngleForceComputes
+//! test case for comparing angle GPU and CPU AngleForceComputes
 UP_TEST( CGCMMAngleForceComputeGPU_compare )
     {
     cgcmm_angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);

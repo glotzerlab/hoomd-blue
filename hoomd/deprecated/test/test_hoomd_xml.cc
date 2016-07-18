@@ -15,7 +15,6 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
-using namespace boost;
 
 #include <fstream>
 using namespace std;

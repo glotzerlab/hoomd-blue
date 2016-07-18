@@ -17,7 +17,7 @@
 #include "hoomd/Initializers.h"
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file harmonic_bond_force_test.cc
     \brief Implements unit tests for PotentialBondHarmonic and
@@ -458,7 +458,7 @@ std::shared_ptr<PotentialBondHarmonic> gpu_bf_creator(std::shared_ptr<SystemDefi
     }
 #endif
 
-//! boost test case for bond forces on the CPU
+//! test case for bond forces on the CPU
 UP_TEST( PotentialBondHarmonic_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
@@ -466,14 +466,14 @@ UP_TEST( PotentialBondHarmonic_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for bond forces on the GPU
+//! test case for bond forces on the GPU
 UP_TEST( PotentialBondHarmonicGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
     bond_force_basic_tests(bf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( PotentialBondHarmonicGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
@@ -483,7 +483,7 @@ UP_TEST( PotentialBondHarmonicGPU_compare )
 
 #endif
 
-//! boost test case for constant forces
+//! test case for constant forces
 UP_TEST( ConstForceCompute_basic )
     {
     const_force_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));

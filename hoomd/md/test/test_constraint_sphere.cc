@@ -21,7 +21,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file constraint_sphere_test.cc
     \brief Implements unit tests for ConstraintSphere and descendants

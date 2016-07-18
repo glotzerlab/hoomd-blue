@@ -18,7 +18,7 @@
 #include "hoomd/ParticleGroup.h"
 
 using namespace std;
-using namespace boost;
+
 
 #include "upp11_config.h"
 

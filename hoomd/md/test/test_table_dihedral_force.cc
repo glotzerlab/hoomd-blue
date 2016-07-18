@@ -22,7 +22,7 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -389,7 +389,7 @@ std::shared_ptr<TableDihedralForceCompute> gpu_tf_creator(std::shared_ptr<System
     }
 #endif
 
-//! boost test case for dihedral forces on the CPU
+//! test case for dihedral forces on the CPU
 UP_TEST( TableDihedralForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -398,7 +398,7 @@ UP_TEST( TableDihedralForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for dihedral forces on the GPU
+//! test case for dihedral forces on the GPU
 UP_TEST( TableDihedralForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -406,7 +406,7 @@ UP_TEST( TableDihedralForceComputeGPU_basic )
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #if 0
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( TableDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);

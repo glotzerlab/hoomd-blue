@@ -15,14 +15,13 @@ HOOMD_UP_MAIN();
 #include "hoomd/Index1D.h"
 
 using namespace std;
-using namespace boost;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for LJForceCompute and descendants
     \ingroup unit_tests
 */
 
-//! boost test case for 1x1 Index2D
+//! test case for 1x1 Index2D
 UP_TEST( Index2D_1 )
     {
     Index2D a(1);
@@ -30,7 +29,7 @@ UP_TEST( Index2D_1 )
     UP_ASSERT_EQUAL(a(0,0), (unsigned int)0);
     }
 
-//! boost test case for 2x2 Index2D
+//! test case for 2x2 Index2D
 UP_TEST( Index2D_2 )
     {
     Index2D a(2);
@@ -41,7 +40,7 @@ UP_TEST( Index2D_2 )
     UP_ASSERT_EQUAL(a(1,1), (unsigned int)3);
     }
 
-//! boost test case for 3x3 Index2D
+//! test case for 3x3 Index2D
 UP_TEST( Index2D_3 )
     {
     Index2D a(3);
@@ -57,7 +56,7 @@ UP_TEST( Index2D_3 )
     UP_ASSERT_EQUAL(a(2,2), (unsigned int)8);
     }
 
-//! boost test case for 2x2x2 Index3D
+//! test case for 2x2x2 Index3D
 UP_TEST( Index3D_2 )
     {
     Index3D a(2);
@@ -72,7 +71,7 @@ UP_TEST( Index3D_2 )
     UP_ASSERT_EQUAL(a(1,1,1), (unsigned int)7);
     }
 
-//! boost test case for 4x3x2 Index3D
+//! test case for 4x3x2 Index3D
 UP_TEST( Index3D_432 )
     {
     Index3D a(4,3,2);
@@ -104,7 +103,7 @@ UP_TEST( Index3D_432 )
     UP_ASSERT_EQUAL(a(3,2,1), (unsigned int)23);
     }
 
-//! boost test case for 20x20 Index2D
+//! test case for 20x20 Index2D
 UP_TEST( Index2D_20 )
     {
     Index2D a(20);
@@ -117,7 +116,7 @@ UP_TEST( Index2D_20 )
             }
     }
 
-//! boost test case for 1x1 Index2DUpperTriangler
+//! test case for 1x1 Index2DUpperTriangler
 UP_TEST( Index2DUpperTriangular_1 )
     {
     Index2DUpperTriangular a(1);
@@ -125,7 +124,7 @@ UP_TEST( Index2DUpperTriangular_1 )
     UP_ASSERT_EQUAL(a(0,0), (unsigned int)0);
     }
 
-//! boost test case for 2x2 Index2DUpperTriangler
+//! test case for 2x2 Index2DUpperTriangler
 UP_TEST( Index2DUpperTriangular_2 )
     {
     Index2DUpperTriangular a(2);
@@ -135,7 +134,7 @@ UP_TEST( Index2DUpperTriangular_2 )
     UP_ASSERT_EQUAL(a(1,1), (unsigned int)2);
     }
 
-//! boost test case for 3x3 Index2DUpperTriangler
+//! test case for 3x3 Index2DUpperTriangler
 UP_TEST( Index2DUpperTriangular_3 )
     {
     Index2DUpperTriangular a(3);
@@ -148,7 +147,7 @@ UP_TEST( Index2DUpperTriangular_3 )
     UP_ASSERT_EQUAL(a(2,2), (unsigned int)5);
     }
 
-//! boost test case for 20x20 Index2DUpperTriangular
+//! test case for 20x20 Index2DUpperTriangular
 UP_TEST( Index2DUpperTriangular_20 )
     {
     Index2DUpperTriangular a(20);

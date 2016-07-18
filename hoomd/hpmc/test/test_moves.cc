@@ -18,9 +18,7 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <boost/bind.hpp>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/function.hpp>
 #include <memory>
 
 using namespace std;
@@ -214,5 +212,3 @@ UP_TEST( update_order_test )
         test_update_order(max);
         }
     }
-
-

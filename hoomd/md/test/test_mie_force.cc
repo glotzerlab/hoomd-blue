@@ -20,7 +20,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file mie_force_test.cc
     \brief Implements unit tests for PotentialPairMie and PotentialPairMieGPU and descendants
@@ -443,14 +443,14 @@ std::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(std::shared_ptr<SystemDefin
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PotentialPairMie_particle )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
     mie_force_particle_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for shift test on CPU
+//! test case for shift test on CPU
 UP_TEST( PotentialPairMie_shift )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
@@ -458,21 +458,21 @@ UP_TEST( PotentialPairMie_shift )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( MieForceGPU_particle )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mie_force_particle_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for shift test on GPU
+//! test case for shift test on GPU
 UP_TEST( MieForceGPU_shift )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mie_force_shift_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 /*UP_TEST( MieForceGPU_compare )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);

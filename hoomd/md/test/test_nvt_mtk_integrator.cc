@@ -26,7 +26,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
@@ -439,7 +439,7 @@ UP_TEST( TwoStepNVTMTKGPU_basic_aniso_test )
     test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
-//! boost test case for comparing the GPU and CPU NVTUpdaters
+//! test case for comparing the GPU and CPU NVTUpdaters
 UP_TEST( TwoStepNVTMTKGPU_comparison_tests)
     {
     twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4, _5);

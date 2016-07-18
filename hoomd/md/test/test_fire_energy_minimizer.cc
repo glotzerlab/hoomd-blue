@@ -23,7 +23,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();

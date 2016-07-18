@@ -23,7 +23,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants
@@ -220,14 +220,14 @@ std::shared_ptr<PPPMForceCompute> gpu_pppm_creator(std::shared_ptr<SystemDefinit
 #endif
 
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PPPMForceCompute_basic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
     pppm_force_particle_test(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PPPMForceCompute_triclinic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
@@ -236,7 +236,7 @@ UP_TEST( PPPMForceCompute_triclinic )
 
 
 #ifdef ENABLE_CUDA
-//! boost test case for bond forces on the GPU
+//! test case for bond forces on the GPU
 UP_TEST( PPPMForceComputeGPU_basic )
     {
     pppmforce_creator pppm_creator = bind(gpu_pppm_creator, _1, _2, _3);

@@ -25,7 +25,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_dipole_force.cc
     \brief Implements unit tests for AnisoPotentialPairDipole and AnisoPotentialPairDipoleGPU
@@ -117,7 +117,7 @@ std::shared_ptr<AnisoPotentialPairDipoleGPU> gpu_dipole_creator(std::shared_ptr<
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( AnisoPotentialPairDipole_particle )
     {
     dipoleforce_creator dipole_creator_base = bind(base_class_dipole_creator, _1, _2);
@@ -125,7 +125,7 @@ UP_TEST( AnisoPotentialPairDipole_particle )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( AnisoPotentialPairDipoleGPU_particle )
     {
     dipoleforce_creator dipole_creator_gpu = bind(gpu_dipole_creator, _1, _2);

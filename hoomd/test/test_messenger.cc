@@ -13,7 +13,7 @@
 #include "hoomd/Messenger.h"
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_messenger.cc
     \brief Unit test for Messenger

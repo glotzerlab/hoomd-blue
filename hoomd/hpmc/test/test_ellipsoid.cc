@@ -14,9 +14,7 @@ HOOMD_UP_MAIN();
 #include <iostream>
 #include <string>
 
-#include <boost/bind.hpp>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/function.hpp>
 #include <memory>
 
 using namespace hpmc;
@@ -890,5 +888,3 @@ UP_TEST( overlap_ellipsoid_rot2 )
     UP_ASSERT(test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
-
-

@@ -17,7 +17,7 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file fenebond_force_test.cc
     \brief Implements unit tests for BondForceCompute and child classes
@@ -401,7 +401,7 @@ std::shared_ptr<PotentialBondFENE> gpu_bf_creator(std::shared_ptr<SystemDefiniti
     }
 #endif
 
-//! boost test case for bond forces on the CPU
+//! test case for bond forces on the CPU
 UP_TEST( PotentialBondFENE_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
@@ -409,14 +409,14 @@ UP_TEST( PotentialBondFENE_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for bond forces on the GPU
+//! test case for bond forces on the GPU
 UP_TEST( PotentialBondFENEGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
     bond_force_basic_tests(bf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( PotentialBondFENEGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);

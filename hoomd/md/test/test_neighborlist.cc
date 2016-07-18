@@ -8,8 +8,6 @@
 #include <iostream>
 #include <algorithm>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
 #include <memory>
 
 #include "hoomd/md/NeighborList.h"
@@ -26,7 +24,6 @@
 #endif
 
 using namespace std;
-using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();

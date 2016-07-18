@@ -15,7 +15,7 @@
 #endif
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 
@@ -328,14 +328,14 @@ std::shared_ptr<TablePotential> gpu_table_creator(std::shared_ptr<SystemDefiniti
 #endif
 
 
-//! boost test case for basic test on CPU
+//! test case for basic test on CPU
 UP_TEST( TablePotential_basic )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
     table_potential_basic_test(table_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for type test on CPU
+//! test case for type test on CPU
 UP_TEST( TablePotential_type )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
@@ -343,14 +343,14 @@ UP_TEST( TablePotential_type )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for basic test on GPU
+//! test case for basic test on GPU
 UP_TEST( TablePotentialGPU_basic )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
     table_potential_basic_test(table_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for type test on GPU
+//! test case for type test on GPU
 UP_TEST( TablePotentialGPU_type )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);

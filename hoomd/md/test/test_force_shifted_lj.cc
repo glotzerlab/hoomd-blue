@@ -20,7 +20,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file fslj_force_test.cc
     \brief Implements unit tests for PotentialPairForceShiftedLJ and PotentialPairForceShiftedLJGPU and descendants
@@ -113,7 +113,7 @@ std::shared_ptr<PotentialPairForceShiftedLJGPU> gpu_lj_creator(std::shared_ptr<S
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PotentialPairForceShiftedLJ_particle )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
@@ -121,7 +121,7 @@ UP_TEST( PotentialPairForceShiftedLJ_particle )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( LJForceGPU_particle )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);

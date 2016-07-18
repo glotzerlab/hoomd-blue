@@ -28,7 +28,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -42,7 +42,7 @@ HOOMD_UP_MAIN();
 //! Typedef'd Enforce2DUpdater factory
 typedef boost::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
 
-//! boost test case to verify proper operation of Enforce2DUpdater
+//! test case to verify proper operation of Enforce2DUpdater
 void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
@@ -188,7 +188,7 @@ std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDe
     }
 #endif
 
-//! boost test case for basic enforce2d tests
+//! test case for basic enforce2d tests
 UP_TEST( Enforce2DUpdater_basic )
     {
     enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
@@ -196,7 +196,7 @@ UP_TEST( Enforce2DUpdater_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for basic enforce2d tests
+//! test case for basic enforce2d tests
 UP_TEST( Enforce2DUpdaterGPU_basic )
     {
     enforce2d_creator creator = bind(gpu_enforce2d_creator, _1);

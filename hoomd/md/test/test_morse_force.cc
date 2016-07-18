@@ -20,7 +20,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file morse_force_test.cc
     \brief Implements unit tests for PotentialPairMorse and descendants
@@ -221,7 +221,7 @@ std::shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(std::shared_ptr<SystemD
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( MorseForce_particle )
     {
     morseforce_creator morse_creator_base = bind(base_class_morse_creator, _1, _2);
@@ -229,14 +229,14 @@ UP_TEST( MorseForce_particle )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( MorseForceGPU_particle )
     {
     morseforce_creator morse_creator_gpu = bind(gpu_morse_creator, _1, _2);
     morse_force_particle_test(morse_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( MorseForceGPU_compare )
     {
     morseforce_creator morse_creator_gpu = bind(gpu_morse_creator, _1, _2);

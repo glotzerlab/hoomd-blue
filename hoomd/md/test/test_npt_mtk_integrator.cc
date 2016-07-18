@@ -36,7 +36,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants
@@ -847,7 +847,7 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     }
 #endif
 
-//! boost test case for base class integration tests
+//! test case for base class integration tests
 UP_TEST( TwoStepNPTMTK_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
@@ -855,7 +855,7 @@ UP_TEST( TwoStepNPTMTK_tests )
     npt_mtk_updater_test(npt_mtk_creator, exec_conf);
     }
 
-//! boost test case for base class integration tests
+//! test case for base class integration tests
 UP_TEST( TwoStepNPTMTK_aniso )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
@@ -863,7 +863,7 @@ UP_TEST( TwoStepNPTMTK_aniso )
     npt_mtk_updater_aniso(npt_mtk_creator, exec_conf);
     }
 
-//! boost test case for NPH integration
+//! test case for NPH integration
 UP_TEST( TwoStepNPTMTK_cubic_NPH )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_nph_creator, _1);
@@ -871,14 +871,14 @@ UP_TEST( TwoStepNPTMTK_cubic_NPH )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for GPU integration tests
+//! test case for GPU integration tests
 UP_TEST( TwoStepNPTMTKGPU_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);
     npt_mtk_updater_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for GPU integration tests
+//! test case for GPU integration tests
 UP_TEST( TwoStepNPTMTKGPU_aniso )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);

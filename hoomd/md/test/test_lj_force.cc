@@ -20,7 +20,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants
@@ -550,21 +550,21 @@ std::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(std::shared_ptr<SystemDefinit
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PotentialPairLJ_particle )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
     lj_force_particle_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for periodic test on CPU
+//! test case for periodic test on CPU
 UP_TEST( PotentialPairLJ_periodic )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
     lj_force_periodic_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PotentialPairLJ_shift )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
@@ -572,28 +572,28 @@ UP_TEST( PotentialPairLJ_shift )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( LJForceGPU_particle )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     lj_force_particle_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for periodic test on the GPU
+//! test case for periodic test on the GPU
 UP_TEST( LJForceGPU_periodic )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     lj_force_periodic_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for shift test on GPU
+//! test case for shift test on GPU
 UP_TEST( LJForceGPU_shift )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     lj_force_shift_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 /*UP_TEST( LJForceGPU_compare )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);

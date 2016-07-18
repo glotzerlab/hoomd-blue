@@ -14,14 +14,12 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-
 #include "hoomd/ParticleData.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+
 
 #include "upp11_config.h"
 

@@ -19,7 +19,6 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -30,7 +29,7 @@ HOOMD_UP_MAIN();
     \ingroup unit_tests
 */
 
-//! boost test case to verify proper operation of ComputeThermo
+//! test case to verify proper operation of ComputeThermo
 UP_TEST( ComputeThermo_basic )
     {
     // verify that we can constructe a TempCompute properly
@@ -60,7 +59,7 @@ UP_TEST( ComputeThermo_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case to verify proper operation of ComputeThermoGPU
+//! test case to verify proper operation of ComputeThermoGPU
 UP_TEST( ComputeThermoGPU_basic )
     {
     // verify that we can constructe a TempCompute properly
@@ -89,7 +88,7 @@ UP_TEST( ComputeThermoGPU_basic )
     }
 #endif
 
-//! boost test case to verify proper operation of TempRescaleUpdater
+//! test case to verify proper operation of TempRescaleUpdater
 UP_TEST( TempRescaleUpdater_basic )
     {
     // create a simple particle data to test with

@@ -25,7 +25,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_gayberne_force.cc
     \brief Implements unit tests for AnisoPotentialPairGB and AnisoPotentialPairGBGPU
@@ -129,7 +129,7 @@ std::shared_ptr<AnisoPotentialPairGBGPU> gpu_gb_creator(std::shared_ptr<SystemDe
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( AnisoPotentialPairGB_particle )
     {
     gbforce_creator gb_creator_base = bind(base_class_gb_creator, _1, _2);
@@ -137,7 +137,7 @@ UP_TEST( AnisoPotentialPairGB_particle )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( LJForceGPU_particle )
     {
     gbforce_creator gb_creator_gpu = bind(gpu_gb_creator, _1, _2);

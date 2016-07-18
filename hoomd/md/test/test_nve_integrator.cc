@@ -29,7 +29,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file nve_updater_test.cc
     \brief Implements unit tests for TwoStepNVE and descendants
@@ -464,21 +464,21 @@ std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sy
 #endif
 
 
-//! boost test case for base class integration tests
+//! test case for base class integration tests
 UP_TEST( TwoStepNVE_integrate_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for base class limit tests
+//! test case for base class limit tests
 UP_TEST( TwoStepNVE_limit_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for base class boundary tests
+//! test case for base class boundary tests
 UP_TEST( TwoStepNVE_boundary_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
@@ -493,28 +493,28 @@ UP_TEST( TwoStepNVE_aniso_test )
 
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
-//! boost test case for base class integration tests
+//! test case for base class integration tests
 UP_TEST( TwoStepNVEGPU_integrate_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for base class limit tests
+//! test case for base class limit tests
 UP_TEST( TwoStepNVEGPU_limit_tests )
     {
     twostepnve_creator nve_creator = bind(gpu_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for base class boundary tests
+//! test case for base class boundary tests
 UP_TEST( TwoStepNVEGPU_boundary_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing the GPU and CPU NVEUpdaters
+//! test case for comparing the GPU and CPU NVEUpdaters
 UP_TEST( TwoStepNVEGPU_comparison_tests)
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
@@ -522,7 +522,7 @@ UP_TEST( TwoStepNVEGPU_comparison_tests)
     nve_updater_compare_test(nve_creator, nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for testing aniso integration
+//! test case for testing aniso integration
 UP_TEST( TwoStepNVEGPU_aniso_tests)
     {
     nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nve_creator, _1, _2));
