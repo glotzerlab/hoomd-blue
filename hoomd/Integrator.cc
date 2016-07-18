@@ -37,8 +37,8 @@ Integrator::~Integrator()
     // disconnect
     if (m_request_flags_connection.connected())
         m_request_flags_connection.disconnect();
-    if (m_callback_connection.connected())
-        m_callback_connection.disconnect();
+    if (m_signals_connected && m_comm)
+        m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(this);
     #endif
     }
 
@@ -871,8 +871,10 @@ void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     if (! m_request_flags_connection.connected() && m_comm)
         m_request_flags_connection = m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
 
-    if (! m_callback_connection.connected() && m_comm)
-        m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
+    if (! m_signals_connected && m_comm)
+        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+
+    m_signals_connected = true;
     }
 
 void Integrator::computeCallback(unsigned int timestep)

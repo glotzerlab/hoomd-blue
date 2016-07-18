@@ -316,12 +316,11 @@ class Communicator
          * before awaiting the result of the particle migration check.
          *
          * \param subscriber The callback
-         * \returns a connection to this class
+         * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        boost::signals2::connection addComputeCallback(
-            const boost::function<void (unsigned int timestep)>& subscriber)
+        Nano::Signal<void (unsigned int timestep)>& getComputeCallbackSignal()
             {
-            return m_compute_callbacks.connect(subscriber);
+            return m_compute_callbacks;
             }
 
         //! Get the ghost communication flags
@@ -603,7 +602,7 @@ class Communicator
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
-        boost::signals2::signal<void (unsigned int timestep)>
+        Nano::Signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
         boost::signals2::signal<void (const GPUArray<unsigned int>& )>

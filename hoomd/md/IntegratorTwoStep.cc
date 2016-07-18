@@ -32,9 +32,9 @@ IntegratorTwoStep::~IntegratorTwoStep()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
-    if (m_comm_callback_connection.connected())
+    if (m_comm)
         {
-        m_comm_callback_connection.disconnect();
+        m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
     }
 
@@ -401,7 +401,7 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
     if (comm && !m_comm)
         {
         // on the first time setting the Communicator, connect our compute callback
-        m_comm_callback_connection = comm->addComputeCallback(boost::bind(&IntegratorTwoStep::updateRigidBodies, this, _1));
+        comm->getComputeCallbackSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
 
     Integrator::setCommunicator(comm);

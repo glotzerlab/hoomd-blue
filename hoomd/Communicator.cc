@@ -1276,14 +1276,14 @@ void Communicator::communicate(unsigned int timestep)
 
     bool has_ghost_particles = !(m_force_migrate || m_is_first_step);
 
-    if (m_compute_callbacks.num_slots() && has_ghost_particles)
+    if (!m_compute_callbacks.empty() && has_ghost_particles)
         {
         // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);
         finishUpdateGhosts(timestep);
 
         // call subscribers after ghost update, but before distance check
-        m_compute_callbacks(timestep);
+        m_compute_callbacks.emit(timestep);
         }
 
     // distance check (synchronizes the GPU execution stream), needs to be called
@@ -1298,21 +1298,21 @@ void Communicator::communicate(unsigned int timestep)
     bool migrate = migrate_request || !has_ghost_particles;
 
     // Update ghosts if we are not migrating
-    if (!migrate && !m_compute_callbacks.num_slots())
+    if (!migrate && m_compute_callbacks.empty())
         {
         beginUpdateGhosts(timestep);
 
         finishUpdateGhosts(timestep);
         }
 
-    if (m_compute_callbacks.num_slots() && !has_ghost_particles)
+    if (!m_compute_callbacks.empty() && !has_ghost_particles)
         {
         // initialize ghosts a first time
         migrateParticles();
         exchangeGhosts();
 
         // update particle data now that ghosts are available
-        m_compute_callbacks(timestep);
+        m_compute_callbacks.emit(timestep);
         }
 
     // Check if migration of particles is requested
