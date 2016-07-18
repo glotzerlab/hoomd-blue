@@ -6,6 +6,7 @@
 
 // this has to be included after naming the test module
 #include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN()
 
 #include "hoomd/System.h"
 
@@ -3404,34 +3405,21 @@ std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDef
     }
 #endif
 
-std::shared_ptr<ExecutionConfiguration> exec_conf;
-
-// test fixture to initialize exec_conf only once
-struct Fx
-    {
-    Fx()
-        {
-        exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        }
-    ~Fx()
-        {
-        exec_conf = std::shared_ptr<ExecutionConfiguration>();
-        }
-    };
-
 UP_SUITE_BEGIN(cpu_tests);
 
 //! Tests particle distribution
-UP_FIXTURE_TEST( DomainDecomposition_test, Fx )
+UP_TEST( DomainDecomposition_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
     BoxDim box(2.0);
     std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
 //! Tests balanced particle distribution on CPU
-UP_FIXTURE_TEST( BalancedDomainDecomposition_test, Fx )
+UP_TEST( BalancedDomainDecomposition_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3446,8 +3434,10 @@ UP_FIXTURE_TEST( BalancedDomainDecomposition_test, Fx )
     test_balanced_domain_decomposition(exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_migrate_test, Fx )
+UP_TEST( communicator_migrate_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
     test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
@@ -3459,8 +3449,10 @@ UP_FIXTURE_TEST( communicator_migrate_test, Fx )
     test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-UP_FIXTURE_TEST( communicator_balanced_migrate_test, Fx )
+UP_TEST( communicator_balanced_migrate_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
     test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
@@ -3472,8 +3464,10 @@ UP_FIXTURE_TEST( communicator_balanced_migrate_test, Fx )
     test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-UP_FIXTURE_TEST( communicator_ghosts_test, Fx )
+UP_TEST( communicator_ghosts_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
 
     /////////////////////
@@ -3543,8 +3537,10 @@ UP_FIXTURE_TEST( communicator_ghosts_test, Fx )
         }
     }
 
-UP_FIXTURE_TEST( communicator_bonded_ghosts_test, Fx )
+UP_TEST( communicator_bonded_ghosts_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // uniform version
         {
@@ -3562,8 +3558,10 @@ UP_FIXTURE_TEST( communicator_bonded_ghosts_test, Fx )
         }
     }
 
-UP_FIXTURE_TEST( communicator_bond_exchange_test, Fx )
+UP_TEST( communicator_bond_exchange_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // uniform version
         {
@@ -3581,20 +3579,26 @@ UP_FIXTURE_TEST( communicator_bond_exchange_test, Fx )
         }
     }
 
-UP_FIXTURE_TEST( communicator_ghost_fields_test, Fx )
+UP_TEST( communicator_ghost_fields_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_base, exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_ghost_layer_width_test, Fx )
+UP_TEST( communicator_ghost_layer_width_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghost_layer_width(communicator_creator_base, exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_ghost_layer_per_type_test, Fx )
+UP_TEST( communicator_ghost_layer_per_type_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
@@ -3603,32 +3607,23 @@ UP_SUITE_END();
 
 #ifdef ENABLE_CUDA
 
-// test fixture to initialize exec_conf only once
-struct FxGPU
-    {
-    FxGPU()
-        {
-        exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        }
-    ~FxGPU()
-        {
-        exec_conf = std::shared_ptr<ExecutionConfiguration>();
-        }
-    };
-
 UP_SUITE_BEGIN(gpu_tests);
 
 //! Tests particle distribution on GPU
-UP_FIXTURE_TEST( DomainDecomposition_test_GPU, FxGPU )
+UP_TEST( DomainDecomposition_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     BoxDim box(2.0);
     std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
 //! Tests balanced particle distribution on GPU
-UP_FIXTURE_TEST( BalancedDomainDecomposition_test_GPU, FxGPU )
+UP_TEST( BalancedDomainDecomposition_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3643,8 +3638,10 @@ UP_FIXTURE_TEST( BalancedDomainDecomposition_test_GPU, FxGPU )
     test_balanced_domain_decomposition(exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_migrate_test_GPU, FxGPU )
+UP_TEST( communicator_migrate_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
@@ -3656,8 +3653,10 @@ UP_FIXTURE_TEST( communicator_migrate_test_GPU, FxGPU )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-UP_FIXTURE_TEST( communicator_balanced_migrate_test_GPU, FxGPU )
+UP_TEST( communicator_balanced_migrate_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
     test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
@@ -3669,8 +3668,10 @@ UP_FIXTURE_TEST( communicator_balanced_migrate_test_GPU, FxGPU )
     test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-UP_FIXTURE_TEST( communicator_ghosts_test_GPU, FxGPU )
+UP_TEST( communicator_ghosts_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
 
     /////////////////////
@@ -3740,8 +3741,10 @@ UP_FIXTURE_TEST( communicator_ghosts_test_GPU, FxGPU )
         }
     }
 
-UP_FIXTURE_TEST( communicator_bonded_ghosts_test_GPU, FxGPU )
+UP_TEST( communicator_bonded_ghosts_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // uniform version
         {
@@ -3759,8 +3762,10 @@ UP_FIXTURE_TEST( communicator_bonded_ghosts_test_GPU, FxGPU )
         }
     }
 
-UP_FIXTURE_TEST( communicator_bond_exchange_test_GPU, FxGPU )
+UP_TEST( communicator_bond_exchange_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // uniform version
         {
@@ -3778,26 +3783,34 @@ UP_FIXTURE_TEST( communicator_bond_exchange_test_GPU, FxGPU )
         }
     }
 
-UP_FIXTURE_TEST( communicator_ghost_fields_test_GPU, FxGPU )
+UP_TEST( communicator_ghost_fields_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_gpu, exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_ghost_layer_width_test_GPU, FxGPU )
+UP_TEST( communicator_ghost_layer_width_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_layer_width(communicator_creator_gpu, exec_conf);
     }
 
-UP_FIXTURE_TEST( communicator_ghost_layer_per_type_test_GPU, FxGPU )
+UP_TEST( communicator_ghost_layer_per_type_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
 
-UP_FIXTURE_TEST ( communicator_compare_test, FxGPU )
+UP_TEST ( communicator_compare_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
 

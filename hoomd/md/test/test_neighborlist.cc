@@ -29,7 +29,7 @@ using namespace std;
 using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Performs basic functionality tests on a neighbor list
 template <class NL>

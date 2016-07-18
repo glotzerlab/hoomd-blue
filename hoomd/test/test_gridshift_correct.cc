@@ -15,7 +15,7 @@
 #include <math.h>
 #include <memory>
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 /*! \file test_gridshift_correct.cc
     \brief Unit tests for the ParticleData class in response to origin shifts
     \ingroup unit_tests

@@ -29,7 +29,7 @@ using namespace boost;
 */
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef'd class factory
 typedef boost::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,

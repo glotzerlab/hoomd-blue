@@ -4,11 +4,8 @@
 
 #ifdef ENABLE_MPI
 
-//! name the boost unit test module
-UP_TEST(CommunicatorGridTests)
-
-// this has to be included after naming the test module
-#include "MPITestSetup.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN()
 
 #include "hoomd/System.h"
 
@@ -322,14 +319,14 @@ void test_communicate_grid_positions(std::shared_ptr<ExecutionConfiguration> exe
     }
 
 //! Basic ghost grid exchange test
-UP_TEST( CommunicateGrid_test_basic )
+UP_TEST( CommunicateGrid_test_basic)
     {
     test_communicate_grid_basic<CommunicatorGrid<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Ghost grid exchange positions test
-UP_TEST( CommunicateGrid_test_positions )
+UP_TEST( CommunicateGrid_test_positions)
     {
     test_communicate_grid_positions<CommunicatorGrid<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -338,14 +335,14 @@ UP_TEST( CommunicateGrid_test_positions )
 
 #ifdef ENABLE_CUDA
 //! Basic ghost grid exchange test on GPU
-UP_TEST( CommunicateGrid_test_basic_GPU )
+UP_TEST( CommunicateGrid_test_basic_GPU)
     {
     test_communicate_grid_basic<CommunicatorGridGPU<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Ghost grid exchange positions test on GPU
-UP_TEST( CommunicateGrid_test_positions_GPU )
+UP_TEST( CommunicateGrid_test_positions_GPU)
     {
     test_communicate_grid_positions<CommunicatorGridGPU<unsigned int> >(
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

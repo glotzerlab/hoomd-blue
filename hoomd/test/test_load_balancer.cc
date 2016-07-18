@@ -4,11 +4,9 @@
 
 #ifdef ENABLE_MPI
 
-//! name the boost unit test module
-UP_TEST(LoadBalancerTests)
-
 // this has to be included after naming the test module
 #include "upp11_config.h"
+HOOMD_UP_MAIN();
 
 #include "hoomd/System.h"
 
@@ -362,7 +360,7 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
     }
 
 //! Tests basic particle redistribution
-UP_TEST( LoadBalancer_test_basic )
+UP_TEST( LoadBalancer_test_basic)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -374,7 +372,7 @@ UP_TEST( LoadBalancer_test_basic )
     }
 
 //! Tests particle redistribution with multiple domains and specific directions
-UP_TEST( LoadBalancer_test_multi )
+UP_TEST( LoadBalancer_test_multi)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -386,7 +384,7 @@ UP_TEST( LoadBalancer_test_multi )
     }
 
 //! Tests particle redistribution with ghost layer width minimum
-UP_TEST( LoadBalancer_test_ghost )
+UP_TEST( LoadBalancer_test_ghost)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     // cubic box
@@ -399,7 +397,7 @@ UP_TEST( LoadBalancer_test_ghost )
 
 #ifdef ENABLE_CUDA
 //! Tests basic particle redistribution on the GPU
-UP_TEST( LoadBalancerGPU_test_basic )
+UP_TEST( LoadBalancerGPU_test_basic)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
@@ -411,7 +409,7 @@ UP_TEST( LoadBalancerGPU_test_basic )
     }
 
 //! Tests particle redistribution with multiple domains and specific directions on the GPU
-UP_TEST( LoadBalancerGPU_test_multi )
+UP_TEST( LoadBalancerGPU_test_multi)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box
@@ -423,7 +421,7 @@ UP_TEST( LoadBalancerGPU_test_multi )
     }
 
 //! Tests particle redistribution with ghost layer width minimum
-UP_TEST( LoadBalancerGPU_test_ghost )
+UP_TEST( LoadBalancerGPU_test_ghost)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     // cubic box

@@ -31,7 +31,7 @@ using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef'd CGCMMForceCompute factory
 typedef boost::function<std::shared_ptr<CGCMMForceCompute> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;

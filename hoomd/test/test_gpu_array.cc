@@ -28,7 +28,7 @@ using namespace boost;
 
 
 #include "upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 
 //! boost test case for testing the basic operation of GPUArray

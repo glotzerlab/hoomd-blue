@@ -26,7 +26,7 @@ using namespace std;
 using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
 typedef boost::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;

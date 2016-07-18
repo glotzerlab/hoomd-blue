@@ -7,7 +7,7 @@
 
 #include "upp11_config.h"
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 
 #include <iostream>

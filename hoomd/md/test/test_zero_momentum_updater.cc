@@ -17,7 +17,7 @@ using namespace std;
 using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class

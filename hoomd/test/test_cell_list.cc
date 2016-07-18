@@ -30,7 +30,7 @@ using namespace boost;
     \brief Implements unit tests for CellList and descendants
     \ingroup unit_tests
 */
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Test the ability of CellList to initialize dimensions
 template <class CL>

@@ -28,7 +28,7 @@ using namespace std;
     \ingroup unit_tests
 */
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<BondTablePotential>  (std::shared_ptr<SystemDefinition> sysdef, unsigned int width)> bondforce_creator;

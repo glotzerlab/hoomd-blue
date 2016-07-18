@@ -22,7 +22,7 @@ using namespace boost;
 
 
 #include "upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 
 UP_TEST( Messenger_basic )

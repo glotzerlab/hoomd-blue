@@ -37,7 +37,7 @@ using namespace boost;
 */
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,

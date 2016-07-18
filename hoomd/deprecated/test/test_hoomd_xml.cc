@@ -21,7 +21,7 @@ using namespace boost;
 using namespace std;
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader

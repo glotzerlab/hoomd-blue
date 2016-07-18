@@ -23,7 +23,7 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Test the cell list stencil as cell list, stencil radius, and box sizes change
 template <class CL>

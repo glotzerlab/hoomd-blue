@@ -31,7 +31,7 @@ using namespace std;
 using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 
 /*! \file enforce2d_updater_test.cc

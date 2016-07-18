@@ -6,7 +6,7 @@
 
 #include "hoomd/test/upp11_config.h"
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 #include "hoomd/hpmc/ShapeSphinx.h"
 

@@ -25,7 +25,7 @@ using namespace boost;
 */
 
 #include "hoomd/test/upp11_config.h"
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<PotentialBondFENE>  (std::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;

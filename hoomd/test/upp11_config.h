@@ -11,14 +11,15 @@
 */
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/HOOMDMPI.h"
 #include <cmath>
 #include "hoomd/extern/upp11/upp11.h"
 
 // ******** helper macros
-#define CHECK_CLOSE(a,b,c) UP_ASSERT((abs(a-b) <= (c * abs(a))) && (abs(a-b) <= (c * abs(b))))
-#define CHECK_SMALL(a,c) UP_ASSERT(abs(a) < c)
+#define CHECK_CLOSE(a,b,c) UP_ASSERT((fabs((a)-(b)) <= ((c) * fabs(a))) && (fabs((a)-(b)) <= ((c) * fabs(b))))
+#define CHECK_SMALL(a,c) UP_ASSERT(fabs(a) < c)
 //! Helper macro for checking if two numbers are close
-#define MY_CHECK_CLOSE(a,b,c) UP_ASSERT(abs(a - Scalar(b)) < Scalar(c))
+#define MY_CHECK_CLOSE(a,b,c) UP_ASSERT((fabs((a)-(b)) <= ((c) * fabs(a))) && (fabs((a)-(b)) <= ((c) * fabs(b))))
 //! Helper macro for checking if a number is small
 #define MY_CHECK_SMALL(a,c) CHECK_SMALL( a, Scalar(c))
 //! Need a simple define for checking two values which are unsigned
@@ -35,5 +36,18 @@ const Scalar tol = Scalar(1e-2);
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
 Scalar loose_tol = Scalar(10);
 
-// helper functions to set up MPI environment
-#include "MPITestSetup.h"
+#ifdef ENABLE_MPI
+#define HOOMD_UP_MAIN() \
+int main(int argc, char **argv) \
+    { \
+    MPI_Init(&argc, &argv); \
+    int val = upp11::TestMain().main(argc, argv); \
+    MPI_Finalize(); \
+    return val; \
+    }
+#else
+#define HOOMD_UP_MAIN() \
+int main(int argc, char **argv) { \
+    return upp11::TestMain().main(argc, argv); \
+}
+#endif

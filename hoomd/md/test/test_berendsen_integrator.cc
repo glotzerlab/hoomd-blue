@@ -28,7 +28,7 @@ using namespace std;
     \ingroup unit_tests
 */
 
-UP_MAIN();
+HOOMD_UP_MAIN();
 
 //! Apply the thermostat to 1000 particles in an ideal gas
 template <class Berendsen>
