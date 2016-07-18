@@ -32,10 +32,12 @@ IntegratorTwoStep::~IntegratorTwoStep()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
+    #ifdef ENABLE_MPI
     if (m_comm)
         {
         m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
+    #endif
     }
 
 /*! \param prof The profiler to set
