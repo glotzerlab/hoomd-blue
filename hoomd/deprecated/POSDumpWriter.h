@@ -12,7 +12,11 @@
 
 #include <string>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 #ifndef __POS_DUMP_WRITER_H__
 #define __POS_DUMP_WRITER_H__
@@ -27,7 +31,7 @@ class POSDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname);
+        POSDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string fname);
 
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
@@ -42,7 +46,7 @@ class POSDumpWriter : public Analyzer
             }
 
         //! Set whether or not there is additional information to be printed via the python method addInfo
-        void setAddInfo(boost::python::object addInfo)
+        void setAddInfo(pybind11::object addInfo)
             {
             m_write_info = true;
             m_add_info = addInfo;
@@ -55,10 +59,10 @@ class POSDumpWriter : public Analyzer
 
         bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
         bool m_write_info; //!< If true, there is additional info to write
-        boost::python::object m_add_info; // method that returns additional information
+        pybind11::object m_add_info; // method that returns additional information
     };
 
 //! Exports the POSDumpWriter class to python
-void export_POSDumpWriter();
+void export_POSDumpWriter(pybind11::module& m);
 
 #endif

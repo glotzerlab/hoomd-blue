@@ -6,8 +6,7 @@
 
 #include "TableAngleForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -27,7 +26,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int table_width,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_table_width(table_width)
@@ -329,10 +328,10 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     }
 
 //! Exports the TableAngleForceCompute class to python
-void export_TableAngleForceCompute()
+void export_TableAngleForceCompute(py::module& m)
     {
-    class_<TableAngleForceCompute, boost::shared_ptr<TableAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("TableAngleForceCompute", init< boost::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    py::class_<TableAngleForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableAngleForceCompute::setTable)
     ;
     }

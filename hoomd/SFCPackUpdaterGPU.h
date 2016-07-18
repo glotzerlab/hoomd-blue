@@ -20,10 +20,11 @@
 #include "SFCPackUpdaterGPU.cuh"
 #include "GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_GPU_H__
 #define __SFCPACK_UPDATER_GPU_H__
@@ -37,7 +38,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     {
     public:
         //! Constructor
-        SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~SFCPackUpdaterGPU();
@@ -65,7 +66,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     };
 
 //! Export the SFCPackUpdaterGPU class to python
-void export_SFCPackUpdaterGPU();
+void export_SFCPackUpdaterGPU(pybind11::module& m);
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 

@@ -9,7 +9,7 @@
 
 #include "ForceCompositeGPU.cuh"
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
@@ -17,7 +17,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : ForceComposite(sysdef)
     {
 
@@ -248,9 +248,9 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_ForceCompositeGPU()
+void export_ForceCompositeGPU(py::module& m)
     {
-    class_< ForceCompositeGPU, boost::shared_ptr<ForceCompositeGPU>, bases<ForceComposite>, boost::noncopyable >
-    ("ForceCompositeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU", py::base<ForceComposite>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

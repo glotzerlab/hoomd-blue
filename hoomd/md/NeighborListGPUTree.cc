@@ -11,10 +11,8 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -22,7 +20,7 @@ using namespace boost;
 
 using namespace std;
 
-NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
@@ -820,9 +818,8 @@ void NeighborListGPUTree::traverseTree()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUTree()
+void export_NeighborListGPUTree(py::module& m)
     {
-    class_<NeighborListGPUTree, boost::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    py::class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree", py::base<NeighborListGPU>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
-

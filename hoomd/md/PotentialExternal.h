@@ -4,8 +4,7 @@
 
 // Maintainer: jglaser
 
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 #include "hoomd/ForceCompute.h"
 
@@ -16,6 +15,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
@@ -28,7 +29,7 @@ class PotentialExternal: public ForceCompute
     {
     public:
         //! Constructs the compute
-        PotentialExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef,
                                      const std::string& log_suffix="");
         virtual ~PotentialExternal<evaluator>();
 
@@ -79,7 +80,7 @@ class PotentialExternal: public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template<class evaluator>
-PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef,
                          const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
@@ -246,18 +247,13 @@ void PotentialExternal<evaluator>::setField(field_type field)
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
 */
 template < class T >
-void export_PotentialExternal(const std::string& name)
+void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+                  .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
     }
 
 #endif

@@ -10,19 +10,17 @@
 
 #include "CellListStencil.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
+namespace py = pybind11;
 #include <algorithm>
 
 using namespace std;
-using namespace boost::python;
 
 /*!
  * \param sysdef System definition
  * \param cl Cell list to pair the stencil with
  */
-CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<CellList> cl)
+CellListStencil::CellListStencil(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<CellList> cl)
     : Compute(sysdef), m_cl(cl), m_compute_stencil(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
@@ -109,7 +107,7 @@ void CellListStencil::compute(unsigned int timestep)
             h_n_stencil.data[cur_type] = 0;
             continue;
             }
-        
+
         Scalar r_listsq_max = r_list_max*r_list_max;
 
         // get the stencil size
@@ -180,12 +178,12 @@ bool CellListStencil::shouldCompute(unsigned int timestep)
         m_compute_stencil = false;
         return true;
         }
-    
+
     return false;
     }
 
-void export_CellListStencil()
+void export_CellListStencil(py::module& m)
     {
-    class_<CellListStencil, boost::shared_ptr<CellListStencil>, bases<Compute>, boost::noncopyable >
-        ("CellListStencil", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList> >());
+    py::class_<CellListStencil, std::shared_ptr<CellListStencil> >(m,"CellListStencil", py::base<Compute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList> >());
     }

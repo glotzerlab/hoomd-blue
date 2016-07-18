@@ -29,15 +29,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<boost::shared_ptr<HarmonicImproperForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef)> improperforce_creator;
+typedef boost::function<std::shared_ptr<HarmonicImproperForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> improperforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one improper type !!!! NO IMPROPERS
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
+    std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
@@ -67,7 +67,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     */
 
     // create the improper force compute to check
-    boost::shared_ptr<HarmonicImproperForceCompute> fc_4 = tf_creator(sysdef_4);
+    std::shared_ptr<HarmonicImproperForceCompute> fc_4 = tf_creator(sysdef_4);
     fc_4->setParams(0, Scalar(2.0), Scalar(1.570796)); // type=0, K=2.0,chi=pi/2
 
     // compute the force and check the results
@@ -198,8 +198,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 8 particle system with particles across each boundary
     // also test more than one type of impropers
-    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
+    std::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_8->getPositions(), access_location::host, access_mode::readwrite);
@@ -213,7 +213,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     h_pos.data[7].x = 3; h_pos.data[7].y = 0; h_pos.data[7].z =  Scalar(31.0);
     }
 
-    boost::shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(sysdef_8);
+    std::shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, Scalar(2.0), Scalar(1.578));
     fc_8->setParams(1, Scalar(4.0), Scalar(1.444));
 
@@ -321,8 +321,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
+    std::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(), access_location::host, access_mode::readwrite);
@@ -346,7 +346,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     }
 
     // build the improper force compute and try it out
-    boost::shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
+    std::shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, Scalar(5.0), Scalar(1.33333));
 
     sysdef_5->getImproperData()->addBondedGroup(Dihedral(0, 0,1,2,3));
@@ -421,7 +421,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
 //! Compares the output of two HarmonicImproperForceComputes
 void improper_force_comparison_tests(improperforce_creator tf_creator1,
                                      improperforce_creator tf_creator2,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // INTERESTING NOTE: the code will depending on the number of ramdom particles
     // even 1000 will make the code blow up, 500 is used for safety... hope it works!
@@ -430,12 +430,12 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     snap->improper_data.type_mapping.push_back("A");
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<HarmonicImproperForceCompute> fc1 = tf_creator1(sysdef);
-    boost::shared_ptr<HarmonicImproperForceCompute> fc2 = tf_creator2(sysdef);
+    std::shared_ptr<HarmonicImproperForceCompute> fc1 = tf_creator1(sysdef);
+    std::shared_ptr<HarmonicImproperForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(2.0), Scalar(3.0));
     fc2->setParams(0, Scalar(2.0), Scalar(3.0));
 
@@ -481,16 +481,16 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     }
 
 //! HarmonicImproperForceCompute creator for improper_force_basic_tests()
-boost::shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceCompute(sysdef));
+    return std::shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! ImproperForceCompute creator for bond_force_basic_tests()
-boost::shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceComputeGPU(sysdef));
+    return std::shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceComputeGPU(sysdef));
     }
 #endif
 
@@ -499,7 +499,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceCompute_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    improper_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -508,7 +508,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     improperforce_creator tf_creator = bind(gpu_tf_creator, _1);
-    improper_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -516,7 +516,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_compare )
     {
     improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    improper_force_comparison_tests(tf_creator, tf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    improper_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

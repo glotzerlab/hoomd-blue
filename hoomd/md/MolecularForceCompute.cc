@@ -9,8 +9,8 @@
 #include <string.h>
 #include <map>
 
-#include <boost/python.hpp>
 #include <boost/bind.hpp>
+namespace py = pybind11;
 
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
@@ -18,7 +18,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
       m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
       m_molecule_idx(m_exec_conf)
@@ -162,9 +162,9 @@ void MolecularForceCompute::initMolecules()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_MolecularForceCompute()
+void export_MolecularForceCompute(py::module& m)
     {
-    class_< MolecularForceCompute, boost::shared_ptr<MolecularForceCompute>, bases<ForceConstraint>, boost::noncopyable >
-    ("MolecularForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute> >(m, "MolecularForceCompute", py::base<ForceConstraint>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

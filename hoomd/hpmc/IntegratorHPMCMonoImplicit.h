@@ -7,9 +7,7 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
-
-#include <boost/random.hpp>
+#include <random>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -23,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -40,7 +40,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
     {
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoImplicit(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                               unsigned int seed);
         //! Destructor
         virtual ~IntegratorHPMCMonoImplicit();
@@ -157,7 +157,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
         hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
-        std::vector<boost::random::poisson_distribution<unsigned int, Scalar> > m_poisson;   //!< Poisson distribution
+        std::vector<std::poisson_distribution<unsigned int> > m_poisson;   //!< Poisson distribution
         std::vector<Scalar> m_lambda;                            //!< Poisson distribution parameters per type
         Scalar m_d_dep;                                          //!< Depletant circumsphere diameter
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
@@ -209,7 +209,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
     */
 
 template< class Shape >
-IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_rng_initialized(false), m_n_trial(0),
       m_need_initialize_poisson(true)
@@ -307,7 +307,7 @@ void IntegratorHPMCMonoImplicit< Shape >::initializePoissonDistribution()
             // guard against invalid parameters
             continue;
             }
-        m_poisson[i_type] = boost::random::poisson_distribution<unsigned int, Scalar>(lambda);
+        m_poisson[i_type] = std::poisson_distribution<unsigned int>(lambda);
         }
     }
 
@@ -393,10 +393,10 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     seed_seq[0] = this->m_seed;
     seed_seq[1] = timestep;
     seed_seq[2] = this->m_exec_conf->getRank();
-    boost::random::seed_seq seed(seed_seq.begin(), seed_seq.end());
+    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
 
     // RNG for poisson distribution
-    boost::random::mt19937 rng_poisson(seed);
+    std::mt19937 rng_poisson(seed);
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC implicit");
 
@@ -1328,10 +1328,10 @@ bool IntegratorHPMCMonoImplicit<Shape>::attemptBoxResize(unsigned int timestep, 
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMonoImplicit(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMonoImplicit(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_<IntegratorHPMCMonoImplicit<Shape>, boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    pybind11::class_<IntegratorHPMCMonoImplicit<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> > >(m, name.c_str(),  pybind11::base< IntegratorHPMCMono<Shape> >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setDepletantDensity", &IntegratorHPMCMonoImplicit<Shape>::setDepletantDensity)
         .def("setDepletantType", &IntegratorHPMCMonoImplicit<Shape>::setDepletantType)
         .def("setNTrial", &IntegratorHPMCMonoImplicit<Shape>::setNTrial)
@@ -1342,9 +1342,9 @@ template < class Shape > void export_IntegratorHPMCMonoImplicit(const std::strin
     }
 
 //! Export the counters for depletants
-inline void export_hpmc_implicit_counters()
+inline void export_hpmc_implicit_counters(pybind11::module& m)
     {
-    boost::python::class_< hpmc_implicit_counters_t >("hpmc_implicit_counters_t")
+    pybind11::class_< hpmc_implicit_counters_t >(m, "hpmc_implicit_counters_t")
     .def_readwrite("insert_count", &hpmc_implicit_counters_t::insert_count)
     .def_readwrite("reinsert_count", &hpmc_implicit_counters_t::reinsert_count)
     .def_readwrite("free_volume_count", &hpmc_implicit_counters_t::free_volume_count)
@@ -1357,4 +1357,3 @@ inline void export_hpmc_implicit_counters()
 } // end namespace hpmc
 
 #endif // __HPMC_MONO_IMPLICIT__H__
-

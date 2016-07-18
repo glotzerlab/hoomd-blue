@@ -423,7 +423,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
 BOOST_AUTO_TEST_CASE( ParticleData_test )
     {
     BoxDim box(10.0, 30.0, 50.0);
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);
 
     Scalar tol = Scalar(1e-6);
@@ -622,10 +622,10 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 BOOST_AUTO_TEST_CASE( Random_test )
     {
     // create a fairly dense system with a minimum distance of 0.8
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
 
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
@@ -691,8 +691,8 @@ BOOST_AUTO_TEST_CASE( Generator_test )
     for (int i = 0; i < 7; i++)
         types2.push_back("B");
 
-    boost::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
-    boost::shared_ptr<PolymerParticleGenerator> poly2(new PolymerParticleGenerator(1.2, types2, 100));
+    std::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
+    std::shared_ptr<PolymerParticleGenerator> poly2(new PolymerParticleGenerator(1.2, types2, 100));
     BoxDim box(40);
     RandomGenerator generator(box, 1);
     generator.setSeparationRadius("A", 0.5);
@@ -702,7 +702,7 @@ BOOST_AUTO_TEST_CASE( Generator_test )
 
     generator.generate();
 
-    boost::shared_ptr<ParticleData> pdata(new ParticleData(generator));
+    std::shared_ptr<ParticleData> pdata(new ParticleData(generator));
     MOL2DumpWriter dump(pdata, string("test.mol2"));
     dump.analyze(0);
     }*/

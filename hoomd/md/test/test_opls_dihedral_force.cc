@@ -29,14 +29,14 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<boost::shared_ptr<OPLSDihedralForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
+typedef boost::function<std::shared_ptr<OPLSDihedralForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type - no dihedrals
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0,make_scalar3(1.0,0.0,0.0));
     pdata_4->setPosition(1,make_scalar3(1.0,0.5,0));
@@ -44,7 +44,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     pdata_4->setPosition(3,make_scalar3(0,0.4,-0.6));
 
     // create the dihedral force compute to check
-    boost::shared_ptr<OPLSDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
+    std::shared_ptr<OPLSDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
 
     // k1 = 1.5, k2 = 6.2, k3 = 1.7, k4 = 3.0
     fc_4->setParams(0, 1.5, 6.2, 1.7, 3.0);
@@ -279,8 +279,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // test an 8-particle system with two non-overlapping dihedrals
-    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     pdata_8->setPosition(0, make_scalar3(1.0,0.0,0.0));
     pdata_8->setPosition(1, make_scalar3(3.0,1.2,2.1));
@@ -291,7 +291,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     pdata_8->setPosition(6, make_scalar3(0.0,2.9,-1.7));
     pdata_8->setPosition(7, make_scalar3(-2.0,0.3,0.7));
 
-    boost::shared_ptr<OPLSDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
+    std::shared_ptr<OPLSDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, 2.0, 3.0, 4.0, 5.0);
     fc_8->setParams(1, 5.2, 4.2, 3.2, 1.2);
 
@@ -374,8 +374,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // test a 5-particle system with one dihedral type on two overlapping sets of particles
-    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     pdata_5->setPosition(0, make_scalar3(1.0,0.0,0.0));
     pdata_5->setPosition(1, make_scalar3(3.0,1.2,2.1));
@@ -384,7 +384,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     pdata_5->setPosition(4, make_scalar3(4.8,1.1,0.0));
 
     // build the dihedral force compute and try it out
-    boost::shared_ptr<OPLSDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
+    std::shared_ptr<OPLSDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, 1.2, 3.3, 4.2, 6.4);
 
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
@@ -444,19 +444,19 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
 //! Compares the output of two OPLSDihedralForceComputes
 void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      dihedralforce_creator tf_creator2,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
 
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     snap->dihedral_data.type_mapping.push_back("A");
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<OPLSDihedralForceCompute> fc1 = tf_creator1(sysdef);
-    boost::shared_ptr<OPLSDihedralForceCompute> fc2 = tf_creator2(sysdef);
+    std::shared_ptr<OPLSDihedralForceCompute> fc1 = tf_creator1(sysdef);
+    std::shared_ptr<OPLSDihedralForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, 1.1, 2.2, 4.5, 3.6);
     fc2->setParams(0, 1.1, 2.2, 4.5, 3.6);
 
@@ -517,16 +517,16 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     }
 
 //! OPLSDihedralForceCompute creator for dihedral_force_basic_tests()
-boost::shared_ptr<OPLSDihedralForceCompute> base_class_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<OPLSDihedralForceCompute> base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<OPLSDihedralForceCompute>(new OPLSDihedralForceCompute(sysdef));
+    return std::shared_ptr<OPLSDihedralForceCompute>(new OPLSDihedralForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! DihedralForceCompute creator for bond_force_basic_tests()
-boost::shared_ptr<OPLSDihedralForceCompute> gpu_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<OPLSDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<OPLSDihedralForceCompute>(new OPLSDihedralForceComputeGPU(sysdef));
+    return std::shared_ptr<OPLSDihedralForceCompute>(new OPLSDihedralForceComputeGPU(sysdef));
     }
 #endif
 
@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE( OPLSDihedralForceCompute_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    dihedral_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -544,7 +544,7 @@ BOOST_AUTO_TEST_CASE( OPLSDihedralForceComputeGPU_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1);
-    dihedral_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -552,13 +552,13 @@ BOOST_AUTO_TEST_CASE( OPLSDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
 BOOST_AUTO_TEST_CASE( OPLSDihedralForce_MultiGPU_compare)
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);

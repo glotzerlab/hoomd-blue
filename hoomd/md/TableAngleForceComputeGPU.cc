@@ -6,10 +6,8 @@
 
 #include "TableAngleForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc
@@ -22,7 +20,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableAngleForceComputeGPU::TableAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TableAngleForceCompute(sysdef, table_width, log_suffix)
@@ -99,12 +97,11 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_TableAngleForceComputeGPU()
+void export_TableAngleForceComputeGPU(py::module& m)
     {
-    class_<TableAngleForceComputeGPU, boost::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute>, boost::noncopyable >
-    ("TableAngleForceComputeGPU",
-     init< boost::shared_ptr<SystemDefinition>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU", py::base<TableAngleForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                         unsigned int,
+                         const std::string& >())
+                        ;
     }

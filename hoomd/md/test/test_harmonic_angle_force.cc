@@ -29,15 +29,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<boost::shared_ptr<HarmonicAngleForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
+typedef boost::function<std::shared_ptr<HarmonicAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one bond type !!!! NO ANGLES
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1));
     pdata_3->setPosition(1,make_scalar3(1.0,1.0,1.0));
@@ -49,7 +49,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     //printf("\n");
 
     // create the angle force compute to check
-    boost::shared_ptr<HarmonicAngleForceCompute> fc_3 = af_creator(sysdef_3);
+    std::shared_ptr<HarmonicAngleForceCompute> fc_3 = af_creator(sysdef_3);
     fc_3->setParams(0, Scalar(1.0), Scalar(0.785398)); // type=0, K=1.0,theta_0=pi/4=0.785398
 
     // compute the force and check the results
@@ -148,8 +148,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
     unsigned int num_angles_to_test = 3;
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
@@ -158,7 +158,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
-    boost::shared_ptr<HarmonicAngleForceCompute> fc_6 = af_creator(sysdef_6);
+    std::shared_ptr<HarmonicAngleForceCompute> fc_6 = af_creator(sysdef_6);
     fc_6->setParams(0, Scalar(1.0), Scalar(0.785398));
     fc_6->setParams(1, Scalar(2.0), Scalar(1.46));
     //fc_6->setParams(2, 1.5, 1.68);
@@ -234,8 +234,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     // make a square of particles
     {
@@ -259,7 +259,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     }
 
     // build the bond force compute and try it out
-    boost::shared_ptr<HarmonicAngleForceCompute> fc_4 = af_creator(sysdef_4);
+    std::shared_ptr<HarmonicAngleForceCompute> fc_4 = af_creator(sysdef_4);
     fc_4->setParams(0, 1.5, 1.75);
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getAngleData()->addBondedGroup(Angle(0, 0,1,2));
@@ -319,19 +319,19 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
 
 
 //! Compares the output of two HarmonicAngleForceComputes
-void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
 
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap =  rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap =  rand_init.getSnapshot();
     snap->angle_data.type_mapping.push_back("A");
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<HarmonicAngleForceCompute> fc1 = af_creator1(sysdef);
-    boost::shared_ptr<HarmonicAngleForceCompute> fc2 = af_creator2(sysdef);
+    std::shared_ptr<HarmonicAngleForceCompute> fc1 = af_creator1(sysdef);
+    std::shared_ptr<HarmonicAngleForceCompute> fc2 = af_creator2(sysdef);
     fc1->setParams(0, Scalar(1.0), Scalar(1.348));
     fc2->setParams(0, Scalar(1.0), Scalar(1.348));
 
@@ -391,16 +391,16 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     }
 
 //! HarmonicAngleForceCompute creator for angle_force_basic_tests()
-boost::shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(sysdef));
+    return std::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! AngleForceCompute creator for bond_force_basic_tests()
-boost::shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceComputeGPU(sysdef));
+    return std::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceComputeGPU(sysdef));
     }
 #endif
 
@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     //cout << " IN BOOST_AUTO_TEST_CASE: CPU \n";
     angleforce_creator af_creator = bind(base_class_af_creator, _1);
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     angle_force_basic_tests(af_creator, exec_conf);
     }
 
@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_basic )
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     cout << " IN BOOST_AUTO_TEST_CASE: GPU \n";
     angleforce_creator af_creator = bind(gpu_af_creator, _1);
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     exec_conf->setCUDAErrorChecking(true);
     angle_force_basic_tests(af_creator, exec_conf);
     }
@@ -432,7 +432,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_compare )
     {
     angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);
     angleforce_creator af_creator = bind(base_class_af_creator, _1);
-    angle_force_comparison_tests(af_creator, af_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    angle_force_comparison_tests(af_creator, af_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 

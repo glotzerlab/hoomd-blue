@@ -1,3 +1,6 @@
 [submodule "hoomd/extern/libgetar"]
 	path = hoomd/extern/libgetar
 	url = https://bitbucket.org/glotzer/libgetar
+[submodule "hoomd/extern/pybind"]
+	path = hoomd/extern/pybind
+	url = https://github.com/pybind/pybind11.git

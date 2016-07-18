@@ -8,8 +8,7 @@
 
 #include "CGCMMAngleForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <sstream>
@@ -28,7 +27,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+CGCMMAngleForceCompute::CGCMMAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing CGCMMAngleForceCompute" << endl;
@@ -374,10 +373,10 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_CGCMMAngleForceCompute()
+void export_CGCMMAngleForceCompute(py::module& m)
     {
-    class_<CGCMMAngleForceCompute, boost::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("CGCMMAngleForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<CGCMMAngleForceCompute, std::shared_ptr<CGCMMAngleForceCompute> >(m, "CGCMMAngleForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &CGCMMAngleForceCompute::setParams)
     ;
     }

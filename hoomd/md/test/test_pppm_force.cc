@@ -5,10 +5,9 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-#include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <iostream>
 #include <fstream>
@@ -25,7 +24,6 @@
 
 using namespace std;
 using namespace boost;
-using namespace boost::python;
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants
@@ -38,25 +36,25 @@ using namespace boost::python;
 
 //! Typedef'd PPPMForceCompute factory
 
-typedef boost::function<boost::shared_ptr<PPPMForceCompute> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<NeighborList> nlist,
-                                                      boost::shared_ptr<ParticleGroup> group)> pppmforce_creator;
+typedef boost::function<std::shared_ptr<PPPMForceCompute> (std::shared_ptr<SystemDefinition> sysdef,
+                                                      std::shared_ptr<NeighborList> nlist,
+                                                      std::shared_ptr<ParticleGroup> group)> pppmforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
-void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this is a 2-particle of charge 1 and -1
     // due to the complexity of FFTs, the correct resutls are not analytically computed
     // but instead taken from a known working implementation of the PPPM method
     // The box lengths and grid points are different in each direction
 
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -69,7 +67,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
 
     }
 
-    boost::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
+    std::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
 
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -117,7 +115,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     }
 
 //! Test the ability of the lj force compute to actually calucate forces
-void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this is a 2-particle of charge 1 and -1
     // due to the complexity of FFTs, the correct resutls are not analytically computed
@@ -127,13 +125,13 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
     // set up triclinic box
     Scalar tilt(0.5);
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -146,7 +144,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
     }
 
-    boost::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
+    std::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
 
 
     int Nx = 128;
@@ -200,21 +198,21 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
 
 //! PPPMForceCompute creator for unit tests
-boost::shared_ptr<PPPMForceCompute> base_class_pppm_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                     boost::shared_ptr<NeighborList> nlist,
-                                                     boost::shared_ptr<ParticleGroup> group)
+std::shared_ptr<PPPMForceCompute> base_class_pppm_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                     std::shared_ptr<NeighborList> nlist,
+                                                     std::shared_ptr<ParticleGroup> group)
     {
-    return boost::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
+    return std::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
     }
 
 #ifdef ENABLE_CUDA
 //! PPPMForceComputeGPU creator for unit tests
-boost::shared_ptr<PPPMForceCompute> gpu_pppm_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                              boost::shared_ptr<NeighborList> nlist,
-                                              boost::shared_ptr<ParticleGroup> group)
+std::shared_ptr<PPPMForceCompute> gpu_pppm_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                              std::shared_ptr<NeighborList> nlist,
+                                              std::shared_ptr<ParticleGroup> group)
     {
     nlist->setStorageMode(NeighborList::full);
-    return boost::shared_ptr<PPPMForceComputeGPU> (new PPPMForceComputeGPU(sysdef, nlist, group));
+    return std::shared_ptr<PPPMForceComputeGPU> (new PPPMForceComputeGPU(sysdef, nlist, group));
     }
 #endif
 
@@ -223,14 +221,14 @@ boost::shared_ptr<PPPMForceCompute> gpu_pppm_creator(boost::shared_ptr<SystemDef
 BOOST_AUTO_TEST_CASE( PPPMForceCompute_basic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
-    pppm_force_particle_test(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    pppm_force_particle_test(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
-    pppm_force_particle_test_triclinic(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    pppm_force_particle_test_triclinic(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -239,13 +237,13 @@ BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
 BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_basic )
     {
     pppmforce_creator pppm_creator = bind(gpu_pppm_creator, _1, _2, _3);
-    pppm_force_particle_test(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    pppm_force_particle_test(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_triclinic )
     {
     pppmforce_creator pppm_creator = bind(gpu_pppm_creator, _1, _2, _3);
-    pppm_force_particle_test_triclinic(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    pppm_force_particle_test_triclinic(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

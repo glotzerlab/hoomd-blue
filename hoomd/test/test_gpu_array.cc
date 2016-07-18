@@ -9,7 +9,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
@@ -33,7 +33,7 @@ using namespace boost;
 //! boost test case for testing the basic operation of GPUArray
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     GPUArray<int> gpu_array(100, exec_conf);
 
     // basic check: ensure that the number of elements is set correctly
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 //! boost test case for testing device to/from host transfers
 BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     BOOST_REQUIRE(exec_conf->isCUDAEnabled());
 
     GPUArray<int> gpu_array(100, exec_conf);
@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
     BOOST_CHECK_EQUAL(b.getNumElements(), (unsigned)0);
 
     // check assignment of a NULL GPUArray
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     GPUArray<int> c(1000, exec_conf);
     c = a;
 
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
 //! Tests resize methods
 BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     // create a 1D GPUArray
     GPUArray<unsigned int> a(5, exec_conf);
@@ -348,7 +348,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
 //! Tests GPUVector
 BOOST_AUTO_TEST_CASE( GPUVector_basic_tests )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     // First create an empty GPUVector
     GPUVector<unsigned int> vec(exec_conf);

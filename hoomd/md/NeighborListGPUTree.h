@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
@@ -29,7 +31,7 @@ class NeighborListGPUTree : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                             Scalar r_cut,
                             Scalar r_buff);
 
@@ -198,5 +200,5 @@ class NeighborListGPUTree : public NeighborListGPU
     };
 
 //! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUTree();
+void export_NeighborListGPUTree(pybind11::module& m);
 #endif //__NEIGHBORLISTGPUTREE_H__

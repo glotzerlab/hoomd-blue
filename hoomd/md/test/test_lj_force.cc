@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -32,11 +32,11 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<boost::shared_ptr<PotentialPairLJ> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                     boost::shared_ptr<NeighborList> nlist)> ljforce_creator;
+typedef boost::function<std::shared_ptr<PotentialPairLJ> (std::shared_ptr<SystemDefinition> sysdef,
+                                                     std::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
-void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void lj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -46,8 +46,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -56,8 +56,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     h_pos.data[1].x = Scalar(pow(2.0,1.0/6.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairLJ> fc_3 = lj_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairLJ> fc_3 = lj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -175,7 +175,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     }
 
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions
-void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void lj_force_periodic_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
@@ -184,8 +184,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -202,8 +202,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairLJ> fc_6 = lj_creator(sysdef_6, nlist_6);
+    std::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairLJ> fc_6 = lj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
     fc_6->setRcut(0, 2, Scalar(1.3));
@@ -285,21 +285,21 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     }
 
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
-void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairLJ> fc2 = lj_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairLJ> fc2 = lj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -364,11 +364,11 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     }
 
 //! Test the ability of the lj force compute to compute forces with different shift modes
-void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void lj_force_shift_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     {
@@ -378,16 +378,16 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     h_pos.data[1].x = Scalar(2.8); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    boost::shared_ptr<PotentialPairLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<PotentialPairLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
     fc_no_shift->setShiftMode(PotentialPairLJ::no_shift);
 
-    boost::shared_ptr<PotentialPairLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
+    std::shared_ptr<PotentialPairLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
     fc_shift->setRcut(0, 0, Scalar(3.0));
     fc_shift->setShiftMode(PotentialPairLJ::shift);
 
-    boost::shared_ptr<PotentialPairLJ> fc_xplor = lj_creator(sysdef_2, nlist_2);
+    std::shared_ptr<PotentialPairLJ> fc_xplor = lj_creator(sysdef_2, nlist_2);
     fc_xplor->setRcut(0, 0, Scalar(3.0));
     fc_xplor->setShiftMode(PotentialPairLJ::xplor);
     fc_xplor->setRon(0, 0, Scalar(2.0));
@@ -530,19 +530,19 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     }
 
 //! LJForceCompute creator for unit tests
-boost::shared_ptr<PotentialPairLJ> base_class_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairLJ> base_class_lj_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
+    return std::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-boost::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                          boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                          std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairLJGPU> lj(new PotentialPairLJGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairLJGPU> lj(new PotentialPairLJGPU(sysdef, nlist));
     return lj;
     }
 #endif
@@ -551,21 +551,21 @@ boost::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(boost::shared_ptr<SystemDef
 BOOST_AUTO_TEST_CASE( PotentialPairLJ_particle )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
-    lj_force_particle_test(lj_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    lj_force_particle_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( PotentialPairLJ_periodic )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
-    lj_force_periodic_test(lj_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    lj_force_periodic_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( PotentialPairLJ_shift )
     {
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
-    lj_force_shift_test(lj_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    lj_force_shift_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -573,21 +573,21 @@ BOOST_AUTO_TEST_CASE( PotentialPairLJ_shift )
 BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
-    lj_force_particle_test(lj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    lj_force_particle_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_periodic )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
-    lj_force_periodic_test(lj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    lj_force_periodic_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
-    lj_force_shift_test(lj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    lj_force_shift_test(lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);
     ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2);
-    lj_force_comparison_test(lj_creator_base, lj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    lj_force_comparison_test(lj_creator_base, lj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }*/
 
 #endif

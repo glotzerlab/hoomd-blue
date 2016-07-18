@@ -29,15 +29,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<boost::shared_ptr<TableAngleForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)> angleforce_creator;
+typedef boost::function<std::shared_ptr<TableAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef,unsigned int width)> angleforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void angle_force_basic_tests(angleforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void angle_force_basic_tests(angleforce_creator tf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO DIHEDRALS
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(4.5), 1, 0, 1, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(4.5), 1, 0, 1, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1));
     pdata_3->setPosition(1,make_scalar3(1.0,1.0,1.0));
@@ -53,7 +53,7 @@ void angle_force_basic_tests(angleforce_creator tf_creator, boost::shared_ptr<Ex
 
     // create the angle force compute to check
     unsigned int width = 100;
-    boost::shared_ptr<TableAngleForceCompute> fc_3 = tf_creator(sysdef_3,width);
+    std::shared_ptr<TableAngleForceCompute> fc_3 = tf_creator(sysdef_3,width);
 
     // set up a harmonic potential
     std::vector<Scalar> V, T;
@@ -185,19 +185,19 @@ void angle_force_basic_tests(angleforce_creator tf_creator, boost::shared_ptr<Ex
 //! Compares the output of two TableAngleForceComputes
 void angle_force_comparison_tests(angleforce_creator tf_creator1,
                                      angleforce_creator tf_creator2,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
 
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     snap->angle_data.type_mapping.push_back("A");
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<TableAngleForceCompute> fc1 = tf_creator1(sysdef);
-    boost::shared_ptr<TableAngleForceCompute> fc2 = tf_creator2(sysdef);
+    std::shared_ptr<TableAngleForceCompute> fc1 = tf_creator1(sysdef);
+    std::shared_ptr<TableAngleForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(3.0), -1, 3);
     fc2->setParams(0, Scalar(3.0), -1, 3);
 
@@ -259,16 +259,16 @@ void angle_force_comparison_tests(angleforce_creator tf_creator1,
 
 #endif
 //! TableAngleForceCompute creator for angle_force_basic_tests()
-boost::shared_ptr<TableAngleForceCompute> base_class_tf_creator(boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)
+std::shared_ptr<TableAngleForceCompute> base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef,unsigned int width)
     {
-    return boost::shared_ptr<TableAngleForceCompute>(new TableAngleForceCompute(sysdef,width));
+    return std::shared_ptr<TableAngleForceCompute>(new TableAngleForceCompute(sysdef,width));
     }
 
 #ifdef ENABLE_CUDA
 //! AngleForceCompute creator for bond_force_basic_tests()
-boost::shared_ptr<TableAngleForceCompute> gpu_tf_creator(boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)
+std::shared_ptr<TableAngleForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef,unsigned int width)
     {
-    return boost::shared_ptr<TableAngleForceCompute>(new TableAngleForceComputeGPU(sysdef,width));
+    return std::shared_ptr<TableAngleForceCompute>(new TableAngleForceComputeGPU(sysdef,width));
     }
 #endif
 
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE( TableAngleForceCompute_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     angleforce_creator tf_creator = bind(base_class_tf_creator, _1,_2);
-    angle_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    angle_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE( TableAngleForceComputeGPU_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     angleforce_creator tf_creator = bind(gpu_tf_creator, _1,_2);
-    angle_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    angle_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #if 0
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE( TableAngleForceComputeGPU_compare )
     {
     angleforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     angleforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    angle_force_comparison_tests(tf_creator, tf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    angle_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 #endif

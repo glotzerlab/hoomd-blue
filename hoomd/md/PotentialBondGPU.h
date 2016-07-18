@@ -39,7 +39,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
     {
     public:
         //! Construct the bond potential
-        PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialBondGPU() {}
@@ -66,7 +66,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                           const std::string& log_suffix)
     : PotentialBond<evaluator>(sysdef, log_suffix)
     {
@@ -170,16 +170,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialBondGPU(const std::string& name)
+template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
-              ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+            ;
     }
 
 #endif // ENABLE_CUDA

@@ -6,7 +6,7 @@
 
 #include "ForceCompute.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ForceConstraint.h
     \brief Declares a base class for computing constraint
@@ -15,6 +15,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
@@ -27,7 +29,7 @@ class ForceConstraint : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ForceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Return the number of DOF removed by this constraint
         /*! The base class ForceConstraint returns 0, derived classes should override
@@ -44,6 +46,6 @@ class ForceConstraint : public ForceCompute
     };
 
 //! Exports the ForceConstraint to python
-void export_ForceConstraint();
+void export_ForceConstraint(pybind11::module& m);
 
 #endif

@@ -36,10 +36,8 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
+namespace py = pybind11;
 
-using namespace boost::python;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,27 +46,27 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_union_sphere()
+void export_union_sphere(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoSphereUnion");
-    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitSphereUnion");
-    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeSphereUnion");
-    // export_AnalyzerSDF< ShapeUnion<ShapeSphere> >("AnalyzerSDFSphereUnion");
-    export_UpdaterMuVT< ShapeUnion<ShapeSphere> >("UpdaterMuVTSphereUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere> >("UpdaterMuVTImplicitSphereUnion");
+    export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoSphereUnion");
+    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitSphereUnion");
+    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeSphereUnion");
+    // export_AnalyzerSDF< ShapeUnion<ShapeSphere> >(m, "AnalyzerSDFSphereUnion");
+    export_UpdaterMuVT< ShapeUnion<ShapeSphere> >(m, "UpdaterMuVTSphereUnion");
+    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere> >(m, "UpdaterMuVTImplicitSphereUnion");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >("ExternalFieldSphereUnion");
-    export_LatticeField<ShapeUnion<ShapeSphere> >("ExternalFieldLatticeSphereUnion");
-    export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >("ExternalFieldCompositeSphereUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >("RemoveDriftUpdaterSphereUnion");
-    export_ExternalFieldWall<ShapeUnion<ShapeSphere> >("WallSphereUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >("UpdaterExternalFieldWallSphereUnion");
+    export_ExternalFieldInterface<ShapeUnion<ShapeSphere> >(m, "ExternalFieldSphereUnion");
+    export_LatticeField<ShapeUnion<ShapeSphere> >(m, "ExternalFieldLatticeSphereUnion");
+    export_ExternalFieldComposite<ShapeUnion<ShapeSphere> >(m, "ExternalFieldCompositeSphereUnion");
+    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >(m, "RemoveDriftUpdaterSphereUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "WallSphereUnion");
+    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "UpdaterExternalFieldWallSphereUnion");
 
     #ifdef ENABLE_CUDA
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoGPUSphereUnion");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >("IntegratorHPMCMonoImplicitGPUSphereUnion");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >("ComputeFreeVolumeGPUSphereUnion");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoGPUSphereUnion");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitGPUSphereUnion");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeGPUSphereUnion");
 
     #endif
     }

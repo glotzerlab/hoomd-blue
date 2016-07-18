@@ -59,6 +59,8 @@ set(TEST_LIST_CPU
     max_verts.py
     muvt.py
     meta_data.py
+    shape_proxy.py
+    external_lattice.py
     )
 
 set(TEST_LIST_GPU
@@ -71,6 +73,7 @@ set(TEST_LIST_GPU
     test_ghost_layer.py
     max_verts.py
     muvt.py
+    shape_proxy.py
     )
 
 set(EXCLUDE_FROM_MPI

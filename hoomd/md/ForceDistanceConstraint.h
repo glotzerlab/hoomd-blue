@@ -14,6 +14,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceDistanceConstraint_H__
 #define __ForceDistanceConstraint_H__
 
@@ -35,7 +37,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -61,7 +63,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void assignMoleculeTags();
 
     protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
+        std::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
         GPUVector<double> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
         GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
@@ -121,7 +123,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
@@ -145,6 +147,6 @@ class ForceDistanceConstraint : public MolecularForceCompute
     };
 
 //! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraint();
+void export_ForceDistanceConstraint(pybind11::module& m);
 
 #endif

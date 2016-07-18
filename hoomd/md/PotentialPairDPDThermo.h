@@ -47,8 +47,8 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         typedef typename evaluator::param_type param_type;
 
         //! Construct the pair potential
-        PotentialPairDPDThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairDPDThermo() { };
@@ -58,7 +58,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         virtual void setSeed(unsigned int seed);
 
         //! Set the temperature
-        virtual void setT(boost::shared_ptr<Variant> T);
+        virtual void setT(std::shared_ptr<Variant> T);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -68,7 +68,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
     protected:
 
         unsigned int m_seed;  //!< seed for PRNG for DPD thermostat
-        boost::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
+        std::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
 
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
         virtual void computeForces(unsigned int timestep);
@@ -79,8 +79,8 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef,nlist, log_suffix)
     {
@@ -101,7 +101,7 @@ void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
 /*! \param T the temperature the system is thermostated on this time step.
 */
 template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::setT(boost::shared_ptr<Variant> T)
+void PotentialPairDPDThermo< evaluator >::setT(std::shared_ptr<Variant> T)
     {
     m_T = T;
     }
@@ -296,21 +296,13 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-
-//NOTE - not sure this boost python export is set up correctly.
-template < class T, class Base > void export_PotentialPairDPDThermo(const std::string& name)
+template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases< Base >, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setSeed", &T::setSeed)
-                  .def("setT", &T::setT)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setSeed", &T::setSeed)
+        .def("setT", &T::setT)
+              ;
     }
 
 

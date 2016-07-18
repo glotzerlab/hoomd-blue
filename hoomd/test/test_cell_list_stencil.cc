@@ -13,7 +13,7 @@
 #include <vector>
 using namespace std;
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 using namespace boost;
 
 /*! \file test_cell_list_stencil.cc
@@ -27,18 +27,18 @@ using namespace boost;
 
 //! Test the cell list stencil as cell list, stencil radius, and box sizes change
 template <class CL>
-void celllist_stencil_basic_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with a simple simulation box size 3
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(1, BoxDim(3.0), 2, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(1, BoxDim(3.0), 2, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef_3->getParticleData();
 
     // initialize a cell list and stencil
-    boost::shared_ptr<CellList> cl(new CL(sysdef_3));
+    std::shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->compute(0);
-    boost::shared_ptr<CellListStencil> cls(new CellListStencil(sysdef_3, cl));
+    std::shared_ptr<CellListStencil> cls(new CellListStencil(sysdef_3, cl));
     cls->compute(0);
 
     // default initialization should be no stencils
@@ -154,13 +154,13 @@ void celllist_stencil_basic_test(boost::shared_ptr<ExecutionConfiguration> exec_
 //! test case for cell list stencil on the CPU
 BOOST_AUTO_TEST_CASE( CellListStencil_cpu )
     {
-    celllist_stencil_basic_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_stencil_basic_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! test case for cell list stencil on the GPU
 BOOST_AUTO_TEST_CASE( CellListStencil_gpu )
     {
-    celllist_stencil_basic_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    celllist_stencil_basic_test<CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

@@ -15,7 +15,7 @@
 #include "hoomd/ParticleData.h"
 
 #include <math.h>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 /*! \file test_gridshift_correct.cc
@@ -27,8 +27,8 @@
 BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
     {
     // create a simple particle data to test with
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     BoxDim box = pdata->getBox();
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -116,8 +116,8 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
 BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
     {
     // create a simple particle data to test with
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, BoxDim(10.0), 4));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     BoxDim box = pdata->getBox();
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);

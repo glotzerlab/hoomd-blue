@@ -2,6 +2,13 @@
 
 [TOC]
 
+## v2.1.0
+
+*Other changes*
+
+* Removed dependency on boost::python.
+* No longer supporting Intel compiler builds.
+
 ## v2.0.1
 
 Released 2016/07/15

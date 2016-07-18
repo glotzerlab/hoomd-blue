@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #include "hoomd/Autotuner.h"
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
@@ -32,11 +34,11 @@ class TwoStepNVTMTKGPU : public TwoStepNVTMTK
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
-                      boost::shared_ptr<ComputeThermo> thermo,
+        TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ComputeThermo> thermo,
                       Scalar tau,
-                      boost::shared_ptr<Variant> T,
+                      std::shared_ptr<Variant> T,
                       const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTMTKGPU() {};
 
@@ -74,6 +76,6 @@ class TwoStepNVTMTKGPU : public TwoStepNVTMTK
     };
 
 //! Exports the TwoStepNVTMTKGPU class to python
-void export_TwoStepNVTMTKGPU();
+void export_TwoStepNVTMTKGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_GPU_H__

@@ -36,10 +36,7 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,26 +45,26 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_ellipsoid()
+void export_ellipsoid(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeEllipsoid >("IntegratorHPMCMonoEllipsoid");
-    export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >("IntegratorHPMCMonoImplicitEllipsoid");
-    export_ComputeFreeVolume< ShapeEllipsoid >("ComputeFreeVolumeEllipsoid");
-    export_AnalyzerSDF< ShapeEllipsoid >("AnalyzerSDFEllipsoid");
-    export_UpdaterMuVT< ShapeEllipsoid >("UpdaterMuVTEllipsoid");
-    export_UpdaterMuVTImplicit< ShapeEllipsoid >("UpdaterMuVTImplicitEllipsoid");
+    export_IntegratorHPMCMono< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoid");
+    export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitEllipsoid");
+    export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
+    export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
+    export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
+    export_UpdaterMuVTImplicit< ShapeEllipsoid >(m, "UpdaterMuVTImplicitEllipsoid");
 
-    export_ExternalFieldInterface<ShapeEllipsoid>("ExternalFieldEllipsoid");
-    export_LatticeField<ShapeEllipsoid>("ExternalFieldLatticeEllipsoid");
-    export_ExternalFieldComposite<ShapeEllipsoid>("ExternalFieldCompositeEllipsoid");
-    export_RemoveDriftUpdater<ShapeEllipsoid>("RemoveDriftUpdaterEllipsoid");
-    export_ExternalFieldWall<ShapeEllipsoid>("WallEllipsoid");
-    export_UpdaterExternalFieldWall<ShapeEllipsoid>("UpdaterExternalFieldWallEllipsoid");
+    export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
+    export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");
+    export_ExternalFieldComposite<ShapeEllipsoid>(m, "ExternalFieldCompositeEllipsoid");
+    export_RemoveDriftUpdater<ShapeEllipsoid>(m, "RemoveDriftUpdaterEllipsoid");
+    export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
+    export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >("IntegratorHPMCMonoGPUEllipsoid");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >("IntegratorHPMCMonoImplicitGPUEllipsoid");
-    export_ComputeFreeVolumeGPU< ShapeEllipsoid >("ComputeFreeVolumeGPUEllipsoid");
+    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitGPUEllipsoid");
+    export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeGPUEllipsoid");
     #endif
     }
 

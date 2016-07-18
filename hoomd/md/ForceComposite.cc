@@ -9,8 +9,7 @@
 
 #include <map>
 #include <string.h>
-
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -18,7 +17,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
+ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
@@ -927,10 +926,10 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         }
     }
 
-void export_ForceComposite()
+void export_ForceComposite(py::module& m)
     {
-    class_< ForceComposite, boost::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceComposite", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceComposite, std::shared_ptr<ForceComposite> >(m, "ForceComposite", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;

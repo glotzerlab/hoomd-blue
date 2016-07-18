@@ -10,21 +10,20 @@
 
 #include "POSDumpWriter.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 using namespace std;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param fname_base The base file name to write the output to
 */
-POSDumpWriter::POSDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname)
+POSDumpWriter::POSDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string fname)
         : Analyzer(sysdef), m_unwrap_rigid(false), m_write_info(false)
     {
     bool is_root = true;
@@ -80,7 +79,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info)
         {
-        info = boost::python::extract<string> (m_add_info(timestep));
+        info = py::cast<string> (m_add_info(timestep));
         }
 
     SnapshotParticleData<Scalar> snap(0);
@@ -129,7 +128,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info)
         {
-        string info = boost::python::extract<string> (m_add_info(timestep));
+        string info = py::cast<string> (m_add_info(timestep));
         m_file << info;
         }
 
@@ -187,10 +186,10 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_POSDumpWriter()
+void export_POSDumpWriter(py::module& m)
     {
-    class_<POSDumpWriter, boost::shared_ptr<POSDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("POSDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
+    py::class_<POSDumpWriter, std::shared_ptr<POSDumpWriter> >(m,"POSDumpWriter",py::base<Analyzer>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
         .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
         .def("setAddInfo", &POSDumpWriter::setAddInfo)

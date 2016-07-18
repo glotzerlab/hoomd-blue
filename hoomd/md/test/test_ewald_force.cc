@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -32,11 +32,11 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairEwald factory
-typedef boost::function<boost::shared_ptr<PotentialPairEwald> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<NeighborList> nlist)> ewaldforce_creator;
+typedef boost::function<std::shared_ptr<PotentialPairEwald> (std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<NeighborList> nlist)> ewaldforce_creator;
 
 //! Test the ability of the ewald force compute to actually calucate forces
-void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -46,8 +46,8 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -57,8 +57,8 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     pdata_3->setCharge(1,1.0);
     pdata_3->setCharge(2,-1.0);
 
-    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairEwald> fc_3 = ewald_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairEwald> fc_3 = ewald_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic set of values
@@ -131,22 +131,22 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
 //! Unit test a comparison between 2 PotentialPairEwald's on a "real" system
 void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
                                   ewaldforce_creator ewald_creator2,
-                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                  std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairEwald> fc1 = ewald_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairEwald> fc2 = ewald_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairEwald> fc1 = ewald_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairEwald> fc2 = ewald_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -213,19 +213,19 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     }
 
 //! PotentialPairEwald creator for unit tests
-boost::shared_ptr<PotentialPairEwald> base_class_ewald_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairEwald> base_class_ewald_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairEwald>(new PotentialPairEwald(sysdef, nlist));
+    return std::shared_ptr<PotentialPairEwald>(new PotentialPairEwald(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairEwaldGPU creator for unit tests
-boost::shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                      std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairEwaldGPU> ewald(new PotentialPairEwaldGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairEwaldGPU> ewald(new PotentialPairEwaldGPU(sysdef, nlist));
     return ewald;
     }
 #endif
@@ -234,7 +234,7 @@ boost::shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(boost::shared_ptr<Sys
 BOOST_AUTO_TEST_CASE( EwaldForce_particle )
     {
     ewaldforce_creator ewald_creator_base = bind(base_class_ewald_creator, _1, _2);
-    ewald_force_particle_test(ewald_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    ewald_force_particle_test(ewald_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE( EwaldForce_particle )
 BOOST_AUTO_TEST_CASE( EwaldForceGPU_particle )
     {
     ewaldforce_creator ewald_creator_gpu = bind(gpu_ewald_creator, _1, _2);
-    ewald_force_particle_test(ewald_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    ewald_force_particle_test(ewald_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE( EwaldForceGPU_compare )
     ewaldforce_creator ewald_creator_base = bind(base_class_ewald_creator, _1, _2);
     ewald_force_comparison_test(ewald_creator_base,
                                  ewald_creator_gpu,
-                                 boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+                                 std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

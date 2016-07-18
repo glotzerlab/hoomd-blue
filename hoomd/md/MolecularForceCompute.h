@@ -31,6 +31,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __MolecularForceCompute_H__
 #define __MolecularForceCompute_H__
 
@@ -40,7 +42,7 @@ class MolecularForceCompute : public ForceConstraint
     {
     public:
         //! Constructs the compute
-        MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~MolecularForceCompute();
@@ -133,6 +135,6 @@ class MolecularForceCompute : public ForceConstraint
     };
 
 //! Exports the MolecularForceCompute to python
-void export_MolecularForceCompute();
+void export_MolecularForceCompute(pybind11::module& m);
 
 #endif

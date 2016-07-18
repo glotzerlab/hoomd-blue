@@ -108,18 +108,9 @@ class lattice_field(_external):
             hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
-        if type(position) == numpy.ndarray:
-            position = position.tolist();
-        else:
-            position = list(position);
-
-        if type(orientation) == numpy.ndarray:
-            orientation = orientation.tolist();
-        else:
-            orientation = list(orientation);
-
         self.compute_name = "lattice_field"
-        self.cpp_compute = cls(hoomd.context.current.system_definition, position, k, orientation, q, symmetry);
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute = cls(hoomd.context.current.system_definition, enlist(position), float(k), enlist(orientation), float(q), enlist(symmetry));
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
         if not composite:
             mc.set_external(self);
@@ -140,17 +131,8 @@ class lattice_field(_external):
         """
         import numpy
         hoomd.util.print_status_line();
-        if type(position) == numpy.ndarray:
-            position = position.tolist();
-        else:
-            position = list(position);
-
-        if type(orientation) == numpy.ndarray:
-            orientation = orientation.tolist();
-        else:
-            orientation = list(orientation);
-
-        self.cpp_compute.setReferences(position, orientation);
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute.setReferences(enlist(position), enlist(orientation));
 
     def set_params(self, k, q):
         R""" Set the translational and rotational spring constants.
@@ -193,6 +175,49 @@ class lattice_field(_external):
         if timestep == None:
             timestep = hoomd.context.current.system.getCurrentTimeStep();
         self.cpp_compute.reset(timestep);
+
+    def get_energy(self):
+        R"""    Get the current energy of the lattice field.
+                This is a collective call and must be called on all ranks.
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            run(20000)
+            eng = lattice.get_energy()
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getEnergy(timestep);
+
+    def get_average_energy(self):
+        R"""    Get the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            avg_eng = lattice.get_average_energy() //  should be about 1.5kT
+
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getAvgEnergy(timestep);
+
+    def get_sigma_energy(self):
+        R"""    Gives the standard deviation of the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            sig_eng = lattice.get_sigma_energy()
+
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getSigma(timestep);
 
 class external_field_composite(_external):
     R""" Manage multiple external fields.

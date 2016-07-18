@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
 
@@ -26,8 +28,8 @@ class TwoStepNVE : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
+        TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
                    bool skip_restart=false);
         virtual ~TwoStepNVE();
 
@@ -59,6 +61,6 @@ class TwoStepNVE : public IntegrationMethodTwoStep
     };
 
 //! Exports the TwoStepNVE class to python
-void export_TwoStepNVE();
+void export_TwoStepNVE(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NVE_H__
