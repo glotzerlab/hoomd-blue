@@ -7,6 +7,7 @@
 *Other changes*
 
 * Removed dependency on boost::python.
+* Removed dependency on boost::unit_test_framework
 * No longer supporting Intel compiler builds.
 
 ## v2.0.1
