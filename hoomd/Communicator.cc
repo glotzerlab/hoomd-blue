@@ -1302,9 +1302,6 @@ void Communicator::communicate(unsigned int timestep)
         {
         beginUpdateGhosts(timestep);
 
-        // call computation that can be overlapped with communication
-        m_local_compute_callbacks(timestep);
-
         finishUpdateGhosts(timestep);
         }
 

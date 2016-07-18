@@ -310,13 +310,6 @@ class Communicator
             return m_comm_callbacks.connect(subscriber);
             }
 
-        //! Subscribe to list of call-backs for overlapping computation
-        boost::signals2::connection addLocalComputeCallback(
-            const boost::function<void (unsigned int timestep)>& subscriber)
-            {
-            return m_local_compute_callbacks.connect(subscriber);
-            }
-
         //! Subscribe to list of *optional* call-backs for computation using ghost particles
         /*!
          * Subscribe to a list of call-backs that precompute quantities using information about ghost particles
@@ -609,9 +602,6 @@ class Communicator
 
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
-
-        boost::signals2::signal<void (unsigned int timestep)>
-            m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
