@@ -7,8 +7,6 @@
 //! name the boost unit test module
 UP_TEST(CommunicatorGridTests)
 
-#include <boost/test/unit_test.hpp>
-
 // this has to be included after naming the test module
 #include "MPITestSetup.h"
 

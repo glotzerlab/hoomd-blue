@@ -8,16 +8,12 @@
 
 UP_MAIN();
 
-
-
-
 #include "hoomd/hpmc/ShapeSphere.h"
 
 #include <iostream>
 
 #include <boost/bind.hpp>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/test/unit_test.hpp>
 #include <boost/function.hpp>
 #include <memory>
 
