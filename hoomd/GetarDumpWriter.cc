@@ -916,10 +916,5 @@ namespace getardump{
             .value("SlowCompress", SlowCompress)
             .export_values()
         ;
-
-
-            ;
-
-        // register_ptr_to_python<std::shared_ptr<GetarDumpWriter> >();
         }
 }

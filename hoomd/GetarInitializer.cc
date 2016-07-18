@@ -1094,8 +1094,6 @@ namespace getardump{
             .def("restore", &GetarInitializer::restorePy)
             .def("getTimestep", &GetarInitializer::getTimestep)
             ;
-
-        // register_ptr_to_python<std::shared_ptr<GetarInitializer> >();
         }
 
 }

@@ -15,6 +15,7 @@
 #ifdef ENABLE_CUDA
 
 #include "Communicator.h"
+#include "Autotuner.h"
 
 #include "CommunicatorGPU.cuh"
 

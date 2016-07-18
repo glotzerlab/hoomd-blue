@@ -101,7 +101,7 @@ ActiveForceCompute::~ActiveForceCompute()
 */
 void ActiveForceCompute::setForces()
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
@@ -159,7 +159,7 @@ void ActiveForceCompute::setForces()
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -302,8 +302,8 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
             {
             rotationalDiffusion(timestep); // apply rotational diffusion to active particles
             }
-	    setForces(); // set forces for particles
-	    }
+        setForces(); // set forces for particles
+        }
 
     #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAErrorCheckingEnabled())

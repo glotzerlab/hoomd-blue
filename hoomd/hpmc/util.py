@@ -624,11 +624,12 @@ class tune(object):
 
     Default tunable_maps are provided but can be modified or extended by setting
     the following dictionary key/value pairs in the entry for tunable.
-        maximum (float): maximum value of tunable
-        get (lambda): function to call to retrieve curent tunable value
-        acceptance (lambda): function to call to get relevant accemptance rate
-        set (lambda x): function to call to set new value (optional). If not provided,
-            obj.set_params(tunable=x) will be called to set the new value.
+
+    * maximum (float): maximum value of tunable
+    * get (lambda): function to call to retrieve curent tunable value
+    * acceptance (lambda): function to call to get relevant accemptance rate
+    * set (lambda x): function to call to set new value (optional). If not provided,
+      obj.set_params(tunable=x) will be called to set the new value.
 
     Note:
         There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
@@ -707,7 +708,7 @@ class tune(object):
                 if max_val_length != 0:
                     self.tunables[item]['maximum'] = max_val[i]
                 if not 'set' in self.tunable_map[item]:
-                    self.tunable_map[item]['set'] = lambda x: obj.set_params(**{item: x})
+                    self.tunable_map[item]['set'] = lambda x, name=item: obj.set_params(**{name : x} )
                 self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
@@ -754,7 +755,7 @@ class tune(object):
                 newquantities[param_name] = float(newval)
             else:
                 newquantities[param_name] = {self.type:float(newval)}
-        
+
         for q in newquantities:
             self.tunables[q]['set'](newquantities[q])
         hoomd.util.unquiet_status();

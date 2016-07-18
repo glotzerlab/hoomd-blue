@@ -81,6 +81,8 @@ def _hoomd_sys_excepthook(type, value, traceback):
     if context.exec_conf is not None:
         _hoomd.abort_mpi(context.exec_conf);
 
+sys.excepthook = _hoomd_sys_excepthook
+
 __version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
 
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):

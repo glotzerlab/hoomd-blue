@@ -130,7 +130,7 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
     result.sweep_radius = sweep_radius;
 
-    // pybind11::cast the verts from the python list and compute the radius on the way
+    // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
@@ -179,7 +179,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         result.data.face_offs[i] = offs;
         }
 
-    // pybind11::cast the verts from the python list and compute the radius on the way
+    // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
@@ -268,7 +268,7 @@ poly3d_verts<max_verts> make_poly3d_verts(pybind11::list verts, OverlapReal swee
     result.sweep_radius = sweep_radius;
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
 
-    // pybind11::cast the verts from the python list and compute the radius on the way
+    // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
@@ -309,7 +309,7 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
     result.N = len(normals);
 
-    // pybind11::cast the normals from the python list
+    // extract the normals from the python list
     for (unsigned int i = 0; i < len(normals); i++)
         {
         pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
@@ -322,7 +322,7 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
         result.offset[i] = 0.0;
         }
 
-    // pybind11::cast the vertices from the python list
+    // extract the vertices from the python list
     result.verts=make_poly3d_verts<MAX_FPOLY3D_VERTS>(vertices, 0.0, false, false);
 
     // set the diameter
@@ -372,7 +372,7 @@ sphinx3d_params make_sphinx3d_params(pybind11::list diameters, pybind11::list ce
 
     result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
 
-    // pybind11::cast the centers from the python list and compute the radius on the way
+    // extract the centers from the python list and compute the radius on the way
     OverlapReal radius = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(centers); i++)
         {
@@ -425,7 +425,7 @@ union_params<Shape> make_union_params(pybind11::list _members,
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
-    // pybind11::cast member parameters, posistions, and orientations and compute the radius along the way
+    // extract member parameters, posistions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
     for (unsigned int i = 0; i < result.N; i++)
         {
@@ -832,11 +832,11 @@ public:
         return orient;
         }
 
-    std::vector<std::shared_ptr< proxy_type > > getMembers() //TODO: adios_boost, is this working? Used to return a py::list of shared_ptr...
+    std::vector< std::shared_ptr< proxy_type > > getMembers() //TODO: adios_boost, is this working? Used to return a py::list of shared_ptr...
         {
         ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
         access_type& param = m_access(h_params.data[m_typeid]);
-        std::vector<std::shared_ptr< proxy_type > > members;
+        std::vector< std::shared_ptr< proxy_type > > members;
         for(size_t i = 0; i < param.N; i++)
             {
             access_shape_union_members<ShapeUnionType> acc(i);

@@ -119,6 +119,7 @@ class _updater(hoomd.meta._metadata):
 
         self.prev_period = hoomd.context.current.system.getUpdaterPeriod(self.updater_name);
         hoomd.context.current.system.removeUpdater(self.updater_name);
+        hoomd.context.current.updaters.remove(self)
         self.enabled = False;
 
     def enable(self):
@@ -141,6 +142,7 @@ class _updater(hoomd.meta._metadata):
             return;
 
         hoomd.context.current.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
+        hoomd.context.current.updaters.append(self)
         self.enabled = True;
 
     def set_period(self, period):

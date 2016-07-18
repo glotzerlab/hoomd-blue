@@ -18,8 +18,8 @@
     create the hoomd python module and define the exports here.
 */
 PYBIND11_PLUGIN(_deprecated)
-	{
-	pybind11::module m("_deprecated");
+    {
+    pybind11::module m("_deprecated");
 
     export_MSDAnalyzer(m);
     export_HOOMDDumpWriter(m);

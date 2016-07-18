@@ -553,10 +553,13 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     Index2D body_indexer,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
+    const unsigned int *d_body_len,
     const unsigned int *d_molecule_order,
+    const unsigned int *d_molecule_len,
+    const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
-    bool remote)
+    unsigned int *d_flag)
     {
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -569,12 +572,6 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     unsigned int central_idx = d_rtag[central_tag];
 
-    if (!remote && central_idx >= N)
-        {
-         // only update local composite particles
-        return;
-        }
-
     if (central_idx == NOT_LOCAL && idx >= N) return;
 
     // do not overwrite central ptl
@@ -585,6 +582,21 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     quat<Scalar> orientation(d_orientation[central_idx]);
 
     unsigned int body_type = __scalar_as_int(postype.w);
+
+    unsigned int body_len = d_body_len[body_type];
+    unsigned int mol_idx = d_molecule_idx[idx];
+
+    if (body_len != d_molecule_len[mol_idx]-1)
+        {
+        // if a molecule with a local member is incomplete, this is an error
+        if (idx < N)
+            {
+            atomicMax(d_flag, central_tag+1);
+            }
+
+        // otherwise, ignore
+        return;
+        }
 
     int3 img = d_image[central_idx];
 
@@ -602,6 +614,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     int3 imgi = img;
     box.wrap(updated_pos, imgi);
     unsigned int type = __scalar_as_int(d_postype[idx].w);
+
     d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
     d_image[idx] = imgi;
     }
@@ -615,11 +628,14 @@ void gpu_update_composite(unsigned int N,
     Index2D body_indexer,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
+    const unsigned int *d_body_len,
     const unsigned int *d_molecule_order,
+    const unsigned int *d_molecule_len,
+    const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
-    bool remote,
-    unsigned int block_size)
+    unsigned int block_size,
+    unsigned int *d_flag)
     {
     unsigned int run_block_size = block_size;
 
@@ -646,8 +662,11 @@ void gpu_update_composite(unsigned int N,
         body_indexer,
         d_body_pos,
         d_body_orientation,
+        d_body_len,
         d_molecule_order,
+        d_molecule_len,
+        d_molecule_idx,
         d_image,
         box,
-        remote);
+        d_flag);
     }
