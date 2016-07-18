@@ -139,13 +139,11 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         // the answer we expect
         unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
 
-        // TODO: adios_boost, does this work? collections method isn't supported
-        // populate the neighbor list as a collection for fast compare
+        // validate that the neighbors are correct
         for (unsigned int i=0; i < 6; ++i)
             {
             UP_ASSERT_EQUAL(h_nlist.data[h_head_list.data[i]],check_nbrs[i]);
             }
-
         }
 
     // swap the order of the particles around to look for subtle directional bugs
@@ -924,6 +922,9 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         UP_ASSERT_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
         UP_ASSERT_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
 
+        tmp_list1.resize(h_n_neigh1.data[i]);
+        tmp_list2.resize(h_n_neigh1.data[i]);
+
         for (unsigned int j = 0; j < h_n_neigh1.data[i]; j++)
             {
             tmp_list1[j] = h_nlist1.data[h_head_list1.data[i] + j];
@@ -933,10 +934,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         sort(tmp_list1.begin(), tmp_list1.end());
         sort(tmp_list2.begin(), tmp_list2.end());
 
-        for (unsigned int k=0; k < h_n_neigh1.data[i]; ++k)
-            {
-            UP_ASSERT_EQUAL(tmp_list1[k],tmp_list2[k]);
-            }
+        UP_ASSERT_EQUAL(tmp_list1,tmp_list2);
         }
     }
 
