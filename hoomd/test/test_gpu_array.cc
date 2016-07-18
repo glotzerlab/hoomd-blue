@@ -365,16 +365,16 @@ UP_TEST( GPUVector_basic_tests )
     UP_ASSERT_EQUAL(vec.size(), (unsigned int)3);
 
     // Test bracket operator
-    UP_ASSERT_EQUAL(vec[0],(unsigned int)1);
-    UP_ASSERT_EQUAL(vec[1],(unsigned int)2);
-    UP_ASSERT_EQUAL(vec[2],(unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)vec[0],(unsigned int)1);
+    UP_ASSERT_EQUAL((unsigned int)vec[1],(unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)vec[2],(unsigned int)3);
 
     // Test assignment
     vec[1] = 4;
 
-    UP_ASSERT_EQUAL(vec[0],(unsigned int)1);
-    UP_ASSERT_EQUAL(vec[1],(unsigned int)4);
-    UP_ASSERT_EQUAL(vec[2],(unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)vec[0],(unsigned int)1);
+    UP_ASSERT_EQUAL((unsigned int)vec[1],(unsigned int)4);
+    UP_ASSERT_EQUAL((unsigned int)vec[2],(unsigned int)3);
 
     // remove an element
     vec.pop_back();
@@ -403,15 +403,15 @@ UP_TEST( GPUVector_basic_tests )
     vec[9] = 890;
 
     // read back
-    UP_ASSERT_EQUAL(vec[0], (unsigned int)234);
-    UP_ASSERT_EQUAL(vec[1], (unsigned int)123);
-    UP_ASSERT_EQUAL(vec[2], (unsigned int)654);
-    UP_ASSERT_EQUAL(vec[3], (unsigned int)789);
-    UP_ASSERT_EQUAL(vec[4], (unsigned int)321);
-    UP_ASSERT_EQUAL(vec[5], (unsigned int)432);
-    UP_ASSERT_EQUAL(vec[6], (unsigned int)543);
-    UP_ASSERT_EQUAL(vec[7], (unsigned int)678);
-    UP_ASSERT_EQUAL(vec[8], (unsigned int)987);
-    UP_ASSERT_EQUAL(vec[9], (unsigned int)890);
+    UP_ASSERT_EQUAL((unsigned int)vec[0], (unsigned int)234);
+    UP_ASSERT_EQUAL((unsigned int)vec[1], (unsigned int)123);
+    UP_ASSERT_EQUAL((unsigned int)vec[2], (unsigned int)654);
+    UP_ASSERT_EQUAL((unsigned int)vec[3], (unsigned int)789);
+    UP_ASSERT_EQUAL((unsigned int)vec[4], (unsigned int)321);
+    UP_ASSERT_EQUAL((unsigned int)vec[5], (unsigned int)432);
+    UP_ASSERT_EQUAL((unsigned int)vec[6], (unsigned int)543);
+    UP_ASSERT_EQUAL((unsigned int)vec[7], (unsigned int)678);
+    UP_ASSERT_EQUAL((unsigned int)vec[8], (unsigned int)987);
+    UP_ASSERT_EQUAL((unsigned int)vec[9], (unsigned int)890);
     }
 #endif
