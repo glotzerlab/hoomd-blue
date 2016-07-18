@@ -91,11 +91,11 @@ __global__ void gpu_nlist_morton_types_kernel(uint64_t *d_morton_types,
      * we silently ignore ghosts outside of this width, and instead deal with that special case below
      * where extra ghosts are communicated (e.g. for bonded interactions)
      */
-    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
+    if (((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
         (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
-        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) && idx < N)
+        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001))) && idx < N)
         {
-        *d_morton_conditions = idx;
+        atomicMax(d_morton_conditions,idx+1);
         return;
         }
 
@@ -812,7 +812,7 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
             }
         else
             {
-            d_tree_aabbs[2*cur_node].w = __int_as_scalar(-1.0);
+            d_tree_aabbs[2*cur_node].w = __int_as_scalar(-1);
             }
 
         // then, we do an atomicAdd on the lock to see if we need to process the parent AABBs

@@ -7,9 +7,9 @@
 #include <algorithm>
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 #include "hoomd/VectorMath.h"

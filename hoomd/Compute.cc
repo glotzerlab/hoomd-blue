@@ -8,8 +8,8 @@
 
 #include "Compute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 
 #include <iostream>
 #include <stdexcept>
@@ -22,7 +22,7 @@ using namespace std;
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+Compute::Compute(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
         exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
@@ -46,11 +46,11 @@ double Compute::benchmark(unsigned int num_iters)
     This method does not need to be called, as Computes will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void Compute::setProfiler(boost::shared_ptr<Profiler> prof)
+void Compute::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
@@ -105,79 +105,15 @@ void Compute::forceCompute(unsigned int timestep)
     compute(timestep);
     }
 
-//! Wrapper class for handling virtual methods of Compute in python
-class ComputeWrap : public Compute, public wrapper<Compute>
+
+
+void export_Compute(py::module& m)
     {
-    public:
-        //! Constructor
-        /*! \param sysdef Particle data to pass on to the base class */
-        ComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
-            {
-            }
-
-        //! Calls overidden Compute::compute()
-        /*! \param timestep Parameter to pass on to the base class method */
-        void compute(unsigned int timestep)
-            {
-            this->get_override("compute")(timestep);
-            }
-
-        //! Calls overidden Compute::compute()
-        /*! \param num_iters Parameter to pass on to the base class method */
-        double benchmark(unsigned int num_iters)
-            {
-            if (override f = this->get_override("benchmark"))
-                return f(num_iters);
-            else
-                return Compute::benchmark(num_iters);
-            }
-
-        //! Calls overridden Compute::printStats()
-        void printStats()
-            {
-            if (override f = this->get_override("printStats"))
-                f();
-            else
-                Compute::printStats();
-            }
-
-        //! Default implementation of Compute::printStats()
-        void default_printStats()
-            {
-            this->Compute::printStats();
-            }
-
-        // A decision has been made to not currently support deriving new compute classes in python
-        // thus, the internal methods of Compute that are only needed for that purpose do not need to be
-        // exported, only the public interface
-        //protected:
-        // Calls overridden Compute::shouldCompute()
-        /* \param timestep Parameter to pass on to the base class method */
-        /*bool shouldCompute(unsigned int timestep)
-            {
-            if (override f = this->get_override("shouldCompute"))
-                return f(timestep);
-            else
-                return Compute::shouldCompute(timestep);
-            }*/
-
-        // Default implementation of Compute::shouldCompute()
-        /* \param timestep Parameter to pass on to the base class method */
-        /*bool default_shouldCompute(unsigned int timestep)
-            {
-            return this->Compute::shouldCompute(timestep);
-            }
-
-        // The python export needs to be a friend to export protected members
-        friend void export_Compute();*/
-    };
-
-void export_Compute()
-    {
-    class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("compute", pure_virtual(&Compute::compute))
-    .def("benchmark", pure_virtual(&Compute::benchmark))
-    .def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)
+    py::class_<Compute, std::shared_ptr<Compute> >(m,"Compute")
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
+    .def("compute", &Compute::compute)
+    .def("benchmark", &Compute::benchmark)
+    .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
     ;
     }

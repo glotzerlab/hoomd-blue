@@ -10,7 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -32,11 +32,11 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairYukawa factory
-typedef boost::function<boost::shared_ptr<PotentialPairYukawa> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<NeighborList> nlist)> yukawaforce_creator;
+typedef boost::function<std::shared_ptr<PotentialPairYukawa> (std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<NeighborList> nlist)> yukawaforce_creator;
 
 //! Test the ability of the yukawa force compute to actually calucate forces
-void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -46,8 +46,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -56,8 +56,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairYukawa> fc_3 = yukawa_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairYukawa> fc_3 = yukawa_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic set of values
@@ -132,21 +132,21 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
 //! Unit test a comparison between 2 PotentialPairYukawa's on a "real" system
 void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
                                   yukawaforce_creator yukawa_creator2,
-                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                  std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairYukawa> fc1 = yukawa_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairYukawa> fc2 = yukawa_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairYukawa> fc1 = yukawa_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairYukawa> fc2 = yukawa_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -209,19 +209,19 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     }
 
 //! PotentialPairYukawa creator for unit tests
-boost::shared_ptr<PotentialPairYukawa> base_class_yukawa_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairYukawa> base_class_yukawa_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairYukawa>(new PotentialPairYukawa(sysdef, nlist));
+    return std::shared_ptr<PotentialPairYukawa>(new PotentialPairYukawa(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairYukawaGPU creator for unit tests
-boost::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                      std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairYukawaGPU> yukawa(new PotentialPairYukawaGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairYukawaGPU> yukawa(new PotentialPairYukawaGPU(sysdef, nlist));
     return yukawa;
     }
 #endif
@@ -230,7 +230,7 @@ boost::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(boost::shared_ptr<S
 BOOST_AUTO_TEST_CASE( YukawaForce_particle )
     {
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
-    yukawa_force_particle_test(yukawa_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    yukawa_force_particle_test(yukawa_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE( YukawaForce_particle )
 BOOST_AUTO_TEST_CASE( YukawaForceGPU_particle )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
-    yukawa_force_particle_test(yukawa_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    yukawa_force_particle_test(yukawa_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE( YukawaForceGPU_compare )
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
     yukawa_force_comparison_test(yukawa_creator_base,
                                  yukawa_creator_gpu,
-                                 boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+                                 std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

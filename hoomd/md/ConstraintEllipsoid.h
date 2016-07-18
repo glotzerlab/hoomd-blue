@@ -6,7 +6,7 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file ConstraintEllipsoid.h
     \brief Declares a class for computing ellipsoid constraint forces
@@ -15,6 +15,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CONSTRAINT_Ellipsoid_H__
 #define __CONSTRAINT_Ellipsoid_H__
@@ -26,8 +28,8 @@ class ConstraintEllipsoid : public Updater
     {
     public:
         //! Constructs the compute
-        ConstraintEllipsoid(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
+        ConstraintEllipsoid(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<ParticleGroup> group,
                          Scalar3 P,
                          Scalar rx,
                          Scalar ry,
@@ -40,7 +42,7 @@ class ConstraintEllipsoid : public Updater
         virtual void update(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
         Scalar3 m_P;          //!< Position of the Ellipsoid
         Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
@@ -52,6 +54,6 @@ class ConstraintEllipsoid : public Updater
     };
 
 //! Exports the ConstraintEllipsoid class to python
-void export_ConstraintEllipsoid();
+void export_ConstraintEllipsoid(pybind11::module& m);
 
 #endif

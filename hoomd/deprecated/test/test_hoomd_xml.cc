@@ -14,7 +14,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 using namespace boost;
 
 #include <fstream>
@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     int n_dihedral_types = 0;
     int n_improper_types = 0;
 
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(5, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(5, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set recognizable values for the particle
         {
@@ -228,9 +228,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         }
 
     // create the writer
-    boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,4));
-    boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
+    std::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,4));
+    std::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
 
     writer->setOutputPosition(false);
 
@@ -801,7 +801,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
     int n_dihedral_types = 1;
     int n_improper_types = 1;
 
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
 
     // add a few bonds too
     sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
@@ -825,9 +825,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
 
     // 1. if the group is not all, then the xml file should be empty
         {
-        boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,2));
-        boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
-        boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
+        std::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,2));
+        std::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+        std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
         writer->setOutputPosition(false);
         writer->setOutputBond(true);
 
@@ -866,9 +866,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
 
-    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
+    std::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
     writer->setOutputPosition(false);
     // 1. bonds
         {
@@ -1041,8 +1041,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
     int n_types = 10;
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // this is the shuffle order of the particles
     unsigned int tags[6] = { 5, 2, 3, 1, 0, 4 };
@@ -1083,9 +1083,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
+    std::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);
@@ -1382,12 +1382,12 @@ im_b 5 4 3 2\n\
     f.close();
 
     // now that we have created a test file, load it up into a pdata
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     HOOMDInitializer init(exec_conf,tmp_path+"/test_input.xml");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // verify all parameters
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
@@ -1462,7 +1462,7 @@ im_b 5 4 3 2\n\
     }
 
     // check the bonds
-    boost::shared_ptr<BondData> bond_data = sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = sysdef->getBondData();
 
     // 4 bonds should have been read in
     BOOST_REQUIRE_EQUAL(bond_data->getN(), (unsigned int)4);
@@ -1499,7 +1499,7 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
 
     // check the angles
-    boost::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
+    std::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
 
     // 3 angles should have been read in
     BOOST_REQUIRE_EQUAL(angle_data->getN(), (unsigned int)3);
@@ -1532,7 +1532,7 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
 
     // check the dihedrals
-    boost::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
+    std::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
 
     // 2 dihedrals should have been read in
     BOOST_REQUIRE_EQUAL(dihedral_data->getN(), (unsigned int)2);
@@ -1562,7 +1562,7 @@ im_b 5 4 3 2\n\
 
 
     // check the impropers
-    boost::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
+    std::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
 
     // 2 dihedrals should have been read in
     BOOST_REQUIRE_EQUAL(improper_data->getN(), (unsigned int)2);
@@ -1591,7 +1591,7 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
 
     // check the constraints
-    boost::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
+    std::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
 
     // 2 dihedrals should have been read in
     BOOST_REQUIRE_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);

@@ -30,6 +30,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceDistanceConstraintGPU_H__
 #define __ForceDistanceConstraintGPU_H__
 
@@ -44,7 +46,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ForceDistanceConstraintGPU();
 
         //! Set autotuner parameters
@@ -120,6 +122,6 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     };
 
 //! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraintGPU();
+void export_ForceDistanceConstraintGPU(pybind11::module& m);
 
 #endif

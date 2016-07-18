@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
 
@@ -25,7 +27,7 @@ class ForceCompositeGPU : public ForceComposite
     {
     public:
         //! Constructs the compute
-        ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompositeGPU();
@@ -35,7 +37,7 @@ class ForceCompositeGPU : public ForceComposite
          * \param remote If true, consider remote bodies, otherwise bodies
          *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -70,6 +72,6 @@ class ForceCompositeGPU : public ForceComposite
     };
 
 //! Exports the ForceCompositeGPU to python
-void export_ForceCompositeGPU();
+void export_ForceCompositeGPU(pybind11::module& m);
 
 #endif

@@ -7,10 +7,8 @@
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceComputeGPU.cuh"
 
-#include <boost/python.hpp>
 #include <vector>
-using namespace boost::python;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \file ActiveForceComputeGPU.cc
@@ -27,10 +25,10 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        pybind11::list f_lst,
                                         bool orientation_link,
                                         bool orientation_reverse_link,
                                         Scalar rotation_diff,
@@ -182,19 +180,19 @@ void ActiveForceComputeGPU::setConstraint()
                                              m_block_size);
     }
 
-void export_ActiveForceComputeGPU()
+void export_ActiveForceComputeGPU(py::module& m)
     {
-    class_< ActiveForceComputeGPU, boost::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
-    ("ActiveForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU", py::base<ActiveForceCompute>())
+        .def(py::init<  std::shared_ptr<SystemDefinition>,
+                        std::shared_ptr<ParticleGroup>,
+                        int,
+                        pybind11::list,
+                        bool,
+                        bool,
+                        Scalar,
+                        Scalar3,
+                        Scalar,
+                        Scalar,
+                        Scalar >())
     ;
     }

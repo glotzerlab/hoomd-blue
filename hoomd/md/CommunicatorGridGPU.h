@@ -19,7 +19,7 @@ class CommunicatorGridGPU : public CommunicatorGrid<T>
     {
     public:
         //! Constructor
-        CommunicatorGridGPU(boost::shared_ptr<SystemDefinition> sysdef, uint3 dim,
+        CommunicatorGridGPU(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
             uint3 embed, uint3 offset, bool add_outer_layer_to_inner);
 
         //! Communicate grid

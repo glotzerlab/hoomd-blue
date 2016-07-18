@@ -20,6 +20,11 @@
 #include "hoomd/Updater.h"
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc {
 // (if you really don't want to include the whole hoomd.h, you can include individual files IF AND ONLY IF
 // hoomd_config.h is included first)
@@ -38,9 +43,9 @@ class RemoveDriftUpdater : public Updater
     {
     public:
         //! Constructor
-        RemoveDriftUpdater( boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
-                            boost::shared_ptr<IntegratorHPMCMono<Shape> > mc
+        RemoveDriftUpdater( std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc
                           ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc)
             {
             }
@@ -52,8 +57,8 @@ class RemoveDriftUpdater : public Updater
             ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            const BoxDim& box = this->m_pdata->getBox();
-
+            const BoxDim& box = this->m_pdata->getGlobalBox();
+            vec3<Scalar> origin(this->m_pdata->getOrigin());
             vec3<Scalar> rshift;
             rshift.x=rshift.y=rshift.z=0.0f;
 
@@ -62,7 +67,7 @@ class RemoveDriftUpdater : public Updater
                 unsigned int tag_i = h_tag.data[i];
                 // read in the current position and orientation
                 Scalar4 postype_i = h_postype.data[i];
-                vec3<Scalar> dr = vec3<Scalar>(postype_i) - vec3<Scalar>(h_r0.data[tag_i]);
+                vec3<Scalar> dr = vec3<Scalar>(postype_i) - vec3<Scalar>(h_r0.data[tag_i]) - origin;
                 rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
                 }
 
@@ -91,19 +96,19 @@ class RemoveDriftUpdater : public Updater
             m_mc->invalidateAABBTree();
             }
     protected:
-                boost::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
-                boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
+                std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
+                std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
     };
 
 //! Export the ExampleUpdater class to python
 template <class Shape>
-void export_RemoveDriftUpdater(std::string name)
+void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
     {
-    using boost::python::class_;
-    class_<RemoveDriftUpdater<Shape>, boost::shared_ptr<RemoveDriftUpdater<Shape> >, bases<Updater>, boost::noncopyable>
-    (name.c_str(), init<    boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ExternalFieldLattice<Shape> >,
-                            boost::shared_ptr<IntegratorHPMCMono<Shape> > >())
+    using pybind11::class_;
+   pybind11::class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExternalFieldLattice<Shape> >,
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > >())
     ;
     }
 }

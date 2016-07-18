@@ -9,8 +9,7 @@
 #endif
 
 #include "DEM2DForceCompute.h"
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <stdexcept>
 
@@ -32,8 +31,8 @@ using namespace std;
 */
 template<typename Real, typename Real4, typename Potential>
 DEM2DForceCompute<Real, Real4, Potential>::DEM2DForceCompute(
-    boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Real r_cut, Potential potential)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),
       m_evaluator(potential), m_shapes()
@@ -63,7 +62,7 @@ DEM2DForceCompute<Real, Real4, Potential>::~DEM2DForceCompute()
 */
 template<typename Real, typename Real4, typename Potential>
 void DEM2DForceCompute<Real, Real4, Potential>::setParams(
-    unsigned int type, const boost::python::list &vertices)
+    unsigned int type, const pybind11::list &vertices)
     {
     if (type >= m_pdata->getNTypes())
         {
@@ -78,15 +77,15 @@ void DEM2DForceCompute<Real, Real4, Potential>::setParams(
     // build a vector of points
     vector<vec2<Real> > points;
 
-    for(size_t i(0); i < (size_t) len(vertices); i++)
+    for(size_t i(0); i < (size_t) pybind11::len(vertices); i++)
         {
-        const boost::python::tuple pyPoint = extract<boost::python::tuple>(vertices[i]);
+        const pybind11::tuple pyPoint = pybind11::cast<pybind11::tuple>(vertices[i]);
 
-        if(len(pyPoint) != 2)
+        if(pybind11::len(pyPoint) != 2)
             throw runtime_error("Non-2D vertex given for DEM2DForceCompute::setParams");
 
-        const Real x = extract<Real>(pyPoint[0]);
-        const Real y = extract<Real>(pyPoint[1]);
+        const Real x = pybind11::cast<Real>(pyPoint[0]);
+        const Real y = pybind11::cast<Real>(pyPoint[1]);
         const vec2<Real> point(x, y);
         points.push_back(point);
         }

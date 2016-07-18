@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepLangevin.h"
@@ -35,33 +35,33 @@ using namespace boost;
 
 //! Apply the thermostat to 1000 particles in an ideal gas
 template <class Berendsen>
-void berend_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // check that the berendsen thermostat applied to a system of 1000 LJ particles produces the correct average temperature
     // Build a 1000 particle system with particles scattered on the x, y, and z axes.
     RandomInitializer rand_init(1000, Scalar(0.05), Scalar(1.3), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     Scalar deltaT = Scalar(0.002);
     Scalar Temp = Scalar(2.0);
 
-    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(3*1000-3);
-    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    boost::shared_ptr<VariantConst> T_variant2(new VariantConst(1.0));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    std::shared_ptr<VariantConst> T_variant2(new VariantConst(1.0));
 
-    boost::shared_ptr<TwoStepBerendsen> two_step_berendsen(new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
-    boost::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
+    std::shared_ptr<TwoStepBerendsen> two_step_berendsen(new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
+    std::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
     berendsen_up->addIntegrationMethod(two_step_berendsen);
 
-    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268, 1, 1.0, false, false));
-    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268, 1, 1.0, false, false));
+    std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
@@ -115,14 +115,14 @@ void berend_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( TwoStepBerendsen_LJ_tests )
     {
-    berend_updater_lj_tests<TwoStepBerendsen>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    berend_updater_lj_tests<TwoStepBerendsen>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( TwoStepBerendsenGPU_LJ_tests )
     {
-    berend_updater_lj_tests<TwoStepBerendsenGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    berend_updater_lj_tests<TwoStepBerendsenGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

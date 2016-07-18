@@ -9,7 +9,11 @@
 #include "ComputeFreeVolume.h"
 #include "Moves.h"
 
-#include <boost/random.hpp>
+#include <random>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -26,14 +30,14 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     {
     public:
         //! Constructor
-        UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+        UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
             unsigned int seed,
             unsigned int npartition);
 
     protected:
-        boost::random::poisson_distribution<unsigned int, Scalar> m_poisson;   //!< Poisson distribution
-        boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
+        std::poisson_distribution<unsigned int> m_poisson;   //!< Poisson distribution
+        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
@@ -147,11 +151,11 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape> will be exported
 */
-template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name)
+template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterMuVTImplicit<Shape>, boost::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> >, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-            boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
+    pybind11::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> > >(m, name.c_str(), pybind11::base<UpdaterMuVT<Shape> >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+            std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
           ;
     }
 
@@ -162,8 +166,8 @@ template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
 template<class Shape>
-UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
+UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
     unsigned int seed,
     unsigned int npartition)
     : UpdaterMuVT<Shape>(sysdef, mc_implicit,seed,npartition), m_mc_implicit(mc_implicit)
@@ -430,13 +434,14 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         lnboltzmann += lnb;
         }
 
-    // zero overlapping depletants after removal
-    unsigned int n_overlap = 0;
-
     // number of depletants to insert
     unsigned int n_insert = 0;
 
     #ifdef ENABLE_MPI
+
+    // zero overlapping depletants after removal
+    unsigned int n_overlap = 0;
+
     if (this->m_gibbs)
         {
         unsigned int other = this->m_gibbs_other;
@@ -1422,8 +1427,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
     unsigned int n = 0;
     if (lambda>Scalar(0.0))
         {
-        boost::random::poisson_distribution<unsigned int, Scalar> poisson =
-            boost::random::poisson_distribution<unsigned int, Scalar>(lambda);
+        std::poisson_distribution<unsigned int> poisson =
+            std::poisson_distribution<unsigned int>(lambda);
 
         // combine four seeds
         std::vector<unsigned int> seed_seq(4);
@@ -1435,10 +1440,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
         #else
         seed_seq[3] = 0;
         #endif
-        boost::random::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
 
         // RNG for poisson distribution
-        boost::random::mt19937 rng_poisson(seed);
+        std::mt19937 rng_poisson(seed);
 
         n = poisson(rng_poisson);
         }

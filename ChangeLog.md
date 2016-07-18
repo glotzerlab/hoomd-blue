@@ -2,15 +2,29 @@
 
 [TOC]
 
+## v2.1.0
+
+*Other changes*
+
+* Removed dependency on boost::python.
+* No longer supporting Intel compiler builds.
+
 ## v2.0.1
+
+Released 2016/07/15
 
 *Bug fixes*
 
-* fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC)
+* Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
 * References to disabled analyzers, computes, updaters, etc. are properly freed from the simulation context.
 * Fix a bug where `init.read_gsd` ignored the `restart` argument.
+* Report an error when HPMC kernels run out of memory.
+* Fix ghost layer when using rigid constraints in MPI runs.
+* Clarify definition of the dihedral angle.
 
 ## v2.0.0
+
+Released 2016/06/22
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 

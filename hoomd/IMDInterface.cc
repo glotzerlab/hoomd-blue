@@ -17,10 +17,8 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-#include <boost/shared_array.hpp>
-using namespace boost::python;
-using namespace boost;
+namespace py = pybind11;
+
 
 #include "hoomd/extern/vmdsock.h"
 #include "hoomd/extern/imd.h"
@@ -38,11 +36,11 @@ using namespace std;
     \param force Constant force used to apply forces received from VMD
     \param force_scale Factor by which to scale all forces from IMD
 */
-IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
+IMDInterface::IMDInterface(std::shared_ptr<SystemDefinition> sysdef,
                            int port,
                            bool pause,
                            unsigned int rate,
-                           boost::shared_ptr<ConstForceCompute> force,
+                           std::shared_ptr<ConstForceCompute> force,
                            float force_scale)
     : Analyzer(sysdef)
     {
@@ -315,8 +313,8 @@ void IMDInterface::processIMD_KILL()
 void IMDInterface::processIMD_MDCOMM(unsigned int n)
     {
     // mdcomm is not currently handled
-    shared_array<int32> indices(new int32[n]);
-    shared_array<float> forces(new float[3*n]);
+    std::vector<int32> indices(n);
+    std::vector<float> forces(3*n);
 
     int err = imd_recv_mdcomm(m_connected_sock, n, &indices[0], &forces[0]);
 
@@ -482,9 +480,9 @@ void IMDInterface::sendCoords(unsigned int timestep)
         }
     }
 
-void export_IMDInterface()
+void export_IMDInterface(py::module& m)
     {
-    class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
-        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int, boost::shared_ptr<ConstForceCompute> >())
+    py::class_<IMDInterface, std::shared_ptr<IMDInterface> >(m,"IMDInterface",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
         ;
     }

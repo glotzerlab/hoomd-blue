@@ -7,10 +7,8 @@
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
-
-#include <boost/python.hpp>
-
 using namespace Eigen;
+namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
@@ -18,7 +16,7 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
@@ -599,10 +597,10 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint()
+void export_ForceDistanceConstraint(py::module& m)
     {
-    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

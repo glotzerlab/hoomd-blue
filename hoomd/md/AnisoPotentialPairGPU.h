@@ -24,6 +24,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing anisotropic
     pair potentials, forces and torques.  In the same way as PotentialPair, this class serves as a shell dealing
@@ -41,8 +43,8 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     {
     public:
         //! Construct the pair potential
-        AnisoPotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
+        AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~AnisoPotentialPairGPU() { };
@@ -78,8 +80,8 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
 
 template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
+AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : AnisoPotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -194,17 +196,12 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPairGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_AnisoPotentialPairGPU(const std::string& name)
+template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-              .def("setTuningParam",&T::setTuningParam)
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+            .def("setTuningParam",&T::setTuningParam)
               ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
     }
 
 #endif // ENABLE_CUDA

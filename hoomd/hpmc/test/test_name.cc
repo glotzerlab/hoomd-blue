@@ -6,10 +6,10 @@
 #include <iostream>
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 //! Name the unit test module
 #define BOOST_TEST_MODULE HelloWorld

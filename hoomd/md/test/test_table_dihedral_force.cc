@@ -29,15 +29,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<boost::shared_ptr<TableDihedralForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)> dihedralforce_creator;
+typedef boost::function<std::shared_ptr<TableDihedralForceCompute>  (std::shared_ptr<SystemDefinition> sysdef,unsigned int width)> dihedralforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
-    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0,make_scalar3(1.0,0.0,0.0));
     pdata_4->setPosition(1,make_scalar3(1.0,0.5,0));
@@ -54,7 +54,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
 
     // create the dihedral force compute to check
     unsigned int width = 100;
-    boost::shared_ptr<TableDihedralForceCompute> fc_4 = tf_creator(sysdef_4,width);
+    std::shared_ptr<TableDihedralForceCompute> fc_4 = tf_creator(sysdef_4,width);
 
     // set up a harmonic potential
     std::vector<Scalar> V, T;
@@ -303,19 +303,19 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
 //! Compares the output of two TableDihedralForceComputes
 void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      dihedralforce_creator tf_creator2,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
 
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     snap->dihedral_data.type_mapping.push_back("A");
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    boost::shared_ptr<TableDihedralForceCompute> fc1 = tf_creator1(sysdef);
-    boost::shared_ptr<TableDihedralForceCompute> fc2 = tf_creator2(sysdef);
+    std::shared_ptr<TableDihedralForceCompute> fc1 = tf_creator1(sysdef);
+    std::shared_ptr<TableDihedralForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(3.0), -1, 3);
     fc2->setParams(0, Scalar(3.0), -1, 3);
 
@@ -377,16 +377,16 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
 #endif
 //! TableDihedralForceCompute creator for dihedral_force_basic_tests()
-boost::shared_ptr<TableDihedralForceCompute> base_class_tf_creator(boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)
+std::shared_ptr<TableDihedralForceCompute> base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef,unsigned int width)
     {
-    return boost::shared_ptr<TableDihedralForceCompute>(new TableDihedralForceCompute(sysdef,width));
+    return std::shared_ptr<TableDihedralForceCompute>(new TableDihedralForceCompute(sysdef,width));
     }
 
 #ifdef ENABLE_CUDA
 //! DihedralForceCompute creator for bond_force_basic_tests()
-boost::shared_ptr<TableDihedralForceCompute> gpu_tf_creator(boost::shared_ptr<SystemDefinition> sysdef,unsigned int width)
+std::shared_ptr<TableDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef,unsigned int width)
     {
-    return boost::shared_ptr<TableDihedralForceCompute>(new TableDihedralForceComputeGPU(sysdef,width));
+    return std::shared_ptr<TableDihedralForceCompute>(new TableDihedralForceComputeGPU(sysdef,width));
     }
 #endif
 
@@ -395,7 +395,7 @@ BOOST_AUTO_TEST_CASE( TableDihedralForceCompute_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1,_2);
-    dihedral_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE( TableDihedralForceComputeGPU_basic )
     {
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1,_2);
-    dihedral_force_basic_tests(tf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #if 0
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -412,7 +412,7 @@ BOOST_AUTO_TEST_CASE( TableDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 #endif

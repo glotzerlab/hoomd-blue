@@ -820,9 +820,14 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                 args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
                                 args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
+    if (args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) >= args.devprop.sharedMemPerBlock)
+        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+
     while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
         {
         block_size -= args.devprop.warpSize;
+        if (block_size == 0)
+            throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
         // the new block size might not be a multiple of group size, decrease group size until it is
         group_size = args.group_size;

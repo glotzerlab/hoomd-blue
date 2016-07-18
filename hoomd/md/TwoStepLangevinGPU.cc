@@ -12,10 +12,8 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 #include <boost/bind.hpp>
-using namespace boost;
 
 using namespace std;
 
@@ -31,9 +29,9 @@ using namespace std;
     \param lambda Scale factor to convert diameter to gamma
     \param suffix Suffix to attach to the end of log quantity names
 */
-TwoStepLangevinGPU::TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                       boost::shared_ptr<ParticleGroup> group,
-                                       boost::shared_ptr<Variant> T,
+TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                       std::shared_ptr<ParticleGroup> group,
+                                       std::shared_ptr<Variant> T,
                                        unsigned int seed,
                                        bool use_lambda,
                                        Scalar lambda,
@@ -237,12 +235,12 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepLangevinGPU()
+void export_TwoStepLangevinGPU(py::module& m)
     {
-    class_<TwoStepLangevinGPU, boost::shared_ptr<TwoStepLangevinGPU>, bases<TwoStepLangevin>, boost::noncopyable>
-        ("TwoStepLangevinGPU", init< boost::shared_ptr<SystemDefinition>,
-                               boost::shared_ptr<ParticleGroup>,
-                               boost::shared_ptr<Variant>,
+    py::class_<TwoStepLangevinGPU, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU", py::base<TwoStepLangevin>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                               std::shared_ptr<ParticleGroup>,
+                               std::shared_ptr<Variant>,
                                unsigned int,
                                bool,
                                Scalar,

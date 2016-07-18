@@ -17,7 +17,9 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -36,7 +38,7 @@ class IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
-        IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int seed);
 
         virtual ~IntegratorHPMC();
@@ -202,7 +204,7 @@ class IntegratorHPMC : public Integrator
 
             MC does not integrate with the MD computations that use this value.
         */
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 1;
             }
@@ -285,7 +287,7 @@ class IntegratorHPMC : public Integrator
         /*! \param comm the communicator
             This method is overridden so that we can register with the signal to set the ghost layer width.
         */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             if (!m_comm)
                 {
@@ -314,7 +316,7 @@ class IntegratorHPMC : public Integrator
     };
 
 //! Export the IntegratorHPMC class to python
-void export_IntegratorHPMC();
+void export_IntegratorHPMC(pybind11::module& m);
 
 } // end namespace hpmc
 

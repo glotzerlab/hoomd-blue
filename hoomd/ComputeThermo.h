@@ -9,7 +9,7 @@
 #include "ComputeThermoTypes.h"
 #include "ParticleGroup.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <limits>
 
 /*! \file ComputeThermo.h
@@ -19,6 +19,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __COMPUTE_THERMO_H__
 #define __COMPUTE_THERMO_H__
@@ -56,8 +58,8 @@ class ComputeThermo : public Compute
     {
     public:
         //! Constructs the compute
-        ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
+        ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
                       const std::string& suffix = std::string(""));
 
         //! Destructor
@@ -290,7 +292,7 @@ class ComputeThermo : public Compute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
     protected:
-        boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
+        std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
         unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
@@ -308,6 +310,8 @@ class ComputeThermo : public Compute
     };
 
 //! Exports the ComputeThermo class to python
-void export_ComputeThermo();
+#ifndef NVCC
+void export_ComputeThermo(pybind11::module& m);
+#endif
 
 #endif

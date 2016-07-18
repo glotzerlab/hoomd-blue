@@ -262,7 +262,7 @@ class sphinx_test(unittest.TestCase):
 
     def test_metadata_dump(self):
         shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
-			               colors=['ff','ffff00','ffff00'])
+                           colors=['ff','ffff00','ffff00'])
         self.mc.shape_param.set('A',  **shape_param)
         context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()
