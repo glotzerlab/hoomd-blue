@@ -2795,8 +2795,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         pdata_2->setVelocity(tag, make_scalar3(0.01,0.02,0.03));
         }
 
-    comm_1->addMigrateRequest(bind(&migrate_request,_1));
-    comm_2->addMigrateRequest(bind(&migrate_request,_1));
+    comm_1->getMigrateSignal().connect<migrate_request>();
+    comm_2->getMigrateSignal().connect<migrate_request>();
 
     comm_1->addCommFlagsRequest(bind(&comm_flag_request, _1));
     comm_2->addCommFlagsRequest(bind(&comm_flag_request, _1));

@@ -7,3 +7,6 @@
 [submodule "hoomd/extern/upp11"]
 	path = hoomd/extern/upp11
 	url = https://github.com/joaander/upp11.git
+[submodule "hoomd/extern/nano-signal-slot"]
+	path = hoomd/extern/nano-signal-slot
+	url = https://github.com/NoAvailableAlias/nano-signal-slot.git

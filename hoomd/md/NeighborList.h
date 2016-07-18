@@ -493,7 +493,6 @@ class NeighborList : public Compute
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
         boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         #ifdef ENABLE_MPI
-        boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
         boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
         #endif

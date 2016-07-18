@@ -185,8 +185,8 @@ NeighborList::~NeighborList()
     m_max_particle_num_change_connection.disconnect();
     m_global_particle_num_change_connection.disconnect();
 #ifdef ENABLE_MPI
-    if (m_migrate_request_connection.connected())
-        m_migrate_request_connection.disconnect();
+    if (m_comm)
+        m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
     if (m_comm_flags_request.connected())
         m_comm_flags_request.disconnect();
     if (m_ghost_layer_width_request.connected())
@@ -1399,8 +1399,7 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
         {
         // only add the migrate request on the first call
         assert(comm);
-
-        m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
+        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
         }

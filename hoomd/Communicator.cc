@@ -1288,7 +1288,14 @@ void Communicator::communicate(unsigned int timestep)
 
     // distance check (synchronizes the GPU execution stream), needs to be called
     // before any particle reorder
-    bool migrate = m_migrate_requests(timestep) || !has_ghost_particles;
+    bool migrate_request = false;
+    m_migrate_requests.emit_accumulate( [&](bool r)
+                                            {
+                                            migrate_request = migrate_request || r;
+                                            },
+                                        timestep);
+
+    bool migrate = migrate_request || !has_ghost_particles;
 
     // Update ghosts if we are not migrating
     if (!migrate && !m_compute_callbacks.num_slots())
@@ -1297,19 +1304,19 @@ void Communicator::communicate(unsigned int timestep)
 
         // call computation that can be overlapped with communication
         m_local_compute_callbacks(timestep);
-        
+
         finishUpdateGhosts(timestep);
         }
 
     if (m_compute_callbacks.num_slots() && !has_ghost_particles)
-        { 
+        {
         // initialize ghosts a first time
         migrateParticles();
         exchangeGhosts();
 
         // update particle data now that ghosts are available
         m_compute_callbacks(timestep);
-        } 
+        }
 
     // Check if migration of particles is requested
     if (migrate)
@@ -1322,7 +1329,7 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-        } 
+        }
 
     m_is_communicating = false;
     }

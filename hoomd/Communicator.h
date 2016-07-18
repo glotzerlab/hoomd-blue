@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <boost/signals2.hpp>
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -80,33 +81,6 @@ struct comm_flag
 
 //! Bitset to determine required ghost communication fields
 typedef std::bitset<32> CommFlags;
-
-//! Perform a logical or operation on the return values of several signals
-struct migrate_logical_or
-    {
-    //! This is needed by boost::signals2
-    typedef bool result_type;
-
-    //! Combine return values using logical or
-    /*! \param first First return value
-        \param last Last return value
-     */
-    template<typename InputIterator>
-    bool operator()(InputIterator first, InputIterator last) const
-        {
-        if (first == last)
-            return false;
-
-        bool return_value = *first++;
-        while (first != last)
-            {
-            if (*first++)
-                return_value = true;
-            }
-
-        return return_value;
-        }
-    };
 
 //! Perform a bitwise or operation on the return values of several signals
 struct comm_flags_bitwise_or
@@ -284,11 +258,11 @@ class Communicator
 
         //! Subscribe to list of functions that determine when the particles are migrated
         /*! This method keeps track of all functions that may request particle migration.
-         * \return A connection to the present class
+         * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        boost::signals2::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
+        Nano::Signal<bool(unsigned int timestep)>& getMigrateSignal()
             {
-            return m_migrate_requests.connect(subscriber);
+            return m_migrate_requests;
             }
 
         //! Subscribe to list of functions that request a minimum ghost layer width
@@ -624,7 +598,7 @@ class Communicator
 
         GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
-        boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
+        Nano::Signal<bool(unsigned int timestep)>
             m_migrate_requests; //!< List of functions that may request particle migration
 
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
