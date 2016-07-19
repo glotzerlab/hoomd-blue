@@ -14,17 +14,11 @@ if ((BOOST_ROOT OR NOT $ENV{BOOST_ROOT} STREQUAL "") OR NOT $ENV{BOOSTROOT} STRE
     set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-set(REQUIRED_BOOST_COMPONENTS signals unit_test_framework serialization)
+set(REQUIRED_BOOST_COMPONENTS signals serialization)
 
 message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
-
-# if we get boost 1.60 or greater, we need to get the timer, chrono, and system libraries too
-if (Boost_MINOR_VERSION GREATER 59)
-list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono" "system")
-find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
-endif ()
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})

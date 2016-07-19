@@ -23,11 +23,10 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE CGCMMAngleForceTests
-#include "boost_utf_configure.h"
+
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<std::shared_ptr<CGCMMAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> cgcmm_angleforce_creator;
@@ -59,16 +58,16 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
     // check that the force is correct, it should be 0 since we haven't created any angles yet
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*virial_array_1.getPitch()], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[1*virial_array_1.getPitch()], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[2*virial_array_1.getPitch()], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[3*virial_array_1.getPitch()], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[4*virial_array_1.getPitch()], tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[5*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_force_1.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].w, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_virial_1.data[1*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_virial_1.data[2*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_virial_1.data[3*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_virial_1.data[4*virial_array_1.getPitch()], tol);
+    MY_CHECK_SMALL(h_virial_1.data[5*virial_array_1.getPitch()], tol);
     }
 
     // add an angle and check again
@@ -81,11 +80,11 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -0.313469, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*virial_array_2.getPitch()]
+    MY_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].y, -0.313469, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].z, -0.195460, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].w, 0.158576, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*virial_array_2.getPitch()]
                          +h_virial_2.data[3*virial_array_2.getPitch()]
                          +h_virial_2.data[5*virial_array_2.getPitch()], tol);
     }
@@ -120,11 +119,11 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.0616840, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*virial_array_3.getPitch()+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, -0.0616840, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
+    MY_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
+    MY_CHECK_SMALL(h_virial_3.data[0*virial_array_3.getPitch()+1]
                          +h_virial_3.data[3*virial_array_3.getPitch()+1]
                          +h_virial_3.data[5*virial_array_3.getPitch()+1], tol);
     }
@@ -164,51 +163,51 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
 
 
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].y, -1.5510634,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+0]
+    MY_CHECK_SMALL(h_force_4.data[0].x, tol);
+    MY_CHECK_CLOSE(h_force_4.data[0].y, -1.5510634,tol);
+    MY_CHECK_SMALL(h_force_4.data[0].z, tol);
+    MY_CHECK_CLOSE(h_force_4.data[0].w, 0.256618, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+0]
                          +h_virial_4.data[3*virial_array_4.getPitch()+0]
                          +h_virial_4.data[5*virial_array_4.getPitch()+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+1]
+    MY_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, tol);
+    MY_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
+    MY_CHECK_SMALL(h_force_4.data[1].z, tol);
+    MY_CHECK_CLOSE(h_force_4.data[1].w, 0.256618, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+1]
                          +h_virial_4.data[3*virial_array_4.getPitch()+1]
                          +h_virial_4.data[5*virial_array_4.getPitch()+1], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+2]
+    MY_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
+    MY_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
+    MY_CHECK_SMALL(h_force_4.data[2].z, tol);
+    MY_CHECK_CLOSE(h_force_4.data[2].w, 0.256618, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+2]
                          +h_virial_4.data[3*virial_array_4.getPitch()+2]
                          +h_virial_4.data[5*virial_array_4.getPitch()+2], tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.0515151, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+3]
+    MY_CHECK_SMALL(h_force_4.data[3].x, tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].y, 0.0515151, tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
+    MY_CHECK_CLOSE(h_force_4.data[3].w, 0.400928, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+3]
                          +h_virial_4.data[3*virial_array_4.getPitch()+3]
                          +h_virial_4.data[5*virial_array_4.getPitch()+3], tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -2.793305,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, 0.0341109, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+4]
+    MY_CHECK_SMALL(h_force_4.data[4].x, tol);
+    MY_CHECK_CLOSE(h_force_4.data[4].y, -2.793305,tol);
+    MY_CHECK_CLOSE(h_force_4.data[4].z, 0.0341109, tol);
+    MY_CHECK_CLOSE(h_force_4.data[4].w, 0.400928, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+4]
                          +h_virial_4.data[3*virial_array_4.getPitch()+4]
                          +h_virial_4.data[5*virial_array_4.getPitch()+4], tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 2.74178982,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+5]
+    MY_CHECK_SMALL(h_force_4.data[5].x, tol);
+    MY_CHECK_CLOSE(h_force_4.data[5].y, 2.74178982,tol);
+    MY_CHECK_SMALL(h_force_4.data[5].z, tol);
+    MY_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
+    MY_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+5]
                          +h_virial_4.data[3*virial_array_4.getPitch()+5]
                          +h_virial_4.data[5*virial_array_4.getPitch()+5], tol);
     }
@@ -261,37 +260,37 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, -3.531810,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, -3.531810, tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.676081, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+0]
+    MY_CHECK_CLOSE(h_force_5.data[0].x, -3.531810,tol);
+    MY_CHECK_CLOSE(h_force_5.data[0].y, -3.531810, tol);
+    MY_CHECK_SMALL(h_force_5.data[0].z, tol);
+    MY_CHECK_CLOSE(h_force_5.data[0].w, 0.676081, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+0]
                          +h_virial_5.data[3*virial_array_5.getPitch()+0]
                          +h_virial_5.data[5*virial_array_5.getPitch()+0], tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, -0.785398,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, 7.063621,tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.778889, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+1]
+    MY_CHECK_CLOSE(h_force_5.data[1].x, -0.785398,tol);
+    MY_CHECK_CLOSE(h_force_5.data[1].y, 7.063621,tol);
+    MY_CHECK_SMALL(h_force_5.data[1].z, tol);
+    MY_CHECK_CLOSE(h_force_5.data[1].w, 0.778889, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+1]
                          +h_virial_5.data[3*virial_array_5.getPitch()+1]
                          +h_virial_5.data[5*virial_array_5.getPitch()+1], tol);
 
 
-    MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.785399,tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].w, 0.102808, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+2]
+    MY_CHECK_SMALL(h_force_5.data[2].x, tol);
+    MY_CHECK_CLOSE(h_force_5.data[2].y, -0.785399,tol);
+    MY_CHECK_SMALL(h_force_5.data[2].z, tol);
+    MY_CHECK_CLOSE(h_force_5.data[2].w, 0.102808, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+2]
                          +h_virial_5.data[3*virial_array_5.getPitch()+2]
                          +h_virial_5.data[5*virial_array_5.getPitch()+2], tol);
 
 
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, 4.317209,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -2.746412,tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.778889, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+3]
+    MY_CHECK_CLOSE(h_force_5.data[3].x, 4.317209,tol);
+    MY_CHECK_CLOSE(h_force_5.data[3].y, -2.746412,tol);
+    MY_CHECK_SMALL(h_force_5.data[3].z, tol);
+    MY_CHECK_CLOSE(h_force_5.data[3].w, 0.778889, tol);
+    MY_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+3]
                          +h_virial_5.data[3*virial_array_5.getPitch()+3]
                          +h_virial_5.data[5*virial_array_5.getPitch()+3], tol);
     }
@@ -354,8 +353,8 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
         }
     deltaf2 /= double(sysdef->getParticleData()->getN());
     deltape2 /= double(sysdef->getParticleData()->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
     }
     }
 
@@ -374,26 +373,26 @@ std::shared_ptr<CGCMMAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDef
     }
 #endif
 
-//! boost test case for angle forces on the CPU
-BOOST_AUTO_TEST_CASE( CGCMMAngleForceCompute_basic )
+//! test case for angle forces on the CPU
+UP_TEST( CGCMMAngleForceCompute_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+    printf(" IN UP_TEST: CPU \n");
     cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);
     angle_force_basic_tests(af_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for angle forces on the GPU
-BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_basic )
+//! test case for angle forces on the GPU
+UP_TEST( CGCMMAngleForceComputeGPU_basic )
     {
-    printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+    printf(" IN UP_TEST: GPU \n");
     cgcmm_angleforce_creator af_creator = bind(gpu_af_creator, _1);
     angle_force_basic_tests(af_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 
-//! boost test case for comparing angle GPU and CPU AngleForceComputes
-BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_compare )
+//! test case for comparing angle GPU and CPU AngleForceComputes
+UP_TEST( CGCMMAngleForceComputeGPU_compare )
     {
     cgcmm_angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);
     cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);

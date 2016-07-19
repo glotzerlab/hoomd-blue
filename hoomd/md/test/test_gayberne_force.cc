@@ -25,16 +25,19 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_gayberne_force.cc
     \brief Implements unit tests for AnisoPotentialPairGB and AnisoPotentialPairGBGPU
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairGBTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 typedef boost::function<std::shared_ptr<AnisoPotentialPairGB> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> gbforce_creator;
@@ -77,35 +80,35 @@ void gb_force_particle_test(gbforce_creator gb_creator, std::shared_ptr<Executio
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar4> h_torque_1(torque_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, 0.470778, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].y, 0.402348, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].z, 0.529626, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.151892/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[0*pitch+1], -0.188311, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[1*pitch+1], -0.105925, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[2*pitch+1], -0.21185, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[3*pitch+1], -0.0905282, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[4*pitch+1], -0.181056, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[5*pitch+1], -0.238332, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].x, 0.470778, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].y, 0.402348, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].z, 0.529626, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, -0.151892/2.0, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[0*pitch+1], -0.188311, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[1*pitch+1], -0.105925, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[2*pitch+1], -0.21185, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[3*pitch+1], -0.0905282, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[4*pitch+1], -0.181056, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[5*pitch+1], -0.238332, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, -0.470778, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].y, -0.402348, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].z, -0.529626, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.151892/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[0*pitch+1], -0.188311, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[1*pitch+1], -0.105925, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[2*pitch+1], -0.21185, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[3*pitch+1], -0.0905282, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[4*pitch+1], -0.181056, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[5*pitch+1], -0.238332, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].x, -0.470778, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].y, -0.402348, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].z, -0.529626, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, -0.151892/2.0, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[0*pitch+1], -0.188311, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[1*pitch+1], -0.105925, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[2*pitch+1], -0.21185, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[3*pitch+1], -0.0905282, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[4*pitch+1], -0.181056, tol);
+    MY_CHECK_CLOSE(h_virial_1.data[5*pitch+1], -0.238332, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[0].x, -0.123781, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[0].y, 0.1165, tol);
-    MY_BOOST_CHECK_SMALL(h_torque_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_torque_1.data[0].x, -0.123781, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[0].y, 0.1165, tol);
+    MY_CHECK_SMALL(h_torque_1.data[0].z, tol_small);
 
-    MY_BOOST_CHECK_SMALL(h_torque_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[1].y, -0.1165, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[1].z, 0.110028, tol);
+    MY_CHECK_SMALL(h_torque_1.data[1].x, tol_small);
+    MY_CHECK_CLOSE(h_torque_1.data[1].y, -0.1165, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[1].z, 0.110028, tol);
     }
     }
 
@@ -126,16 +129,16 @@ std::shared_ptr<AnisoPotentialPairGBGPU> gpu_gb_creator(std::shared_ptr<SystemDe
     }
 #endif
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( AnisoPotentialPairGB_particle )
+//! test case for particle test on CPU
+UP_TEST( AnisoPotentialPairGB_particle )
     {
     gbforce_creator gb_creator_base = bind(base_class_gb_creator, _1, _2);
     gb_force_particle_test(gb_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
+//! test case for particle test on GPU
+UP_TEST( LJForceGPU_particle )
     {
     gbforce_creator gb_creator_gpu = bind(gpu_gb_creator, _1, _2);
     gb_force_particle_test(gb_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

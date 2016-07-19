@@ -20,16 +20,19 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file mie_force_test.cc
     \brief Implements unit tests for PotentialPairMie and PotentialPairMieGPU and descendants
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairMieTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 //! Typedef'd MieForceCompute factory
 typedef boost::function<std::shared_ptr<PotentialPairMie> (std::shared_ptr<SystemDefinition> sysdef,
@@ -78,27 +81,27 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.575, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+0]
+    MY_CHECK_SMALL(h_force_1.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, -0.575, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+0]
                         +h_virial_1.data[3*pitch+0]
                         +h_virial_1.data[5*pitch+0], tol_small);
 
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -1.15, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+1]
+    MY_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, -1.15, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+1]
                         +h_virial_1.data[3*pitch+1]
                         +h_virial_1.data[5*pitch+1], tol_small);
 
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, -0.575, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+2]
+    MY_CHECK_SMALL(h_force_1.data[2].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[2].w, -0.575, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch+2]
                         +h_virial_1.data[3*pitch+2]
                         +h_virial_1.data[5*pitch+2], tol_small);
     }
@@ -116,29 +119,29 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -109.7321922512963, tol);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 2.6306347172235, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_2.data[0].x, -109.7321922512963, tol);
+    MY_CHECK_SMALL(h_force_2.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_2.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_2.data[0].w, 2.6306347172235, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+0]
                                        +h_virial_2.data[3*pitch+0]
                                        +h_virial_2.data[5*pitch+0]), 20.301521082055, tol);
 
     // center particle should still be a 0 force by symmetry
-    MY_BOOST_CHECK_SMALL(h_force_2.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[1].z, tol_small);
+    MY_CHECK_SMALL(h_force_2.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_2.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_2.data[1].z, tol_small);
     // there is still an energy and virial, though
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[1].w, 5.2612694344471, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_2.data[1].w, 5.2612694344471, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+1]
                                        +h_virial_2.data[3*pitch+1]
                                        +h_virial_2.data[5*pitch+1]), 40.603042164109, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 109.7321922512963, tol);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].w, 2.6306347172235, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_2.data[2].x, 109.7321922512963, tol);
+    MY_CHECK_SMALL(h_force_2.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_2.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_2.data[2].w, 2.6306347172235, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+2]
                                        +h_virial_2.data[3*pitch+2]
                                        +h_virial_2.data[5*pitch+2]), 20.301521082055, tol);
     }
@@ -169,8 +172,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 109.7321922512963, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].x, -109.7321922512963, tol);
+    MY_CHECK_CLOSE(h_force_3.data[0].x, 109.7321922512963, tol);
+    MY_CHECK_CLOSE(h_force_3.data[2].x, -109.7321922512963, tol);
     }
     }
 
@@ -244,14 +247,14 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
     deltape2 /= double(pdata->getN());
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] /= double(pdata->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
@@ -307,30 +310,30 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[0].x, 0.010928042234617, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[0].w, -0.0023556136748908, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[1].x, -0.010928042234617, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[1].w, -0.0023556136748908, tol);
+    MY_CHECK_CLOSE(h_force_7.data[0].x, 0.010928042234617, tol);
+    MY_CHECK_CLOSE(h_force_7.data[0].w, -0.0023556136748908, tol);
+    MY_CHECK_CLOSE(h_force_7.data[1].x, -0.010928042234617, tol);
+    MY_CHECK_CLOSE(h_force_7.data[1].w, -0.0023556136748908, tol);
 
     // shifted just has pe shifted by a given amount
     GPUArray<Scalar4>& force_array_8 =  fc_shift->getForceArray();
     GPUArray<Scalar>& virial_array_8 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_8.data[0].x, 0.010928042234617, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_8.data[0].w, -0.00085085631210834, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_8.data[1].x, -0.010928042234617, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_8.data[1].w, -0.00085085631210834, tol);
+    MY_CHECK_CLOSE(h_force_8.data[0].x, 0.010928042234617, tol);
+    MY_CHECK_CLOSE(h_force_8.data[0].w, -0.00085085631210834, tol);
+    MY_CHECK_CLOSE(h_force_8.data[1].x, -0.010928042234617, tol);
+    MY_CHECK_CLOSE(h_force_8.data[1].w, -0.00085085631210834, tol);
 
     // xplor has slight tweaks
     GPUArray<Scalar4>& force_array_9 =  fc_xplor->getForceArray();
     GPUArray<Scalar>& virial_array_9 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_9.data[0].x, 0.0071326060066445, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_9.data[0].w, -0.00032153576390906, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_9.data[1].x, -0.0071326060066445, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_9.data[1].w, -0.00032153576390906, tol);
+    MY_CHECK_CLOSE(h_force_9.data[0].x, 0.0071326060066445, tol);
+    MY_CHECK_CLOSE(h_force_9.data[0].w, -0.00032153576390906, tol);
+    MY_CHECK_CLOSE(h_force_9.data[1].x, -0.0071326060066445, tol);
+    MY_CHECK_CLOSE(h_force_9.data[1].w, -0.00032153576390906, tol);
     }
 
     // check again, prior to r_on to make sure xplor isn't doing something weird
@@ -351,30 +354,30 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     ArrayHandle<Scalar4> h_force_10(force_array_10,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_10(virial_array_10,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_10.data[0].x, 1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_10.data[0].w, -0.12828256582666, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_10.data[1].x, -1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_10.data[1].w, -0.12828256582666, tol);
+    MY_CHECK_CLOSE(h_force_10.data[0].x, 1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_10.data[0].w, -0.12828256582666, tol);
+    MY_CHECK_CLOSE(h_force_10.data[1].x, -1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_10.data[1].w, -0.12828256582666, tol);
 
     // shifted just has pe shifted by a given amount
     GPUArray<Scalar4>& force_array_11 =  fc_shift->getForceArray();
     GPUArray<Scalar>& virial_array_11 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_11(force_array_11,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_11(virial_array_11,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_11.data[0].x, 1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_11.data[0].w, -0.12677780846387, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_11.data[1].x, -1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_11.data[1].w, -0.12677780846387, tol);
+    MY_CHECK_CLOSE(h_force_11.data[0].x, 1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_11.data[0].w, -0.12677780846387, tol);
+    MY_CHECK_CLOSE(h_force_11.data[1].x, -1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_11.data[1].w, -0.12677780846387, tol);
 
     // xplor has slight tweaks
     GPUArray<Scalar4>& force_array_12 =  fc_xplor->getForceArray();
     GPUArray<Scalar>& virial_array_12 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_12(force_array_12,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_12(virial_array_12,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[0].x, 1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[0].w, -0.12828256582666, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[1].x, -1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[1].w, -0.12828256582666, tol);
+    MY_CHECK_CLOSE(h_force_12.data[0].x, 1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_12.data[0].w, -0.12828256582666, tol);
+    MY_CHECK_CLOSE(h_force_12.data[1].x, -1.0373505201621, tol);
+    MY_CHECK_CLOSE(h_force_12.data[1].w, -0.12828256582666, tol);
     }
 
     // check once again to verify that nothing fish happens past r_cut
@@ -395,30 +398,30 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     ArrayHandle<Scalar4> h_force_13(force_array_13,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_13(virial_array_13,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_SMALL(h_force_13.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_13.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_13.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_13.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_force_13.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_13.data[0].w, tol_small);
+    MY_CHECK_SMALL(h_force_13.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_13.data[1].w, tol_small);
 
     // shifted just has pe shifted by a given amount
     GPUArray<Scalar4>& force_array_14 =  fc_shift->getForceArray();
     GPUArray<Scalar>& virial_array_14 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_14(force_array_14,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_14(virial_array_14,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(h_force_14.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_14.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_14.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_14.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_force_14.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_14.data[0].w, tol_small);
+    MY_CHECK_SMALL(h_force_14.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_14.data[1].w, tol_small);
 
     // xplor has slight tweaks
     GPUArray<Scalar4>& force_array_15 =  fc_xplor->getForceArray();
     GPUArray<Scalar>& virial_array_15 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_15(force_array_15,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_15(virial_array_15,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(h_force_15.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_15.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_15.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_15.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_force_15.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_15.data[0].w, tol_small);
+    MY_CHECK_SMALL(h_force_15.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_15.data[1].w, tol_small);
     }
     }
 
@@ -440,37 +443,37 @@ std::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(std::shared_ptr<SystemDefin
     }
 #endif
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( PotentialPairMie_particle )
+//! test case for particle test on CPU
+UP_TEST( PotentialPairMie_particle )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
     mie_force_particle_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for shift test on CPU
-BOOST_AUTO_TEST_CASE( PotentialPairMie_shift )
+//! test case for shift test on CPU
+UP_TEST( PotentialPairMie_shift )
     {
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
     mie_force_shift_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( MieForceGPU_particle )
+//! test case for particle test on GPU
+UP_TEST( MieForceGPU_particle )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mie_force_particle_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for shift test on GPU
-BOOST_AUTO_TEST_CASE( MieForceGPU_shift )
+//! test case for shift test on GPU
+UP_TEST( MieForceGPU_shift )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mie_force_shift_test(mie_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
-/*BOOST_AUTO_TEST_CASE( MieForceGPU_compare )
+//! test case for comparing GPU output to base class output
+/*UP_TEST( MieForceGPU_compare )
     {
     mieforce_creator mie_creator_gpu = bind(gpu_mie_creator, _1, _2);
     mieforce_creator mie_creator_base = bind(base_class_mie_creator, _1, _2);
