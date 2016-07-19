@@ -29,16 +29,15 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file nve_updater_test.cc
     \brief Implements unit tests for TwoStepNVE and descendants
     \ingroup unit_tests
 */
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE NVEUpdaterTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,
@@ -96,23 +95,23 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, std::shared_ptr
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
 
         Scalar t = Scalar(i) * deltaT;
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, 3.0 + 1.5 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[0].x, 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[0].x, 3.0 + 1.5 * t, loose_tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, 2.0 + 2.5 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[0].y, 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[0].y, 2.0 + 2.5 * t, loose_tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, 1.0 + 0 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[0].z, 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[0].z, 1.0 + 0 * t, loose_tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[1].x, 13.0 + 1.5 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[1].x, 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[1].x, 13.0 + 1.5 * t, loose_tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[1].y, 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[1].y, 12.0 + 2.5 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[1].y, 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[1].y, 12.0 + 2.5 * t, loose_tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[1].z, 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[1].z, 11.0 + 0 * t, loose_tol);
+        MY_CHECK_CLOSE(h_pos.data[1].z, 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_CHECK_CLOSE(h_vel.data[1].z, 11.0 + 0 * t, loose_tol);
         }
 
         nve_up->update(i);
@@ -173,14 +172,14 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, std::shared_ptr<Exe
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + dx * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, vx, tol);
+        MY_CHECK_CLOSE(h_pos.data[0].x, 0.0 + dx * Scalar(i), tol);
+        MY_CHECK_CLOSE(h_vel.data[0].x, vx, tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + dy * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, vy, tol);
+        MY_CHECK_CLOSE(h_pos.data[0].y, 1.0 + dy * Scalar(i), tol);
+        MY_CHECK_CLOSE(h_vel.data[0].y, vy, tol);
 
-        MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + dz * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, vz, tol);
+        MY_CHECK_CLOSE(h_pos.data[0].z, 2.0 + dz * Scalar(i), tol);
+        MY_CHECK_CLOSE(h_vel.data[0].z, vz, tol);
         }
 
         nve_up->update(i);
@@ -236,18 +235,18 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, std::shared_ptr<
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(pdata_6->getImages(), access_location::host, access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 9.9, tol);
-    BOOST_CHECK_EQUAL(h_image.data[0].x, -1);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, -9.8, tol);
-    BOOST_CHECK_EQUAL(h_image.data[1].x, 1);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[2].y, 19.9, tol);
-    BOOST_CHECK_EQUAL(h_image.data[2].y, -1);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[3].y, -19.8, tol);
-    BOOST_CHECK_EQUAL(h_image.data[3].y, 1);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[4].z, 29.9, tol);
-    BOOST_CHECK_EQUAL(h_image.data[4].z, -1);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[5].z, -29.8, tol);
-    BOOST_CHECK_EQUAL(h_image.data[5].z, 1);
+    MY_CHECK_CLOSE(h_pos.data[0].x, 9.9, tol);
+    UP_ASSERT_EQUAL(h_image.data[0].x, -1);
+    MY_CHECK_CLOSE(h_pos.data[1].x, -9.8, tol);
+    UP_ASSERT_EQUAL(h_image.data[1].x, 1);
+    MY_CHECK_CLOSE(h_pos.data[2].y, 19.9, tol);
+    UP_ASSERT_EQUAL(h_image.data[2].y, -1);
+    MY_CHECK_CLOSE(h_pos.data[3].y, -19.8, tol);
+    UP_ASSERT_EQUAL(h_image.data[3].y, 1);
+    MY_CHECK_CLOSE(h_pos.data[4].z, 29.9, tol);
+    UP_ASSERT_EQUAL(h_image.data[4].z, -1);
+    MY_CHECK_CLOSE(h_pos.data[5].z, -29.8, tol);
+    UP_ASSERT_EQUAL(h_image.data[5].z, 1);
     }
     }
 
@@ -324,17 +323,17 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
 
         }
@@ -446,7 +445,7 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, t
         if (i % 1000 == 0)
             std::cout << i << ' ' << H << std::endl;
 
-        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
     }
 
@@ -465,66 +464,66 @@ std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sy
 #endif
 
 
-//! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNVE_integrate_tests )
+//! test case for base class integration tests
+UP_TEST( TwoStepNVE_integrate_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for base class limit tests
-BOOST_AUTO_TEST_CASE( TwoStepNVE_limit_tests )
+//! test case for base class limit tests
+UP_TEST( TwoStepNVE_limit_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for base class boundary tests
-BOOST_AUTO_TEST_CASE( TwoStepNVE_boundary_tests )
+//! test case for base class boundary tests
+UP_TEST( TwoStepNVE_boundary_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Performs a basic equilibration test of TwoStepNVE
-BOOST_AUTO_TEST_CASE( TwoStepNVE_aniso_test )
+UP_TEST( TwoStepNVE_aniso_test )
     {
     nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nve_creator, _1, _2));
     }
 
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
-//! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_integrate_tests )
+//! test case for base class integration tests
+UP_TEST( TwoStepNVEGPU_integrate_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for base class limit tests
-BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_limit_tests )
+//! test case for base class limit tests
+UP_TEST( TwoStepNVEGPU_limit_tests )
     {
     twostepnve_creator nve_creator = bind(gpu_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for base class boundary tests
-BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_boundary_tests )
+//! test case for base class boundary tests
+UP_TEST( TwoStepNVEGPU_boundary_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing the GPU and CPU NVEUpdaters
-BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
+//! test case for comparing the GPU and CPU NVEUpdaters
+UP_TEST( TwoStepNVEGPU_comparison_tests)
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_compare_test(nve_creator, nve_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for testing aniso integration
-BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_aniso_tests)
+//! test case for testing aniso integration
+UP_TEST( TwoStepNVEGPU_aniso_tests)
     {
     nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nve_creator, _1, _2));
     }

@@ -28,11 +28,11 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
-//! label the boost test module
-#define BOOST_TEST_MODULE Enforce2DUpdaterTests
-#include "boost_utf_configure.h"
+
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
+
 
 /*! \file enforce2d_updater_test.cc
     \brief Unit tests for the Enforce2DUpdater class
@@ -42,7 +42,7 @@ using namespace boost;
 //! Typedef'd Enforce2DUpdater factory
 typedef boost::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
 
-//! boost test case to verify proper operation of Enforce2DUpdater
+//! test case to verify proper operation of Enforce2DUpdater
 void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
@@ -125,7 +125,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
         total_deviation += fabs(pdata->getPosition(i).z);
 
     //make sure the deviation is large (should be >> tol)
-    BOOST_CHECK(total_deviation > tol);
+    UP_ASSERT(total_deviation > tol);
 
     // re-initialize the initial state
     for (unsigned int i=0; i<10; i++)
@@ -170,7 +170,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
         total_deviation += fabs(pdata->getPosition(i).z);
         }
 
-    MY_BOOST_CHECK_CLOSE(total_deviation, 0.0, tol);
+    MY_CHECK_CLOSE(total_deviation, 0.0, tol);
 
     }
 
@@ -188,16 +188,16 @@ std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDe
     }
 #endif
 
-//! boost test case for basic enforce2d tests
-BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
+//! test case for basic enforce2d tests
+UP_TEST( Enforce2DUpdater_basic )
     {
     enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
    enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for basic enforce2d tests
-BOOST_AUTO_TEST_CASE( Enforce2DUpdaterGPU_basic )
+//! test case for basic enforce2d tests
+UP_TEST( Enforce2DUpdaterGPU_basic )
     {
     enforce2d_creator creator = bind(gpu_enforce2d_creator, _1);
     enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

@@ -4,3 +4,6 @@
 [submodule "hoomd/extern/pybind"]
 	path = hoomd/extern/pybind
 	url = https://github.com/pybind/pybind11.git
+[submodule "hoomd/extern/upp11"]
+	path = hoomd/extern/upp11
+	url = https://github.com/joaander/upp11.git

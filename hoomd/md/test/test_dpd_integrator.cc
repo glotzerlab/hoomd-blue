@@ -7,8 +7,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
 #include <memory>
 
 #include "hoomd/ComputeThermo.h"
@@ -27,16 +25,18 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
 /*! \file dpd_integrator_test.cc
     \brief Implements unit tests for PotentialPairDPDThermo
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairDPDThermo
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 
 template <class PP_DPD>
@@ -67,19 +67,19 @@ void dpd_conservative_force_test(std::shared_ptr<ExecutionConfiguration> exec_co
     GPUArray<Scalar>& virial_array_1 =  dpdc->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].y, 0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].z, 0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 13.5375, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].y, 0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].z, 0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, 13.5375, tol);
     }
 
-BOOST_AUTO_TEST_CASE( DPD_ForceConservative_Test )
+UP_TEST( DPD_ForceConservative_Test )
     {
     dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-BOOST_AUTO_TEST_CASE( DPD_GPU_ForceConservative_Test )
+UP_TEST( DPD_GPU_ForceConservative_Test )
     {
     dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
@@ -144,7 +144,7 @@ void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     AvgT /= 5;
     cout << "Average Temperature " << AvgT << endl;
-    MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 5);
+    MY_CHECK_CLOSE(AvgT, 2.0, 5);
 
    // Calculate Momentum
     Scalar(Mom_x) = 0;
@@ -160,22 +160,22 @@ void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         Mom_z += vel.z;
         }
 
-    MY_BOOST_CHECK_SMALL(Mom_x, 1e-3);
-    MY_BOOST_CHECK_SMALL(Mom_y, 1e-3);
-    MY_BOOST_CHECK_SMALL(Mom_z, 1e-3);
+    MY_CHECK_SMALL(Mom_x, 1e-3);
+    MY_CHECK_SMALL(Mom_y, 1e-3);
+    MY_CHECK_SMALL(Mom_z, 1e-3);
 
 
 
 
     }
 
-BOOST_AUTO_TEST_CASE( DPD_Temp_Test )
+UP_TEST( DPD_Temp_Test )
     {
     dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-BOOST_AUTO_TEST_CASE( DPD_GPU_Temp_Test )
+UP_TEST( DPD_GPU_Temp_Test )
     {
     dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }

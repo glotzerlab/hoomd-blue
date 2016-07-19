@@ -23,11 +23,10 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE EnergyMinimizerTests
-#include "boost_utf_configure.h"
+
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
 typedef boost::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
@@ -427,7 +426,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<Execution
 
     ComputeThermo ct(sysdef, group_all);
     ct.compute(max_step);
-    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
+    MY_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     fire->reset();
 
@@ -441,7 +440,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<Execution
         fire->update(i);
 
     ct.compute(max_step+1);
-    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
+    MY_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
 
@@ -502,34 +501,34 @@ void fire_twoparticle_test(fire_creator fire_creator1, std::shared_ptr<Execution
         Scalar posx = pdata->getPosition(1).x;
         diff += (posx- Scalar(x_two_lj[i]))*(posx- Scalar(x_two_lj[i]));
 
-        //MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
+        //MY_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
         }
 
-    MY_BOOST_CHECK_SMALL(diff, 0.001);
+    MY_CHECK_SMALL(diff, 0.001);
 
     }
 
 //! Sees if a single particle's trajectory is being calculated correctly
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_twoparticle_test )
+UP_TEST( FIREEnergyMinimizer_twoparticle_test )
     {
     fire_twoparticle_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizer to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_smallsystem_test )
+UP_TEST( FIREEnergyMinimizer_smallsystem_test )
     {
     fire_smallsystem_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Sees if a single particle's trajectory is being calculated correctly
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_twoparticle_test )
+UP_TEST( FIREEnergyMinimizerGPU_twoparticle_test )
     {
     fire_twoparticle_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
+UP_TEST( FIREEnergyMinimizerGPU_smallsystem_test )
     {
     fire_smallsystem_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }

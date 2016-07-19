@@ -153,6 +153,7 @@ James Proctor, University of Michigan
  * Refactor external potential framework
  * Wall potentials
  * boost python to pybind11 conversion
+ * boost unit_test to upp11 conversion
 
 Chengyu Dai, University of Michigan
  * Rewrite integrate.brownian with 3D rotational updates

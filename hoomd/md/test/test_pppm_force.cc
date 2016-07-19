@@ -23,16 +23,19 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PPPMTest
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 //! Typedef'd PPPMForceCompute factory
 
@@ -88,27 +91,27 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_2->getVirialArray().getPitch();
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.576491f, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
+    MY_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
+    MY_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
+    MY_CHECK_SMALL(h_force.data[0].w, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.576491f, tol_small);
+    MY_CHECK_SMALL(h_virial.data[0*pitch+0]
                         +h_virial.data[3*pitch+0]
                         +h_virial.data[5*pitch+0], tol_small);
 
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -0.000180413f, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -0.000180153f, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -0.000180394f, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -0.000211184f, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -0.000204873f, tol_small);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.000219209f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -0.000180413f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -0.000180153f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -0.000180394f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -0.000211184f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -0.000204873f, tol_small);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.000219209f, tol_small);
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].z, -0.179186f, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[1].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
+    MY_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
+    MY_CHECK_CLOSE(h_force.data[1].z, -0.179186f, tol_small);
+    MY_CHECK_SMALL(h_force.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_virial.data[0*pitch+1]
                         +h_virial.data[3*pitch+1]
                         +h_virial.data[5*pitch+1], tol_small);
 
@@ -165,35 +168,35 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
 
     Scalar rough_tol = 0.02;
     Scalar rough_tol_2 = 10.0;
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.00904953, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.0101797, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.0124804, rough_tol);
-    MY_BOOST_CHECK_SMALL(h_force.data[0].w, rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[1*pitch+0], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[2*pitch+0], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[3*pitch+0], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[4*pitch+0], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[5*pitch+0], rough_tol);
+    MY_CHECK_CLOSE(h_force.data[0].x, 0.00904953, rough_tol);
+    MY_CHECK_CLOSE(h_force.data[0].y, 0.0101797, rough_tol);
+    MY_CHECK_CLOSE(h_force.data[0].z, 0.0124804, rough_tol);
+    MY_CHECK_SMALL(h_force.data[0].w, rough_tol);
+    MY_CHECK_SMALL(h_virial.data[0*pitch+0], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[1*pitch+0], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[2*pitch+0], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[3*pitch+0], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[4*pitch+0], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[5*pitch+0], rough_tol);
 
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.2441, rough_tol);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -5.7313404e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -4.5494677e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -3.9889249e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -7.8745142e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -4.8501155e-05, rough_tol_2);
-    MY_BOOST_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.00010732774, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalEnergy(), -0.2441, rough_tol);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(0)/volume, -5.7313404e-05, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(1)/volume, -4.5494677e-05, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(2)/volume, -3.9889249e-05, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(3)/volume, -7.8745142e-05, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(4)/volume, -4.8501155e-05, rough_tol_2);
+    MY_CHECK_CLOSE(fc_2->getExternalVirial(5)/volume, -0.00010732774, rough_tol_2);
 
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.00904953, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.0101797, rough_tol);
-    MY_BOOST_CHECK_CLOSE(h_force.data[1].z, -0.0124804, rough_tol);
-    MY_BOOST_CHECK_SMALL(h_force.data[1].w, rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+1], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[1*pitch+1], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[2*pitch+1], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[3*pitch+1], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[4*pitch+1], rough_tol);
-    MY_BOOST_CHECK_SMALL(h_virial.data[5*pitch+1], rough_tol);
+    MY_CHECK_CLOSE(h_force.data[1].x, -0.00904953, rough_tol);
+    MY_CHECK_CLOSE(h_force.data[1].y, -0.0101797, rough_tol);
+    MY_CHECK_CLOSE(h_force.data[1].z, -0.0124804, rough_tol);
+    MY_CHECK_SMALL(h_force.data[1].w, rough_tol);
+    MY_CHECK_SMALL(h_virial.data[0*pitch+1], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[1*pitch+1], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[2*pitch+1], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[3*pitch+1], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[4*pitch+1], rough_tol);
+    MY_CHECK_SMALL(h_virial.data[5*pitch+1], rough_tol);
     }
 
 
@@ -217,15 +220,15 @@ std::shared_ptr<PPPMForceCompute> gpu_pppm_creator(std::shared_ptr<SystemDefinit
 #endif
 
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( PPPMForceCompute_basic )
+//! test case for particle test on CPU
+UP_TEST( PPPMForceCompute_basic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
     pppm_force_particle_test(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
+//! test case for particle test on CPU
+UP_TEST( PPPMForceCompute_triclinic )
     {
     pppmforce_creator pppm_creator = bind(base_class_pppm_creator, _1, _2, _3);
     pppm_force_particle_test_triclinic(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -233,14 +236,14 @@ BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
 
 
 #ifdef ENABLE_CUDA
-//! boost test case for bond forces on the GPU
-BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_basic )
+//! test case for bond forces on the GPU
+UP_TEST( PPPMForceComputeGPU_basic )
     {
     pppmforce_creator pppm_creator = bind(gpu_pppm_creator, _1, _2, _3);
     pppm_force_particle_test(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_triclinic )
+UP_TEST( PPPMForceComputeGPU_triclinic )
     {
     pppmforce_creator pppm_creator = bind(gpu_pppm_creator, _1, _2, _3);
     pppm_force_particle_test_triclinic(pppm_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
