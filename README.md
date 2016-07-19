@@ -44,10 +44,10 @@ For more detailed instructions, [see the documentation](http://glotzerlab.engin.
      * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.9, clang 3.5, intel 15)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
-     * MPI (tested with OpenMPI, MVAPICH, impi)
+     * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
 
 # Job scripts

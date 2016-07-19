@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -26,9 +28,9 @@ class TwoStepBDGPU : public TwoStepBD
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<ParticleGroup> group,
-                     boost::shared_ptr<Variant> T,
+        TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group,
+                     std::shared_ptr<Variant> T,
                      unsigned int seed,
                      bool use_lambda,
                      Scalar lambda,
@@ -48,6 +50,6 @@ class TwoStepBDGPU : public TwoStepBD
     };
 
 //! Exports the TwoStepBDGPU class to python
-void export_TwoStepBDGPU();
+void export_TwoStepBDGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_BD_GPU_H__

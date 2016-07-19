@@ -8,8 +8,8 @@ hpmc.update
 .. autosummary::
     :nosignatures:
 
+    hpmc.update.boxmc
     hpmc.update.muvt
-    hpmc.update.npt
     hpmc.update.remove_drift
     hpmc.update.wall
 
@@ -18,4 +18,3 @@ hpmc.update
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
     :members:
-

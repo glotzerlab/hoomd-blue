@@ -1349,7 +1349,7 @@ class dpd(pair):
         integrate.nve(group=group.all())
 
     """
-    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed, name=None):
         hoomd.util.print_status_line();
 
         # register the citation
@@ -1589,7 +1589,7 @@ class dpdlj(pair):
 
     """
 
-    def __init__(self, r_cut, nlist, kT, seed=1, name=None):
+    def __init__(self, r_cut, nlist, kT, seed, name=None):
         hoomd.util.print_status_line();
 
         # register the citation

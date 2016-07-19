@@ -25,6 +25,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Sleep for for a time
 /*! \param msec Number of milliseconds to sleep for
     \ingroup utils
@@ -55,7 +57,9 @@ class ClockSource
     };
 
 //! Exports the ClockSource class to python
-void export_ClockSource();
+#ifndef NVCC
+void export_ClockSource(pybind11::module& m);
+#endif
 
 inline int64_t ClockSource::getTime() const
     {

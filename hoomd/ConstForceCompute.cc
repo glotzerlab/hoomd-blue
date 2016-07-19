@@ -7,8 +7,7 @@
 
 #include "ConstForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -22,7 +21,7 @@ using namespace std;
     \param fz z-component of the force
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
+ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
         : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
@@ -37,7 +36,7 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     \param fz z-component of the force
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
+ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
         : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
@@ -102,7 +101,7 @@ void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, S
     \param fy y-component of the force
     \param fz z-component of the force
 */
-void ConstForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
+void ConstForceCompute::setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
     {
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
 
@@ -151,10 +150,10 @@ void ConstForceCompute::computeForces(unsigned int timestep)
     }
 
 
-void export_ConstForceCompute()
+void export_ConstForceCompute(py::module& m)
     {
-    class_< ConstForceCompute, boost::shared_ptr<ConstForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ConstForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar >())
+    py::class_< ConstForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute",py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)
     .def("setGroupForce", &ConstForceCompute::setGroupForce)
     ;

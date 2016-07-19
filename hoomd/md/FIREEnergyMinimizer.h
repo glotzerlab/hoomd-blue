@@ -6,7 +6,7 @@
 
 #include "IntegratorTwoStep.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_H__
 #define __FIRE_ENERGY_MINIMIZER_H__
@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -28,7 +30,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition>,  boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
+        FIREEnergyMinimizer(std::shared_ptr<SystemDefinition>,  std::shared_ptr<ParticleGroup>, Scalar, bool=true);
         virtual ~FIREEnergyMinimizer();
 
         //! Reset the minimization
@@ -76,7 +78,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
 
         //! Access the group
-        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
+        std::shared_ptr<ParticleGroup> getGroup() { return m_group; }
 
         //! Get needed pdata flags
         /*! FIREEnergyMinimzer needs the potential energy, so its flag is set
@@ -91,7 +93,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     protected:
         //! Function to create the underlying integrator
         //virtual void createIntegrator();
-        const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
+        const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions
         unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts
@@ -114,6 +116,6 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     };
 
 //! Exports the FIREEnergyMinimizer class to python
-void export_FIREEnergyMinimizer();
+void export_FIREEnergyMinimizer(pybind11::module& m);
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_H__

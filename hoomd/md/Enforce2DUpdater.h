@@ -13,8 +13,8 @@
 #endif
 
 #include "hoomd/Updater.h"
-
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 #include <vector>
 
 #ifndef __ENFORCE2DUPDATER_H__
@@ -29,7 +29,7 @@ class Enforce2DUpdater : public Updater
     {
     public:
         //! Constructor
-        Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~Enforce2DUpdater();
@@ -39,6 +39,6 @@ class Enforce2DUpdater : public Updater
     };
 
 //! Export the Enforce2DUpdater to python
-void export_Enforce2DUpdater();
+void export_Enforce2DUpdater(pybind11::module& m);
 
 #endif

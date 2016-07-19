@@ -6,7 +6,7 @@
 
 #include "FIREEnergyMinimizer.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__
 #define __FIRE_ENERGY_MINIMIZER_GPU_H__
@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -28,7 +30,7 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar);
+        FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar);
 
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerGPU() {}
@@ -56,6 +58,6 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     };
 
 //! Exports the FIREEnergyMinimizerGPU class to python
-void export_FIREEnergyMinimizerGPU();
+void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__

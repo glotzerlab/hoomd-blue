@@ -13,7 +13,6 @@
 #include <iomanip>
 
 #include "hoomd/Integrator.h"
-#include <boost/python.hpp>
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
@@ -34,6 +33,10 @@
 #include "ShapeEllipsoid.h"
 #include "ShapeFacetedSphere.h"
 #include "ShapeSphinx.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -124,7 +127,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                       unsigned int seed);
 
         virtual ~IntegratorHPMCMono()
@@ -149,7 +152,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void setParam(unsigned int typ, const param_type& param);
 
         //! Set the external field for the integrator
-        void setExternalField(boost::shared_ptr< ExternalFieldMono<Shape> > external)
+        void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
             {
             m_external = external;
             this->m_external_base = (ExternalField*)external.get();
@@ -163,6 +166,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Count overlaps with the option to exit early at the first detected overlap
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
+
+        //! Return a vector that is an unwrapped overlap map
+        virtual std::vector<bool> mapOverlaps();
 
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth()
@@ -252,7 +258,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
-        boost::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
+        std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
         detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
@@ -292,7 +298,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                                                    unsigned int seed)
             : IntegratorHPMC(sysdef, seed),
               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
@@ -942,7 +948,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                                     << "This message will not be repeated." << std::endl;
         }
 
-    m_exec_conf->msg->notice(4) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
+    m_exec_conf->msg->notice(8) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
     if (m_prof) m_prof->pop();
 
     return m_image_list;
@@ -1062,16 +1068,112 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
         }
     }
 
+/*! Function for finding all overlaps in a system by particle tag. returns an unraveled form of an NxN matrix
+ * with true/false indicating the overlap status of the ith and jth particle
+ */
+template <class Shape>
+std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
+    {
+    unsigned int N = m_pdata->getMaximumTag() + 1;
+
+    std::vector<bool> overlap_map(N*N, false);
+
+    m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
+
+    unsigned int err_count = 0;
+
+    // build an up to date AABB tree
+    buildAABBTree();
+    // update the image list
+    updateImageList();
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    // access parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    // Loop over all particles
+    for (unsigned int i = 0; i < N; i++)
+        {
+        // read in the current position and orientation
+        Scalar4 postype_i = h_postype.data[i];
+        Scalar4 orientation_i = h_orientation.data[i];
+        Shape shape_i(quat<Scalar>(orientation_i), h_params.data[__scalar_as_int(postype_i.w)]);
+        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        // Check particle against AABB tree for neighbors
+        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+
+        const unsigned int n_images = m_image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+            detail::AABB aabb = aabb_i_local;
+            aabb.translate(pos_i_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            // skip i==j in the 0 image
+                            if (cur_image == 0 && i == j)
+                                {
+                                continue;
+                                }
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+
+                            if (h_tag.data[i] <= h_tag.data[j]
+                                && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+                                && test_overlap(r_ij, shape_i, shape_j, err_count)
+                                && test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                {
+                                overlap_map[h_tag.data[j]+N*h_tag.data[i]] = true;
+                                }
+                            }
+                        }
+                    }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+                } // end loop over AABB nodes
+            } // end loop over images
+        } // end loop over particles
+    return overlap_map;
+    }
+
+
+
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< IntegratorHPMCMono<Shape>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    pybind11::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str(), pybind11::base<IntegratorHPMC>())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
           ;
     }
 

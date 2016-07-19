@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __TABLEPOTENTIALGPU_H__
 #define __TABLEPOTENTIALGPU_H__
 
@@ -29,8 +31,8 @@ class TablePotentialGPU : public TablePotential
     {
     public:
         //! Constructs the compute
-        TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<NeighborList> nlist,
+        TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<NeighborList> nlist,
                           unsigned int table_width,
                           const std::string& log_suffix="");
 
@@ -56,6 +58,6 @@ class TablePotentialGPU : public TablePotential
     };
 
 //! Exports the TablePotentialGPU class to python
-void export_TablePotentialGPU();
+void export_TablePotentialGPU(pybind11::module& m);
 
 #endif

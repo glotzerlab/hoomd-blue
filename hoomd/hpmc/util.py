@@ -12,6 +12,7 @@ try:
 except ImportError:
     np = None
 
+import hoomd
 import sys
 import colorsys as cs
 import re
@@ -271,7 +272,6 @@ class compress:
                  relax=int(1e4),
                  quiet=True,
                  ):
-        import hoomd
 
         # Gather and check arguments
         self.mc = mc
@@ -355,14 +355,12 @@ class compress:
         #
 
         log_values = [
-                    'hpmc_npt_pressure',
+                    'hpmc_boxmc_pressure',
                     'volume',
                     'hpmc_d',
                     'hpmc_a',
-                    'hpmc_npt_dLx',
-                    'hpmc_npt_volume_acceptance',
-                    'hpmc_npt_dxy',
-                    'hpmc_npt_shear_acceptance',
+                    'hpmc_boxmc_volume_acceptance',
+                    'hpmc_boxmc_shear_acceptance',
                     ]
         self.mclog = hoomd.analyze.log(filename=self.log_file, quantities=log_values , period=self.tuner_period, header_prefix='#', overwrite=True)
         self.mclog.disable() # will be enabled and disabled by call to run()
@@ -371,14 +369,12 @@ class compress:
     # \param num_comp_cycles number of compression cycles to run (default 1)
     # \returns tuple of lists of packing fractions and corresponding snapshot objects.
     def run(self, num_comp_cycles=1):
-        import hoomd
         ## construct exponentially growing pressure variant
         # \param num_comp_steps number of steps in pressure variant
         # \param pmin minimum pressure
         # \param pmax maximum pressure
         # \returns P pressure variant for use in NPT updater
         def makePvariant(num_comp_steps, pmin, pmax):
-            import hoomd
             num_points = 101 # number of points defining the curve
             interval = num_comp_steps / num_points
             pressures=np.logspace(np.log10(pmin), np.log10(pmax), num_points)
@@ -416,42 +412,44 @@ class compress:
         if (dim==2):
             A3scale=0.0
 
-        move_ratio = 0.5
-        if not allowShearing:
-            move_ratio = 1.0
-        self.npt_updater.set_params(P=pmin, dLx=Lscale, dLy=Lscale, dLz=Lscale, dxy=Ascale, dxz=A3scale, dyz=A3scale, move_ratio=move_ratio, reduce=0.6)
+        self.npt_updater.set_betap(pmin)
+        self.npt_updater.length(delta=Lscale)
+        if allowShearing:
+            self.npt_updater.shear(delta=A3scale, reduce=0.6)
 
         #calculate initial packing fraction
         volume = Lx*Ly if dim==2 else Lx*Ly*Lz
         last_eta = tot_pvol / volume
-        hoomd.context.msg.notice(5,'Starting eta = {}'.format(last_eta))
-        hoomd.context.msg.notice(5,'Starting volume = {}'.format(volume))
-        hoomd.context.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
+        hoomd.context.msg.notice(5,'Starting eta = {}. '.format(last_eta))
+        hoomd.context.msg.notice(5,'Starting volume = {}. '.format(volume))
+        hoomd.context.msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
 
         for i in range(num_comp_cycles):
-            hoomd.context.msg.notice(5,'Sweep {}'.format(i))
+            hoomd.context.msg.notice(5,'Compressor sweep {}. '.format(i))
 
             # if not first sweep, relax the system
             if i != 0:
                 # set box volume to original
                 hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                 # reset tunables
-                self.npt_updater.set_params(P=pmin, dLx=Lscale, dLy=Lscale, dLz=Lscale, dxy=Ascale, dxz=A3scale, dyz=A3scale, move_ratio=move_ratio)
+                self.npt_updater.set_betap(pmin)
+                self.npt_updater.length(delta=Lscale)
+                if allowShearing:
+                    self.npt_updater.shear(delta=A3scale)
                 self.mc.set_params(d=0.1, a=0.01)
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                status_lines = hoomd.util._disable_status_lines
-                hoomd.util._disable_status_lines = True
+                hoomd.util.quiet_status()
                 hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
-                    hoomd.context.msg.notice(5,"{} overlaps at step {}".format(noverlaps, hoomd.get_step()))
+                    hoomd.context.msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
                     Lx *= 1.0+Lscale
                     Ly *= 1.0+Lscale
                     Lz *= 1.0+Lscale
                     hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
-                hoomd.util._disable_status_lines = status_lines
+                hoomd.util.unquiet_status()
 
             #randomize the intial configuration
             #intial box, no shear
@@ -460,7 +458,7 @@ class compress:
 
             # update pressure variant
             P = makePvariant(num_comp_steps, pmin, pmax)
-            self.npt_updater.set_params(P=P,move_ratio=move_ratio)
+            self.npt_updater.set_betap(P)
 
             # determine number of iterations for tuner loops
             loop_length = 0
@@ -476,12 +474,12 @@ class compress:
                     tuner.update()
 
             #calculate packing fraction for zeroth iteration
-            hoomd.context.msg.notice(5,"Checking eta at step {0}".format(hoomd.get_step()))
+            hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
             L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
             volume = L.x * L.y if dim==2 else L.x*L.y*L.z
             eta = tot_pvol / volume
-            hoomd.context.msg.notice(5,'eta = {}'.format(eta))
-            hoomd.context.msg.notice(5,"volume: {0}".format(volume))
+            hoomd.context.msg.notice(5,'eta = {}, '.format(eta))
+            hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
 
             step = hoomd.get_step()
             last_step = step
@@ -492,23 +490,23 @@ class compress:
             while (eta - last_eta) > pf_tol:
                 hoomd.run(refine_steps, quiet=quiet)
                 # check eta
-                hoomd.context.msg.notice(5,"Checking eta at step {0}".format(hoomd.get_step()))
+                hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
                 #calculate the new packing fraction
                 L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
                 volume = L.x * L.y if dim==2 else L.x*L.y*L.z
                 last_eta = eta
                 eta = tot_pvol / volume
-                hoomd.context.msg.notice(5,"eta: {0}".format(eta))
-                hoomd.context.msg.notice(5,"volume: {0}".format(volume))
+                hoomd.context.msg.notice(5,"eta: {0}, ".format(eta))
+                hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
                 last_step = step
                 step = hoomd.get_step()
                 # Check if we've gone too far
                 if j == max_eta_checks:
-                    hoomd.context.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.".format(max_eta_checks))
+                    hoomd.context.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
                 j += 1
 
-            hoomd.context.msg.notice(5,"Step: {step}, Packing fraction: {eta}".format(step=last_step, eta=last_eta))
-            hoomd.context.msg.notice(5,'overlaps={}'.format(self.mc.count_overlaps()))
+            hoomd.context.msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
+            hoomd.context.msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
             self.eta_list.append(last_eta)
 
             #take a snapshot of the system
@@ -539,7 +537,6 @@ class compress:
 class snapshot:
     ## constructor
     def __init__(self):
-        import hoomd
         system = hoomd.data.system_data(hoomd.context.current.system_definition)
         box = system.sysdef.getParticleData().getGlobalBox()
         L = box.getL()
@@ -616,6 +613,7 @@ class tune(object):
         max_scale (float): maximum amount to scale a parameter in a single update
         gamma (float): damping factor (>= 0.0) to keep from scaling parameter values too fast
         type (str): Type name to tune move sizes for
+        tunable_map (dict): For each tunable, provide a dictionary of values and methods to be used by the tuner (see below)
         args: Additional positional arguments
         kwargs: Additional keyword arguments
 
@@ -623,6 +621,15 @@ class tune(object):
     seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
     For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
     of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
+
+    Default tunable_maps are provided but can be modified or extended by setting
+    the following dictionary key/value pairs in the entry for tunable.
+
+    * maximum (float): maximum value of tunable
+    * get (lambda): function to call to retrieve curent tunable value
+    * acceptance (lambda): function to call to get relevant accemptance rate
+    * set (lambda x): function to call to set new value (optional). If not provided,
+      obj.set_params(tunable=x) will be called to set the new value.
 
     Note:
         There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
@@ -638,11 +645,11 @@ class tune(object):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+        hoomd.util.quiet_status()
+
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
             raise ValueError("If provided, max_val must be same length as tunables.")
-        #from hoomd import analyze
-        import hoomd
         self.type=type
         #initialize tunable map
 
@@ -651,30 +658,30 @@ class tune(object):
             self.tunable_map = dict()
             if type is None:
                 t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
-                self.tunable_map.update({'d'.format(t): (
-                                                     lambda obj: getattr(obj, 'get_d')(t),
-                                                     lambda obj: getattr(obj, 'get_translate_acceptance')(),
-                                                     1.0
-                                                      ),
-                                          'a'.format(t): (
-                                                     lambda obj: getattr(obj, 'get_a')(t),
-                                                     lambda obj: getattr(obj, 'get_rotate_acceptance')(),
-                                                     0.5
-                                                      )})
+                self.tunable_map.update({'d'.format(t): {
+                                                     'get': lambda: getattr(obj, 'get_d')(t),
+                                                     'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                     'maximum': 1.0
+                                                      },
+                                          'a'.format(t): {
+                                                     'get': lambda: getattr(obj, 'get_a')(t),
+                                                     'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                     'maximum': 0.5
+                                                      }})
             else:
                 type_names = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())]
                 map_dict = dict()
                 for t in type_names:
-                     self.tunable_map.update({'d'.format(t): (
-                                                 lambda obj: getattr(obj, 'get_d')(type),
-                                                 lambda obj: getattr(obj, 'get_translate_acceptance')(),
-                                                 1.0
-                                                 ),
-                                              'a'.format(t): (
-                                                 lambda obj: getattr(obj, 'get_a')(type),
-                                                 lambda obj: getattr(obj, 'get_rotate_acceptance')(),
-                                                 0.5
-                                                 )})
+                     self.tunable_map.update({'d'.format(t): {
+                                                 'get': lambda: getattr(obj, 'get_d')(type),
+                                                 'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                 'maximum': 1.0
+                                                 },
+                                              'a'.format(t): {
+                                                 'get': lambda: getattr(obj, 'get_a')(type),
+                                                 'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                 'maximum': 0.5
+                                                 }})
         else:
             self.tunable_map=tunable_map
 
@@ -684,12 +691,10 @@ class tune(object):
         self.max_scale = float(max_scale)
         self.gamma = float(gamma)
         allowed_tunables = set(self.tunable_map.keys())
-        # list of active tunables; not used internally
-        self.tunables = list()
         # list of maximum values for active tunables; not used internally
         self.maxima = list()
-        # mapping of ratios being tracked to tuples of sources of tunable information
-        self.ratios = dict()
+        # mapping of tunables and acceptance ratios being tracked to information and methods
+        self.tunables = dict()
 
         # map tunable parameters to a tuple defining
         #  (0) lambda expression to retrieve current value
@@ -699,30 +704,30 @@ class tune(object):
         for i in range(len(tunables)):
             item = tunables[i]
             if item in allowed_tunables:
-                getVal = self.tunable_map[item][0]
-                getRatio = self.tunable_map[item][1]
+                self.tunables[item] = self.tunable_map[item]
                 if max_val_length != 0:
-                    maximum = max_val[i]
-                else:
-                    maximum = self.tunable_map[item][2]
-                self.tunables.append(item)
-                self.maxima.append(maximum)
-                if not getRatio in self.ratios:
-                    self.ratios[getRatio] = list()
-                self.ratios[getRatio].append((item, getVal, maximum))
+                    self.tunables[item]['maximum'] = max_val[i]
+                if not 'set' in self.tunable_map[item]:
+                    self.tunable_map[item]['set'] = lambda x, name=item: obj.set_params(**{name : x} )
+                self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
+
+        hoomd.util.unquiet_status()
 
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
         """
-        import hoomd
+        hoomd.util.quiet_status()
+
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
-        # For each of the acceptance rates we are watching...
-        for getRatio in self.ratios:
+        # For each of the tunables we are watching...
+        for tunable in self.tunables:
+            get = self.tunables[tunable]['get']
+            acceptance = self.tunables[tunable]['acceptance']
             target = self.target
-            actual = getRatio(self.obj)
+            actual = acceptance()
             if (actual > 0.0):
                 # find (damped) scale somewhere between 1.0 and actual/target
                 scale = ((1.0 + self.gamma) * actual) / (target + self.gamma * actual)
@@ -731,30 +736,29 @@ class tune(object):
                 scale = 0.1
             if (scale > self.max_scale):
                 scale = self.max_scale
-            # for each of the parameters we are tuning using this acceptance ratio, find new value
-            for q in self.ratios[getRatio]:
-                param_name = q[0]
-                getVal = q[1]
-                max_val = q[2]
-                oldval = getVal(self.obj)
-                if (oldval == 0):
-                    newval = 1e-5
-                    hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
-                else:
-                    newval = float(scale * oldval)
-                    # perform sanity checking on newval
-                    if (newval == 0.0):
-                        newval = float(1e-6)
-                    if (newval > max_val):
-                        newval = max_val
+            # find new value
+            param_name = tunable
+            max_val = self.tunables[tunable]['maximum']
+            oldval = get()
+            if (oldval == 0):
+                newval = 1e-5
+                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
+            else:
+                newval = float(scale * oldval)
+                # perform sanity checking on newval
+                if (newval == 0.0):
+                    newval = float(1e-6)
+                if (newval > max_val):
+                    newval = max_val
 
-                if self.type is None:
-                    newquantities[param_name] = float(newval)
-                else:
-                    newquantities[param_name] = {self.type:float(newval)}
-        hoomd.util._disable_status_lines = True;
-        self.obj.set_params(**newquantities)
-        hoomd.util._disable_status_lines = False;
+            if self.type is None:
+                newquantities[param_name] = float(newval)
+            else:
+                newquantities[param_name] = {self.type:float(newval)}
+
+        for q in newquantities:
+            self.tunables[q]['set'](newquantities[q])
+        hoomd.util.unquiet_status();
 
 class tune_npt(tune):
     R""" Tune the HPMC NPT Updater.
@@ -766,7 +770,7 @@ class tune_npt(tune):
 
         mc = hpmc.integrate.convex_polyhedron()
         mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
-        updater = hpmc.update.npt(mc, P=10, dLx=0.1, dLy=0.1, dLz=0.1, dxy=0, dyz=0, dxz=0, move_ratio=1, period=1)
+        updater = hpmc.update.npt(mc, betaP=10, length_delta=0.1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)
         for i in range(10):
             run(1e4)
@@ -774,36 +778,50 @@ class tune_npt(tune):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+        hoomd.util.quiet_status()
         tunable_map = {
-                    'dLx': (
-                          lambda obj: getattr(obj, 'get_dLx')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dLy': (
-                          lambda obj: getattr(obj, 'get_dLy')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dLz': (
-                          lambda obj: getattr(obj, 'get_dLz')(),
-                          lambda obj: getattr(obj, 'get_volume_acceptance')(),
-                          1.0
-                          ),
-                    'dxy': (
-                          lambda obj: getattr(obj, 'get_dxy')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
-                    'dxz': (
-                          lambda obj: getattr(obj, 'get_dxz')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
-                    'dyz': (
-                          lambda obj: getattr(obj, 'get_dyz')(),
-                          lambda obj: getattr(obj, 'get_shear_acceptance')(),
-                          1.0
-                          ),
+                    'dLx': {
+                          'get': lambda: obj.length()['delta'][0],
+                          'acceptance': obj.get_volume_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.length(delta=(x, obj.length()['delta'][1], obj.length()['delta'][2]))
+                          },
+                    'dLy': {
+                          'get': lambda: obj.length()['delta'][1],
+                          'acceptance': obj.get_volume_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], x, obj.length()['delta'][2]))
+                          },
+                    'dLz': {
+                          'get': lambda: obj.length()['delta'][2],
+                          'acceptance': obj.get_volume_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], obj.length()['delta'][1], x))
+                          },
+                    'dV': {
+                          'get': lambda: obj.volume()['delta'],
+                          'acceptance': obj.get_volume_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.volume(delta=x)
+                          },
+                    'dxy': {
+                          'get': lambda: obj.shear()['delta'][0],
+                          'acceptance': obj.get_shear_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.shear(delta=(x, obj.shear()['delta'][1], obj.shear()['delta'][2]))
+                          },
+                    'dxz': {
+                          'get': lambda: obj.shear()['delta'][1],
+                          'acceptance': obj.get_shear_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], x, obj.shear()['delta'][2]))
+                          },
+                    'dyz': {
+                          'get': lambda: obj.shear()['delta'][2],
+                          'acceptance': obj.get_shear_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
+                          },
                     }
+        hoomd.util.unquiet_status()
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)

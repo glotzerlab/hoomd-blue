@@ -18,10 +18,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <boost/bind.hpp>
 
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iomanip>
 using namespace std;
@@ -35,7 +35,7 @@ using namespace std;
     (and overwritten if told to). Nothing is initially written to the file, that will occur on the first call to
     analyze()
 */
-MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
+MSDAnalyzer::MSDAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
                          std::string fname,
                          const std::string& header_prefix,
                          bool overwrite)
@@ -184,7 +184,7 @@ void MSDAnalyzer::setDelimiter(const std::string& delimiter)
     After a column is added with addColumn(), future calls to analyze() will calculate the MSD of the particles defined
     in \a group and print out an entry under the \a name header in the file.
 */
-void MSDAnalyzer::addColumn(boost::shared_ptr<ParticleGroup> group, const std::string& name)
+void MSDAnalyzer::addColumn(std::shared_ptr<ParticleGroup> group, const std::string& name)
     {
     m_columns.push_back(column(group, name));
 
@@ -286,7 +286,7 @@ void MSDAnalyzer::writeHeader()
     Loop through all particles in the given group and calculate the MSD over them.
     \returns The calculated MSD
 */
-Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot)
+Scalar MSDAnalyzer::calcMSD(std::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot)
     {
     BoxDim box = m_pdata->getGlobalBox();
 
@@ -358,10 +358,10 @@ void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData<Sca
     if (m_prof) m_prof->pop();
     }
 
-void export_MSDAnalyzer()
+void export_MSDAnalyzer(py::module& m)
     {
-    class_<MSDAnalyzer, boost::shared_ptr<MSDAnalyzer>, bases<Analyzer>, boost::noncopyable>
-    ("MSDAnalyzer", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
+    py::class_<MSDAnalyzer, std::shared_ptr<MSDAnalyzer> >(m,"MSDAnalyzer",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("setDelimiter", &MSDAnalyzer::setDelimiter)
     .def("addColumn", &MSDAnalyzer::addColumn)
     .def("setR0", &MSDAnalyzer::setR0)

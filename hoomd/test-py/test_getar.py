@@ -209,6 +209,45 @@ class test_basic_io(unittest.TestCase):
 
             hoomd.init.restore_getar(fname);
 
+    def test_simple(self):
+        N = 10;
+        box = hoomd.data.boxdim(20*N, 40*N, 60*N);
+        snap = hoomd.data.make_snapshot(N, box);
+        if hoomd.comm.get_rank() == 0:
+            snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
+        hoomd.init.read_snapshot(snap);
+
+        for suffix in ['zip', 'tar', 'sqlite']:
+            fname = 'dump.{}'.format(suffix);
+            dump = hoomd.dump.getar.simple(fname, mode='w', period=1e3,
+                                           static=['viz_static'],
+                                           dynamic=['viz_dynamic']);
+            hoomd.run(1);
+            dump.close();
+            dump.disable();
+            hoomd.comm.barrier_all();
+
+            hoomd.init.restore_getar(fname);
+
+    def test_periodic(self):
+        N = 10;
+        box = hoomd.data.boxdim(20*N, 40*N, 60*N);
+        snap = hoomd.data.make_snapshot(N, box);
+        if hoomd.comm.get_rank() == 0:
+            snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
+        hoomd.init.read_snapshot(snap);
+
+        for suffix in ['zip', 'tar', 'sqlite']:
+            fname = 'dump.{}'.format(suffix);
+            dump = hoomd.dump.getar(fname, mode='w', static=['viz_static'],
+                                    dynamic={'viz_aniso_dynamic': 1e3});
+            hoomd.run(1);
+            dump.close();
+            dump.disable();
+            hoomd.comm.barrier_all();
+
+            hoomd.init.restore_getar(fname);
+
     def setUp(self):
         hoomd.context.initialize();
 

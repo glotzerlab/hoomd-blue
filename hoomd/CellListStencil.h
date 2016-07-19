@@ -15,6 +15,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
+
 #ifndef __CELLLISTSTENCIL_H__
 #define __CELLLISTSTENCIL_H__
 
@@ -42,7 +45,7 @@ class CellListStencil : public Compute
     {
     public:
         //! Constructor
-        CellListStencil(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<CellList> cl);
+        CellListStencil(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<CellList> cl);
 
         //! Destructor
         virtual ~CellListStencil();
@@ -61,7 +64,7 @@ class CellListStencil : public Compute
             m_rstencil = rstencil;
             requestCompute();
             }
-        
+
         //! Get the computed stencils
         const GPUArray<Scalar4>& getStencils() const
             {
@@ -90,7 +93,7 @@ class CellListStencil : public Compute
         virtual bool shouldCompute(unsigned int timestep);
 
     private:
-        boost::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
+        std::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
         std::vector<Scalar> m_rstencil;                 //!< Per-type radius to stencil
 
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
@@ -114,6 +117,9 @@ class CellListStencil : public Compute
     };
 
 //! Exports CellListStencil to python
-void export_CellListStencil();
+#ifndef NVCC
+void export_CellListStencil(pybind11::module& m);
+#endif
+
 
 #endif // __CELLLISTSTENCIL_H__

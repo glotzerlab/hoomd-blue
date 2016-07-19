@@ -9,10 +9,9 @@
 #include "TwoStepNVE.h"
 #include "hoomd/VectorMath.h"
 
-#include <boost/python.hpp>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
@@ -22,8 +21,8 @@ using namespace boost::python;
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
 */
-TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
+TwoStepNVE::TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
                        bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
@@ -339,10 +338,10 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_TwoStepNVE()
+void export_TwoStepNVE(py::module& m)
     {
-    class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, bool >())
+    py::class_<TwoStepNVE, std::shared_ptr<TwoStepNVE> >(m, "TwoStepNVE", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
         .def("setZeroForce", &TwoStepNVE::setZeroForce)

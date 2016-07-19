@@ -13,7 +13,7 @@ HPMC implements hard particle Monte Carlo in HOOMD-blue. It supports:
 - Box shape: triclinic
 - Ensembles:
     - NVT
-    - NPT (:py:class:`update.npt`)
+    - NPT (:py:class:`update.boxmc`)
     - Implicit depletants
     - Grand canonical ensemble (:py:class:`update.muvt`)
     - Gibbs ensemble (:py:class:`update.muvt`)
@@ -30,11 +30,12 @@ HPMC implements hard particle Monte Carlo in HOOMD-blue. It supports:
     - General polyhedra (:py:class:`integrate.polyhedron`)
 - Execution:
     - Canonical hard particle MC on a single CPU core
-    - Parallel updates on many CPU cores using MPI
     - Parallel update scheme on a single GPU
-    - Frenkel-Ladd free energy determination on a single CPU core
+    - Parallel updates on many CPU cores / GPUs using MPI
+    - Frenkel-Ladd free energy determination
 - Analysis:
     - Scale distribution function for pressure determination in NVT (:py:class:`analyze.sdf`)
+    - Free volume (:py:class:`compute.free_volume`)
 - File I/O:
     - Loose integration with pos_writer
 
@@ -66,17 +67,11 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 
 :py:class:`update.npt` provides the following loggable quantities:
 
-- ``hpmc_npt_trial_count`` - Number of NPT box changes attempted since the start of the NPT updater
-- ``hpmc_npt_volume_acceptance`` - Fraction of volume change trials accepted (averaged only over the last time step)
-- ``hpmc_npt_shear_acceptance`` - Fraction of shear trials accepted (averaged only over the last time step)
-- ``hpmc_npt_move_ratio`` Probability of a volume change move (1-P(shear move)) (averaged only over the last time step)
-- ``hpmc_npt_dLx`` Current maximum trial length change of the first box vector
-- ``hpmc_npt_dLy`` Current maximum trial change of the y-component of the second box vector
-- ``hpmc_npt_dLz`` Current maximum trial change of the z-component of the third box vector
-- ``hpmc_npt_dxy`` Current maximum trial change of the shear parameter for the second box vector
-- ``hpmc_npt_dxz`` Current maximum trial change of the shear parameter for the third box vector in the x direction
-- ``hpmc_npt_dyz`` Current maximum trial change of the shear parameter for the third box vector in the y direction
-- ``hpmc_npt_pressure`` Current value of the :math:`\beta p` value of the NpT updater
+- ``hpmc_boxmc_trial_count`` - Number of NPT box changes attempted since the start of the NPT updater
+- ``hpmc_boxmc_volume_acceptance`` - Fraction of volume/length change trials accepted (averaged from the start of the last run)
+- ``hpmc_boxmc_shear_acceptance`` - Fraction of shear trials accepted (averaged from the start of the last run)
+- ``hpmc_boxmc_aspect_acceptance`` - Fraction of aspect trials accepted (averaged from the start of the last run)
+- ``hpmc_boxmc_betaP`` Current value of the :math:`\beta p` value of the boxmc updater
 
 :py:class:`update.muvt` provides the following loggable quantities.
 
