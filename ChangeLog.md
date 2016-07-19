@@ -4,6 +4,10 @@
 
 ## v2.1.0
 
+*New features*
+
+* per-particle ignore flag for sphere_union() shapes
+
 *Other changes*
 
 * Removed dependency on boost::python.

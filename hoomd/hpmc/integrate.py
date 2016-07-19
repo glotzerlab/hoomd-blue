@@ -1493,8 +1493,8 @@ class sphere_union(mode_hpmc):
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
 <<<<<<< HEAD
-    * *ignores* (**default: False for all spheres **) - list of flags to ignore overlaps of constituent particles which share this flag
-    * *rigid* (**default: True**) - if True, **all** overlaps between two rigid unions are always checked
+    * *ignores* (**default: False for all spheres **) - list of flags to ignore overlaps of constituent particles for which *ignores[i] && ignores[j]* is True
+    * *rigid* (**default: True**) - if True, **all** overlaps between two rigid unions are checked, independent of *ignores*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
 
     Example::
