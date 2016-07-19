@@ -50,6 +50,7 @@ struct union_params : aligned_struct
     vec3<Scalar> mpos[MAX_MEMBERS];          //!< Position vectors of member shapes
     quat<Scalar> morientation[MAX_MEMBERS];  //!< Orientation of member shapes
     mparam_type mparams[MAX_MEMBERS];        //!< Parameters of member shapes
+    unsigned int mignore[MAX_MEMBERS];       //!< do not check overlaps if shape_i.mignore[i]&&shape_j.mignore[j]
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                              //   First bit is ignore overlaps, Second bit is ignore statistics
@@ -156,7 +157,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
         vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
-        bool ignore_i = shape_i.ignoreOverlaps();
+        bool ignore_i = a.members.mignore[ishape];
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
@@ -167,7 +168,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             const mparam_type& params_j = b.members.mparams[jshape];
             const quat<Scalar> q_j = b.members.morientation[jshape];
             Shape shape_j(q_j, params_j);
-            bool ignore_j = shape_j.ignoreOverlaps();
+            bool ignore_j = b.members.mignore[jshape];
 
             unsigned int err =0;
             if ((both_rigid || !(ignore_i && ignore_j)))

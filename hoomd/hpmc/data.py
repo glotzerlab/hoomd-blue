@@ -365,5 +365,5 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
                             rigid,
-                            ignore_statistics,
+                            self.ensure_list(ignores),
                             ignore_statistics);
