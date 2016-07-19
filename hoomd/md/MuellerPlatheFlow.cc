@@ -23,7 +23,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(boost::shared_ptr<SystemDefinition> sysdef,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab)
     :Updater(sysdef), m_group(group), m_flow_target(flow_target)
-    ,m_flow_epsilon(1e-1)
+    ,m_flow_epsilon(1e-2)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
     {
@@ -111,9 +111,6 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
             m_exchanged_momentum += sign * (m_last_max_vel.s - m_last_min_vel.s);
             }
-        // stringstream s;
-        // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
-        // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
         }
     if(counter >= max_iteration)
       {
@@ -123,6 +120,9 @@ void MuellerPlatheFlow::update(unsigned int timestep)
          <<this->summed_exchanged_momentum()/area<<" could be achieved."<<endl;
         m_exec_conf->msg->warning()<<s.str();
       }
+    // stringstream s;
+    // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
+    // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
 
 void MuellerPlatheFlow::swap_min_max_slab(void)
@@ -267,10 +267,13 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 }
             }
         }
+    if(m_prof) m_prof->pop();
+
     }
 
 void MuellerPlatheFlow::update_min_max_velocity(void)
     {
+    if(m_prof) m_prof->push("MuellerPlatheFlow::update");
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     const unsigned int min_idx = h_rtag.data[m_last_min_vel.i];
     const unsigned int max_idx = h_rtag.data[m_last_max_vel.i];
@@ -278,7 +281,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     //Is my particle local on the processor?
     if( min_idx < Ntotal || max_idx < Ntotal)
         {
-        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),access_location::host,access_mode::overwrite);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),access_location::host,access_mode::readwrite);
         //Swap the particles the new velocities.
         if( min_idx < Ntotal)
             {
@@ -297,6 +300,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
                 case Z: h_vel.data[max_idx].z = m_last_min_vel.s;
                 }
         }
+    if(m_prof) m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -401,5 +405,6 @@ void export_MuellerPlatheFlow()
         .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         .def("getFlowEpsilon",&MuellerPlatheFlow::get_flow_epsilon)
         .def("setFlowEpsilon",&MuellerPlatheFlow::set_flow_epsilon)
+        .def("getSummedExchangedMomentum",&MuellerPlatheFlow::summed_exchanged_momentum)
         ;
     }

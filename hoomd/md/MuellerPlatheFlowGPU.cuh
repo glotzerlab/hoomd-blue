@@ -30,4 +30,10 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         const bool has_min_slab,
                                         const unsigned int blocksize);
 
+cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
+                                        Scalar4*const d_vel,
+                                        const unsigned int Ntotal,
+                                        const Scalar_Int last_max_vel,
+                                        const Scalar_Int last_min_vel,
+                                        const unsigned int flow_direction);
 #endif//__MUELLER_PLATHE_FLOW_GPU_CUH__

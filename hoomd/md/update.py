@@ -208,7 +208,6 @@ class constraint_ellipsoid(_updater):
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
-
 class mueller_plathe_flow(_updater):
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.
@@ -297,6 +296,10 @@ class mueller_plathe_flow(_updater):
         """
         hoomd.util.print_status_line();
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
+
+    def get_summed_exchanged_momentum(self):
+        R"""Returned the summed up exchanged velocity of the full simulation."""
+        return self.cpp_updater.getSummedExchangedMomentum()
 
     def swap_min_max(self):
         hoomd.util.print_status_line();

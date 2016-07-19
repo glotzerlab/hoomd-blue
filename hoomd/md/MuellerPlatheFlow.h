@@ -61,7 +61,7 @@ class MuellerPlatheFlow : public Updater
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        virtual Scalar summed_exchanged_momentum(void) const{return m_exchanged_momentum;}
+        Scalar summed_exchanged_momentum(void) const{return m_exchanged_momentum;}
 
         unsigned int get_N_slabs(void)const{return m_N_slabs;}
         unsigned int get_min_slab(void)const{return m_min_slab;}

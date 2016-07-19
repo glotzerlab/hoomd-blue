@@ -78,38 +78,23 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
-
+    if(m_prof) m_prof->pop();
     }
 
-// void MuellerPlatheFlowGPU::update_min_max_velocity(void)
-//     {
-//     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-//     const unsigned int min_idx = h_rtag.data[m_last_min_vel.i];
-//     const unsigned int max_idx = h_rtag.data[m_last_max_vel.i];
-//     const unsigned int Ntotal = m_pdata->getN()+m_pdata->getNGhosts();
-//     //Is my particle local on the processor?
-//     if( min_idx < Ntotal || max_idx < Ntotal)
-//         {
-//         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),access_location::host,access_mode::overwrite);
-//         //Swap the particles the new velocities.
-//         if( min_idx < Ntotal)
-//             {
-//             switch(m_flow_direction)
-//                 {
-//                 case X: h_vel.data[min_idx].x = m_last_max_vel.s; break;
-//                 case Y: h_vel.data[min_idx].y = m_last_max_vel.s; break;
-//                 case Z: h_vel.data[min_idx].z = m_last_max_vel.s; break;
-//                 }
-//             }
-//         if( max_idx < Ntotal)
-//             switch(m_flow_direction)
-//                 {
-//                 case X: h_vel.data[max_idx].x = m_last_min_vel.s;
-//                 case Y: h_vel.data[max_idx].y = m_last_min_vel.s;
-//                 case Z: h_vel.data[max_idx].z = m_last_min_vel.s;
-//                 }
-//         }
-//     }
+void MuellerPlatheFlowGPU::update_min_max_velocity(void)
+    {
+    if(m_prof) m_prof->push("MuellerPlatheFlowGPU::update");
+    const ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),access_location::device,access_mode::readwrite);
+    const unsigned int Ntotal = m_pdata->getN()+m_pdata->getNGhosts();
+
+    gpu_update_min_max_velocity(d_rtag.data,d_vel.data,Ntotal,m_last_max_vel,
+                                m_last_min_vel,m_flow_direction);
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    if(m_prof) m_prof->pop();
+    }
 
 
 

@@ -67,7 +67,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         virtual void search_min_max_velocity(void);
-        //virtual void update_min_max_velocity(void);
+        virtual void update_min_max_velocity(void);
     };
 
 //! Exports the MuellerPlatheFlow class to python

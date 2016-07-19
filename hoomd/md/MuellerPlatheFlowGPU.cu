@@ -162,3 +162,54 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
 
     return cudaPeekAtLastError();
     }
+
+
+void __global__ gpu_update_min_max_velocity_kernel(const unsigned int *const d_rtag,
+                                                   Scalar4*const d_vel,
+                                                   const unsigned int Ntotal,
+                                                   const Scalar_Int last_max_vel,
+                                                   const Scalar_Int last_min_vel,
+                                                   const unsigned int flow_direction)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= 1)
+        return;
+
+    const unsigned int min_idx = d_rtag[last_min_vel.i];
+    const unsigned int max_idx = d_rtag[last_max_vel.i];
+    //Is the particle local on the processor?
+    //Swap the particles the new velocities.
+    if( min_idx < Ntotal)
+        {
+        switch(flow_direction)
+            {
+            case X: d_vel[min_idx].x = last_max_vel.s; break;
+            case Y: d_vel[min_idx].y = last_max_vel.s; break;
+            case Z: d_vel[min_idx].z = last_max_vel.s; break;
+            }
+        }
+    if( max_idx < Ntotal)
+        switch(flow_direction)
+            {
+            case X: d_vel[max_idx].x = last_min_vel.s;
+            case Y: d_vel[max_idx].y = last_min_vel.s;
+            case Z: d_vel[max_idx].z = last_min_vel.s;
+            }
+    }
+
+cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
+                                        Scalar4*const d_vel,
+                                        const unsigned int Ntotal,
+                                        const Scalar_Int last_max_vel,
+                                        const Scalar_Int last_min_vel,
+                                        const unsigned int flow_direction)
+    {
+    dim3 grid( 1, 1, 1);
+    dim3 threads(1, 1, 1);
+
+    gpu_update_min_max_velocity_kernel<<<grid,threads>>>(d_rtag, d_vel, Ntotal,
+                                                         last_max_vel, last_min_vel,
+                                                         flow_direction);
+
+    return cudaDeviceSynchronize();
+    }
