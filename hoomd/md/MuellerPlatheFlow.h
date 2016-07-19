@@ -1,12 +1,6 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "hoomd/ParticleGroup.h"
-#include "hoomd/Updater.h"
-#include "hoomd/Variant.h"
-
-#include <cfloat>
-#include <boost/shared_ptr.hpp>
 
 /*! \file MuellerPlatheFlow.h
 
@@ -16,6 +10,10 @@
 
 
 //!Indicate a direction in a simulation box.
+#include "hoomd/HOOMDMath.h"
+
+#ifndef __MUELLER_PLATHE_FLOW_H__
+#define __MUELLER_PLATHE_FLOW_H__
 enum Direction
     {
     X=0,//!< X-direction
@@ -25,14 +23,17 @@ enum Direction
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
-
 //Above this line shared constructs can be declared.
 #ifndef NVCC
+#include "hoomd/ParticleGroup.h"
+#include "hoomd/Updater.h"
+#include "hoomd/Variant.h"
 
-#ifndef __MUELLER_PLATHE_FLOW_H__
-#define __MUELLER_PLATHE_FLOW_H__
+#include <cfloat>
+#include <boost/shared_ptr.hpp>
 
-//! Applys a constraint force to keep a group of particles on a Ellipsoid
+
+//! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
 */
 class MuellerPlatheFlow : public Updater
@@ -97,11 +98,15 @@ class MuellerPlatheFlow : public Updater
         Scalar_Int m_last_min_vel;
         //!Temporary variables to store last found max vel;
         Scalar_Int m_last_max_vel;
+
+        //! Direction perpendicular to the slabs.
+        enum Direction m_slab_direction;
+        //! Direction of the induced flow.
+        enum Direction m_flow_direction;
+
     private:
         boost::shared_ptr<Variant> m_flow_target;
         Scalar m_flow_epsilon;
-        enum Direction m_slab_direction;
-        enum Direction m_flow_direction;
         unsigned int m_N_slabs;
         unsigned int m_min_slab;
         unsigned int m_max_slab;

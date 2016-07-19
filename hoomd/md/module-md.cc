@@ -87,6 +87,7 @@
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
+#include "MuellerPlatheFlowGPU.h"
 #endif
 
 #include <boost/python.hpp>
@@ -318,6 +319,7 @@ BOOST_PYTHON_MODULE(_md)
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
     export_ConstraintEllipsoidGPU();
+    export_MuellerPlatheFlowGPU();
 #endif
 
     // boost 1.60.0 compatibility

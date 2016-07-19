@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#include "hoomd/HOOMDMath.h"
 #include "MuellerPlatheFlow.h"
 #include "hoomd/HOOMDMPI.h"
 #include <boost/python.hpp>
@@ -107,6 +108,8 @@ void MuellerPlatheFlow::update(unsigned int timestep)
         else
             {
             update_min_max_velocity();
+            const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
+            m_exchanged_momentum += sign * (m_last_max_vel.s - m_last_min_vel.s);
             }
         // stringstream s;
         // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
@@ -146,7 +149,6 @@ void MuellerPlatheFlow::swap_min_max_slab(void)
 //     m_min_swap = old_max_swap;
 #endif//ENABLE_MPI
     }
-
 
 void MuellerPlatheFlow::set_min_slab(const unsigned int min_slab)
     {
@@ -295,8 +297,6 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
                 case Z: h_vel.data[max_idx].z = m_last_min_vel.s;
                 }
         }
-    const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
-    m_exchanged_momentum += sign * (m_last_max_vel.s - m_last_min_vel.s);
     }
 
 #ifdef ENABLE_MPI

@@ -214,11 +214,11 @@ class mueller_plathe_flow(_updater):
     to an algorithm published by Mueller Plathe.
 
     The simulation box is divided in a number of slabs.
-    Two distinct slabs of those are chosen. The max slab searched for the 
+    Two distinct slabs of those are chosen. The max slab searched for the
     max velocity componend in flow direction, the min is searched for the min.
     Afterwards, both velocity components are swapped.
     This introduces a momentum flow, which drives the flow. The strength of this flow,
-    can be controlled by the flow_target variant, which defines the integrated target momentum 
+    can be controlled by the flow_target variant, which defines the integrated target momentum
     flow. The searching and swapping is repeated until the target is reached. In the target,
     changes sign max and min slap are swapped.
 
@@ -227,7 +227,7 @@ class mueller_plathe_flow(_updater):
         flow_target (:py:mod:`hoomd.variant`): Integrated target flow.
         slab_direction (int): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
         flow_direction (int): Direction of the flow. In [0,2] (X,Y,Z).
-        n_slabs (int): Number of slabs. You want as many as possible for small disturbed 
+        n_slabs (int): Number of slabs. You want as many as possible for small disturbed
         volume, where the unphysical swapping is done. But each slab has to contain a sufficient
         number of particle.
         max_slab (int): Id < n_slabs where the max velocity component is search for.
@@ -261,15 +261,17 @@ class mueller_plathe_flow(_updater):
         # initialize the base class
         _updater.__init__(self);
 
-        self._flow_target = hoomd.variant._setup_variant_input(flow_target);        
+        self._flow_target = hoomd.variant._setup_variant_input(flow_target);
 
 
         # create the c++ mirror class
-        #if not hoomd.context.exec_conf.isCUDAEnabled():
-        self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+        else:
+            self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
 
         self.setupUpdater(period);
-    
+
     def get_n_slabs(self):
         R"""" Get the number of slabs."""
         return self.cpp_updater.getNSlabs()
@@ -314,4 +316,3 @@ class mueller_plathe_flow(_updater):
         hoomd.util.print_status_line();
         R"""Function that can be called, if the recalculation of domain decomposition is necessary."""
         self.cpp_updater.updateDomainDecomposition()
-
