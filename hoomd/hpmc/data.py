@@ -352,7 +352,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, ignores=None, ignore_overlaps=False, rigid=True, ignore_statistics=False, colors=None):
+    def make_param(self, diameters, centers, ignores=None, ignore_overlaps=False, rigid=False, ignore_statistics=False, colors=None):
         if ignores is None:
             ignores = [False for c in centers]
 
