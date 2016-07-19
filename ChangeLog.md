@@ -2,6 +2,10 @@
 
 [TOC]
 
+## v2.0.2
+
+* Support CUDA Toolkit 8.0
+
 ## v2.0.1
 
 *Bug fixes*
