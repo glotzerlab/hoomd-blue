@@ -17,10 +17,10 @@
 #include "hoomd/Variant.h"
 #include "hoomd/Autotuner.h"
 #include "MuellerPlatheFlow.h"
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <cfloat>
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 
 #ifndef __MUELLER_PLATHE_FLOW_GPU_H__
 #define __MUELLER_PLATHE_FLOW_GPU_H__
@@ -71,7 +71,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     };
 
 //! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlowGPU();
+void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
 #endif//NVCC
 #endif//__MUELLER_PLATHE_FLOW_GPU_H__

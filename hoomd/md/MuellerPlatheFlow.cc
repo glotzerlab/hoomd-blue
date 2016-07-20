@@ -5,7 +5,7 @@
 #include "MuellerPlatheFlow.h"
 #include "hoomd/HOOMDMPI.h"
 #include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 const unsigned int INVALID_TAG=UINT_MAX;
@@ -383,17 +383,12 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 
 #endif//ENABLE_MPI
 
-void export_MuellerPlatheFlow()
+void export_MuellerPlatheFlow(py::model&m)
     {
-    class_< MuellerPlatheFlow, boost::shared_ptr<MuellerPlatheFlow>, bases<Updater>, boost::noncopyable >
-        ("MuellerPlatheFlow", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<ParticleGroup>,
-         boost::shared_ptr<Variant>,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int >())
+    py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >(m,"MuellerPlatheFlow",py::bases<Updater>())
+        .def(py::init< std::shared_ptr<ParticleGroup>, std::shared_ptr<Variant>,
+             const unsigned int, const unsigned int, const unsigned int,
+             const unsigned int, const unsigned int >())
         .def("getNSlabs",&MuellerPlatheFlow::get_N_slabs)
         .def("getMinSlab",&MuellerPlatheFlow::get_min_slab)
         .def("getMaxSlab",&MuellerPlatheFlow::get_max_slab)

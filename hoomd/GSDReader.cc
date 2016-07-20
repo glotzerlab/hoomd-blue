@@ -17,9 +17,8 @@
 #include <stdexcept>
 using namespace std;
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
-using namespace boost::python;
 using namespace boost;
 
 /*! \param exec_conf The execution configuration
@@ -29,12 +28,12 @@ using namespace boost;
     The GSDReader constructor opens the GSD file, initializes an empty snapshot, and reads the file into
     memory (on the root rank).
 */
-GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                      const std::string &name,
                      const uint64_t frame)
     : m_exec_conf(exec_conf), m_timestep(0), m_name(name), m_frame(frame)
     {
-    m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
+    m_snapshot = std::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
 
     #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
@@ -191,7 +190,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
     std::vector<std::string> type_mapping;
 
     // set the default particle type mapping per the GSD HOOMD Schema
-    if (str(name) == "particles/types")
+    if (std::string(name) == "particles/types")
         type_mapping.push_back("A");
 
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
@@ -343,9 +342,10 @@ void GSDReader::readTopology()
         }
     }
 
-void export_GSDReader()
+void export_GSDReader(py::module& m)
     {
-    class_< GSDReader >("GSDReader", init<boost::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
+    py::class_< GSDReader >(m,"GSDReader")
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     ;

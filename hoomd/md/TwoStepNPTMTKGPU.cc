@@ -14,8 +14,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepNPTMTKGPU.h
@@ -33,14 +32,49 @@ using namespace std;
     \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
-TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo_group,
-                       boost::shared_ptr<ComputeThermo> thermo_group_t,
+TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
                        Scalar tauP,
-                       boost::shared_ptr<Variant> T,
-                       boost::python::list S,
+                       std::shared_ptr<Variant> T,
+                       pybind11::list S,
+                       couplingMode couple,
+                       unsigned int flags,
+                       const bool nph)
+
+    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
+    {
+    if (!m_exec_conf->isCUDAEnabled())
+        {
+        m_exec_conf->msg->error() << "Creating a TwoStepNPTMTKGPU with CUDA disabled" << endl;
+        throw std::runtime_error("Error initializing TwoStepNPTMTKGPU");
+        }
+
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
+
+    m_reduction_block_size = 512;
+
+    // this breaks memory scaling (calculate memory requirements from global group size)
+    // unless we reallocate memory with every change of the maximum particle number
+    m_num_blocks = m_group->getNumMembersGlobal() / m_reduction_block_size + 1;
+    GPUArray< Scalar > scratch(m_num_blocks, m_exec_conf);
+    m_scratch.swap(scratch);
+
+    GPUArray< Scalar> temperature(1, m_exec_conf);
+    m_temperature.swap(temperature);
+    }
+
+// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
+TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
+                       Scalar tau,
+                       Scalar tauP,
+                       std::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
@@ -341,17 +375,17 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     }
 
 
-void export_TwoStepNPTMTKGPU()
+void export_TwoStepNPTMTKGPU(py::module& m)
     {
-    class_<TwoStepNPTMTKGPU, boost::shared_ptr<TwoStepNPTMTKGPU>, bases<TwoStepNPTMTK>, boost::noncopyable>
-        ("TwoStepNPTMTKGPU", init< boost::shared_ptr<SystemDefinition>,
-                       boost::shared_ptr<ParticleGroup>,
-                       boost::shared_ptr<ComputeThermo>,
-                       boost::shared_ptr<ComputeThermo>,
+    py::class_<TwoStepNPTMTKGPU, std::shared_ptr<TwoStepNPTMTKGPU> >(m, "TwoStepNPTMTKGPU", py::base<TwoStepNPTMTK>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
+                       std::shared_ptr<ComputeThermo>,
+                       std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
-                       boost::shared_ptr<Variant>,
-                       boost::python::list,
+                       std::shared_ptr<Variant>,
+                       pybind11::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,
                        const bool>())

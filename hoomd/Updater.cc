@@ -6,8 +6,7 @@
 
 #include "Updater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file Updater.cc
     \brief Defines a base class for all updaters
@@ -16,7 +15,7 @@ using namespace boost::python;
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data and a NULL profiler.
 */
-Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef)
+Updater::Updater(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
     {
     // sanity check
@@ -29,37 +28,20 @@ Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef)
     This method does not need to be called, as Updaters will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void Updater::setProfiler(boost::shared_ptr<Profiler> prof)
+void Updater::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
 
-//! Wrapper class to expose pure virtual method to python
-class UpdaterWrap: public Updater, public wrapper<Updater>
+void export_Updater(py::module& m)
     {
-    public:
-        //! Forwards construction on to the base class
-        /*! \param sysdef parameter to forward to the base class constructor
-        */
-        UpdaterWrap(boost::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
-
-        //! Hanldes pure virtual Updater::update()
-        /*! \param timestep parameter to forward to Updater::update()
-        */
-        void update(unsigned int timestep)
-            {
-            this->get_override("update")(timestep);
-            }
-    };
-
-void export_Updater()
-    {
-    class_<UpdaterWrap, boost::shared_ptr<UpdaterWrap>, boost::noncopyable>("Updater", init< boost::shared_ptr<SystemDefinition> >())
-    .def("update", pure_virtual(&Updater::update))
+    py::class_<Updater, std::shared_ptr<Updater> >(m,"Updater")
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
+    .def("update", &Updater::update)
     .def("setProfiler", &Updater::setProfiler)
     ;
     }

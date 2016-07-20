@@ -28,9 +28,10 @@ extern const Scalar INVALID_VEL;
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <cfloat>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 //! By exchanging velocities based on their spatial position a flow is created.
@@ -131,7 +132,7 @@ class MuellerPlatheFlow : public Updater
     };
 
 //! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlow();
+void export_MuellerPlatheFlow(pybind11::module& m));
 
 #endif//NVCC
 #endif//__MUELLER_PLATHE_FLOW_H__

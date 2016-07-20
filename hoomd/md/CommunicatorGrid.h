@@ -9,7 +9,7 @@
 
 #include "hoomd/GPUArray.h"
 #include "hoomd/SystemDefinition.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifdef ENABLE_MPI
 
@@ -20,17 +20,17 @@ class CommunicatorGrid
     {
     public:
         //! Constructor
-        CommunicatorGrid(boost::shared_ptr<SystemDefinition> sysdef, uint3 dim,
+        CommunicatorGrid(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
             uint3 embed, uint3 offset, bool add_outer_layer_to_inner);
 
         //! Communicate grid
         virtual void communicate(const GPUArray<T>& grid);
 
     protected:
-        boost::shared_ptr<SystemDefinition> m_sysdef;        //!< System definition
-        boost::shared_ptr<ParticleData> m_pdata;             //!< Particle data
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-        boost::shared_ptr<Profiler> m_prof;                  //!< Profiler
+        std::shared_ptr<SystemDefinition> m_sysdef;        //!< System definition
+        std::shared_ptr<ParticleData> m_pdata;             //!< Particle data
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+        std::shared_ptr<Profiler> m_prof;                  //!< Profiler
 
         uint3 m_dim;                                         //!< Dimensions of grid
         uint3 m_embed;                                       //!< Embedding dimensions

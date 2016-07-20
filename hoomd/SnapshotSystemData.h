@@ -20,6 +20,10 @@
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 /*! \ingroup data_structs
 */
 
@@ -85,10 +89,11 @@ struct SnapshotSystemData {
     /*! \param exec_conf The execution configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
     */
-    void broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf);
+    void broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
 //! Export SnapshotParticleData to python
-void export_SnapshotSystemData();
+
+void export_SnapshotSystemData(pybind11::module& m);
 
 #endif

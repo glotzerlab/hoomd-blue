@@ -10,8 +10,8 @@
 #include <cuda_runtime.h>
 
 #include <string.h>
+namespace py = pybind11;
 
-#include <boost/python.hpp>
 #include <boost/bind.hpp>
 
 /*! \file ForceDistanceConstraintGPU.cc
@@ -20,7 +20,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(boost::shared_ptr<SystemDefinition> sysdef)
+ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef)
        : ForceDistanceConstraint(sysdef)
 #ifdef CUSOLVER_AVAILABLE
         , m_cusolver_rf_initialized(false),
@@ -613,9 +613,9 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
     }
 
-void export_ForceDistanceConstraintGPU()
+void export_ForceDistanceConstraintGPU(py::module& m)
     {
-    class_< ForceDistanceConstraintGPU, boost::shared_ptr<ForceDistanceConstraintGPU>, bases<ForceDistanceConstraint>, boost::noncopyable >
-    ("ForceDistanceConstraintGPU", init< boost::shared_ptr<SystemDefinition> >())
-    ;
+    py::class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU", py::base<ForceDistanceConstraint>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
+        ;
     }

@@ -19,7 +19,7 @@
  *  \param add_outer_layer_to_inner True if outer ghost layer should be added to inner cells
  */
 template<typename T>
-CommunicatorGridGPU<T>::CommunicatorGridGPU(boost::shared_ptr<SystemDefinition> sysdef, uint3 dim,
+CommunicatorGridGPU<T>::CommunicatorGridGPU(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
             uint3 embed, uint3 offset, bool add_outer_layer_to_inner)
     : CommunicatorGrid<T>(sysdef, dim, embed, offset, add_outer_layer_to_inner),
       m_n_unique_recv_cells(0)

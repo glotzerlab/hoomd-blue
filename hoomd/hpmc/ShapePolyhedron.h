@@ -8,6 +8,7 @@
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeSpheropolyhedron.h"
+#include <cfloat>
 
 #include "GPUTree.h"
 

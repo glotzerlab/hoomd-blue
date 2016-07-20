@@ -11,8 +11,7 @@
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUStencil.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -27,11 +26,11 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                                Scalar r_cut,
                                                Scalar r_buff,
-                                               boost::shared_ptr<CellList> cl,
-                                               boost::shared_ptr<CellListStencil> cls)
+                                               std::shared_ptr<CellList> cl,
+                                               std::shared_ptr<CellListStencil> cls)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true), m_needs_resort(true)
     {
@@ -39,11 +38,11 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
 
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     // construct the default cell list stencil generator for the current cell list if one was not specified already
     if (!m_cls)
-        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     // types are always required now
@@ -324,9 +323,9 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUStencil()
+void export_NeighborListGPUStencil(py::module& m)
     {
-    class_<NeighborListGPUStencil, boost::shared_ptr<NeighborListGPUStencil>, bases<NeighborListGPU>, boost::noncopyable >
-        ("NeighborListGPUStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+    py::class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil", py::base<NeighborListGPU>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

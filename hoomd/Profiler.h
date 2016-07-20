@@ -30,6 +30,8 @@
 #include <iostream>
 #include <cassert>
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Allow score-p instrumentation
 #ifdef SCOREP_USER_ENABLE
 #include <scorep/SCOREP_User.h>
@@ -130,9 +132,9 @@ class Profiler
         void pop(uint64_t flop_count = 0, uint64_t byte_count = 0);
 
         //! Pushes a new sub-category into the current category & syncs the GPUs
-        void push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name);
+        void push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name);
         //! Pops back up to the next super-category & syncs the GPUs
-        void pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
+        void pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
 
     private:
         ClockSource m_clk;  //!< Clock to provide timing information
@@ -148,7 +150,10 @@ class Profiler
     };
 
 //! Exports the Profiler class to python
-void export_Profiler();
+#ifndef NVCC
+void export_Profiler(pybind11::module& m);
+#endif
+
 
 //! Output operator for Profiler
 std::ostream& operator<<(std::ostream &o, Profiler& prof);
@@ -156,7 +161,7 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 /////////////////////////////////////
 // Profiler inlines
 
-inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
+inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
@@ -166,7 +171,7 @@ inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_
     push(name);
    }
 
-inline void Profiler::pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
+inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen

@@ -17,8 +17,8 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 
 #include <stdexcept>
 #include <iomanip>
@@ -34,7 +34,7 @@ using namespace std;
 
     If \a fname is an empty string, no file is output.
 */
-Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
+Logger::Logger(std::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
@@ -89,7 +89,7 @@ Logger::~Logger()
     After the compute is registered, all of the compute's provided log quantities are available for
     logging.
 */
-void Logger::registerCompute(boost::shared_ptr<Compute> compute)
+void Logger::registerCompute(std::shared_ptr<Compute> compute)
     {
     vector< string > provided_quantities = compute->getProvidedLogQuantities();
 
@@ -113,7 +113,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
     After the updater is registered, all of the updater's provided log quantities are available for
     logging.
 */
-void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
+void Logger::registerUpdater(std::shared_ptr<Updater> updater)
     {
     vector< string > provided_quantities = updater->getProvidedLogQuantities();
 
@@ -137,7 +137,7 @@ void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
     After the callback is registered \a name is available as a logger quantity. The callback must return a scalar
     value and accept the time step as an argument.
 */
-void Logger::registerCallback(std::string name, boost::python::object callback)
+void Logger::registerCallback(std::string name, py::object callback)
     {
     // first check if this quantity is already set, printing a warning if so
     if (   m_compute_quantities.count(name)
@@ -336,16 +336,16 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
     else if (m_callback_quantities.count(quantity))
         {
         // get a quantity from a callback
-        boost::python::object rv = m_callback_quantities[quantity](timestep);
-        extract<Scalar> extracted_rv(rv);
-        if (extracted_rv.check())
+        try
             {
-            return extracted_rv();
+            py::object rv = m_callback_quantities[quantity](timestep);
+            Scalar extracted_rv = rv.cast<Scalar>();
+            return extracted_rv;
             }
-        else
+        catch (py::cast_error)
             {
-            m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
-            return Scalar(0.0);
+                m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
+                return Scalar(0.0);
             }
         }
     else
@@ -356,10 +356,10 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
     }
 
 
-void export_Logger()
+void export_Logger(py::module& m)
     {
-    class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
-    ("Logger", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
+    py::class_<Logger, std::shared_ptr<Logger> >(m,"Logger", py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)
     .def("registerCallback", &Logger::registerCallback)

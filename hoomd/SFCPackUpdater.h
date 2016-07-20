@@ -15,10 +15,11 @@
 #include "Updater.h"
 #include "GPUVector.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
@@ -50,7 +51,7 @@ class SFCPackUpdater : public Updater
     {
     public:
         //! Constructor
-        SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~SFCPackUpdater();
@@ -98,6 +99,6 @@ class SFCPackUpdater : public Updater
    };
 
 //! Export the SFCPackUpdater class to python
-void export_SFCPackUpdater();
+void export_SFCPackUpdater(pybind11::module& m);
 
 #endif

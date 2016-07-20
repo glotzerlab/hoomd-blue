@@ -16,12 +16,16 @@
 
 #include "HPMCCounters.h"   // do we need this to keep track of the statistics?
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 class ExternalField : public Compute
     {
     public:
-        ExternalField(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) {}
+        ExternalField(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) {}
         /*! calculateBoltzmannWeight(unsigned int timestep)
             method used to calculate the boltzmann weight contribution for the
             external field of the entire system. This is used to interface with
@@ -33,12 +37,12 @@ class ExternalField : public Compute
             Scalar bw2 = external->calculateBoltzmannWeight(timestep);
             pacc = min(1, bw2/bw1);
         */
-        virtual Scalar calculateBoltzmannWeight(unsigned int timestep) = 0;
+        virtual Scalar calculateBoltzmannWeight(unsigned int timestep){return 0;}
 
         virtual Scalar calculateBoltzmannFactor(const Scalar4 * const  position_old,
                                                 const Scalar4 * const  orientation_old,
                                                 const BoxDim * const  box_old
-                                            )  = 0;
+                                            ){return 0;}
 
         virtual bool hasVolume() {return false;}
 
@@ -53,7 +57,7 @@ template< class Shape >
 class ExternalFieldMono : public ExternalField
     {
     public:
-        ExternalFieldMono(boost::shared_ptr<SystemDefinition> sysdef) : ExternalField(sysdef) {}
+        ExternalFieldMono(std::shared_ptr<SystemDefinition> sysdef) : ExternalField(sysdef) {}
 
         ~ExternalFieldMono(){}
 
@@ -61,10 +65,10 @@ class ExternalFieldMono : public ExternalField
         virtual void compute(unsigned int timestep) {}
 
         //! method to accept or reject the proposed move used by the integrator.
-        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng) = 0;
+        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng){return 0;}
 
         //! method to calculate the boltzmann factor for the proposed move.
-        virtual Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new) = 0;
+        virtual Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
         virtual void reset(unsigned int timestep) {}
 
@@ -72,45 +76,18 @@ class ExternalFieldMono : public ExternalField
         /* Nothing yet */
     };
 
-//! Wrapper class for wrapping pure virtual methods
-template<class Shape>
-class ExternalFieldMonoWrap : public ExternalFieldMono<Shape>, public boost::python::wrapper< ExternalFieldMono<Shape> >
-    {
-    public:
-        //! Constructor
-        ExternalFieldMonoWrap(boost::shared_ptr<SystemDefinition> sysdef) :  ExternalFieldMono<Shape>(sysdef) { }
-        //! wrap the abstract method.
-        void compute(unsigned int timestep)
-            {
-            this->get_override("compute")(timestep);
-            }
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng)
-            {
-            return this->get_override("accept")(index, position_old, shape_old, position_new, shape_new, rng);
-            }
-        Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
-            {
-            return this->get_override("boltzmann")(index, position_old, shape_old, position_new, shape_new);
-            }
-        Scalar calculateBoltzmannWeight(unsigned int timestep)
-            {
-            return this->get_override("calculateBoltzmannWeight")(timestep);
-            }
-        Scalar calculateBoltzmannFactor(const Scalar4 * const  position_old,
-                                        const Scalar4 * const  orientation_old,
-                                        const BoxDim * const  box_old)
-            {
-            return this->get_override("calculateBoltzmannFactor")(position_old,
-                                                    orientation_old,
-                                                    box_old);
-            }
-    };
 
 template<class Shape>
-void export_ExternalFieldInterface(std::string name)
+void export_ExternalFieldInterface(pybind11::module& m, std::string name)
     {
-    class_< ExternalFieldMonoWrap<Shape>, boost::shared_ptr< ExternalFieldMonoWrap<Shape> >, boost::noncopyable >
-    ((name + "Interface").c_str(), init< boost::shared_ptr<SystemDefinition> >());
+   pybind11::class_< ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMono<Shape> > >(m, (name + "Interface").c_str(), pybind11::base<Compute>())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
+    .def("compute", &ExternalFieldMono<Shape>::compute)
+    .def("accept", &ExternalFieldMono<Shape>::accept)
+    .def("boltzmann", &ExternalFieldMono<Shape>::boltzmann)
+    .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
+    .def("calculateBoltzmannFactor", &ExternalFieldMono<Shape>::calculateBoltzmannFactor)
+    ;
     }
 
 } // end namespace hpmc

@@ -16,8 +16,8 @@
 #include "hoomd/ParticleGroup.h"
 
 #include <string>
-
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__
@@ -50,9 +50,9 @@ class HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+        HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                         const std::string& base_fname,
-                        boost::shared_ptr<ParticleGroup> group,
+                        std::shared_ptr<ParticleGroup> group,
                         bool mode_restart=false);
 
         //! Destructor
@@ -105,7 +105,7 @@ class HOOMDDumpWriter : public Analyzer
         void writeFile(std::string fname, unsigned int timestep);
     private:
         std::string m_base_fname;   //!< String used to store the file name of the XML file
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Particle group to dump
+        std::shared_ptr<ParticleGroup> m_group;   //!< Particle group to dump
 
         bool m_output_position;     //!< true if the particle positions should be written
         bool m_output_image;        //!< true if the particle positions should be written
@@ -130,6 +130,6 @@ class HOOMDDumpWriter : public Analyzer
         };
 
 //! Exports the HOOMDDumpWriter class to python
-void export_HOOMDDumpWriter();
+void export_HOOMDDumpWriter(pybind11::module& m);
 
 #endif

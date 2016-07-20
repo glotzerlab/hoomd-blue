@@ -4,7 +4,7 @@
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
 #include <boost/python.hpp>
-using namespace boost::python;
+namespace py=pybind11;
 using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
@@ -98,17 +98,12 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
 
 
 
-void export_MuellerPlatheFlowGPU()
+void export_MuellerPlatheFlowGPU(py::model&m)
     {
-    class_< MuellerPlatheFlowGPU, boost::shared_ptr<MuellerPlatheFlowGPU>, bases<MuellerPlatheFlow>, boost::noncopyable >
-        ("MuellerPlatheFlowGPU", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<ParticleGroup>,
-         boost::shared_ptr<Variant>,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int,
-         const unsigned int >())
+    py::class_< MuellerPlatheFlowGPU, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU",py::base<MuellerPlatheFlow>())
+        .def(py::init< std::shared_ptr<ParticleGroup>, std::shared_ptr<Variant>,
+             const unsigned int, const unsigned int, const unsigned int,
+             const unsigned int, const unsigned int >())
         ;
     }
 #endif //ENABLE_CUDA
