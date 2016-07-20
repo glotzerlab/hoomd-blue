@@ -4,8 +4,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "MuellerPlatheFlow.h"
 #include "hoomd/HOOMDMPI.h"
-#include <boost/python.hpp>
-namespace py = pybind11;
+
+namespace py=pybind11;
 using namespace std;
 
 const unsigned int INVALID_TAG=UINT_MAX;
@@ -14,9 +14,9 @@ const Scalar INVALID_VEL = FLT_MAX; //should be ok, even for double.
 
 //! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
 
-MuellerPlatheFlow::MuellerPlatheFlow(boost::shared_ptr<SystemDefinition> sysdef,
-                                     boost::shared_ptr<ParticleGroup> group,
-                                     boost::shared_ptr<Variant> flow_target,
+MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<ParticleGroup> group,
+                                     std::shared_ptr<Variant> flow_target,
                                      const unsigned int slab_direction,
                                      const unsigned int flow_direction,
                                      const unsigned int N_slabs,
@@ -177,7 +177,7 @@ void MuellerPlatheFlow::set_max_slab(const unsigned int max_slab)
 void MuellerPlatheFlow::update_domain_decomposition(void)
     {
 #ifdef ENABLE_MPI
-    boost::shared_ptr<DomainDecomposition> dec = m_pdata->getDomainDecomposition();
+    std::shared_ptr<DomainDecomposition> dec = m_pdata->getDomainDecomposition();
     if( dec )
         {
         const Scalar min_frac = m_min_slab/static_cast<Scalar>(m_N_slabs);
@@ -383,12 +383,13 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 
 #endif//ENABLE_MPI
 
-void export_MuellerPlatheFlow(py::model&m)
+void export_MuellerPlatheFlow(py::module& m)
     {
-    py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >(m,"MuellerPlatheFlow",py::bases<Updater>())
-        .def(py::init< std::shared_ptr<ParticleGroup>, std::shared_ptr<Variant>,
-             const unsigned int, const unsigned int, const unsigned int,
-             const unsigned int, const unsigned int >())
+    py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >
+        (m,"MuellerPlatheFlow",py::base<Updater>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
+             std::shared_ptr<Variant>, const unsigned int, const unsigned int,
+             const unsigned int, const unsigned int, const unsigned int >() )
         .def("getNSlabs",&MuellerPlatheFlow::get_N_slabs)
         .def("getMinSlab",&MuellerPlatheFlow::get_min_slab)
         .def("getMaxSlab",&MuellerPlatheFlow::get_max_slab)

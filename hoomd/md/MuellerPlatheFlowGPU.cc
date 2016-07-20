@@ -3,7 +3,7 @@
 
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
-#include <boost/python.hpp>
+
 namespace py=pybind11;
 using namespace std;
 
@@ -12,9 +12,9 @@ using namespace std;
 #ifdef ENABLE_CUDA
 #include "MuellerPlatheFlowGPU.cuh"
 
-MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                           boost::shared_ptr<ParticleGroup> group,
-                                           boost::shared_ptr<Variant> flow_target,
+MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<ParticleGroup> group,
+                                           std::shared_ptr<Variant> flow_target,
                                            const unsigned int slab_direction,
                                            const unsigned int flow_direction,
                                            const unsigned int N_slabs,
@@ -98,12 +98,12 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
 
 
 
-void export_MuellerPlatheFlowGPU(py::model&m)
+void export_MuellerPlatheFlowGPU(py::module&m)
     {
     py::class_< MuellerPlatheFlowGPU, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU",py::base<MuellerPlatheFlow>())
-        .def(py::init< std::shared_ptr<ParticleGroup>, std::shared_ptr<Variant>,
-             const unsigned int, const unsigned int, const unsigned int,
-             const unsigned int, const unsigned int >())
+        .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
+             std::shared_ptr<Variant>, const unsigned int, const unsigned int,
+             const unsigned int, const unsigned int, const unsigned int >())
         ;
     }
 #endif //ENABLE_CUDA

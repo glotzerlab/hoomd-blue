@@ -211,6 +211,8 @@ class constraint_ellipsoid(_updater):
 class mueller_plathe_flow(_updater):
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.
+      * Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
+      * An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999.
 
     The simulation box is divided in a number of slabs.
     Two distinct slabs of those are chosen. The max slab searched for the
@@ -233,7 +235,8 @@ class mueller_plathe_flow(_updater):
         min_slab (int): Id < n_slabs where the min velocity component is search for.
 
     .. attention::
-        This updater has to be always applied every timestep.
+        * This updater has to be always applied every timestep.
+        * The masses of the particles are always expected to be zero.
 
     Note:
         If you set this updater with unrealistic values, it algorithm might not terminate,
@@ -287,7 +290,7 @@ class mueller_plathe_flow(_updater):
         R""" Get the tolerance between target flow and actual achieved flow."""
         return self.cpp_updater.getFlowEpsilon()
 
-    def get_flow_epsilon(self,epsilon):
+    def set_flow_epsilon(self,epsilon):
         R""" Set the tolerance between target flow and actual achieved flow.
 
            Args:

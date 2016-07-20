@@ -39,9 +39,9 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
         //! \param max_slabs Index of slabs, where the max velocity is searched.
         //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
         //! If it is not, the number is rescaled and the user is informed.
-        MuellerPlatheFlowGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
-                             boost::shared_ptr<Variant> flow_target,
+        MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<Variant> flow_target,
                              const unsigned int slab_direction,
                              const unsigned int flow_direction,
                              const unsigned int N_slabs,

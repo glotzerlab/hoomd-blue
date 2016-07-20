@@ -48,9 +48,9 @@ class MuellerPlatheFlow : public Updater
         //! \param max_slabs Index of slabs, where the max velocity is searched.
         //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
         //! If it is not, the number is rescaled and the user is informed.
-        MuellerPlatheFlow(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<ParticleGroup> group,
-                          boost::shared_ptr<Variant> flow_target,
+        MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<ParticleGroup> group,
+                          std::shared_ptr<Variant> flow_target,
                           const unsigned int slab_direction,
                           const unsigned int flow_direction,
                           const unsigned int N_slabs,
@@ -90,7 +90,7 @@ class MuellerPlatheFlow : public Updater
         void set_flow_epsilon(const Scalar flow_epsilon){m_flow_epsilon=flow_epsilon;}
     protected:
         //! Group of particles, which are searched for the velocity exchange
-        boost::shared_ptr<ParticleGroup> m_group;
+        std::shared_ptr<ParticleGroup> m_group;
 
         virtual void search_min_max_velocity(void);
         virtual void update_min_max_velocity(void);
@@ -106,7 +106,7 @@ class MuellerPlatheFlow : public Updater
         enum Direction m_flow_direction;
 
     private:
-        boost::shared_ptr<Variant> m_flow_target;
+        std::shared_ptr<Variant> m_flow_target;
         Scalar m_flow_epsilon;
         unsigned int m_N_slabs;
         unsigned int m_min_slab;
@@ -132,7 +132,7 @@ class MuellerPlatheFlow : public Updater
     };
 
 //! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlow(pybind11::module& m));
+void export_MuellerPlatheFlow(pybind11::module& m);
 
 #endif//NVCC
 #endif//__MUELLER_PLATHE_FLOW_H__
