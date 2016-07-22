@@ -749,12 +749,10 @@ class tune(object):
                     newval = float(1e-6)
                 if (newval > max_val):
                     newval = max_val
-
             if self.type is None:
                 newquantities[param_name] = float(newval)
             else:
                 newquantities[param_name] = {self.type:float(newval)}
-        
         for q in newquantities:
             self.tunables[q]['set'](newquantities[q])
         hoomd.util.unquiet_status();
